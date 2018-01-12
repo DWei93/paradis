@@ -225,8 +225,8 @@ static void MeshCoarsen(Home_t *home)
  *                      as a quick kludge to find the closest precise plane.
  */
                         param->allowFuzzyGlidePlanes = 0;
-                        FindPreciseGlidePlane(home, burg1, lineDir1, testPlane1);
-                        FindPreciseGlidePlane(home, burg2, lineDir2, testPlane2);
+                        FindPreciseGlidePlane(home, burg1, lineDir1, testPlane1, node, nbr1);
+                        FindPreciseGlidePlane(home, burg2, lineDir2, testPlane2, node, nbr2);
                         param->allowFuzzyGlidePlanes = 1;
 
                         if (fabs(DotProduct(testPlane1, testPlane2)) > 0.99) {

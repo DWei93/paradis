@@ -28,11 +28,10 @@ void FreeInNodeArray(InData_t *inData, int numNodes)
         for (i = 0; i < numNodes; i++) {
             FreeNodeArms(&inData->node[i]);
         }
-
         free(inData->node);
-
         inData->node      = (Node_t *)NULL;
         inData->nodeCount = 0;
+		
 
         return;
 }

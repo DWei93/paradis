@@ -25,10 +25,12 @@
 void WriteVelocity(Home_t *home, char *baseFileName, int ioGroup,
                    int firstInGroup, int writePrologue, int writeEpilogue)
 {
-        int      i, newNodeKeyPtr;
-        real8    vx, vy, vz, burgMag;
+        int      i, newNodeKeyPtr, j;
+        real8    vx, vy, vz, burgMag, velocity, length;
+	real8    velDir[3], fNor, gForce[3], armf[3];
+	real8	 lDir[3], nDir[3], gDir[3], dot;
         char     fileName[256];
-        Node_t   *node;
+        Node_t   *node, *nbr;
         Param_t  *param = home->param;
         FILE     *fp;
         struct stat statbuf;
@@ -48,6 +50,7 @@ void WriteVelocity(Home_t *home, char *baseFileName, int ioGroup,
 
 #ifdef PARALLEL
 #ifdef DO_IO_TO_NFS
+
 /*
  *      It appears that when multiple processes on different hosts
  *      write to the same NFS-mounted file (even if access is
@@ -71,6 +74,10 @@ void WriteVelocity(Home_t *home, char *baseFileName, int ioGroup,
             if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
                 Fatal("WriteVelocity: Open error %d on %s\n", errno, fileName);
             }
+
+	    if(writePrologue){
+		fprintf(fp, "variables = X,Y,Z,gF_X,gF_Y,gF_z,vel,length,sign\n");	
+	    }
         } else {
             if ((fp = fopen(fileName, "a")) == (FILE *)NULL) {
                 Fatal("WriteVelocity: Open error %d on %s\n", errno, fileName);
@@ -89,12 +96,56 @@ void WriteVelocity(Home_t *home, char *baseFileName, int ioGroup,
                 continue;
             }
 
-            vx =  node->vX * burgMag;
-            vy =  node->vY * burgMag;
-            vz =  node->vZ * burgMag;
+	    length = 0;
+	    VECTOR_ZERO(gForce);
+	    for(j=0; j<node->numNbrs; j++){
+                nbr = GetNeighborNode(home, node, j);
+		if(nbr == (Node_t *)NULL)continue;
+		length += (NodeDistance(home, node, nbr)/2.0);
+		
+	        lDir[X] = nbr->x - node->x;
+	        lDir[Y] = nbr->y - node->y;
+	        lDir[Z] = nbr->z - node->z;
+	        ZImage(param, lDir, lDir+1, lDir+2);
 
-            fprintf(fp, "%e %e %e %d  (%d,%d)\n", vx, vy, vz, node->sgnv,
-                    node->myTag.domainID, node->myTag.index);
+	        if(Normal(lDir) < 1e-5) continue;
+	        NormalizeVec(lDir);
+	        nDir[X] = node->nx[j];
+	        nDir[Y] = node->ny[j];
+	        nDir[Z] = node->nz[j];
+	        cross(lDir, nDir, gDir);
+
+	        if(Normal(gDir) < 1e-5) continue;
+	        NormalizeVec(gDir);
+
+	        armf[X] = node->armfx[j];
+	        armf[Y] = node->armfy[j];
+	        armf[Z] = node->armfz[j];
+    
+	        dot = DotProduct(armf, gDir);
+	        gForce[X] += (dot * gDir[X]);
+	        gForce[Y] += (dot * gDir[Y]);
+	        gForce[Z] += (dot * gDir[Z]);
+	    }
+	    
+            vx =  node->vX;
+            vy =  node->vY;
+            vz =  node->vZ;
+	    velocity = sqrt(vx*vx +vy*vy + vz*vz);
+
+	    velDir[X]= node->vX;
+	    velDir[Y]= node->vY;
+	    velDir[Z]= node->vZ;
+	    NormalizeVec(velDir);
+
+	    fNor = sqrt(node->fX * node->fX +
+	    		node->fY * node->fY +
+	    		node->fZ * node->fZ);
+
+            fprintf(fp, "%7.1f %7.1f %7.1f %10.3e %10.3e %10.3e %10.3e %7.1f %2d \n", 
+		    node->x, node->y, node->z, 
+		    fNor*velDir[X], fNor*velDir[Y],fNor*velDir[Z],
+		    velocity, length, node->sgnv);
         }
 
         fclose(fp);

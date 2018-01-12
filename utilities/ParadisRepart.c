@@ -783,7 +783,7 @@ static void ReadDataFile(Home_t *home, char *fileName, CellData_t *cellList,
  */
         tokenType = GetNextToken(fp, token, maxTokenLen);
         pIndex = LookupParam(dataParamList, token);
-
+		
         if (pIndex < 0) {
 /*
  *          If the token does not correspond to a known parameter, it
@@ -952,7 +952,7 @@ static void ReadDataFile(Home_t *home, char *fileName, CellData_t *cellList,
 /*
  *          Got information on the next node, so deal with it.
  */
-            sscanf(inLine, "%*d,%*d %lf %lf %lf %d %*d",
+            sscanf(inLine, "%*d,%*d %lf %lf %lf %d %*d %*f",
                    &nodeList[i].coord[X], &nodeList[i].coord[Y],
                    &nodeList[i].coord[Z], &numArms);
 
@@ -2142,8 +2142,8 @@ main(int argc, char *argv[])
         rename(oldFileName, backupFileName);
         rename(newFileName, outFileName);
 
-        printf("\n  Original file:  %s\n", backupFileName);
-        printf("  New file:       %s\n\n", outFileName);
+        printf("\nOriginal file:  %s\n", backupFileName);
+        printf("New file:       %s\n\n", outFileName);
 
         exit(0);
 }

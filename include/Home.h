@@ -53,6 +53,7 @@
 #include "Matrix.h"
 #include "DebugFunctions.h"
 #include "Force.h"
+#include "Grain.h"
 
 #ifdef PARALLEL
 #include "mpi.h"
@@ -424,6 +425,10 @@ struct _home {
                                      /* the last process in each IO group*/
 #endif
 
+		Grain_t		**grainKeys;
+		int			newGrainKeyPtr;
+		
+		
 
 #ifdef _FEM
 /*

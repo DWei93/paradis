@@ -87,6 +87,8 @@
 #include "ParadisGen.h"
 #include "Restart.h"
 #include "Decomp.h"
+#include "Mobility.h"
+#include "Grain.h"
 
 
 /*
@@ -116,24 +118,37 @@ FuncData_t funcData[FTYPE_MAX] = {
  *                        abbreviation    value
  */
 Option_t optList[OPT_MAX] = {
-        {OPT_CUBEL,     "cubel",    2, 1},
-        {OPT_FRLEN,     "frlen",    1, 1},
-        {OPT_HELP,      "help",     3, 0},
-        {OPT_HEXSIZE,   "hexsize",  3, 1},
-        {OPT_LOOPTYPE,  "looptype", 1, 1},
-        {OPT_MAXSEG,    "maxseg",   1, 1},
-        {OPT_NCHAINS,   "nchains",  2, 1},
-        {OPT_NFRSRCS,   "nfrsrcs",  2, 1},
-        {OPT_NLOOPS,    "nloops",   2, 1},
-        {OPT_OUTFILE,   "outfile",  1, 1},
-        {OPT_PBC,       "pbc",      1, 1},
-        {OPT_RADIUS,    "radius",   1, 1},
-        {OPT_SEED,      "seed",     1, 1},
-        {OPT_TYPE,      "type",     1, 1},
-        {OPT_VACANCY,   "vacancy",  1, 0},
-        {OPT_XSURF,     "xsurf",    1, 1},
-        {OPT_YSURF,     "ysurf",    1, 1},
-        {OPT_ZSURF,     "zsurf",    1, 1}
+        {OPT_CUBEL,     "cubel",    	3, 1},
+	{OPT_HEIGHTRATIO,"heightRatio",	3, 1},
+	{OPT_DELTA_NUMS,"deltaNums",	3, 1},
+        {OPT_FRLEN,     "frlen",    	3, 1},
+        {OPT_HELP,      "help",     	3, 0},
+        {OPT_HEXSIZE,   "hexsize",  	3, 1},
+        {OPT_LOOPTYPE,  "looptype", 	3, 1},
+        {OPT_MAXSEG,    "maxseg",   	4, 1},
+        {OPT_NCHAINS,   "nchains",  	3, 1},
+        {OPT_NFRSRCS,   "nfrsrcs",  	3, 1},
+        {OPT_NLOOPS,    "nloops",   	3, 1},
+        {OPT_OUTFILE,   "outfile",  	4, 1},
+        {OPT_PBC,       "pbc",      	3, 1},
+        {OPT_RADIUS,    "radius",   	3, 1},
+        {OPT_SEED,      "seed",     	3, 1},
+        {OPT_TYPE,      "type",     	3, 1},
+        {OPT_VACANCY,   "vacancy",  	3, 0},
+        {OPT_XSURF,     "xsurf",    	3, 1},
+        {OPT_YSURF,     "ysurf",    	3, 1},
+        {OPT_ZSURF,     "zsurf",    	3, 1},
+	{OPT_POLY,	"polycrystal",	3, 1},
+	{OPT_NGRAIN,	"nGrain",	3, 1},
+	{OPT_TWIN_RATIO,"twinRatio",	3, 1},
+	{OPT_NLAYERS,   "nLayers",	3, 1},
+	{OPT_XMATDIR,   "xMatDir",	3, 1},
+	{OPT_YMATDIR,   "yMatDir",	3, 1},
+	{OPT_ZMATDIR,   "zMatDir",	3, 1},
+	{OPT_TBANGLE,   "TBAngle",	3, 1},
+	{OPT_SRCLENTYPE,"srcLenType",	3, 1},
+	{OPT_MAXDENSITY,"maxDensity",	4, 1}
+
 };
 
 
@@ -182,12 +197,16 @@ static void Usage(char *program)
         printf("               [-seed <seedval] [-type <configtype>] \n");
         printf("               [-vacancy]\n");
         printf("\n");
-        printf("    For <type> 'frank-read-src'\n");
+        printf("    For <type> 'frank-read-src (FCC materials)'\n");
         printf("\n");
-        printf("    %10s [-cubel <cubelength>] \n", program);
+        printf("    %10s 	   [-cubel <cubelength>] \n", program);
+        printf("               [-srcLenType <FR souce length type>] \n");
         printf("               [-frlen minsize[,maxsize]] [-help] \n");
         printf("               [-maxseg <maxseglen] [-nfrsrcs <numsrcs>]\n");
         printf("               [-seed <seedval] [-type <configtype>]\n");
+	printf("			   [-polycrystal <1 = ploy>]  [-nGrain <num grains>]\n");
+	printf("			   [-twinRatio <twinRatio>] \n");
+	printf("			   [-heightRatio <heightRatio>]  [-deltaNums <deltaNums of FR>]\n");
         printf("\n");
         printf("    For <type> 'fcc-irrad'\n");
         printf("\n");
@@ -312,10 +331,11 @@ static void PrintHelp(char *program)
 static void InitDefaultValues(InArgs_t *inArgs)
 {
         inArgs->cubeLength = 35000;
+        inArgs->heightRatio = 1;   
         inArgs->hexl       = 50;
         inArgs->loopType   = 1;
         inArgs->interstitialLoops = 1;
-        inArgs->maxSegLen  = 500.0;
+        inArgs->maxSegLen  = 200.0;
         inArgs->numChains  = 2;
         inArgs->numFRSrcs  = 16;
         inArgs->frLenMin   = 3500;
@@ -326,13 +346,35 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->seed       = time(0) + getpid();
         inArgs->type       = FTYPE_SCREW;
         inArgs->pbcVal     = 0;  /* pbc in no dimensions */
-
+        inArgs->polycrystal = 1;
+        inArgs->nGrain		= 2;
+        inArgs->twinRatio	= 0.5;
+        	
+        inArgs->deltaNums	= 0;
+        inArgs->nLayers		= 1;
+        inArgs->srcLenType	= 0;
+		
         inArgs->xSurf[0]   = 0;
         inArgs->xSurf[1]   = 0;
         inArgs->ySurf[0]   = 0;
         inArgs->ySurf[1]   = 0;
         inArgs->zSurf[0]   = 0;
         inArgs->zSurf[1]   = 0;
+
+	inArgs->xMatDir[X] =  1;
+	inArgs->xMatDir[Y] = -1;
+	inArgs->xMatDir[Z] =  0;
+	    
+	inArgs->yMatDir[X] =  1;
+	inArgs->yMatDir[Y] =  1;
+	inArgs->yMatDir[Z] =  1;
+
+	inArgs->zMatDir[X] = -1;
+	inArgs->zMatDir[Y] = -1;
+	inArgs->zMatDir[Z] =  2;
+
+	inArgs->TBAngle = 0;
+	inArgs->maxDensity = 5.0E14;
 
         return;
 }
@@ -353,6 +395,7 @@ static void CheckArgSanity(InArgs_t *inArgs)
 {
         if (inArgs->cubeLength < 1)
             Fatal("Cube length must be greater than zero.\n");
+		
 
         if ((inArgs->type < 0) || (inArgs->type > FTYPE_MAX))
             Fatal("Invalid type specified.\n");
@@ -409,6 +452,8 @@ static void PrintArgs(InArgs_t *inArgs)
         printf("Dislocation Type:         %s\n",
                funcData[inArgs->type].funcName);
         printf("Cube Length:              %d\n",inArgs->cubeLength);
+		
+		
         printf("Maximum Segment Length    %lf\n",inArgs->maxSegLen);
         printf("Data File:                %s\n",inArgs->outputFile);
 
@@ -434,6 +479,7 @@ static void PrintArgs(InArgs_t *inArgs)
                 break;
 
             case FTYPE_FRANK_READ:
+                printf("Source length distribution type:        %d\n", inArgs->srcLenType);
                 printf("Number of sources:        %d\n", inArgs->numFRSrcs);
                 if (inArgs->frLenMax > inArgs->frLenMin) {
                     printf("Length of sources:        %d-%d\n",
@@ -442,6 +488,9 @@ static void PrintArgs(InArgs_t *inArgs)
                     printf("Length of sources:        %d\n", inArgs->frLenMin);
                 }
                 printf("Seed Value:               %d\n", inArgs->seed);
+	            printf("HeightRatio:              %f\n",inArgs->heightRatio);
+	            printf("deltaNums:                %d\n",inArgs->deltaNums);
+	            printf("nLayers:                  %d\n",inArgs->nLayers);
                 break;
 
             case FTYPE_FCC:
@@ -483,9 +532,14 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 {
         int     setDefaultRadius = 1;
         int     i, j, k;
+	int	existDir[3];
+	int	orientationType, existCount;
         char    *argName;
         char    *argValue;
         char    *token;
+
+	VECTOR_ZERO(existDir);
+	orientationType = 0;
 
         for (i = 1; i < argc; i++) {
 /*
@@ -547,7 +601,16 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                     if (setDefaultRadius)
                         inArgs->radius = inArgs->cubeLength / 4;
                     break;
-                case OPT_FRLEN:
+					
+	        case OPT_HEIGHTRATIO:
+	            inArgs->heightRatio = atof(argValue);
+	            break;
+	            	
+	        case OPT_DELTA_NUMS:
+	            inArgs->deltaNums = atoi(argValue);
+	            break;
+					
+	        case OPT_FRLEN:
                     token = strtok(argValue, ",");
                     inArgs->frLenMin = atoi(token);
                     token = strtok(NULL, ",");
@@ -645,9 +708,124 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                         break;
                     }
                     inArgs->zSurf[1] = atof(token);
-                    break;
+                        break;
+	        case OPT_POLY:
+	            inArgs->polycrystal	= atof(argValue);
+	                break;
+	        case OPT_NGRAIN:
+	            inArgs->nGrain = atoi(argValue);
+	                break;
+	        case OPT_TWIN_RATIO:
+	            inArgs->twinRatio = atof(argValue);
+	                break;
+	        case OPT_NLAYERS:
+	            inArgs->nLayers = atoi(argValue);
+	                break;
+	        case OPT_XMATDIR:
+	            token = strtok(argValue,",");
+	            inArgs->xMatDir[0] = atof(token);
+	            token = strtok(NULL,",");
+                    if (token == (char *)NULL) Fatal("orientation wrong");
+	            inArgs->xMatDir[1] = atof(token);
+	            token = strtok(NULL,",");
+                    if (token == (char *)NULL) Fatal("orientation wrong");
+	            inArgs->xMatDir[2] = atof(token);
+	            NormalizeVec(inArgs->xMatDir);
+	            existDir[X] = 1;
+	            orientationType = 1;
+	                break;
+	        case OPT_YMATDIR:
+	            token = strtok(argValue,",");
+	            inArgs->yMatDir[0] = atof(token);
+	            token = strtok(NULL,",");
+                    if (token == (char *)NULL) Fatal("orientation wrong");
+	            inArgs->yMatDir[1] = atof(token);
+	            token = strtok(NULL,",");
+                    if (token == (char *)NULL) Fatal("orientation wrong");
+	            inArgs->yMatDir[2] = atof(token);
+	            NormalizeVec(inArgs->yMatDir);
+	            existDir[Y] = 1;
+	            orientationType = 1;
+	                break;
+	        case OPT_ZMATDIR:
+	            token = strtok(argValue,",");
+	            inArgs->zMatDir[0] = atof(token);
+	            token = strtok(NULL,",");
+                    if (token == (char *)NULL) Fatal("orientation wrong");
+	            inArgs->zMatDir[1] = atof(token);
+	            token = strtok(NULL,",");
+                    if (token == (char *)NULL) Fatal("orientation wrong");
+	            inArgs->zMatDir[2] = atof(token);
+	            NormalizeVec(inArgs->yMatDir);
+	            existDir[Y] = 1;
+	            orientationType = 1;
+	                break;
+	        case OPT_TBANGLE:
+	            inArgs->TBAngle = atof(argValue);
+	            orientationType = 4;
+	                break;
+	        case OPT_SRCLENTYPE:
+	            inArgs->srcLenType = atoi(argValue);
+	                break;
+	        case OPT_MAXDENSITY:
+	            inArgs->maxDensity = atof(argValue);
+	                break;
             }
         }
+
+	NormalizeVec(inArgs->xMatDir);
+	NormalizeVec(inArgs->yMatDir);
+	NormalizeVec(inArgs->zMatDir);
+
+	if(orientationType == 0)return;
+
+	if(orientationType == 1){
+	    existCount = 0;
+	    for(i=0; i<3; i++){
+	        if(existDir[i] == 0)orientationType = i+1;
+		if(existDir[i] == 1)existCount++;
+	    }
+    
+	    if(existCount == 2 && orientationType >= 1 && orientationType <= 3){
+	        if(orientationType == 1){
+	            cross(inArgs->yMatDir, inArgs->zMatDir, inArgs->xMatDir);
+		    NormalizeVec(inArgs->xMatDir);
+	        }else if (orientationType == 2){
+	            cross(inArgs->zMatDir, inArgs->xMatDir, inArgs->yMatDir);
+		    NormalizeVec(inArgs->yMatDir);
+	        }else{
+	            cross(inArgs->xMatDir, inArgs->yMatDir, inArgs->zMatDir);
+		    NormalizeVec(inArgs->zMatDir);
+	        }
+	    }
+	}else{
+	    real8    a1[3] = {1,-1,0}, temR1[3][3];
+	    real8    a2[3] = {1, 0,0}, temR2[3][3], temR3[3][3];
+	    real8    a3[3] = {0, 0,1};
+	    real8    matrixOrientation[3][3];
+	    real8    angle, angleZTB = 9.553166181245092e-01;
+	    int	     seed;
+
+	    seed = inArgs->seed;
+	    NormalizeVec(a1);
+	    RotateWithAxis(a1, angleZTB, temR1);
+
+	    NormalizeVec(a2);
+	    RotateWithAxis(a2, inArgs->TBAngle, temR2);
+
+	    Matrix33Mult33(temR2, temR1, temR3);
+
+	    NormalizeVec(a3);
+	    angle = 2 * PI * randm(&seed);
+	    RotateWithAxis(a3, angle, temR1);
+
+	    Matrix33Mult33(temR1, temR3, matrixOrientation);
+
+	    VECTOR_COPY(inArgs->xMatDir,matrixOrientation[0])
+	    VECTOR_COPY(inArgs->yMatDir,matrixOrientation[1])
+	    VECTOR_COPY(inArgs->zMatDir,matrixOrientation[2])
+
+	}
 
         return;
 }
@@ -671,14 +849,20 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
  *                          to the specified file, set to zero in
  *                          all other cases.
  *
+ * 
  *-------------------------------------------------------------------------*/
 void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
 {
-        int         i, iArm;
+        int         i, iArm, numSeg = 0;
         Node_t      *node;
         Param_t     *param;
         static int  totalNodeCount = 0;
         static FILE *fp = (FILE *)NULL;
+	static FILE *fpTecplot = (FILE *)NULL;
+	Node_t	    *nbr;
+	Tag_t	    nbrTag;
+	real8	    v1, v2, v3;
+	int	    burgID;
 
 
         param = inData->param;
@@ -699,6 +883,31 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
  *          Write data file parameters
  */
             WriteParam(home->dataParamList, -1, fp);
+			
+/*
+ * 			Werite the grain orientations into the data file
+ */	
+			
+/*
+			
+			if(param->polycrystal){
+				fprintf(fp, "Grain = %d\n",home->newGrainKeyPtr);
+				Grain_t	*grain;
+				
+				for(i =  0; i< home->newGrainKeyPtr; i++){
+					fprintf(fp, "%d \n",i);
+					grain = home->grainKeys[i];
+					fprintf(fp, " %16.10e %16.10e %16.10e\n",grain->orientation[0][0],
+						grain->orientation[0][1],grain->orientation[0][2]);
+					fprintf(fp, " %16.10e %16.10e %16.10e\n",grain->orientation[1][0],
+						grain->orientation[1][1],grain->orientation[1][2]);
+					fprintf(fp, " %16.10e %16.10e %16.10e\n",grain->orientation[2][0],
+						grain->orientation[2][1],grain->orientation[2][2]);
+			
+				}
+				fprintf(fp, "# End of grain orientation\n\n");
+			}
+*/
 
 /*
  *          Write the domain decomposition into the data file
@@ -708,36 +917,77 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
             fprintf(fp, "domainDecomposition = \n");
             WriteDecompBounds(home, fp);
 
+			
+
+			
             fprintf(fp, "nodalData = \n");
             fprintf(fp, "#  Primary lines: node_tag, x, y, z, "
-                    "num_arms, constraint\n");
+                    "num_arms, constraint, inGrain\n");
             fprintf(fp, "#  Secondary lines: arm_tag, burgx, burgy, "
                     "burgz, nx, ny, nz\n");
         }
+		
+		if(fpTecplot == (FILE *)NULL){
+			fpTecplot = fopen("DDInitial.plt","w");
+			fprintf(fpTecplot,"variables = X,Y,Z,V1,V2,V3,b1,b2,b3,n1,n2,n3,inGrain,burgID,constraint,numNbrs\n");
+			
+		}
 
 /*
  *      Dump all the nodal data in this block to the file
  */
         totalNodeCount += inData->nodeCount;
+		
+		for (i = 0; i < inData->nodeCount; i++){
+			node = &inData->node[i];
+			for (iArm = 0; iArm < node->numNbrs; iArm++){
+				numSeg++;
+			}
+		}
+		fprintf(fpTecplot,"zone i=%d  F=POINT\n",numSeg);
 
         for (i = 0; i < inData->nodeCount; i++) {
 
             node = &inData->node[i];
 
             fprintf(fp,
-                    " %d,%d %.4f %.4f %.4f %d %d\n",
+                    " %d,%d %.4f %.4f %.4f %d %d %f\n",
                     node->myTag.domainID, node->myTag.index, 
                     node->x, node->y, node->z, node->numNbrs,
-                    node->constraint);
+                    node->constraint,node->inGrain);
 
             for (iArm = 0; iArm < node->numNbrs; iArm++) {
-                fprintf(fp, "   %d,%d %16.10e %16.10e %16.10e\n"
-                        "       %16.10e %16.10e %16.10e\n",
+	        if(home->param->materialType == MAT_TYPE_FCC){
+	            burgID = GetBurgID_FCCFromArm(home, node, iArm);
+	        }else{
+	            Fatal("The burgers ID of non-FCC material has not defined\n");
+	        }
+				
+				
+                fprintf(fp, "%d,%d %.15e %.15e %.15e\n"
+			    "%.15e %.15e %.15e\n",
                         node->nbrTag[iArm].domainID,
                         node->nbrTag[iArm].index,
                         node->burgX[iArm], node->burgY[iArm],
                         node->burgZ[iArm], node->nx[iArm],
                         node->ny[iArm], node->nz[iArm]);
+				
+				nbrTag.domainID = node->nbrTag[iArm].domainID;
+				nbrTag.index	= node->nbrTag[iArm].index;
+				nbr	= GetinDataNodeFromTag(inData, nbrTag);
+				if(nbr == (Node_t *)NULL)continue;
+					
+				v1 = 0.5 * (nbr->x - node->x);
+				v2 = 0.5 * (nbr->y - node->y);	
+				v3 = 0.5 * (nbr->z - node->z);	
+				fprintf(fpTecplot, "%16.10e %16.10e %16.10e %16.10e "
+								   "%16.10e %16.10e %16.10e %16.10e "
+						           "%16.10e %16.10e %16.10e %16.10e %f %d %d %d\n",
+						node->x, node->y, node->z, v1, v2, v3,
+						node->burgX[iArm], node->burgY[iArm],
+                        node->burgZ[iArm], node->nx[iArm],
+                        node->ny[iArm], node->nz[iArm],node->inGrain,burgID,
+					    node->constraint, node->numNbrs); 		
             }
         }
 
@@ -747,8 +997,10 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
  *      file, seek back to the node count in the file, overwrite
  *      it with the final total, and cleanup.
  */
+		
         if (lastBlock) {
             fclose(fp);
+	    fclose(fpTecplot);
             fp = (FILE *)NULL;
             printf("\nTotal node count:         %d\n", totalNodeCount);
         }
@@ -759,7 +1011,7 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
 
 main(int argc, char *argv[])
 {
-        int             maxSide, minSide, memSize;
+        int             maxSide, minSide,maxHigh,minHigh, memSize;
         real8           cellVolume, bMag2, burgVolFactor;
         real8           totDislocDensity;
         real8           totDislocLen = 0.0;
@@ -781,6 +1033,7 @@ main(int argc, char *argv[])
 
         InitDefaultValues(&inArgs);
         GetInArgs(argc, argv, &inArgs);
+
         CheckArgSanity(&inArgs);
 
         DataParamInit(inData.param, home.dataParamList);
@@ -794,14 +1047,30 @@ main(int argc, char *argv[])
         maxSide = inArgs.cubeLength / 2;
         minSide = -maxSide;
 
+	if(inArgs.pbcVal == 0){
+	    minHigh = minSide;
+	    maxHigh = maxSide;
+	}else{
+	    maxHigh = (int)(inArgs.heightRatio * (real8)maxSide);
+	    minHigh = -maxHigh;
+	}
+	
         param->minSideX = minSide;
         param->minSideY = minSide;
-        param->minSideZ = minSide;
+        param->minSideZ = minHigh;
 
         param->maxSideX = maxSide;
         param->maxSideY = maxSide;
-        param->maxSideZ = maxSide;
-
+        param->maxSideZ = maxHigh;
+		
+	param->xBoundMin = minSide;
+	param->yBoundMin = minSide;
+	param->zBoundMin = minHigh;
+		
+	param->xBoundMax = maxSide;
+	param->yBoundMax = maxSide;
+	param->zBoundMax = maxHigh;
+		
         param->Lx = param->maxSideX - param->minSideX;
         param->Ly = param->maxSideY - param->minSideY;
         param->Lz = param->maxSideZ - param->minSideZ;
@@ -811,7 +1080,22 @@ main(int argc, char *argv[])
         param->invLz = 1.0 / param->Lz;
 
         param->maxSeg = inArgs.maxSegLen;
+	param->minSeg = inArgs.maxSegLen/2.0;
+		
+	param->polycrystal = inArgs.polycrystal;
+	param->nGrain = inArgs.nGrain;
+	param->twinRatio = inArgs.twinRatio;
 
+	param->xBoundType = ((inArgs.pbcVal & 0x01) == 0 ? Periodic : Free);
+	param->yBoundType = ((inArgs.pbcVal & 0x02) == 0 ? Periodic : Free);
+	param->zBoundType = ((inArgs.pbcVal & 0x04) == 0 ? Periodic : Free);
+
+	VECTOR_COPY(param->matrixOrientation[X],inArgs.xMatDir);
+	VECTOR_COPY(param->matrixOrientation[Y],inArgs.yMatDir);
+	VECTOR_COPY(param->matrixOrientation[Z],inArgs.zMatDir);
+
+	InitGrain(&home, param);
+		
         strncpy(param->node_data_file, inArgs.outputFile,
                 sizeof(param->node_data_file)-1);
 
@@ -826,18 +1110,17 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
 }
 #endif
         PrintArgs(&inArgs); 
-
 /*
  *      And some additional initializations for when we write the
  *      data portion of the restart file.
  */
-        param->minCoordinates[X] = minSide;
-        param->minCoordinates[Y] = minSide;
-        param->minCoordinates[Z] = minSide;
+        param->minCoordinates[X] = minHigh;
+        param->minCoordinates[Y] = minHigh;
+        param->minCoordinates[Z] = minHigh;
 
-        param->maxCoordinates[X] = maxSide;
-        param->maxCoordinates[Y] = maxSide;
-        param->maxCoordinates[Z] = maxSide;
+        param->maxCoordinates[X] = maxHigh;
+        param->maxCoordinates[Y] = maxHigh;
+        param->maxCoordinates[Z] = maxHigh;
 
         param->decompType = param->dataDecompType;
 
@@ -859,6 +1142,9 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
              home.zMaxLevel++);
 
         UniformDecomp(&home, &home.decomp);
+		
+		
+		
 
 /*
  *      All that's left is to invoke the proper function to
@@ -924,15 +1210,13 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
                                     inArgs.seed, &totDislocLen, inArgs.type);
                 break;
         case FTYPE_FRANK_READ:
-                CreateFRSource(&home, &inData, inArgs.cubeLength,
-                               inArgs.numFRSrcs, inArgs.frLenMin,
-                               inArgs.frLenMax, inArgs.seed,
-                               &totDislocLen, inArgs.type);
+                CreateFRSource(&home, &inData, &inArgs,
+                               &totDislocLen);
                 break;
         case FTYPE_FCC:
-                CreateFCCConfig(&home, &inData, inArgs.cubeLength,
-                                inArgs.numChains, inArgs.seed, &totDislocLen,
-                                inArgs.type);
+			CreateFCCConfig(&home, &inData, inArgs.cubeLength,
+							inArgs.numChains, inArgs.seed, &totDislocLen,
+							inArgs.type);
                 break;
         case FTYPE_FCC_IRRAD:
                 CreateFCCIrradConfig(&home, &inData, inArgs.cubeLength,
@@ -957,14 +1241,115 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
  *      Calculate the total dislocation density and print it.
  */
         cellVolume       = param->Lx * param->Ly * param->Lz;
-        bMag2            = 2.725e-10 * 2.725e-10;
+        bMag2            = 2.556e-10 * 2.556e-10;
         burgVolFactor    = 1.0 / (bMag2 * cellVolume);
         totDislocDensity = totDislocLen * burgVolFactor;
 
         printf("Total density:            %e\n", totDislocDensity);
-
         Meminfo(&memSize);
         printf("\nEstimated memory usage = %d Kbytes\n\n", memSize);
 
         exit(0);
+}
+
+
+int GetBurgID_FCCFromArm(Home_t *home, Node_t *node, int segID){
+
+	int          burgIndex, burgID;
+	real8        bCryst[3], crossProd[3];
+	Grain_t		 *grain;
+	static int   numBurgs = 21;
+	int			 intGID;
+	/*
+	 *      Define the IDs for each type (or grouping) of burgers vector
+	 *      we're interested in (plus a value with which to associate any
+	 *      burgers vector for which we don't explicitly look.
+	 */
+	static int   burg2IDMap[22] =
+	{ 0,                		/* [ 1  1  0] */
+		1,                		/* [ 1 -1  0] */
+		2,                		/* [ 1  0  1] */
+		3,                		/* [ 1  0 -1] */
+		4,                		/* [ 0  1  1] */
+		5,               			/* [ 0  1 -1] */
+		6,   7,  8,  9, 10, 11, 	/* all 12 [2 1 1] types */
+		12, 13, 14, 15, 16, 17, 
+		18, 19, 20,
+		21 };             		/* all other burgers vectors */
+	/*
+	 *      Define the list of burgers vectors for which we are explicitly
+	 *      looking.
+	 */
+	static real8 burgList[21][3] = {
+		/* glide burgers vectors */
+		{ 1.0,  1.0,  0.0},
+		{ 1.0, -1.0,  0.0},
+		{ 1.0,  0.0,  1.0},
+		{ 1.0,  0.0, -1.0},
+		{ 0.0,  1.0,  1.0},
+		{ 0.0,  1.0, -1.0},
+		/* junction burgers vectors */
+		{ 2.0,  1.0,  1.0},		// Dbeta	6
+		{-2.0,  1.0,  1.0},		// deltaB	7
+		{ 2.0, -1.0,  1.0},		// gamaA	8
+		{ 2.0,  1.0, -1.0},		// alphaC	9
+		{ 1.0,  2.0,  1.0},		// Dalpha	10	
+		{-1.0,  2.0,  1.0},		// gamaB	11
+		{ 1.0, -2.0,  1.0},		// deltaA	12
+		{ 1.0,  2.0, -1.0},		// betaC	13
+		{ 1.0,  1.0,  2.0},		// Dgama	14
+		{-1.0,  1.0,  2.0},		// alphaB	15
+		{ 1.0, -1.0,  2.0},		// betaA	16
+		{ 1.0,  1.0, -2.0},		// deltaC	17
+		{ 1.0,  0.0,  0.0},		//			18
+		{ 0.0,  1.0,  0.0},		//			19
+		{ 0.0,  0.0,  1.0}		//			20
+	};	
+
+	/*
+	 *      If needed, rotate the provided burgers vector from the lab frame
+	 *      into the crystal frame.
+	 */
+	
+	if (home->param->useLabFrame) {
+
+	    ChangeOrientation(home, node, node,3);
+
+	    real8 bLab[3];
+	    bLab[X] = node->burgX[segID];
+	    bLab[Y] = node->burgY[segID];
+	    bLab[Z] = node->burgZ[segID];
+            Matrix33Vector3Multiply(home->rotMatrixInverse, bLab, bCryst);
+	} else {
+	    bCryst[X] = node->burgX[segID];
+	    bCryst[Y] = node->burgY[segID];
+	    bCryst[Z] = node->burgZ[segID];
+	}
+	
+	
+	/*
+	 *      Look through the list of reference burgers vectors for one
+	 *      that matches the segment burgers vector.  If we find a match
+	 *      return the ID associated with that burgers vector.  If no
+	 *      match is found, the ID defaults to the final one in the list
+	 *      to indicate it was some *other* burgers vector type.
+	 */
+	burgID = burg2IDMap[numBurgs];
+
+	for (burgIndex = 0; burgIndex < numBurgs; burgIndex++) {
+		cross(bCryst, burgList[burgIndex], crossProd);
+		if (fabs(DotProduct(crossProd, crossProd)) < 1.0e-3) {
+			burgID = burg2IDMap[burgIndex];
+			break;
+		}
+	}
+	
+	if(burgID >= 6 && burgID <= 17){
+		real8	 bCrystMag, bEr;
+		bCrystMag = Normal(bCryst);
+		bEr = fabs(bCrystMag - 1.0 / sqrt(3.0));
+		if(bEr > 1.0e-3) burgID = 21;
+	}
+	
+	return(burgID);
 }

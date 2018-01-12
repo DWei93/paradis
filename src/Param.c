@@ -91,6 +91,7 @@ void MarkParamEnabled(ParamList_t *CPList, char *name)
  *----------------------------------------------------------------------*/
 void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 {
+		int i;
 /*
  *      Note: Parameters need only be initialized if their
  *      default values are non-zero.
@@ -128,6 +129,7 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "numZcells", &param->nZcells, V_INT, 1, VFLAG_NULL);
         param->nZcells = 3;   /* Must be >= 3 */
 
+#if 0
         BindVar(CPList, "xBoundType", &param->xBoundType, V_INT, 1, VFLAG_NULL);
         param->xBoundType = Periodic;
 
@@ -136,13 +138,14 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 
         BindVar(CPList, "zBoundType", &param->zBoundType, V_INT, 1, VFLAG_NULL);
         param->zBoundType = Periodic;
-
+#endif
         BindVar(CPList, "decompType", &param->decompType, V_INT, 1, VFLAG_NULL);
         param->decompType = 1;
 
         BindVar(CPList, "DLBfreq", &param->DLBfreq, V_INT, 1, VFLAG_NULL);
         param->DLBfreq = 3;
 
+#if 0
         BindVar(CPList, "xBoundMin", &param->xBoundMin, V_DBL, 1, VFLAG_NULL);
 
         BindVar(CPList, "xBoundMax", &param->xBoundMax, V_DBL, 1, VFLAG_NULL);
@@ -154,7 +157,7 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "zBoundMin", &param->zBoundMin, V_DBL, 1, VFLAG_NULL);
 
         BindVar(CPList, "zBoundMax", &param->zBoundMax, V_DBL, 1, VFLAG_NULL);
-
+#endif
 /*
  *      Simulation time and timestepping controls
  */
@@ -165,6 +168,12 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 
         BindVar(CPList, "maxstep", &param->maxstep, V_INT, 1, VFLAG_NULL);
         param->maxstep = 100;
+
+	BindVar(CPList, "maxStn", &param->maxStn, V_DBL, 1, VFLAG_NULL);
+	param->maxStn = 1.0E-2;
+
+	BindVar(CPList, "maxPst", &param->maxPst, V_DBL, 1, VFLAG_NULL);
+	param->maxPst = 1.0E-2;
 
         BindVar(CPList, "timeNow", &param->timeNow, V_DBL, 1, VFLAG_NULL);
 
@@ -206,12 +215,15 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
  */
         BindVar(CPList, "Discretization and topological change controls",
                 (void *)NULL, V_COMMENT, 1, VFLAG_NULL);
-
+#if 0
         BindVar(CPList, "maxSeg", &param->maxSeg, V_DBL, 1, VFLAG_NULL);
         param->maxSeg = -1.0;
-
+#endif
         BindVar(CPList, "minSeg", &param->minSeg, V_DBL, 1, VFLAG_NULL);
         param->minSeg = -1.0;
+		
+	BindVar(CPList, "rann", &param->rann, V_DBL, 1, VFLAG_NULL);
+        param->rann = -1.0;
 
         BindVar(CPList, "remeshRule", &param->remeshRule, V_INT, 1, VFLAG_NULL);
         param->remeshRule = 2;
@@ -343,14 +355,34 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 
         BindVar(CPList, "pois", &param->pois, V_DBL, 1, VFLAG_NULL);
         param->pois = 3.327533e-01;    /* Ta: temp=600K, pressure=0Pa */
+	
+	BindVar(CPList, "rho", &param->rho, V_DBL, 1, VFLAG_NULL);
+	param->rho=8900;  //(unit: kg/m**3) 
+	
+	BindVar(CPList, "outRadius", &param->outRadius, V_DBL, 1,
+                VFLAG_NULL);
+        param->outRadius = 1.0e4; 
+		
+		BindVar(CPList, "TBSFEnergy", &param->TBSFEnergy, V_DBL, 1,
+                VFLAG_NULL);
+        param->TBSFEnergy = 0.0; 
+		
+		BindVar(CPList, "TBEnergy", &param->TBEnergy, V_DBL, 1,
+                VFLAG_NULL);
+        param->TBEnergy = 0.0;  
 
         BindVar(CPList, "burgMag", &param->burgMag, V_DBL, 1, VFLAG_NULL);
         param->burgMag = 2.875401e-10;  /* Ta: units=m @t=600K, pressure=0Pa */
 
-        BindVar(CPList, "YoungModulus", &param->YoungsModulus, V_DBL, 1,
+        BindVar(CPList, "YoungsModulus", &param->YoungsModulus, V_DBL, 1,
                 VFLAG_NULL);
-        param->YoungsModulus=172.95e+09; /* Ta: units=Pa @t=600K, p=0Pa */
+	param->YoungsModulus=2.0 * param->shearModulus * (1.0 + param->pois); /* Ta: units=Pa @t=600K, p=0Pa */
 
+	param->vshr = sqrt(param->YoungsModulus / param->rho) / param->burgMag;
+
+		BindVar(CPList, "elasticConstantMatrix", param->elasticConstantMatrix,
+                V_DBL, 36, VFLAG_NULL);
+		
         BindVar(CPList, "rc", &param->rc, V_DBL, 1, VFLAG_NULL);
         param->rc = -1.0;
 
@@ -626,6 +658,10 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
  *      tecplot files
  */
         BindVar(CPList, "tecplot", &param->tecplot, V_INT, 1, VFLAG_NULL);
+		
+		BindVar(CPList, "meshInterval", &param->meshInterval, V_INT, 1, VFLAG_NULL);
+		
+		param->meshInterval = 10;
 
         BindVar(CPList, "tecplotfreq", &param->tecplotfreq, V_INT, 1,
                 VFLAG_NULL);
@@ -746,8 +782,47 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "elasticinteraction", &param->elasticinteraction,
                 V_INT, 1, VFLAG_NULL);
         param->elasticinteraction = 1;
+		
+	    BindVar(CPList, "pstnEle", param->pstnEle, V_DBL, TOT_ELE_NUM*6, 
+				VFLAG_NULL);
 
+		BindVar(CPList, "disDenEle", param->disDenEle, V_DBL, TOT_ELE_NUM*4, 
+				VFLAG_NULL);
+		
+		for(i=0;i<TOT_ELE_NUM;i++){
+		
+			param->pstnEle[i][0] = 0.0;
+			param->pstnEle[i][1] = 0.0;
+			param->pstnEle[i][2] = 0.0;
+			param->pstnEle[i][3] = 0.0;
+			param->pstnEle[i][4] = 0.0;
+			param->pstnEle[i][5] = 0.0;
+		
+		}
 
+				
+/*
+ *      Grain parameters
+ */
+		BindVar(CPList, "peneTB", &param->peneTB,
+				V_INT, 1, VFLAG_NULL);
+		param->peneTB = 1;
+		BindVar(CPList, "GBStrength", &param->GBStrength,
+				V_DBL, 1, VFLAG_NULL);
+		param->GBStrength = 3.0e8;
+
+		BindVar(CPList, "fricStress", &param->fricStress,
+				V_DBL, 1, VFLAG_NULL);
+		param->fricStress = 0.0e0;
+
+		BindVar(CPList, "preRann", &param->preRann,
+				V_DBL, 1, VFLAG_NULL);
+		param->preRann = -1.0;
+		
+		BindVar(CPList, "limitDisplacement", &param->limitDisplacement, V_INT, 1, VFLAG_NULL);
+		param->limitDisplacement = 0;
+		
+		
 #ifdef _FEM
 /*
  *      Add in some FEM specific stuff for M. Tang
@@ -853,11 +928,51 @@ void DataParamInit(Param_t *param, ParamList_t *DPList)
                 VFLAG_NULL);
         param->dataDecompType = 2;
 
-        BindVar(DPList, "dataDecompGeometry", param->dataDecompGeometry,
+        BindVar(DPList, "dataDecompGeometry", &param->dataDecompGeometry,
                 V_INT, 3, VFLAG_NULL);
         param->dataDecompGeometry[X] = 1;
         param->dataDecompGeometry[Y] = 1;
         param->dataDecompGeometry[Z] = 1;
+		
+#if 1
+	BindVar(DPList, "maxSeg", &param->maxSeg, V_DBL, 1, VFLAG_NULL);
+	param->maxSeg = 200;
+	
+	BindVar(DPList, "minSeg", &param->minSeg, V_DBL, 1, VFLAG_NULL);
+	param->minSeg = 100;
+#endif		
+	BindVar(DPList, "polycrystal", &param->polycrystal, V_INT, 1, VFLAG_NULL);
+	param->polycrystal = 1;
+		
+	BindVar(DPList, "nGrain", &param->nGrain, V_INT, 1, VFLAG_NULL);
+	param->nGrain = 2;
+		
+	BindVar(DPList, "twinRatio", &param->twinRatio, V_DBL, 1, VFLAG_NULL);
+	param->twinRatio = 0.5;
+	
+	BindVar(DPList, "xBoundType", &param->xBoundType, V_INT, 1, VFLAG_NULL);
+	param->xBoundType = 0;
 
+	BindVar(DPList, "yBoundType", &param->yBoundType, V_INT, 1, VFLAG_NULL);
+	param->yBoundType = 0;
+
+	BindVar(DPList, "zBoundType", &param->zBoundType, V_INT, 1, VFLAG_NULL);
+	param->zBoundType = 0;
+
+	BindVar(DPList, "xBoundMin", &param->xBoundMin, V_DBL, 1, VFLAG_NULL);
+	BindVar(DPList, "yBoundMin", &param->yBoundMin, V_DBL, 1, VFLAG_NULL);
+	BindVar(DPList, "zBoundMin", &param->zBoundMin, V_DBL, 1, VFLAG_NULL);
+
+	BindVar(DPList, "xBoundMax", &param->xBoundMax, V_DBL, 1, VFLAG_NULL);
+	BindVar(DPList, "yBoundMax", &param->yBoundMax, V_DBL, 1, VFLAG_NULL);
+	BindVar(DPList, "zBoundMax", &param->zBoundMax, V_DBL, 1, VFLAG_NULL);
+
+	BindVar(DPList, "matrixOrientationX", &param->matrixOrientation[0], V_DBL, 3, VFLAG_NULL);
+	BindVar(DPList, "matrixOrientationY", &param->matrixOrientation[1], V_DBL, 3, VFLAG_NULL);
+	BindVar(DPList, "matrixOrientationZ", &param->matrixOrientation[2], V_DBL, 3, VFLAG_NULL);
+
+	param->preDecreaseDT = 0;
+	param->markPreDTDisable = 0;
+	param->finish = 0;
         return;
 }

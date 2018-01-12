@@ -1,0 +1,107 @@
+#!/bin/bash
+
+######################################################################################
+#
+#                     Script of  Generation of FCC FR source 
+#    The default orientation of cell is
+#                      | Normalize[{ 1,-1, 0}] |
+#                      | Normalize[{ 1, 1, 1}] |
+#                      | Normalize[{-1,-1, 2}] |
+#    which is matrix orientation of PBC polycrystal with twin. 
+#    if you want to change the orientation of simulation cell, you can use follwing
+#    two ways:
+#      (1)  <-xMatDir ux,uy,uz -yMatDir vx,vy,vz> or
+#           <-zMatDir wx,wy,wz -yMatDir vx,vy,vz> or
+#           <-zMatDir wx,wy,wz -xMatDir ux,uy,uz> 
+#           we just need two directions of axis.
+#      (2)  <-TBAngle angle(radian system)>
+#           TBAngle is the angle between Z axis and normal of ABC glide plane, if
+#	    twin exist, the normal of ABC represent TB plane. Besides, the another
+#           two independ variables in rotate matrix is random.
+#    if the above two ways are both in command line, first one is default.
+#    $1 is the type of simulation, $2 is randm seed.
+#                    
+######################################################################################
+
+frlen=$2
+cubel=$3
+maxSeg=$4
+nfrs=$5
+
+if [ "$6" != "" ]; then
+    seed="-seed ${6}"
+else
+    seed=""
+fi
+
+if [ "$1" == "" ]; then
+    echo "Fatal: you need input a type (please read this script)"
+    exit 1
+fi
+
+PI=3.1415926535897932385
+angle=`echo "scale=16; ${PI} / 4.0 " | bc -l`
+
+case $1 in
+######################################################################################
+#
+#    Type I: oringin code, PBC
+#
+######################################################################################
+    1|I)
+    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    -polycrystal 0 -pbc 0 \
+    -xMatDir 1,-1,0 -yMatDir 1,1,1 ;;
+
+######################################################################################
+#
+#    Type II: free surface, single crystal, gradient sources distribution
+#
+######################################################################################
+    2|II)
+    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    -polycrystal 0 -pbc 7 \
+    -xMatDir 1,-1,0 -yMatDir 1,1,1\
+    -heightRatio 1 -deltaNums 0 -nLayers 1 ;;
+
+#    -xMatDir 1,0,0 -yMatDir 0,1,0 \
+
+######################################################################################
+#    
+#    Type III: polycrystal, only have grain boundaries.
+#    ./bin/paradisgen -type 3 -frlen 2000 -cubel 4000 -maxseg 100 -nfrsrcs 10 $seed \
+#    -polycrystal 1 -nGrain 1 -pbc 0 \
+#    -xMatDir 1,0,0 -yMatDir 0,1,0 ;; 
+#    
+######################################################################################
+    3|III)
+    echo "can not suppose this type" 
+    exit 1 ;;
+
+######################################################################################
+#    
+#    Type IV: polycrystal with twin, PBC, simulate RVE
+# 
+######################################################################################
+    4|IV)
+    ./bin/paradisgen -type 3 -frlen 1500 -cubel 4000 -maxseg 100 -nfrsrcs 1 $seed \
+    -polycrystal 1 -nGrain 4 -twinRatio 0.5 -pbc 0 ;;
+
+######################################################################################
+#    
+#    Type V: bicrystal with twin boundary, simulate sample
+#
+######################################################################################
+    5|V)
+
+    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    -polycrystal 1 -nGrain 2 -pbc 7 $seed  \
+    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
+
+#    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
+    *)
+     echo "input error!"
+     exit 1 ;;
+esac
+
+./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,4 -outfile input/Copper.data

@@ -40,7 +40,7 @@
  *              RemoveDoubleLinks()
  *              RemoveOrphanedNode()
  *              RestoreNode()
- *		SplitMultiNode()
+ *		SplitMultiNodes()
  *		SplitNode()
  *
  *****************************************************************************/
@@ -213,7 +213,7 @@ static void CopyNodeArrays(Node_t *source, Node_t *dest)
         int    i, armCount;
 
         armCount = source->numNbrs;
-
+	
         for (i = 0; i < armCount; i++) {
             dest->nbrTag[i].domainID = source->nbrTag[i].domainID;
             dest->nbrTag[i].index    = source->nbrTag[i].index;
@@ -460,6 +460,10 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
                     by = node->burgY[i]+node->burgY[j];
                     bz = node->burgZ[i]+node->burgZ[j];
 
+                    if(sqrt(bx*bx + by*by +bz*bz) > 1.1){
+
+                        nodeOrphaned = 2;
+                    }
 /*
  *                  Just a safety check to prevent tiny non-zero
  *                  components of burgers vector due to machine
@@ -477,16 +481,18 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
                             Fatal("Neighbor not found at %s line %d\n",
                                    __FILE__, __LINE__);
                         }
+						
+                    ChangeArmBurg(home, node, &nbrNode->myTag,
+                                  0.0, 0.0, 0.0,
+                                  0.0, 0.0, 0.0,
+                                  globalOp, DEL_SEG_HALF);
 
-                        ChangeArmBurg(home, node, &nbrNode->myTag,
-                                      0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0,
-                                      globalOp, DEL_SEG_HALF);
-
-                        ChangeArmBurg(home, nbrNode, &node->myTag,
-                                      0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0,
-                                      globalOp, DEL_SEG_HALF);
+                    ChangeArmBurg(home, nbrNode, &node->myTag,
+                                  0.0, 0.0, 0.0,
+                                  0.0, 0.0, 0.0,
+                                  globalOp, DEL_SEG_HALF);
+						
+                        
 /*
  *                      It's possible the neighbor node no longer has any
  *                      arms.  If the neighbor is local, go ahead and remove
@@ -523,7 +529,6 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
                             Fatal("Neighbor not found at %s line %d\n",
                                    __FILE__, __LINE__);
                         }
-
 /*
  *                      We don't yet know what glide plane to use for this
  *                      new segment.  If both the old segments had the same
@@ -575,12 +580,26 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
                           }
                         }
 
+#if 0
+	                char name[50];
+	                printf("RD: Task %d ",home->myDomain);
+                        snprintf(name,50,"RD%06d.%d.1",home->cycle,home->myDomain);
+                        Tecplot(home, name, 0, 0, 0, 0, 0, 1);
+	                PrintTag(node);
+	                PrintTag(nbrNode);
+#endif
                         ChangeArmBurg(home, node, &nbrNode->myTag,
                                       bx, by, bz, nx, ny, nz,
                                       globalOp, DEL_SEG_HALF);
                         ChangeArmBurg(home, nbrNode, &node->myTag,
                                       -bx, -by, -bz, nx, ny, nz,
-                                      globalOp, DEL_SEG_HALF);
+                                      globalOp, DEL_SEG_HALF);		
+                        
+#if 0
+	                printf("--> (%f,%f,%f)\n", bx, by, bz);
+                        snprintf(name,50,"RD%06d.%d.2",home->cycle,home->myDomain);
+                        Tecplot(home, name, 0, 0, 0, 0, 0, 1);
+#endif
                     }
 /*
  *                  Redundant links removed (or merged), so break
@@ -680,6 +699,12 @@ static void SaveSegForces(Home_t *home, Node_t *node, SegData_t *segData,
             segData[index].f1z = node->armfz[i];
 
             nbrNode = GetNodeFromTag(home, node->nbrTag[i]);
+			if (nbrNode == (Node_t *)NULL) {
+                printf("SaveSegForces(): "
+                      "Task %d can't find (%d,%d)", home->myDomain,
+                      node->nbrTag[i].domainID, node->nbrTag[i].index);
+            }
+			
             nbrArm = GetArmID(home, nbrNode, node);
 
             segData[index].f2x = nbrNode->armfx[nbrArm];
@@ -1051,22 +1076,25 @@ void SplitMultiNodes(Home_t *home)
         int     bkupNodeCount;
         int     segIndex, mobError, skipSplits = 0;
 	int	*armList, *currSet;
-	int	**armSets;
+	int	**armSets, sameBurgType;
         int     localSplitVals[4], globalSplitVals[4];
 	real8	powerMax, powerTest;
 	real8	vd1, vd2, invvNorm;
 	real8	dirx, diry, dirz;
 	real8	minDist, splitDist, minArmLen, shortSeg;
         real8   vDiffx, vDiffy, vDiffz;
-	real8	temp;
+	real8	temp, minDis, temPos[3];
 	real8	eps = 1.0e-12;
         real8   pos1[3], pos2[3], vel1[3], vel2[3], origPos[3], origVel[3];
-        real8   vNoise;
+        real8   vNoise, inGrain, sb;
+	real8 	armInGrain;
 	Node_t	*node, *nbrNode, *origNode;
 	Node_t  *tmpNode, *newNode;
         Node_t  *splitNode1, *splitNode2, *mergedNode;
         Node_t  *bkupNodeList;
 	Param_t	*param;
+	Line_t  line;
+	Plane_t   GBPlane;
         SegData_t *segData = (SegData_t *)NULL;
 
 /*
@@ -1119,9 +1147,35 @@ void SplitMultiNodes(Home_t *home)
  *              lifetimes...
  */
                 if (skipSplits) continue;
+				
+/*	
+ *		Grain node is skipped.	
+ */
 
-		nbrs = node->numNbrs;
+				
+	            nbrs = node->numNbrs;
+#if 1
+		    int GBNode = 0;	
+				
+		    if(node->inGrain - floor(node->inGrain) ==  BOUNDARY_NODE)continue;
 
+				
+		    for (j = 0; j < node->numNbrs; j++) {
+				
+                    nbrNode = GetNodeFromTag(home, node->nbrTag[j]);
+				
+		    if(nbrNode == (Node_t*) NULL) continue;
+				
+			if(nbrNode->inGrain - floor(nbrNode->inGrain) == BOUNDARY_NODE){
+			    GBNode = 1;
+			    break;
+			}
+                    }
+				
+		    if(GBNode) continue;
+		    if(node->constraint >= 1 && node->constraint <=4)continue;
+				
+#endif
 /*
  *              If we haven't already done so, allocate a temporary array
  *              in which to store segment forces while evaluating possible
@@ -1288,16 +1342,16 @@ void SplitMultiNodes(Home_t *home)
 		free(currSet);
 
 /*
- *		For each of the node-splitting possibilities, attempt
- *		the node split, evaluate the forces and velocities of
+ *				For each of the node-splitting possibilities, attempt
+ *				the node split, evaluate the forces and velocities of
  *              the two nodes after the split, and determine which 
  *              splitting possibility leads to the greatest energy
  *              release; that's the split that should ultimately be
  *              done.
  */
                 colliding = 0;
-		setIndex = -1;
-		numSets = totalSets;
+				setIndex = -1;
+				numSets = totalSets;
 
                 origPos[X] = node->x;
                 origPos[Y] = node->y;
@@ -1308,7 +1362,7 @@ void SplitMultiNodes(Home_t *home)
                 origVel[Z] = node->vZ;
 
                 armList = calloc(1, (nbrs - 2) * sizeof(int));
-
+			
 		for (j = 0; j < numSets; j++) {
 
 /*
@@ -1318,10 +1372,13 @@ void SplitMultiNodes(Home_t *home)
  *                      we need to evaluate the results then restore
  *                      the nodes to the original unsplit state.
  */
+					
+						
+						
                         for (armIndex = 0, k = nbrs - 1; k >= 0; k--) {
-                                if (armSets[j][k] == 1) {
-                                        armList[armIndex++] = k;
-                                }
+	                    if (armSets[j][k] == 1) {
+	                        armList[armIndex++] = k;
+	                    }
                         }
 
 /*
@@ -1337,12 +1394,14 @@ void SplitMultiNodes(Home_t *home)
  *                      will be connected to splitNode2 and all unselected
  *                      arms will be attached to splitNode1.
  */
-                        splitStatus = SplitNode(home, OPCLASS_SEPARATION,
-                                                node, origPos, origPos,
-                                                origVel, origVel,
-                                                armSets[j][nbrs],
-                                                armList, 0, &splitNode1,
-                                                &splitNode2, 0);
+							
+	                splitStatus = SplitNode(home, OPCLASS_SEPARATION,
+	                                        node, origPos, origPos,
+	                                        origVel, origVel,
+	                                        armSets[j][nbrs],
+	                                        armList, 0, &splitNode1,
+	                                        &splitNode2, 0);
+	                	
 
                         if (splitStatus != SPLIT_SUCCESS) continue;
 
@@ -1395,6 +1454,46 @@ void SplitMultiNodes(Home_t *home)
                                 splitNode1->z -= (splitDist*(1.0+eps)*dirz);
                                 FoldBox(param, &splitNode1->x, &splitNode1->y,
                                         &splitNode1->z);
+				
+				inGrain = InWhichGrain(home, splitNode1->x,
+					  splitNode1->y, splitNode1->z);
+				if(node->inGrain != inGrain && inGrain != -1){
+				    temPos[X] = splitNode1->x;
+				    temPos[Y] = splitNode1->y;
+				    temPos[Z] = splitNode1->z;
+
+				    VECTOR_ZERO(GBPlane.normal);
+				    VECTOR_ZERO(GBPlane.point);
+				    minDis = ClosedGB(home, origPos, &GBPlane);
+				    
+				    GBPlane.point[X] += (Sign(minDis) * (fabs(minDis) - eps) * GBPlane.normal[X]);
+				    GBPlane.point[Y] += (Sign(minDis) * (fabs(minDis) - eps) * GBPlane.normal[Y]);
+				    GBPlane.point[Z] += (Sign(minDis) * (fabs(minDis) - eps) * GBPlane.normal[Z]);
+
+				    line.direction[X] = -dirx;
+				    line.direction[Y] = -diry;
+				    line.direction[Z] = -dirz;
+
+				    VECTOR_COPY(line.point, temPos);
+				    if(!IntersectionOfLinePlane(&line, &GBPlane, temPos)){
+                    		        Fatal("SplitMutiNodes: IntersectionOfLinPlane faild");
+	        		    }
+
+				    FoldBox(param, temPos, temPos+1, temPos+2);
+
+				    splitNode1->x = temPos[X];   
+				    splitNode1->y = temPos[Y];   
+				    splitNode1->z = temPos[Z];   
+
+			            if(node->inGrain != InWhichGrain(home, splitNode1->x,
+				       splitNode1->y, splitNode1->z)){
+					PrintNode(splitNode1);
+					FormatVector(line.direction,"line.direction");
+                                        Tecplot(home, "SMN1", 0, 0, 0, 0, 0, 1);
+					Fatal("SplitMutiNodes: wrong position of splitNdoe1\n");
+				    }
+    
+				}
                             } else {
                                 invvNorm = 1.0 / sqrt(vd2);
                                 dirx = splitNode2->vX * invvNorm;
@@ -1405,6 +1504,46 @@ void SplitMultiNodes(Home_t *home)
                                 splitNode2->z += (splitDist*(1.0+eps)*dirz);
                                 FoldBox(param, &splitNode2->x, &splitNode2->y,
                                         &splitNode2->z);
+
+				inGrain = InWhichGrain(home, splitNode2->x,
+					  splitNode2->y, splitNode2->z);
+				if(node->inGrain != inGrain && inGrain != -1){
+				    temPos[X] = splitNode2->x;
+				    temPos[Y] = splitNode2->y;
+				    temPos[Z] = splitNode2->z;
+
+				    VECTOR_ZERO(GBPlane.normal);
+				    VECTOR_ZERO(GBPlane.point);
+				    minDis = ClosedGB(home, origPos, &GBPlane);
+				    
+				    GBPlane.point[X] += (Sign(minDis) * (fabs(minDis) - eps) * GBPlane.normal[X]);
+				    GBPlane.point[Y] += (Sign(minDis) * (fabs(minDis) - eps) * GBPlane.normal[Y]);
+				    GBPlane.point[Z] += (Sign(minDis) * (fabs(minDis) - eps) * GBPlane.normal[Z]);
+
+				    line.direction[X] =  dirx;
+				    line.direction[Y] =  diry;
+				    line.direction[Z] =  dirz;
+
+				    VECTOR_COPY(line.point, temPos);
+				    if(!IntersectionOfLinePlane(&line, &GBPlane, temPos)){
+                    		        Fatal("SplitMutiNodes: IntersectionOfLinPlane faild");
+	        		    }
+
+				    FoldBox(param, temPos, temPos+1, temPos+2);
+
+				    splitNode2->x = temPos[X];   
+				    splitNode2->y = temPos[Y];   
+				    splitNode2->z = temPos[Z];   
+
+			            if(node->inGrain != InWhichGrain(home, splitNode2->x,
+				       splitNode2->y, splitNode2->z)){
+					PrintNode(splitNode2);
+					FormatVector(line.direction,"line.direction");
+                                        Tecplot(home, "SMN2", 0, 0, 0, 0, 0, 1);
+					Fatal("SplitMutiNodes: wrong position of splitNdoe2\n");
+				    }
+    
+				}
                             }
 
                             SetOneNodeForce(home, splitNode1);
@@ -1443,7 +1582,7 @@ void SplitMultiNodes(Home_t *home)
                                 dirvec[Z] = dirz;
 
                                 FindPreciseGlidePlane(home, burg, dirvec,
-                                                      nplane);
+                                                      nplane,splitNode1,splitNode2);
 
 /*
  *                              If the new segment is screw the glide
@@ -1452,7 +1591,7 @@ void SplitMultiNodes(Home_t *home)
  *                              appropriate to the burgers vector.
  */
                                 if (DotProduct(nplane, nplane) < 1.0e-03) {
-                                    PickScrewGlidePlane(home, burg, nplane);
+                                    PickScrewGlidePlane(home, burg, nplane,splitNode1,splitNode2);
                                 }
 
                                 Normalize(&nplane[X], &nplane[Y], &nplane[Z]);
@@ -1572,7 +1711,7 @@ void SplitMultiNodes(Home_t *home)
                         }
 
 /*
- *			Merge the new node back into the original node
+ *						Merge the new node back into the original node
  *                      then restore the original node and it's neighbors
  *                      to the pristine unsplit state.  (Need to do a 
  *                      restore to insure the ordering of arms since
@@ -1613,6 +1752,8 @@ void SplitMultiNodes(Home_t *home)
  *                      If the merge failed, something's screwy!  Abort.
  */
                         if ((mergeStatus & MERGE_SUCCESS) == 0) {
+							
+			    printf("mergeStatus = %d\n",mergeStatus);
                             Fatal("Unable to merge (%d,%d) into (%d,%d)"
                                   "during separation test",
                                   newNode->myTag.domainID,
@@ -1707,6 +1848,8 @@ void SplitMultiNodes(Home_t *home)
  *                      always considered *global* so other domains will be
  *                      notified of these ops.
  */
+			
+			
 			for (armIndex = 0, k = nbrs - 1; k >= 0; k--) {
 				if (armSets[setIndex][k] == 1) {
 					armList[armIndex++] = k;
@@ -1725,11 +1868,27 @@ void SplitMultiNodes(Home_t *home)
                         localSplitVals[2]++;
                         localSplitVals[3] += node->multiNodeLife;
 #endif
-			splitStatus = SplitNode(home, OPCLASS_SEPARATION,
-						node, pos1, pos2, vel1, vel2,
-						armSets[setIndex][nbrs],
-						armList, globalOp,
-						&splitNode1, &splitNode2, 0);
+						
+						
+#if 0
+			char name[256];
+	                printf("cycle %06d, Task %02d, SplitMutiNodes: ",home->cycle,home->myDomain);
+	                PrintTag(node);
+	                printf("\n");
+                        snprintf(name,50,"SplitMutiNodes%06d.%d.1",home->cycle,home->myDomain);
+                        Tecplot(home, name, 0, 0, 0, 0, 0, 1);
+#endif
+	                splitStatus = SplitNode(home, OPCLASS_SEPARATION,
+	                                        node, pos1, pos2, vel1, vel2,
+	                                        armSets[setIndex][nbrs],
+	                                        armList, globalOp,
+	                                        &splitNode1, &splitNode2, 0);
+						
+#if 0
+
+                        snprintf(name,50,"SplitMutiNodes%06d.%d.2",home->cycle,home->myDomain);
+                        Tecplot(home, name, 0, 0, 0, 0, 0, 1);
+#endif
 /*
  *			If the split failed, clean up then go back and
  *			continue looking for more multinodes to split.
@@ -1818,14 +1977,14 @@ void SplitMultiNodes(Home_t *home)
 					newNode->myTag.index,
 					origNode->myTag.domainID,
 					origNode->myTag.index);
-				PrintNode(origNode);
-				PrintNode(newNode);
+//				PrintNode(origNode);
+//				PrintNode(newNode);
 			}
 #endif
 		}  /* if (setIndex >= 0) */
 
 		for (k = 0; k < numSets; k++)  free(armSets[k]);
-		free(armSets);
+				free(armSets);
                 free(armList);
                 armList = (int *)NULL;
 
@@ -1874,30 +2033,56 @@ void SplitMultiNodes(Home_t *home)
 	return;
 }
 
+void CorrectNewInGrain(Home_t *home, Node_t *node, int globalOp){
+	if(node->inGrain - floor(node->inGrain) == 0){
+		real8	posInGrain;
+		posInGrain = GetInGrainFromPos(home, node->x, node->y, node->z);
+		if(posInGrain == node->inGrain)return;
+		
+		int 	i;
+		real8	burg[3];
+		
+		for(i=0; i<node->numNbrs ;i++){
+			burg[X] = node->burgX[i];
+			burg[Y] = node->burgY[i];
+			burg[Z] = node->burgZ[i];
+			
+			if(BurgType_FCC(home,burg) == TB_BURG){
+				PrintNode(node);
+				printf("Warning: inGRain of this node is wrong.\n");
+				node->inGrain = posInGrain;
+				if(globalOp)AssignGrain(home, node, posInGrain);
+				return;
+			}
+		}
+	}
+	
+	return;
+}
 
 /*---------------------------------------------------------------------------
  *
- *	Function:	SplitNode
+ *	Function:		SplitNode
  *	Description:	Create a new node and transfer the specified set of
- *			connections from an existing to to the new node.  If
- *			necessary, a new link will also be created between the
- *			existing node and the new node.
+ *					connections from an existing to to the new node.  If
+ *					necessary, a new link will also be created between the
+ *					existing node and the new node.
  *
  *	Arguments:
- *		node            Pointer to the node to be split
+ *				node            Pointer to the node to be split
  *              pos1            coordinates at which splitNode1 will be
  *                              left after the split 
  *              pos2            coordinates at which splitNode2 will be
  *                              left after the split
  *              vel1            velocity assigned to splitNode1 after the split
  *              vel2            velocity assigned to splitNode2 after the split
- *		armCount	number of arms of the original node selected
+ *				armCount		number of arms of the original node selected
  *                              to be split off.
- *		armList		pointer to array of integers indicating the
- *				arms of existing node that are to be split off
- *		globalOp	Flag indicating if this is a global operation
- *				that should be added to the list of ops
- *				distributed to neighboring domains.
+ *				armList			pointer to array of integers indicating the
+ *								arms of existing node that are to be split off
+ *				globalOp		Flag indicating if this is a global operation
+ *								that should be added to the list of ops
+ *								distributed to neighboring domains.
  *              splitNode1      ptr to ptr to node to which all unselected arms
  *                              of the original node will be attached after the
  *                              split.  Returned to caller.
@@ -1905,8 +2090,14 @@ void SplitMultiNodes(Home_t *home)
  *                              of the original node will be attached after the
  *                              after the split.  Returned to caller.
  *              flags           Bit field with additional processing flags
+ *				inGrain1   		inGrain assigned to splitNode1 after split, -1
+ *								means get inGrain from position, and only allows
+ *								the node is in grain or matrix.
+ *				inGrain2   		inGrain assigned to splitNode2 after split, -1
+ *								means get inGrain from position, and only allows
+ *								the node is in grain or matrix.
  *
- *	Returns:		1 if the split was successful
+ *				Returns:		1 if the split was successful
  *                              0 in all other cases
  *
  *-------------------------------------------------------------------------*/
@@ -1918,11 +2109,12 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 	int	i, j, k, tarm, *tarmList, *tarmList2;
 	real8	bx, by, bz;
 	real8	cx, cy, cz;
-	real8	nx, ny, nz;
+	real8	nx, ny, nz,nodeInGrain,nbrInGrain;
         real8   segPlaneX, segPlaneY, segPlaneZ;
 	real8	eps = 1.0e-12;
-	real8   ftmp[3];
+	real8   ftmp[3],foldPos[3];
         real8   burg[3], vel[3], dirVec[3], glidePlane[3];
+	real8   inGrain1, inGrain2;
 	Node_t	*newNode, *nbrNode;
 	Param_t	*param;
         int     thisDomain, ownsSelectedArms, switchedArms;
@@ -1933,6 +2125,9 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 
         *splitNode1 = (Node_t *)NULL;
         *splitNode2 = (Node_t *)NULL;
+	
+	inGrain1 = -1;
+	inGrain2 = -1;
 
         switchedArms = 0;
 /*
@@ -1943,7 +2138,7 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
         }
 
 	if (armCount < 1) {
-		Fatal("SplitNode: attempted to create new node with 0 arms");
+            Fatal("SplitNode: attempted to create new node with 0 arms");
 	}
 
 /*
@@ -1957,7 +2152,42 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
             segPlaneX = node->nx[armList[0]];
             segPlaneY = node->ny[armList[0]];
             segPlaneZ = node->nz[armList[0]];
-        }
+			
+	    nbrNode = GetNeighborNode(home, node, armList[0]);
+	    	
+	    nodeInGrain = node->inGrain;
+	    nbrInGrain  = nbrNode->inGrain;
+	    if(nodeInGrain - floor(nodeInGrain) == 0.5 &&
+	    nbrInGrain - floor(nbrInGrain) == 0){
+	        inGrain1 = nodeInGrain;
+	        inGrain2 = nbrInGrain;
+	    }else if(nbrInGrain - floor(nbrInGrain) == 0.5 &&
+	    nodeInGrain - floor(nodeInGrain) == 0){
+	        inGrain1 = nodeInGrain;
+	        inGrain2 = nodeInGrain;
+	    }else if(nodeInGrain == nbrInGrain){
+	        inGrain1 = nodeInGrain;
+	        inGrain2 = nodeInGrain;
+	    }else{
+	        PrintNode(node);
+	        printf("SplitNode: the two nodes in different grain.\n");
+	        return(SPLIT_FAILED);
+	    }
+        }else{
+	    if(node->inGrain - floor(node->inGrain) == 0.5){
+	        return(SPLIT_FAILED);
+	    }else{
+	        nodeInGrain = node->inGrain;
+	        if(nodeInGrain != InWhichGrain(home, pos1[X], pos1[Y], pos1[Z])){
+	            return(SPLIT_FAILED);
+	        }
+				
+	        if(nodeInGrain != InWhichGrain(home, pos2[X], pos2[Y], pos2[Z])){
+	            return(SPLIT_FAILED);
+	        }
+	    }
+			
+	}
 
 /*
  *	The list of arms MUST be sorted in descending order (by index) to 
@@ -2005,19 +2235,19 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 
 	    tarmList2 = (int *)calloc(1, (node->numNbrs-armCount)*sizeof(int));
 
-            for (i = node->numNbrs-1; i >= 0; i--) {
-                if ((j >= armCount) || (tarmList[j] != i))
-                    tarmList2[k++] = i;
-                else
-                    j++;
-            }
+        for (i = node->numNbrs-1; i >= 0; i--) {
+            if ((j >= armCount) || (tarmList[j] != i))
+                tarmList2[k++] = i;
+            else
+                j++;
+        }
 
-            free(tarmList);
-            tarmList = tarmList2;
-            tarmList2 = (int *)NULL;
-            armCount = node->numNbrs - armCount;
+        free(tarmList);
+        tarmList = tarmList2;
+        tarmList2 = (int *)NULL;
+        armCount = node->numNbrs - armCount;
 
-            ownsSelectedArms = 1;
+        ownsSelectedArms = 1;
 
             for (i = 0; i < armCount; i++) {
                 ownsSelectedArms &= DomainOwnsSeg(home, opClass, thisDomain,
@@ -2098,9 +2328,11 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
         (*splitNode2)->vY = vel2[Y];
         (*splitNode2)->vZ = vel2[Z];
 
+
 	newNode->oldx = newNode->x;
 	newNode->oldy = newNode->y;
 	newNode->oldz = newNode->z;
+
 
 /*
  *      If the node being split was pinned or fixed at a specific
@@ -2112,7 +2344,7 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
             (*splitNode2)->constraint = UNCONSTRAINED;
         }
 
-#ifdef _FEM
+#if 0
 /*
  *      If the node being split is a surface node, then the
  *      node left at <pos1> must retain the surface properties.
@@ -2137,6 +2369,37 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
         }
 #endif
 
+#if 1
+/*
+ *	If the node being split is a surface node, the new node 
+ *	we also retain surface node.
+ */
+	if(node->constraint >= 1 && node->constraint <= 3){
+
+            (*splitNode1)->constraint = node->constraint;
+            (*splitNode2)->constraint = UNCONSTRAINED;
+	}
+#endif		
+/*  	
+ *   	For polycrystal, assign inGrain to new node.
+ */		
+		if(home->param->polycrystal){
+	            if(inGrain1 == -1 &&inGrain2 == -1){
+	                (*splitNode1)->inGrain = node->inGrain;
+	                (*splitNode2)->inGrain = node->inGrain;
+	            }else{
+	                (*splitNode1)->inGrain = inGrain1;
+	                (*splitNode2)->inGrain = inGrain2;
+	            }
+		}else{
+	            real8	newx,newy,newz;
+	            newx = newNode->x;
+	            newy = newNode->y;
+	            newz = newNode->z;
+	            newNode->inGrain = InWhichGrain(home, newx, newy, newz);
+		}
+		
+
 /*
  *      If this is a global operation that remote domains will have to
  *      know about, add the operation to the list that will be sent
@@ -2150,8 +2413,8 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                 node->myTag.index,
                 newNode->myTag.domainID,
                 newNode->myTag.index,
-                -1, -1,                 /* 3rd node tag unneeded */
-                0.0, 0.0, 0.0,          /* burgers vector unneeded */
+                newNode->constraint, -1,  /* node3 domain ID used to be constraint of new node*/
+                0.0, 0.0, 0.0,          
                 newNode->x, newNode->y, newNode->z,
                 newNode->vX,            /* plane normal is not needed */
                 newNode->vY,            /* but node velocity is, so we*/
@@ -2165,8 +2428,12 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                 0.0, 0.0, 0.0,          /* burgers vector unneeded */
                 node->x, node->y, node->z,
                 0.0, 0.0, 0.0);         /* plane normal not needed */
+			
+	    AssignGrain(home, *splitNode1, (*splitNode1)->inGrain);
+	    AssignGrain(home, *splitNode2, (*splitNode2)->inGrain);
         }
 
+		
 /*
  *	For each arm of the original node in armList, get the neighbor node,
  *	change the nbrNode->origNode linkage to nbrNode->newNode, and
@@ -2179,27 +2446,27 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 
 		nbrNode = GetNeighborNode(home, node, tarmList[i]);
 
-                if (nbrNode == (Node_t *)NULL) {
-                    Fatal("Neighbor not found at %s line %d\n",
-                           __FILE__, __LINE__);
-                }
+		if (nbrNode == (Node_t *)NULL) {
+			Fatal("Neighbor not found at %s line %d\n",
+				  __FILE__, __LINE__);
+		}
 
 		ftmp[X] = node->armfx[tarmList[i]];
 		ftmp[Y] = node->armfy[tarmList[i]];
 		ftmp[Z] = node->armfz[tarmList[i]];
 
 		SubtractSegForce(home, node, nbrNode);
-
+					   
 		GetBurgersVectorNormal(home, node, nbrNode, &bx, &by, &bz,
-				       &nx, &ny, &nz);
+							   &nx, &ny, &nz);
 		ChangeConnection(home, nbrNode, &node->myTag,
-				 &newNode->myTag, globalOp);
+						 &newNode->myTag, globalOp);
 		InsertArm(home, newNode, &node->nbrTag[tarmList[i]],
-			  bx, by, bz, nx, ny, nz, globalOp);
+				  bx, by, bz, nx, ny, nz, globalOp);
 		ChangeArmBurg(home, node, &nbrNode->myTag, 0, 0, 0, 0, 0, 0,
-			      globalOp, DEL_SEG_NONE);
+					  globalOp, DEL_SEG_NONE);
 		ResetSegForces(home, newNode, &nbrNode->myTag, ftmp[X],
-			       ftmp[Y], ftmp[Z], globalOp);
+					   ftmp[Y], ftmp[Z], globalOp);
 	}
 
 	free(tarmList);
@@ -2277,20 +2544,28 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                     burg[Y] = by;
                     burg[Z] = bz;
 
+#if 0
+	            if(Normal(dirVec) < 0.001){
+	                PrintTag(*splitNode1);
+	                PrintTag(*splitNode2);
+	                printf("SplitNode: the two nodes are too close\n");
+		    }
+#endif
                     NormalizeVec(dirVec);
                     NormalizeVec(burg);
 
-                    FindPreciseGlidePlane(home, burg, dirVec, glidePlane);
+                    FindPreciseGlidePlane(home, burg, dirVec, glidePlane, *splitNode1,*splitNode2);
 
                     if (DotProduct(glidePlane,glidePlane) < eps) {
                         vel[X] = ((*splitNode1)->vX + (*splitNode2)->vX) * 0.5;
                         vel[Y] = ((*splitNode1)->vY + (*splitNode2)->vY) * 0.5;
                         vel[Z] = ((*splitNode1)->vZ + (*splitNode2)->vZ) * 0.5;
 
-                        FindPreciseGlidePlane(home, vel, dirVec, glidePlane);
+                        FindPreciseGlidePlane(home, vel, dirVec, glidePlane, *splitNode1,*splitNode2);
 
                         if (DotProduct(glidePlane,glidePlane) < eps) {
-                            PickScrewGlidePlane(home, burg, glidePlane);
+                            PickScrewGlidePlane(home, burg, glidePlane,
+												*splitNode1,*splitNode2);
                         }
                     }
 
@@ -2304,18 +2579,23 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 /*
  *		Add links from the original node to the new node
  *		and vice-versa.  Forces on this new segment will be
- *		added outside this function.
+ *		added outside this function.			 
  */
-		InsertArm(home, (*splitNode1), &(*splitNode2)->myTag,
-                          bx, by, bz, cx, cy, cz, globalOp);
-
-		InsertArm(home, (*splitNode2), &(*splitNode1)->myTag,
-                          -bx, -by, -bz, cx, cy, cz, globalOp);
+				
+		
+			InsertArm(home, (*splitNode1), &(*splitNode2)->myTag,
+					  bx, by, bz, cx, cy, cz, globalOp);
+					  
+			InsertArm(home, (*splitNode2), &(*splitNode1)->myTag,
+					  -bx, -by, -bz, cx, cy, cz, globalOp);
+		
+		
 
 	}
-
+	
 	return(SPLIT_SUCCESS);
 }
+
 
 
 /*---------------------------------------------------------------------------
@@ -2365,78 +2645,132 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
                real8 *position, Node_t **mergedNode, int *status, int globalOp)
 {
-        int	i;
-        int     armID, armID1, armID2, thisDomain; 
-        int     node1Deletable, node2Deletable;
-        int     targetIsLocal, nbrIsLocal, targetOwnsSeg;
-        real8	bx, by, bz;
-        real8	nx, ny, nz;
-        real8   ftmp[3];
-        Node_t	*nbrNode, *targetNode, *deadNode;
-        Tag_t	tmpTag, *nbr1Tag, *nbr2Tag;
+	int		i,sameGrain=0;
+	int     armID, armID1, armID2, thisDomain; 
+	int     node1Deletable, node2Deletable;
+	int     targetIsLocal, nbrIsLocal, targetOwnsSeg;
+	int	firstPeneNode1,firstPeneNode2;
+	real8	bx, by, bz;
+	real8	nx, ny, nz;
+	real8   ftmp[3], mergeInGrain;
+	Node_t	*nbrNode, *targetNode, *deadNode;
+	Tag_t	tmpTag, *nbr1Tag, *nbr2Tag;
 
-        thisDomain = home->myDomain;
 
-        targetNode  = node1;
-        deadNode    = node1;
-        *mergedNode = (Node_t *)NULL;
-        *status     = MERGE_NOT_PERMITTED;
+	thisDomain = home->myDomain;
 
-/*
- *      Check if we are permitted to delete node1.  In order
- *      for a node to be deletable, it must satisfy the following:
- *
- *      1) Node may not be a 'fixed' node 
- *      2) Node must be owned by the current domain
- *      3) All arms of the node must be owned by the current domain
- *      4) Node may not be exempt from (additional) collisions this cycle
- *      5) Node may not be exempt from (additional) remeshes this cycle
- *      6) If node is a surface node, *both* nodes must be on the surface
- *         for it to be deletable.  (May need to add restrictions
- *         that surface nodes be on the same surface)
- */
-        node1Deletable  = (node1->myTag.domainID == thisDomain); 
-        node1Deletable &= (node1->constraint != PINNED_NODE);
-        node1Deletable &= ((node1->constraint == UNCONSTRAINED) ||
-                           (node2->constraint == SURFACE_NODE));
-        node1Deletable &= ((node1->flags & NO_COLLISIONS) == 0);
-        node1Deletable &= ((node1->flags & NO_MESH_COARSEN) == 0);
+	targetNode  = node1;
+	deadNode    = node1;
+	*mergedNode = (Node_t *)NULL;
+	*status     = MERGE_NOT_PERMITTED;
+	
+	if(node1==(Node_t *)NULL || node2==(Node_t *)NULL){ 
+		*status = MERGE_NOT_PERMITTED;
+		return;
+	}
 
-        for (armID = 0; armID < node1->numNbrs; armID++) {
-            node1Deletable &= DomainOwnsSeg(home, opClass, thisDomain,
-                                            &node1->nbrTag[armID]);
-        }
 
-/*
- *      If we can delete node1, use node2 as the target, but if node1
- *      cannot be removed, use node2 if we can. If node2 cannot
- *      be deleted either, return a failure to the caller.
- */
-        if (node1Deletable) {
-            targetNode = node2;
-            deadNode = node1;
-        } else {
-            node2Deletable  = (node2->myTag.domainID == thisDomain); 
-            node2Deletable &= (node2->constraint != PINNED_NODE);
-            node2Deletable &= ((node2->constraint == UNCONSTRAINED) ||
-                               (node1->constraint == SURFACE_NODE));
+	/*
+	 *      Check if we are permitted to delete node1.  In order
+	 *      for a node to be deletable, it must satisfy the following:
+	 *
+	 *      1) Node may not be a 'pinned' node 
+	 *      2) Node must be owned by the current domain
+	 *      3) All arms of the node must be owned by the current domain
+	 *      4) Node may not be exempt from (additional) collisions this cycle
+	 *      5) Node may not be exempt from (additional) remeshes this cycle
+	 *      6) If node is a surface node, *both* nodes must be on the surface
+	 *         for it to be deletable.  (May need to add restrictions
+	 *         that surface nodes be on the same surface)
+	 *		7) The intersection node between GB and grain nodes cannot be deleted.
+	 *		8) The node that connects two GB nodes may be the first penetrating node,
+	 *	   	we should keep it. 
+	 *
+	 *      NOTE: For now, a node that is pinned in ANY dimension is treated
+	 *            here as if it is pinned in ALL dimensions.
+	 */
+	firstPeneNode1 = 1;
+
+	if(node1->numNbrs != 2) firstPeneNode1 = 0;
+
+	for(i=0;i<node1->numNbrs;i++){
+	    nbrNode = GetNeighborNode(home, node1, i);
+		if(nbrNode == (Node_t *)NULL){
+			continue;
+	    }
+	    if(!(NodeOnGB(home,nbrNode) & INTERSECT_NODE)){
+		firstPeneNode1 = 0; break;}
+	}
+
+	firstPeneNode2 = 1;
+
+	if(node2->numNbrs != 2) firstPeneNode2 = 0;
+
+	for(i=0;i<node2->numNbrs;i++){
+	    
+		nbrNode = GetNeighborNode(home, node2, i);
+		if(nbrNode == (Node_t *)NULL){
+			continue;
+		}
+		
+	    if(!(NodeOnGB(home,nbrNode) & INTERSECT_NODE)){
+		firstPeneNode2 = 0; break;}
+
+	}
+	
+	node1Deletable  = (node1->myTag.domainID == thisDomain); 
+	node1Deletable &= (node1->constraint == UNCONSTRAINED);	
+
+	if(NodeOnGB(home,node1) & INTERSECT_NODE){
+
+	    if(!(NodeOnGB(home,node2) & INTERSECT_NODE)) node1Deletable &= 0;
+	}else{
+		node1Deletable &= ((node1->flags & NO_COLLISIONS) == 0);
+		node1Deletable &= ((node1->flags & NO_MESH_COARSEN) == 0);
+	}
+
+	node1Deletable &= (!firstPeneNode1);
+
+	for (armID = 0; armID < node1->numNbrs; armID++) {
+	    node1Deletable &= DomainOwnsSeg(home, opClass, thisDomain,
+			                    &node1->nbrTag[armID]);
+	}
+
+	/*
+	 *      If we can delete node1, use node2 as the target, but if node1
+	 *      cannot be removed, use node2 if we can. If node2 cannot
+	 *      be deleted either, return a failure to the caller.
+	 */
+	if (node1Deletable) {
+		targetNode = node2;
+		deadNode = node1;
+	} else {
+		node2Deletable  = (node2->myTag.domainID == thisDomain); 
+	        node2Deletable &= (node2->constraint == UNCONSTRAINED);	
+
+	    if(NodeOnGB(home,node2) & INTERSECT_NODE){
+		if(!(NodeOnGB(home,node1) & INTERSECT_NODE))node2Deletable &= 0;
+			
+	    }else{
             node2Deletable &= ((node2->flags & NO_COLLISIONS) == 0);
             node2Deletable &= ((node2->flags & NO_MESH_COARSEN) == 0);
+			
+	}
+        node2Deletable &= (!firstPeneNode2);
 
-            for (armID = 0; armID < node2->numNbrs; armID++) {
-                node2Deletable &= DomainOwnsSeg(home, opClass, thisDomain,
-                                                &node2->nbrTag[armID]);
-            }
+		for (armID = 0; armID < node2->numNbrs; armID++){
+		     node2Deletable &= DomainOwnsSeg(home, opClass, thisDomain,
+		     &node2->nbrTag[armID]);
+		}
 
-            if (!node2Deletable) {
-                *status = MERGE_NOT_PERMITTED;
-                *mergedNode = (Node_t *)NULL;
-                return;
-            }
-
-            targetNode = node1;
-            deadNode = node2;
-        }
+		if (!node2Deletable) {
+			*status = MERGE_NOT_PERMITTED;
+			*mergedNode = (Node_t *)NULL;
+			return;
+		}
+		targetNode = node1;
+		deadNode = node2;
+	}
 
 /*
  *      Coarsening a node out *may* leave a double connection.  That
@@ -2444,34 +2778,34 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
  *      links in the resulting double link and hence be able to 
  *      collapse/annihilate the links.
  */
-        targetIsLocal = (targetNode->myTag.domainID == thisDomain);
+	targetIsLocal = (targetNode->myTag.domainID == thisDomain);
 
-        for (armID1 = 0; armID1 < targetNode->numNbrs; armID1++) {
-            nbr1Tag = &targetNode->nbrTag[armID1];
-            nbrIsLocal = (nbr1Tag->domainID == thisDomain);
-            for (armID2 = 0; armID2 < deadNode->numNbrs; armID2++) {
-                nbr2Tag = &deadNode->nbrTag[armID2];
+	for (armID1 = 0; armID1 < targetNode->numNbrs; armID1++) {
+	    nbr1Tag = &targetNode->nbrTag[armID1];
+	    nbrIsLocal = (nbr1Tag->domainID == thisDomain);
+	    for (armID2 = 0; armID2 < deadNode->numNbrs; armID2++) {
+		nbr2Tag = &deadNode->nbrTag[armID2];
 
 /*
  *              If the target node and dead node both have links to a
  *              3rd node, check the ownership of the link between the
  *              target node and the 3rd node...
  */
-                if ((nbr1Tag->domainID == nbr2Tag->domainID) &&
+		if ((nbr1Tag->domainID == nbr2Tag->domainID) &&
                     (nbr1Tag->index    == nbr2Tag->index   )) {
 
-                    if (targetIsLocal && nbrIsLocal) {
-                        continue;
-                    }
+		    if (targetIsLocal && nbrIsLocal) {
+			continue;
+		    }
 
-                    targetOwnsSeg = DomainOwnsSeg(home, opClass,
-                                                  targetNode->myTag.domainID,
-                                                  nbr1Tag);
+		    targetOwnsSeg = DomainOwnsSeg(home, opClass,
+				                  targetNode->myTag.domainID,
+						  nbr1Tag);
 
-                    if ((targetIsLocal && targetOwnsSeg) ||
+		    if ((targetIsLocal && targetOwnsSeg) ||
                         (nbrIsLocal && !targetOwnsSeg)) {
-                        continue;
-                    }
+			continue;
+		    }
 /*
  *                  In the case of a simple triange with a node in
  *                  each domain, in theory we'd be safe coarsening out
@@ -2480,23 +2814,23 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
  *                  to add in the following exception.
  */
 #if 0
-                    if ((opClass == OPCLASS_REMESH) &&
+		    if ((opClass == OPCLASS_REMESH) &&
                         (targeNode->numNbrs == 2)   &&
                         (nbrNode->numNbrs == 2)) {
-                        continue;
-                    }
+					continue;
+		    }
 #endif
 
 /*
  *                  Link is remotely owned, so we cannot risk creating
  *                  a double link here...
  */
-                    *mergedNode = (Node_t *)NULL;
-                    *status = MERGE_DOUBLE_LINK;
-                    return;
-                }
-            }
-        }
+		    *mergedNode = (Node_t *)NULL;
+		    *status = MERGE_DOUBLE_LINK;
+		    return;
+		    }
+		}
+	}
 
 /*
  *      We've made it past all the checks that would have prevented the
@@ -2507,34 +2841,54 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
  *      status flag for the caller indicating the node has not been
  *      repositioned.
  */
-        *mergedNode = targetNode;
-        *status = MERGE_SUCCESS;
+	*mergedNode = targetNode;
+	*status = MERGE_SUCCESS;
+   
+	sameGrain = 0;
+	if(home->param->polycrystal){
+	    if(targetNode->inGrain - floor(targetNode->inGrain) == 0.5){
+	        if(GetInGrainFromPos(home,position[X],position[Y],position[Z]) == targetNode->inGrain)sameGrain=1;
+	    }else{
+		mergeInGrain = InWhichGrain(home,position[X],position[Y],position[Z]);
+	        if(mergeInGrain == targetNode->inGrain || mergeInGrain == -1)sameGrain=1;
+	    }
+	}else{
+	    sameGrain = 1;
+	}
 
-        if ((targetNode->myTag.domainID == thisDomain) &&
-            ((targetNode->constraint == UNCONSTRAINED) ||
-             ((targetNode->constraint == SURFACE_NODE) &&
-              (deadNode->constraint == SURFACE_NODE)))) {
-
-            targetNode->x = position[X];
-            targetNode->y = position[Y];
-            targetNode->z = position[Z];
+	
+	if (sameGrain && (targetNode->myTag.domainID == thisDomain)) {
+	
+	    if(targetNode->constraint == UNCONSTRAINED){
+		targetNode->x = position[X];
+		targetNode->y = position[Y];
+		targetNode->z = position[Z];
+	    
 /*
- *          If we're updating the location of the target node, we may
- *          have to communicate the new position to remote domains.
+ *              If we're updating the location of the target node, we may
+ *              have to communicate the new position to remote domains.
  */
-            if (globalOp) {
-                AddOp(home, RESET_COORD,
-                    targetNode->myTag.domainID,
-                    targetNode->myTag.index,
-                    -1, -1,                 /* 2nd tag unneeded */
-                    -1, -1,                 /* 3rd node tag unneeded */
-                    0.0, 0.0, 0.0,          /* burgers vector unneeded */
-                    targetNode->x, targetNode->y, targetNode->z,
-                    0.0, 0.0, 0.0);         /* plane normal not needed */
-            }
-        } else {
-            *status |= MERGE_NO_REPOSITION;
+	        if (globalOp) {
+		    AddOp(home, RESET_COORD,
+		          targetNode->myTag.domainID,
+		          targetNode->myTag.index,
+		          -1, -1,                 /* 2nd tag unneeded */
+		          -1, -1,                 /* 3rd node tag unneeded */
+		          0.0, 0.0, 0.0,          /* burgers vector unneeded */
+		          targetNode->x, targetNode->y, targetNode->z,
+		          0.0, 0.0, 0.0);         /* plane normal not needed */
+	        }
+	    }
+	} else {
+		*status |= MERGE_NO_REPOSITION;
+	        if(sameGrain == 0){
+		    PrintNode(targetNode);
+		    PrintNode(deadNode);
+		    FormatVector(position,"merge position");
+		    printf("MergeNode: the two nodes are not in same grain\n");
+		}
         }
+
 
 /*
  *      If there are any connections from the target/destination node
@@ -2543,48 +2897,64 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
  *      the target node, and add a new connection from the target node
  *      to each of the dead node's neighbors.
  */
-        ChangeArmBurg(home, targetNode, &deadNode->myTag, 0.0, 0.0, 0.0,
-                      0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
-        ChangeArmBurg(home, deadNode, &targetNode->myTag, 0.0, 0.0, 0.0,
-                      0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
+	ChangeArmBurg(home, targetNode, &deadNode->myTag, 0.0, 0.0, 0.0,
+				  0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
+	ChangeArmBurg(home, deadNode, &targetNode->myTag, 0.0, 0.0, 0.0,
+				  0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
 
 /*
  *      Move all connections from the dead node to the target node
  *      and add a new connection from the target node to each of the
  *      dead node's neighbors.
  */
-        for (i = (deadNode->numNbrs - 1); i >= 0; i--) {
-            tmpTag.domainID = deadNode->nbrTag[i].domainID;
-            tmpTag.index    = deadNode->nbrTag[i].index;
-            nbrNode = GetNeighborNode(home, deadNode, i);
+	for (i = (deadNode->numNbrs - 1); i >= 0; i--) {
+		
+	    if(deadNode->numNbrs == 0) {
+		PrintTag(deadNode);
+		Tecplot(home,"MergeNode",0,0,0,0,0,1);
+		Fatal("MergeNode: no nbr exists.\n");
+		break;
+	    }
 
-            if (nbrNode == (Node_t *)NULL) {
-                Fatal("Neighbor not found at %s line %d\n",
-                       __FILE__, __LINE__);
-            }
+	    tmpTag.domainID = deadNode->nbrTag[i].domainID;
+	    tmpTag.index    = deadNode->nbrTag[i].index;
+	    nbrNode = GetNeighborNode(home, deadNode, i);
 
-            ftmp[X] = deadNode->armfx[i];
-            ftmp[Y] = deadNode->armfy[i];
-            ftmp[Z] = deadNode->armfz[i];
+	    if (nbrNode == (Node_t *)NULL) {
+		Tecplot(home,"MergeNode",0,0,0,0,0,1);
+		Fatal("Neighbor not found at %s line %d\n",
+		      __FILE__, __LINE__);
+	    }
 
-            GetBurgersVectorNormal(home, deadNode, nbrNode,
-                                   &bx, &by, &bz, &nx, &ny, &nz);
-            ChangeConnection(home, nbrNode, &deadNode->myTag,
-                             &targetNode->myTag, globalOp);
-            ChangeArmBurg(home, deadNode, &nbrNode->myTag, 0.0, 0.0, 0.0,
-                          0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
-            InsertArm(home, targetNode, &tmpTag, bx, by, bz,
-                      nx, ny, nz, globalOp);
+	    ftmp[X] = deadNode->armfx[i];
+	    ftmp[Y] = deadNode->armfy[i];
+	    ftmp[Z] = deadNode->armfz[i];
 
-            ResetSegForces(home, targetNode, &tmpTag, ftmp[X], ftmp[Y],
-                           ftmp[Z], globalOp);
-        }
+	    GetBurgersVectorNormal(home, deadNode, nbrNode,
+				   &bx, &by, &bz, &nx, &ny, &nz);
+	    ChangeConnection(home, nbrNode, &deadNode->myTag,
+			     &targetNode->myTag, globalOp);
+	    ChangeArmBurg(home, deadNode, &nbrNode->myTag, 0.0, 0.0, 0.0,
+			  0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
+	    InsertArm(home, targetNode, &tmpTag, bx, by, bz,
+		      nx, ny, nz, globalOp);
+
+	    ResetSegForces(home, targetNode, &tmpTag, ftmp[X], ftmp[Y],
+			   ftmp[Z], globalOp);
+	}
 
 /*
  *      The <deadNode> should have no more arms, so we can safely
  *      remove it now.
  */
-        RemoveNode(home, deadNode, globalOp);
+	if(deadNode->numNbrs != 0){
+	    PrintNode(targetNode);
+	    PrintNode(deadNode);
+	    Fatal("arm number of dead node > 0");
+	}
+
+	RemoveNode(home, deadNode, globalOp);
+
 
 /*
  *      Check for multiple links between the target node and any other
@@ -2592,9 +2962,9 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
  *      will either cancel each other out in which case both links are
  *      removed, or the links get combined into a single link.
  */
-        if (RemoveDoubleLinks(home, targetNode, globalOp)) {
-            *status |= MERGE_NODE_ORPHANED;
-        }
+	if (RemoveDoubleLinks(home, targetNode, globalOp) == 1) {
+	    *status |= MERGE_NODE_ORPHANED;
+	}
 
 /*
  *      It's possible that the target node no longer has any arms.  If
@@ -2602,14 +2972,493 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
  *      set a status flag letting the caller know a remote node has been
  *      orphaned.
  */
-        if (targetNode->numNbrs == 0) {
-            if (targetNode->myTag.domainID == thisDomain) {
-                RemoveNode(home, targetNode, globalOp);
-                *mergedNode = (Node_t *)NULL;
-            } else {
-                *status |= MERGE_NODE_ORPHANED;
-            }
-        }
+	if (targetNode->numNbrs == 0) {
+	    if (targetNode->myTag.domainID == thisDomain) {
+		RemoveNode(home, targetNode, globalOp);
+		*mergedNode = (Node_t *)NULL;
+	    } else {
+		*status |= MERGE_NODE_ORPHANED;
+	    }
+	}
 
-        return;
+	return;
 }
+
+
+#define DEBUG_MERGENODE 1
+
+void DebugMergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
+               real8 *position, Node_t **mergedNode, int *status, int globalOp)
+{
+	int		i,sameGrain=0;
+	int     armID, armID1, armID2, thisDomain; 
+	int     node1Deletable, node2Deletable;
+	int     targetIsLocal, nbrIsLocal, targetOwnsSeg;
+	int	firstPeneNode1,firstPeneNode2;
+	real8	bx, by, bz;
+	real8	nx, ny, nz;
+	real8   ftmp[3];
+	Node_t	*nbrNode, *targetNode, *deadNode;
+	Tag_t	tmpTag, *nbr1Tag, *nbr2Tag;
+
+
+	thisDomain = home->myDomain;
+
+	targetNode  = node1;
+	deadNode    = node1;
+	*mergedNode = (Node_t *)NULL;
+	*status     = MERGE_NOT_PERMITTED;
+	
+#if DEBUG_MERGENODE
+        printf("MergeNode step: ");
+#endif
+	
+	if(node1==(Node_t *)NULL || node2==(Node_t *)NULL){ 
+		*status = MERGE_NOT_PERMITTED;
+		return;
+	}
+
+
+	/*
+	 *      Check if we are permitted to delete node1.  In order
+	 *      for a node to be deletable, it must satisfy the following:
+	 *
+	 *      1) Node may not be a 'pinned' node 
+	 *      2) Node must be owned by the current domain
+	 *      3) All arms of the node must be owned by the current domain
+	 *      4) Node may not be exempt from (additional) collisions this cycle
+	 *      5) Node may not be exempt from (additional) remeshes this cycle
+	 *      6) If node is a surface node, *both* nodes must be on the surface
+	 *         for it to be deletable.  (May need to add restrictions
+	 *         that surface nodes be on the same surface)
+	 *		7) The intersection node between GB and grain nodes cannot be deleted.
+	 *		8) The node that connects two GB nodes may be the first penetrating node,
+	 *	   	we should keep it. 
+	 *
+	 *      NOTE: For now, a node that is pinned in ANY dimension is treated
+	 *            here as if it is pinned in ALL dimensions.
+	 */
+	firstPeneNode1 = 1;
+
+	if(node1->numNbrs != 2) firstPeneNode1 = 0;
+
+	for(i=0;i<node1->numNbrs;i++){
+	    nbrNode = GetNeighborNode(home, node1, i);
+		if(nbrNode == (Node_t *)NULL){
+			continue;
+		}
+	    if(!(NodeOnGB(home,nbrNode) & INTERSECT_NODE)){
+		firstPeneNode1 = 0; break;}
+
+	}
+
+	firstPeneNode2 = 1;
+
+	if(node2->numNbrs != 2) firstPeneNode2 = 0;
+
+	for(i=0;i<node2->numNbrs;i++){
+	    
+		nbrNode = GetNeighborNode(home, node2, i);
+		if(nbrNode == (Node_t *)NULL){
+			continue;
+		}
+		
+	    if(!(NodeOnGB(home,nbrNode) & INTERSECT_NODE)){
+		firstPeneNode2 = 0; break;}
+
+	}
+	
+#if DEBUG_MERGENODE
+    printf("1; ");
+#endif
+
+	node1Deletable  = (node1->myTag.domainID == thisDomain); 
+	
+#if DEBUG_MERGENODE
+	if(!node1Deletable){
+		printf("1.1; ");
+	}
+#endif
+	node1Deletable &= (node1->constraint != PINNED_NODE);
+#if DEBUG_MERGENODE
+	if(!node1Deletable){
+		printf("1.2; ");
+	}
+#endif
+
+	node1Deletable &= ((node1->constraint == UNCONSTRAINED) ||
+		 	   node2->constraint > 0 && node2->constraint < 4);
+#if DEBUG_MERGENODE
+	if(!node1Deletable){
+		printf("1.3; ");
+	}
+#endif
+	
+	if(NodeOnGB(home,node1) & INTERSECT_NODE){
+
+	    if(!(NodeOnGB(home,node2) & INTERSECT_NODE)) node1Deletable &= 0;
+#if DEBUG_MERGENODE
+		if(!node1Deletable){
+			printf("1.4; ");
+		}
+#endif
+
+	}else{
+		node1Deletable &= ((node1->flags & NO_COLLISIONS) == 0);
+#if DEBUG_MERGENODE
+		if(!node1Deletable){
+			printf("1.5; ");
+		}
+#endif
+		node1Deletable &= ((node1->flags & NO_MESH_COARSEN) == 0);
+#if DEBUG_MERGENODE
+		if(!node1Deletable){
+			printf("1.6; ");
+		}
+#endif
+		
+	}
+
+	node1Deletable &= (!firstPeneNode1);
+#if DEBUG_MERGENODE
+	if(!node1Deletable){
+		printf("1.7; ");
+	}
+#endif
+
+	for (armID = 0; armID < node1->numNbrs; armID++) {
+		node1Deletable &= DomainOwnsSeg(home, opClass, thisDomain,
+										&node1->nbrTag[armID]);
+	}
+#if DEBUG_MERGENODE
+	if(!node1Deletable){
+		printf("1.8; ");
+	}
+#endif
+
+	/*
+	 *      If we can delete node1, use node2 as the target, but if node1
+	 *      cannot be removed, use node2 if we can. If node2 cannot
+	 *      be deleted either, return a failure to the caller.
+	 */
+#if DEBUG_MERGENODE
+    printf("2; ");
+#endif
+	if (node1Deletable) {
+		targetNode = node2;
+		deadNode = node1;
+	} else {
+		node2Deletable  = (node2->myTag.domainID == thisDomain); 
+#if DEBUG_MERGENODE
+		if(!node2Deletable){
+			printf("2.1; ");
+		}
+#endif
+		
+		node2Deletable &= (node2->constraint != PINNED_NODE);
+#if DEBUG_MERGENODE
+		if(!node2Deletable){
+			printf("2.2; ");
+		}
+#endif
+		
+		node2Deletable &= ((node2->constraint == UNCONSTRAINED) ||
+				    node1->constraint > 0 && node1->constraint < 4);
+#if DEBUG_MERGENODE
+		if(!node2Deletable){
+			printf("2.3; ");
+		}
+#endif
+		
+
+	    if(NodeOnGB(home,node2) & INTERSECT_NODE){
+			if(!(NodeOnGB(home,node1) & INTERSECT_NODE))node2Deletable &= 0;
+#if DEBUG_MERGENODE
+			if(!node2Deletable){
+				printf("2.4; ");
+			}
+#endif
+			
+	    }else{
+            node2Deletable &= ((node2->flags & NO_COLLISIONS) == 0);
+#if DEBUG_MERGENODE
+			if(!node2Deletable){
+				printf("2.5; ");
+			}
+#endif
+			
+            node2Deletable &= ((node2->flags & NO_MESH_COARSEN) == 0);
+#if DEBUG_MERGENODE
+			if(!node2Deletable){
+				printf("2.6; ");
+			}
+#endif
+			
+	    }
+        node2Deletable &= (!firstPeneNode2);
+#if DEBUG_MERGENODE
+		if(!node2Deletable){
+			printf("2.7; ");
+		}
+#endif
+		
+
+		for (armID = 0; armID < node2->numNbrs; armID++){
+		     node2Deletable &= DomainOwnsSeg(home, opClass, thisDomain,
+		     &node2->nbrTag[armID]);
+		}
+#if DEBUG_MERGENODE
+		if(!node2Deletable){
+			printf("2.8; ");
+		}
+#endif
+
+		if (!node2Deletable) {
+			*status = MERGE_NOT_PERMITTED;
+			*mergedNode = (Node_t *)NULL;
+			return;
+		}
+		targetNode = node1;
+		deadNode = node2;
+	}
+#if DEBUG_MERGENODE
+	printf("3; ");
+#endif
+
+/*
+ *      Coarsening a node out *may* leave a double connection.  That
+ *      is only permitted if the current domain would own both 
+ *      links in the resulting double link and hence be able to 
+ *      collapse/annihilate the links.
+ */
+	targetIsLocal = (targetNode->myTag.domainID == thisDomain);
+
+	for (armID1 = 0; armID1 < targetNode->numNbrs; armID1++) {
+	    nbr1Tag = &targetNode->nbrTag[armID1];
+	    nbrIsLocal = (nbr1Tag->domainID == thisDomain);
+	    for (armID2 = 0; armID2 < deadNode->numNbrs; armID2++) {
+		nbr2Tag = &deadNode->nbrTag[armID2];
+
+/*
+ *              If the target node and dead node both have links to a
+ *              3rd node, check the ownership of the link between the
+ *              target node and the 3rd node...
+ */
+		if ((nbr1Tag->domainID == nbr2Tag->domainID) &&
+                    (nbr1Tag->index    == nbr2Tag->index   )) {
+
+		    if (targetIsLocal && nbrIsLocal) {
+			continue;
+		    }
+
+		    targetOwnsSeg = DomainOwnsSeg(home, opClass,
+				                  targetNode->myTag.domainID,
+						  nbr1Tag);
+
+		    if ((targetIsLocal && targetOwnsSeg) ||
+                        (nbrIsLocal && !targetOwnsSeg)) {
+			continue;
+		    }
+/*
+ *                  In the case of a simple triange with a node in
+ *                  each domain, in theory we'd be safe coarsening out
+ *                  the node during remesh since no other operations
+ *                  would affect the remaining link... we might want
+ *                  to add in the following exception.
+ */
+#if 0
+		    if ((opClass == OPCLASS_REMESH) &&
+                        (targeNode->numNbrs == 2)   &&
+                        (nbrNode->numNbrs == 2)) {
+					continue;
+		    }
+#endif
+
+/*
+ *                  Link is remotely owned, so we cannot risk creating
+ *                  a double link here...
+ */
+		    *mergedNode = (Node_t *)NULL;
+		    *status = MERGE_DOUBLE_LINK;
+		    return;
+		    }
+		}
+	}
+#if DEBUG_MERGENODE
+	printf("4; ");
+#endif
+
+/*
+ *      We've made it past all the checks that would have prevented the
+ *      merge operation from being performed.  The target and dead nodes
+ *      have been selected, so if the target node is local to this
+ *      domain, go ahead and reposition it.  If we can't reposition the
+ *      node, the merge will still be done, but be sure to set the
+ *      status flag for the caller indicating the node has not been
+ *      repositioned.
+ */
+	*mergedNode = targetNode;
+	*status = MERGE_SUCCESS;
+   
+	sameGrain = 0;
+	if(home->param->polycrystal){
+	    if(targetNode->inGrain - floor(targetNode->inGrain) == 0.5){
+	        if(GetInGrainFromPos(home,position[X],position[Y],position[Z]) == targetNode->inGrain)sameGrain=1;
+	    }else{
+	        if(InWhichGrain(home,position[X],position[Y],position[Z]) == targetNode->inGrain)sameGrain=1;
+	    }
+	}else{
+	    sameGrain = 1;
+	}
+
+#if DEBUG_MERGENODE
+	printf("5; ");
+#endif
+	
+	if (sameGrain && (targetNode->myTag.domainID == thisDomain) &&
+            ((targetNode->constraint == UNCONSTRAINED) ||
+             ((targetNode->constraint < 4 && targetNode->constraint > 0) &&
+              (deadNode->constraint < 4 && deadNode->constraint > 0)))) {
+
+
+		targetNode->x = position[X];
+		targetNode->y = position[Y];
+		targetNode->z = position[Z];
+
+		/*
+		 *          If we're updating the location of the target node, we may
+		 *          have to communicate the new position to remote domains.
+		 */
+		if (globalOp) {
+			AddOp(home, RESET_COORD,
+				  targetNode->myTag.domainID,
+				  targetNode->myTag.index,
+				  -1, -1,                 /* 2nd tag unneeded */
+				  -1, -1,                 /* 3rd node tag unneeded */
+				  0.0, 0.0, 0.0,          /* burgers vector unneeded */
+				  targetNode->x, targetNode->y, targetNode->z,
+				  0.0, 0.0, 0.0);         /* plane normal not needed */
+		}
+
+#if DEBUG_MERGENODE
+		printf("5.1; ");
+#endif
+	    } else {
+		*status |= MERGE_NO_REPOSITION;
+	        if(sameGrain == 0){
+		    PrintNode(targetNode);
+		    PrintNode(deadNode);
+		    printf("MergeNode: the two nodes are not in same grain\n");
+		}
+	    }
+
+
+/*
+ *      If there are any connections from the target/destination node
+ *      to the dead node, use ChangeArmBurg() to get rid of those
+ *      connections, then move all connections from the dead node to
+ *      the target node, and add a new connection from the target node
+ *      to each of the dead node's neighbors.
+ */
+	ChangeArmBurg(home, targetNode, &deadNode->myTag, 0.0, 0.0, 0.0,
+				  0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
+	ChangeArmBurg(home, deadNode, &targetNode->myTag, 0.0, 0.0, 0.0,
+				  0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
+#if DEBUG_MERGENODE
+	printf("6; ");
+#endif
+
+/*
+ *      Move all connections from the dead node to the target node
+ *      and add a new connection from the target node to each of the
+ *      dead node's neighbors.
+ */
+	for (i = (deadNode->numNbrs - 1); i >= 0; i--) {
+		
+	    if(deadNode->numNbrs == 0) {
+		PrintTag(deadNode);
+		Tecplot(home,"MergeNode",0,0,0,0,0,1);
+		Fatal("MergeNode: no nbr exists.\n");
+		break;
+	    }
+
+	    tmpTag.domainID = deadNode->nbrTag[i].domainID;
+	    tmpTag.index    = deadNode->nbrTag[i].index;
+	    nbrNode = GetNeighborNode(home, deadNode, i);
+
+	    if (nbrNode == (Node_t *)NULL) {
+		Tecplot(home,"MergeNode",0,0,0,0,0,1);
+		Fatal("Neighbor not found at %s line %d\n",
+		      __FILE__, __LINE__);
+	    }
+
+	    ftmp[X] = deadNode->armfx[i];
+	    ftmp[Y] = deadNode->armfy[i];
+	    ftmp[Z] = deadNode->armfz[i];
+
+	    GetBurgersVectorNormal(home, deadNode, nbrNode,
+				   &bx, &by, &bz, &nx, &ny, &nz);
+	    ChangeConnection(home, nbrNode, &deadNode->myTag,
+			     &targetNode->myTag, globalOp);
+	    ChangeArmBurg(home, deadNode, &nbrNode->myTag, 0.0, 0.0, 0.0,
+			  0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
+	    InsertArm(home, targetNode, &tmpTag, bx, by, bz,
+		      nx, ny, nz, globalOp);
+
+	    ResetSegForces(home, targetNode, &tmpTag, ftmp[X], ftmp[Y],
+			   ftmp[Z], globalOp);
+	}
+#if DEBUG_MERGENODE
+	printf("7; ");
+#endif
+
+/*
+ *      The <deadNode> should have no more arms, so we can safely
+ *      remove it now.
+ */
+	if(deadNode->numNbrs != 0){
+	    PrintNode(targetNode);
+	    PrintNode(deadNode);
+	    Fatal("arm number of dead node > 0");
+	}
+
+	RemoveNode(home, deadNode, globalOp);
+
+#if DEBUG_MERGENODE
+	printf("8; ");
+#endif
+
+/*
+ *      Check for multiple links between the target node and any other
+ *      single node.  If found, the burgers vectors for the multiple links
+ *      will either cancel each other out in which case both links are
+ *      removed, or the links get combined into a single link.
+ */
+	if (RemoveDoubleLinks(home, targetNode, globalOp) == 1) {
+	    *status |= MERGE_NODE_ORPHANED;
+	}
+
+#if DEBUG_MERGENODE
+	printf("9; ");
+#endif
+/*
+ *      It's possible that the target node no longer has any arms.  If
+ *      the neighbor is local, go ahead and remove it, otherwise, just
+ *      set a status flag letting the caller know a remote node has been
+ *      orphaned.
+ */
+	if (targetNode->numNbrs == 0) {
+	    if (targetNode->myTag.domainID == thisDomain) {
+		RemoveNode(home, targetNode, globalOp);
+		*mergedNode = (Node_t *)NULL;
+	    } else {
+		*status |= MERGE_NODE_ORPHANED;
+	    }
+	}
+
+#if DEBUG_MERGENODE
+	printf("\n");
+#endif
+	return;
+}
+

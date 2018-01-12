@@ -1,0 +1,63 @@
+#!/bin/bash
+#PBS -l nodes=1:ppn=16
+#PBS -o ./out.$PBS_JOBID
+#PBS -e ./error.$PBS_JOBID
+
+module load mpi/openmpi-x86_64
+
+initialType=5
+frlen=6666
+cubel=20000
+maxseg=1333
+nfrsrcs=391
+
+#./gen  ${initialType} $frlen $cubel $maxseg $nfrsrcs 
+
+recordFile=/sharefs/home/zhangxu/TB/gitcode/.log/history.log
+logFile=/sharefs/home/zhangxu/TB/gitcode/.log/101.log
+
+if [ "$PBS_O_WORKDIR" = "" ];then
+    PBS_O_WORKDIR=`pwd`
+fi
+
+if [ "$PBS_JOBID" = "" ];then
+    PBS_JOBID=$1
+    touch out.$PBS_JOBID
+fi
+
+jobID=`echo "${PBS_JOBID}" | cut -d . -f 1` 
+
+cd $PBS_O_WORKDIR
+
+resultDir=res.$jobID
+ctrlFile=input/Copper.ctrl    
+dataFile=input/Copper.data
+
+lineNumber=`grep  -n "dirname" $ctrlFile | cut -d : -f 1`
+sed -i "${lineNumber}d" $ctrlFile
+sed -i "${lineNumber}idirname = \"${resultDir}\"" $ctrlFile
+
+
+dirName=`pwd | sed 's,^\(.*/\)\?\([^/]*\),\2,'`
+echo  "$dirName, jobID $jobID:" >> $logFile
+
+if [ $PBS_JOBID = $1 ]
+then
+    lineNumber=`grep  -n "numZdoms" $ctrlFile | cut -d : -f 1`
+    sed -i "${lineNumber}d" $ctrlFile
+    sed -i "${lineNumber}inumZdoms = 2" $ctrlFile
+#	gclean
+#	make clean
+#    	make
+	./gen  ${initialType} $frlen $cubel $maxseg $nfrsrcs 
+    mpirun -n 8 ./bin/paradis ./${ctrlFile} | tee out.${jobID}
+else
+	make clean  > /dev/null 2>&1
+    	make  > /dev/null 2>&1
+	echo "Initial generation type: ${initialType}"
+#	./gen  ${initialType} $frlen $cubel $maxseg $nfrsrcs 
+        lineNumber=`grep  -n "numZdoms" $ctrlFile | cut -d : -f 1`
+        sed -i "${lineNumber}d" $ctrlFile
+        sed -i "${lineNumber}inumZdoms = 4" $ctrlFile
+    	mpirun -machinefile $PBS_NODEFILE -n 16 ./bin/paradis ./${ctrlFile}
+fi

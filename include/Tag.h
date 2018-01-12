@@ -14,6 +14,6 @@ struct _tag {
    int domainID ;
    int index ;
 
-} ;
+};
 
 #endif

@@ -33,6 +33,8 @@ typedef struct _sortnode SortNode_t;
 typedef struct _tag Tag_t;
 typedef struct _timer Timer_t;
 typedef struct _unmappedarm_t UnMappedArm_t;
+typedef struct _grain Grain_t;
+typedef struct _peneResults PeneRes_t;
 
 typedef enum {
 	Periodic=0,
@@ -51,10 +53,12 @@ typedef enum {
 	CHANGE_ARM_BURG,
 	SPLIT_NODE,
 	RESET_COORD,
+	UPDATE_GRAIN,
+	UPDATE_CONSTRAINT,
 	RESET_SEG_FORCES,
 	RESET_SEG_FORCES2,
 	MARK_FORCES_OBSOLETE,
-        RESET_GLIDE_PLANE
+    RESET_GLIDE_PLANE
 } OpType_t;
 
 

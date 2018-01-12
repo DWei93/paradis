@@ -59,7 +59,7 @@ static real8 *cellCenterY = (real8 *)NULL;
 static real8 *cellCenterZ = (real8 *)NULL;
 
 
-void SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
+int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
         real8 bx, real8 by, real8 bz, real8 x1, real8 y1, real8 z1,
         real8 x2, real8 y2, real8 z2, real8 a,  real8 Ecore,
         real8 f1[3], real8 f2[3]);
@@ -641,8 +641,11 @@ void LineTensionForce(Home_t *home, real8 x1, real8 y1, real8 z1,
         y2 = y1 + dy;
         z2 = z1 + dz;
 
-        SelfForce(1, MU, NU, bx, by, bz, x1, y1, z1, x2, y2, z2,
-                  a, Ecore, fSelf1, fSelf2);
+        if(!SelfForce(1, MU, NU, bx, by, bz, x1, y1, z1, x2, y2, z2,
+                  a, Ecore, fSelf1, fSelf2)){
+	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
+	    Fatal("at %s, Line %d",__FILE__,__LINE__);
+	}
 
         ExtPKForce(extStress, bx, by, bz, x1, y1, z1, x2, y2, z2, fPK1, fPK2);
 
@@ -1000,9 +1003,15 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
 /*
  *          Calculate the segment self-force, force from external stress, etc.
  */
-            SelfForce(0, MU, NU, burg[X], burg[Y], burg[Z],
+            if(!SelfForce(0, MU, NU, burg[X], burg[Y], burg[Z],
                       pos1[X], pos1[Y], pos1[Z], pos2[X], pos2[Y], pos2[Z],
-                      a, Ecore, f1, f2);
+                      a, Ecore, f1, f2)){
+
+	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
+	    PrintNode(node1);
+	    PrintNode(node2);
+	    Fatal("at %s, Line %d",__FILE__,__LINE__);
+	    }
 
             AddtoArmForce(node1, armID12, f1);
             AddtoArmForce(node2, armID21, f2);
@@ -1329,8 +1338,14 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
  *          direct interactions with other segments.  Start with force
  *          due to self stress.
  */
-            SelfForce(0, MU, NU, burg[X], burg[Y], burg[Z],
-                      x1, y1, z1, x2, y2, z2, a, Ecore, f1, f2);
+            if(!SelfForce(0, MU, NU, burg[X], burg[Y], burg[Z],
+                      x1, y1, z1, x2, y2, z2, a, Ecore, f1, f2)){
+
+	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
+	    PrintNode(node1);
+	    PrintNode(node2);
+	    Fatal("at %s, Line %d",__FILE__,__LINE__);
+	    }
 
             VECTOR_ADD(fseg1node1, f1);
             VECTOR_ADD(fseg1node2, f2);
@@ -1675,7 +1690,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
  *              from the semi-infinite segment node3-->infinity on the finite
  *              segment node1-->node2
  */
-                if (node3->constraint == SURFACE_NODE) {
+                if (node3->constraint > 0 && node3->constrain < 4 ) {
 
                     xInf = x3 + (x3 - x4);
                     yInf = y3 + (y3 - y4);
@@ -1706,7 +1721,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
  *              the semi-infinite segment node4-->infinity on the finite
  *              segment node1-->node2
  */
-                if (node4->constraint == SURFACE_NODE) {
+                if (node4->constraint > 0 && node4->constrain < 4) {
 
                     xInf = x4 + (x4 - x3);
                     yInf = y4 + (y4 - y3);
@@ -1791,7 +1806,8 @@ void ExtPKForce(real8 str[3][3],
 {
     real8 strb[3], xi[3], ft[3];
     int j;
-
+	
+	
     xi[0] = x2-x1;
     xi[1] = y2-y1;
     xi[2] = z2-z1;
@@ -1801,7 +1817,8 @@ void ExtPKForce(real8 str[3][3],
     }
 
     cross(strb, xi, ft);
-
+	
+	
     for (j = 0; j < 3; j++) {
         f1[j] = ft[j]*0.5;
         f2[j] = ft[j]*0.5;
@@ -1830,7 +1847,7 @@ void PKForce(real8 sigb[3],
 }
 
 
-void SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
+int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
                         real8 bx, real8 by, real8 bz,
                         real8 x1, real8 y1, real8 z1,
                         real8 x2, real8 y2, real8 z2,
@@ -1840,7 +1857,7 @@ void SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
     real8 tx, ty, tz, L, La, S;
     real8 bs, bs2, bex, bey, bez, be2, fL, ft;
     
-    GetUnitVector(1, x1, y1, z1, x2, y2, z2, &tx, &ty, &tz, &L);
+    if(!GetUnitVector(1, x1, y1, z1, x2, y2, z2, &tx, &ty, &tz, &L))return(0);
     bs = bx*tx + by*ty + bz*tz;
     bex = bx-bs*tx; bey = by-bs*ty; bez=bz-bs*tz;
     be2 = (bex*bex+bey*bey+bez*bez);
@@ -1869,7 +1886,7 @@ void SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
     f1[1] = -f2[1];
     f1[2] = -f2[2];
 
-    return;
+    return(1);
 }
 
 
@@ -1882,7 +1899,7 @@ void SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
  *      Arguments:
  *
  *------------------------------------------------------------------------*/
-void SelfForce(int coreOnly, real8 MU, real8 NU,
+int SelfForce(int coreOnly, real8 MU, real8 NU,
                real8 bx, real8 by, real8 bz,
                real8 x1, real8 y1, real8 z1,
                real8 x2, real8 y2, real8 z2,
@@ -1890,8 +1907,9 @@ void SelfForce(int coreOnly, real8 MU, real8 NU,
                real8 f1[3], real8 f2[3])
 {
 
-        SelfForceIsotropic(coreOnly, MU, NU, bx, by, bz, x1, y1, z1,                                       x2, y2, z2, a, Ecore, f1, f2);
-        return;
+        if(!SelfForceIsotropic(coreOnly, MU, NU, bx, by, bz, x1, y1, z1, 
+	    x2, y2, z2, a, Ecore, f1, f2))return(0);
+        return(1);
 }
 
 

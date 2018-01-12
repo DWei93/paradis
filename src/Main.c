@@ -47,6 +47,7 @@ main (int argc, char *argv[])
 
 
         ParadisInit(argc, argv, &home);
+
    
         home->cycle      = home->param->cycleStart;
 
@@ -68,7 +69,6 @@ main (int argc, char *argv[])
             printf("  +++ Beginning %d load-balancing steps at %s",
                    initialDLBCycles, asctime(localtime(&tp)));
         }
-
         while (param->numDLBCycles > 0) {
             ParadisStep(home);
             home->cycle++;
@@ -98,7 +98,8 @@ main (int argc, char *argv[])
  */
         home->cycle = home->param->cycleStart;
 
-        while (home->cycle < cycleEnd) {
+		
+        while (home->cycle < cycleEnd && home->param->finish == 0) {
             ParadisStep(home);
             TimerClearAll(home);
         }

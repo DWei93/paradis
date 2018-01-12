@@ -210,7 +210,7 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
         if (param->tecplot) {
             if (stage == STAGE_TERM) {
                 *outputTypes |= GEN_TECPLOT_DATA;
-            } else if (stage == STAGE_CYCLE) {
+            } else if (stage == STAGE_CYCLE || stage == STAGE_DEBUG) {
                 if (param->tecplotdt > 0.0) {
                     dumpTime = param->tecplottime + param->tecplotdt;
                     if (timeNow >= dumpTime) {
@@ -763,6 +763,9 @@ static void SetBinFileArrays(Home_t *home, BinFileData_t *binData)
         if (binData->nodeCount == 0) {
             return;
         }
+		
+		
+		
 
 /*
  *      Allocate 1 element per node for these arrays
@@ -920,7 +923,7 @@ static void FreeBinFileArrays(BinFileData_t *binData)
  *                       might produce.
  *
  *------------------------------------------------------------------------*/
-static void DoParallelIO(Home_t *home, int outputTypes, int stage)
+static void DoParallelIO(Home_t *home, int outputTypes, int stage, char *msg)
 {
         int     ioGroup, prevInGroup, nextInGroup, numIOGroups;
         int     thisDomain, isFirstInGroup, isLastInGroup;
@@ -1048,21 +1051,38 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage)
 
         if ((outputTypes & GEN_TECPLOT_DATA) != 0) {
             if (stage == STAGE_CYCLE) {
-                snprintf(baseName, sizeof(baseName), "tecdata%04d",
+#if CHECK_GB_TOPO
+                snprintf(baseName, sizeof(baseName), "tecdata%06d%s",
+                         home->cycle,msg);
+#else
+                snprintf(baseName, sizeof(baseName), "tecdata%06d",
                          param->tecplotcounter);
-            } else {
+#endif
+            } else if(stage == STAGE_DEBUG){
+                snprintf(baseName, sizeof(baseName),"tecdata%06d%s",
+			home->cycle,msg);
+	    }else{
                 snprintf(baseName, sizeof(baseName), "tecdata.final");
             }
+
             if (recvToken) RecvWriteToken(prevInGroup);
             Tecplot(home, baseName, ioGroup, isFirstInGroup,
-                    writePrologue, writeEpilogue, numSegs);
+                    writePrologue, writeEpilogue, numArms, 0);
             if (sendToken) SendWriteToken(nextInGroup);
+			
+	    static int iMesh = 1;
+            if(iMesh % param->meshInterval == 0 || stage == STAGE_TERM){  
+	        TecplotMesh(home, baseName, ioGroup, 
+	                    isFirstInGroup, writePrologue, 
+	                    writeEpilogue, numSegs);
+	    }
+	    iMesh++;
         }
 
 
         if ((outputTypes & GEN_VELOCITY_DATA) != 0) {
             if (stage == STAGE_CYCLE) {
-                snprintf(baseName, sizeof(baseName), "vel%04d",
+                snprintf(baseName, sizeof(baseName), "vel%06d.plt",
                          param->velfilecounter);
             } else {
                 snprintf(baseName, sizeof(baseName), "vel.final");
@@ -1287,9 +1307,9 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage)
  *                           STAGE_TERM
  *
  *------------------------------------------------------------------------*/
-void GenerateOutput(Home_t *home, int stage)
+void GenerateOutput(Home_t *home, int stage, char *msg)
 {
-        int     outputTypes = 0;
+        int     outputTypes = 0, finishLoc, finishGlo;
         real8   localDensity, globalDensity;
         char    fileName[128];
         time_t  tp;
@@ -1311,9 +1331,21 @@ void GenerateOutput(Home_t *home, int stage)
 
             if ((param->loadType != 2) && (home->myDomain == 0)) {
                 time(&tp);
-                printf("cycle=%-8d  realdt=%e  timeNow=%e  %s",
-                        home->cycle, param->timeNow-param->timeStart,
-                        param->timeNow, asctime(localtime(&tp)));
+		
+		static int outputPrint = 0;
+
+		if(outputPrint%100 == 0){
+			printf("cycle=%-8d  realdt=%e  timeNow=%e  %s",
+                        	home->cycle, param->timeNow-param->timeStart,
+                        	param->timeNow, asctime(localtime(&tp)));
+#if 0
+			printf("applied stress: %.15e %.15e %.15e %.15e %.15e %.15e\n",
+			   param->appliedStress[0],param->appliedStress[1],
+			   param->appliedStress[2],param->appliedStress[3],
+			   param->appliedStress[4],param->appliedStress[5]);
+#endif
+		}
+               		outputPrint++;
             }
         }
 
@@ -1389,6 +1421,12 @@ void GenerateOutput(Home_t *home, int stage)
             WriteProp(home, EPS);      /* Resultant plastic strain (scalar) */
 
         }
+#ifdef PARALLEL
+        finishLoc = param->finish;
+        MPI_Allreduce(&finishLoc, &finishGlo, 1, MPI_INT,
+                      MPI_MAX, MPI_COMM_WORLD);
+        param->finish = finishGlo;
+#endif
 
 /*
  *      A number of the types of output will be done (potentially)
@@ -1406,7 +1444,7 @@ void GenerateOutput(Home_t *home, int stage)
             ((outputTypes & GEN_VISIT_DATA)    != 0) ||
             ((outputTypes & GEN_TECPLOT_DATA)  != 0)) {
             if (!param->skipIO) {
-                DoParallelIO(home, outputTypes, stage);
+                DoParallelIO(home, outputTypes, stage, msg);
             }
         }
 

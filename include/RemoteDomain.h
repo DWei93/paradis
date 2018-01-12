@@ -24,7 +24,7 @@ struct _remotedomain {
 
 	int	inBufLen;
 	char	*inBuf;
-	int	outBufLen;
+	int		outBufLen;
 	char	*outBuf;
 };
 

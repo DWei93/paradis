@@ -81,7 +81,9 @@ int Mobility_BCC_0b(Home_t *home, Node_t *node)
         Bscrew     = 1.0 / param->MobScrew;
         Bedge      = 1.0 / param->MobEdge;
         Beclimb    = 1.0 / param->MobClimb;
-
+		
+		Beclimb = 0.0;
+		
         Bscrew2    = Bscrew * Bscrew;
         Beclimb2   = Beclimb * Beclimb;
 

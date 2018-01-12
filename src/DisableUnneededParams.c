@@ -63,6 +63,7 @@ void DisableUnneededParams(Home_t *home)
  *      If no free surfaces are used, we can drop the free surface
  *      boundary values.
  */
+#if 0
         if ((param->xBoundType == Periodic) &&
             (param->xBoundType == Periodic) &&
             (param->xBoundType == Periodic)) {
@@ -73,7 +74,7 @@ void DisableUnneededParams(Home_t *home)
             MarkParamDisabled(home->ctrlParamList, "yBoundMax");
             MarkParamDisabled(home->ctrlParamList, "zBoundMax");
         }
-
+#endif
 /*
  *      If the dynamic load balancing is disabled, turn off the decomposition
  *      type.

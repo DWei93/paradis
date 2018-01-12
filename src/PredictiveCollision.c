@@ -41,6 +41,7 @@
 #include "Mobility.h"
 
 
+#define DEBUG_TOPOLOGY_CHANGES 0
 static int dbgDom;
 
 
@@ -855,7 +856,6 @@ static void FindCollisionPointAndTime(Home_t *home, real8 p1[3], real8 p2[3],
         return;
 }
 
-
 /*---------------------------------------------------------------------------
  *
  *      Function:       PredictiveCollisions
@@ -886,7 +886,8 @@ void PredictiveCollisions(Home_t *home)
         int     cell2X, cell2Y, cell2Z, cx, cy, cz;
         int     localCollisionCnt, globalCollisionCnt;
         int     collisionConditionIsMet, adjustCollisionPoint;
-        real8   mindist2, dist2, ddist2dt, L1, L2, eps, half;
+	int	surfaceSeg1, surfaceSeg2;
+        real8   mindist2, dist2, ddist2dt, L1 = 0, L2=0, eps, half;
         real8   cTime, cPoint[3];
         real8   x1, y1, z1, vx1, vy1, vz1;
         real8   x2, y2, z2, vx2, vy2, vz2;
@@ -904,6 +905,9 @@ void PredictiveCollisions(Home_t *home)
         real8   vec1[3], vec2[3];
         real8   p1[3], p2[3], p3[3], p4[3];
         real8   v1[3], v2[3], v3[3], v4[3];
+		real8	burg12[3],burg34[3], armInGrain12, armInGrain34,posInGrain;
+		real8	distance, vecSplitNode[3], vecTotal[3];
+		real8 	pos0[3], pos1[3];
         Tag_t   oldTag1, oldTag2;
         Node_t  *node1, *node2, *node3, *node4, *tmpNbr;
         Node_t  *mergenode1, *mergenode2, *targetNode;
@@ -988,7 +992,7 @@ void PredictiveCollisions(Home_t *home)
                     if (node3->flags & NO_COLLISIONS) continue;
 
                     if (CollisionNodeOrder(home, &node1->myTag,
-                                           &node3->myTag) >= 0) {
+                        &node3->myTag) >= 0) {
                         continue;
                     }
 
@@ -997,6 +1001,7 @@ void PredictiveCollisions(Home_t *home)
  *                  terminate at node3 (those hinge arms will be dealt
  *                  with later)
  */
+	            surfaceSeg1 = 0;
                     for (arm12 = 0; arm12 < node1->numNbrs; arm12++) {
 
                         if (didCollision) break;
@@ -1015,7 +1020,16 @@ void PredictiveCollisions(Home_t *home)
                             (node2->myTag.index    == node3->myTag.index   )) {
                             continue;
                         }
+                        	
+                        if(home->param->polycrystal){
+                            burg12[X] = node1->burgX[arm12];
+                            burg12[Y] = node1->burgY[arm12];
+                            burg12[Z] = node1->burgZ[arm12];
+                            armInGrain12 = ChangeOrientation(home, node1, node2, 0);
+                        }
 
+		        if(SurfaceNode(node1) || SurfaceNode(node2))surfaceSeg1 = 1;
+			
 /*
  *                      Segment node1/node2 may only be used in a collision
  *                      if the segment is owned by the current domain.
@@ -1033,6 +1047,7 @@ void PredictiveCollisions(Home_t *home)
  *                      hit the node owning the segment
  *                      
  */
+	                surfaceSeg2 = 0;
                         for (arm34 = 0; arm34 < node3->numNbrs; arm34++) {
                             real8 dx, dy, dz;
 
@@ -1052,6 +1067,39 @@ void PredictiveCollisions(Home_t *home)
                                                    &node4->myTag) > 0) {
                                 continue;
                             }
+/*
+ * 			    Handle grain issues:  
+ *			     1. different Burgs types of arms can not collide.
+ *			     2. different inGrain of arms can not collide.
+ *
+ */	
+                            if(home->param->polycrystal){
+
+                                burg34[X] = node3->burgX[arm34];
+                                burg34[Y] = node3->burgY[arm34];
+                                burg34[Z] = node3->burgZ[arm34];
+                                	
+                                if(BurgType_FCC(home,burg12) != BurgType_FCC(home,burg34)){
+                                    continue;
+                                }
+                                	
+                                armInGrain34 = ChangeOrientation(home, node3, node4, 0);
+                                if(armInGrain34 != armInGrain12)continue;
+                                
+#if 0
+                                if(NodeOnGB(home,node1) & INTERSECT_NODE ||
+                                NodeOnGB(home,node2) & INTERSECT_NODE ||
+                                NodeOnGB(home,node3) & INTERSECT_NODE ||
+                                NodeOnGB(home,node4) & INTERSECT_NODE)continue;
+#endif							
+							
+                            }
+
+/*
+ *			    Not allow surface segements collide.
+ */
+		            if(SurfaceNode(node3) || SurfaceNode(node4))surfaceSeg2 = 1;
+	                    if(surfaceSeg1 && surfaceSeg2)continue; 
 
 /*
  *                          At this point, segment node3/node4 is owned by
@@ -1114,11 +1162,13 @@ void PredictiveCollisions(Home_t *home)
  *                          Find the minimum distance between the two segments
  *                          and determine if they should be collided.
  */
+							
                             GetMinDist(x1, y1, z1, vx1, vy1, vz1,
                                        x2, y2, z2, vx2, vy2, vz2,
                                        x3, y3, z3, vx3, vy3, vz3,
                                        x4, y4, z4, vx4, vy4, vz4,
                                        &dist2, &ddist2dt, &L1, &L2);
+					
     
 /*
  *                          First check of segments already intersect.  If
@@ -1133,6 +1183,9 @@ void PredictiveCollisions(Home_t *home)
                                 cPoint[Y] = y1 + vec1[Y] * L1;
                                 cPoint[Z] = z1 + vec1[Z] * L1;
                                 collisionConditionIsMet = 1;
+#if DEBUG_TOPOLOGY_CHANGES
+                                FormatVector(cPoint,"dist2 < 1.0: cPoint");
+#endif 
                             } else if (dist2 < mindist2) {
 /*
  *                              FIX ME!  If segments are to far away but
@@ -1151,6 +1204,11 @@ void PredictiveCollisions(Home_t *home)
 
                                 collisionConditionIsMet = ((cTime > 0.0) &&
                                                            (cTime < 10.0));
+#if DEBUG_TOPOLOGY_CHANGES
+                                if(collisionConditionIsMet){
+                                    FormatVector(cPoint,"dist2 < mindist2: cPoint");
+                                }	
+#endif
                             } else {
                                 collisionConditionIsMet = 0;
                             }
@@ -1188,10 +1246,12 @@ void PredictiveCollisions(Home_t *home)
                                 }
 
                                 if (close2node1) {
+				    if(NodeOnGB(home,node1) & INTERSECT_NODE)continue;
                                     mergenode1 = node1;
                                     splitSeg1 = 0;
                                     adjustCollisionPoint = 1;
                                 } else if (close2node2) {
+				    if(NodeOnGB(home,node2) & INTERSECT_NODE)continue;
                                     mergenode1 = node2;
                                     splitSeg1 = 0;
                                     adjustCollisionPoint = 1;
@@ -1203,13 +1263,33 @@ void PredictiveCollisions(Home_t *home)
  *                              If we need to add a new node to the first
  *                              segment, do it now.
  */
+#if DEBUG_TOPOLOGY_CHANGES
+                                printf("node1 (%d,%d); node2 (%d,%d); node3 (%d,%d); node4 (%d,%d)\n",
+                                        node1->myTag.domainID,node1->myTag.index, 
+                                        node2->myTag.domainID,node2->myTag.index,
+                                        node3->myTag.domainID,node3->myTag.index, 
+                                        node4->myTag.domainID,node4->myTag.index);
+                                printf("GetMinDist: P1: (%e,%e,%e); P2: (%e,%e,%e)\n",
+                                x1,y1,z1,x2,y2,z2);
+                                printf("GetMinDist: P3: (%e,%e,%e); P4: (%e,%e,%e)\n",
+                                        x3,y3,z3,x4,y4,z4);
+                                	
+                                printf("GetMinDist: V1: (%e,%e,%e); V2: (%e,%e,%e)\n",
+                                        vx1,vy1,vz1,vx2,vy2,vz2);
+                                printf("GetMinDist: V3: (%e,%e,%e); V4: (%e,%e,%e)\n",
+                                        vx3,vy3,vz3,vx4,vy4,vz4);
+                                	
+                                printf("GetMinDist: dist2 %f, ddist2dt %e, L1 %e, L2 %e\n",
+                                       dist2,ddist2dt,L1,L2);
+#endif 
                                 if (splitSeg1) {
-                                     real8 pos0[3], pos1[3];
 
                                      newx = x1 * (1.0-L1) + x2*L1;
                                      newy = y1 * (1.0-L1) + y2*L1;
                                      newz = z1 * (1.0-L1) + z2*L1;
-    
+#if DEBUG_TOPOLOGY_CHANGES
+                                     printf("splitSeg1-1: newx,z,z is (%f,%f,%f), L1 is %f\n",newx,newy,newz,L1);
+#endif
                                      newvx = vx1 * (1.0-L1) + vx2*L1;
                                      newvy = vy1 * (1.0-L1) + vy2*L1;
                                      newvz = vz1 * (1.0-L1) + vz2*L1;
@@ -1257,6 +1337,53 @@ void PredictiveCollisions(Home_t *home)
 
                                      FoldBox(param, &pnew[X], &pnew[Y], &pnew[Z]);
 
+#if DEBUG_TOPOLOGY_CHANGES
+                                     printf("split seg1: pos0(%f,%f,%f), pos1(%f,%f,%f), posnew(%f,%f,%f)\n", 
+                                            pos0[X],pos0[Y],pos0[Z],pos1[X],pos1[Y],pos1[Z],
+                                            pnew[X],pnew[Y],pnew[Z]);
+#endif
+                                     if(home->param->polycrystal){
+										
+                                         if(node1->inGrain - floor(node1->inGrain) == 0.5){
+                                             posInGrain = GetInGrainFromPos(home,pos0[X],pos0[Y],pos0[Z]);
+                                         }else{
+                                             posInGrain = InWhichGrain(home,pos0[X],pos0[Y],pos0[Z]);
+                                         }
+                                         if(node1->inGrain != posInGrain)continue;
+                                	
+                                         if(node1->inGrain - floor(node1->inGrain) == 0.5){
+                                             posInGrain = GetInGrainFromPos(home,pnew[X],pnew[Y],pnew[Z]);
+                                         }else{
+                                             posInGrain = InWhichGrain(home,pnew[X],pnew[Y],pnew[Z]);
+                                         }
+                                         if(node1->inGrain != posInGrain)continue;
+                                     }
+
+                                     vecSplitNode[X] = pnew[X] - pos0[X];
+                                     vecSplitNode[Y] = pnew[Y] - pos0[Y];
+                                     vecSplitNode[Z] = pnew[Z] - pos0[Z];
+                                     ZImage(param,vecSplitNode,vecSplitNode+1,vecSplitNode+2);
+                                 
+                                     vecTotal[X] = pos1[X] - pos0[X];
+                                     vecTotal[Y] = pos1[Y] - pos0[Y];
+                                     vecTotal[Z] = pos1[Z] - pos0[Z];
+                                     ZImage(param,vecTotal,vecTotal+1,vecTotal+2);
+									 
+                                     if(Normal(vecSplitNode) > Normal(vecTotal) + param->maxSeg){
+#if 0
+                                         pnew[X] = pos0[X] + 0.5 * vecTotal[X];
+                                         pnew[Y] = pos0[Y] + 0.5 * vecTotal[Y];
+                                         pnew[Z] = pos0[Z] + 0.5 * vecTotal[Z];
+                                	
+                                         FoldBox(param, pnew,pnew+1,pnew+2);
+#endif
+										
+#if DEBUG_TOPOLOGY_CHANGES										
+                                          printf("Warning: reposite new split-1 node\n");
+#endif
+                                     }
+									 
+									 
                                      splitStatus = SplitNode(home,
                                                              OPCLASS_COLLISION,
                                                              node1, pos0, pnew,
@@ -1327,7 +1454,7 @@ void PredictiveCollisions(Home_t *home)
  *                                  topological changes taking place and
  *                                  the nodes involved
  */
-#ifdef DEBUG_TOPOLOGY_CHANGES
+#if DEBUG_TOPOLOGY_CHANGES
                                     if ((dbgDom < 0)||(dbgDom == home->myDomain)) {
                                         printf("  Split-1(SegCollision): "
                                                "(%d,%d)--(%d,%d) ==> "
@@ -1340,9 +1467,9 @@ void PredictiveCollisions(Home_t *home)
                                                splitNode2->myTag.index,
                                                node2->myTag.domainID,
                                                node2->myTag.index);
-                                        PrintNode(splitNode1);
-                                        PrintNode(splitNode2);
-                                        PrintNode(node2);
+                                        PrintTag(splitNode1);
+                                        PrintTag(splitNode2);
+                                        PrintTag(node2);
                                      }
 #endif
 /*
@@ -1380,17 +1507,22 @@ void PredictiveCollisions(Home_t *home)
 
                                 close2node3 = (DotProduct(vec1,vec1)<mindist2);
                                 close2node4 = (DotProduct(vec2,vec2)<mindist2);
-    
+
+#if DEBUG_TOPOLOGY_CHANGES
+	                        FormatVector(cPoint,"cPoint");	
+#endif
                                 if ((node4->myTag.domainID != thisDomain) &&
                                     close2node4) {
                                     continue;
                                 }
 
                                 if (close2node3) {
+				    if(NodeOnGB(home,node3) & INTERSECT_NODE)continue;
                                     mergenode2 = node3;
                                     splitSeg2 = 0;
                                     adjustCollisionPoint = 1;
                                 } else if (close2node4) {
+				    if(NodeOnGB(home,node4) & INTERSECT_NODE)continue;
                                     mergenode2 = node4;
                                     splitSeg2 = 0;
                                     adjustCollisionPoint = 1;
@@ -1403,12 +1535,14 @@ void PredictiveCollisions(Home_t *home)
  *                              segment, do it now.
  */
                                 if (splitSeg2) {
-                                     real8 pos0[3], pos1[3];
+                                     
 
                                      newx = x3 * (1.0-L2) + x4*L2;
                                      newy = y3 * (1.0-L2) + y4*L2;
                                      newz = z3 * (1.0-L2) + z4*L2;
-    
+#if DEBUG_TOPOLOGY_CHANGES
+	                            printf("splitSeg2-1: newx,z,z is (%f,%f,%f), L2 is %f\n",newx,newy,newz,L2);
+#endif    
                                      newvx = vx3 * (1.0-L2) + vx4*L2;
                                      newvy = vy3 * (1.0-L2) + vy4*L2;
                                      newvz = vz3 * (1.0-L2) + vz4*L2;
@@ -1445,17 +1579,62 @@ void PredictiveCollisions(Home_t *home)
 
                                      nodeVel[X] = vx3;
                                      nodeVel[Y] = vy3;
-                                     nodeVel[Z] = vz3;
-
+                                     nodeVel[Z] = vz3; 
                                      FindSubFSeg(home, pos0, pos1, burg1, oldfp0,
                                                  oldfp1, pnew, f0seg1, f1seg1,
                                                  f0seg2, f1seg2);
     
                                      oldTag1 = node3->myTag;
                                      oldTag2 = node4->myTag;
-
+ 
                                      FoldBox(param, &pnew[X], &pnew[Y], &pnew[Z]);
-
+									 
+	                            if(home->param->polycrystal){
+	                                if(node3->inGrain - floor(node3->inGrain) == 0.5){
+	                                posInGrain = GetInGrainFromPos(home,pos0[X],pos0[Y],pos0[Z]);
+	                            }else{
+	                                posInGrain = InWhichGrain(home,pos0[X],pos0[Y],pos0[Z]);
+	                            }
+	                            if(node3->inGrain != posInGrain)continue;
+	                         
+	                            if(node3->inGrain - floor(node3->inGrain) == 0.5){
+	                                posInGrain = GetInGrainFromPos(home,pnew[X],pnew[Y],pnew[Z]);
+	                            }else{
+	                                posInGrain = InWhichGrain(home,pnew[X],pnew[Y],pnew[Z]);
+	                            }
+	                                if(node3->inGrain != posInGrain)continue;
+	                            }
+									 
+#if DEBUG_TOPOLOGY_CHANGES
+	                            printf("split seg2: pos0(%f,%f,%f), pos1(%f,%f,%f), posnew(%f,%f,%f)\n", 
+	                            pos0[X],pos0[Y],pos0[Z],pos1[X],pos1[Y],pos1[Z],
+	                            pnew[X],pnew[Y],pnew[Z]);
+									
+#endif	
+	                         
+	                            vecSplitNode[X] = pnew[X] - pos0[X];
+	                            vecSplitNode[Y] = pnew[Y] - pos0[Y];
+	                            vecSplitNode[Z] = pnew[Z] - pos0[Z];
+	                            ZImage(param,vecSplitNode,vecSplitNode+1,vecSplitNode+2);
+	                         
+	                            vecTotal[X] = pos1[X] - pos0[X];
+	                            vecTotal[Y] = pos1[Y] - pos0[Y];
+	                            vecTotal[Z] = pos1[Z] - pos0[Z];
+	                            ZImage(param,vecTotal,vecTotal+1,vecTotal+2);
+	                            
+	                            if(Normal(vecSplitNode) > Normal(vecTotal) + param->maxSeg){
+#if 0
+	                            pnew[X] = pos0[X] + 0.5 * vecTotal[X];
+	                            pnew[Y] = pos0[Y] + 0.5 * vecTotal[Y];
+	                            pnew[Z] = pos0[Z] + 0.5 * vecTotal[Z];
+	                         
+	                            FoldBox(param, pnew,pnew+1,pnew+2);
+#endif										
+#if DEBUG_TOPOLOGY_CHANGES										
+	                            printf("Warning: reposite new split node\n");
+#endif
+										 
+	                        }
                                      splitStatus = SplitNode(home,
                                                             OPCLASS_COLLISION,
                                                             node3, pos0,
@@ -1525,7 +1704,8 @@ void PredictiveCollisions(Home_t *home)
  *                                   topological changes taking place and
  *                                   the nodes involved
  */
-#ifdef DEBUG_TOPOLOGY_CHANGES
+
+#if DEBUG_TOPOLOGY_CHANGES
                                      if ((dbgDom < 0) ||
                                          (dbgDom == home->myDomain)) {
                                          printf("  Split-2(SegCollision): "
@@ -1541,9 +1721,9 @@ void PredictiveCollisions(Home_t *home)
                                                splitNode2->myTag.index,
                                                node4->myTag.domainID,
                                                node4->myTag.index);
-                                         PrintNode(splitNode1);
-                                         PrintNode(splitNode2);
-                                         PrintNode(node4);
+                                         PrintTag(splitNode1);
+                                         PrintTag(splitNode2);
+                                         PrintTag(node4);
                                     }
 #endif
                                 }  /* if (splitSeg2) */
@@ -1556,18 +1736,32 @@ void PredictiveCollisions(Home_t *home)
  *                             endpoint node for the merge, we need to
  *                             recalculate the final collision point.
  */
+
+#if DEBUG_TOPOLOGY_CHANGES
+	                    printf("PredictiveCollision: Merge Node:\n");
+	                    PrintTag(mergenode1);
+	                    PrintTag(mergenode2);
+#endif
                                if (adjustCollisionPoint) {
                                    FindCollisionPoint(home, mergenode1,
                                                       mergenode2, &newPos[X],
                                                       &newPos[Y], &newPos[Z]);
+#if DEBUG_TOPOLOGY_CHANGES
+			        printf("FindCollisionPoint: Reset the merged position: ");
+						 
+#endif
                                } else {
                                    newPos[X] = cPoint[X];
                                    newPos[Y] = cPoint[Y];
                                    newPos[Z] = cPoint[Z];
                                }
 
-                               FoldBox(param, &cPoint[X],&cPoint[Y],&cPoint[Z]);
-    
+                               FoldBox(param, newPos,newPos+1,newPos+2);
+							   
+#if DEBUG_TOPOLOGY_CHANGES 
+							   FormatVector(newPos,"Merge position");
+#endif
+							   
 #ifdef _FEM
 /*
  *                             If colliding 2 surface nodes, we may have to
@@ -1605,8 +1799,33 @@ void PredictiveCollisions(Home_t *home)
     
                                oldTag1 = mergenode1->myTag;
                                oldTag2 = mergenode2->myTag;
-
-                               MergeNode(home, OPCLASS_COLLISION, mergenode1,
+							   
+	                        if(home->param->polycrystal){
+	                            real8 currInGrain;
+	                            if(mergenode1->inGrain - floor( mergenode1->inGrain) ==0.5){
+	                                currInGrain = GetInGrainFromPos(home,newPos[0],newPos[1],newPos[2]);
+	                                if(currInGrain != mergenode1->inGrain) {
+											
+#if DEBUG_TOPOLOGY_CHANGES
+	                                printf("PredictiveCollision: merge failed 1.\n");
+#endif
+	                                continue;
+	                                }
+	                            }else{
+	                                currInGrain = InWhichGrain(home,newPos[0],newPos[1],newPos[2]);
+	                                if(currInGrain != mergenode1->inGrain) {
+											
+#if DEBUG_TOPOLOGY_CHANGES
+	                                printf("PredictiveCollision: merge failed 2.\n");
+#endif
+	                                continue;
+	                                }
+	                            }
+	                        }
+#if DEBUG_TOPOLOGY_CHANGES
+	                        printf("PredictiveCollision: before merge the 2 nodes\n");
+#endif
+	                        MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                          mergenode2, newPos, &targetNode,
                                          &mergeStatus, globalOp);
     
@@ -1614,7 +1833,11 @@ void PredictiveCollisions(Home_t *home)
  *                             If the merge did not succeed, go back and
  *                             continue looking for collision candidates.
  */
+#if DEBUG_TOPOLOGY_CHANGES
+	                        printf("PredictiveCollision: mergeStatus is %d\n",mergeStatus);
+#endif
                                if ((mergeStatus & MERGE_SUCCESS) == 0) {
+
                                    continue;
                                }
 #ifdef _FEM
@@ -1638,15 +1861,19 @@ void PredictiveCollisions(Home_t *home)
  *                             When debugging, dump some info on topological
  *                             changes taking place and the nodes involved
  */
-#ifdef DEBUG_TOPOLOGY_CHANGES
+#if DEBUG_TOPOLOGY_CHANGES
                                if ((dbgDom < 0) || (dbgDom == home->myDomain)) {
-                                   printf("  Merge(SegCollision): "
-                                          "(%d,%d) and (%d,%d) at (%d,%d)\n",
-                                          oldTag1.domainID, oldTag1.index,
-                                          oldTag2.domainID, oldTag2.index,
-                                          targetNode->myTag.domainID,
-                                          targetNode->myTag.index);
-                                   PrintNode(targetNode);
+                                   if(targetNode != (Node_t *)NULL){
+	                            printf("  Merge(SegCollision): "
+	                                   "(%d,%d) and (%d,%d) at (%d,%d)\n",
+	                                    oldTag1.domainID, oldTag1.index,
+	                                    oldTag2.domainID, oldTag2.index,
+	                                    targetNode->myTag.domainID,
+	                                    targetNode->myTag.index);
+	                                PrintTag(targetNode);
+	                            }else{
+	                                printf("Warning: targetNode is NULL\n");
+	                            }
                                }
 #endif
 
@@ -1703,7 +1930,7 @@ void PredictiveCollisions(Home_t *home)
                 }  /* while(nextIndex >= 0) */
             }  /* Loop over neighboring cell2s */
            }
-          }
+		  }
         }  /* for (i = 0 ...) */
 
 /*
@@ -1727,6 +1954,30 @@ void PredictiveCollisions(Home_t *home)
 
                     node3 = GetNodeFromTag(home, node1->nbrTag[j]);
                     node4 = GetNodeFromTag(home, node1->nbrTag[k]);
+					
+	            if(home->param->polycrystal){
+	                if(home->param->materialType == MAT_TYPE_FCC){
+	                    burg12[0] = node1->burgX[j];
+	                    burg12[1] = node1->burgY[j];
+	                    burg12[2] = node1->burgZ[j];
+	            	
+	                    burg34[0] = node1->burgX[k];
+	                    burg34[1] = node1->burgY[k];
+	                    burg34[2] = node1->burgZ[k];
+	            	
+	                    if(BurgType_FCC(home,burg12) != BurgType_FCC(home,burg34))continue;
+	                    if(fabs(burg12[X] - burg34[X]) < 1.0e-3 &&
+	                       fabs(burg12[Y] - burg34[Y]) < 1.0e-3 &&
+	                       fabs(burg12[Z] - burg34[Z]) < 1.0e-3 ) continue;
+	                }else{
+	                    Fatal("The burgers ID of non-FCC material has not defined\n");
+	                }
+	            	
+	                armInGrain12 = ChangeOrientation(home, node1, node3, 0);
+	                armInGrain34 = ChangeOrientation(home, node1, node4, 0);
+	                if(armInGrain12 != armInGrain34)continue;
+	            	
+	            }
 
                     x1 = node1->x; y1 = node1->y; z1 = node1->z;
                     x3 = node3->x; y3 = node3->y; z3 = node3->z;
@@ -1831,7 +2082,7 @@ void PredictiveCollisions(Home_t *home)
                              mergenode2 = node4;
                              adjustCollisionPoint = 1;
                         } else { 
-                             real8 pos0[3], pos1[3];
+                           
 
                              adjustCollisionPoint = 0;
 /*
@@ -1886,17 +2137,27 @@ void PredictiveCollisions(Home_t *home)
  */
                              oldTag1 = node1->myTag;
                              oldTag2 = node4->myTag;
+							 
+	                    if(home->param->polycrystal){
+	                        if(node1->inGrain - floor(node1->inGrain) == 0.5){
+	                            posInGrain = GetInGrainFromPos(home,pos0[X],pos0[Y],pos0[Z]);
+	                        }else{
+	                            posInGrain = InWhichGrain(home,pos0[X],pos0[Y],pos0[Z]);
+	                        }
+	                        if(node1->inGrain != posInGrain)continue;
 
-                             splitStatus = SplitNode(home, OPCLASS_COLLISION,
+	                    }
+
+	                    splitStatus = SplitNode(home, OPCLASS_COLLISION,
                                                      node1, pos0, newPos,
                                                      nodeVel, newVel, 1,
                                                      &k, globalOp,
                                                      &splitNode1,
                                                      &splitNode2, 0);
 
-                             if (splitStatus != SPLIT_SUCCESS) {
+	                    if (splitStatus != SPLIT_SUCCESS) {
                                  continue;
-                             }
+	                    }
 
 /*
  *                           The force estimates above are good enough for
@@ -1936,7 +2197,7 @@ void PredictiveCollisions(Home_t *home)
  *                           When debugging, dump some info on topological
  *                           changes taking place and the nodes involved
  */
-#ifdef DEBUG_TOPOLOGY_CHANGES
+#if DEBUG_TOPOLOGY_CHANGES
                              if ((dbgDom < 0)||(dbgDom == home->myDomain)) {
                                  printf("  Split-1(Hinge): "
                                         "(%d,%d)--(%d,%d) ==> "
@@ -1949,9 +2210,9 @@ void PredictiveCollisions(Home_t *home)
                                         splitNode2->myTag.index,
                                         node4->myTag.domainID,
                                         node4->myTag.index);
-                                 PrintNode(splitNode1);
-                                 PrintNode(splitNode2);
-                                 PrintNode(node4);
+                                 PrintTag(splitNode1);
+                                 PrintTag(splitNode2);
+                                 PrintTag(node4);
                              }
 #endif
                         }
@@ -2003,6 +2264,20 @@ void PredictiveCollisions(Home_t *home)
  */
                         oldTag1 = mergenode1->myTag;
                         oldTag2 = mergenode2->myTag;
+						
+	                if(home->param->polycrystal){
+	                    if(mergenode1->inGrain - floor(mergenode1->inGrain) == 0){
+	                        if(InWhichGrain(home,newPos[0],newPos[1],newPos[2])
+	                            != mergenode1->inGrain){
+	                            continue;
+	                        }
+	                    }else{
+	                        if(GetInGrainFromPos(home,newPos[0],newPos[1],newPos[2])
+	                           != mergenode1->inGrain){
+	                           continue;
+	                        }
+	                    }
+	                }
 
                         MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                   mergenode2, newPos, &targetNode,
@@ -2042,7 +2317,7 @@ void PredictiveCollisions(Home_t *home)
                             targetNode->flags |= NODE_RESET_FORCES;
                             targetNode->flags |= NO_COLLISIONS;
 
-#ifdef DEBUG_TOPOLOGY_CHANGES
+#if DEBUG_TOPOLOGY_CHANGES
                             if ((dbgDom < 0) || (dbgDom == home->myDomain)) {
                                 printf("  Merge(HingeCollision): "
                                        "(%d,%d) and (%d,%d) at (%d,%d)\n",
@@ -2050,7 +2325,7 @@ void PredictiveCollisions(Home_t *home)
                                        oldTag2.domainID, oldTag2.index,
                                        targetNode->myTag.domainID,
                                        targetNode->myTag.index);
-                                PrintNode(targetNode);
+                                PrintTag(targetNode);
                             }
 #endif
 #ifdef DEBUG_LOG_MULTI_NODE_SPLITS
@@ -2063,6 +2338,8 @@ void PredictiveCollisions(Home_t *home)
             }  /* for (j = 0...) */
         }  /* for (i = 0...) */
 
+		
+		
 
 #ifdef DEBUG_LOG_COLLISIONS
 #ifdef PARALLEL

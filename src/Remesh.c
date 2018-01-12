@@ -202,7 +202,6 @@ void EstCoarsenForces(Home_t *home, Node_t *node1, Node_t *node2,
 }
 
 
-#ifdef _FEM
 /*-------------------------------------------------------------------------
  *
  *      Function:       CutSurfaceSegments
@@ -211,85 +210,84 @@ void EstCoarsenForces(Home_t *home, Node_t *node1, Node_t *node2,
  *                      on the same surface.
  *
  *-----------------------------------------------------------------------*/
-static void CutSurfaceSegments(Home_t *home)
+void CutSurfaceSegments(Home_t *home)
 {
-        int    i, j, thisDomain, globalOp = 1;
-        real8  eps, tmp3[3];
-        Node_t *node, *nbr;
+	int    i, j, thisDomain, globalOp = 1;
+	real8  eps, tmp3[3];
+	Node_t *node, *nbr;
 
 
-        eps = 1.0e-12;
-        thisDomain = home->myDomain;
+	eps = 1.0e-12;
+	thisDomain = home->myDomain;
 
-        for (i = 0; i < home->newNodeKeyPtr; i++) {
+	for (i = 0; i < home->newNodeKeyPtr; i++) {
 
-            if ((node = home->nodeKeys[i]) == (Node_t *)NULL) {
-                continue;
-            }
+		if ((node = home->nodeKeys[i]) == (Node_t *)NULL) {
+			continue;
+		}
+		/*
+		 *          If the node is not a surface node, skip it.
+		 */
+		if (node->constraint<1 || node->constraint >3 ) {
+			continue;
+		}
 
-/*
- *          If the node is not a surface node, skip it.
- */
-            if (node->constraint != SURFACE_NODE) {
-                continue;
-            }
+		j = 0;
 
-            j = 0;
+		while (j < node->numNbrs) {
 
-            while (j < node->numNbrs) {
+			nbr = GetNeighborNode(home, node, j);
+			if (nbr == (Node_t *)NULL) {
+				j++;
+				continue;
+			}
 
-                nbr = GetNeighborNode(home, node, j);
-                if (nbr == (Node_t *)NULL) {
-                    j++;
-                    continue;
-                }
+			/*
+			 *              if the neighboring node is not on the surface, skip
+			 *              to the next neighbor
+			 */
+			if (nbr->constraint<1 || nbr->constraint>3) {
+				j++;
+				continue;
+			}
+			/*
+			 *              If the surface-normal vectors for the two nodes do not
+			 *              match the nodes are on different surfaces so we can skip
+			 *              to the next neighbor.
+			 */
+//                cross(node->fem_Surface_Norm, nbr->fem_Surface_Norm, tmp3);
 
-/*
- *              if the neighboring node is not on the surface, skip
- *              to the next neighbor
- */
-                if (nbr->constraint != SURFACE_NODE) {
-                    j++;
-                    continue;
-                }
-/*
- *              If the surface-normal vectors for the two nodes do not
- *              match the nodes are on different surfaces so we can skip
- *              to the next neighbor.
- */
-                cross(node->fem_Surface_Norm, nbr->fem_Surface_Norm, tmp3);
+			//              if ((tmp3[0]*tmp3[0] +
+			//                 tmp3[1]*tmp3[1] +
+			//               tmp3[2]*tmp3[2]) > eps) {
+			//            j++;
+			//          continue;
+            //    }
+			/*
+			 *              We found a segment we need to cut.  If the neighbor is
+			 *              in a remote domain, cut the connection in the lower
+			 *              numbered domain only.
+			 */
+			if (thisDomain > nbr->myTag.domainID) {
+				j++;
+				continue;
+			} 
 
-                if ((tmp3[0]*tmp3[0] +
-                     tmp3[1]*tmp3[1] +
-                     tmp3[2]*tmp3[2]) > eps) {
-                    j++;
-                    continue;
-                }
-/*
- *              We found a segment we need to cut.  If the neighbor is
- *              in a remote domain, cut the connection in the lower
- *              numbered domain only.
- */
-                if (thisDomain > nbr->myTag.domainID) {
-                    j++;
-                    continue;
-                } 
+			ChangeArmBurg(home, node, &node->nbrTag[j], 0, 0, 0,
+						  0, 0, 0, globalOp, DEL_SEG_NONE);
+			ChangeArmBurg(home, nbr, &node->myTag, 0, 0, 0,
+						  0, 0, 0, globalOp, DEL_SEG_NONE);
 
-                ChangeArmBurg(home, node, &node->nbrTag[j], 0, 0, 0,
-                              0, 0, 0, globalOp, DEL_SEG_NONE);
-                ChangeArmBurg(home, nbr, &node->myTag, 0, 0, 0,
-                              0, 0, 0, globalOp, DEL_SEG_NONE);
-
-                if ((nbr->myTag.domainID == thisDomain) &&
+			if ((nbr->myTag.domainID == thisDomain) &&
                     (nbr->numNbrs == 0)) {
-                    RemoveNode(home, nbr, globalOp);
-                }
-            }
-        }
+				RemoveNode(home, nbr, globalOp);
+			}
+		}
+	}
 
-        return;
+	return;
 }
-#endif
+
 
 
 /*-------------------------------------------------------------------------
@@ -321,7 +319,7 @@ void Remesh(Home_t *home)
         TimerStart(home, REMESH);
         ClearOpList(home);
         InitTopologyExemptions(home);
-
+		
         switch(param->remeshRule) {
         case 2:
             RemeshRule_2(home);
@@ -334,8 +332,9 @@ void Remesh(Home_t *home)
             break;
         }
         TimerStop(home, REMESH);
+		
+		
 
-#ifdef _FEM
 /*
  *      If free-surfaces are in use rather than PBC, it is possible that
  *      some of the remesh operations have resulted in formation of
@@ -345,7 +344,6 @@ void Remesh(Home_t *home)
  *      on.
  */
         CutSurfaceSegments(home);
-#endif
 
 /*
  *      Send to the neighboring domains, a list of all local
@@ -357,10 +355,15 @@ void Remesh(Home_t *home)
         CommSendRemesh(home);
         TimerStop(home, SEND_REMESH);
 
+		
+		
         TimerStart(home, FIX_REMESH);
-        FixRemesh(home);
+        FixRemesh(home, "Remesh");
         TimerStop(home, FIX_REMESH);
 
+		
+		
+		
 /*
  *      Under certain circumstances, parallel topological changes
  *      can create double links between nodes; links which can not be

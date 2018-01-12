@@ -88,7 +88,7 @@ void SegSegForce(real8 p1x, real8 p1y, real8 p1z,
 	real8 *fp2x, real8 *fp2y, real8 *fp2z,
 	real8 *fp3x, real8 *fp3y, real8 *fp3z,
 	real8 *fp4x, real8 *fp4y, real8 *fp4z);
-void SelfForce(int coreOnly, real8 MU, real8 NU,
+int SelfForce(int coreOnly, real8 MU, real8 NU,
         real8 bx, real8 by, real8 bz, real8 x1, real8 y1, real8 z1,
         real8 x2, real8 y2, real8 z2, real8 a,  real8 Ecore,
         real8 f1[3], real8 f2[3]);

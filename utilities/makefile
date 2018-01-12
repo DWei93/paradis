@@ -72,7 +72,7 @@ PARADISGEN_C_SRCS = ParadisGen.c   \
                RSDecomp.c          \
                Timer.c             \
                Util.c              \
-               WriteRestart.c
+			   Grain.c
 
 PARADISGEN_CPP_SRCS = DisplayC.C   \
                    display.C 
@@ -115,7 +115,8 @@ PARADISREPART_C_SRCS = ParadisRepart.c  \
                     RSDecomp.c          \
                     Timer.c             \
                     Util.c              \
-                    WriteRestart.c
+                    WriteRestart.c		\
+					Grain.c
 
 PARADISREPART_CPP_SRCS = DisplayC.C     \
                       display.C 
@@ -158,6 +159,7 @@ CALCDENSITY_C_SRCS = CalcDensity.c      \
                     RSDecomp.c          \
                     Timer.c             \
                     Util.c              \
+					Grain.c
              
 
 CALCDENSITY_CPP_SRCS = DisplayC.C     \
@@ -199,7 +201,8 @@ STRESSTABLEGEN_SRCS = StressTableGen.c \
                       MemCheck.c       \
                       PickScrewGlidePlane.c \
                       QueueOps.c       \
-                      Util.c         
+                      Util.c      		\
+					  Grain.c
 
 STRESSTABLEGEN_OBJS = $(STRESSTABLEGEN_SRCS:.c=.o)
 
@@ -226,7 +229,7 @@ PARADISCONVERT_C_SRCS = ParadisConvert.c \
                      InitCellNatives.c   \
                      InitCellNeighbors.c \
                      InitRemoteDomains.c \
-		     InitSendDomains.c   \
+					 InitSendDomains.c   \
                      Matrix.c            \
                      MemCheck.c          \
                      Param.c             \
@@ -238,7 +241,8 @@ PARADISCONVERT_C_SRCS = ParadisConvert.c \
                      RBDecomp.c          \
                      RSDecomp.c          \
                      Timer.c             \
-                     Util.c         
+                     Util.c         	\
+					 Grain.c
 
 PARADISCONVERT_CPP_SRCS = DisplayC.C     \
                        display.C 
@@ -328,4 +332,3 @@ $(CALCDENSITY):	$(BINDIR) $(CALCDENSITY_BIN)
 $(CALCDENSITY_BIN):	$(CALCDENSITY_SRCS) $(CALCDENSITY_OBJS)
 		$(CPP_SERIAL) $(CPPFLAG_SERIAL) $(INCS_SERIAL) $(OPT) -o $@ \
 		$(CALCDENSITY_OBJS) $(LIB_SERIAL)
-

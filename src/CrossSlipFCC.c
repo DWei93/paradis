@@ -122,6 +122,7 @@ void CrossSlipFCC(Home_t *home)
  *          are identical.
  */
             if (param->useLabFrame) {
+				ChangeOrientation(home,node,node,3);
                 Matrix33Vector3Multiply(home->rotMatrixInverse, burgLab,
                                         burgCrystal);
             }
@@ -169,6 +170,12 @@ void CrossSlipFCC(Home_t *home)
                        __FILE__, __LINE__);
                 continue;
             }
+			
+/*
+ *			Boundary node is not allowed to	cross slip.	
+ */
+			if(nbr1->inGrain - floor(nbr1->inGrain) == BOUNDARY_NODE) continue;
+			if(nbr2->inGrain - floor(nbr2->inGrain) == BOUNDARY_NODE) continue;
 
 /*
  *          Before we commit to doing a cross-slip event, we may shift

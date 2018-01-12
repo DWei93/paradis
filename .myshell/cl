@@ -1,0 +1,51 @@
+#!/bin/bash
+
+HelpMessages () {
+    echo "rm move results data"
+    echo "usage:      cl [-o|--opt <>]"
+}
+if [ $# = 0 ]; then 
+    mkdir dump > /dev/null 2>&1
+    mv res* dump > /dev/null 2>&1
+    mv out* dump > /dev/null 2>&1
+    mv err* dump > /dev/null 2>&1
+    rm dump -rf > /dev/null 2>&1
+    echo "remove all sucessed!"
+else
+    rm res.${1}* -rf > /dev/null 2>&1
+    rm out.${1}* -f > /dev/null 2>&1
+    rm error.${1}* -f > /dev/null 2>&1
+    echo "remove job ${1} successed"
+fi
+
+ARGS=`getopt -o hd --long dump,help -n 'example.sh' -- "$@"`
+if [ $? != 0 ]; then
+     echo "Terminating..."
+     exit 1
+fi
+eval set -- "${ARGS}"
+
+while true
+do
+    case "$1" in
+        -h|--help)
+            HelpMessages;
+            exit 1
+            shift
+            ;;
+        -d|--dump)
+	    mkdir dump
+	    mv res* dump
+	    mv out* dump
+	    mv err* dump
+            exit 1
+            shift
+            ;;
+         --)
+            shift
+            break
+            ;;
+         *)
+    esac
+done
+

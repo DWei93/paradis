@@ -68,6 +68,8 @@ void TimerInit(Home_t *home)
 	TimerRegister(home, TOTAL_TIME,            "total time           ");
 	TimerRegister(home, INITIALIZE,            "initialization time  ");
 	TimerRegister(home, SORT_NATIVE_NODES,     "sort native nodes    ");
+	TimerRegister(home, SEND_GB,     	       "send grain changes   ");
+	TimerRegister(home, FIX_GB,     		   "apply grain changes  ");
 	TimerRegister(home, COMM_SEND_GHOSTS,      "comm send ghosts     ");
 	TimerRegister(home, GHOST_COMM_BARRIER,    "sync after ghost comm");
 	TimerRegister(home, CELL_CHARGE,           "cell charge          ");

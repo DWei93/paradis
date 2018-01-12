@@ -21,6 +21,9 @@
  */
 #define UNCONSTRAINED  0
 #define SURFACE_NODE   1
+#define X_SURFACE_NODE   1
+#define Y_SURFACE_NODE   2
+#define Z_SURFACE_NODE   3
 #define PINNED_NODE    7
 
 /*
@@ -32,6 +35,7 @@
 #define NO_COLLISIONS        0x04
 #define NO_MESH_COARSEN      0x08
 #define NODE_CHK_DBL_LINK    0x10
+#define NOT_HANDLE_SEG	     0x20
 
 /*
  *      Used as bit flags to indicate the type of nodal data items
@@ -57,6 +61,8 @@ struct _node {
                                         /* and vZ are being determined.       */
 
 	Tag_t	myTag;
+	
+	real8	inGrain;
 
 /*
  *	nbrTag and burgID are dynamically allocated to size numNbrs, when the

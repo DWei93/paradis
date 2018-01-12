@@ -378,6 +378,8 @@ static void PackMirrorNodes(Home_t *home, int *numNodes)
 		fltBuf[fIdx++] = node->vX;
 		fltBuf[fIdx++] = node->vY;
 		fltBuf[fIdx++] = node->vZ;
+		
+		fltBuf[fIdx++] = node->inGrain;
 	}
 
 /*
@@ -511,6 +513,8 @@ static void UnpackMirrorNodes(Home_t *home, int domIndex)
 		node->vX = fltBuf[fIdx++];
 		node->vY = fltBuf[fIdx++];
 		node->vZ = fltBuf[fIdx++];
+		
+		node->inGrain = fltBuf[fIdx++];
 
 		node->native = 0;
             

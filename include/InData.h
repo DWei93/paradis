@@ -31,10 +31,10 @@ struct _indata {
 	real8	*burgZ;		/* old format ctrl files which include*/
 				/* burger's vector arrays	      */
 
-	int	nburg;		/* number of burgers vectors in the */
+	int		nburg;		/* number of burgers vectors in the */
                                 /* burgX, burgY and burgZ arrays    */
 
-        void    *decomp;        /* pointer to memory allocated to hold   */
+    void    *decomp;        /* pointer to memory allocated to hold   */
                                 /* the domain decomposition read in from */
                                 /* the restart file(s)                   */
 };

@@ -375,7 +375,7 @@ static void TestSurfaceSplit(Home_t *home, Node_t *node, int segCnt,
                     dirvec[Y] = diry;
                     dirvec[Z] = dirz;
 
-                    FindPreciseGlidePlane(home, burg, dirvec, nplane);
+                    FindPreciseGlidePlane(home, burg, dirvec, nplane, splitNode1,splitNode2);
 
 /*
  *                  If the new segment is screw the glide plane is
@@ -383,7 +383,8 @@ static void TestSurfaceSplit(Home_t *home, Node_t *node, int segCnt,
  *                  select a glide plane appropriate to the burgers vector.
  */
                     if (DotProduct(nplane, nplane) < 1.0e-03) {
-                        PickScrewGlidePlane(home, burg, nplane);
+                        PickScrewGlidePlane(home, burg, nplane,
+											splitNode1,splitNode2);
                     }
 
                     Normalize(&nplane[X], &nplane[Y], &nplane[Z]);

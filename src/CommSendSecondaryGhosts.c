@@ -35,6 +35,7 @@
 #include "mpi.h"
 #endif
 
+#define DebugCSSG 0
 
 /*---------------------------------------------------------------------------
  *
@@ -86,6 +87,7 @@ static void AddSecondaryGhostRequest(Home_t *home, Node_t *node, int segID,
         if (domIndex == *numSendReqBufs) {
             reqDomList[*numSendReqBufs] = remDomID;
             *numSendReqBufs += 1;
+//			printf("Task %d, remot domain ++\n",home->myDomain);
         }
 
 /*
@@ -100,6 +102,13 @@ static void AddSecondaryGhostRequest(Home_t *home, Node_t *node, int segID,
 
         buf[bufOffset++] = node->nbrTag[segID].domainID;
         buf[bufOffset++] = node->nbrTag[segID].index;
+		
+		if(node->nbrTag[segID].domainID < 0 ||
+				node->nbrTag[segID].index < 0 || 
+				node->nbrTag[segID].domainID >= home->numDomains){
+			Fatal("AddSecondaryGhostRequest: error domainID (%d) or index(%d)",
+				 node->nbrTag[segID].domainID,node->nbrTag[segID].index);
+		}
 
         remDom->outBuf = (char *)buf;
         remDom->outBufLen = bufOffset;
@@ -189,6 +198,8 @@ static void Pack1SecondaryGhost(Node_t *node, real8 **outBuf, int *outBufSize,
         buf[bufOffset++] = (real8)node->constraint;
         buf[bufOffset++] = (real8)node->flags;
         buf[bufOffset++] = (real8)node->cellIdx;
+		
+		buf[bufOffset++] = node->inGrain;
 
 #ifdef _FEM
         buf[bufOffset++] = (real8)node->fem_Surface[0];
@@ -287,6 +298,12 @@ static void PackSecondaryGhostResponse(Home_t *home, int *inBuf, int inBufSize,
             }
 
             Pack1SecondaryGhost(node, outBuf, outBufSize, &allocatedSize);
+			
+#if DebugCSSG
+			printf("DebugCSSG: Task %d send node (%d,%d) to remote domain\n",
+				   home->myDomain,node->myTag.domainID,
+				   node->myTag.index);
+#endif
         }
 
 /*
@@ -346,7 +363,13 @@ static void UnpackSecondaryGhostResponse(Home_t *home, real8 *inBuf)
  *              IMPORTANT: line below Assumes num arms is last nodal item
  *              before arm data
  */
+				
                 numArms = (int)inBuf[bufOffset+2];
+	        if(numArms<0 || numArms>16){
+		    printf("Task %d, Node(%d,%d):\n", home->myDomain, tmpTag.domainID, tmpTag.index);
+	            Fatal("UnpackSecondaryGhostResponse 1: numArms<0 || numArms>16");
+	        }
+
                 nodeVals = FLTS_PER_GHOST2_NODE + 
                            FLTS_PER_GHOST_ARM * numArms;
                 bufOffset += nodeVals;
@@ -371,6 +394,10 @@ static void UnpackSecondaryGhostResponse(Home_t *home, real8 *inBuf)
             node->myTag.index = (int)inBuf[bufOffset++];
 
             numArms = (int)inBuf[bufOffset++];
+			
+			if(numArms<0 || numArms>16){
+				Fatal("UnpackSecondaryGhostResponse 2: numArms<0 || numArms>16");
+			}
 
             node->x = inBuf[bufOffset++];
             node->y = inBuf[bufOffset++];
@@ -391,7 +418,9 @@ static void UnpackSecondaryGhostResponse(Home_t *home, real8 *inBuf)
             node->constraint = (int)inBuf[bufOffset++];
             node->flags = (int)inBuf[bufOffset++];
             node->cellIdx = (int)inBuf[bufOffset++];
-
+			
+            node->inGrain = inBuf[bufOffset++];
+        
 #ifdef _FEM
             node->fem_Surface[0] = (int)inBuf[bufOffset++];
             node->fem_Surface[1] = (int)inBuf[bufOffset++];
@@ -468,8 +497,13 @@ static void UnpackSecondaryGhostResponse(Home_t *home, real8 *inBuf)
 
             remDom->nodeKeys[node->myTag.index] = node;
             
-        }
         
+#if DebugCSSG
+		printf("DebugCSSG: Task %d recived secondary node node (%d,%d)\n",
+			   home->myDomain,node->myTag.domainID,
+			   node->myTag.index);
+#endif
+        }
         return;
 }
 
@@ -557,6 +591,11 @@ void CommSendSecondaryGhosts(Home_t *home)
 
                     AddSecondaryGhostRequest(home, node, segID, reqDomList,
                                              &numSendReqBufs);
+#if DebugCSSG
+					printf("DebugCSSG: Task %d need secondary ghost node (%d,%d)\n",
+						  home->myDomain,node->nbrTag[segID].domainID,
+						 node->nbrTag[segID].index);
+#endif
 
                 }
 

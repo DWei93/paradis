@@ -1142,7 +1142,7 @@ XLIB_LIB.gcc          =
 XLIB_INCS.gcc         =
 
 MPI_LIBDIR.gcc        =
-MPI_LIB.gcc           = -lmpich
+MPI_LIB.gcc           = -fopenmp
 MPI_INCS.gcc          =
 
 HDF_LIBDIR.gcc        = 
@@ -1155,9 +1155,8 @@ OPENMP_FLAG.gcc       = -fopenmp
 #    Identify any additional libraries and paths needed for compilation
 #    on this system type
 #
-LIB_PARALLEL.gcc      = -lm -lX11 -lpthread 
+LIB_PARALLEL.gcc      = -lm -lpthread 
 INCS_PARALLEL.gcc     =
 
-LIB_SERIAL.gcc        = -lm -lX11 -lpthread
+LIB_SERIAL.gcc        = -lm -lpthread
 INCS_SERIAL.gcc       =
-

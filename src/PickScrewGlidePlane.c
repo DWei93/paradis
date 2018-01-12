@@ -13,6 +13,7 @@
  *
  **************************************************************************/
 #include "Home.h"
+#include "Grain.h"
 
 
 /*-------------------------------------------------------------------------
@@ -127,7 +128,8 @@ static void PickFCCScrewGlidePlane(real8 burgVec[3], real8 glidePlane[3])
  *                       caller.
  *
  *------------------------------------------------------------------------*/
-void PickScrewGlidePlane(Home_t *home, real8 burgVecIn[3], real8 glidePlane[3])
+void PickScrewGlidePlane(Home_t *home, real8 burgVecIn[3], real8 glidePlane[3],
+						 Node_t *node, Node_t *nbr)
 {
         real8 *burgVec = burgVecIn;
         real8 burgVecRotated[3];
@@ -137,6 +139,7 @@ void PickScrewGlidePlane(Home_t *home, real8 burgVecIn[3], real8 glidePlane[3])
  *      to the crystal frame.
  */
         if (home->param->useLabFrame) {
+	    ChangeOrientation(home, node, nbr, 3);
             Matrix33Vector3Multiply(home->rotMatrixInverse, burgVecIn,
                                     burgVecRotated);
             burgVec = burgVecRotated;

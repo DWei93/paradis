@@ -92,7 +92,7 @@ static void ApplyDeltaStress(Home_t *home, real8 deltaStress[3][3])
         Param_t *param;
         
         param = home->param;
-
+		
 
 /*
  *      Loop over all native nodes
@@ -100,7 +100,7 @@ static void ApplyDeltaStress(Home_t *home, real8 deltaStress[3][3])
         for (i = 0; i < home->newNodeKeyPtr; i++) {
 
             node = home->nodeKeys[i];
-            if (!node) continue;
+            if (node == (Node_t *)NULL) continue;
         
             x1=node->x;
             y1=node->y;
@@ -115,8 +115,9 @@ static void ApplyDeltaStress(Home_t *home, real8 deltaStress[3][3])
                 nbr = GetNeighborNode(home, node, j);
 
                 if (nbr == (Node_t *)NULL) {
-                    printf("WARNING: Neighbor not found at %s line %d\n",
-                           __FILE__, __LINE__);
+					PrintNode(node);
+                    printf("WARNING: Neighbor %d (%d,%d) not found at %s line %d\n",
+                           j,node->nbrTag[j].domainID, node->nbrTag[j].index,__FILE__, __LINE__);
                     continue;
                 }
 
@@ -140,13 +141,16 @@ static void ApplyDeltaStress(Home_t *home, real8 deltaStress[3][3])
                 x2=x1+dx;
                 y2=y1+dy;
                 z2=z1+dz;
-        
+				
+				
                 ExtPKForce(deltaStress, bx1, by1, bz1, x1, y1, z1,
                         x2, y2, z2, f1, f2);
+				
+				
         
                 AddtoNodeForce(node,f1);
                 AddtoArmForce(node, j, f1);
-        
+				
                 if (nbrIsLocal) {
                     AddtoNodeForce(nbr, f2);
                     AddtoArmForce(nbr, nbrArm, f2);
@@ -155,7 +159,7 @@ static void ApplyDeltaStress(Home_t *home, real8 deltaStress[3][3])
 
             (void)EvaluateMobility(home, node);
         }
-
+		
         return;
 }
 
@@ -199,6 +203,7 @@ void ParadisStep(Home_t *home)
         real8      deltaStress[3][3];
         Param_t    *param;
         Node_t     *node;
+        char       name[50];
         static int firstTime = 1;
    
 
@@ -209,6 +214,7 @@ void ParadisStep(Home_t *home)
  *      perform the minimal work needed to estimate per-process
  *      load, shift boundaries, and migrate nodes among processors.
  */
+
         if (param->numDLBCycles > 0) {
 /*
  *          Note:  When param->numDLBCycles > 0, NodeForce() assumes
@@ -233,6 +239,8 @@ void ParadisStep(Home_t *home)
 
             return;
         }
+		
+		
 
 #ifndef NO_XWINDOW
         while (WinIsPaused()) {
@@ -244,7 +252,8 @@ void ParadisStep(Home_t *home)
  *      Calculate the net charge tensor for each cell (includes global comm)
  */
         CellCharge(home);
-
+		
+        DebugGB(home,7);
 /*
  *      Calculate new force and velocity data for all nodes or a selected
  *      subset and distribute the new data out to neighboring domains.
@@ -258,18 +267,24 @@ void ParadisStep(Home_t *home)
             CalcNodeVelocities(home, 1, doAll);
             CommSendVelocity(home);
             firstTime = 0;
+
         } else {
             NodeForce(home, PARTIAL);
             CalcNodeVelocities(home, 0, doAll);
             CommSendVelocity(home);
+
         }
 
+
+        DebugGB(home,8);
 /*
  *      Invoke the selected time step integration method.  The
  *      selected method will calculate the time step as well as
  *      move nodes to their correct locations and communicate 
  *      the new nodal force/velocity data to neighboring domains.
  */
+
+		
         if (strcmp(param->timestepIntegrator, "forward-euler") == 0) {
             ForwardEulerIntegrator(home);
         } else if (strcmp(param->timestepIntegrator, "trapezoid") == 0) {
@@ -281,13 +296,14 @@ void ParadisStep(Home_t *home)
  */
             TrapezoidIntegrator(home);
         }
-
+        DebugGB(home,12);
 /*
  *      In some simulations, it is necessary to recalculate and distribute
  *      the glide plane infromation for segments after the nodes have been
  *      repositioned.  Do so now if needed.
  */
         ResetGlidePlanes(home);
+		
 
 /*
  *      Increment the per-burgers vector density gain/loss with
@@ -308,8 +324,8 @@ void ParadisStep(Home_t *home)
  *      determine if any output needs to be generated at this stage, and
  *      call the appropriate I/O functions if necessary.
  */
-        GenerateOutput(home, STAGE_CYCLE);
-
+        GenerateOutput(home, STAGE_CYCLE,"-1cycle");
+        DebugGB(home,1);
 /*
  *      Before doing topological changes, set flags indicating any
  *      nodes exempt from topological changes.  These flags are used
@@ -327,13 +343,18 @@ void ParadisStep(Home_t *home)
  *      send remote nodes the list of ops needed to keep their data in sync.
  */
         ClearOpList(home);
+		
         SortNodesForCollision(home);
 
         SplitMultiNodes(home);
 
+        DebugGB(home,2);
 #ifdef _FEM
         SplitSurfaceNodes(home);
 #endif
+		
+
+		
 
 /*
  *      Call a generic cross-slip dispatch function that will call
@@ -341,13 +362,15 @@ void ParadisStep(Home_t *home)
  *      type of material in use.
  */
         CrossSlip(home);
-
+        DebugGB(home,3);
 /*
  *      Search for dislocation segments in close proximity to each other
  *      and if necessary handle any collision between them.
  */
         HandleCollisions(home);
- 
+		
+        DebugGB(home,4);
+
 #ifdef PARALLEL
 #ifdef SYNC_TIMERS
         TimerStart(home, POST_COLLISION_BARRIER);
@@ -356,13 +379,16 @@ void ParadisStep(Home_t *home)
 #endif
 #endif
 
+		
         TimerStart(home, COL_SEND_REMESH);
         CommSendRemesh(home);
         TimerStop(home, COL_SEND_REMESH);
-
+		
         TimerStart(home, COL_FIX_REMESH);
-        FixRemesh(home);
+        FixRemesh(home, "Collision");
         TimerStop(home, COL_FIX_REMESH);
+		
+        DebugGB(home,5);
 
 #ifdef _FEM
 	AdjustNodePosition(home, 1); 
@@ -378,7 +404,11 @@ void ParadisStep(Home_t *home)
  */
         for (i = 0; i < home->newNodeKeyPtr; i++) {
             if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
-            (void)RemoveDoubleLinks(home, node, 0);
+            if(RemoveDoubleLinks(home, node, 0) == 2){
+                snprintf(name,50,"RDL%d.1",home->cycle);
+                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
+                printf("Unusual RemoveDoubleLinks , 1\n");
+            }
             node->flags &= ~NODE_CHK_DBL_LINK;
         }
 
@@ -395,11 +425,17 @@ void ParadisStep(Home_t *home)
  *      Invoke mesh coarsen/refine
  */
         Remesh(home);
+        DebugGB(home,6);
 
+#if CHECK_GB_TOPO
+        GenerateOutput(home, STAGE_DEBUG, "-2remesh");
+#endif
 /*
  *      Define load curve and calculate change in applied stress this cycle
  */
         LoadCurve(home, deltaStress);
+		
+		
 
 /*
  *      This is only needed when we do force calcs for only
@@ -408,6 +444,7 @@ void ParadisStep(Home_t *home)
  *      recalculate the nodal velocities so we have more accurate values
  *      when we enter the timestep integrator at the beginning of the next
  *      cycle.
+		 
  */
         ApplyDeltaStress(home, deltaStress);
 
@@ -422,8 +459,8 @@ void ParadisStep(Home_t *home)
  *      Send any nodes that have moved beyond the domain's
  *      boundaries to the domain the node now belongs to.
  */
-        Migrate(home);
 
+        Migrate(home);
 /*
  *      Recycle all the ghost nodes: move them back to the free Queue
  */
@@ -432,11 +469,13 @@ void ParadisStep(Home_t *home)
 /*
  *      Sort the native nodes into their proper subcells.  
  */
+		
         SortNativeNodes(home);
 
 /*
  *      Communicate ghost cells to/from neighbor domains
  */
+		
         CommSendGhosts(home);
 
 #ifdef NAN_CHECK
@@ -446,7 +485,7 @@ void ParadisStep(Home_t *home)
  *      before we write the restart files so we don't get bad data
  *      in the restart.
  */
-        CheckForNANS(home);
+        CheckForNANS(home, 0);
 #endif
 
 /*
@@ -474,5 +513,6 @@ void ParadisStep(Home_t *home)
         CheckForEmptySimulation(home);
 #endif
 
+	
         return;
 }

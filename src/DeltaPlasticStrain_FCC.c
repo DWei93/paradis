@@ -7,6 +7,12 @@
  *      Description:  Calculate the plastic strain increment
  *                    by dislocation motion in FCC materials.
  *
+ *      Public functions:
+ *          DeltaPlasticStrain_FCC()
+ *
+ *      Private functions:
+ *          InitDeltaPlasticStrain_FCC()
+ *
  ***************************************************************************/
 #include "Home.h"
 #include "Node.h"
@@ -26,55 +32,28 @@
 #define NUM_PLANES  3
 
 
-void DeltaPlasticStrain_FCC(Home_t *home)
+/***************************************************************************
+ *
+ *      Function:    InitDeltaPlasticStrain_FCC
+ *
+ *      Description: Several of the arrays used during the delta plastic
+ *                   strain calculations are dynamically calculated, but
+ *                   once set, never need to be changed again for the
+ *                   duration of the simulation.  This function should be
+ *                   invoked during the first call to DeltaPlasticStrain_FCC()
+ *                   to initialize those arrays, and never used again
+ *                   after that.
+ *
+ ***************************************************************************/
+static void InitDeltaPlasticStrain_FCC(Home_t *home,
+                                       real8 nanv[NUM_PLANES][3][NUM_BURG],
+                                       real8 tanv[NUM_PLANES][3][NUM_BURG],
+                                       real8 burgv[NUM_BURG][3],
+                                       real8 bnorm[NUM_BURG][3])
 {
-        int     i, j, k, l, m;
-        int     iii, jjj, i0, nc, nn;
-        int     bIndex, burgGroup;
-        int     negCount, zeroCount;
-        int     plane, index, index2;
-        real8   bx, by, bz;
-        real8   tx, ty, tz;
-        real8   tmpx, tmpy, tmpz;
-        real8   deltax1x, deltax1y, deltax1z;
-        real8   deltax2x, deltax2y, deltax2z;
-        real8   size, tmpmax;
-        real8   deltaDensity, factor0, bmagsq;
-        real8   sbsign, sb;
-        real8   segd, segd2;
-        real8   eps = 1.e-12;
-        real8   eps0 = 1e-5;
-        real8   bCryst[3];
-        real8   zeta[3];
-        real8   seg[3], seg2[3];
-        real8   segleft[3], segleft2[3], qs[3];
-        real8   vec1[3], vec2[3], outVec[2];
-        real8   gdspn[6], gdstn[6];
-        real8   pstn[3][3];
-        real8   dstn[3][3], dspn[3][3];
-        real8   dyad[3][3], dyad0[3][3], dyad1[3][3], dyad2[3][3];
-        real8   localstrain[3][3];
-        real8   burgv[NUM_BURG][3], bnorm[NUM_BURG][3];
-        real8   nanv[NUM_PLANES][3][NUM_BURG];
-        real8   tanv[NUM_PLANES][3][NUM_BURG];
-        real8   Ltot[NUM_BURG][4], areaSwept[NUM_BURG][7];
-        real8   Ltemp[NUM_PLANES], Ltemp2[2];
-        real8   stemp[NUM_PLANES];
-        Node_t  *node;
-        Node_t  *nbr;
-        Param_t *param;
+	
+        int i, j, bIndex;
 
-
-        param = home->param;
-
-/*
- *      Ltot : density of 
- *         [burg][0] : screw
- *         [burg][1] : edge 1
- *         [burg][2] : edge_2
- *         [burg][3] : edge_3
- *      for the 4 burgers vector burg.
- */
 
         nanv[0][0][0]=0.5773502692; nanv[0][1][0]=-0.5773502692; nanv[0][2][0]=0.5773502692;
         nanv[1][0][0]=-0.5773502692; nanv[1][1][0]=0.5773502692; nanv[1][2][0]=0.5773502692;
@@ -138,23 +117,12 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         burgv[4][0]=0.0000000000; burgv[4][1]=0.7071067812; burgv[4][2]=0.7071067812;
         burgv[5][0]=0.0000000000; burgv[5][1]=0.7071067812; burgv[5][2]=-0.7071067812;
 
-        bmagsq = param->burgMag * param->burgMag;
-
-
-        for (i = 0; i < NUM_BURG; i++) {
-            for (j = 0; j < 4; j++) {
-                Ltot[i][j] = 0.0;
-            }
-            for (j = 0; j < 7; j++) {
-                areaSwept[i][j] = 0.0;
-            }
-        }
- 
 /*
  *      If necessary, rotate the nanv and tanv arrays from the crystal frame
  *      to the lab frame
  */
-        if (param->useLabFrame) {
+        if (home->param->useLabFrame) {
+            int 		plane;
 
             for (plane = 0; plane < NUM_PLANES; plane++) {
 
@@ -183,24 +151,19 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             }
         }
 
-        for (i = 0; i < 3; i++){
-            for (j = 0; j < 3; j++){
-                dstn[i][j] = 0.0;
-                dspn[i][j] = 0.0;
-                pstn[i][j] = 0.0;
+/*
+ *      If necessary, rotate the bnorm array from the crystal frame to
+ *      the lab frame
+ */
+        if (home->param->useLabFrame) {
+
+            for (bIndex = 0; bIndex < NUM_BURG; bIndex++) {
+                real8 bnormLab[3];
+
+                Matrix33Vector3Multiply(home->rotMatrix,bnorm[bIndex],bnormLab);
+                VECTOR_COPY(bnorm[bIndex], bnormLab);
             }
         }
-
-        param->disloDensity = 0.0;
-
-        for (i = 0; i < param->numBurgGroups; i++) {
-            param->partialDisloDensity[i] = 0.0;
-        }
-
-        for (i=0; i < 6; i++) {
-            param->delpStrain[i] = 0.0;                                         
-        }                                                                
-
 
 #if 0
 /*
@@ -229,50 +192,146 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         }
 
 #endif
+        return;
+}
 
+
+void DeltaPlasticStrain_FCC(Home_t *home)
+{
+        int          i, j;
+        real8        factor0, bmagsq;
+        real8        eps = 1.e-12;
+        real8        gdspn[6], gdstn[6];
+        real8        dstn[3][3], dspn[3][3];
+        real8        Ltot[NUM_BURG][4], areaSwept[NUM_BURG][7];
+        Param_t      *param;
+        static int   initDone = 0;
+        static real8 burgv[NUM_BURG][3], bnorm[NUM_BURG][3];
+        static real8 nanv[NUM_PLANES][3][NUM_BURG];
+        static real8 tanv[NUM_PLANES][3][NUM_BURG];
 
 /*
- *      If necessary, rotate the bnorm array from the crystal frame to
- *      the lab frame
+ *      Ltot : density of 
+ *         [burg][0] : screw
+ *         [burg][1] : edge 1
+ *         [burg][2] : edge_2
+ *         [burg][3] : edge_3
+ *      for each burgers vector.
  */
-        if (param->useLabFrame) {
 
-            for (bIndex = 0; bIndex < NUM_BURG; bIndex++) {
-                real8 bnormLab[3];
+        param = home->param;
 
-                Matrix33Vector3Multiply(home->rotMatrix,bnorm[bIndex],bnormLab);
-                VECTOR_COPY(bnorm[bIndex], bnormLab);
-            }
+        bmagsq = param->burgMag * param->burgMag;
+        param->disloDensity = 0.0;
+
+        memset(Ltot, 0, sizeof(Ltot));
+        memset(areaSwept, 0, sizeof(areaSwept));
+
+        Matrix33Init(dstn);
+        Matrix33Init(dspn);
+
+
+        for (i = 0; i < param->numBurgGroups; i++) {
+            param->partialDisloDensity[i] = 0.0;
         }
- 
-/*
- *      Loop over all the local nodes
- */
-        for (iii = 0; iii < home->newNodeKeyPtr; iii++){
 
-            if ((node = home->nodeKeys[iii]) == (Node_t *)NULL) {
+        for (i=0; i < 6; i++) {
+            param->delpStrain[i] = 0.0;                                         
+        }                                                                
+
+/*
+ *      The first time we enter this function, initialize a few
+ *      arrays that will remain static for the duration of the
+ *      simulation once they are set.
+ */
+		
+        if (!param->useLabFrame && !initDone++) {
+            InitDeltaPlasticStrain_FCC(home, nanv, tanv, burgv, bnorm);
+        }
+	
+/*
+ *      Loop through all the nodes calculating the flux contribution
+ *      from each of the node's segments.  We want the loop threaded,
+ *      but we also need to sum thread-specific totals when we're
+ *      done, so we can't just automatically distribute the loop
+ *      iterations.  Instead, we'll set up a threaded execution block
+ *      where each thread calculates it's own loop indices and then
+ *      safely adds its contributions to the summed totals in a 'critical'
+ *      section after its loop iterations have been completed.
+ */
+#pragma omp parallel
+   {
+        int    k, l;
+        int    nodeIndex;
+        int    threadID, threadIterStart, threadIterEnd;
+        real8  thread_disloDensity;
+        real8  *thread_partialDensity;
+        real8  thread_dstn[3][3], thread_dspn[3][3], thread_dyad[3][3];
+        real8  thread_Ltot[NUM_BURG][4], thread_areaSwept[NUM_BURG][7];
+
+        thread_disloDensity = 0.0;
+        thread_partialDensity = (real8 *)calloc(1, param->numBurgGroups *
+                                               sizeof(real8));
+
+        Matrix33Init(thread_dstn);
+        Matrix33Init(thread_dspn);
+
+        memset(thread_Ltot, 0, sizeof(thread_Ltot));
+        memset(thread_areaSwept, 0, sizeof(thread_areaSwept));
+
+        GetThreadIterationIndices(home->newNodeKeyPtr, &threadID,
+                                  &threadIterStart, &threadIterEnd);
+
+/*
+ *      Each thread now loops over its portion of the node list
+ */
+        for (nodeIndex=threadIterStart; nodeIndex<threadIterEnd; nodeIndex++) {
+            int    m;
+            int    numSeg, segIndex;
+            real8  localstrain[3][3];
+            Node_t *node;
+
+            if ((node = home->nodeKeys[nodeIndex]) == (Node_t *)NULL) {
                 continue;
             }
 
-            nc = node->numNbrs;
+            numSeg = node->numNbrs;
 
-            VECTOR_ZERO(localstrain[0]);
-            VECTOR_ZERO(localstrain[1]);
-            VECTOR_ZERO(localstrain[2]);
+            Matrix33Init(localstrain);
         
 /*
  *          Loop over every segment attached to the node
  */        
-            for (jjj = 0; jjj < nc; jjj++) {
-               int   offset1, offset2;
-               real8 minVal;
-               real8 ex, ey, ez;
-               real8 nx, ny, nz;
-               real8 hhx, hhy, hhz;
-               real8 delxnode, delynode, delznode;
-               real8 delxnbr, delynbr, delznbr;
+            for (segIndex = 0; segIndex < numSeg; segIndex++) {
+               int    offset1, offset2;
+               int    index, index2,eleNum;
+               int    burgGroup, negCount, zeroCount;
+               real8  bx, by, bz;
+               real8  ex, ey, ez;
+               real8  nx, ny, nz;
+               real8  tx, ty, tz;
+               real8  hhx, hhy, hhz;
+               real8  tmpx, tmpy, tmpz;
+               real8  deltax1x, deltax1y, deltax1z;
+               real8  deltax2x, deltax2y, deltax2z;
+               real8  delxnode, delynode, delznode;
+               real8  delxnbr, delynbr, delznbr;
+               real8  minVal;
+               real8  deltaDensity;
+               real8  sbsign, sb;
+               real8  segd, segd2;
+               real8  size, tmpmax;
+               real8  bCryst[3];
+               real8  zeta[3];
+               real8  seg[3], seg2[3];
+               real8  segleft[3], segleft2[3], qs[3];
+               real8  vec1[3], vec2[3], outVec[2];
+               real8  Ltemp[NUM_PLANES], Ltemp2[2];
+               real8  stemp[NUM_PLANES];
+			   real8  pp[3],p1[3],p2[3];
+               Node_t *nbr;
 
-               nbr = GetNeighborNode(home, node, jjj);
+               nbr = GetNeighborNode(home, node, segIndex);
 
                if (nbr == (Node_t *)NULL) {
                    printf("WARNING: Neighbor not found at %s line %d\n",
@@ -285,17 +344,35 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                if (OrderNodes(node, nbr) != -1) {
                    continue;
                }
-
-               bx = node->burgX[jjj];
-               by = node->burgY[jjj];
-               bz = node->burgZ[jjj];
-
+			   
+			   if(param->useLabFrame){
+					ChangeOrientation(home, node, nbr, 3);
+					InitDeltaPlasticStrain_FCC(home, nanv, tanv, burgv, bnorm);
+			   }
+			   
+/*
+ *             This check is in support of some local site-specific
+ *             post-processing only and all *normal* ParaDiS simulations
+ *             will simply continue on through this check.
+ */
+  /*             if (param->ignoreNonLoopFlux) {
+                   if (!HAS_ANY_OF_CONSTRAINTS(node->constraint, LOOP_NODE) ||
+                       !HAS_ANY_OF_CONSTRAINTS(nbr->constraint,  LOOP_NODE)) {
+                       continue;
+                   }
+               }
+ */
 /*
  *             For later, we need a copy of the burgers vector guaranteed
  *             to be in the crystal frame
  */
+               bx = node->burgX[segIndex];
+               by = node->burgY[segIndex];
+               bz = node->burgZ[segIndex];
+
                if (param->useLabFrame) {
                    real8 bLab[3] = {bx, by, bz};
+		   ChangeOrientation(home, node, nbr, 3);
                    Matrix33Vector3Multiply(home->rotMatrixInverse,bLab,bCryst);
                } else {
                    bCryst[X] = bx;
@@ -303,31 +380,89 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                    bCryst[Z] = bz;
                }
 
-               ex = nbr->x - node->oldx; 
-               ey = nbr->y - node->oldy; 
-               ez = nbr->z - node->oldz; 
+/*
+ * 		In the output, we would like to generate the plastic strain
+ * 		field, so we should record all the plastic strain in each 
+ * 		element. Here, we get the eleNum of the current area position. 
+ */
+	        p1[0] = node->x;
+	        p1[1] = node->y;
+	        p1[2] = node->z;
+	         
+	        p2[0] = node->oldx;
+	        p2[1] = node->oldy;
+	        p2[2] = node->oldz;
+	         
+	        PBCPOSITION(param,p1[0],p1[1],p1[2],&p2[0],&p2[1],&p2[2]);
+	         
+	        pp[0] = p1[0] + p2[0];
+	        pp[1] = p1[1] + p2[1];
+	        pp[2] = p1[2] + p2[2];
+	         
+	        p2[0] = nbr->oldx;
+	        p2[1] = nbr->oldy;
+	        p2[2] = nbr->oldz;
+	         
+	        PBCPOSITION(param,p1[0],p1[1],p1[2],&p2[0],&p2[1],&p2[2]);
+	         
+	        pp[0] +=  p2[0];
+	        pp[1] +=  p2[1];
+	        pp[2] +=  p2[2];
+	         
+	        p2[0] = nbr->x;
+	        p2[1] = nbr->y;
+	        p2[2] = nbr->z;
+	         
+	        PBCPOSITION(param,p1[0],p1[1],p1[2],&p2[0],&p2[1],&p2[2]);
+	         
+	        pp[0] +=  p2[0];
+	        pp[1] +=  p2[1];
+	        pp[2] +=  p2[2];
+			   
+	        VECTOR_MULTIPLY(pp,0.25);
+	         
+	        FoldBox(param,&pp[0],&pp[1],&pp[2]);
+	         
+	        eleNum = Coor2EleNum(home,pp);
+			   
+	        ex = nbr->x - node->oldx; 
+	        ey = nbr->y - node->oldy; 
+	        ez = nbr->z - node->oldz; 
 
-               hhx = node->x - nbr->oldx;
-               hhy = node->y - nbr->oldy;
-               hhz = node->z - nbr->oldz;
+	        hhx = node->x - nbr->oldx;
+	        hhy = node->y - nbr->oldy;
+	        hhz = node->z - nbr->oldz;
 
-               ZImage(param, &ex, &ey, &ez);
-               ZImage(param, &hhx, &hhy, &hhz);
-
-               nx = (ey*hhz - ez*hhy) * 0.5;
-               ny = (ez*hhx - ex*hhz) * 0.5;
-               nz = (ex*hhy - ey*hhx) * 0.5;
-           
-               dyad[0][0] = nx*bx; dyad[0][1] = nx*by; dyad[0][2] = nx*bz;
-               dyad[1][0] = ny*bx; dyad[1][1] = ny*by; dyad[1][2] = ny*bz;
-               dyad[2][0] = nz*bx; dyad[2][1] = nz*by; dyad[2][2] = nz*bz;
-           
+	        ZImage(param, &ex, &ey, &ez);
+	        ZImage(param, &hhx, &hhy, &hhz);
+	        
+	        nx = (ey*hhz - ez*hhy) * 0.5;
+	        ny = (ez*hhx - ex*hhz) * 0.5;
+	        nz = (ex*hhy - ey*hhx) * 0.5;
+	         
+	        thread_dyad[0][0] = nx*bx;
+	        thread_dyad[0][1] = nx*by;
+	        thread_dyad[0][2] = nx*bz;
+	        thread_dyad[1][0] = ny*bx;
+	        thread_dyad[1][1] = ny*by;
+	        thread_dyad[1][2] = ny*bz;
+	        thread_dyad[2][0] = nz*bx;
+	        thread_dyad[2][1] = nz*by;
+	        thread_dyad[2][2] = nz*bz;
+	         
                for (k = 0; k < 3; k++){
                   for (l = 0; l < 3; l++){
                       real8 tmpDstn;
-                      tmpDstn = (dyad[l][k]+dyad[k][l])*0.5/param->simVol;
-                      dstn[l][k] += tmpDstn;
-                      dspn[l][k] += (dyad[l][k]-dyad[k][l])*0.5/param->simVol;
+                      tmpDstn = (thread_dyad[l][k]+thread_dyad[k][l]) *
+                                0.5/param->simVol;
+                      thread_dstn[l][k] += tmpDstn;
+					  
+	                if(l==k)param->pstnEle[eleNum][l] += tmpDstn; // element
+	                if(l<k)param->pstnEle[eleNum][l+k+2] += tmpDstn; // element
+					  
+                      thread_dspn[l][k] += (thread_dyad[l][k] -
+                                            thread_dyad[k][l]) *
+                                           0.5/param->simVol;
                       localstrain[l][k] += tmpDstn;
                   }
                }
@@ -360,7 +495,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
  *             deltaDensity = size/param->simVol/bmagsq;
  */
                deltaDensity = size * param->burgVolFactor;
-               param->disloDensity += deltaDensity;
+               thread_disloDensity += deltaDensity;
                Normalize(&nx, &ny, &nz);
            
                deltax1x= node->x - node->oldx;
@@ -463,7 +598,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
  *             that group's density value.
  */
                if (burgGroup >= 0) {
-                   param->partialDisloDensity[burgGroup] += deltaDensity;
+                   thread_partialDensity[burgGroup] += deltaDensity;
                }
 
 /*
@@ -485,7 +620,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                    continue;
                }
 
-/*
+/*			
  *             max index for NUM_BURG burgers vector for now
  */
                index = -1;
@@ -523,11 +658,11 @@ void DeltaPlasticStrain_FCC(Home_t *home)
  *             segd is the dotted value of seg length with
  *             burgers vector => Screw density
  */
-               Ltot[index][0] += fabs(segd);
+               thread_Ltot[index][0] += fabs(segd);
 
-               segleft[0] = seg[0] - segd * bnorm[index][0];
-               segleft[1] = seg[1] - segd * bnorm[index][1];
-               segleft[2] = seg[2] - segd * bnorm[index][2];
+               segleft[X] = seg[X] - segd * bnorm[index][X];
+               segleft[Y] = seg[Y] - segd * bnorm[index][Y];
+               segleft[Z] = seg[Z] - segd * bnorm[index][Z];
  
 /*
  *             min index2
@@ -577,14 +712,14 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 
                DecompVec(segleft, vec1, vec2, Ltemp2);
 
-               Ltot[index][offset1+1] += fabs(Ltemp2[0]);
-               Ltot[index][offset2+1] += fabs(Ltemp2[1]);
+               thread_Ltot[index][offset1+1] += fabs(Ltemp2[0]);
+               thread_Ltot[index][offset2+1] += fabs(Ltemp2[1]);
 
                xvector(tanv[offset1][0][index], tanv[offset1][1][index],
                        tanv[offset1][2][index], deltax2x, deltax2y,
                        deltax2z, &tmpx, &tmpy, &tmpz);
 
-               areaSwept[index][offset1+1] += sb * 0.5 * Ltemp2[0] *
+               thread_areaSwept[index][offset1+1] += sb * 0.5 * Ltemp2[0] *
                                       (tmpx*nanv[offset1][0][index] +
                                        tmpy*nanv[offset1][1][index] +
                                        tmpz*nanv[offset1][2][index]);
@@ -593,7 +728,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                        tanv[offset2][2][index], deltax2x, deltax2y,
                        deltax2z, &tmpx, &tmpy, &tmpz);
 
-               areaSwept[index][offset2+1] += sb * 0.5 * Ltemp2[1] *
+               thread_areaSwept[index][offset2+1] += sb * 0.5 * Ltemp2[1] *
                                       (tmpx*nanv[offset2][0][index] +
                                        tmpy*nanv[offset2][1][index] +
                                        tmpz*nanv[offset2][2][index]);
@@ -650,8 +785,8 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 
                DecompVec(qs, vec1, vec2, outVec);
 
-               areaSwept[index][offset1+4] += outVec[0];
-               areaSwept[index][offset2+4] += outVec[1];
+               thread_areaSwept[index][offset1+4] += outVec[0];
+               thread_areaSwept[index][offset2+4] += outVec[1];
 
 
 /********************* the other half ****************************/
@@ -686,9 +821,9 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                        deltax1x, deltax1y, deltax1z,
                        &tmpx, &tmpy, &tmpz);
 
-               areaSwept[index][0] += sb * 0.5 * (tmpx*bnorm[index][0] +
-                                                  tmpy*bnorm[index][1] +
-                                                  tmpz*bnorm[index][2]);
+               thread_areaSwept[index][0] += sb * 0.5 * (tmpx*bnorm[index][0] +
+                                                         tmpy*bnorm[index][1] +
+                                                         tmpz*bnorm[index][2]);
  
                switch (index2) {
                    case 0:
@@ -719,7 +854,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                        tanv[offset1][2][index], deltax1x, deltax1y,
                        deltax1z, &tmpx, &tmpy, &tmpz);
 
-               areaSwept[index][offset1+1] += sb * 0.5 * Ltemp2[0] *
+               thread_areaSwept[index][offset1+1] += sb * 0.5 * Ltemp2[0] *
                                       (tmpx*nanv[offset1][0][index] +
                                        tmpy*nanv[offset1][1][index] +
                                        tmpz*nanv[offset1][2][index]);
@@ -728,7 +863,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                        tanv[offset2][2][index], deltax1x, deltax1y,
                        deltax1z, &tmpx, &tmpy, &tmpz);
 
-               areaSwept[index][offset2+1] += sb * 0.5 * Ltemp2[1] *
+               thread_areaSwept[index][offset2+1] += sb * 0.5 * Ltemp2[1] *
                                       (tmpx*nanv[offset2][0][index] +
                                        tmpy*nanv[offset2][1][index] +
                                        tmpz*nanv[offset2][2][index]);
@@ -785,27 +920,11 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 
                DecompVec(qs, vec1, vec2, outVec);
 
-               areaSwept[index][offset1+4] += outVec[0];
-               areaSwept[index][offset2+4] += outVec[1];
+               thread_areaSwept[index][offset1+4] += outVec[0];
+               thread_areaSwept[index][offset2+4] += outVec[1];
 
-	    }  /* for (jjj = 0; jjj < nc; ...) */
+	    }  /* for (segIndex = 0; segIndex < nc; ...) */
 	   
-#if 0
-/*
- *          Some stuff for debugging
- */
-            printf("Ltot ---------------- \n");
-            for (nn = 0; nn < NUM_BURG; nn++) {
-                printf("%e %e %e %e \n", Ltot[nn][0], Ltot[nn][1],
-                       Ltot[nn][2], Ltot[nn][3]);
-            }
-            printf("areaSwept printing ---- \n");
-            for (nn = 0; nn < NUM_BURG; nn++) {
-                printf(" %e %e %e %e %e %e %e\n", areaSwept[nn][0],
-                       areaSwept[nn][1], areaSwept[nn][2], areaSwept[nn][3],
-                       areaSwept[nn][4], areaSwept[nn][5], areaSwept[nn][6]);
-            }
-#endif
 
 /**********************************************************************/
 
@@ -813,7 +932,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 /*
  *          computed localstrain[3][3] for the node
  */
-            if ((param->loadType == 1) && (param->indxErate == 1)) {
+            if ((param->loadType == 1)) {
                 real8  localeRate;
                 localeRate =
                     param->edotdir[0]*localstrain[0][0]*param->edotdir[0] +
@@ -835,8 +954,64 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                 }
             }
 
-        }  /* for (iii = 0; iii < home->newNodeKeyPtr; ...) */
+        }  /* for (nodeIndex = 0; nodeIndex < home->newNodeKeyPtr; ...) */
 
+/*
+ *      At this point, each thread has a portion of several arrays.
+ *      The threads now update the global arrays with their contributions
+ *      in a 'critical' block so there's no conflicts among the threads.
+ */
+#pragma omp critical (CRIT_DPS_FCC_A)
+       {
+            for (k = 0; k < 3; k++) {
+                for (l = 0; l < 3; l++) {
+                    dstn[k][l] += thread_dstn[k][l];
+                    dspn[k][l] += thread_dspn[k][l];
+                }
+            }
+
+            for (k = 0; k < NUM_BURG; k++) {
+                for (l = 0; l < 4; l++) {
+                    Ltot[k][l] += thread_Ltot[k][l];
+                    areaSwept[k][l] += thread_areaSwept[k][l];
+                }
+                for (l = 4; l < 7; l++) {
+                    areaSwept[k][l] += thread_areaSwept[k][l];
+                }
+            }
+
+            for (k = 0; k < param->numBurgGroups; k++) {
+                param->partialDisloDensity[k] += thread_partialDensity[k];
+            }
+
+            param->disloDensity += thread_disloDensity;
+
+        }  /* end "omp critical" section */
+
+        if (thread_partialDensity != NULL) {
+            free(thread_partialDensity);
+        }
+
+    }  /* end "omp parallel" section */
+
+#if 0
+/*
+ *      Some stuff for debugging
+ */
+        printf("Ltot ---------------- \n");
+        for (i = 0; i < NUM_BURG; i++) {
+            printf("%e %e %e %e \n", Ltot[i][0], Ltot[i][1],
+                   Ltot[i][2], Ltot[i][3]);
+        }
+        printf("areaSwept printing ---- \n");
+        for (i = 0; i < NUM_BURG; i++) {
+            printf(" %e %e %e %e %e %e %e\n",
+                   areaSwept[i][0], areaSwept[i][1],
+                   areaSwept[i][2], areaSwept[i][3],
+                   areaSwept[i][4], areaSwept[i][5],
+                   areaSwept[i][6]);
+        }
+#endif
 
 /*
  *      Density decomposition
@@ -855,9 +1030,9 @@ void DeltaPlasticStrain_FCC(Home_t *home)
  
 #if 0
         printf("Ltot ---------------- \n");
-        for (nn = 0; nn < NUM_BURG; nn++) {
-            printf("%e %e %e %e \n", Ltot[nn][0], Ltot[nn][1],
-                   Ltot[nn][2], Ltot[nn][3]);
+        for (i = 0; i < NUM_BURG; i++) {
+            printf("%e %e %e %e \n", Ltot[i][0], Ltot[i][1],
+                   Ltot[i][2], Ltot[i][3]);
         }
 #endif
 
@@ -922,80 +1097,89 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         }
 #endif /* if PARALLEL */
 
+
+#if 0
+/*
+ *      For debugging only.  See comments further on
+ */
         if (home->myDomain == 0) {
+            int   k, l;
+            real8 pstn[3][3];
+            real8 val[3][3];
+            real8 dyad[3][3], dyad0[3][3], dyad1[3][3], dyad2[3][3];
 
 /*
  *          Strain increment using decomposition here
  */
-            for (i0 = 0; i0 < NUM_BURG; i0++) {
+            for (i = 0; i < NUM_BURG; i++) {
 
                 /* climb */
-                dyad[0][0] = bnorm[i0][0]*bnorm[i0][0];
-                dyad[0][1] = bnorm[i0][0]*bnorm[i0][1];
-                dyad[0][2] = bnorm[i0][0]*bnorm[i0][2];
+                dyad[0][0] = bnorm[i][0]*bnorm[i][0];
+                dyad[0][1] = bnorm[i][0]*bnorm[i][1];
+                dyad[0][2] = bnorm[i][0]*bnorm[i][2];
 
-                dyad[1][0] = bnorm[i0][1]*bnorm[i0][0];
-                dyad[1][1] = bnorm[i0][1]*bnorm[i0][1];
-                dyad[1][2] = bnorm[i0][1]*bnorm[i0][2];
+                dyad[1][0] = bnorm[i][1]*bnorm[i][0];
+                dyad[1][1] = bnorm[i][1]*bnorm[i][1];
+                dyad[1][2] = bnorm[i][1]*bnorm[i][2];
 
-                dyad[2][0] = bnorm[i0][2]*bnorm[i0][0];
-                dyad[2][1] = bnorm[i0][2]*bnorm[i0][1];
-                dyad[2][2] = bnorm[i0][2]*bnorm[i0][2];
+                dyad[2][0] = bnorm[i][2]*bnorm[i][0];
+                dyad[2][1] = bnorm[i][2]*bnorm[i][1];
+                dyad[2][2] = bnorm[i][2]*bnorm[i][2];
 
                 for (k = 0; k < 3; k++){
                     for (l = 0; l < 3; l++){
-                        pstn[k][l] += param->FCC_fluxtot[i0][0] *
+                        pstn[k][l] += param->FCC_fluxtot[i][0] *
                                       (dyad[l][k]+dyad[k][l]) * 0.5 /
                                       param->simVol;
                     }
                 }
               
                 /* Three planes */
-                dyad0[0][0] = bnorm[i0][0]*nanv[0][0][i0];
-                dyad0[0][1] = bnorm[i0][0]*nanv[0][1][i0];
-                dyad0[0][2] = bnorm[i0][0]*nanv[0][2][i0]; 
+                dyad0[0][0] = bnorm[i][0]*nanv[0][0][i];
+                dyad0[0][1] = bnorm[i][0]*nanv[0][1][i];
+                dyad0[0][2] = bnorm[i][0]*nanv[0][2][i]; 
 
-                dyad0[1][0] = bnorm[i0][1]*nanv[0][0][i0];
-                dyad0[1][1] = bnorm[i0][1]*nanv[0][1][i0];
-                dyad0[1][2] = bnorm[i0][1]*nanv[0][2][i0]; 
+                dyad0[1][0] = bnorm[i][1]*nanv[0][0][i];
+                dyad0[1][1] = bnorm[i][1]*nanv[0][1][i];
+                dyad0[1][2] = bnorm[i][1]*nanv[0][2][i]; 
 
-                dyad0[2][0] = bnorm[i0][2]*nanv[0][0][i0];
-                dyad0[2][1] = bnorm[i0][2]*nanv[0][1][i0];
-                dyad0[2][2] = bnorm[i0][2]*nanv[0][2][i0]; 
+                dyad0[2][0] = bnorm[i][2]*nanv[0][0][i];
+                dyad0[2][1] = bnorm[i][2]*nanv[0][1][i];
+                dyad0[2][2] = bnorm[i][2]*nanv[0][2][i]; 
 
-                dyad1[0][0] = bnorm[i0][0]*nanv[1][0][i0];
-                dyad1[0][1] = bnorm[i0][0]*nanv[1][1][i0];
-                dyad1[0][2] = bnorm[i0][0]*nanv[1][2][i0]; 
+                dyad1[0][0] = bnorm[i][0]*nanv[1][0][i];
+                dyad1[0][1] = bnorm[i][0]*nanv[1][1][i];
+                dyad1[0][2] = bnorm[i][0]*nanv[1][2][i]; 
 
-                dyad1[1][0] = bnorm[i0][1]*nanv[1][0][i0];
-                dyad1[1][1] = bnorm[i0][1]*nanv[1][1][i0];
-                dyad1[1][2] = bnorm[i0][1]*nanv[1][2][i0]; 
+                dyad1[1][0] = bnorm[i][1]*nanv[1][0][i];
+                dyad1[1][1] = bnorm[i][1]*nanv[1][1][i];
+                dyad1[1][2] = bnorm[i][1]*nanv[1][2][i]; 
 
-                dyad1[2][0] = bnorm[i0][2]*nanv[1][0][i0];
-                dyad1[2][1] = bnorm[i0][2]*nanv[1][1][i0];
-                dyad1[2][2] = bnorm[i0][2]*nanv[1][2][i0]; 
+                dyad1[2][0] = bnorm[i][2]*nanv[1][0][i];
+                dyad1[2][1] = bnorm[i][2]*nanv[1][1][i];
+                dyad1[2][2] = bnorm[i][2]*nanv[1][2][i]; 
 
-                dyad2[0][0] = bnorm[i0][0]*nanv[2][0][i0];
-                dyad2[0][1] = bnorm[i0][0]*nanv[2][1][i0];
-                dyad2[0][2] = bnorm[i0][0]*nanv[2][2][i0]; 
+                dyad2[0][0] = bnorm[i][0]*nanv[2][0][i];
+                dyad2[0][1] = bnorm[i][0]*nanv[2][1][i];
+                dyad2[0][2] = bnorm[i][0]*nanv[2][2][i]; 
 
-                dyad2[1][0] = bnorm[i0][1]*nanv[2][0][i0];
-                dyad2[1][1] = bnorm[i0][1]*nanv[2][1][i0];
-                dyad2[1][2] = bnorm[i0][1]*nanv[2][2][i0]; 
+                dyad2[1][0] = bnorm[i][1]*nanv[2][0][i];
+                dyad2[1][1] = bnorm[i][1]*nanv[2][1][i];
+                dyad2[1][2] = bnorm[i][1]*nanv[2][2][i]; 
 
-                dyad2[2][0] = bnorm[i0][2]*nanv[2][0][i0];
-                dyad2[2][1] = bnorm[i0][2]*nanv[2][1][i0];
-                dyad2[2][2] = bnorm[i0][2]*nanv[2][2][i0]; 
+                dyad2[2][0] = bnorm[i][2]*nanv[2][0][i];
+                dyad2[2][1] = bnorm[i][2]*nanv[2][1][i];
+                dyad2[2][2] = bnorm[i][2]*nanv[2][2][i]; 
 
                 for (k = 0; k < 3; k++) {
                     for(l = 0; l < 3; l++) {
                   
-                        pstn[k][l] += ((param->FCC_fluxtot[i0][1]+param->FCC_fluxtot[i0][4]) * (dyad0[l][k]+dyad0[k][l]) +
-                                       (param->FCC_fluxtot[i0][2]+param->FCC_fluxtot[i0][5]) * (dyad1[l][k]+dyad1[k][l]) +
-                                       (param->FCC_fluxtot[i0][3]+param->FCC_fluxtot[i0][6]) * (dyad2[l][k]+dyad2[k][l])) * 0.5 / param->simVol;
+                        pstn[k][l] += ((param->FCC_fluxtot[i][1]+param->FCC_fluxtot[i][4]) * (dyad0[l][k]+dyad0[k][l]) +
+                                       (param->FCC_fluxtot[i][2]+param->FCC_fluxtot[i][5]) * (dyad1[l][k]+dyad1[k][l]) +
+                                       (param->FCC_fluxtot[i][3]+param->FCC_fluxtot[i][6]) * (dyad2[l][k]+dyad2[k][l])) * 0.5 / param->simVol;
                     }
                 }
-            }  /* for (i0=0;i0<NUM_BURG; etc. */
+            }  /* for (i=0;i<NUM_BURG; etc. */
 
 /* 
  *          dstn2 tensor the total sum of all decomposed strain flux components
@@ -1007,7 +1191,6 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             printf("--simVoll = %e -----\n", param->simVol);
             printf("--realdt = %e -----\n", param->realdt);
 
-            real8 val[3][3];
             for (i = 0; i < 3; i++) {
                 for (j = 0; j < 3; j++) {
                     val[i][j] = pstn[i][j]*(param->simVol * param->realdt);
@@ -1026,25 +1209,29 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                    gdstn[3]/val[1][2], gdstn[4]/val[0][2], gdstn[5]/val[0][1]);
 
 #endif
-
-
         } /*if masternode */
+#endif
+
 
 #if 0
-        printf("param->delpStrain[0]= %e\n",param->delpStrain[0]);              
-        printf("param->delpStrain[1]= %e\n",param->delpStrain[1]);              
-        printf("param->delpStrain[2]= %e\n",param->delpStrain[2]);              
-        printf("param->delpStrain[3]= %e\n",param->delpStrain[3]);              
-        printf("param->delpStrain[4]= %e\n",param->delpStrain[4]);              
-        printf("param->delpStrain[5]= %e\n",param->delpStrain[5]);              
+        if (home->myDomain == 0) {
+            printf("param->delpStrain[0]= %e\n",param->delpStrain[0]);
+            printf("param->delpStrain[1]= %e\n",param->delpStrain[1]);
+            printf("param->delpStrain[2]= %e\n",param->delpStrain[2]);
+            printf("param->delpStrain[3]= %e\n",param->delpStrain[3]);
+            printf("param->delpStrain[4]= %e\n",param->delpStrain[4]);
+            printf("param->delpStrain[5]= %e\n",param->delpStrain[5]);
+        }
 #endif                                                                  
 #if 0
-        printf("param->delpSpin[0]= %e\n",param->delpSpin[0]);
-        printf("param->delpSpin[1]= %e\n",param->delpSpin[1]);
-        printf("param->delpSpin[2]= %e\n",param->delpSpin[2]);
-        printf("param->delpSpin[3]= %e\n",param->delpSpin[3]);
-        printf("param->delpSpin[4]= %e\n",param->delpSpin[4]);
-        printf("param->delpSpin[5]= %e\n",param->delpSpin[5]);
+        if (home->myDomain == 0) {
+            printf("param->delpSpin[0]= %e\n",param->delpSpin[0]);
+            printf("param->delpSpin[1]= %e\n",param->delpSpin[1]);
+            printf("param->delpSpin[2]= %e\n",param->delpSpin[2]);
+            printf("param->delpSpin[3]= %e\n",param->delpSpin[3]);
+            printf("param->delpSpin[4]= %e\n",param->delpSpin[4]);
+            printf("param->delpSpin[5]= %e\n",param->delpSpin[5]);
+        }
 
 #endif                                                                  
 

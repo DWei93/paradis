@@ -805,7 +805,13 @@ void makeeta(int norder, real8 ksi0[3], real8 ksi[3], real8 b[3], real8 *Eeta) {
         }
 
         ksinorm = sqrt(ksi[0]*ksi[0] + ksi[1]*ksi[1] + ksi[2]*ksi[2]);
-        ksinormi = 1.0 / ksinorm;
+
+        if(ksinorm < 1e-12){
+            printf("Warning: makeeta: ksinorm == 0");
+            ksinormi = 0.0;
+        }else{
+            ksinormi = 1.0 / ksinorm;
+        }
 
         ksihat[0] = ksi[0] * ksinormi;
         ksihat[1] = ksi[1] * ksinormi;

@@ -229,8 +229,8 @@ void DumpPerNodeTimestep(Home_t *home, double newDT)
 
             if (nodalMaxDT < minDT) minDT = nodalMaxDT;
 
-            fprintf(fp, "%14e  %14e   # (%d,%d)\n", nodalMaxDT,
-                    newDT, node->myTag.domainID, node->myTag.index);
+            fprintf(fp, "%14e  %14e   # (%d,%d,%3.1f)\n", nodalMaxDT,
+                    nodalMaxErr, node->myTag.domainID, node->myTag.index,node->inGrain);
         }
 
 #if 0
@@ -257,8 +257,8 @@ static void DumpNode(Node_t *node)
         if (node == (Node_t *)NULL) return;
 
 #if 1
-        printf("  node(%d,%d) arms %d,  ",
-               node->myTag.domainID, node->myTag.index, node->numNbrs);
+        printf("  node(%d,%d,%3.1f) arms %d,  ",
+               node->myTag.domainID, node->myTag.index,node->inGrain, node->numNbrs);
         for (i = 0; i < node->numNbrs; i++) {
             printf(" (%d,%d)", node->nbrTag[i].domainID, node->nbrTag[i].index);
         }
@@ -295,7 +295,7 @@ static void DumpNode(Node_t *node)
 /*
  *      Print the old nodal velocity and total node force
  */
-#if 0
+#if 1
         printf("  node(%d,%d) oldv = (%e %e %e)\n",
                node->myTag.domainID, node->myTag.index, 
                node->oldvX, node->oldvY, node->oldvZ);
@@ -310,7 +310,7 @@ static void DumpNode(Node_t *node)
 /*
  *      Print the arm specific forces
  */
-#if 0
+#if 1
         for (i = 0; i < node->numNbrs; i++) {
             printf("  node(%d %d) arm[%d]-> (%d %d) f = (%e %e %e)\n",
                    node->myTag.domainID, node->myTag.index, i,       
@@ -322,7 +322,7 @@ static void DumpNode(Node_t *node)
 /*
  *      Print the burger's vector for each arm of the node
  */
-#if 0
+#if 1
         for (i = 0; i < node->numNbrs; i++) {
             printf("  node(%d %d) arm[%d]-> (%d %d) b = (%f %f %f)\n",
                    node->myTag.domainID, node->myTag.index, i,       
@@ -457,7 +457,7 @@ static void AdvanceAllNodes(Home_t *home, real8 oldDT)
 {
 	int	i;
 	real8	x, y, z;
-        real8   currDT;
+    real8   currDT;
 	Node_t	*node;
 	Param_t	*param;
 
@@ -543,19 +543,28 @@ void TrapezoidIntegrator(Home_t *home)
         int     i, convergent, maxIterations, incrDelta;
         int     iter, globalIterError, mobIterError;
         int     dumpErrorData = 1, doAll = 1;
-	real8   errMax, globalErrMax;
+		real8   errMax, globalErrMax;
         real8   oldDT, newDT;
-        real8   oldx, oldy, oldz;
-        real8   localVals[2], globalVals[2];
+	static  real8 minDT;
+        real8   oldx, oldy, oldz, nodeVec[3];
+        real8   localVals[3], globalVals[3];
+		real8	localMaxDisp, globalMaxDisp;
         Node_t  *node;
         Param_t *param;
-#ifdef DEBUG_TIMESTEP
+#ifdef 	DEBUG_TIMESTEP
         real8   oldErrMax;
         Node_t  *tmpNode;
 #endif
 
         param = home->param;
+	minDT = MAX(5.0E-13, 2.0 * param->xBoundMax / 1.0e16);
 
+		if(param->limitDisplacement && param->preDecreaseDT){
+			
+			param->nextDT *= param->dtDecrementFact;
+			
+		}
+		
         oldDT = param->deltaTT;
         newDT = MIN(param->maxDT, param->nextDT);
         if (newDT <= 0.0) newDT = param->maxDT;
@@ -574,6 +583,8 @@ void TrapezoidIntegrator(Home_t *home)
         convergent = 0;
         maxIterations = 2;
         incrDelta = 1;
+		
+
 
         while (!convergent) {
 
@@ -588,6 +599,7 @@ void TrapezoidIntegrator(Home_t *home)
             mobIterError = 0;
             globalVals[0] = 0.0;
             globalVals[1] = 0.0;
+			globalVals[2] = 0.0;
 
             for (iter = 0; iter < maxIterations; iter++) {
 /*
@@ -611,6 +623,7 @@ void TrapezoidIntegrator(Home_t *home)
                 }
 
                 errMax = 0.0;
+				localMaxDisp = 0.0;
 
                 for (/* i initializex above */; i < home->newNodeKeyPtr; i++) {
 
@@ -633,6 +646,18 @@ void TrapezoidIntegrator(Home_t *home)
                                          ((node->vY+node->currvY)*0.5*newDT)));
                     errMax = MAX(errMax, fabs(node->z - oldz -
                                          ((node->vZ+node->currvZ)*0.5*newDT)));
+
+                    nodeVec[X] = node->x - oldx;
+                    nodeVec[Y] = node->y - oldy;
+                    nodeVec[Z] = node->z - oldz;
+                    ZImage(param, nodeVec, nodeVec+1, nodeVec+2);
+                    	
+                    localMaxDisp = MAX(localMaxDisp, Normal(nodeVec));
+				
+                    if(isnan(errMax) || isinf(errMax) || errMax > 1000){
+			PrintNode(node);
+			printf("Warning: errMax is %f at %s, Line %d.\n",errMax,__FILE__,__LINE__);
+                    }
 #ifdef DEBUG_TIMESTEP
                     if (errMax > oldErrMax) {
                         tmpNode = node;
@@ -642,18 +667,22 @@ void TrapezoidIntegrator(Home_t *home)
 /*
  *              Need to find largest errMax from among all domains.
  */
+		
 #if PARALLEL
                 localVals[0] = errMax;
                 localVals[1] = (real8)mobIterError;
+				localVals[2] = localMaxDisp;
 
-                MPI_Allreduce(localVals, globalVals, 2, MPI_DOUBLE, MPI_MAX, 
+                MPI_Allreduce(localVals, globalVals, 3, MPI_DOUBLE, MPI_MAX, 
                               MPI_COMM_WORLD);
 
                 globalErrMax = globalVals[0];;
                 globalIterError = globalVals[1];
+				globalMaxDisp = globalVals[2];
 #else
                 globalErrMax = errMax;
                 globalIterError = mobIterError;
+				globalMaxDisp = globalVals[2];
 #endif
 
 /*
@@ -674,6 +703,7 @@ void TrapezoidIntegrator(Home_t *home)
  */
                 if (globalErrMax < param->rTol) {
                     convergent = 1;
+					
                     break;
                 } else {
                     incrDelta = 0;
@@ -699,6 +729,8 @@ void TrapezoidIntegrator(Home_t *home)
                                    ((node->vZ+node->currvZ)*0.5*newDT);
 
                         FoldBox(param, &node->x, &node->y, &node->z);
+						
+						
                     }
 
                     node = home->ghostNodeQ;
@@ -740,8 +772,19 @@ void TrapezoidIntegrator(Home_t *home)
  */
             if (!convergent) {
                 newDT *= param->dtDecrementFact;
+#if 1				
+	    if(newDT < minDT){
+	        newDT = minDT;
+	        convergent = 1;
+/*
+ *	        if(home->myDomain == 0){
+ *	            printf("Warning: globalErrMax is %e, skip check convergent\n",globalErrMax);
+ *	        }
+ */
+	    }
+#endif				
                 param->deltaTT = newDT;
-
+	
                 if ((newDT < 1.0e-20) && (home->myDomain == 0)) {
                     Fatal("TrapezoidIntegrator(): Timestep has dropped below\n"
                           "minimal threshold to %e.  Aborting!", newDT);
@@ -794,18 +837,55 @@ void TrapezoidIntegrator(Home_t *home)
                 tmp4 = pow(1.0/(1.0+(tmp1-1.0)*tmp2), tmp3);
                 factor = param->dtIncrementFact * tmp4;
                 param->nextDT = MIN(param->maxDT, newDT*factor);
+				
             } else {
                 param->nextDT = MIN(param->maxDT, newDT*param->dtIncrementFact);
+				
             }
         } else {
             param->nextDT = newDT;
         }
+		
+	
+		if(globalMaxDisp < param->rann){
+			param->preDecreaseDT = 0;
+		}else{
+			param->preDecreaseDT = 1;
+		}
+	
 
 /*
  *      Copy the nodal velocities that existed on entry to the timestep
  *      integrator.
  */
         PreserveNodalData(home, NODE_OLD_VEL);
+		
+
+#if CHECK_GB_TOPO
+        GenerateOutput(home, STAGE_DEBUG, "-3trap");
+#endif
+
+        DebugGB(home,9);
+        ClearOpList(home);
+        	
+        AdjustSurfaceNode(home);
+        	
+        if(param->polycrystal && param->nGrain>1){
+            HandleGrainBoundary(home);
+        }
+
+        DebugGB(home,10);
+
+        TimerStart(home, SEND_GB);
+        CommSendRemesh(home);
+        TimerStop(home, SEND_GB);
+	
+        TimerStart(home, FIX_GB);
+        FixRemesh(home, "GB");
+        TimerStop(home, FIX_GB);
+		
+        DebugGB(home,11);
+		
 
 #ifdef _FEM
 /*
@@ -819,5 +899,11 @@ void TrapezoidIntegrator(Home_t *home)
  */
         AdjustNodePosition(home, 1);
 #endif
+		
+#if 1
+		
+
+#endif
+		
         return;
 }

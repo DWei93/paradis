@@ -1,0 +1,8 @@
+rm src/*.o -f
+rm utilities/*.o -f
+rm bin/ -fr
+find -type l | xargs rm -f
+
+rm -f DD* -f 2>/dev/null 
+rm -f para* -f 2>/dev/null 
+rm input/*.data 2>/dev/null

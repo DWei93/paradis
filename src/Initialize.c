@@ -245,6 +245,52 @@ static void Usage(char *program)
         Fatal("Incorrect command line argument list");
 }
 
+/*---------------------------------------------------------------------------
+ *
+ *      Function:     InitIsotropicElasticConstantMatrix
+ *      Description:  This function creates the elastic constant matrix
+ *                    for isotropic simulations based on the provided
+ *                    shear modulus and poisson ratio.
+ *
+ *                    NOTE: This function only populates specific
+ *                          elements of the matrix, therefore the caller
+ *                          MUST insure that the full matrix was zeroed
+ *                          out before this function is called!
+ *
+ *-------------------------------------------------------------------------*/
+static void InitIsotropicElasticConstantMatrix(Home_t *home)
+{
+        real8 shr, pois;
+        real8 (*ecMatrix)[6];
+
+        shr  = home->param->shearModulus;
+        pois = home->param->pois;
+
+        ecMatrix = home->param->elasticConstantMatrix;
+		
+
+/*
+ *      NOTE: All components not explicitly initialized here are
+ *            assumed to have been zeroed out prior to this call.
+ */
+        ecMatrix[0][0] = 2.0 * shr * (1.0 - pois) / (1.0 - 2.0 * pois);
+        ecMatrix[0][1] = 2.0 * shr *        pois  / (1.0 - 2.0 * pois);
+        ecMatrix[0][2] = 2.0 * shr *        pois  / (1.0 - 2.0 * pois);
+
+        ecMatrix[1][0] = 2.0 * shr *        pois  / (1.0 - 2.0 * pois);
+        ecMatrix[1][1] = 2.0 * shr * (1.0 - pois) / (1.0 - 2.0 * pois);
+        ecMatrix[1][2] = 2.0 * shr *        pois  / (1.0 - 2.0 * pois);
+
+        ecMatrix[2][0] = 2.0 * shr *        pois  / (1.0 - 2.0 * pois);
+        ecMatrix[2][1] = 2.0 * shr *        pois  / (1.0 - 2.0 * pois);
+        ecMatrix[2][2] = 2.0 * shr * (1.0 - pois) / (1.0 - 2.0 * pois);
+
+        ecMatrix[3][3] = shr;
+        ecMatrix[4][4] = shr;
+        ecMatrix[5][5] = shr;
+
+        return;
+}
 
 /*---------------------------------------------------------------------------
  *
@@ -470,7 +516,12 @@ void SetRemainingDefaults(Home_t *home)
 /*
  *      Set annihilation distance based on <rc>
  */
-        param->rann = 2.0 * param->rTol;
+        if (param->rann <= 0.0) {
+            param->rann = 2.0 * param->rTol;
+        }
+		if (param->preRann <= 0.0) {
+            param->preRann = 8.0 * param->rann;
+        }
 
 /*
  *      Minimum area criteria for remesh is dependent on maximum
@@ -565,6 +616,11 @@ void SetRemainingDefaults(Home_t *home)
                                 "in remesh operations!\n");
                 fprintf(stderr, "         rmeshAreaMax = %lf, maxSeg = %lf\n",
                                 param->remeshAreaMax, param->maxSeg);
+				
+				printf( "WARNING: Area criteria will be unused "
+						"in remesh operations!\n");
+				printf("         rmeshAreaMax = %lf, maxSeg = %lf\n",
+					   param->remeshAreaMax, param->maxSeg);
             }
 
             if (param->rann > (0.5 * param->rc + eps)) {
@@ -572,6 +628,11 @@ void SetRemainingDefaults(Home_t *home)
                                 "than the core radius!\n");
                 fprintf(stderr, "         rann = %lf, rc = %lf\n",
                                 param->rann, param->rc);
+				
+				printf("WARNING: Separation distance is larger "
+					   "than the core radius!\n");
+				printf("         rann = %lf, rc = %lf\n",
+					   param->rann, param->rc);
             }
 
             if (param->rann > (2.0 * param->rTol)) {
@@ -579,6 +640,11 @@ void SetRemainingDefaults(Home_t *home)
                                 "position error tolerance!\n");
                 fprintf(stderr, "         rann = %lf, rTol = %lf\n",
                                 param->rann, param->rTol);
+				
+				printf("WARNING: Collision distance is outside the "
+					   "position error tolerance!\n");
+				printf("         rann = %lf, rTol = %lf\n",
+					   param->rann, param->rTol);
             }
 
 #if 0
@@ -870,12 +936,11 @@ static void CheckForGlidePlanes(Home_t *home)
             if ((node = home->nodeKeys[i]) == (Node_t *)NULL) {
                 continue;
             }
-
             for (j = 0; j < node->numNbrs; j++) {
                 tmp = (node->nx[j] * node->nx[j]) +
                       (node->ny[j] * node->ny[j]) +
                       (node->nz[j] * node->nz[j]);
-
+				
                 if (tmp < eps) {
                     haveGlidePlanesLocal = 0;
                     break;
@@ -1146,6 +1211,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *      appropriate data file name suffix.  Only need to do this on
  *      processor zero.
  */
+	
         if (home->myDomain == 0) {
 
             dataFile = (char *)NULL;
@@ -1183,6 +1249,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
                     ctrlFile = argv[i];
                 }
             }
+
 
 /*
  *          If the user did not specify a data file name, set
@@ -1292,6 +1359,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *      may be subsequent changes to the Param_t structure, but if
  *      so, those updates will be distributed as needed.
  */
+		
+
 #ifdef PARALLEL
         MPI_Bcast((char *)param, sizeof(Param_t), MPI_CHAR, 0,
                   MPI_COMM_WORLD);
@@ -1307,6 +1376,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
         omp_set_num_threads(param->maxNumThreads);
 #endif
 
+		
+	
 /*
  *      All processors have the domain geometry but need to calculate
  *      the maximum number of decomposition levels (for the Recursive
@@ -1344,6 +1415,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
             }
         }
 
+
 /*
  *      Each process needs to get some information about which IO group
  *      it is in before the nodal data files are read in.
@@ -1359,7 +1431,17 @@ void Initialize(Home_t *home,int argc, char *argv[])
         } else {
             ReadNodeDataFile(home, inData, dataFile);
         }
-
+	
+		
+	InitIsotropicElasticConstantMatrix(home);
+		
+	Matrix66Invert(param->elasticConstantMatrix,
+	               param->elasticConstantMatrixInv);
+		
+	VECTOR_ZERO(&param->elasticStrainTensor[0]);
+	VECTOR_ZERO(&param->elasticStrainTensor[3]);
+		
+		
 /*
  *      Some of the parameters used in creating the nodal data file
  *      used for this run may not match the values to be used for 
@@ -1379,9 +1461,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *      Calculate the length of the problem space in each
  *      of the dimensions
  */
-        param->Lx = param->maxSideX - param->minSideX;
-        param->Ly = param->maxSideY - param->minSideY;
-        param->Lz = param->maxSideZ - param->minSideZ;
+        param->Lx = param->xBoundMax - param->xBoundMin;
+        param->Ly = param->yBoundMax - param->yBoundMin;
+        param->Lz = param->zBoundMax - param->zBoundMin;
 
         param->invLx = 1.0 / param->Lx;
         param->invLy = 1.0 / param->Ly;
@@ -1444,6 +1526,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *      For each neighbor domain, build a list of native cells to send to that
  *      domain.
  */
+		
+		
         InitRemoteDomains(home);
 
 /*
@@ -1497,6 +1581,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 ReadRijmPBC(home);
             }
         }
+		
 #endif
 
 #ifndef NO_XWINDOW
@@ -1513,6 +1598,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
             OpenDir(home);
         }
 
+
 /*
  *      Do the initial sort of native nodes into their proper subcells
  *      and send the initial ghost node data.  Previously this was at
@@ -1524,7 +1610,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *      loop to the end.
  */
         SortNativeNodes(home);
+		
         CommSendGhosts(home);
+	
     
 /*
  *      Have each processor look at all segments attached to its local
@@ -1539,16 +1627,16 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *      This call to GenerateOutput will initialize the X-Window display.
  */
 #ifndef NO_XWINDOW
-        GenerateOutput(home, STAGE_INIT);
+        GenerateOutput(home, STAGE_INIT,"init");
 #endif
-
-
+		
 /*
  *      The code for calculating the forces from remote segments
  *      needs a couple arrays for doing Gauss-Legendre integration.
  *      Once created, these arrays will remain static, so allocate
  *      and initialize them now.
  */ 
+	
         if ((param->fmEnabled)) {
 
             home->glPositions = (real8 *)malloc(param->fmNumPoints *
@@ -1565,6 +1653,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *      from geometries defined in the users laboratory frame to the
  *      standard crystalographic frame and back.
  */
+	
         if (param->useLabFrame) {
 
             Normalize(&param->labFrameXDir[0],
@@ -1580,15 +1669,28 @@ void Initialize(Home_t *home,int argc, char *argv[])
                                   param->labFrameZDir);
 
             for (i = 0; i < 3; i++) {
+#if 0
                 home->rotMatrix[0][i] = param->labFrameXDir[i];
                 home->rotMatrix[1][i] = param->labFrameYDir[i];
                 home->rotMatrix[2][i] = param->labFrameZDir[i];
+#else
+	        VECTOR_COPY(home->rotMatrix[i], param->matrixOrientation[i]);
+#endif
             }
 
             Matrix33Invert(home->rotMatrix, home->rotMatrixInverse);
         }
 
-        CheckMemUsage(home, "Initialize");
+/*
+ *	Iinitialize grain
+ */
+	InitGrain(home, param);
 
+	param->vshr = sqrt(param->YoungsModulus / param->rho ) / param->burgMag;
+	if(home->myDomain == 0)printf("shear Wave velocity (m/s): %e.\n",
+	   param->vshr * param->burgMag);
+
+	CheckMemUsage(home, "Initialize");
+	
         return;
 }

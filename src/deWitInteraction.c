@@ -151,7 +151,7 @@ void deWitInteraction(real8 MU, real8 NU,
 
 
 
-void deWitStress(real8 MU, real8 NU,
+int deWitStress(real8 MU, real8 NU,
                  real8 Sigma[][3],
                  real8 burgX, real8 burgY, real8 burgZ,
                  real8 xA, real8 yA, real8 zA,
@@ -162,7 +162,7 @@ void deWitStress(real8 MU, real8 NU,
     real8 tp1, tp2, tp3, tpsiz;
     real8 sigA[3][3], sigB[3][3];
     
-    GetUnitVector(1,xA,yA,zA,xB,yB,zB,&tp1,&tp2,&tp3,&tpsiz);
+    if(!GetUnitVector(1,xA,yA,zA,xB,yB,zB,&tp1,&tp2,&tp3,&tpsiz))return(0);
     
     deWitInteraction(MU,NU,sigB,xB,yB,zB,
                      tp1,tp2,tp3, burgX,burgY,burgZ, &x0,&y0,&z0) ;
@@ -173,7 +173,7 @@ void deWitStress(real8 MU, real8 NU,
         for (mm=0;mm<3;mm++)
             Sigma[mm][kk] = sigB[mm][kk]-sigA[mm][kk];
     
-    return;
+    return(1);
 }
 
 

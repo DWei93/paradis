@@ -46,7 +46,7 @@
 /*
  *      Some miscellaneous definitions used throughout the code
  */
-#define MAX_NBRS            10 /* maximum number of segments for a node */
+#define MAX_NBRS            15 /* maximum number of segments for a node */
 #define BOLTZMANNS_CONST    1.38e-23  /* joules/K */
 #define FFACTOR_ORTH        0.05
 #define FFACTOR_NORMAL      1.0e-4
@@ -54,6 +54,7 @@
 #define FFACTOR_LMIN2       1e-16 /* minimum allowed segment length squared */
 
 #define MAX_STRING_LEN      256
+#define PI  3.1415926535897932385
 
 /*
  *      Define some values that can be used by GenerateOutput()
@@ -64,6 +65,7 @@
 #define STAGE_INIT      1
 #define STAGE_CYCLE     2
 #define STAGE_TERM      3
+#define STAGE_DEBUG		4
 
 #define FIRST_BLOCK     1
 #define LAST_BLOCK      2
@@ -90,6 +92,14 @@
 #define GEN_FRAG_DATA           0x4000
 #define GEN_FORCE_DATA          0x8000
 
+
+#define EXX	 0x0001
+#define EYY	 0x0002
+#define EZZ	 0x0004
+#define EYZ	 0x0008
+#define EXZ	 0x0010
+#define EXY	 0x0020
+
 /*
  *      The DEL_SEG_* definitions are to be used as the <del_seg_factor>
  *      argument in invocations of the ChangeArmBurg() function.  This
@@ -98,5 +108,20 @@
  */
 #define DEL_SEG_NONE    0.0
 #define DEL_SEG_HALF    0.5
+
+#define FCC_NUM_GLIDE_PLANES	4
+#define FCC_NUM_GLIDE_BURGS	6
+
+#define MAX_PENE_SETS	4
+
+
+/* the old positon of new node is old position of the parent node */
+#define SHARE_OLDX	0 
+
+#define CHECK_PULLBACK 0
+#define CHECK_DOMAIN 0
+#define CHECK_FIXREMESH 0
+#define CHECK_GB_TOPO 0
+#define SEG_FAULT_CHECK 0
 
 #endif  /* _CONSTANTS_H */

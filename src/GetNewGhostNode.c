@@ -54,6 +54,7 @@ Node_t *GetNewGhostNode(Home_t *home, int domain, int index)
         newNode->oldvZ = 0.0;
 
         newNode->flags = 0;
+		newNode->inGrain = 0.0;
 
         PushGhostNodeQ(home, newNode);
 

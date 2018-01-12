@@ -1,0 +1,94 @@
+#!/bin/bash
+HelpMessages () {
+    echo "sm:          Record the debugging results"
+    echo "command:  sm [-h] [-r|--record (running.log)]"
+    echo "             [-s|--success]: debugged successfully"
+    echo "             [-m|--message ]"
+    echo "             [-f|--finish ]"
+}
+
+stat="No"
+success="Failed"
+note="..."
+baseJobName="WLY"
+ARGS=`getopt -o hsfwm:j --long success,finish,message:,jobname -n 'example.sh' -- "$@"`
+brace=""
+position=middle
+
+if [ $? != 0 ]; then
+     echo "Terminating..."
+     exit 1
+fi
+eval set -- "${ARGS}"
+
+while true
+do
+#    echo "first $1, second is $2"
+    case "$1" in
+        -h|--help)
+            HelpMessages;
+            exit 1
+            shift
+            ;;
+        -s|--success)
+            success="SUCCESS"
+            shift
+            ;;
+        -f|--finish)
+            brace="}"
+            shift
+            ;;
+        -w)
+            stat="Yes"
+            shift
+            ;;
+        -m|--message)
+            note="$2"
+            shift 2
+            ;;
+        -j|--jobname)
+            baseJobName="XJ"
+            shift 
+            ;;
+         --)
+            shift
+            break
+            ;;
+         *)
+            echo "Internal error"
+            exit 1
+    esac
+done
+
+job=`ls ${baseJobName}* -t | cut -d ' ' -f 1 | head -1`
+jobID=`ls out* -t | cut -d ' ' -f 1 | head -1 | cut -d "." -f 2`
+recordFile=`grep  -n "recordFile=" ${job} | cut -d : -f 2 | cut -d = -f 2`
+logFile=`grep  -n "logFile=" ${job} | cut -d : -f 2 | cut -d = -f 2`
+
+if [ ${stat} = "Yes" ]; then
+    vi ${logFile}
+    exit 1
+fi
+
+lineNumber=`grep  -n "jobID ${jobID}:" ${logFile} | cut -d : -f 1`
+
+dirName=`pwd | sed 's,^\(.*/\)\?\([^/]*\),\2,'`
+
+sed -i "${lineNumber}i${dirName} jobID ${jobID}: ${note}, ${success}. " $logFile
+
+lineNumber=`expr $lineNumber + 1`
+sed -i "${lineNumber}d" $logFile
+
+if [ "${brace}" = "}" ]; then
+    lastLine=`tail -1 $logFile`
+    lineNumber=`sed -n '$=' $logFile`
+    sed -i "${lineNumber}i${lastLine} ${brace}" $logFile
+    lineNumber=`expr $lineNumber + 1`
+    sed -i "${lineNumber}d" $logFile
+    echo "" >> $logFile
+   
+    cat $recordFile >> $logFile
+    cp -f $logFile $recordFile
+    rm -f $logFile
+fi
+

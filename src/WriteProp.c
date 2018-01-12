@@ -60,10 +60,12 @@
 void WriteProp(Home_t *home, int property)
 {
         int     i, numItems, tmpOffset, numBurgVectors;
+	static int firstSS = 1;
         real8   al, am, an, amag, sigijk, pstnijk, dpstnijk;
         real8   *localDensityVals  = (real8 *)NULL;
         real8   *globalDensityVals = (real8 *)NULL;
         real8   totDensityChange[14];
+	real8	TC;
         char    fileName[256];
         FILE    *fp;
         Param_t *param;
@@ -71,6 +73,7 @@ void WriteProp(Home_t *home, int property)
         
         param = home->param;
 
+	TC = Sign(param->eRate);
         al = param->edotdir[0];
         am = param->edotdir[1];
         an = param->edotdir[2];
@@ -230,12 +233,27 @@ void WriteProp(Home_t *home, int property)
                     fclose(fp);
 
                     snprintf(fileName, sizeof(fileName),
-                             "%s/stress_Total_strain", DIR_PROPERTIES);
+                             "%s/stress_Total_strain.plt", DIR_PROPERTIES);
                     fp = fopen(fileName, "a");
                     switch (param->loadType) {
                     case 1:
-                        fprintf(fp, "%e %e\n", param->eRate*param->timeNow,
-                                sigijk);
+
+			if(firstSS && home->cycle < 2 *  param->savepropfreq){
+			   fprintf(fp, "variables = strain, stress, pstrain, disDen\n"); 
+			   firstSS = 0;
+			}
+
+                        fprintf(fp, "%e %e %e %e\n", param->eRate*param->timeNow*TC*1.0e2,
+                                sigijk*TC/1.0e6, pstnijk*TC*1.0e2, param->disloDensity);
+			if(pstnijk*TC*1.0e2 > 0.1){
+			    static int first = 1;
+			    if(first){
+				first = 0;
+			        printf("0.1%% pstn: %e %e\n",sigijk*TC/1.0e6,param->disloDensity);
+			    }
+			}
+			if(param->eRate*param->timeNow*TC > param->maxStn)param->finish = 1;
+			if(pstnijk*TC > param->maxPst)param->finish = 1;
                         break;
                     case 4:
                         fprintf(fp, "%e %e %e %d\n",

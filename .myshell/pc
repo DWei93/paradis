@@ -1,0 +1,21 @@
+#!/bin/bash
+
+outFile=`ls out.${1}*`
+resDir=res.${1}
+echo "First 80 lines:" > ${1}
+head -80 ${outFile} >> ${1}
+echo "Last 80 lines:" >> ${1}
+tail -n 80 ${outFile} >> ${1}
+mv ${1} $resDir
+ 
+rsFile=`ls -t ${resDir}/restart/ | head -n 1 | cut -d . -f 1`
+mv ${resDir}/restart/${rsFile}* ${resDir}
+rm -rf ${resDir}/restart
+
+cp input $resDir -r
+cp DDInitial.plt $resDir
+
+job=`ls WLY* | head -n 1`
+cp $job $resDir
+
+rm ${resDir}/core* -f > /dev/null 2>&1

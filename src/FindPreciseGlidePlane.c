@@ -17,6 +17,7 @@
  *
  **************************************************************************/
 #include "Home.h"
+#include "Grain.h"
 
 
 /*-------------------------------------------------------------------------
@@ -520,7 +521,7 @@ static void FindFCCGlidePlane(real8 burg[3], real8 dir[3], real8 glidePlane[3])
  *
  *------------------------------------------------------------------------*/
 void FindPreciseGlidePlane(Home_t *home, real8 burgVecIn[3], real8 dirIn[3],
-                           real8 glidePlane[3])
+                           real8 glidePlane[3], Node_t *node, Node_t *nbr)
 {
         int   isScrew = 0;
         real8 costheta, costheta2, cosCritical;
@@ -533,6 +534,7 @@ void FindPreciseGlidePlane(Home_t *home, real8 burgVecIn[3], real8 dirIn[3],
  *      laboratory frame to the crystal frame.
  */
         if (home->param->useLabFrame) {
+	    ChangeOrientation(home, node, nbr, 3);
             Matrix33Vector3Multiply(home->rotMatrixInverse, burgVecIn,
                                     burgVecRotated);
             burgVec = burgVecRotated;

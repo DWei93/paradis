@@ -1139,15 +1139,15 @@ void CreateFCCIrradConfig(Home_t *home, InData_t *inData, int cubeLength,
  *          seed        Seed value for random number generator
  *
  *-------------------------------------------------------------------------*/
-void CreateFCCConfig(Home_t *home, InData_t *inData, int cubeLength,
-                     int numChains, int seed, real8 *totDislocLen,
-                     int dislocType)
+void  CreateFCCConfig(Home_t *home, InData_t *inData, int cubeLength,
+					  int numChains, int seed, real8 *totDislocLen, int dislocType)
 {
         int      ic, np, ip, id0, i;
         int      nplane, indp, indb, indf, inds, indr;
         int      newNodeIndex, lastBlock;
         int      startRemeshIndex = 0;
         real8    invsq2;
+		real8    frl;
         real8    xp[3], yp[3], zp[3];
         real8    tnx[4], tny[4], tnz[4], burg[12][3], cubeSize;
         Param_t  *param;
@@ -1237,37 +1237,40 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, int cubeLength,
             inds = indp*3+(ic+indf+1)%3;    /* index of line sense */
             indr = 1-2*(((ic-ic%24)/24)%2); /* sign of reflection */
 
-            xp[0] = (randm(&seed)-0.5)*cubeSize;
-            yp[0] = (randm(&seed)-0.5)*cubeSize;
-            zp[0] = (randm(&seed)-0.5)*cubeSize;
+            xp[1] = (randm(&seed)-0.5)*(cubeSize-frl-5);
+            yp[1] = (randm(&seed)-0.5)*(cubeSize-frl-5);
+            zp[1] = (randm(&seed)-0.5)*(cubeSize-frl-5);
 
 /*
  *          shift along neighboring 60 degree BV
  */
-            xp[1] = xp[0] + indr*cubeSize*burg[inds][0];
-            yp[1] = yp[0] + indr*cubeSize*burg[inds][1];
-            zp[1] = zp[0] + indr*cubeSize*burg[inds][2];
+            xp[0] = xp[1] + 0.5*indr*frl*burg[inds][0];
+            yp[0] = yp[1] + 0.5*indr*frl*burg[inds][1];
+            zp[0] = zp[1] + 0.5*indr*frl*burg[inds][2];
 
-            xp[2] = xp[1] + indr*cubeSize*burg[inds][0];
-            yp[2] = yp[1] + indr*cubeSize*burg[inds][1];
-            zp[2] = zp[1] + indr*cubeSize*burg[inds][2];
+            xp[2] = xp[1] - 0.5*indr*frl*burg[inds][0];
+            yp[2] = yp[1] - 0.5*indr*frl*burg[inds][1];
+            zp[2] = zp[1] - 0.5*indr*frl*burg[inds][2];
 
 /*
  *          PBC
- */        
+ */  
+/*
             for (i = 0; i < 3; i++) {
                 if (xp[i]<-cubeSize/2) xp[i] += cubeSize;
                 if (yp[i]<-cubeSize/2) yp[i] += cubeSize;
                 if (zp[i]<-cubeSize/2) zp[i] += cubeSize;
             }
+*/
 
 /*
             printf("ic indp indb indf inds indr %d %d %d %d %d %d\n",
                    ic,indp, indb, indf, inds, indr);
 */
 
-            for (ip = 0; ip < np; ip++) {
-
+/*            for (ip = 0; ip < np; ip++) {     Wei*/ 
+/*             center node        */
+                ip=1;
                 node = &inData->node[ip+id0];
 
                 node->x = xp[ip];
@@ -1280,7 +1283,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, int cubeLength,
                 AllocNodeArms(node, 2);
 
                 node->nbrTag[0].domainID = dislocType;
-                node->nbrTag[0].index = (ip-1+np)%np+id0;
+                node->nbrTag[0].index = 0+id0;
                 node->burgX[0] = burg[indb][0];
                 node->burgY[0] = burg[indb][1];
                 node->burgZ[0] = burg[indb][2];
@@ -1289,7 +1292,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, int cubeLength,
                 node->nz[0] = tnz[indp];
 
                 node->nbrTag[1].domainID = dislocType;
-                node->nbrTag[1].index = (ip+1+np)%np+id0;
+                node->nbrTag[1].index = 1+id0;
                 node->burgX[1] = -burg[indb][0];
                 node->burgY[1] = -burg[indb][1];
                 node->burgZ[1] = -burg[indb][2];
@@ -1305,8 +1308,72 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, int cubeLength,
                        node->myTag.domainID, node->myTag.index, 
                        node->nx[0],node->ny[0],node->nz[0],
                        node->nx[1],node->ny[1],node->nz[1]);
- */           
-            }
+*/
+				
+/*                       forward node      */
+                ip=0;
+		node = &inData->node[ip+id0];
+					   
+                node->x = xp[ip];
+                node->y = yp[ip];
+                node->z = zp[ip];
+                node->constraint = PINNED_NODE;
+                node->myTag.domainID = dislocType;
+                node->myTag.index = ip+id0;
+					   
+                AllocNodeArms(node, 1);
+					   
+                node->nbrTag[0].domainID = dislocType;
+                node->nbrTag[0].index = 1 +id0;
+                node->burgX[0] = -burg[indb][0];
+                node->burgY[0] = -burg[indb][1];
+                node->burgZ[0] = -burg[indb][2];
+                node->nx[0] = tnx[indp]; 
+                node->ny[0] = tny[indp];
+                node->nz[0] = tnz[indp];
+					   
+
+/*					   
+                printf("node(%d,%d) burg=(%f %f %f) (%f %f %f)\n",
+                       node->myTag.domainID, node->myTag.index, 
+                       node->burgX[0],node->burgY[0],node->burgZ[0]);
+                printf("node(%d,%d) normal=(%f %f %f) (%f %f %f)\n",
+                       node->myTag.domainID, node->myTag.index, 
+                       node->nx[0],node->ny[0],node->nz[0]);	
+*/			
+
+/*                       backward node      */
+                ip=2;
+				node = &inData->node[ip+id0];
+					   
+                node->x = xp[ip];
+                node->y = yp[ip];
+                node->z = zp[ip];
+                node->constraint = PINNED_NODE;
+                node->myTag.domainID = dislocType;
+                node->myTag.index = ip+id0;
+					   
+                AllocNodeArms(node, 1);
+					   
+                node->nbrTag[0].domainID = dislocType;
+                node->nbrTag[0].index = 1+id0;
+                node->burgX[0] = burg[indb][0];
+                node->burgY[0] = burg[indb][1];
+                node->burgZ[0] = burg[indb][2];
+                node->nx[0] = tnx[indp]; 
+                node->ny[0] = tny[indp];
+                node->nz[0] = tnz[indp];
+					   
+
+/*					   
+                printf("node(%d,%d) burg=(%f %f %f) (%f %f %f)\n",
+                       node->myTag.domainID, node->myTag.index, 
+                       node->burgX[0],node->burgY[0],node->burgZ[0]);
+                printf("node(%d,%d) normal=(%f %f %f) (%f %f %f)\n",
+                       node->myTag.domainID, node->myTag.index, 
+                       node->nx[0],node->ny[0],node->nz[0]);	
+*/
+ /*           }   */
 
 /*
  *          The initial segments created are not necessarily limited to
@@ -2168,30 +2235,70 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
  *                        all created dislocations.
  *
  *-------------------------------------------------------------------------*/
-void CreateFRSource(Home_t *home, InData_t *inData, int cubeLength,
-                    int numSources, int srcLenMin, int srcLenMax, int seed,
-                    real8 *totDislocLen, int dislocType)
+
+#define INTERACTION_TEST 0
+
+void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
+						 real8 *totDislocLen)
 {
-        int      i, lineIndex, chain, baseNodeID, numPoints;
+        int      i, lineIndex, chain, baseNodeID, numPoints,ranNum;
         int      newNodeIndex, lastBlock, burgIndex;
         int      isScrew, gpIndex, gpBurgIndex;
-        int      lenRange;
+        int      lenRange,x0, d, nLayers, xn, layer;
         int      startRemeshIndex = 0;
-        real8    srcLen;
-        real8    p0[3], p1[3], p2[3];
-        real8    linedir[4][3], glidePlane[4][6][3], plane[3];
+        real8    srcLen, thickness;
+        real8    p0[3], p1[3], p2[3], randomLine[3],k0[3];
+        real8	 randomAngle;
+        int	 cubeLength, numSources, srcLenMin, srcLenMax, seed, dislocType;
+        int	 polycrystal, nGrain, finish;
+        int      firstBurgIndex, srcLenType;
+        real8	 twinRatio, maxSeg, maxDensity, burgMag = 2.556E-10;
+        real8	 GrainID0 = 0, GrainID1 = 0, GrainID2 = 0, volume;
+        real8	 tnx[4], tny[4], tnz[4], burg[12][3], cubeSize,heightSize;
+        real8	 n0[3], b[3], n1[3];	/* plane normal vector, burgers, normal vector*/
         Node_t   *node;
         Param_t  *param;
+        real8	 invsq2;
+        real8	 rotMatrix[3][3],rotLine[3],rotBurg[3],rotPlane[3];
+        int      intID;
+        real8    pi = 3.1415926535897932385, totSrcLen;
+        	
+        real8    normalABC[3];
+        normalABC[0] = 1;
+        normalABC[1] = 1;
+        normalABC[2] = 1;
 
-        if (numSources <= 0) {
-            Fatal("%s: numSources is %d, but must be > 0.\n",
-                  "CreateFRSource", numSources);
-        }
 
+/*
+ *      Grap the command-line argument values needed for this function
+ */
+        home->param->materialType = MAT_TYPE_FCC;
+        	
+        cubeLength  = inArgs->cubeLength;
+	srcLenType  = inArgs->srcLenType;
+        nLayers = inArgs->nLayers;
+       	maxDensity  = inArgs->maxDensity;
+        numSources  = inArgs->numFRSrcs;
+        srcLenMin   = inArgs->frLenMin;
+        srcLenMax   = inArgs->frLenMax;
+        seed        = inArgs->seed;
+        dislocType  = inArgs->type;
+        polycrystal = inArgs->polycrystal;
+        nGrain	    = inArgs->nGrain;
+        twinRatio   = inArgs->twinRatio;
+        maxSeg      = (real8)inArgs->maxSegLen;
+        	
+        d = inArgs->deltaNums;
+		
         lenRange = srcLenMax - srcLenMin;
+		
         param = inData->param;
+        cubeSize	=	(real8)cubeLength;
+        	
+        n1[0] = 0.0;	n1[1] = 0.0;	n1[2] = 0.0;
 
-
+		
+	printf("the max density is %e \n", maxDensity);
 /*
  *      Set up an array of dislocation line directions that
  *      are used to create the new dislocations.  There are
@@ -2202,148 +2309,50 @@ void CreateFRSource(Home_t *home, InData_t *inData, int cubeLength,
  *      a set is the same as the line direction of the screw
  *      dislocation in the group.
  */
+        invsq2		=	0.7071068118;
 
 /*
- *      Type  [1 1 1] burgers vector
+ *	planes
  */
-        linedir[0][0] =  0.5;
-        linedir[0][1] =  0.5;
-        linedir[0][2] =  0.5;
+        tnx[0] = -1;
+        tny[0] =  1;
+        tnz[0] = -1;
+
+        tnx[1] =  1;
+        tny[1] = -1;
+        tnz[1] = -1; 
+
+        tnx[2] = -1;
+        tny[2] = -1;
+        tnz[2] =  1;
+
+        tnx[3] =  1;
+        tny[3] =  1;
+        tnz[3] =  1; 
 
 /*
- *      Type [-1 1 1] burgers vector
+ *      BV is parallel to the plane normal i.e. FS 1/3<111>
+ *      BV in counter-clockwise on each plane
  */
-        linedir[1][0] = -0.5;
-        linedir[1][1] =  0.5;
-        linedir[1][2] =  0.5;
+        for (i = 0; i < 4; i++) {
 
-/*
- *      Type [1 -1 1] burgers vector
- */
-        linedir[2][0] =  0.5;
-        linedir[2][1] = -0.5;
-        linedir[2][2] =  0.5;
+            burg[3*i][0] = 0;
+            burg[3*i][1] = invsq2*tnz[i];
+            burg[3*i][2] = -invsq2*tny[i];
 
-/*
- *      Type [1 1 -1] burgers vector
- */
-        linedir[3][0] =  0.5;
-        linedir[3][1] =  0.5;
-        linedir[3][2] = -0.5;
+            burg[1+3*i][0] = -invsq2*tnz[i];
+            burg[1+3*i][1] = 0;
+            burg[1+3*i][2] = invsq2*tnx[i];
 
-/*
- *      Set up the valid glide planes for each screw burgers vector,
- *      six glide planes per burgers vector.  For edges, glide plane
- *      will simply be cross product between burgers vector and
- *      linedir.
- *
- *      glide planes for [1 1 1]
- */
-        glidePlane[0][0][0] =  0.7071068;
-        glidePlane[0][0][1] = -0.7071068;
-        glidePlane[0][0][2] =  0.0000000;
+            burg[2+3*i][0] = invsq2*tny[i];
+            burg[2+3*i][1] = -invsq2*tnx[i];
+            burg[2+3*i][2] = 0;
 
-        glidePlane[0][1][0] =  0.7071068;
-        glidePlane[0][1][1] =  0.0000000;
-        glidePlane[0][1][2] = -0.7071068;
-
-        glidePlane[0][2][0] =  0.0000000;
-        glidePlane[0][2][1] =  0.7071068;
-        glidePlane[0][2][2] = -0.7071068;
-
-        glidePlane[0][3][0] = -0.7071068;
-        glidePlane[0][3][1] =  0.7071068;
-        glidePlane[0][3][2] = -0.0000000;
-
-        glidePlane[0][4][0] = -0.7071068;
-        glidePlane[0][4][1] = -0.0000000;
-        glidePlane[0][4][2] =  0.7071068;
-
-        glidePlane[0][5][0] = -0.0000000;
-        glidePlane[0][5][1] = -0.7071068;
-        glidePlane[0][5][2] =  0.7071068;
-
-/*
- *      glide planes for [-1 1 1]
- */
-        glidePlane[1][0][0] =  0.0000000;
-        glidePlane[1][0][1] =  0.7071068;
-        glidePlane[1][0][2] = -0.7071068;
-
-        glidePlane[1][1][0] =  0.7071068;
-        glidePlane[1][1][1] =  0.0000000;
-        glidePlane[1][1][2] =  0.7071068;
-
-        glidePlane[1][2][0] =  0.0000000;
-        glidePlane[1][2][1] =  0.7071068;
-        glidePlane[1][2][2] = -0.7071068;
-
-        glidePlane[1][3][0] = -0.0000000;
-        glidePlane[1][3][1] = -0.7071068;
-        glidePlane[1][3][2] =  0.7071068;
-
-        glidePlane[1][4][0] = -0.7071068;
-        glidePlane[1][4][1] = -0.0000000;
-        glidePlane[1][4][2] = -0.7071068;
-
-        glidePlane[1][5][0] = -0.0000000;
-        glidePlane[1][5][1] = -0.7071068;
-        glidePlane[1][5][2] =  0.7071068;
-
-/*
- *      glide planes for [1 -1 1]
- */
-        glidePlane[2][0][0] =  0.7071068;
-        glidePlane[2][0][1] =  0.7071068;
-        glidePlane[2][0][2] =  0.0000000;
-
-        glidePlane[2][1][0] =  0.7071068;
-        glidePlane[2][1][1] =  0.0000000;
-        glidePlane[2][1][2] = -0.7071068;
-
-        glidePlane[2][2][0] =  0.0000000;
-        glidePlane[2][2][1] =  0.7071068;
-        glidePlane[2][2][2] =  0.7071068;
-
-        glidePlane[2][3][0] = -0.7071068;
-        glidePlane[2][3][1] = -0.7071068;
-        glidePlane[2][3][2] = -0.0000000;
-
-        glidePlane[2][4][0] = -0.7071068;
-        glidePlane[2][4][1] = -0.0000000;
-        glidePlane[2][4][2] =  0.7071068;
-
-        glidePlane[2][5][0] = -0.0000000;
-        glidePlane[2][5][1] = -0.7071068;
-        glidePlane[2][5][2] = -0.7071068;
-
-/*
- *      glide planes for [1 1 -1]
- */
-        glidePlane[3][0][0] =  0.7071068;
-        glidePlane[3][0][1] = -0.7071068;
-        glidePlane[3][0][2] =  0.0000000;
-
-        glidePlane[3][1][0] =  0.0000000;
-        glidePlane[3][1][1] =  0.7071068;
-        glidePlane[3][1][2] =  0.7071068;
-
-        glidePlane[3][2][0] =  0.7071068;
-        glidePlane[3][2][1] =  0.0000000;
-        glidePlane[3][2][2] =  0.7071068;
-
-        glidePlane[3][3][0] = -0.7071068;
-        glidePlane[3][3][1] =  0.7071068;
-        glidePlane[3][3][2] = -0.0000000;
-
-        glidePlane[3][4][0] = -0.0000000;
-        glidePlane[3][4][1] = -0.7071068;
-        glidePlane[3][4][2] = -0.7071068;
-
-        glidePlane[3][5][0] = -0.7071068;
-        glidePlane[3][5][1] = -0.0000000;
-        glidePlane[3][5][2] = -0.7071068;
-
+            Normalize(&tnx[i], &tny[i], &tnz[i]);
+        }		
+		 
+		 
+		 
 /*
  *      Create the specified number of chains.  Anytime the number of
  *      nodes maintained in memory exceeds the threshhold, write the
@@ -2351,14 +2360,37 @@ void CreateFRSource(Home_t *home, InData_t *inData, int cubeLength,
  */
         baseNodeID = 0;
         inData->nodeCount = 0;
+		
+        heightSize = 2 * param->zBoundMax;
+	volume = heightSize * cubeSize * cubeSize;
+        thickness = heightSize / ((real8)nLayers);
+        	
+        x0 = (d*nLayers*(1 - nLayers) + 2*numSources)/(2 * nLayers);
+        	
 
-        for (chain = 0; chain < numSources; chain++) {
+	totSrcLen = 0.0;
+	finish = 0;
+        for (layer = 0; layer < nLayers; layer++) {
+	    if(finish)break;
+            xn = layer * d + x0;
+            if(xn <= 0){
+                xn = 0;
+                continue;
+            }
+            	
+            printf("the num of  sources in layers %d is %d\n",layer, xn);
+            	
+            for(chain = 0; chain < xn; ){
+
+            ranNum = chain;
+            ranNum = (int)(randm(&seed) * 1000);
 
             numPoints = 3;
-            lineIndex = chain % 4;
+            lineIndex = ranNum % 12;
             burgIndex = lineIndex;
             gpBurgIndex = lineIndex;
-            gpIndex = (chain / 4) % 6;
+            gpIndex = lineIndex / 3; /* plane Index */
+            isScrew	=	0;
 
 /*
  *          Reallocate the node array with sufficient size to add
@@ -2374,18 +2406,153 @@ void CreateFRSource(Home_t *home, InData_t *inData, int cubeLength,
  *          Length of the frank read source should be a random length
  *          between srcLenMin and srcLenMax.
  */
-            if (lenRange > 0) {
-                srcLen = (srcLenMin + (randm(&seed) * lenRange)) / sqrt(3.0);
-            } else {
-                srcLen = srcLenMin / sqrt(3.0);
+	    switch(srcLenType){
+		case 0:
+                if (lenRange > 0) {
+                    srcLen = (srcLenMin + (randm(&seed) * lenRange));
+                    if(srcLen > srcLenMax){
+                        srcLen = srcLenMax;
+                    }
+                } else {
+                    srcLen = srcLenMin;
+                }
+		    break;
+
+		case 1:
+		    srcLen = -log(randm(&seed))/sqrt(maxDensity)/burgMag;
+		    break;
+	    }
+
+/*
+	    random a line
+*/		
+            randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
+            if(randomAngle < pi * 5.0 /1.8e2){  /* 5 degree */
+                isScrew = 1;
+                randomAngle = 0;
+            }
+            if(randomAngle > pi *1.75/1.8){		/* 175 degree */
+                isScrew = 1;
+                randomAngle = pi;
+            }
+           	
+#if INTERACTION_TEST
+            if(gpIndex != 2 ){
+                inData->nodeCount -=numPoints;
+                newNodeIndex = inData->nodeCount;
+                continue;
+            }
+#endif
+            n0[0] = tnx[gpIndex];	
+            n0[1] = tny[gpIndex];	
+            n0[2] = tnz[gpIndex];
+            	
+            b[0] = burg[burgIndex][0];
+            b[1] = burg[burgIndex][1];
+            b[2] = burg[burgIndex][2];
+            	
+#if 0
+            NormalizeVec(normalABC);
+            if (fabs(DotProduct(b,normalABC)) > 1e-3 ){
+                inData->nodeCount -=numPoints;
+                newNodeIndex = inData->nodeCount;
+                continue;
+            }
+   
+            if(chain == 0){
+                firstBurgIndex = burgIndex;
+            }else{
+                if(burgIndex == firstBurgIndex){
+                    inData->nodeCount -=numPoints;
+                    newNodeIndex = inData->nodeCount;
+                    continue;
+                }
+            }
+#endif
+            cross(n0, b, n1);
+            NormalizeVec(n1);
+            	
+            for(i = 0; i < 3; i++){
+                randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
+            }
+            NormalizeVec(randomLine);
+			
+            if(!polycrystal){
+                p0[0] = (randm(&seed)-0.5) * cubeSize;
+                p0[1] = (randm(&seed)-0.5) * cubeSize;			
+                p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
+
+	        if(param->useLabFrame){
+                    Matrix33Vector3Multiply(home->rotMatrix, randomLine, rotLine);
+                    Matrix33Vector3Multiply(home->rotMatrix, b, rotBurg);
+                    Matrix33Vector3Multiply(home->rotMatrix, n0, rotPlane);
+
+	            VECTOR_COPY(randomLine, rotLine);
+	            VECTOR_COPY(b, rotBurg);
+	            VECTOR_COPY(n0, rotPlane);
+	        }
+
+                for (i = 0; i < 3; i++) {
+                    p1[i] = p0[i] - (srcLen * randomLine[i])/2.0;
+                    p2[i] = p0[i] + (srcLen * randomLine[i])/2.0;
+                } 
             }
 
-            for (i = 0; i < 3; i++) {
-                p0[i] = (randm(&seed)-0.5) * cubeLength * 2.0;
-                p1[i] = p0[i] - (srcLen * linedir[lineIndex][i]);
-                p2[i] = p0[i] + (srcLen * linedir[lineIndex][i]);
-            }
+            if(polycrystal){
 
+                p0[0] = (randm(&seed)-0.5) * cubeSize;
+                p0[1] = (randm(&seed)-0.5) * cubeSize;			
+                p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
+				
+                    GrainID0 = GetInGrainFromPos(home, p0[0],  p0[1], p0[2]);
+                    	
+                    intID = (int)GrainID0;
+                    CopyMatrix33(home->grainKeys[intID]->orientation,rotMatrix);
+                    Matrix33Vector3Multiply(rotMatrix, randomLine, rotLine);
+                    
+                    Matrix33Vector3Multiply(rotMatrix, b, rotBurg);
+                    b[0] = rotBurg[0]; b[1] = rotBurg[1]; b[2] = rotBurg[2];
+                    Matrix33Vector3Multiply(rotMatrix, n0, rotPlane);
+                    n0[0] = rotPlane[0]; n0[1] = rotPlane[1]; n0[2] = rotPlane[2];
+                    for (i = 0; i < 3; i++) {
+					
+                        p1[i] = p0[i] - (srcLen * rotLine[i])/2.0;
+                        p2[i] = p0[i] + (srcLen * rotLine[i])/2.0;
+                    }
+
+                    GrainID1 = GetInGrainFromPos(home, p1[0],  p1[1], p1[2]);
+                    GrainID2 = GetInGrainFromPos(home, p2[0],  p2[1], p2[2]);
+                    if(GrainID0 - floor(GrainID0) != 0 || GrainID1 - floor(GrainID1) != 0 || GrainID2 - floor(GrainID2) != 0 || 
+						GrainID0 != GrainID1 || GrainID2 != GrainID1 || GrainID0 != GrainID2){
+                        inData->nodeCount -=numPoints;
+                        newNodeIndex = inData->nodeCount;
+                        continue;
+                    }
+#if 0
+                    if(gpIndex == 0 && burgIndex == 1 && 
+	                GrainID1 == 1 || 
+			gpIndex == 1 && burgIndex == 3 && GrainID1 ==1){
+	                printf("gpIndex = %d, burgIndex = %d, GrainID = %3.1f\n",gpIndex, burgIndex, GrainID0);
+	            }else{
+                       inData->nodeCount -=numPoints;
+                       newNodeIndex = inData->nodeCount;
+                       continue;
+                    }
+#endif
+				
+            }
+			
+	    if(srcLenType == 0){
+                if(JudgeNodeInCuboid(&p0[1], p0+1, p0+2, 0.5 * cubeSize ,0.5 * cubeSize, param->zBoundMax) == 0 ||
+                   JudgeNodeInCuboid(p1, p1+1, p1+2, 0.5 * cubeSize ,0.5 * cubeSize, param->zBoundMax) == 0 ||
+                   JudgeNodeInCuboid(p2, p2+1, p2+2, 0.5 * cubeSize ,0.5 * cubeSize, param->zBoundMax) == 0){
+                    inData->nodeCount -=numPoints;
+                    newNodeIndex = inData->nodeCount;
+                    continue;
+                }
+	    }
+			
+	    totSrcLen += srcLen;				
 /*
  *          Set up the 3 nodes we're using to define the dislocation line.
  *          First do point p0.
@@ -2397,48 +2564,39 @@ void CreateFRSource(Home_t *home, InData_t *inData, int cubeLength,
             node->x = p0[0];
             node->y = p0[1];
             node->z = p0[2];
-
+			
             node->constraint = UNCONSTRAINED;
+            node->inGrain = GrainID0;
 
             AllocNodeArms(node, 2);
-
+			
+			
             node->nbrTag[0].domainID = dislocType;
             node->nbrTag[0].index    = baseNodeID + 1;
             node->nbrTag[1].domainID = dislocType;
             node->nbrTag[1].index    = baseNodeID + 2;
 
-            node->burgX[0] = linedir[burgIndex][0];
-            node->burgY[0] = linedir[burgIndex][1];
-            node->burgZ[0] = linedir[burgIndex][2];
+            node->burgX[0] = b[0];
+            node->burgY[0] = b[1];
+            node->burgZ[0] = b[2];
 
-            node->burgX[1] = -linedir[burgIndex][0];
-            node->burgY[1] = -linedir[burgIndex][1];
-            node->burgZ[1] = -linedir[burgIndex][2];
+            node->burgX[1] = -b[0];
+            node->burgY[1] = -b[1];
+            node->burgZ[1] = -b[2];
 
 /*
  *          For screw dislocations, use the glide plane from the table.
  *          For edge dislocations, glide plane is the cross product
  *          of the burgers vector and line direction.
  */
-            if (isScrew) {
-                node->nx[0] = glidePlane[gpBurgIndex][gpIndex][0];
-                node->ny[0] = glidePlane[gpBurgIndex][gpIndex][1];
-                node->nz[0] = glidePlane[gpBurgIndex][gpIndex][2];
-                node->nx[1] = glidePlane[gpBurgIndex][gpIndex][0];
-                node->ny[1] = glidePlane[gpBurgIndex][gpIndex][1];
-                node->nz[1] = glidePlane[gpBurgIndex][gpIndex][2];
-            } else {
-                cross(linedir[burgIndex], linedir[lineIndex], plane);
-                plane[0] = (floor(plane[0] * 1.0e+07)) * 1.0e-07;
-                plane[1] = (floor(plane[1] * 1.0e+07)) * 1.0e-07;
-                plane[2] = (floor(plane[2] * 1.0e+07)) * 1.0e-07;
-                node->nx[0] = plane[0];
-                node->ny[0] = plane[1];
-                node->nz[0] = plane[2];
-                node->nx[1] = plane[0];
-                node->ny[1] = plane[1];
-                node->nz[1] = plane[2];
-            }
+
+            node->nx[0] = n0[0];
+            node->ny[0] = n0[1];
+            node->nz[0] = n0[2];
+            	
+            node->nx[1] = n0[0];
+            node->ny[1] = n0[1];
+            node->nz[1] = n0[2];
 
 /*
  *          Now point p1...
@@ -2453,18 +2611,18 @@ void CreateFRSource(Home_t *home, InData_t *inData, int cubeLength,
             node->z = p1[2];
 
             node->constraint = PINNED_NODE;
-
+            node->inGrain = GrainID1;
             AllocNodeArms(node, 1);
 
             node->nbrTag[0].domainID = dislocType;
             node->nbrTag[0].index    = baseNodeID;
 
-            node->burgX[0] = -linedir[burgIndex][0];
-            node->burgY[0] = -linedir[burgIndex][1];
-            node->burgZ[0] = -linedir[burgIndex][2];
-            node->nx[0] = glidePlane[gpBurgIndex][gpIndex][0];
-            node->ny[0] = glidePlane[gpBurgIndex][gpIndex][1];
-            node->nz[0] = glidePlane[gpBurgIndex][gpIndex][2];
+            node->burgX[0] = -b[0];
+            node->burgY[0] = -b[1];
+            node->burgZ[0] = -b[2];
+            node->nx[0] = n0[0];
+            node->ny[0] = n0[1];
+            node->nz[0] = n0[2];
 
 /*
  *          Now point p2...
@@ -2479,18 +2637,19 @@ void CreateFRSource(Home_t *home, InData_t *inData, int cubeLength,
             node->z = p2[2];
 
             node->constraint = PINNED_NODE;
-
+            node->inGrain = GrainID2;
             AllocNodeArms(node, 1);
 
             node->nbrTag[0].domainID = dislocType;
             node->nbrTag[0].index    = baseNodeID;
 
-            node->burgX[0] = linedir[burgIndex][0];
-            node->burgY[0] = linedir[burgIndex][1];
-            node->burgZ[0] = linedir[burgIndex][2];
-            node->nx[0] = glidePlane[gpBurgIndex][gpIndex][0];
-            node->ny[0] = glidePlane[gpBurgIndex][gpIndex][1];
-            node->nz[0] = glidePlane[gpBurgIndex][gpIndex][2];
+            node->burgX[0] = b[0];
+            node->burgY[0] = b[1];
+            node->burgZ[0] = b[2];
+            node->nx[0] = n0[0];
+            node->ny[0] = n0[1];
+            node->nz[0] = n0[2];
+			
 
 /*
  *          The initial segments created are not necessarily limited to
@@ -2498,23 +2657,31 @@ void CreateFRSource(Home_t *home, InData_t *inData, int cubeLength,
  *          chop any excessively long segments into proper lengths.
  *          When we've generated the nodal data for the final chain,
  *          write the block of nodal data to the file.
- */
+ */	
             InitRemesh(inData, dislocType, startRemeshIndex);
+//            lastBlock = (chain == (numSources - 1));
 
-            lastBlock = (chain == (numSources - 1));
-
-            if (lastBlock) {
-                    IncDislocationDensity(inData, totDislocLen);
-                    param->nodeCount = inData->nodeCount;
-                    WriteInitialNodeData(home, inData, lastBlock);
-                    FreeInNodeArray(inData, inData->nodeCount);
-                    inData->nodeCount = 0;
-            }
-
+           
+	    if(totSrcLen > maxDensity*volume*burgMag*burgMag){
+		finish = 1;
+		break;
+	    }else{
+		finish = 0;
+	    }
+            chain++;
             baseNodeID = inData->nodeCount;
             startRemeshIndex = baseNodeID;
 
-        }  /* for (chain = 0; chain < numChains; ...) */
+        }  /* for (chain = 0; chain < numChains; ) */
+		
+	}/* for(layer=0; layer<nLayers;...)*/
+	
+	IncDislocationDensity(inData, totDislocLen);
+	param->nodeCount = inData->nodeCount;
+	WriteInitialNodeData(home, inData, 1);
+	FreeInNodeArray(inData, inData->nodeCount);
+	inData->nodeCount = 0;
+	
 
         return;
 }
@@ -2676,6 +2843,8 @@ void CreateEdges(Home_t *home, InData_t *inData, int cubeLength,
  *          write the current block of nodal data to the file.
  */
             InitRemesh(inData, dislocType, startRemeshIndex);
+			
+			
 
             lastBlock = (ic == numChains - 1);
             if (lastBlock) {

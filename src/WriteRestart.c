@@ -223,17 +223,17 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
             }
 
             fprintf(fp,
-                    " %d,%d %.8f %.8f %.8f %d %d\n",
+                    " %d,%d %lf %lf %lf %d %d %lf\n",
                     node->myTag.domainID, node->myTag.index,
                     node->x, node->y, node->z, node->numNbrs,
-                    node->constraint);
+                    node->constraint, node->inGrain);
         
 /*
  *          Write the segment specific data
  */
             for (iArm = 0; iArm < node->numNbrs; iArm++) {
-                fprintf(fp, "   %d,%d %16.10e %16.10e %16.10e\n"
-                        "       %16.10e %16.10e %16.10e\n",
+                fprintf(fp, "   %d,%d %lf %lf %lf\n"
+                        "       %lf %lf %lf \n",
                         node->nbrTag[iArm].domainID,
                         node->nbrTag[iArm].index, node->burgX[iArm],
                         node->burgY[iArm], node->burgZ[iArm],

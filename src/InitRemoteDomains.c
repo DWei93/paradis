@@ -81,8 +81,10 @@ void InitRemoteDomains(Home_t *home)
                 if (rDomKeys[domIdx] == 0) {
 
                     remDom = (RemoteDomain_t *)malloc(sizeof(RemoteDomain_t));
-                    rDomKeys[domIdx] = remDom;
-
+                    rDomKeys[domIdx] = remDom; 
+					
+//					printf("Task %d, rDom domIdx is %d\n",home->myDomain,domIdx);
+					
                     remDomList[remDomCount++] = domIdx;
                     remDom->domainIdx = domIdx;
                     remDom->numExpCells = 0;
@@ -181,6 +183,8 @@ void InitRemoteDomains(Home_t *home)
             remDom = rDomKeys[domIdx];
             remDom->expCells = (int *)realloc(remDom->expCells, 
                                remDom->numExpCells * sizeof(int));
+			
+			
         }
         
 /*

@@ -20,7 +20,7 @@
 #include "Home.h"
 
 
-#ifdef _FEM
+// #ifdef _FEM
 /*-------------------------------------------------------------------------
  *
  *      Function:     SpecialSemiInfiniteSegSegForce
@@ -1127,4 +1127,4 @@ void SemiInfiniteSegSegForce(real8 p1x, real8 p1y, real8 p1z,
 
        return;
 }
-#endif  /* ifdef _FEM */
+//  #endif  /* ifdef _FEM */

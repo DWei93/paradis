@@ -36,7 +36,7 @@
  *                    trasnmission to a remote domain.  Data includes generic
  *                    parameters, and node info (node tags of its neighbor
  *                    nodes, burgers vector for node, glide plane orientation,
- *                    coordinates, constraint type).
+ *                    coordinates, constraint type and inGrain).
  *      Arguments:
  *          inData      structure with initial nodal data
  *          nodeList    Integer array of indices into the inData node
@@ -119,6 +119,7 @@ static void PackInitialNodeData(InData_t *inData, int *nodeList,
             }
 
             dataBuf[bufIndex++] = (real8)inData->node[nIndex].constraint;
+			dataBuf[bufIndex++] = inData->node[nIndex].inGrain;
 
             dataBuf[bufIndex++] = inData->node[nIndex].x; 
             dataBuf[bufIndex++] = inData->node[nIndex].y; 
@@ -356,6 +357,7 @@ static void UnpackInitialNodeData(Home_t *home, real8 *buf,
             }
 
             node->constraint = (int)buf[bufIndex++];
+			node->inGrain = buf[bufIndex++];
 
             node->x = buf[bufIndex++]; 
             node->y = buf[bufIndex++]; 

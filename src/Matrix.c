@@ -687,3 +687,167 @@ void Vec3TransposeAndMult(real8 vec[3], real8 result[3][3])
 
         return;
 }
+
+
+/*-------------------------------------------------------------------------
+ *
+ *      Function:     Matrix33Init
+ *      Description:  Initialize the components of a 3x3 matrix to zero
+ *
+ *      Arguments:
+ *          a    3X3 matrix
+ *
+ *------------------------------------------------------------------------*/
+void Matrix33Init(real8 a[3][3])
+{
+        a[0][0] = 0.0;  a[0][1] = 0.0;  a[0][2] = 0.0;
+        a[1][0] = 0.0;  a[1][1] = 0.0;  a[1][2] = 0.0;
+        a[2][0] = 0.0;  a[2][1] = 0.0;  a[2][2] = 0.0;
+
+        return;
+}
+
+void Matrix33Copy(real8 a[3][3],real8 b[3][3])
+{
+	b[0][0] = a[0][0];  b[0][1] = a[0][1];  b[0][2] = a[0][2];
+	b[1][0] = a[1][0];  b[1][1] = a[1][1];  b[1][2] = a[1][2];
+	b[2][0] = a[2][0];  b[2][1] = a[2][1];  b[2][2] = a[2][2];
+
+	return;
+}
+
+/*-------------------------------------------------------------------------
+ *
+ *      Function:    Matrix66Invert
+ *
+ *      Description:  Given a 6x6 matrix, calculate the inverse using the
+ *                    Gauss-Jordan Method from Numerical Recipes
+ *
+ *      Arguments:
+ *         IN:   a     6x6 matrix to be inverted
+ *         OUT:  b     inverse of matrix <a>
+ *
+ *      Returns:
+ *         1 if the matrix was inverted
+ *         0 if the matrix could not be inverted
+ *
+ *------------------------------------------------------------------------*/
+int Matrix66Invert(real8 a[6][6], real8 b[6][6])
+{
+        int   i, j, k, l, m, n, ll;
+        int   icol, irow;
+        int   indxc[6], indxr[6], ipiv[6];
+        real8 big, dum, pivinv, temp;
+        real8 tmpMat[6][6];
+
+        m = 1;
+        n = 6;
+
+        for (i = 0; i < n; i++) {
+            for (j = 0; j < n; j++) {
+                tmpMat[i][j] = a[i][j];
+            }
+        }
+
+
+        for (j = 0; j < n; j++) {
+            ipiv[j]=0;
+        }
+
+/*
+ *      Main loop over columns of the reduction.
+ */
+        for (i = 0; i < n; i++) {
+
+            big=0.0;
+
+            for (j = 0; j < n; j++){
+                if (ipiv[j] != 1) {
+                    for (k = 0; k < n; k++) {
+                        if (ipiv[k] == 0) {
+                            if (fabs(tmpMat[j][k]) >= big) {
+
+                                big = fabs(tmpMat[j][k]);
+                                irow = j;
+                                icol = k;
+                            }
+                        }
+                    }  /* fork */
+                }  /* if ipiv */
+            }
+
+            ++(ipiv[icol]);
+
+            if (irow != icol) {
+
+                for (l = 0; l < n; l++) {
+                    temp = tmpMat[irow][l];
+                    tmpMat[irow][l] = tmpMat[icol][l];
+                    tmpMat[icol][l] = temp;
+                }
+
+                for (l = 0; l < m; l++) {
+                    temp = b[irow][l];
+                    b[irow][l] = b[icol][l];
+                    b[icol][l] = temp;
+                }
+            }
+
+            indxr[i] = irow;
+            indxc[i] = icol;
+
+/*
+ *          If the matrix cannot be inverted, return an error
+ */
+            if (tmpMat[icol][icol] == 0.0) {
+                return(0);
+            }
+
+            pivinv = 1.0 / tmpMat[icol][icol];
+            tmpMat[icol][icol] = 1.0;
+
+            for (l = 0; l < n; l++) {
+                tmpMat[icol][l] *= pivinv;
+            }
+
+            for (l = 0; l < m; l++) {
+                b[icol][l] *= pivinv;
+            }
+
+            for (ll = 0; ll < n; ll++)   
+
+                if (ll != icol) {    
+
+                    dum = tmpMat[ll][icol];
+                    tmpMat[ll][icol] = 0.0;
+
+                    for (l = 0;l < n; l++) {
+                        tmpMat[ll][l] -= tmpMat[icol][l]*dum;
+                    }
+
+                    for (l = 0; l < m; l++) {
+                        b[ll][l] -= b[icol][l]*dum;
+                    }
+                }
+
+        } /* This is the end of the main loop over columns of the reduction. */
+
+
+        for (l = n-1; l >= 0; l--) {
+            if (indxr[l] != indxc[l]) {
+                for (k = 0; k < n; k++){
+                    temp = tmpMat[k][indxr[l]];
+                    tmpMat[k][indxr[l]] = tmpMat[k][indxc[l]];
+                    tmpMat[k][indxc[l]] = temp;
+                }
+            }
+        }
+
+        for (i = 0; i < 6; i++) {
+            for (j = 0; j < 6; j++) {
+                b[i][j] = tmpMat[i][j];
+            }
+        }
+
+        return(1);
+}

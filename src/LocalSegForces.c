@@ -1669,11 +1669,11 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
         real8   b34x, b34y, b34z;
         Param_t *param;
         Cell_t  *cell;
-#ifdef _FEM
+//  #ifdef _FEM
         int     i;
         real8   xInf, yInf, zInf;
         real8   siF1[3], siF3[3], siF4[3];
-#endif
+//  #endif
 
 
         param      = home->param;
@@ -1790,7 +1790,9 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
                     &f1[0], &f1[1], &f1[2], &f2[0], &f2[1], &f2[2],
                     &f3[0], &f3[1], &f3[2], &f4[0], &f4[1], &f4[2]);
 
-#ifdef _FEM
+// #ifdef _FEM
+
+
 /*
  *      When dealing with free surfaces, if one or more of the nodes
  *      is a surface node, we have to compute the forces between the
@@ -1811,7 +1813,7 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
  *      from the semi-infinite segment node1-->infinity on the finite
  *      segment node3-->node4
  */
-        if (node1->constraint == SURFACE_NODE) {
+        if (node1->constraint > 0 && node1->constraint < 4 ) {
 
             xInf = x1 + (x1 - x2);
             yInf = y1 + (y1 - y2);
@@ -1838,7 +1840,7 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
  *      from the semi-infinite segment node2-->infinity on the finite
  *      segment node3-->node4
  */
-        if (node2->constraint == SURFACE_NODE) {
+        if (node2->constraint > 0 && node2->constraint < 4 ) {
 
             xInf = x2 + (x2 - x1);
             yInf = y2 + (y2 - y1);
@@ -1864,7 +1866,7 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
  *      from the semi-infinite segment node3-->infinity on the finite
  *      segment node1-->node2
  */
-        if (node3->constraint == SURFACE_NODE) {
+        if (node3->constraint > 0 && node3->constraint < 4 ) {
 
             xInf = x3 + (x3 - x4);
             yInf = y3 + (y3 - y4);
@@ -1890,7 +1892,7 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
  *      from the semi-infinite segment node4-->infinity on the finite
  *      segment node1-->node2
  */
-        if (node4->constraint == SURFACE_NODE) {
+        if (node4->constraint > 0 && node4-> constraint < 4 ) {
 
             xInf = x4 + (x4 - x3);
             yInf = y4 + (y4 - y3);
@@ -1910,7 +1912,7 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
                 }
             }
         }
-#endif  /* ifdef _FEM */
+//   #endif  /* ifdef _FEM */
 
         return;
 }

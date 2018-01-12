@@ -57,7 +57,16 @@ void ParadisInit(int argc, char *argv[], Home_t **homeptr)
 #ifdef PARALLEL
         MPI_Barrier(MPI_COMM_WORLD);
 #endif
-        if (home->myDomain == 0) printf("ParadisInit finished\n");
 
+#if 0
+        if (home->myDomain == 0) {
+	    if(home->param->polycrystal){
+	        FormatMatrix(home->grainKeys[0]->orientation,"MatrixOrientation");
+	    }else{
+	        FormatMatrix(home->rotMatrix,"Lab Orientation");
+	    }
+	    printf("ParadisInit finished\n");
+	}
+#endif
         return;
 }

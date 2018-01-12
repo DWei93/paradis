@@ -58,7 +58,7 @@
 #      gcc             Generic Linux system build using gnu compilers
 #
 
-SYS = linux.opteron
+SYS = gcc
 
 #
 #    Set the execution MODE to PARALLEL to enable compile-time support
@@ -74,7 +74,7 @@ MODE = PARALLEL
 #
 # XLIB_MODE = OFF
 
-XLIB_MODE = ON
+XLIB_MODE = OFF
 
 #
 #    Define the optimization level to be used during compilation
@@ -90,7 +90,7 @@ XLIB_MODE = ON
 # OPT = -O1
 # OPT = -O2
 OPT = -O3
-# OPT = -g
+# OPT = -O3
 
 #
 #    Set the HDF_MODE to ON to enable compilation with HDF5 support

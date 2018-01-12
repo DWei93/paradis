@@ -1,0 +1,21 @@
+#!/bin/bash
+
+lastGitLog2=`git log -1 --oneline`
+lastGitLog1=`git symbolic-ref --short -q HEAD`
+	
+from_name="Dean Wei"
+from="WLY@SCU.com"    
+to="13678122733@163.com"
+cc_name="Jian Xiong"
+cc="1109178778@qq.com"    
+email_title="Backup file (auto send)"
+email_content=`echo "Last git log: ${lastGitLog1} - ${lastGitLog2}"`
+email_subject="git codes"
+
+dir=`pwd`
+date=`date "+%Y-%m-%d"`
+attachment="gitCodes${date}.tar.gz"
+tar -zcvf ${attachment}  ${dir}
+
+(echo -e "To: \"${email_title}\" <${to}>\nCc: \"${cc_name}\" <${cc}>\nFrom: \"${from_name}\" <${from}>\nSubject: ${email_subject}\n\n ${email_content} ";) | /usr/sbin/sendmail -t 
+	

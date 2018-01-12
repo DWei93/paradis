@@ -67,7 +67,6 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 	Node_t          *nodeA, *nodeB, *prevNewNode, *newNode;
 	Param_t		*param;
 
-
 	param = inData->param;
 
 	Lx = param->Lx;
@@ -82,10 +81,10 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
  */
 	oldNodeCount = inData->nodeCount;
 	newNodeCount = 0;
-
 	for (idxA = startIndex+1; idxA < oldNodeCount; idxA++) {
 
 		nodeA = &inData->node[idxA];
+
 		for (armAB = 0; armAB < nodeA->numNbrs; armAB++) {
 
 			nodeB = LookupInNode(inData, &nodeA->nbrTag[armAB],
@@ -100,9 +99,7 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 				dx = nodeB->x - nodeA->x; 
 				dy = nodeB->y - nodeA->y; 
 				dz = nodeB->z - nodeA->z; 
-
 				ZImage(param,&dx,&dy,&dz);
-
 				r2 = dx*dx + dy*dy + dz*dz;
 				if (r2 > maxSeg2) {
 					r = sqrt(r2);
@@ -119,7 +116,6 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
  *	expand the inData->node array to accomodate the new nodes.
  */
 	if (newNodeCount == 0) return;
-
 	inData->node = (Node_t *)realloc(inData->node,
 			sizeof(Node_t) * (inData->nodeCount + newNodeCount));
 
@@ -140,6 +136,9 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 		for (armAB = 0; armAB < nodeA->numNbrs; armAB++) {
 
 			nodeB = LookupInNode(inData, &nodeA->nbrTag[armAB], &idxB);
+			if(nodeB == (Node_t *)NULL) Fatal("File %s at line %d:null neighbor",__FILE__,__LINE__);
+			
+			
 			if (idxB > idxA) continue; /* don't double-dip */
 
 			dx = nodeB->x - xa;
@@ -173,7 +172,6 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 				}
 
 				if (!found) {
-					Fatal("InitRemesh: broken Linkage");
 				}
 
 /*
@@ -181,7 +179,6 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
  */
 				prevNewNode = nodeA;
 				armPrev = armAB;
-
 				for (inew = 1; inew <= ncount; inew++) {
 
 					newNode = &inData->node[idxNew];
@@ -193,6 +190,7 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 					newNode->y = ya + inew*frac*dy;
 					newNode->z = za + inew*frac*dz;
 					newNode->constraint = UNCONSTRAINED;
+					newNode->inGrain = nodeA->inGrain;
 
 					AllocNodeArms(newNode, 2);
 	
@@ -243,7 +241,6 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 	}  /* end for idxA = 1; ...)  */
 
 	inData->nodeCount += newNodeCount;
-
 	if (idxNew != inData->nodeCount)
 		Fatal("InitRemesh: miscount of added nodes!");
 
@@ -254,6 +251,5 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
  */
 	qsort(&inData->node[startIndex], inData->nodeCount-startIndex,
               sizeof(Node_t), OrderNodes);
-
 	return;
 }

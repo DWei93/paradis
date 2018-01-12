@@ -10,6 +10,7 @@
 #include "Parse.h"
 #include "Home.h"
 #include "Mobility.h"
+#include "Grain.h"
 
 
 /*
@@ -243,9 +244,18 @@ struct _param {
 
         real8 shearModulus;
         real8 pois;
+	real8 outRadius;
         real8 burgMag;
+	real8 rho;
+	real8 vshr;
+	real8 TBSFEnergy;					
+	real8 TBEnergy;
+		
 
         real8 YoungsModulus;
+		
+	real8  elasticConstantMatrix[6][6];
+	real8  elasticConstantMatrixInv[6][6];
 
         real8 rc;     /* core radius in elastic interaction calculation */ 
 
@@ -338,8 +348,10 @@ struct _param {
 
         int   savedensityspec[3];
 
-        int   tecplot, tecplotfreq, tecplotcounter; 
+        int   tecplot, tecplotfreq, tecplotcounter, meshInterval; 
         real8 tecplotdt, tecplottime;
+		
+		
 
         int   velfile, velfilefreq, velfilecounter;
         real8 velfiledt, velfiletime;
@@ -407,6 +419,7 @@ struct _param {
  *      Added for strain decomposition and density flux decomp.
  */
         real8 totstraintensor[6];
+	real8 elasticStrainTensor[6];
         real8 totedgepStrain[6], totscrewpStrain[6];
         real8 dedgepStrain[6],   dscrewpStrain[6];
 
@@ -463,6 +476,31 @@ struct _param {
  *      threading has not been enabled.
  */
         int   maxNumThreads;
+		
+/*
+ *	Define the variables about grain
+ */
+        int	polycrystal;
+        int	nGrain;
+        real8	twinRatio;
+        real8	peneTB;
+        real8   TBNormal[3];
+        real8   rotateNormal[3][3];
+	real8	matrixOrientation[3][3];
+	real8   GBStrength;
+	real8	fricStress;
+/*
+ *		
+ */
+        int	preDecreaseDT;
+        int     limitDisplacement;
+        real8	preRann;
+        int	markPreDTDisable;
+        real8	pstnEle[TOT_ELE_NUM][6];
+        real8	disDenEle[TOT_ELE_NUM][4];
+	int	finish;
+	real8	maxStn;
+	real8	maxPst;
 
 #ifdef _FEM
 /*

@@ -622,6 +622,7 @@ void Rebalance(Home_t *home, int criteria)
         TimerSave(home, CELL_CHARGE);
         TimerStart(home, LOAD_BALANCE);
 
+
 /*
  *      There's a number of conditions that determine whether to do
  *      load balancing this cycle... check 'em all.
@@ -683,16 +684,19 @@ void Rebalance(Home_t *home, int criteria)
  */
                 copyLevel = maxLevel;
                 imbalanceThreshold = 0.05;
+			
 
                 (void) RBCheckLoadBalance(home, home->decomp, loadData,
                                           imbalanceThreshold, currLevel,
                                           &copyLevel);
+				
 
 /*
  *              If copyLevel is >= the maximum level, there were no
  *              levels of the decomposition tree that had an imbalanced
  *              greater than the threshold and no rebalancing is needed
  */
+				
                 if (copyLevel < maxLevel) {
 /*
  *                  Allocate a new decomposition tree that initially
@@ -711,7 +715,9 @@ void Rebalance(Home_t *home, int criteria)
                     RBDecomp(home, newDecomp, (RBDecomp_t *)home->decomp,
                              domDecompID, currLevel, copyLevel);
 
+					
                     GetLocalDomainBounds(home, newDecomp);
+					
 
 #ifdef PARALLEL
                     ExchangeRBDecomp(home, newDecomp);
@@ -732,17 +738,22 @@ void Rebalance(Home_t *home, int criteria)
  *          the structures.
  */
             free(loadData);
+			
 
             if (didDLB) {
+				
                 DLBfreeOld(home);
-
+				
                 InitCellNatives(home);
+				
                 InitCellNeighbors(home);
+			
                 InitCellDomains(home);
                 InitRemoteDomains(home);
+				
             }
         }
-
+		
 
         TimerStop(home, LOAD_BALANCE);
 

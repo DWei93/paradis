@@ -5,6 +5,7 @@
  *			the miscellaneous funtion prototypes that have
  *			not been included elsewhere.  This helps eliminate
  *			some of the compiler whines...
+ *			
  *
  ***************************************************************************/
 #ifndef _ParadisProto_h
@@ -32,6 +33,7 @@
 #define VECTOR_ADD(a,b)  {(a)[0] += (b)[0]; (a)[1] += (b)[1]; (a)[2] += (b)[2];}
 #define VECTOR_COPY(a,b) {(a)[0] = (b)[0]; (a)[1] = (b)[1]; (a)[2] = (b)[2];}
 #define VECTOR_ZERO(a)   {(a)[0] = 0; (a)[1]  = 0; (a)[2] = 0;}
+#define VECTOR_MULTIPLY(a,x)	{(a)[0] *= (x);    (a)[1] *= (x);    (a)[2] *= (x);}
 
 #ifdef __cplusplus
 extern "C" void Getline(char *string, int len, FILE *fp);
@@ -54,8 +56,8 @@ void DeltaPlasticStrain_BCC(Home_t *home);
 void DeltaPlasticStrain_FCC(Home_t *home);
 void DistributeTagMaps(Home_t *home);
 void FindPreciseGlidePlane(Home_t *home, real8 burgVecIn[3], real8 dirIn[3],
-        real8 glidePlane[3]);
-void FixRemesh(Home_t *home);
+                           real8 glidePlane[3], Node_t *node, Node_t *nbr);
+void FixRemesh(Home_t *home, char flag[256]);
 void ForwardEulerIntegrator(Home_t *home);
 void FreeCellCenters(void);
 void FreeCorrectionTable(void);
@@ -63,7 +65,7 @@ void FreeInitArrays(Home_t *home, InData_t *inData);
 void FreeInNodeArray(InData_t *inData, int numNodes);
 void FreeRijm(void);
 void FreeRijmPBC(void);
-void GenerateOutput(Home_t *home, int stage);
+void GenerateOutput(Home_t *home, int stage, char *msg);
 void GetDensityDelta(Home_t *home);
 void GetMinDist(
         real8 p1x, real8 p1y, real8 p1z, real8 v1x, real8 v1y, real8 v1z,
@@ -86,8 +88,8 @@ void Migrate(Home_t *home);
 int  NodeOwnsSeg(Home_t *home, Node_t *node1, Node_t *node2);
 void ParadisStep(Home_t *home);
 void ParadisFinish(Home_t *home);
-void PickScrewGlidePlane(Home_t *home, real8 burgVec[3],
-        real8 glidePlane[3]);
+void PickScrewGlidePlane(Home_t *home, real8 burgVecIn[3], real8 glidePlane[3],
+						 Node_t *node, Node_t *nbr);
 void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile);
 void RemapArmTag(Home_t *home, Tag_t *oldTag, Tag_t *newTag);
 void Remesh(Home_t *home);
@@ -97,7 +99,7 @@ void ResetGlidePlanes(Home_t *home);
 void SetLatestRestart(char *fileName);
 void SortNodesForCollision(Home_t *home);
 void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
-        int writePrologue, int writeEpilogue, int numSegs);
+        int writePrologue, int writeEpilogue, int numArms, int debug);
 void UniformDecomp(Home_t *home, void **decomp);
 void WriteVelocity(Home_t *home, char *baseFileName, int ioGroup,
         int firstInGroup, int writePrologue, int writeEpilogue);

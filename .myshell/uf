@@ -1,0 +1,30 @@
+#!/bin/bash
+
+dir=/sharefs/home/zhangxu/TB/gitcode/.log
+
+ARGS=`getopt -o x  -n 'example.sh' -- "$@"`
+if [ $? != 0 ]; then
+     echo "Terminating..."
+     exit 1
+fi
+eval set -- "${ARGS}"
+
+while true
+do
+    case "$1" in
+        -x)
+	    dir=/sharefs/home/zhangxu/XJ/gitcodes/.log
+            shift
+            ;;
+         --)
+            shift
+            break
+            ;;
+         *)
+    esac
+done
+
+cat ${dir}/[0-9]* > ${dir}/unfinished.log
+
+find ${dir}/ -name "unfinished.log" | xargs grep "jobID"
+

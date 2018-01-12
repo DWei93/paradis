@@ -18,7 +18,9 @@
 #
 ###########################################################################
 
-PARADIS_C_SRCS = CellCharge.c  \
+PARADIS_C_SRCS = GrainBoundary.c \
+      Grain.c	               \
+      CellCharge.c             \
       Collision.c              \
       CommSendGhosts.c         \
       CommSendGhostPlanes.c    \
@@ -141,7 +143,7 @@ CTABLEGEN_SRCS = CTableGen.c             \
                  MemCheck.c              \
                  PickScrewGlidePlane.c   \
                  QueueOps.c              \
-                 Util.c
+                 Util.c					\
+				 Grain.c	
 
 CTABLEGEN_OBJS = $(CTABLEGEN_SRCS:.c=.o)
-

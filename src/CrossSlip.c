@@ -336,10 +336,10 @@ void RestoreCrossSlipForce(Node_t *node, Node_t *nbr1, Node_t *nbr2,
 void CrossSlip(Home_t *home)
 {
         int enabled, matType;
+		
 
         enabled = home->param->enableCrossSlip;
         matType = home->param->materialType;
-
         if (enabled) {
 
             switch(matType) {

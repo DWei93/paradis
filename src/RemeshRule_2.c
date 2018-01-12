@@ -20,8 +20,6 @@
 #include "Mobility.h"
 
 static int dbgDom;
-
-
 /*-------------------------------------------------------------------------
  *
  *      Function:    MeshCoarsen
@@ -30,8 +28,9 @@ static int dbgDom;
  *------------------------------------------------------------------------*/
 static void MeshCoarsen(Home_t *home)
 {
-        int     i, q, thisDomain, mergeDone, mergeStatus, globalOp;
+        int     i,j, q, thisDomain, mergeDone, mergeStatus, globalOp;
         int     localCoarsenCnt, globalCoarsenCnt, hasRemoteNbr;
+	int	inhibitMerge;
         real8   tmpMag2;
         real8   cellLength, cutoffLength1, cutoffLength2;
         real8   vec1x, vec1y, vec1z;
@@ -45,9 +44,13 @@ static void MeshCoarsen(Home_t *home)
         real8   dr1dt, dr2dt, dr3dt, dsdt, darea2dt;
         real8   newPos[3], f0seg1[3], f1seg1[3];
         real8   gp0[3], gp1[3], tmp3[3];
+        real8   burg[3],vec[3];
+	real8	armGrain1, armGrain2;
+	int	riskySeg1, riskySeg2, armID;
         Tag_t   nbr1Tag, nbr2Tag, oldTag1, oldTag2, oldTag3;
         Node_t  *node, *nbr, *nbr1, *nbr2, *mergedNode;
         Param_t *param;
+	char 	name[50];
 
         thisDomain = home->myDomain;
         param      = home->param;
@@ -77,16 +80,74 @@ static void MeshCoarsen(Home_t *home)
 /*
  *          Check for various conditions that will exempt a node from removal:
  *
- *          1) does not have exactly 2 arms
- *          2) node is a 'fixed' node
+ *          1) does not have  2 arms or the segement is not a GB segement
+ *          2) node is a 'fixed' node or surface node
  *          3) node is flagged as exempt from coarsen operations
  *          4) current domain does not 'own' at least one of the  segments
  *          5) If the node's arms are on different glide planes we might
  *             not allow the node to be removed.
  */
-            if (node->numNbrs != 2) continue;
-            if (node->constraint == PINNED_NODE) continue;
+            if (node->numNbrs < 2 || node->numNbrs > 3) continue;
+
+	    if(param->polycrystal){
+		if(node->inGrain - floor(node->inGrain) == 0.5){
+                    for(j=0; j<node->numNbrs; j++){
+                        nbr1 = GetNeighborNode(home, node, j);
+                        if(nbr1 == (Node_t *)NULL){
+                            printf("Warnig: neighbor not found. (at %s, L%d)\n",
+                                    __FILE__, __LINE__);
+                        }
+                        if(nbr1->inGrain - floor(nbr1->inGrain) == 0)continue;
+                        burg[X] = node->burgX[j];
+                        burg[Y] = node->burgY[j];
+                        burg[Z] = node->burgZ[j];
+                        if(BurgType_FCC(home,burg) != BASIC_BURG)continue;
+                        if (!DomainOwnsSeg(home, OPCLASS_REMESH, thisDomain, &nbr1->myTag))continue;
+                        vec[X] = node->x - nbr1->x;
+                        vec[Y] = node->y - nbr1->y;
+                        vec[Z] = node->z - nbr1->z;
+                        ZImage(home->param, vec, vec+1, vec+2);
         
+                        newPos[X] = node->x + 0.5 * vec[X];
+                        newPos[Y] = node->y + 0.5 * vec[Y];
+                        newPos[Z] = node->z + 0.5 * vec[Z];
+
+//			if(CheckReposition(home, node, newPos);
+#if 1
+                        snprintf(name,50,"M5.%d.1",home->cycle);
+			Tecplot(home,name,0,0,0,0,0,1);
+			PrintNode(node);
+			PrintNode(nbr1);
+#endif
+                        FoldBox(home->param, newPos, newPos+1, newPos+2);
+
+                        MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
+                                  &mergedNode, &mergeStatus, 1);
+            
+                        mergeDone = mergeStatus & MERGE_SUCCESS;
+
+                        snprintf(name,50,"M5.%d.2",home->cycle);
+			Tecplot(home,name,0,0,0,0,0,1);
+
+			if(mergeStatus == 5){
+#if 1
+			    if(mergedNode != (Node_t *)NULL){
+                                snprintf(name,50,"M5.%d.2",home->cycle);
+				Tecplot(home,name,0,0,0,0,0,1);
+			        PrintNode(mergedNode);
+			    }
+#endif
+                            printf("Task %d: merge basic GB segement status %d\n", home->myDomain, mergeStatus);
+			}
+		        break;
+                    }
+		}
+	    }
+	    if(node ==(Node_t *)NULL)continue;
+	    if(node->numNbrs != 2 )continue;
+
+            if (node->constraint == PINNED_NODE) continue;
+
             nbr1 = GetNeighborNode(home, node, 0);
             nbr2 = GetNeighborNode(home, node, 1);
         
@@ -107,6 +168,10 @@ static void MeshCoarsen(Home_t *home)
 
             hasRemoteNbr  = (node->myTag.domainID != nbr1->myTag.domainID);
             hasRemoteNbr |= (node->myTag.domainID != nbr2->myTag.domainID);
+
+	    armGrain1 = ChangeOrientation(home, node, nbr1, 0);
+	    armGrain2 = ChangeOrientation(home, node, nbr2, 0);
+	    if(armGrain1 != armGrain2)continue;
 /*
  *          Calculate the lengths of the node's 2 arms plus
  *          the distance between the two neighbor nodes.
@@ -185,7 +250,7 @@ static void MeshCoarsen(Home_t *home)
  *                    the same
  */
                 if (param->allowFuzzyGlidePlanes) {
-
+	            Fatal("allow fuzzy glide plane");
                     if (fabs(DotProduct(gp0, gp1)) > 0.9555) {
                         violateGlidePlanesOK = 1;
                     } else if ((r1 < param->rann) || (r2 <  param->rann)) {
@@ -216,8 +281,8 @@ static void MeshCoarsen(Home_t *home)
  *                      as a quick kludge to find the closest precise plane.
  */
                         param->allowFuzzyGlidePlanes = 0;
-                        FindPreciseGlidePlane(home, burg1, lineDir1, testPlane1);
-                        FindPreciseGlidePlane(home, burg2, lineDir2, testPlane2);
+                        FindPreciseGlidePlane(home, burg1, lineDir1, testPlane1, node, nbr1);
+                        FindPreciseGlidePlane(home, burg2, lineDir2, testPlane2, node, nbr2);
                         param->allowFuzzyGlidePlanes = 1;
 
                         if (fabs(DotProduct(testPlane1, testPlane2)) > 0.99) {
@@ -240,7 +305,7 @@ static void MeshCoarsen(Home_t *home)
  *          If coarsening out a node would leave a segment longer
  *          than a defined length, the node should not be removed.
  *          This 'cutoff length' is the maximum segment length
- *          if all involved nodes are within the same domain, but
+ *          if all involved nodes are within the same domain; but
  *          if a remote node is involved, we need to set the
  *          cutoff length to (at most) 1/2 the cell length.  This
  *          is needed because the remote node may potentially be involved
@@ -346,11 +411,25 @@ static void MeshCoarsen(Home_t *home)
                     newPos[X] = nbr1->x;
                     newPos[Y] = nbr1->y;
                     newPos[Z] = nbr1->z;
+	            
+	            inhibitMerge = 0;
+	            if(node->inGrain - floor(node->inGrain) == 0.5 &&
+                       nbr1->inGrain - floor(nbr1->inGrain) == 0){
+	                newPos[X] = node->x;
+	                newPos[Y] = node->y;
+	                newPos[Z] = node->z;
+	                if(CheckReposition(home, nbr1, newPos) > 1)inhibitMerge = 1;
+                    }
         
-                    MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
-                              &mergedNode, &mergeStatus, globalOp);
-        
-                    mergeDone = mergeStatus & MERGE_SUCCESS;
+		    if(SurfaceNode(nbr1) && SurfaceNode(node) || inhibitMerge){
+			mergeDone = 0;
+			mergeStatus = -1;
+		    }else{
+                        MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
+                                  &mergedNode, &mergeStatus, globalOp);
+                        mergeDone = mergeStatus & MERGE_SUCCESS;
+		    }
+		
                 }
 /*
  *              If the merge could not be done, try using
@@ -362,17 +441,33 @@ static void MeshCoarsen(Home_t *home)
                         newPos[Y] = nbr2->y;
                         newPos[Z] = nbr2->z;
         
-                        MergeNode(home, OPCLASS_REMESH, node, nbr2, newPos,
-                                  &mergedNode, &mergeStatus, globalOp);
-        
-                        mergeDone = mergeStatus & MERGE_SUCCESS;
+	                inhibitMerge = 0;
+	                if(node->inGrain - floor(node->inGrain) == 0.5 &&
+                           nbr2->inGrain - floor(nbr2->inGrain) == 0){
+	                    newPos[X] = node->x;
+	                    newPos[Y] = node->y;
+	                    newPos[Z] = node->z;
+	                    if(CheckReposition(home, nbr2, newPos) > 1)inhibitMerge = 1;
+                        }
+
+		        if(SurfaceNode(node) && SurfaceNode(nbr2) || inhibitMerge){
+			    mergeDone = 0;
+			    mergeStatus = -1;
+		         }else{
+                            MergeNode(home, OPCLASS_REMESH, node, nbr2, newPos,
+                                      &mergedNode, &mergeStatus, globalOp);
+                
+                            mergeDone = mergeStatus & MERGE_SUCCESS;
+		        }
                     }
                 }
+
 /*
  *              If the merge was successful, update the forces
  *              on the remaining nodes.   Otherwise go back and
  *              continue looking for more nodes to coarsen out.
  */
+				
                 if (mergeDone == 0) continue;
         
                 localCoarsenCnt++;
@@ -454,7 +549,7 @@ static void MeshCoarsen(Home_t *home)
                     if (nbr == (Node_t *)NULL) continue;
                     MarkNodeForceObsolete(home, nbr);
                 }
-
+		
 /*
  *              If we are enforcing glide planes but allowing them to be
  *              slightly fuzzy, we need to recalculate the glide plane for
@@ -530,8 +625,8 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
 {
         int     splitStatus, thisDomain, globalOp;
         int     *armList, armCount;
-        real8   newVel[3], newPos[3], nodeVel[3], nodePos[3];
-        real8   f0seg1[3], f0seg2[3], f1seg1[3], f1seg2[3];
+        real8   newVel[3], newPos[3], nodeVel[3], nodePos[3],posInGrain;
+        real8   f0seg1[3], f0seg2[3], f1seg1[3], f1seg2[3], newInGrain;
         Tag_t   oldTag1, oldTag2;
         Node_t  *node, *splitNode1, *splitNode2;
         Param_t *param;
@@ -567,6 +662,8 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
  *      is above the limit AND the area is increasing in size AND
  *      the segment is not too small to bisect, we cut it.
  */
+
+		
         if ((segLen > param->maxSeg) ||
             ((area2 > areaMax2) &&
              (segLen >= param->minSeg * 2.0) &&
@@ -607,6 +704,49 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
             oldTag1 = node->myTag;
             oldTag2 = nbr->myTag;
 
+
+			if(node->inGrain == nbr->inGrain){
+				newInGrain = node->inGrain;
+				if(node->inGrain - floor(node->inGrain) == 0.5){
+					real8 burg[3];
+					
+					burg[X] = node->burgX[armList[0]];
+					burg[Y] = node->burgY[armList[0]];
+					burg[Z] = node->burgZ[armList[0]];
+					
+					if(BurgType_FCC(home,burg) == BASIC_BURG){
+						static int first = 0;
+						if(first == 0){
+						PrintNode(node);
+						printf("Warning: the arm %d is a basic arm, can not mesh refine\n",armList[0]);
+					Tecplot(home,"BasicBurg",0,0,0,0,0,1);
+						first = 1;
+						}
+						return(0);
+					}
+					
+					posInGrain = GetInGrainFromPos(home,newPos[X],newPos[Y],newPos[Z]);
+
+				}else{
+					posInGrain = InWhichGrain(home,newPos[X],newPos[Y],newPos[Z]);
+				}
+				if(newInGrain != posInGrain)return(0);
+				
+			}else{
+				if(node->inGrain - floor(node->inGrain) == 0 &&
+				   NodeOnGB(home, nbr) & INTERSECT_NODE){
+					newInGrain = node->inGrain;
+				}else if(nbr->inGrain - floor(nbr->inGrain) == 0 &&
+				         NodeOnGB(home, node) & INTERSECT_NODE){
+					newInGrain = nbr->inGrain;
+				}else{
+					PrintNode(node);
+					PrintNode(nbr);
+					Tecplot(home,"remesh.plt",0,0,0,0,0,1);
+					Fatal("Task %d, TrySegBisect: wrong inGrain",home->myDomain);
+				}
+			}
+			
             splitStatus = SplitNode(home, OPCLASS_REMESH,
                                     node, nodePos, newPos,
                                     nodeVel, newVel,
@@ -654,22 +794,24 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
  *              topological changes taking place and
  *              the nodes involved
  */
-#ifdef DEBUG_TOPOLOGY_CHANGES
-                if ((dbgDom < 0) || (dbgDom == thisDomain)) {
-                    printf("Remesh/refine1:  (%d,%d)--(%d,%d) ==> "
-                           "(%d,%d)--(%d,%d)--(%d,%d)\n",
-                           oldTag1.domainID, oldTag1.index,
-                           oldTag2.domainID, oldTag2.index,
-                           splitNode1->myTag.domainID,
-                           splitNode1->myTag.index,
-                           splitNode2->myTag.domainID,
-                           splitNode2->myTag.index,
-                           nbr->myTag.domainID,
-                           nbr->myTag.index);
-                    PrintNode(splitNode1);
-                    PrintNode(splitNode2);
-                    PrintNode(nbr);
-                }
+#if 0
+				if(globalOp == 1){
+					if ((dbgDom < 0) || (dbgDom == thisDomain)) {
+						printf("Remesh/refine1:  (%d,%d)--(%d,%d) ==> "
+							   "(%d,%d)--(%d,%d)--(%d,%d)\n",
+							   oldTag1.domainID, oldTag1.index,
+							   oldTag2.domainID, oldTag2.index,
+							   splitNode1->myTag.domainID,
+							   splitNode1->myTag.index,
+							   splitNode2->myTag.domainID,
+							   splitNode2->myTag.index,
+							   nbr->myTag.domainID,
+							   nbr->myTag.index);
+//						PrintNode(splitNode1);
+//						PrintNode(splitNode2);
+//						PrintNode(nbr);
+					}
+				}
 #endif
             }  /* if (splitStatus == SPLIT_SUCCESS) */
         }
@@ -691,15 +833,16 @@ static void MeshRefine(Home_t *home)
         int     armID, *armList;
         int     localRefineCnt, globalRefineCnt;
         int     splitOK[2], splitSegList[2];
-        real8   areaMax, areaMax2, maxSeg2;
+        real8   areaMax, areaMax2, maxSeg2, newInGrain;
         real8   delta, r1, r2, r3, s, area2, segLen;
-        real8   dvec1xdt, dvec1ydt, dvec1zdt;
+        real8   dvec1xdt, dvec1ydt, dvec1zdt,posInGrain;
         real8   dvec2xdt, dvec2ydt, dvec2zdt;
         real8   dvec3xdt, dvec3ydt, dvec3zdt;
         real8   dr1dt, dr2dt, dr3dt, dsdt, darea2dt;
         real8   *vec, vec1[3], vec2[3], vec3[3];
         real8   nodePos[3], nodeVel[3], newVel[3], newPos[3];
         real8   f0seg1[3], f1seg1[3], f0seg2[3], f1seg2[3];
+	real8	 burg[3];
         Tag_t   oldTag1, oldTag2;
         Node_t  *node, *nbr, *nbr1, *nbr2, *splitNode1, *splitNode2;
         Param_t *param;
@@ -728,6 +871,7 @@ static void MeshRefine(Home_t *home)
         
             node = home->nodeKeys[i];
             if (node == (Node_t *)NULL) continue;
+	    if (SurfaceNode(node))continue;
         
 /*
  *          If the node has only two arms, use both arm lengths and
@@ -892,6 +1036,7 @@ static void MeshRefine(Home_t *home)
                     if (nbr1 == (Node_t *)NULL) {
                         printf("WARNING: Neighbor not found at %s line %d\n",
                                __FILE__, __LINE__);
+                        armIndex++;
                         continue;
                     }
 
@@ -949,7 +1094,47 @@ static void MeshRefine(Home_t *home)
         
                         oldTag1 = node->myTag;
                         oldTag2 = nbr1->myTag;
-
+						
+#if 0
+			printf("remesh:\n");
+			PrintNode(node);
+			PrintNode(nbr1);
+#endif			
+			if(node->inGrain == nbr1->inGrain){
+                            newInGrain = node->inGrain;
+                            if(node->inGrain - floor(node->inGrain) == 0.5){
+                                posInGrain = GetInGrainFromPos(home,newPos[X],newPos[Y],newPos[Z]);
+                                burg[X] = node->burgX[armList[0]];
+                                burg[Y] = node->burgY[armList[0]];
+                                burg[Z] = node->burgZ[armList[0]];
+                                if(BurgType_FCC(home,burg) == BASIC_BURG){
+                                    PrintTag(node);
+                                    printf("Warning: a arm  is a basic arm.\n");
+                                    armIndex++;
+                                    continue;
+                                }
+                            }else{
+                                posInGrain = InWhichGrain(home,newPos[X],newPos[Y],newPos[Z]);
+                            }
+                            if(newInGrain != posInGrain){
+                               armIndex++;
+                               continue;
+                            }
+			}else{
+                            if(node->inGrain - floor(node->inGrain) == 0 &&
+                                NodeOnGB(home, nbr1) & INTERSECT_NODE){
+                                newInGrain = node->inGrain;
+                            }else if(nbr1->inGrain - floor(nbr1->inGrain) == 0 &&
+                                NodeOnGB(home, node) & INTERSECT_NODE){
+                                newInGrain = nbr1->inGrain;
+                            }else{
+                                PrintNode(node);
+                                PrintNode(nbr1);
+                                Tecplot(home,"remesh.plt",0,0,0,0,0,1);
+                                Fatal("RemeshRule2: wrong inGrain");
+                            }
+			}
+							
                         splitStatus = SplitNode(home, OPCLASS_REMESH,
                                                 node, nodePos, newPos,
                                                 nodeVel, newVel,
@@ -962,6 +1147,10 @@ static void MeshRefine(Home_t *home)
                             localRefineCnt++;
 
                             node = splitNode1;
+#if 0							
+							printf("splitNode1->inGrain = %3.1f\n",splitNode1->inGrain);
+							printf("splitNode2->inGrain = %3.1f\n",splitNode2->inGrain);
+#endif
 /*
  *                          The force estimates above are good enough for
  *                          the remainder of this timestep, but mark the
@@ -1056,6 +1245,7 @@ void RemeshRule_2(Home_t *home)
 
         MeshCoarsen(home);
         MeshRefine(home);
+		
 
         return;
 }

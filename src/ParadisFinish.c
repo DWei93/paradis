@@ -245,7 +245,7 @@ void ParadisFinish(Home_t *home)
  *	Generate all type of output appropriate at program completion
  *	and write out the timer values 
  */
-	GenerateOutput(home, STAGE_TERM);
+	GenerateOutput(home, STAGE_TERM, "finish");
 	TimerPrint(home);
 
 #ifndef NO_XWINDOW

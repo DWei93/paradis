@@ -37,7 +37,7 @@
 #ifdef _FEM
 #define VALS_PER_MIG_NODE  19
 #else
-#define VALS_PER_MIG_NODE  14
+#define VALS_PER_MIG_NODE  15  // increse 1 for inGrain
 #endif
 
 #define VALS_PER_MIG_ARM       11
@@ -245,6 +245,9 @@ static void PackMigrators(Home_t *home, int remDomID, int *migList,
             buf[bufIndex++] = node->oldvX;
             buf[bufIndex++] = node->oldvY;
             buf[bufIndex++] = node->oldvZ;
+			
+			buf[bufIndex++] = node->inGrain;
+
 
 #ifdef _FEM
             buf[bufIndex++] = node->fem_Surface[0];
@@ -355,6 +358,8 @@ static void UnpackMigrators(Home_t *home, real8 *buf, int remDomID)
             node->oldvX = buf[bufIndex++];
             node->oldvY = buf[bufIndex++];
             node->oldvZ = buf[bufIndex++];
+			
+			node->inGrain = buf[bufIndex++];
 
 #ifdef _FEM
             node->fem_Surface[0] = buf[bufIndex++];

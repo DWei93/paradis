@@ -53,7 +53,7 @@ void   FindMin(real8 *array, int numElements, real8 *minVal,
           int *indexOfMin);
 void   GetPlaneNormFromPoints(real8 p1[3], real8 p2[3], real8 p3[3],
           real8 normalVec[3]);
-void   GetUnitVector(int unitFlag, real8 vx0, real8 vy0, real8 vz0,
+int   GetUnitVector(int unitFlag, real8 vx0, real8 vy0, real8 vz0,
           real8 vx1, real8 vy1, real8 vz1, real8 *ux, real8 *uy, real8 *uz,
           real8 *disMag);
 void   InterpolateL(real8 *xa, real8 *ya, int numPoints, real8 x, real8 *y);
@@ -83,7 +83,9 @@ void   InsertArm(Home_t *home, Node_t *nodeA, Tag_t *nodeBtag,
           real8 bx, real8 by, real8 bz,
           real8 nx, real8 ny, real8 nz, int Log);
 void   MarkNodeForceObsolete(Home_t *home, Node_t *node);
+real8 NodeDistance(Home_t *home, Node_t *node1, Node_t *node2);
 void   PrintNode(Node_t *node);
+void PrintNbr(Home_t *home, Node_t *node);
 void   ReallocNodeArms(Node_t *node, int n);
 void   RemoveNode(Home_t *home, Node_t *node, int Log);
 void   RepositionNode(Home_t *home, real8 newPos[3], Tag_t *tag, int globalOp);
@@ -187,5 +189,12 @@ void   ReadRijmPBC(Home_t *home);
 int    Sign(real8 x);
 void   testdeWitStress2();
 void   Uniq(int*, int*);
+void GetGlideConstraintList(Home_t *home, Node_t *node,
+                            int *numGlideConstraints,
+                            real8 (*glideConstraints)[3]);
+void ApplyConstraintsToVelocity(int numGlideConstraints,
+                                real8 (*glideConstraints)[3],
+                                real8 velocity[3]);
+
 
 #endif

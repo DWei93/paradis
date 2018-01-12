@@ -172,7 +172,7 @@ void WriteParam(ParamList_t *list, int index, FILE *fp)
                                lineFeed);
                         break;
                     case V_DBL:
-                        fprintf(fp, "  %e%s",
+                        fprintf(fp, "  %.15e%s",
                                ((double *)(list->varList[i].valList))[j],
                                lineFeed);
                         break;

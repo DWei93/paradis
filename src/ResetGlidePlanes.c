@@ -72,7 +72,7 @@ void ResetGlidePlanes(Home_t *home)
  *              the segment is screw and should simply maintain the
  *              current glide plane.
  */
-                FindPreciseGlidePlane(home, burg, lDir, newPlane);
+                FindPreciseGlidePlane(home, burg, lDir, newPlane, node, nbrNode);
 
                 if (fabs(DotProduct(newPlane, newPlane)) < 1.0e-03) {
                     continue;
