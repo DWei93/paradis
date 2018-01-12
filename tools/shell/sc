@@ -1,0 +1,151 @@
+#!/bin/bash
+
+HelpMessages () {
+    echo "$0:          copy codes into a project and record log messages"
+    echo "command:  sc [-h] help messages"
+    echo "             [-o|--cpopt]    debug = 1: copy srcs and input files"
+    echo "                          simulate = 2: copy execution and input files"
+    echo "                          tracking = 3: copy tracking files"
+    echo "             [-n|--number|--numbers]: comma-separated"
+    echo "             [-m|--message ]: message of this project"
+    echo "             [-j|--job ]: message of the job"
+}
+
+Copy () {
+    case "$1" in
+        1)
+	    cp makefi* $2 -rf > /dev/null 2>&1
+	    cp gen $2 -rf > /dev/null 2>&1
+	    cp *.pot $2 -rf > /dev/null 2>&1
+	    cp *.in $2 -rf > /dev/null 2>&1
+	    cp include $2 -rf > /dev/null 2>&1
+	    cp src $2 -rf > /dev/null 2>&1
+	    cp utilities $2 -rf > /dev/null 2>&1
+	    cp input $2 -rf > /dev/null 2>&1
+            ;;
+	2)
+	    rm $2 -rf
+	    mkdir $2
+	    cp bin $2 -rf > /dev/null 2>&1
+	    cp input $2 -rf > /dev/null 2>&1
+	    ;;
+	3)
+	    for file in `git ls-files`
+	    do 
+	        dir=`echo ${file%/*}`
+	        dir1=`echo $dir | cut -d / -f 1`
+	        isDir=`find -type d -name "$dir1"`
+		if [ ! -d "$2/${dir}" ]; then 
+	            if [ -n "$isDir" ]; then
+	                mkdir ${2}/${dir} -p
+		    fi
+	        fi
+	        cp ${file} ${2}/${file} -rf
+	    done
+	    ;;
+        *)
+            echo "copy option error"
+            exit 1
+            ;;
+    esac
+}
+
+
+config=~/.wsconfig
+dateTime=`date "+%Y-%m-%d %H:%M:%S"`
+currentDir=`pwd`
+cpOpt=1
+numbers=""
+jobMes=""
+projectName=`basename $PWD`
+logID=`grep "logID" $config | cut -d " " -f 3`
+recordFile=`grep "recordFile" $config | cut -d " " -f 3`
+baseJobName=`grep "baseJobName" $config | cut -d " " -f 3`
+root_dir=`grep "root_dir" $config | cut -d " " -f 3`
+logID=`expr $logID + 1`
+logID=`printf "%06d" ${logID}`
+logFile=$root_dir/log/${logID}.log
+touch $logFile
+
+ARGS=`getopt -o ho:n:m:x --long cpopt:,numbers:,number:,message:,jobmes: -n 'example.sh' -- "$@"`
+if [ $? != 0 ]; then
+     echo "Terminating..."
+     exit 1
+fi
+eval set -- "${ARGS}"
+
+while true
+do
+#    echo "first $1, second is $2"
+    case "$1" in
+        -h|--help)
+            HelpMessages;
+            exit 1
+            shift
+            ;;
+        -o|--cpopt)
+            cpOpt=$2
+            shift 2
+            ;;
+        -n|--numbers|--number)            
+            numbers="$2"
+            numbers=${numbers//,/ }
+            shift 2
+            ;;
+        -m|--message)
+            note="$2"
+            shift 2
+            ;;
+        -j|--jobmes)
+            jobMes="-$2"
+            shift 2
+            ;;
+         --)
+            shift
+            break
+            ;;
+         *)
+            echo "Internal error"
+            exit 1
+            ;;
+    esac
+done
+
+if  [ ! -n "$numbers" ] ;then
+    HelpMessages 
+    exit 1
+fi
+
+lineNumber=`grep  -n "logID=" $baseJobName | cut -d : -f 1`
+sed -i "${lineNumber}d" $baseJobName
+sed -i "${lineNumber}ilogID=${logID}" $baseJobName
+lineNumber=`grep  -n "logID" $config | cut -d : -f 1`
+sed -i "${lineNumber}d" $config
+sed -i "${lineNumber}ilogID = ${logID}" $config
+
+printf "logID: %06d" ${logID} > $logFile
+echo -n " { $dateTime @@@ Create a new project into ${projectName}" >> $logFile
+
+for number in $numbers 
+do
+    if [ ! -d "../${projectName}${number}" ] ; then
+       mkdir ../${projectName}${number}
+    fi
+
+    newProject=../${projectName}${number}
+    Copy  $cpOpt $newProject
+    echo -n " ${number}" >> ${logFile}
+    cp ${baseJobName} $newProject/${baseJobName}${jobMes}-${number}
+done
+echo "" >> ${logFile}
+
+
+echo  "Job  Message: base ${baseJobName}, job ${jobMes}" >> $logFile
+lastGitLog2=`git log -1 --oneline`
+lastGitLog1=`git symbolic-ref --short -q HEAD`
+
+echo  "Last git log: ${lastGitLog1} - ${lastGitLog2}" >> $logFile
+if [ "$note" !=  "" ] ; then
+    echo  "Modification: $note" >> ${logFile}
+fi
+

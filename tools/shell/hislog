@@ -1,0 +1,5 @@
+#!/bin/bash
+
+config=~/.wsconfig
+root_dir=`grep "root_dir" $config | cut -d " " -f 3`
+vim ${root_dir}/log/history.log

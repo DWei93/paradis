@@ -1,0 +1,11 @@
+#!/bin/bash
+
+config=~/.wsconfig
+logID=`grep "logID" $config | cut -d " " -f 3`
+root_dir=`grep "root_dir" $config | cut -d " " -f 3`
+
+dir=${root_dir}/log
+
+cat ${dir}/[0-9]* > ${dir}/unfinished.log 
+
+grep -e "jobID" -e "Modification" $dir/unfinished.log

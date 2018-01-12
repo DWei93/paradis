@@ -3,8 +3,6 @@
 #PBS -o ./out.$PBS_JOBID
 #PBS -e ./error.$PBS_JOBID
 
-module load mpi/openmpi-x86_64
-
 initialType=5
 frlen=6666
 cubel=20000
@@ -13,8 +11,11 @@ nfrsrcs=391
 
 #./gen  ${initialType} $frlen $cubel $maxseg $nfrsrcs 
 
-recordFile=/sharefs/home/zhangxu/TB/gitcode/.log/history.log
-logFile=/sharefs/home/zhangxu/TB/gitcode/.log/101.log
+logID=000000
+config=~/.wsconfig
+baseJobName=`grep "baseJobName" $config | cut -d " " -f 3`
+root_dir=`grep "root_dir" $config | cut -d " " -f 3`
+logFile=$root_dir/log/${logID}.log
 
 if [ "$PBS_O_WORKDIR" = "" ];then
     PBS_O_WORKDIR=`pwd`
@@ -36,7 +37,6 @@ dataFile=input/Copper.data
 lineNumber=`grep  -n "dirname" $ctrlFile | cut -d : -f 1`
 sed -i "${lineNumber}d" $ctrlFile
 sed -i "${lineNumber}idirname = \"${resultDir}\"" $ctrlFile
-
 
 dirName=`pwd | sed 's,^\(.*/\)\?\([^/]*\),\2,'`
 echo  "$dirName, jobID $jobID:" >> $logFile

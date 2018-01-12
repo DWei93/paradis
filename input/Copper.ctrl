@@ -19,7 +19,7 @@
 #
 numXdoms = 2
 numYdoms = 2
-numZdoms = 4
+numZdoms = 2
 #
 #  Cell geometry
 #
@@ -34,7 +34,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.8004"
+dirname = "res."
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1

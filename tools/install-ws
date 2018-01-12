@@ -1,0 +1,63 @@
+#!/bin/bash
+
+root_dir=`pwd`
+config=~/.wsconfig
+
+cp ~/.bashrc ~/.bashrc.bak
+
+if [ $# -ne 0 ]; then
+    config=~/.wsconfig-$1
+    touch $config
+    echo "# This block for scientific shell for $1 #" >> ~/.bashrc
+    for file in ${root_dir}/shell/*
+    do
+        lineNumber=`grep  -n "config=" $file | cut -d : -f 1`
+        sed -i "${lineNumber}d" $file
+        sed -i "${lineNumber}iconfig=${config}" $file
+        name=${file##*/}
+        echo "alias ${name}$1='${root_dir}/shell/${name}'" >> ~/.bashrc
+    done
+else
+    touch $config
+    echo "# This block for scientific shell #" >> ~/.bashrc
+    for file in ${root_dir}/shell/*
+    do
+        lineNumber=`grep  -n "config=" $file | cut -d : -f 1`
+        sed -i "${lineNumber}d" $file
+        sed -i "${lineNumber}iconfig=~/.wsconfig" $file
+        name=${file##*/}
+        echo "alias ${name}='${root_dir}/shell/${name}'" >> ~/.bashrc
+    done
+fi
+echo "#       end scientific shell     #" >> ~/.bashrc
+source ~/.bashrc
+
+if [ ! -d log ]; then
+    mkdir log
+fi
+touch log/history.log
+
+echo "root_dir = ${root_dir}" > $config
+echo "recordFile = ${root_dir}/log/history.log" >> $config
+echo "logID = 000000" >> $config
+echo "Please input your PBS job name:"  
+read baseJobName
+echo "baseJobName = $baseJobName" >> $config
+
+lineNumber=`grep -n "logID=" ../$baseJobName | cut -d : -f 1`
+sed -i "${lineNumber}d" ../$baseJobName
+sed -i "${lineNumber}ilogID=000000" ../$baseJobName
+
+lineNumber=`grep -n "config=" ../${baseJobName}  | cut -d : -f 1`
+sed -i "${lineNumber}d" ../$baseJobName
+sed -i "${lineNumber}iconfig=~/.wsconfig" ../$baseJobName
+
+if [ ! -d ~/.vim ]; then
+    mkdir ~/.vim
+fi
+if [ ! -d ~/.vim/syntax  ]; then
+    mkdir ~/.vim/syntax
+fi
+cp log.vim ~/.vim/syntax/log.vim
+
+echo "Accomplished, have a nice day!"

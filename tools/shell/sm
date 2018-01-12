@@ -1,17 +1,24 @@
 #!/bin/bash
 HelpMessages () {
-    echo "sm:          Record the debugging results"
-    echo "command:  sm [-h] [-r|--record (running.log)]"
-    echo "             [-s|--success]: debugged successfully"
-    echo "             [-m|--message ]"
-    echo "             [-f|--finish ]"
+    echo "$0:          Record the debugging results"
+    echo "command:  sm [-h] help messages"
+    echo "             [-s|--success]: debugged successfully, default failed"
+    echo "             [-m|--message ]: messages"
+    echo "             [-f|--finish ]: finish this job"
+    echo "             [-c|--current ] vim current log file"
 }
+
+config=~/.wsconfig
+dateTime=`date "+%Y-%m-%d %H:%M:%S"`
+currentDir=`pwd`
+recordFile=`grep "recordFile" $config | cut -d " " -f 3`
+baseJobName=`grep "baseJobName" $config | cut -d " " -f 3`
+root_dir=`grep "root_dir" $config | cut -d " " -f 3`
 
 stat="No"
 success="Failed"
 note="..."
-baseJobName="WLY"
-ARGS=`getopt -o hsfwm:j --long success,finish,message:,jobname -n 'example.sh' -- "$@"`
+ARGS=`getopt -o hsfcm: --long success,finish,message: -n 'example.sh' -- "$@"`
 brace=""
 position=middle
 
@@ -38,17 +45,13 @@ do
             brace="}"
             shift
             ;;
-        -w)
+        -c|--current)
             stat="Yes"
             shift
             ;;
         -m|--message)
             note="$2"
             shift 2
-            ;;
-        -j|--jobname)
-            baseJobName="XJ"
-            shift 
             ;;
          --)
             shift
@@ -62,19 +65,18 @@ done
 
 job=`ls ${baseJobName}* -t | cut -d ' ' -f 1 | head -1`
 jobID=`ls out* -t | cut -d ' ' -f 1 | head -1 | cut -d "." -f 2`
-recordFile=`grep  -n "recordFile=" ${job} | cut -d : -f 2 | cut -d = -f 2`
-logFile=`grep  -n "logFile=" ${job} | cut -d : -f 2 | cut -d = -f 2`
+logID=`grep -n "logID=" $job | cut -d "=" -f 2`
+logFile="${root_dir}/log/${logID}.log"
 
 if [ ${stat} = "Yes" ]; then
-    vi ${logFile}
+    vim ${logFile}
     exit 1
 fi
 
-lineNumber=`grep  -n "jobID ${jobID}:" ${logFile} | cut -d : -f 1`
+lineNumber=`grep -n "jobID ${jobID}:" ${logFile} | cut -d : -f 1`
 
 dirName=`pwd | sed 's,^\(.*/\)\?\([^/]*\),\2,'`
-
-sed -i "${lineNumber}i${dirName} jobID ${jobID}: ${note}, ${success}. " $logFile
+sed -i "${lineNumber}i${dirName}, jobID ${jobID}: ${note}, ${success}. " $logFile
 
 lineNumber=`expr $lineNumber + 1`
 sed -i "${lineNumber}d" $logFile

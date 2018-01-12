@@ -1,5 +1,6 @@
 #!/bin/bash
 
+config=~/.wsconfig
 HelpMessages () {
     echo "rm move results data"
     echo "usage:      cl [-o|--opt <>]"

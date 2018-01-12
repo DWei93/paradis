@@ -1,5 +1,7 @@
 #!/bin/bash
 
+config=~/.wsconfig
+baseJobName=`grep "baseJobName" $config | cut -d " " -f 3`
 outFile=`ls out.${1}*`
 resDir=res.${1}
 echo "First 80 lines:" > ${1}
@@ -12,10 +14,11 @@ rsFile=`ls -t ${resDir}/restart/ | head -n 1 | cut -d . -f 1`
 mv ${resDir}/restart/${rsFile}* ${resDir}
 rm -rf ${resDir}/restart
 
-cp input $resDir -r
-cp DDInitial.plt $resDir
+cp input $resDir -r > /dev/null 2>&1
+cp DDInitial.plt $resDir > /dev/null 2>&1
 
-job=`ls WLY* | head -n 1`
-cp $job $resDir
+job=`ls ${baseJobName}* | head -n 1`
+cp gen $resDir > /dev/null 2>&1
+cp $job $resDir > /dev/null 2>&1
 
 rm ${resDir}/core* -f > /dev/null 2>&1

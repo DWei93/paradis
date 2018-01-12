@@ -1,5 +1,6 @@
 #!/bin/bash
 
+config=~/.wsconfig
 lastGitLog2=`git log -1 --oneline`
 lastGitLog1=`git symbolic-ref --short -q HEAD`
 	
