@@ -23,26 +23,18 @@
 #                    
 ######################################################################################
 
-frlen=$2
-cubel=$3
-maxSeg=$4
-nfrs=$5
-
-if [ "$6" != "" ]; then
-    seed="-seed ${6}"
-else
-    seed=""
-fi
-
-if [ "$1" == "" ]; then
-    echo "Fatal: you need input a type (please read this script)"
-    exit 1
-fi
+frlen=1000
+cubel=3000
+maxSeg=200
+nfrs=1000
+maxDensity=1E13
+seed=""
+type=5
 
 PI=3.1415926535897932385
-angle=`echo "scale=16; ${PI} / 4.0 " | bc -l`
+angle=`echo "scale=16; 0.0 * ${PI} / 180.0 " | bc -l`
 
-case $1 in
+case $type in
 ######################################################################################
 #
 #    Type I: oringin code, PBC
@@ -95,10 +87,10 @@ case $1 in
     5|V)
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 1 -nGrain 2 -pbc 7 $seed  \
-    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
+    -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity \
+    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
+#    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
 
-#    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
     *)
      echo "input error!"
      exit 1 ;;

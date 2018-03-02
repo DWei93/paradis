@@ -3,18 +3,11 @@
 #PBS -o ./out.$PBS_JOBID
 #PBS -e ./error.$PBS_JOBID
 
-module load mpi/openmpi-x86_64
-
-initialType=5
-frlen=6666
-cubel=20000
-maxseg=1333
-nfrsrcs=391
-
-#./gen  ${initialType} $frlen $cubel $maxseg $nfrsrcs 
-
-recordFile=/sharefs/home/zhangxu/TB/gitcode/.log/history.log
-logFile=/sharefs/home/zhangxu/TB/gitcode/.log/101.log
+logID=000007
+config=~/.wsconfig
+baseJobName=`grep "baseJobName" $config | cut -d " " -f 3`
+root_dir=`grep "root_dir" $config | cut -d " " -f 3`
+logFile=$root_dir/log/${logID}.log
 
 if [ "$PBS_O_WORKDIR" = "" ];then
     PBS_O_WORKDIR=`pwd`
@@ -46,16 +39,15 @@ then
     lineNumber=`grep  -n "numZdoms" $ctrlFile | cut -d : -f 1`
     sed -i "${lineNumber}d" $ctrlFile
     sed -i "${lineNumber}inumZdoms = 2" $ctrlFile
-#	gclean
-#	make clean
-#    	make
-	./gen  ${initialType} $frlen $cubel $maxseg $nfrsrcs 
+#   make clean  > /dev/null 2>&1
+#   make  > /dev/null 2>&1
+    ./gen 
     mpirun -n 8 ./bin/paradis ./${ctrlFile} | tee out.${jobID}
 else
 	make clean  > /dev/null 2>&1
     	make  > /dev/null 2>&1
 	echo "Initial generation type: ${initialType}"
-#	./gen  ${initialType} $frlen $cubel $maxseg $nfrsrcs 
+	./gen 
         lineNumber=`grep  -n "numZdoms" $ctrlFile | cut -d : -f 1`
         sed -i "${lineNumber}d" $ctrlFile
         sed -i "${lineNumber}inumZdoms = 4" $ctrlFile

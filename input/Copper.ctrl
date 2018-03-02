@@ -44,7 +44,7 @@ splitMultiNodeFreq =   1
 #  
 maxstep =  40000000 
 maxStn = 1.0E-2
-maxPst = 3.0E-3
+maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13;
 rTol = 2.0
@@ -98,13 +98,13 @@ rc =  10.0
 #  
 #
 tecplot = 1
-tecplotfreq = 5000
+tecplotfreq = 500
 saveprop = 1
-savepropfreq = 5000
+savepropfreq = 500
 meshInterval = 10
 velfile = 0
 velfilefreq = 1000
 savecn = 1
-savecnfreq = 50000
+savecnfreq = 5000
 savetimers = 0
 savetimersfreq = 1000

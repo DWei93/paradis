@@ -548,7 +548,7 @@ int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
 		VECTOR_COPY(peneRes->outBurg[0],burg);
 		VECTOR_COPY(peneRes->GBBurg[0],zeroVec);
 
-		peneRes->effective[1] = 0;
+		peneRes->effective[1] = 1;
 
 		VECTOR_COPY(peneRes->outNormal[1],GBPlane->normal);
 		switch(BurgID_FCC(crystalBurg)){
@@ -644,87 +644,6 @@ int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
 	return(1);
 }
 
-void FindPeneResult(Home_t *home, Node_t *node, Node_t *nbr, Grain_t *oldGrain,
-					Grain_t *newGrain, Plane_t *glidePlane, Plane_t *GBPlane, 
-					Plane_t *outPlane, real8 *burg1, real8 *burg2){
-	
-	
-	real8		pos[3], burg[3], normal[3], crystalNormal[3];
-	real8		crystalBurg[3], dot, vec[3];
-	
-	int 		iScrew, armID;
-	
-	pos[X] = node->x;
-	pos[Y] = node->y;
-	pos[Z] = node->z;
-	
-	armID = GetArmID(home, node, nbr);
-	
-	
-	burg[X] = node->burgX[armID];
-	burg[Y] = node->burgY[armID];
-	burg[Z] = node->burgZ[armID];
-	
-	normal[X] = node->nx[armID];
-	normal[Y] = node->ny[armID];
-	normal[Z] = node->nz[armID];
-	
-/*	
-#if 0
-	Matrix33Vector3Multiply(oldGrain->orientationInv, normal, crystalNormal);
-	
-	crystalNormal[0] = -crystalNormal[0];
-	crystalNormal[1] = -crystalNormal[1];
-	crystalNormal[2] = -crystalNormal[2];
-	
-	Matrix33Vector3Multiply(newGrain->orientation, crystalNormal, normal);
-#else	
-	normal[0] = -normal[0];
-	normal[1] = -normal[1];
-	normal[2] =  normal[2];
-#endif	
-	VECTOR_COPY(outPlane->normal,normal);
-	VECTOR_COPY(outPlane->point, pos);
- */
-	vec[X] = nbr->x - node->x;
-	vec[Y] = nbr->y - node->y;
-	vec[Z] = nbr->z - node->z;
-	
-	ZImage(home->param, vec, vec+1, vec+2);
-	
-	NormalizeVec(vec);
-
-	
-	VECTOR_COPY(outPlane->point, pos);
-	
-	Matrix33Vector3Multiply(oldGrain->orientationInv, burg, crystalBurg);
-	Matrix33Vector3Multiply(oldGrain->orientationInv, normal, crystalNormal);
-	
-	
-	crystalBurg[X] = -crystalBurg[X];
-	crystalBurg[Y] = -crystalBurg[Y];
-	crystalBurg[Z] = -crystalBurg[Z];
-	
-	Matrix33Vector3Multiply(newGrain->orientation, crystalBurg, burg1);
-	Matrix33Vector3Multiply(newGrain->orientation, crystalNormal, outPlane->normal);
-	
-	
-	if(fabs(DotProduct(burg1, outPlane->normal)) > 1e-3){
-		Fatal("FindPeneResult: %f",DotProduct(burg1, outPlane->normal));
-	}
-	
-	burg2[X] = burg[X] - burg1[X];
-	burg2[Y] = burg[Y] - burg1[Y];
-	burg2[Z] = burg[Z] - burg1[Z];
-	
-	if(Normal(burg2) < 1e-3){
-		burg2[X] = 0.0;
-		burg2[Y] = 0.0;
-		burg2[Z] = 0.0;
-
-	}
-	return;
-}
 
 void PullToLine(real8 *p, Line_t *line){
 	real8 t;
@@ -1104,27 +1023,7 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 		}
 		if(!forward)peneRes->effective[set] = 0;
 		
-#if 0
-		ChangeConnection(home,node1,&node3->myTag,&node2->myTag,globalOp);
-		ChangeConnection(home,node2,&node3->myTag,&node1->myTag,globalOp);
-		
-		ChangeArmBurg(home, node3, &node1->myTag,0,0,0,0,0,0,globalOp,DEL_SEG_NONE);
-		ChangeArmBurg(home, node3, &node2->myTag,0,0,0,0,0,0,globalOp,DEL_SEG_NONE);
-		
-		ChangeArmBurg(home, node1, &node2->myTag, burgStore[0], burgStore[1], burgStore[2],
-					  normalStore[0],normalStore[1],normalStore[2],globalOp,DEL_SEG_NONE);
-		
-		ChangeArmBurg(home, node2,&node1->myTag,-burgStore[0], -burgStore[1], -burgStore[2],
-					  normalStore[0],normalStore[1],normalStore[2],globalOp,DEL_SEG_NONE);
-
-
-		if(node3->numNbrs != 0){
-			Fatal("node3->numNbrs != 0");
-		}
-#else
 		node3->numNbrs = 0;
-#endif
-		
 		RemoveNode(home, node3, globalOp);
 		
 		if(!IsZeroVector(burg2)){
@@ -1137,40 +1036,7 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	
 	}//end of for set
 
-#if 0
-	if(switchNode){
-		ChangeConnection(home,nbrNode1,&globalNode->myTag,&node->myTag,globalOp);
-		ChangeConnection(home,node,&globalNode->myTag,&nbrNode1->myTag,globalOp);
-		
-		ChangeArmBurg(home, globalNode, &nbrNode1->myTag,0,0,0,0,0,0,globalOp,DEL_SEG_NONE);
-		ChangeArmBurg(home, globalNode, &node->myTag,0,0,0,0,0,0,globalOp,DEL_SEG_NONE);
-		
-		ChangeArmBurg(home, nbrNode1, &node->myTag, burgStore[0], burgStore[1], burgStore[2],
-					  normalStore[0],normalStore[1],normalStore[2],globalOp,DEL_SEG_NONE);
-		
-		ChangeArmBurg(home, node,&nbrNode1->myTag,-burgStore[0], -burgStore[1], -burgStore[2],
-					  normalStore[0],normalStore[1],normalStore[2],globalOp,DEL_SEG_NONE);
-		
-	}else{
-		ChangeConnection(home,node,&globalNode->myTag,&nbrNode2->myTag,globalOp);
-		ChangeConnection(home,nbrNode2,&globalNode->myTag,&node->myTag,globalOp);
-		
-		ChangeArmBurg(home, globalNode, &nbrNode2->myTag,0,0,0,0,0,0,globalOp,DEL_SEG_NONE);
-		ChangeArmBurg(home, globalNode, &node->myTag,0,0,0,0,0,0,globalOp,DEL_SEG_NONE);
-		
-		ChangeArmBurg(home, node, &nbrNode2->myTag, burgStore[0], burgStore[1], burgStore[2],
-					  normalStore[0],normalStore[1],normalStore[2],globalOp,DEL_SEG_NONE);
-		
-		ChangeArmBurg(home, nbrNode2,&node->myTag,-burgStore[0], -burgStore[1], -burgStore[2],
-					  normalStore[0],normalStore[1],normalStore[2],globalOp,DEL_SEG_NONE);
-	}
-	if(globalNode->numNbrs != 0){
-		PrintNode(globalNode);
-		Fatal("globalNode->numNbrs != 0");
-	}
-#else
 	globalNode->numNbrs = 0;
-#endif
 	RemoveNode(home, globalNode, globalOp);
 	
 	if(globalOp){
