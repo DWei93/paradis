@@ -64,7 +64,7 @@ SYS = gcc
 #    Set the execution MODE to PARALLEL to enable compile-time support
 #    for MPI and multi-cpu support, or SERIAL for single-cpu compilation
 #
-# MODE = SERIAL
+ #MODE = SERIAL
 
 MODE = PARALLEL
 
@@ -72,9 +72,9 @@ MODE = PARALLEL
 #    Set the XLIB mode to ON to enable compilation supporting the DD3d
 #    xwindow plotting capability, or OFF to disable it.
 #
-# XLIB_MODE = OFF
-
 XLIB_MODE = OFF
+
+#XLIB_MODE = ON
 
 #
 #    Define the optimization level to be used during compilation
@@ -89,7 +89,7 @@ XLIB_MODE = OFF
 # OPT = -O 
 # OPT = -O1
 # OPT = -O2
-OPT = -O3
+OPT = -O3 
 # OPT = -O3
 
 #

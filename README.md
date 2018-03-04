@@ -4,8 +4,13 @@ This README would normally document whatever steps are necessary to get your app
 
 ### What is this repository for? ###
 
-* Quick summary
-* Version
+
+For general information on compiling, configuring, and running
+ParaDiS simulations, refer to the ParaDiS User's Guide for the
+current version located at
+
+        docs/ParaDiSUsersGuide-VX.X.X.pdf
+
 * [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
 
 ### How do I get set up? ###
