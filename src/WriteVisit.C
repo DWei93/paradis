@@ -458,7 +458,7 @@ static void WriteVisitNodesBinary(Home_t *home, char *baseFileName,
  *      we need to do.
  */
         lenBuffer = MAX_NODES_PER_BUF * BYTES_PER_NODE;
-        buffer = malloc(lenBuffer);
+        buffer = (char*)malloc(lenBuffer);
         nextPos = buffer;
 
 /*
@@ -785,7 +785,7 @@ static void WriteVisitSegmentsBinary(Home_t *home, char *baseFileName,
  *      we need to do.
  */
         lenBuffer = MAX_SEGS_PER_BUF * BYTES_PER_SEGMENT;
-        buffer = malloc(lenBuffer);
+        buffer = (char*)malloc(lenBuffer);
         nextPos = buffer;
 
 /*

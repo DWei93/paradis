@@ -2900,7 +2900,7 @@ void FMDistTaylorExp(Home_t *home)
             for (i = 0; i < sendCnt; i++) {
                 bufSize = (numCoeff + 3) *
                           sendInfo[i].cellCnt * sizeof(real8);
-                sendBuf[i] = malloc(bufSize);
+                sendBuf[i] = (real8 *)malloc(bufSize);
                 FMPackTaylorCoeff(home, sendInfo[i].cellCnt,
                                   sendInfo[i].cellList, sendBuf[i],
                                   bufSize);

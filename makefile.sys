@@ -1117,7 +1117,7 @@ INCS_SERIAL.franklin       =
 CC_PARALLEL.gcc       = mpicc
 CPP_PARALLEL.gcc      = mpicxx
 CCFLAG_PARALLEL.gcc   = -DPARALLEL=1 -Wno-unknown-pragmas
-CPPFLAG_PARALLEL.gcc  =
+CPPFLAG_PARALLEL.gcc  = -DPARALLEL=1
 
 CC_SERIAL.gcc         = gcc -Wno-unknown-pragmas
 CPP_SERIAL.gcc        = g++
@@ -1134,8 +1134,8 @@ CCFLAG.gcc            = $(CCFLAG_$(MODE).gcc)
 CPPFLAG.gcc           = $(CPPFLAG_$(MODE).gcc)
 
 #
-#    Identify library and paths for X-Windows, and MPI
-#    if available
+#    Identify library and paths for X-Windows, MPI
+#    and geos if available
 #
 XLIB_LIBDIR.gcc       =
 XLIB_LIB.gcc          =
@@ -1148,6 +1148,10 @@ MPI_INCS.gcc          =
 HDF_LIBDIR.gcc        = 
 HDF_LIB.gcc           = 
 HDF_INCS.gcc          = 
+
+GEOS_LIBDIR.gcc        =  
+GEOS_LIB.gcc           = -L/sharefs/home/zhangxu/WDA/LIB/geos/lib -lgeos -rdynamic -Wl,-rpath,/sharefs/home/zhangxu/WDA/LIB/geos/lib
+GEOS_INCS.gcc          = -I/sharefs/home/zhangxu/WDA/LIB/geos/include
 
 OPENMP_FLAG.gcc       = -fopenmp
 

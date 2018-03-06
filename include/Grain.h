@@ -98,9 +98,9 @@ struct _peneResults{
 };
 
 void PrintNeighbor(Home_t *home, Node_t *node);
-void FormatMatrix(real8 M[3][3], char *msg);
-void FormatMatrix66(real8 M[6][6], char *msg);
-void FormatVector(real8 vec[3], char *msg);
+void FormatMatrix(real8 M[3][3], const char *msg);
+void FormatMatrix66(real8 M[6][6], const char *msg);
+void FormatVector(real8 vec[3], const char *msg);
 void CopyMatrix33(real8 M1[3][3], real8 M2[3][3]);
 void InitOrientation(real8 MatrixOrientation[3][3], real8 TwinOrientation[3][3]);
 void InitGrain(Home_t *home, Param_t *param);

@@ -38,25 +38,15 @@
 #define VFLAG_SET_BY_USER 0x08
 
 
-#ifdef __cplusplus
-extern "C" void BindVar(ParamList_t *list, char *name, void *addr,
-                    int type, int cnt, int flags);
-extern "C" int  GetNextToken(FILE *fp, char *token, int maxTokenSize);
-extern "C" int  GetParamVals(FILE *fp, int valType, int valsExpected,
-                    void *valList);
-extern "C" int  LookupParam(ParamList_t *list, char *token);
-extern "C" void WriteParam(ParamList_t *list, int index, FILE *fp);
-#else
-void BindVar(ParamList_t *list, char *name, void *addr, int type,
+void BindVar(ParamList_t *list, const char *name, void *addr, int type,
          int cnt, int flags);
 void DisableUnneededParams(Home_t *home);
 int  GetNextToken(FILE *fp, char *token, int maxTokenSize);
 int  GetParamVals(FILE *fp, int valType, int valsExpected,
         void *valList);
 int  LookupParam(ParamList_t *list, char *token);
-void MarkParamDisabled(ParamList_t *CPList, char *name);
-void MarkParamEnabled(ParamList_t *CPList, char *name);
+void MarkParamDisabled(ParamList_t *CPList, const char *name);
+void MarkParamEnabled(ParamList_t *CPList, const char *name);
 void WriteParam(ParamList_t *list, int index, FILE *fp);
-#endif
 
 #endif  /* _PARSE_H */

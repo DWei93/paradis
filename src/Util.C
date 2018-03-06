@@ -3333,7 +3333,7 @@ int Connected(Node_t *node1, Node_t *node2, int *armID)
  *                    interpreted.
  *
  *------------------------------------------------------------------------*/
-void Fatal(char *format, ...) 
+void Fatal(const char *format, ...) 
 {
         char    msg[512];
         va_list args;

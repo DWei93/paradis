@@ -51,7 +51,7 @@
 #include "Decomp.h"
 #include "RBDecomp.h"
 #include "Restart.h"
-#include "DisplayC.h"
+//#include "DisplayC.h"
 
 #ifdef USE_HDF
 #include "hdf5.h"
@@ -1594,7 +1594,7 @@ void AllocRBDecomp(Home_t *home, RBDecomp_t *oldDecomp, RBDecomp_t **newDecomp,
         }
 
         allocSize = totDecompCnt * sizeof(RBDecomp_t);
-        decompArray = calloc(1, allocSize);
+        decompArray = (RBDecomp_t *)calloc(1, allocSize);
 
 /*
  *      The highest level of the decomposition will use the first

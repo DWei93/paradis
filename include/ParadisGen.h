@@ -105,7 +105,7 @@ int GetBurgID_FCCFromArm(Home_t *home, Node_t *node, int segID);
  */
 typedef struct {
         int   funcType;
-        char  *funcName;
+        const char  *funcName;
 /*
         void  (* func)();
 */
@@ -162,7 +162,7 @@ typedef	enum{
  */
 typedef struct {
         int   optType;
-        char  *optName;
+        const char  *optName;
         int   optMinAbbrev;
         int   optPaired;
 } Option_t;

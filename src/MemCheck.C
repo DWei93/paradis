@@ -40,7 +40,7 @@
  *      in this module, so we explicitly prototype any
  *      functions that may be called.
  */
-void Fatal(char *format, ...);
+void Fatal(const char *format, ...);
 void ParadisMemCheck(void);
 void ParadisFree(char *fileName, int lineNum, void *ptr);
 void *ParadisMalloc(char *fileName, int lineNum, size_t size);
@@ -264,7 +264,8 @@ void *ParadisMalloc(char *fileName, int lineNum, size_t size)
         memBlocks[memBlocksUsed].userAddr =
                     (char *)memBlocks[memBlocksUsed].realAddr +
                     PARADIS_MEM_HEADER_LEN;
-        memBlocks[memBlocksUsed].header  = memBlocks[memBlocksUsed].realAddr;
+        char* temp1 = (char* )memBlocks[memBlocksUsed].realAddr;
+        strcpy(memBlocks[memBlocksUsed].header, temp1);
         memBlocks[memBlocksUsed].trailer =
                     (char *)memBlocks[memBlocksUsed].realAddr +
                     PARADIS_MEM_HEADER_LEN + size;
@@ -350,7 +351,8 @@ void *ParadisCalloc(char *fileName, int lineNum, size_t numElem, size_t size)
         memBlocks[memBlocksUsed].userAddr =
                     (char *)memBlocks[memBlocksUsed].realAddr +
                     PARADIS_MEM_HEADER_LEN;
-        memBlocks[memBlocksUsed].header  = memBlocks[memBlocksUsed].realAddr;
+        char* temp2 = (char* )memBlocks[memBlocksUsed].realAddr;
+        strcpy(memBlocks[memBlocksUsed].header, temp2);
         memBlocks[memBlocksUsed].trailer =
                     (char *)memBlocks[memBlocksUsed].realAddr +
                     PARADIS_MEM_HEADER_LEN + size;

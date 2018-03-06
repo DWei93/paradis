@@ -8,6 +8,7 @@
 #include "Home.h"
 #include "sys/stat.h"
 #include "sys/types.h"
+#include "Comm.h"
 
 #if defined _FEM | defined _FEMIMGSTRESS
 #include "FEM.h"

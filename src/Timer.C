@@ -34,7 +34,7 @@
  *			output files.
  *
  *------------------------------------------------------------------------*/
-static void TimerRegister(Home_t *home, int index, char *label) 
+static void TimerRegister(Home_t *home, int index, const char *label) 
 {
 	if (index >= TIMER_BLOCK_SIZE)
 		Fatal("TimerRegister: invalid timer");
@@ -43,7 +43,7 @@ static void TimerRegister(Home_t *home, int index, char *label)
 	home->timers[index].accum     = 0.0;
 	home->timers[index].incr      = 0.0;
 	home->timers[index].started   = 0;
-	home->timers[index].name      = label;
+	home->timers[index].name      = (char*)label;
 
 	return;
 }

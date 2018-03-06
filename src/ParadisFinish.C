@@ -10,7 +10,7 @@
 #include "Home.h"
 #include "Init.h"
 #include "Util.h"
-#include "DisplayC.h"
+//#include "DisplayC.h"
 #include "Decomp.h"
 #include "ParadisThread.h"
 

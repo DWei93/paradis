@@ -88,8 +88,8 @@ $(BINDIR):
 # until the compiler is fixed.
 #
 
-CommSendGhosts.o:	CommSendGhosts.c $(HEADERS)
-		$(CC) -g $(CCFLAG) $(INCS) -c $<
+# CommSendGhosts.o:	CommSendGhosts.c $(HEADERS)
+#		$(CC) -g $(CCFLAG) $(INCS) -c $<
 
 
 $(PARADIS):	$(BINDIR) $(PARADIS_BIN)

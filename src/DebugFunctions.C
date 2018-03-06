@@ -41,7 +41,7 @@
  *               a long segment is found.
  *
  *************************************************************************/
-void CheckForces(Home_t *home, char *msg)
+void CheckForces(Home_t *home, const char *msg)
 {
         int    i, j;
         int    numNodes, numNbrs;
@@ -108,7 +108,7 @@ void CheckForces(Home_t *home, char *msg)
  *               a long segment is found.
  *
  *************************************************************************/
-void CheckSegLengths(Home_t *home, char *msg)
+void CheckSegLengths(Home_t *home, const char *msg)
 {
         int    i, j;
         int    numNodes, numNbrs;
@@ -275,7 +275,7 @@ void CheckForEmptySimulation(Home_t *home)
  *               a segment with an undefined glide plane is found.
  *
  *************************************************************************/
-void CheckForUndefinedPlanes(Home_t *home, char *msg)
+void CheckForUndefinedPlanes(Home_t *home, const char *msg)
 {
         int    i, j;
         int    numNodes, numNbrs;
@@ -306,7 +306,7 @@ void CheckForUndefinedPlanes(Home_t *home, char *msg)
         return;
 }
 
-void CheckAll(Home_t *home, char *format, ...)
+void CheckAll(Home_t *home, const char *format, ...)
 {
 	return;
 	char    msg[512];

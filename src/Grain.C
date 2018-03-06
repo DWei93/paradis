@@ -33,7 +33,7 @@ void PrintNeighbor(Home_t *home, Node_t *node){
 	return;
 }
 
-void FormatMatrix(real8 M[3][3], char *msg){
+void FormatMatrix(real8 M[3][3], const char *msg){
 	int i;
 	printf("%s matrix:\n",msg);
 	for (i = 0; i < 3; i++){
@@ -43,7 +43,7 @@ void FormatMatrix(real8 M[3][3], char *msg){
 	return;
 }
 
-void FormatMatrix66(real8 M[6][6], char *msg){
+void FormatMatrix66(real8 M[6][6], const char *msg){
 	int i;
 	printf("%s matrix:\n",msg);
 	for (i = 0; i < 6; i++){
@@ -53,7 +53,7 @@ void FormatMatrix66(real8 M[6][6], char *msg){
 	return;
 }
 
-void FormatVector(real8 vec[3], char *msg){
+void FormatVector(real8 vec[3], const char *msg){
 	printf("%s vector:\n",msg);
 	printf("%.15f %.15f %.15f\n", vec[0], vec[1], vec[2]);
 }

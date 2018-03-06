@@ -25,12 +25,13 @@
 #include "Home.h"
 #include "Init.h"
 #include "InData.h"
-#include "DisplayC.h"
+//#include "DisplayC.h"
 #include "FM.h"
 #include "Mobility.h"
 #include "Decomp.h"
 #include "Parse.h"
 #include "Restart.h"
+#include "Comm.h"
 
 #ifdef _BGP
 #include <spi/kernel_interface.h>
@@ -1088,7 +1089,8 @@ static void PrintBanner(Home_t *home, int argc, char *argv[])
         int            i;
         uid_t          uid;
         time_t         currTime;
-        char           *separator, *execName, *execPath;
+        char           *separator, *execName;
+        const char      *execPath;
         char           workingDir[512];
         char           tmpExecName[512];
         char           currTimeStr[128];
@@ -1173,7 +1175,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
         int          doBinRead;
         char         *sep, *start;
         char         tmpDataFile[256], testFile[256];
-        char         *ctrlFile, *dataFile;
+        char         *ctrlFile;
+        char         *dataFile;
+        const   char* temp;
         Param_t      *param;
         InData_t     *inData;
         int          fd;
@@ -1215,7 +1219,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
         if (home->myDomain == 0) {
 
             dataFile = (char *)NULL;
-            ctrlFile = "control.script";
+            printf("0\n");
+            ctrlFile = (char*)"control.script";
+            printf("1\n");
 
             for (i = 1; i < argc; i++) {
                 if (!strcmp(argv[i], "-r")) {

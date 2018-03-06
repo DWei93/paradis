@@ -10,7 +10,7 @@
 #include "Param.h"
 #include "Parse.h"
 
-extern "C" void Fatal(char *format, ...);
+Fatal(const char *format, ...);
 
 
 YWindow *win;

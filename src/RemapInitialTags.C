@@ -174,7 +174,7 @@ static void RemapArmTags(Home_t *home)
  *              If no mapping was found, the tag is fine as it is.
  *              Otherwise, reset the arm's tag to the new value.
  */
-                mapping = bsearch(&key, home->tagMap, home->tagMapEnts,
+                mapping = (TagMap_t*)bsearch(&key, home->tagMap, home->tagMapEnts,
                                   sizeof(TagMap_t), TagMapCompare);
 
                 if (mapping != (TagMap_t *)NULL) {

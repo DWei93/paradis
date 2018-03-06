@@ -80,7 +80,7 @@ enum {
  */
 typedef struct {
         int     optType;
-        char    *optName;
+        const char    *optName;
         int     optMinAbbrev;
         int     optPaired;
 } Option_t;

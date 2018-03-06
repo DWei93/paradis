@@ -52,7 +52,7 @@
  *            character string previously allocated by the caller.
  *
  *-------------------------------------------------------------------------*/
-void BindVar(ParamList_t *list, char *name, void *addr, int type,
+void BindVar(ParamList_t *list, const char *name, void *addr, int type,
              int cnt, int flags)
 {
         int       pCnt;
@@ -99,7 +99,7 @@ void BindVar(ParamList_t *list, char *name, void *addr, int type,
 void WriteParam(ParamList_t *list, int index, FILE *fp)
 {
         int  i, j, minIndex, maxIndex, type, count;
-        char *lineFeed, *lBracket, *rBracket;
+        const char *lineFeed, *lBracket, *rBracket;
         char format[MAX_STRING_LEN];
 
 /*

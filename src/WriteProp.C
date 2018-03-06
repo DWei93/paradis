@@ -96,8 +96,8 @@ void WriteProp(Home_t *home, int property)
             tmpOffset += 1;
 #endif
 
-            localDensityVals = malloc((numItems)*sizeof(real8));
-            globalDensityVals = malloc((numItems)*sizeof(real8));
+            localDensityVals = (real8*)malloc((numItems)*sizeof(real8));
+            globalDensityVals = (real8*)malloc((numItems)*sizeof(real8));
 
             for (i = 0; i < numItems; i++) {
                 globalDensityVals[i] = 0.0;

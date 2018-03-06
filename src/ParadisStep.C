@@ -16,7 +16,7 @@
 #include <sys/time.h>
 #include "Home.h"
 #include "Util.h"
-#include "DisplayC.h"
+//#include "DisplayC.h"
 #include "Comm.h"
 #include "Mobility.h"
 #include "Decomp.h"

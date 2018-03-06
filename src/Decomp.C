@@ -684,12 +684,8 @@ void Rebalance(Home_t *home, int criteria)
  */
                 copyLevel = maxLevel;
                 imbalanceThreshold = 0.05;
-			
 
-                (void) RBCheckLoadBalance(home, home->decomp, loadData,
-                                          imbalanceThreshold, currLevel,
-                                          &copyLevel);
-				
+                (void) RBCheckLoadBalance(home, (RBDecomp_t*) home->decomp, loadData, imbalanceThreshold, currLevel, &copyLevel);
 
 /*
  *              If copyLevel is >= the maximum level, there were no

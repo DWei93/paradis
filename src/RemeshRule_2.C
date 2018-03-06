@@ -115,7 +115,7 @@ static void MeshCoarsen(Home_t *home)
 //			if(CheckReposition(home, node, newPos);
 #if 1
                         snprintf(name,50,"M5.%d.1",home->cycle);
-			Tecplot(home,name,0,0,0,0,0,1);
+			Tecplot(home,(char*)name,0,0,0,0,0,1);
 			PrintNode(node);
 			PrintNode(nbr1);
 #endif
@@ -127,13 +127,13 @@ static void MeshCoarsen(Home_t *home)
                         mergeDone = mergeStatus & MERGE_SUCCESS;
 
                         snprintf(name,50,"M5.%d.2",home->cycle);
-			Tecplot(home,name,0,0,0,0,0,1);
+			Tecplot(home,(char*)name,0,0,0,0,0,1);
 
 			if(mergeStatus == 5){
 #if 1
 			    if(mergedNode != (Node_t *)NULL){
                                 snprintf(name,50,"M5.%d.2",home->cycle);
-				Tecplot(home,name,0,0,0,0,0,1);
+				Tecplot(home,(char*)name,0,0,0,0,0,1);
 			        PrintNode(mergedNode);
 			    }
 #endif
@@ -719,7 +719,7 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
 						if(first == 0){
 						PrintNode(node);
 						printf("Warning: the arm %d is a basic arm, can not mesh refine\n",armList[0]);
-					Tecplot(home,"BasicBurg",0,0,0,0,0,1);
+					Tecplot(home,(char*)"BasicBurg",0,0,0,0,0,1);
 						first = 1;
 						}
 						return(0);
@@ -742,7 +742,7 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
 				}else{
 					PrintNode(node);
 					PrintNode(nbr);
-					Tecplot(home,"remesh.plt",0,0,0,0,0,1);
+					Tecplot(home,(char*)"remesh.plt",0,0,0,0,0,1);
 					Fatal("Task %d, TrySegBisect: wrong inGrain",home->myDomain);
 				}
 			}
@@ -1130,7 +1130,7 @@ static void MeshRefine(Home_t *home)
                             }else{
                                 PrintNode(node);
                                 PrintNode(nbr1);
-                                Tecplot(home,"remesh.plt",0,0,0,0,0,1);
+                                Tecplot(home,(char*)"remesh.plt",0,0,0,0,0,1);
                                 Fatal("RemeshRule2: wrong inGrain");
                             }
 			}

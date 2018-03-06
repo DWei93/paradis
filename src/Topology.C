@@ -1313,7 +1313,7 @@ void SplitMultiNodes(Home_t *home)
  *		end of each array for the count of arms within
  *		that list that have been selected)
  */
-		armSets = calloc(1, maxSets * sizeof(int *));
+		armSets = (int**)calloc(1, maxSets * sizeof(int *));
 
 		for (j = 0; j < maxSets; j++) {
 			armSets[j] = (int *)calloc(1, (nbrs + 1) * sizeof(int));
@@ -1361,7 +1361,7 @@ void SplitMultiNodes(Home_t *home)
                 origVel[Y] = node->vY;
                 origVel[Z] = node->vZ;
 
-                armList = calloc(1, (nbrs - 2) * sizeof(int));
+                armList = (int*)calloc(1, (nbrs - 2) * sizeof(int));
 			
 		for (j = 0; j < numSets; j++) {
 
@@ -1489,7 +1489,7 @@ void SplitMultiNodes(Home_t *home)
 				       splitNode1->y, splitNode1->z)){
 					PrintNode(splitNode1);
 					FormatVector(line.direction,"line.direction");
-                                        Tecplot(home, "SMN1", 0, 0, 0, 0, 0, 1);
+                                        Tecplot(home, (char*)"SMN1", 0, 0, 0, 0, 0, 1);
 					Fatal("SplitMutiNodes: wrong position of splitNdoe1\n");
 				    }
     
@@ -1539,7 +1539,7 @@ void SplitMultiNodes(Home_t *home)
 				       splitNode2->y, splitNode2->z)){
 					PrintNode(splitNode2);
 					FormatVector(line.direction,"line.direction");
-                                        Tecplot(home, "SMN2", 0, 0, 0, 0, 0, 1);
+                                        Tecplot(home, (char*)"SMN2", 0, 0, 0, 0, 0, 1);
 					Fatal("SplitMutiNodes: wrong position of splitNdoe2\n");
 				    }
     
@@ -2911,7 +2911,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 		
 	    if(deadNode->numNbrs == 0) {
 		PrintTag(deadNode);
-		Tecplot(home,"MergeNode",0,0,0,0,0,1);
+		Tecplot(home,(char*)"MergeNode",0,0,0,0,0,1);
 		Fatal("MergeNode: no nbr exists.\n");
 		break;
 	    }
@@ -2921,7 +2921,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	    nbrNode = GetNeighborNode(home, deadNode, i);
 
 	    if (nbrNode == (Node_t *)NULL) {
-		Tecplot(home,"MergeNode",0,0,0,0,0,1);
+		Tecplot(home,(char*)"MergeNode",0,0,0,0,0,1);
 		Fatal("Neighbor not found at %s line %d\n",
 		      __FILE__, __LINE__);
 	    }
@@ -3377,7 +3377,7 @@ void DebugMergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 		
 	    if(deadNode->numNbrs == 0) {
 		PrintTag(deadNode);
-		Tecplot(home,"MergeNode",0,0,0,0,0,1);
+		Tecplot(home,(char*)"MergeNode",0,0,0,0,0,1);
 		Fatal("MergeNode: no nbr exists.\n");
 		break;
 	    }
@@ -3387,7 +3387,7 @@ void DebugMergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	    nbrNode = GetNeighborNode(home, deadNode, i);
 
 	    if (nbrNode == (Node_t *)NULL) {
-		Tecplot(home,"MergeNode",0,0,0,0,0,1);
+		Tecplot(home,(char*)"MergeNode",0,0,0,0,0,1);
 		Fatal("Neighbor not found at %s line %d\n",
 		      __FILE__, __LINE__);
 	    }

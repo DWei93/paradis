@@ -643,7 +643,7 @@ void LineTensionForce(Home_t *home, real8 x1, real8 y1, real8 z1,
 
         if(!SelfForce(1, MU, NU, bx, by, bz, x1, y1, z1, x2, y2, z2,
                   a, Ecore, fSelf1, fSelf2)){
-	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
+//	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
 	    Fatal("at %s, Line %d",__FILE__,__LINE__);
 	}
 
@@ -1007,7 +1007,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
                       pos1[X], pos1[Y], pos1[Z], pos2[X], pos2[Y], pos2[Z],
                       a, Ecore, f1, f2)){
 
-	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
+//	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
 	    PrintNode(node1);
 	    PrintNode(node2);
 	    Fatal("at %s, Line %d",__FILE__,__LINE__);
@@ -1341,7 +1341,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
             if(!SelfForce(0, MU, NU, burg[X], burg[Y], burg[Z],
                       x1, y1, z1, x2, y2, z2, a, Ecore, f1, f2)){
 
-	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
+//	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
 	    PrintNode(node1);
 	    PrintNode(node2);
 	    Fatal("at %s, Line %d",__FILE__,__LINE__);

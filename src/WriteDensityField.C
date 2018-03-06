@@ -18,7 +18,7 @@
  *      Args:
  *
  *-------------------------------------------------------------------------*/
-void WriteDensityField(Home_t *home, char *fileName)
+void WriteDensityField(Home_t *home, const char *fileName)
 {
         int     nx, ny, nz, elemCount;
         int     i, j, k, im, jm, km, i0, j0, k0, di, dj, dk;

@@ -34,11 +34,11 @@
  *                    parameter to be explicitly disabled.
  *
  *----------------------------------------------------------------------*/
-void MarkParamDisabled(ParamList_t *CPList, char *name)
+void MarkParamDisabled(ParamList_t *CPList, const char *name)
 {
         int  paramIndex;
 
-        if ((paramIndex = LookupParam(CPList, name)) >= 0) {
+        if ((paramIndex = LookupParam(CPList,(char*) name)) >= 0) {
             CPList->varList[paramIndex].flags |= VFLAG_DISABLED;
         } else {
             Fatal("MarkParamDisabled: unknown parameter %s\n", name);
@@ -64,11 +64,11 @@ void MarkParamDisabled(ParamList_t *CPList, char *name)
  *                    parameter to be explicitly enabled.
  *
  *----------------------------------------------------------------------*/
-void MarkParamEnabled(ParamList_t *CPList, char *name)
+void MarkParamEnabled(ParamList_t *CPList, const char *name)
 {
         int  paramIndex;
 
-        if ((paramIndex = LookupParam(CPList, name)) >= 0) {
+        if ((paramIndex = LookupParam(CPList,(char*) name)) >= 0) {
             CPList->varList[paramIndex].flags &= ~VFLAG_DISABLED;
         } else {
             Fatal("MarkParamEnabled: unknown parameter %s\n", name);
@@ -951,13 +951,13 @@ void DataParamInit(Param_t *param, ParamList_t *DPList)
 	param->twinRatio = 0.5;
 	
 	BindVar(DPList, "xBoundType", &param->xBoundType, V_INT, 1, VFLAG_NULL);
-	param->xBoundType = 0;
+	param->xBoundType = (BoundType_t)0;
 
 	BindVar(DPList, "yBoundType", &param->yBoundType, V_INT, 1, VFLAG_NULL);
-	param->yBoundType = 0;
+	param->yBoundType = (BoundType_t)0;
 
 	BindVar(DPList, "zBoundType", &param->zBoundType, V_INT, 1, VFLAG_NULL);
-	param->zBoundType = 0;
+	param->zBoundType = (BoundType_t)0;
 
 	BindVar(DPList, "xBoundMin", &param->xBoundMin, V_DBL, 1, VFLAG_NULL);
 	BindVar(DPList, "yBoundMin", &param->yBoundMin, V_DBL, 1, VFLAG_NULL);

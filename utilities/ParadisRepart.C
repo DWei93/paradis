@@ -107,10 +107,10 @@ typedef enum {
  *      a value or not.
  */
 typedef struct {
-        int     optType;
-        char    *optName;
-        int     optMinAbbrev;
-        int     optPaired;
+        int         optType;
+        const char  *optName;
+        int         optMinAbbrev;
+        int         optPaired;
 } Option_t;
 
 /*

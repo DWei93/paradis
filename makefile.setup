@@ -247,6 +247,10 @@ HDF_INCS           = $(HDF_$(HDF_MODE)_INCS)
 
 HDF_DEFS_ON        = -DUSE_HDF
 
+GEOS_ON_LIB         = $(GEOS_LIB.$(SYS))
+GEOS_ON_INCS        = $(GEOS_INCS.$(SYS))
+GEOS_LIB            = $(GEOS_$(GEOS_MODE)_LIB)
+GEOS_INCS           = $(GEOS_$(GEOS_MODE)_INCS)
 
 MPI_LIB_PARALLEL   = $(MPI_LIB.$(SYS))
 MPI_INCS_PARALLEL  = $(MPI_INCS.$(SYS))
@@ -255,7 +259,7 @@ MPI_LIB            = $(MPI_LIB_$(MODE))
 MPI_INCS           = $(MPI_INCS_$(MODE))
 
 LIB_PARALLEL       = $(LIB_$(MODE).$(SYS)) $(XLIB_LIB) $(MPI_LIB) \
-		     $(HDF_LIB)
+		     		 $(HDF_LIB) $(GEOS_ON_LIB)
 
 OPENMP_ON          = $(OPENMP_FLAG.$(SYS))
 OPENMP_FLAG        = $(OPENMP_$(OPENMP_MODE))
@@ -269,20 +273,18 @@ CC              = $(CC_$(MODE).$(SYS))
 CPP             = $(CPP_$(MODE).$(SYS))
 DEFS           += $(XLIB_DEFS_$(XLIB_MODE)) $(HDF_DEFS_$(HDF_MODE))
 CCFLAG          = $(CCFLAG.$(SYS)) $(OPENMP_FLAG) $(DEFS)
-CPPFLAG         = $(CPPFLAG.$(SYS)) $(OPENMP_FLAG) $(DEFS) -DNO_XPM \
-                  -DNO_GENERAL -D_SEM_SEMUN_UNDEFINED
+CPPFLAG         = $(CPPFLAG.$(SYS)) $(OPENMP_FLAG) $(DEFS) 
 LIB             = $(LIB_PARALLEL)
 INCS            = $(INCS_$(MODE).$(SYS)) $(XLIB_INCS) $(MPI_INCS) \
-		  $(HDF_INCS) -I ../include
+		  		  $(HDF_INCS) $(GEOS_ON_INCS) -I ../include
 
 CC_SERIAL       = $(CC_SERIAL.$(SYS))
 CPP_SERIAL      = $(CPP_SERIAL.$(SYS))
 CCFLAG_SERIAL   = $(CCFLAG_SERIAL.$(SYS)) $(DEFS)
-CPPFLAG_SERIAL  = $(CPPFLAG_SERIAL.$(SYS)) $(DEFS) -DNO_XPM \
-                  -DNO_GENERAL -D_SEM_SEMUN_UNDEFINED 
-LIB_SERIAL      = $(LIB_SERIAL.$(SYS)) $(XLIB_LIB) $(HDF_LIB)
-INCS_SERIAL     = $(INCS_SERIAL.$(SYS)) $(XLIB_INCS) $(HDF_INCS) \
-		  -I ../include
+CPPFLAG_SERIAL  = $(CPPFLAG_SERIAL.$(SYS)) $(DEFS)  
+LIB_SERIAL      = $(LIB_SERIAL.$(SYS)) $(XLIB_LIB) $(HDF_LIB) $(GEOS_ON_LIB)
+INCS_SERIAL     = $(INCS_SERIAL.$(SYS)) $(XLIB_INCS) $(HDF_INCS) $(GEOS_ON_INCS) \
+		  		  -I ../include
 
 F90             = $(F90.$(SYS))
 F90_LIB         = $(F90_LIB.$(SYS))

@@ -341,7 +341,7 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->frLenMin   = 3500;
         inArgs->frLenMax   = 3500;
         inArgs->numLoops   = 1000;
-        inArgs->outputFile = "paradis.data";
+        inArgs->outputFile = (char*)"paradis.data";
         inArgs->radius     = inArgs->maxSegLen / 2.0;
         inArgs->seed       = time(0) + getpid();
         inArgs->type       = FTYPE_SCREW;

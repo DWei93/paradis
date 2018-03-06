@@ -18,7 +18,7 @@
 #include "Util.h"
 
 
-void FixRemesh(Home_t *home, char flag[256])
+void FixRemesh(Home_t *home, const char flag[256])
 {
 	int			idom, domIdx, rcvOpCount, opidx;
 	real8			newPlane[3];

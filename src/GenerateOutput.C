@@ -25,7 +25,7 @@
 #include "Comm.h"
 #include "Util.h"
 #include "WriteProp.h"
-#include "DisplayC.h"
+//#include "DisplayC.h"
 #include "Restart.h"
 
 #ifdef PARALLEL
@@ -595,7 +595,7 @@ void GetParallelIOGroup(Home_t *home)
         numLargeGroups = numTasks % numIOGroups;
         largeGroupSize = smallGroupSize + (numLargeGroups > 0);
 
-        taskList = malloc(numIOGroups * sizeof(int));
+        taskList = (int *)malloc(numIOGroups * sizeof(int));
 
 /*
  *      First make a list including only the processes that are
@@ -923,7 +923,7 @@ static void FreeBinFileArrays(BinFileData_t *binData)
  *                       might produce.
  *
  *------------------------------------------------------------------------*/
-static void DoParallelIO(Home_t *home, int outputTypes, int stage, char *msg)
+static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *msg)
 {
         int     ioGroup, prevInGroup, nextInGroup, numIOGroups;
         int     thisDomain, isFirstInGroup, isLastInGroup;
@@ -1226,7 +1226,7 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, char *msg)
             if (isLastInGroup) {
                 int *visitDataCounts;
 
-                visitDataCounts = malloc(numIOGroups * 2 * sizeof(int));
+                visitDataCounts = (int *)malloc(numIOGroups * 2 * sizeof(int));
 
 #ifdef PARALLEL
                 MPI_Gather(&countInGroup, 2, MPI_INT, visitDataCounts, 2,
@@ -1307,7 +1307,7 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, char *msg)
  *                           STAGE_TERM
  *
  *------------------------------------------------------------------------*/
-void GenerateOutput(Home_t *home, int stage, char *msg)
+void GenerateOutput(Home_t *home, int stage, const char *msg)
 {
         int     outputTypes = 0, finishLoc, finishGlo;
         real8   localDensity, globalDensity;

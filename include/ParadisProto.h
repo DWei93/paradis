@@ -57,7 +57,7 @@ void DeltaPlasticStrain_FCC(Home_t *home);
 void DistributeTagMaps(Home_t *home);
 void FindPreciseGlidePlane(Home_t *home, real8 burgVecIn[3], real8 dirIn[3],
                            real8 glidePlane[3], Node_t *node, Node_t *nbr);
-void FixRemesh(Home_t *home, char flag[256]);
+void FixRemesh(Home_t *home, const char flag[256]);
 void ForwardEulerIntegrator(Home_t *home);
 void FreeCellCenters(void);
 void FreeCorrectionTable(void);
@@ -65,7 +65,7 @@ void FreeInitArrays(Home_t *home, InData_t *inData);
 void FreeInNodeArray(InData_t *inData, int numNodes);
 void FreeRijm(void);
 void FreeRijmPBC(void);
-void GenerateOutput(Home_t *home, int stage, char *msg);
+void GenerateOutput(Home_t *home, int stage, const char *msg);
 void GetDensityDelta(Home_t *home);
 void GetMinDist(
         real8 p1x, real8 p1y, real8 p1z, real8 v1x, real8 v1y, real8 v1z,
@@ -100,6 +100,8 @@ void SetLatestRestart(char *fileName);
 void SortNodesForCollision(Home_t *home);
 void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         int writePrologue, int writeEpilogue, int numArms, int debug);
+void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
+             int writePrologue, int writeEpilogue, int numSegs);
 void UniformDecomp(Home_t *home, void **decomp);
 void WriteVelocity(Home_t *home, char *baseFileName, int ioGroup,
         int firstInGroup, int writePrologue, int writeEpilogue);

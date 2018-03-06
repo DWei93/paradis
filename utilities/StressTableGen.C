@@ -76,10 +76,10 @@ static real8 *rijmPBCTable;
  *      a value or not.
  */
 typedef struct {
-        int     optType;
-        char    *optName;
-        int     optMinAbbrev;
-        int     optPaired;
+        int             optType;
+        const   char    *optName;
+        int             optMinAbbrev;
+        int             optPaired;
 } Option_t;
 
 
@@ -515,8 +515,8 @@ static void InitArgs(InArgs_t *inArgs)
         inArgs->yLen = -1.0;
         inArgs->zLen = -1.0;
 
-        inArgs->rijmFileName    = "Rijm.tbl";
-        inArgs->rijmPBCFileName = "RijmPBC.tbl";
+        inArgs->rijmFileName    = (char*)"Rijm.tbl";
+        inArgs->rijmPBCFileName = (char*)"RijmPBC.tbl";
 
         return;
 }

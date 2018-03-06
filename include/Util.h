@@ -10,7 +10,6 @@
 
 #include "Home.h"
 
-
 #define DotProduct(vec1,vec2)       \
             ((vec1[0])*(vec2[0]) +  \
              (vec1[1])*(vec2[1]) +  \
@@ -152,17 +151,13 @@ void   SortNativeNodes(Home_t *home);
  */
 void   *CreateFragmentList(Home_t *home, int *totalFragmentCount);
 
-#if __cplusplus
-extern "C" void Fatal(char *format, ...);
-#else
-void   Fatal(char *format, ...);
-#endif
+void   Fatal(const char *format, ...);
 
 void   Plot(Home_t *home, int domIndex, int blkFlag);
 void   WriteArms(Home_t *home, char *baseFileName, int ioGroup,
           int firstInGroup, int writePrologue, int writeEpilogue);
 void   WriteDensFlux(char *fname, Home_t *home);
-void   WriteDensityField(Home_t *home, char *fileName);
+void   WriteDensityField(Home_t *home, const char *fileName);
 void   WriteFragments(Home_t *home, char *baseFileName, int ioGroup,
           int firstInGroup, int writePrologue, int writeEpilogue,
           void **fragmentList, int totalFragCount);
