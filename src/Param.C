@@ -930,9 +930,9 @@ void DataParamInit(Param_t *param, ParamList_t *DPList)
 
         BindVar(DPList, "dataDecompGeometry", &param->dataDecompGeometry,
                 V_INT, 3, VFLAG_NULL);
-        param->dataDecompGeometry[X] = 1;
-        param->dataDecompGeometry[Y] = 1;
-        param->dataDecompGeometry[Z] = 1;
+        param->dataDecompGeometry[XC] = 1;
+        param->dataDecompGeometry[YC] = 1;
+        param->dataDecompGeometry[ZC] = 1;
 		
 #if 1
 	BindVar(DPList, "maxSeg", &param->maxSeg, V_DBL, 1, VFLAG_NULL);

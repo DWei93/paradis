@@ -84,13 +84,13 @@ static void GetConfigFromCtrlFile(Home_t *home, FILE *fp, Node_t **nodeConfig)
         sscanf(inLine, "%lf %lf %lf", &param->maxCoordinates[0],
                &param->maxCoordinates[1], &param->maxCoordinates[2]);
 
-        param->minSideX = param->minCoordinates[X];
-        param->minSideY = param->minCoordinates[Y];
-        param->minSideZ = param->minCoordinates[Z];
+        param->minSideX = param->minCoordinates[XC];
+        param->minSideY = param->minCoordinates[YC];
+        param->minSideZ = param->minCoordinates[ZC];
 
-        param->maxSideX = param->maxCoordinates[X];
-        param->maxSideY = param->maxCoordinates[Y];
-        param->maxSideZ = param->maxCoordinates[Z];
+        param->maxSideX = param->maxCoordinates[XC];
+        param->maxSideY = param->maxCoordinates[YC];
+        param->maxSideZ = param->maxCoordinates[ZC];
 
         param->Lx = param->maxSideX - param->minSideX;
         param->Ly = param->maxSideY - param->minSideY;
@@ -201,9 +201,9 @@ static void GetConfigFromCtrlFile(Home_t *home, FILE *fp, Node_t **nodeConfig)
  */
         Getline(inLine, sizeof(inLine), fp);
         sscanf(inLine, "%d %d %d",
-               &param->dataDecompGeometry[X],
-               &param->dataDecompGeometry[Y],
-               &param->dataDecompGeometry[Z]);
+               &param->dataDecompGeometry[XC],
+               &param->dataDecompGeometry[YC],
+               &param->dataDecompGeometry[ZC]);
 
         saveDecomp = 1;
         
@@ -213,9 +213,9 @@ static void GetConfigFromCtrlFile(Home_t *home, FILE *fp, Node_t **nodeConfig)
  */
         param->dataDecompType = 1;
 
-        if ((param->dataDecompGeometry[X] != param->nXdoms) ||
-            (param->dataDecompGeometry[Y] != param->nYdoms) ||
-            (param->dataDecompGeometry[Z] != param->nZdoms) ||
+        if ((param->dataDecompGeometry[XC] != param->nXdoms) ||
+            (param->dataDecompGeometry[YC] != param->nYdoms) ||
+            (param->dataDecompGeometry[ZC] != param->nZdoms) ||
             (param->decompType != 1)) {
             saveDecomp = 0;
         }
@@ -510,13 +510,13 @@ static void GetOldStyleDataParams(Home_t *home, FILE *fp)
         sscanf(inLine, "%d %d %d", &param->dataDecompGeometry[0],
                &param->dataDecompGeometry[1], &param->dataDecompGeometry[2]);
 
-        param->minSideX = param->minCoordinates[X];
-        param->minSideY = param->minCoordinates[Y];
-        param->minSideZ = param->minCoordinates[Z];
+        param->minSideX = param->minCoordinates[XC];
+        param->minSideY = param->minCoordinates[YC];
+        param->minSideZ = param->minCoordinates[ZC];
 
-        param->maxSideX = param->maxCoordinates[X];
-        param->maxSideY = param->maxCoordinates[Y];
-        param->maxSideZ = param->maxCoordinates[Z];
+        param->maxSideX = param->maxCoordinates[XC];
+        param->maxSideY = param->maxCoordinates[YC];
+        param->maxSideZ = param->maxCoordinates[ZC];
 
         param->Lx = param->maxSideX - param->minSideX;
         param->Ly = param->maxSideY - param->minSideY;
@@ -543,9 +543,9 @@ static void GetOldStyleDataParams(Home_t *home, FILE *fp)
             param->dataDecompType = param->decompType;
         }
 
-        param->nXdoms = param->dataDecompGeometry[X];
-        param->nYdoms = param->dataDecompGeometry[Y];
-        param->nZdoms = param->dataDecompGeometry[Z];
+        param->nXdoms = param->dataDecompGeometry[XC];
+        param->nYdoms = param->dataDecompGeometry[YC];
+        param->nZdoms = param->dataDecompGeometry[ZC];
 
         ReadDecompBounds(home, (void **)&fp, binRead, param->dataDecompType,
                          &home->decomp);
@@ -558,9 +558,9 @@ static void GetOldStyleDataParams(Home_t *home, FILE *fp)
 
             param->decompType = param->dataDecompType = 1;
 
-            param->nXdoms = param->dataDecompGeometry[X] = 1;
-            param->nYdoms = param->dataDecompGeometry[Y] = 1;
-            param->nZdoms = param->dataDecompGeometry[Z] = 1;
+            param->nXdoms = param->dataDecompGeometry[XC] = 1;
+            param->nYdoms = param->dataDecompGeometry[YC] = 1;
+            param->nZdoms = param->dataDecompGeometry[ZC] = 1;
 
             UniformDecomp(home, &home->decomp);
         }
@@ -683,13 +683,13 @@ static void ConvertDataFile(Home_t *home, char *baseDataFileName)
  *                      is modified to remove references to these
  *                      values, we need to explicitly set them now.
  */
-                        param->minSideX = param->minCoordinates[X];
-                        param->minSideY = param->minCoordinates[Y];
-                        param->minSideZ = param->minCoordinates[Z];
+                        param->minSideX = param->minCoordinates[XC];
+                        param->minSideY = param->minCoordinates[YC];
+                        param->minSideZ = param->minCoordinates[ZC];
 
-                        param->maxSideX = param->maxCoordinates[X];
-                        param->maxSideY = param->maxCoordinates[Y];
-                        param->maxSideZ = param->maxCoordinates[Z];
+                        param->maxSideX = param->maxCoordinates[XC];
+                        param->maxSideY = param->maxCoordinates[YC];
+                        param->maxSideZ = param->maxCoordinates[ZC];
 
 /*
  *                      Explicitly set the domain geometry from the
@@ -702,9 +702,9 @@ static void ConvertDataFile(Home_t *home, char *baseDataFileName)
  *                      control file, so messing with the value does
  *                      no harm.
  */
-                        param->nXdoms = param->dataDecompGeometry[X];
-                        param->nYdoms = param->dataDecompGeometry[Y];
-                        param->nZdoms = param->dataDecompGeometry[Z];
+                        param->nXdoms = param->dataDecompGeometry[XC];
+                        param->nYdoms = param->dataDecompGeometry[YC];
+                        param->nZdoms = param->dataDecompGeometry[ZC];
 
 /*
  *                      For RB decompositions we need to initialize

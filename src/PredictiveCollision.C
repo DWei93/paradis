@@ -414,40 +414,40 @@ static void FindCollisionPointAndTime(Home_t *home, real8 p1[3], real8 p2[3],
 
         dt = home->param->deltaTT;
 
-        sBar1[X] = 0.5 * (p1[X] + p2[X]);
-        sBar1[Y] = 0.5 * (p1[Y] + p2[Y]);
-        sBar1[Z] = 0.5 * (p1[Z] + p2[Z]);
+        sBar1[XC] = 0.5 * (p1[XC] + p2[XC]);
+        sBar1[YC] = 0.5 * (p1[YC] + p2[YC]);
+        sBar1[ZC] = 0.5 * (p1[ZC] + p2[ZC]);
 
-        sBar2[X] = 0.5 * (p3[X] + p4[X]);
-        sBar2[Y] = 0.5 * (p3[Y] + p4[Y]);
-        sBar2[Z] = 0.5 * (p3[Z] + p4[Z]);
+        sBar2[XC] = 0.5 * (p3[XC] + p4[XC]);
+        sBar2[YC] = 0.5 * (p3[YC] + p4[YC]);
+        sBar2[ZC] = 0.5 * (p3[ZC] + p4[ZC]);
 
-        vec1[X] = p2[X] - p1[X];
-        vec1[Y] = p2[Y] - p1[Y];
-        vec1[Z] = p2[Z] - p1[Z];
+        vec1[XC] = p2[XC] - p1[XC];
+        vec1[YC] = p2[YC] - p1[YC];
+        vec1[ZC] = p2[ZC] - p1[ZC];
 
-        vec2[X] = p4[X] - p3[X];
-        vec2[Y] = p4[Y] - p3[Y];
-        vec2[Z] = p4[Z] - p3[Z];
+        vec2[XC] = p4[XC] - p3[XC];
+        vec2[YC] = p4[YC] - p3[YC];
+        vec2[ZC] = p4[ZC] - p3[ZC];
 
-        vBar1[X] = 0.5 * dt * (v1[X] + v2[X]);
-        vBar1[Y] = 0.5 * dt * (v1[Y] + v2[Y]);
-        vBar1[Z] = 0.5 * dt * (v1[Z] + v2[Z]);
+        vBar1[XC] = 0.5 * dt * (v1[XC] + v2[XC]);
+        vBar1[YC] = 0.5 * dt * (v1[YC] + v2[YC]);
+        vBar1[ZC] = 0.5 * dt * (v1[ZC] + v2[ZC]);
 
-        vBar2[X] = 0.5 * dt * (v3[X] + v4[X]);
-        vBar2[Y] = 0.5 * dt * (v3[Y] + v4[Y]);
-        vBar2[Z] = 0.5 * dt * (v3[Z] + v4[Z]);
+        vBar2[XC] = 0.5 * dt * (v3[XC] + v4[XC]);
+        vBar2[YC] = 0.5 * dt * (v3[YC] + v4[YC]);
+        vBar2[ZC] = 0.5 * dt * (v3[ZC] + v4[ZC]);
 
-        rBar[X] = sBar1[X] - sBar2[X];
-        rBar[Y] = sBar1[Y] - sBar2[Y];
-        rBar[Z] = sBar1[Z] - sBar2[Z];
+        rBar[XC] = sBar1[XC] - sBar2[XC];
+        rBar[YC] = sBar1[YC] - sBar2[YC];
+        rBar[ZC] = sBar1[ZC] - sBar2[ZC];
 
         *minDist2 = DotProduct(rBar, rBar);
         minTime2 = 0.0;
 
-        drBar[X] = vBar1[X] - vBar2[X];
-        drBar[Y] = vBar1[Y] - vBar2[Y];
-        drBar[Z] = vBar1[Z] - vBar2[Z];
+        drBar[XC] = vBar1[XC] - vBar2[XC];
+        drBar[YC] = vBar1[YC] - vBar2[YC];
+        drBar[ZC] = vBar1[ZC] - vBar2[ZC];
 
 /*
  *      Create the decision matrix and the right hand side
@@ -1022,9 +1022,9 @@ void PredictiveCollisions(Home_t *home)
                         }
                         	
                         if(home->param->polycrystal){
-                            burg12[X] = node1->burgX[arm12];
-                            burg12[Y] = node1->burgY[arm12];
-                            burg12[Z] = node1->burgZ[arm12];
+                            burg12[XC] = node1->burgX[arm12];
+                            burg12[YC] = node1->burgY[arm12];
+                            burg12[ZC] = node1->burgZ[arm12];
                             armInGrain12 = ChangeOrientation(home, node1, node2, 0);
                         }
 
@@ -1075,9 +1075,9 @@ void PredictiveCollisions(Home_t *home)
  */	
                             if(home->param->polycrystal){
 
-                                burg34[X] = node3->burgX[arm34];
-                                burg34[Y] = node3->burgY[arm34];
-                                burg34[Z] = node3->burgZ[arm34];
+                                burg34[XC] = node3->burgX[arm34];
+                                burg34[YC] = node3->burgY[arm34];
+                                burg34[ZC] = node3->burgZ[arm34];
                                 	
                                 if(BurgType_FCC(home,burg12) != BurgType_FCC(home,burg34)){
                                     continue;
@@ -1126,15 +1126,15 @@ void PredictiveCollisions(Home_t *home)
                             PBCPOSITION(param, x1, y1, z1, &x3, &y3, &z3);
                             PBCPOSITION(param, x3, y3, z3, &x4, &y4, &z4);
     
-                            p1[X] = x1;  p1[Y] = y1;  p1[Z] = z1;
-                            p2[X] = x2;  p2[Y] = y2;  p2[Z] = z2;
-                            p3[X] = x3;  p3[Y] = y3;  p3[Z] = z3;
-                            p4[X] = x4;  p4[Y] = y4;  p4[Z] = z4;
+                            p1[XC] = x1;  p1[YC] = y1;  p1[ZC] = z1;
+                            p2[XC] = x2;  p2[YC] = y2;  p2[ZC] = z2;
+                            p3[XC] = x3;  p3[YC] = y3;  p3[ZC] = z3;
+                            p4[XC] = x4;  p4[YC] = y4;  p4[ZC] = z4;
 
-                            v1[X] = vx1;  v1[Y] = vy1;  v1[Z] = vz1;
-                            v2[X] = vx2;  v2[Y] = vy2;  v2[Z] = vz2;
-                            v3[X] = vx3;  v3[Y] = vy3;  v3[Z] = vz3;
-                            v4[X] = vx4;  v4[Y] = vy4;  v4[Z] = vz4;
+                            v1[XC] = vx1;  v1[YC] = vy1;  v1[ZC] = vz1;
+                            v2[XC] = vx2;  v2[YC] = vy2;  v2[ZC] = vz2;
+                            v3[XC] = vx3;  v3[YC] = vy3;  v3[ZC] = vz3;
+                            v4[XC] = vx4;  v4[YC] = vy4;  v4[ZC] = vz4;
 
 /*
  *                          It is possible to have a zero-length segment
@@ -1142,17 +1142,17 @@ void PredictiveCollisions(Home_t *home)
  *                          such a segment, do not try to use it in any
  *                          subsequent collisions.
  */
-                            vec1[X] = x2 - x1;
-                            vec1[Y] = y2 - y1;
-                            vec1[Z] = z2 - z1;
+                            vec1[XC] = x2 - x1;
+                            vec1[YC] = y2 - y1;
+                            vec1[ZC] = z2 - z1;
 
                             if (DotProduct(vec1, vec1) < 1.0e-20) {
                                 continue;
                             }
 
-                            vec2[X] = x4 - x3;
-                            vec2[Y] = y4 - y3;
-                            vec2[Z] = z4 - z3;
+                            vec2[XC] = x4 - x3;
+                            vec2[YC] = y4 - y3;
+                            vec2[ZC] = z4 - z3;
 
                             if (DotProduct(vec2, vec2) < 1.0e-20) {
                                 continue;
@@ -1179,9 +1179,9 @@ void PredictiveCollisions(Home_t *home)
  *                          intersecting
  */
                             if (dist2 < 1.0) {
-                                cPoint[X] = x1 + vec1[X] * L1;
-                                cPoint[Y] = y1 + vec1[Y] * L1;
-                                cPoint[Z] = z1 + vec1[Z] * L1;
+                                cPoint[XC] = x1 + vec1[XC] * L1;
+                                cPoint[YC] = y1 + vec1[YC] * L1;
+                                cPoint[ZC] = z1 + vec1[ZC] * L1;
                                 collisionConditionIsMet = 1;
 #if DEBUG_TOPOLOGY_CHANGES
                                 FormatVector(cPoint,"dist2 < 1.0: cPoint");
@@ -1229,13 +1229,13 @@ void PredictiveCollisions(Home_t *home)
  */
                                 adjustCollisionPoint = 0;
 
-                                vec1[X] = cPoint[X] - p1[X];
-                                vec1[Y] = cPoint[Y] - p1[Y];
-                                vec1[Z] = cPoint[Z] - p1[Z];
+                                vec1[XC] = cPoint[XC] - p1[XC];
+                                vec1[YC] = cPoint[YC] - p1[YC];
+                                vec1[ZC] = cPoint[ZC] - p1[ZC];
     
-                                vec2[X] = cPoint[X] - p2[X];
-                                vec2[Y] = cPoint[Y] - p2[Y];
-                                vec2[Z] = cPoint[Z] - p2[Z];
+                                vec2[XC] = cPoint[XC] - p2[XC];
+                                vec2[YC] = cPoint[YC] - p2[YC];
+                                vec2[ZC] = cPoint[ZC] - p2[ZC];
 
                                 close2node1 = (DotProduct(vec1,vec1)<mindist2);
                                 close2node2 = (DotProduct(vec2,vec2)<mindist2);
@@ -1300,33 +1300,33 @@ void PredictiveCollisions(Home_t *home)
  */
                                      arm21 = GetArmID(home, node2, node1);
     
-                                     oldfp0[X] = node1->armfx[arm12];
-                                     oldfp0[Y] = node1->armfy[arm12];
-                                     oldfp0[Z] = node1->armfz[arm12];
+                                     oldfp0[XC] = node1->armfx[arm12];
+                                     oldfp0[YC] = node1->armfy[arm12];
+                                     oldfp0[ZC] = node1->armfz[arm12];
     
-                                     oldfp1[X] = node2->armfx[arm21];
-                                     oldfp1[Y] = node2->armfy[arm21];
-                                     oldfp1[Z] = node2->armfz[arm21];
+                                     oldfp1[XC] = node2->armfx[arm21];
+                                     oldfp1[YC] = node2->armfy[arm21];
+                                     oldfp1[ZC] = node2->armfz[arm21];
     
-                                     pos0[X] = x1;   pos1[X] = x2;
-                                     pos0[Y] = y1;   pos1[Y] = y2;
-                                     pos0[Z] = z1;   pos1[Z] = z2;
+                                     pos0[XC] = x1;   pos1[XC] = x2;
+                                     pos0[YC] = y1;   pos1[YC] = y2;
+                                     pos0[ZC] = z1;   pos1[ZC] = z2;
     
-                                     pnew[X] = newx;
-                                     pnew[Y] = newy;
-                                     pnew[Z] = newz;
+                                     pnew[XC] = newx;
+                                     pnew[YC] = newy;
+                                     pnew[ZC] = newz;
     
-                                     newNodeVel[X] = newvx;
-                                     newNodeVel[Y] = newvy;
-                                     newNodeVel[Z] = newvz;
+                                     newNodeVel[XC] = newvx;
+                                     newNodeVel[YC] = newvy;
+                                     newNodeVel[ZC] = newvz;
 
-                                     nodeVel[X] = vx1;
-                                     nodeVel[Y] = vy1;
-                                     nodeVel[Z] = vz1;
+                                     nodeVel[XC] = vx1;
+                                     nodeVel[YC] = vy1;
+                                     nodeVel[ZC] = vz1;
 
-                                     burg1[X] = node1->burgX[arm12];
-                                     burg1[Y] = node1->burgY[arm12];
-                                     burg1[Z] = node1->burgZ[arm12];
+                                     burg1[XC] = node1->burgX[arm12];
+                                     burg1[YC] = node1->burgY[arm12];
+                                     burg1[ZC] = node1->burgZ[arm12];
 
                                      FindSubFSeg(home, pos0, pos1, burg1, oldfp0,
                                                  oldfp1, pnew, f0seg1, f1seg1,
@@ -1335,45 +1335,45 @@ void PredictiveCollisions(Home_t *home)
                                      oldTag1 = node1->myTag;
                                      oldTag2 = node2->myTag;
 
-                                     FoldBox(param, &pnew[X], &pnew[Y], &pnew[Z]);
+                                     FoldBox(param, &pnew[XC], &pnew[YC], &pnew[ZC]);
 
 #if DEBUG_TOPOLOGY_CHANGES
                                      printf("split seg1: pos0(%f,%f,%f), pos1(%f,%f,%f), posnew(%f,%f,%f)\n", 
-                                            pos0[X],pos0[Y],pos0[Z],pos1[X],pos1[Y],pos1[Z],
-                                            pnew[X],pnew[Y],pnew[Z]);
+                                            pos0[XC],pos0[YC],pos0[ZC],pos1[XC],pos1[YC],pos1[ZC],
+                                            pnew[XC],pnew[YC],pnew[ZC]);
 #endif
                                      if(home->param->polycrystal){
 										
                                          if(node1->inGrain - floor(node1->inGrain) == 0.5){
-                                             posInGrain = GetInGrainFromPos(home,pos0[X],pos0[Y],pos0[Z]);
+                                             posInGrain = GetInGrainFromPos(home,pos0[XC],pos0[YC],pos0[ZC]);
                                          }else{
-                                             posInGrain = InWhichGrain(home,pos0[X],pos0[Y],pos0[Z]);
+                                             posInGrain = InWhichGrain(home,pos0[XC],pos0[YC],pos0[ZC]);
                                          }
                                          if(node1->inGrain != posInGrain)continue;
                                 	
                                          if(node1->inGrain - floor(node1->inGrain) == 0.5){
-                                             posInGrain = GetInGrainFromPos(home,pnew[X],pnew[Y],pnew[Z]);
+                                             posInGrain = GetInGrainFromPos(home,pnew[XC],pnew[YC],pnew[ZC]);
                                          }else{
-                                             posInGrain = InWhichGrain(home,pnew[X],pnew[Y],pnew[Z]);
+                                             posInGrain = InWhichGrain(home,pnew[XC],pnew[YC],pnew[ZC]);
                                          }
                                          if(node1->inGrain != posInGrain)continue;
                                      }
 
-                                     vecSplitNode[X] = pnew[X] - pos0[X];
-                                     vecSplitNode[Y] = pnew[Y] - pos0[Y];
-                                     vecSplitNode[Z] = pnew[Z] - pos0[Z];
+                                     vecSplitNode[XC] = pnew[XC] - pos0[XC];
+                                     vecSplitNode[YC] = pnew[YC] - pos0[YC];
+                                     vecSplitNode[ZC] = pnew[ZC] - pos0[ZC];
                                      ZImage(param,vecSplitNode,vecSplitNode+1,vecSplitNode+2);
                                  
-                                     vecTotal[X] = pos1[X] - pos0[X];
-                                     vecTotal[Y] = pos1[Y] - pos0[Y];
-                                     vecTotal[Z] = pos1[Z] - pos0[Z];
+                                     vecTotal[XC] = pos1[XC] - pos0[XC];
+                                     vecTotal[YC] = pos1[YC] - pos0[YC];
+                                     vecTotal[ZC] = pos1[ZC] - pos0[ZC];
                                      ZImage(param,vecTotal,vecTotal+1,vecTotal+2);
 									 
                                      if(Normal(vecSplitNode) > Normal(vecTotal) + param->maxSeg){
 #if 0
-                                         pnew[X] = pos0[X] + 0.5 * vecTotal[X];
-                                         pnew[Y] = pos0[Y] + 0.5 * vecTotal[Y];
-                                         pnew[Z] = pos0[Z] + 0.5 * vecTotal[Z];
+                                         pnew[XC] = pos0[XC] + 0.5 * vecTotal[XC];
+                                         pnew[YC] = pos0[YC] + 0.5 * vecTotal[YC];
+                                         pnew[ZC] = pos0[ZC] + 0.5 * vecTotal[ZC];
                                 	
                                          FoldBox(param, pnew,pnew+1,pnew+2);
 #endif
@@ -1427,23 +1427,23 @@ void PredictiveCollisions(Home_t *home)
  */
                                      ResetSegForces(home, splitNode1,
                                                     &splitNode2->myTag,
-                                                    f0seg1[X], f0seg1[Y],
-                                                    f0seg1[Z], 1);
+                                                    f0seg1[XC], f0seg1[YC],
+                                                    f0seg1[ZC], 1);
     
                                      ResetSegForces(home, splitNode2,
                                                     &splitNode1->myTag,
-                                                    f1seg1[X], f1seg1[Y],
-                                                    f1seg1[Z], 1);
+                                                    f1seg1[XC], f1seg1[YC],
+                                                    f1seg1[ZC], 1);
     
                                      ResetSegForces(home, splitNode2,
                                                     &node2->myTag,
-                                                    f0seg2[X], f0seg2[Y],
-                                                    f0seg2[Z], 1);
+                                                    f0seg2[XC], f0seg2[YC],
+                                                    f0seg2[ZC], 1);
     
                                      ResetSegForces(home, node2,
                                                     &splitNode2->myTag,
-                                                    f1seg2[X], f1seg2[Y],
-                                                    f1seg2[Z], 1);
+                                                    f1seg2[XC], f1seg2[YC],
+                                                    f1seg2[ZC], 1);
     
                                      (void)EvaluateMobility(home, splitNode1);
                                      (void)EvaluateMobility(home, splitNode2);
@@ -1497,13 +1497,13 @@ void PredictiveCollisions(Home_t *home)
  *                              even if the collision point is close to 
  *                              that node.
  */
-                                vec1[X] = cPoint[X] - p3[X];
-                                vec1[Y] = cPoint[Y] - p3[Y];
-                                vec1[Z] = cPoint[Z] - p3[Z];
+                                vec1[XC] = cPoint[XC] - p3[XC];
+                                vec1[YC] = cPoint[YC] - p3[YC];
+                                vec1[ZC] = cPoint[ZC] - p3[ZC];
     
-                                vec2[X] = cPoint[X] - p4[X];
-                                vec2[Y] = cPoint[Y] - p4[Y];
-                                vec2[Z] = cPoint[Z] - p4[Z];
+                                vec2[XC] = cPoint[XC] - p4[XC];
+                                vec2[YC] = cPoint[YC] - p4[YC];
+                                vec2[ZC] = cPoint[ZC] - p4[ZC];
 
                                 close2node3 = (DotProduct(vec1,vec1)<mindist2);
                                 close2node4 = (DotProduct(vec2,vec2)<mindist2);
@@ -1553,33 +1553,33 @@ void PredictiveCollisions(Home_t *home)
  */
                                      arm43 = GetArmID(home, node4, node3);
     
-                                     burg1[X] = node3->burgX[arm34];
-                                     burg1[Y] = node3->burgY[arm34];
-                                     burg1[Z] = node3->burgZ[arm34];
+                                     burg1[XC] = node3->burgX[arm34];
+                                     burg1[YC] = node3->burgY[arm34];
+                                     burg1[ZC] = node3->burgZ[arm34];
     
-                                     oldfp0[X] = node3->armfx[arm34];
-                                     oldfp0[Y] = node3->armfy[arm34];
-                                     oldfp0[Z] = node3->armfz[arm34];
+                                     oldfp0[XC] = node3->armfx[arm34];
+                                     oldfp0[YC] = node3->armfy[arm34];
+                                     oldfp0[ZC] = node3->armfz[arm34];
     
-                                     oldfp1[X] = node4->armfx[arm43];
-                                     oldfp1[Y] = node4->armfy[arm43];
-                                     oldfp1[Z] = node4->armfz[arm43];
+                                     oldfp1[XC] = node4->armfx[arm43];
+                                     oldfp1[YC] = node4->armfy[arm43];
+                                     oldfp1[ZC] = node4->armfz[arm43];
     
-                                     pos0[X] = x3;   pos1[X] = x4;
-                                     pos0[Y] = y3;   pos1[Y] = y4;
-                                     pos0[Z] = z3;   pos1[Z] = z4;
+                                     pos0[XC] = x3;   pos1[XC] = x4;
+                                     pos0[YC] = y3;   pos1[YC] = y4;
+                                     pos0[ZC] = z3;   pos1[ZC] = z4;
     
-                                     pnew[X] = newx;
-                                     pnew[Y] = newy;
-                                     pnew[Z] = newz;
+                                     pnew[XC] = newx;
+                                     pnew[YC] = newy;
+                                     pnew[ZC] = newz;
     
-                                     newNodeVel[X] = newvx;
-                                     newNodeVel[Y] = newvy;
-                                     newNodeVel[Z] = newvz;
+                                     newNodeVel[XC] = newvx;
+                                     newNodeVel[YC] = newvy;
+                                     newNodeVel[ZC] = newvz;
 
-                                     nodeVel[X] = vx3;
-                                     nodeVel[Y] = vy3;
-                                     nodeVel[Z] = vz3; 
+                                     nodeVel[XC] = vx3;
+                                     nodeVel[YC] = vy3;
+                                     nodeVel[ZC] = vz3; 
                                      FindSubFSeg(home, pos0, pos1, burg1, oldfp0,
                                                  oldfp1, pnew, f0seg1, f1seg1,
                                                  f0seg2, f1seg2);
@@ -1587,46 +1587,46 @@ void PredictiveCollisions(Home_t *home)
                                      oldTag1 = node3->myTag;
                                      oldTag2 = node4->myTag;
  
-                                     FoldBox(param, &pnew[X], &pnew[Y], &pnew[Z]);
+                                     FoldBox(param, &pnew[XC], &pnew[YC], &pnew[ZC]);
 									 
 	                            if(home->param->polycrystal){
 	                                if(node3->inGrain - floor(node3->inGrain) == 0.5){
-	                                posInGrain = GetInGrainFromPos(home,pos0[X],pos0[Y],pos0[Z]);
+	                                posInGrain = GetInGrainFromPos(home,pos0[XC],pos0[YC],pos0[ZC]);
 	                            }else{
-	                                posInGrain = InWhichGrain(home,pos0[X],pos0[Y],pos0[Z]);
+	                                posInGrain = InWhichGrain(home,pos0[XC],pos0[YC],pos0[ZC]);
 	                            }
 	                            if(node3->inGrain != posInGrain)continue;
 	                         
 	                            if(node3->inGrain - floor(node3->inGrain) == 0.5){
-	                                posInGrain = GetInGrainFromPos(home,pnew[X],pnew[Y],pnew[Z]);
+	                                posInGrain = GetInGrainFromPos(home,pnew[XC],pnew[YC],pnew[ZC]);
 	                            }else{
-	                                posInGrain = InWhichGrain(home,pnew[X],pnew[Y],pnew[Z]);
+	                                posInGrain = InWhichGrain(home,pnew[XC],pnew[YC],pnew[ZC]);
 	                            }
 	                                if(node3->inGrain != posInGrain)continue;
 	                            }
 									 
 #if DEBUG_TOPOLOGY_CHANGES
 	                            printf("split seg2: pos0(%f,%f,%f), pos1(%f,%f,%f), posnew(%f,%f,%f)\n", 
-	                            pos0[X],pos0[Y],pos0[Z],pos1[X],pos1[Y],pos1[Z],
-	                            pnew[X],pnew[Y],pnew[Z]);
+	                            pos0[XC],pos0[YC],pos0[ZC],pos1[XC],pos1[YC],pos1[ZC],
+	                            pnew[XC],pnew[YC],pnew[ZC]);
 									
 #endif	
 	                         
-	                            vecSplitNode[X] = pnew[X] - pos0[X];
-	                            vecSplitNode[Y] = pnew[Y] - pos0[Y];
-	                            vecSplitNode[Z] = pnew[Z] - pos0[Z];
+	                            vecSplitNode[XC] = pnew[XC] - pos0[XC];
+	                            vecSplitNode[YC] = pnew[YC] - pos0[YC];
+	                            vecSplitNode[ZC] = pnew[ZC] - pos0[ZC];
 	                            ZImage(param,vecSplitNode,vecSplitNode+1,vecSplitNode+2);
 	                         
-	                            vecTotal[X] = pos1[X] - pos0[X];
-	                            vecTotal[Y] = pos1[Y] - pos0[Y];
-	                            vecTotal[Z] = pos1[Z] - pos0[Z];
+	                            vecTotal[XC] = pos1[XC] - pos0[XC];
+	                            vecTotal[YC] = pos1[YC] - pos0[YC];
+	                            vecTotal[ZC] = pos1[ZC] - pos0[ZC];
 	                            ZImage(param,vecTotal,vecTotal+1,vecTotal+2);
 	                            
 	                            if(Normal(vecSplitNode) > Normal(vecTotal) + param->maxSeg){
 #if 0
-	                            pnew[X] = pos0[X] + 0.5 * vecTotal[X];
-	                            pnew[Y] = pos0[Y] + 0.5 * vecTotal[Y];
-	                            pnew[Z] = pos0[Z] + 0.5 * vecTotal[Z];
+	                            pnew[XC] = pos0[XC] + 0.5 * vecTotal[XC];
+	                            pnew[YC] = pos0[YC] + 0.5 * vecTotal[YC];
+	                            pnew[ZC] = pos0[ZC] + 0.5 * vecTotal[ZC];
 	                         
 	                            FoldBox(param, pnew,pnew+1,pnew+2);
 #endif										
@@ -1677,23 +1677,23 @@ void PredictiveCollisions(Home_t *home)
  */
                                      ResetSegForces(home, splitNode1,
                                                     &splitNode2->myTag,
-                                                    f0seg1[X], f0seg1[Y],
-                                                    f0seg1[Z], 1);
+                                                    f0seg1[XC], f0seg1[YC],
+                                                    f0seg1[ZC], 1);
     
                                      ResetSegForces(home, splitNode2,
                                                     &splitNode1->myTag,
-                                                    f1seg1[X], f1seg1[Y],
-                                                    f1seg1[Z], 1);
+                                                    f1seg1[XC], f1seg1[YC],
+                                                    f1seg1[ZC], 1);
     
                                      ResetSegForces(home, splitNode2,
                                                     &node4->myTag,
-                                                    f0seg2[X], f0seg2[Y],
-                                                    f0seg2[Z], 1);
+                                                    f0seg2[XC], f0seg2[YC],
+                                                    f0seg2[ZC], 1);
     
                                      ResetSegForces(home, node4,
                                                     &splitNode2->myTag,
-                                                    f1seg2[X], f1seg2[Y],
-                                                    f1seg2[Z], 1);
+                                                    f1seg2[XC], f1seg2[YC],
+                                                    f1seg2[ZC], 1);
  
                                      (void)EvaluateMobility(home, splitNode1);
                                      (void)EvaluateMobility(home, splitNode2);
@@ -1744,16 +1744,16 @@ void PredictiveCollisions(Home_t *home)
 #endif
                                if (adjustCollisionPoint) {
                                    FindCollisionPoint(home, mergenode1,
-                                                      mergenode2, &newPos[X],
-                                                      &newPos[Y], &newPos[Z]);
+                                                      mergenode2, &newPos[XC],
+                                                      &newPos[YC], &newPos[ZC]);
 #if DEBUG_TOPOLOGY_CHANGES
 			        printf("FindCollisionPoint: Reset the merged position: ");
 						 
 #endif
                                } else {
-                                   newPos[X] = cPoint[X];
-                                   newPos[Y] = cPoint[Y];
-                                   newPos[Z] = cPoint[Z];
+                                   newPos[XC] = cPoint[XC];
+                                   newPos[YC] = cPoint[YC];
+                                   newPos[ZC] = cPoint[ZC];
                                }
 
                                FoldBox(param, newPos,newPos+1,newPos+2);
@@ -1789,11 +1789,11 @@ void PredictiveCollisions(Home_t *home)
                                }
 #endif
 
-                               newVel[X] = half * (mergenode1->vX +
+                               newVel[XC] = half * (mergenode1->vX +
                                                    mergenode2->vX);
-                               newVel[Y] = half * (mergenode1->vY +
+                               newVel[YC] = half * (mergenode1->vY +
                                                    mergenode2->vY);
-                               newVel[Z] = half * (mergenode1->vZ +
+                               newVel[ZC] = half * (mergenode1->vZ +
                                                    mergenode2->vZ);
     
     
@@ -1909,9 +1909,9 @@ void PredictiveCollisions(Home_t *home)
  *                                 Estimate velocity so mobility function
  *                                 has a reasonable starting point
  */
-                                   targetNode->vX = newVel[X];
-                                   targetNode->vY = newVel[Y];
-                                   targetNode->vZ = newVel[Z];
+                                   targetNode->vX = newVel[XC];
+                                   targetNode->vY = newVel[YC];
+                                   targetNode->vZ = newVel[ZC];
 
                                    (void)EvaluateMobility(home, targetNode);
 
@@ -1966,9 +1966,9 @@ void PredictiveCollisions(Home_t *home)
 	                    burg34[2] = node1->burgZ[k];
 	            	
 	                    if(BurgType_FCC(home,burg12) != BurgType_FCC(home,burg34))continue;
-	                    if(fabs(burg12[X] - burg34[X]) < 1.0e-3 &&
-	                       fabs(burg12[Y] - burg34[Y]) < 1.0e-3 &&
-	                       fabs(burg12[Z] - burg34[Z]) < 1.0e-3 ) continue;
+	                    if(fabs(burg12[XC] - burg34[XC]) < 1.0e-3 &&
+	                       fabs(burg12[YC] - burg34[YC]) < 1.0e-3 &&
+	                       fabs(burg12[ZC] - burg34[ZC]) < 1.0e-3 ) continue;
 	                }else{
 	                    Fatal("The burgers ID of non-FCC material has not defined\n");
 	                }
@@ -2053,13 +2053,13 @@ void PredictiveCollisions(Home_t *home)
  */
                         mergenode1 = node3;
 
-                        vec1[X] = cPoint[X] - x1;
-                        vec1[Y] = cPoint[Y] - y1;
-                        vec1[Z] = cPoint[Z] - z1;
+                        vec1[XC] = cPoint[XC] - x1;
+                        vec1[YC] = cPoint[YC] - y1;
+                        vec1[ZC] = cPoint[ZC] - z1;
 
-                        vec2[X] = cPoint[X] - x4;
-                        vec2[Y] = cPoint[Y] - y4;
-                        vec2[Z] = cPoint[Z] - z4;
+                        vec2[XC] = cPoint[XC] - x4;
+                        vec2[YC] = cPoint[YC] - y4;
+                        vec2[ZC] = cPoint[ZC] - z4;
 
                         close2node1 = (DotProduct(vec1,vec1)<mindist2);
                         close2node4 = (DotProduct(vec2,vec2)<mindist2);
@@ -2090,17 +2090,17 @@ void PredictiveCollisions(Home_t *home)
  *                           the segment endpoints, so bisect the segment
  *                           and add a new node.
  */
-                             newPos[X] = x1*(1.0-L1) + x4*L1;
-                             newPos[Y] = y1*(1.0-L1) + y4*L1;
-                             newPos[Z] = z1*(1.0-L1) + z4*L1;
+                             newPos[XC] = x1*(1.0-L1) + x4*L1;
+                             newPos[YC] = y1*(1.0-L1) + y4*L1;
+                             newPos[ZC] = z1*(1.0-L1) + z4*L1;
 
-                             newVel[X] = vx1*(1.0-L1) + vx4*L1;
-                             newVel[Y] = vy1*(1.0-L1) + vy4*L1;
-                             newVel[Z] = vz1*(1.0-L1) + vz4*L1;
+                             newVel[XC] = vx1*(1.0-L1) + vx4*L1;
+                             newVel[YC] = vy1*(1.0-L1) + vy4*L1;
+                             newVel[ZC] = vz1*(1.0-L1) + vz4*L1;
 
-                             nodeVel[X] = node3->vX;
-                             nodeVel[Y] = node3->vY;
-                             nodeVel[Z] = node3->vZ;
+                             nodeVel[XC] = node3->vX;
+                             nodeVel[YC] = node3->vY;
+                             nodeVel[ZC] = node3->vZ;
 
 /*
  *                           Estimate resulting forces on all segments
@@ -2109,27 +2109,27 @@ void PredictiveCollisions(Home_t *home)
                              armAB = GetArmID(home, node1, node4);
                              armBA = GetArmID(home, node4, node1);
 
-                             burg1[X] = node1->burgX[armAB];
-                             burg1[Y] = node1->burgY[armAB];
-                             burg1[Z] = node1->burgZ[armAB];
+                             burg1[XC] = node1->burgX[armAB];
+                             burg1[YC] = node1->burgY[armAB];
+                             burg1[ZC] = node1->burgZ[armAB];
 
-                             oldfp0[X] = node1->armfx[armAB];
-                             oldfp0[Y] = node1->armfy[armAB];
-                             oldfp0[Z] = node1->armfz[armAB];
+                             oldfp0[XC] = node1->armfx[armAB];
+                             oldfp0[YC] = node1->armfy[armAB];
+                             oldfp0[ZC] = node1->armfz[armAB];
 
-                             oldfp1[X] = node4->armfx[armBA];
-                             oldfp1[Y] = node4->armfy[armBA];
-                             oldfp1[Z] = node4->armfz[armBA];
+                             oldfp1[XC] = node4->armfx[armBA];
+                             oldfp1[YC] = node4->armfy[armBA];
+                             oldfp1[ZC] = node4->armfz[armBA];
 
-                             pos0[X] = x1;   pos1[X] = x4;
-                             pos0[Y] = y1;   pos1[Y] = y4;
-                             pos0[Z] = z1;   pos1[Z] = z4;
+                             pos0[XC] = x1;   pos1[XC] = x4;
+                             pos0[YC] = y1;   pos1[YC] = y4;
+                             pos0[ZC] = z1;   pos1[ZC] = z4;
 
                              FindSubFSeg(home, pos0, pos1, burg1, oldfp0,
                                          oldfp1, newPos, f0seg1, f1seg1,
                                          f0seg2, f1seg2);
 
-                             FoldBox(param, &newPos[X], &newPos[Y], &newPos[Z]);
+                             FoldBox(param, &newPos[XC], &newPos[YC], &newPos[ZC]);
 
 /*
  *                           Attempt to split the segment.  If the split
@@ -2140,9 +2140,9 @@ void PredictiveCollisions(Home_t *home)
 							 
 	                    if(home->param->polycrystal){
 	                        if(node1->inGrain - floor(node1->inGrain) == 0.5){
-	                            posInGrain = GetInGrainFromPos(home,pos0[X],pos0[Y],pos0[Z]);
+	                            posInGrain = GetInGrainFromPos(home,pos0[XC],pos0[YC],pos0[ZC]);
 	                        }else{
-	                            posInGrain = InWhichGrain(home,pos0[X],pos0[Y],pos0[Z]);
+	                            posInGrain = InWhichGrain(home,pos0[XC],pos0[YC],pos0[ZC]);
 	                        }
 	                        if(node1->inGrain != posInGrain)continue;
 
@@ -2178,16 +2178,16 @@ void PredictiveCollisions(Home_t *home)
  *                           split.
  */
                              ResetSegForces(home,splitNode1,&splitNode2->myTag,
-                                            f0seg1[X], f0seg1[Y], f0seg1[Z], 1);
+                                            f0seg1[XC], f0seg1[YC], f0seg1[ZC], 1);
 
                              ResetSegForces(home,splitNode2,&splitNode1->myTag,
-                                            f1seg1[X], f1seg1[Y], f1seg1[Z], 1);
+                                            f1seg1[XC], f1seg1[YC], f1seg1[ZC], 1);
 
                              ResetSegForces(home, splitNode2, &node4->myTag,
-                                            f0seg2[X], f0seg2[Y], f0seg2[Z], 1);
+                                            f0seg2[XC], f0seg2[YC], f0seg2[ZC], 1);
 
                              ResetSegForces(home, node3, &splitNode2->myTag,
-                                            f1seg2[X], f1seg2[Y], f1seg2[Z], 1);
+                                            f1seg2[XC], f1seg2[YC], f1seg2[ZC], 1);
 
                              (void)EvaluateMobility(home, splitNode1);
                              (void)EvaluateMobility(home, splitNode2);
@@ -2226,11 +2226,11 @@ void PredictiveCollisions(Home_t *home)
  */
                         if (adjustCollisionPoint) {
                             FindCollisionPoint(home, mergenode1,
-                                               mergenode2, &newPos[X],
-                                               &newPos[Y], &newPos[Z]);
+                                               mergenode2, &newPos[XC],
+                                               &newPos[YC], &newPos[ZC]);
                         }
 
-                        FoldBox(param, &newPos[X], &newPos[Y], &newPos[Z]);
+                        FoldBox(param, &newPos[XC], &newPos[YC], &newPos[ZC]);
 
 /*
  *                      The merge is going to happen, so there's a few

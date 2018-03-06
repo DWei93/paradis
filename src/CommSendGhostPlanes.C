@@ -245,9 +245,9 @@ static void CommUnpackGhostPlanes(Home_t *home)
                 tag2.domainID = (int)inBuf[bufIndex++];
                 tag2.index    = (int)inBuf[bufIndex++];
 
-                newPlane[X]   = inBuf[bufIndex++];
-                newPlane[Y]   = inBuf[bufIndex++];
-                newPlane[Z]   = inBuf[bufIndex++];
+                newPlane[0]   = inBuf[bufIndex++];
+                newPlane[1]   = inBuf[bufIndex++];
+                newPlane[2]   = inBuf[bufIndex++];
 
 /*
  *              This domain must update the segment glide plane info
@@ -265,9 +265,9 @@ static void CommUnpackGhostPlanes(Home_t *home)
                     }
 
                     if (j < node->numNbrs) {
-                        node->nx[j] = newPlane[X];
-                        node->ny[j] = newPlane[Y];
-                        node->nz[j] = newPlane[Z];
+                        node->nx[j] = newPlane[0];
+                        node->ny[j] = newPlane[1];
+                        node->nz[j] = newPlane[2];
                     } else {
                         printf("Inconsistant data!\n");
                     }
@@ -283,9 +283,9 @@ static void CommUnpackGhostPlanes(Home_t *home)
                     }
 
                     if (j < node->numNbrs) {
-                        node->nx[j] = newPlane[X];
-                        node->ny[j] = newPlane[Y];
-                        node->nz[j] = newPlane[Z];
+                        node->nx[j] = newPlane[0];
+                        node->ny[j] = newPlane[1];
+                        node->nz[j] = newPlane[2];
                     } else {
                         printf("Inconsistant data!\n");
                     }

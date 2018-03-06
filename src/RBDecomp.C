@@ -225,14 +225,14 @@ void GetRBDecompLocalDomainBounds(Home_t *home, RBDecomp_t *decomp)
             decompPtr = decompPtr->subDecomp[octant];
         }
 
-        home->domXmin = decompPtr->cMin[X];
-        home->domXmax = decompPtr->cMax[X];
+        home->domXmin = decompPtr->cMin[XC];
+        home->domXmax = decompPtr->cMax[XC];
 
-        home->domYmin = decompPtr->cMin[Y];
-        home->domYmax = decompPtr->cMax[Y];
+        home->domYmin = decompPtr->cMin[YC];
+        home->domYmax = decompPtr->cMax[YC];
 
-        home->domZmin = decompPtr->cMin[Z];
-        home->domZmax = decompPtr->cMax[Z];
+        home->domZmin = decompPtr->cMin[ZC];
+        home->domZmax = decompPtr->cMax[ZC];
 
         return;
 }
@@ -273,12 +273,12 @@ static void FindVolumeDomainList(real8 vMin[3], real8 vMax[3],
  *      the specified volume, no need to continue down this branch of
  *      the decomposition tree.
  */
-        if ((decomp->cMin[X] >= vMax[X]) ||
-            (decomp->cMin[Y] >= vMax[Y]) ||
-            (decomp->cMin[Z] >= vMax[Z]) ||
-            (decomp->cMax[X] <= vMin[X]) ||
-            (decomp->cMax[Y] <= vMin[Y]) ||
-            (decomp->cMax[Z] <= vMin[Z])) {
+        if ((decomp->cMin[XC] >= vMax[XC]) ||
+            (decomp->cMin[YC] >= vMax[YC]) ||
+            (decomp->cMin[ZC] >= vMax[ZC]) ||
+            (decomp->cMax[XC] <= vMin[XC]) ||
+            (decomp->cMax[YC] <= vMin[YC]) ||
+            (decomp->cMax[ZC] <= vMin[ZC])) {
             return;
         }
 
@@ -364,13 +364,13 @@ void GetRBDecompCellDomainList(Home_t *home, int cellID, int *domainCnt,
         yCellSize = (param->maxSideY - param->minSideY) / param->nYcells;
         zCellSize = (param->maxSideZ - param->minSideZ) / param->nZcells;
 
-        vMin[X] = rint((param->minSideX) + ((xCell-1) * xCellSize));
-        vMin[Y] = rint((param->minSideY) + ((yCell-1) * yCellSize));
-        vMin[Z] = rint((param->minSideZ) + ((zCell-1) * zCellSize));
+        vMin[XC] = rint((param->minSideX) + ((xCell-1) * xCellSize));
+        vMin[YC] = rint((param->minSideY) + ((yCell-1) * yCellSize));
+        vMin[ZC] = rint((param->minSideZ) + ((zCell-1) * zCellSize));
 
-        vMax[X] = rint((param->minSideX) + (xCell * xCellSize));
-        vMax[Y] = rint((param->minSideY) + (yCell * yCellSize));
-        vMax[Z] = rint((param->minSideZ) + (zCell * zCellSize));
+        vMax[XC] = rint((param->minSideX) + (xCell * xCellSize));
+        vMax[YC] = rint((param->minSideY) + (yCell * yCellSize));
+        vMax[ZC] = rint((param->minSideZ) + (zCell * zCellSize));
 
 /*
  *      Allocate a small initial array to hold the list of
@@ -426,11 +426,11 @@ static void GetDecompCnt(int xNumDoms, int yNumDoms, int zNumDoms,
  *      Figure out the dimensions (if any) in which this portion of the
  *      deocmposition must be further decomposed.
  */
-        cut[X] = (xNumDoms > 1);
-        cut[Y] = (yNumDoms > 1);
-        cut[Z] = (zNumDoms > 1);
+        cut[XC] = (xNumDoms > 1);
+        cut[YC] = (yNumDoms > 1);
+        cut[ZC] = (zNumDoms > 1);
 
-        if (cut[X] + cut[Y] + cut[Z] == 0) {
+        if (cut[XC] + cut[YC] + cut[ZC] == 0) {
             return;
         }
 
@@ -447,7 +447,7 @@ static void GetDecompCnt(int xNumDoms, int yNumDoms, int zNumDoms,
  *
  *      Then the same sort of thing for Y and Z dimensions.
  */
-        if (!cut[X]) {
+        if (!cut[XC]) {
             subDecompUsed[LRF] = 0;           
             subDecompUsed[URF] = 0;           
             subDecompUsed[LRB] = 0;           
@@ -458,7 +458,7 @@ static void GetDecompCnt(int xNumDoms, int yNumDoms, int zNumDoms,
             xDoms[1] = xNumDoms - xDoms[0];
         }
 
-        if (!cut[Y]) {
+        if (!cut[YC]) {
             subDecompUsed[ULF] = 0;           
             subDecompUsed[URF] = 0;           
             subDecompUsed[ULB] = 0;           
@@ -469,7 +469,7 @@ static void GetDecompCnt(int xNumDoms, int yNumDoms, int zNumDoms,
             yDoms[1] = yNumDoms - yDoms[0];
         }
 
-        if (!cut[Z]) {
+        if (!cut[ZC]) {
             subDecompUsed[LLB] = 0;           
             subDecompUsed[LRB] = 0;           
             subDecompUsed[ULB] = 0;           
@@ -551,12 +551,12 @@ void GetAllRBDecompBounds(Home_t *home, RBDecomp_t *decomp, real8 *boundsBuf)
         for (index = 0; index < totDecompCnt; index++) {
             if (decomp[index].domID >= 0) {
                 offset = decomp[index].domID * 6;
-                boundsBuf[offset    ] = decomp[index].cMin[X];
-                boundsBuf[offset + 1] = decomp[index].cMin[Y];
-                boundsBuf[offset + 2] = decomp[index].cMin[Z];
-                boundsBuf[offset + 3] = decomp[index].cMax[X];
-                boundsBuf[offset + 4] = decomp[index].cMax[Y];
-                boundsBuf[offset + 5] = decomp[index].cMax[Z];
+                boundsBuf[offset    ] = decomp[index].cMin[XC];
+                boundsBuf[offset + 1] = decomp[index].cMin[YC];
+                boundsBuf[offset + 2] = decomp[index].cMin[ZC];
+                boundsBuf[offset + 3] = decomp[index].cMax[XC];
+                boundsBuf[offset + 4] = decomp[index].cMax[YC];
+                boundsBuf[offset + 5] = decomp[index].cMax[ZC];
             }
         }
 
@@ -796,10 +796,10 @@ void WriteRBDecompBounds(Home_t *home, FILE *fp, RBDecomp_t *decomp,
         for (index = 0; index < totDecompCnt; index++) {
             if (decomp[index].domID >= 0) {
                 fprintf(fp,"  %d  %11.4f %11.4f %11.4f  %11.4f %11.4f %11.4f\n",
-                        decomp[index].domID, decomp[index].cMin[X],
-                        decomp[index].cMin[Y], decomp[index].cMin[Z],
-                        decomp[index].cMax[X], decomp[index].cMax[Y],
-                        decomp[index].cMax[Z]);
+                        decomp[index].domID, decomp[index].cMin[XC],
+                        decomp[index].cMin[YC], decomp[index].cMin[ZC],
+                        decomp[index].cMax[XC], decomp[index].cMax[YC],
+                        decomp[index].cMax[ZC]);
             }
         }
 
@@ -853,14 +853,14 @@ void XPlotRBDecomp(Home_t *home, RBDecomp_t *decomp, real8 xMin,
  */
             if (decomp[index].domID >= 0) {
 
-                x2 = (decomp[index].cMax[X] - xMin) / lMax * 2 - 1;
-                x1 = (decomp[index].cMin[X] - xMin) / lMax * 2 - 1;
+                x2 = (decomp[index].cMax[XC] - xMin) / lMax * 2 - 1;
+                x1 = (decomp[index].cMin[XC] - xMin) / lMax * 2 - 1;
 
-                y2 = (decomp[index].cMax[Y] - yMin) / lMax * 2 - 1;
-                y1 = (decomp[index].cMin[Y] - yMin) / lMax * 2 - 1;
+                y2 = (decomp[index].cMax[YC] - yMin) / lMax * 2 - 1;
+                y1 = (decomp[index].cMin[YC] - yMin) / lMax * 2 - 1;
 
-                z2 = (decomp[index].cMax[Z] - zMin) / lMax * 2 - 1;
-                z1 = (decomp[index].cMin[Z] - zMin) / lMax * 2 - 1;
+                z2 = (decomp[index].cMax[ZC] - zMin) / lMax * 2 - 1;
+                z1 = (decomp[index].cMin[ZC] - zMin) / lMax * 2 - 1;
 
                 WinDrawLine(x1, y1, z1, x2, y1, z1, color, lineWidth/2, 0);
                 WinDrawLine(x2, y1, z1, x2, y2, z1, color, lineWidth/2, 0);
@@ -936,9 +936,9 @@ int FindRBDecompCoordDomain(RBDecomp_t *decomp, real8 x, real8 y, real8 z)
  *      this portion of the decomposition, just return without
  *      any additional checks.
  */
-        if ((x <  decomp->cMin[X]) || (x > decomp->cMax[X]) ||
-            (y <  decomp->cMin[Y]) || (y > decomp->cMax[Y]) ||
-            (z <  decomp->cMin[Z]) || (z > decomp->cMax[Z])) {
+        if ((x <  decomp->cMin[XC]) || (x > decomp->cMax[XC]) ||
+            (y <  decomp->cMin[YC]) || (y > decomp->cMax[YC]) ||
+            (z <  decomp->cMin[ZC]) || (z > decomp->cMax[ZC])) {
             return(-1);
         }
 
@@ -1237,25 +1237,25 @@ static void SetAllRBDecompBounds(Param_t *param, RBDecomp_t *decomp,
  */
         if (decomp->domID >= 0) {
             offset = decomp->domID * 6;
-            decomp->cMin[X] = globalBounds[offset    ];
-            decomp->cMin[Y] = globalBounds[offset + 1];
-            decomp->cMin[Z] = globalBounds[offset + 2];
-            decomp->cMax[X] = globalBounds[offset + 3];
-            decomp->cMax[Y] = globalBounds[offset + 4];
-            decomp->cMax[Z] = globalBounds[offset + 5];
+            decomp->cMin[XC] = globalBounds[offset    ];
+            decomp->cMin[YC] = globalBounds[offset + 1];
+            decomp->cMin[ZC] = globalBounds[offset + 2];
+            decomp->cMax[XC] = globalBounds[offset + 3];
+            decomp->cMax[YC] = globalBounds[offset + 4];
+            decomp->cMax[ZC] = globalBounds[offset + 5];
         } else {
 
 /*
  *          Yes, we do want to set the min to the max and the
  *          max to the min here!
  */
-            decomp->cMin[X] = param->maxSideX;
-            decomp->cMin[Y] = param->maxSideY;
-            decomp->cMin[Z] = param->maxSideZ;
+            decomp->cMin[XC] = param->maxSideX;
+            decomp->cMin[YC] = param->maxSideY;
+            decomp->cMin[ZC] = param->maxSideZ;
 
-            decomp->cMax[X] = param->minSideX;
-            decomp->cMax[Y] = param->minSideY;
-            decomp->cMax[Z] = param->minSideZ;
+            decomp->cMax[XC] = param->minSideX;
+            decomp->cMax[YC] = param->minSideY;
+            decomp->cMax[ZC] = param->minSideZ;
 
             for (octant = 0; octant < 8; octant++) {
 
@@ -1267,12 +1267,12 @@ static void SetAllRBDecompBounds(Param_t *param, RBDecomp_t *decomp,
 
                 SetAllRBDecompBounds(param, subpart, level+1, globalBounds);
 
-                decomp->cMin[X] = MIN(decomp->cMin[X], subpart->cMin[X]);
-                decomp->cMin[Y] = MIN(decomp->cMin[Y], subpart->cMin[Y]);
-                decomp->cMin[Z] = MIN(decomp->cMin[Z], subpart->cMin[Z]);
-                decomp->cMax[X] = MAX(decomp->cMax[X], subpart->cMax[X]);
-                decomp->cMax[Y] = MAX(decomp->cMax[Y], subpart->cMax[Y]);
-                decomp->cMax[Z] = MAX(decomp->cMax[Z], subpart->cMax[Z]);
+                decomp->cMin[XC] = MIN(decomp->cMin[XC], subpart->cMin[XC]);
+                decomp->cMin[YC] = MIN(decomp->cMin[YC], subpart->cMin[YC]);
+                decomp->cMin[ZC] = MIN(decomp->cMin[ZC], subpart->cMin[ZC]);
+                decomp->cMax[XC] = MAX(decomp->cMax[XC], subpart->cMax[XC]);
+                decomp->cMax[YC] = MAX(decomp->cMax[YC], subpart->cMax[YC]);
+                decomp->cMax[ZC] = MAX(decomp->cMax[ZC], subpart->cMax[ZC]);
             }
         }
        
@@ -1378,16 +1378,16 @@ static void InitRBDecomp(Home_t *home, RBDecomp_t *decomp,
  *      indicate all domains are included in the decomposition.
  */
         if (level == 0) {
-            decomp->cMin[X] = param->minSideX;
-            decomp->cMin[Y] = param->minSideY;
-            decomp->cMin[Z] = param->minSideZ;
-            decomp->cMax[X] = param->maxSideX;
-            decomp->cMax[Y] = param->maxSideY;
-            decomp->cMax[Z] = param->maxSideZ;
+            decomp->cMin[XC] = param->minSideX;
+            decomp->cMin[YC] = param->minSideY;
+            decomp->cMin[ZC] = param->minSideZ;
+            decomp->cMax[XC] = param->maxSideX;
+            decomp->cMax[YC] = param->maxSideY;
+            decomp->cMax[ZC] = param->maxSideZ;
 
-            decomp->numDoms[X] = param->nXdoms;
-            decomp->numDoms[Y] = param->nYdoms;
-            decomp->numDoms[Z] = param->nZdoms;
+            decomp->numDoms[XC] = param->nXdoms;
+            decomp->numDoms[YC] = param->nYdoms;
+            decomp->numDoms[ZC] = param->nZdoms;
         }
 
 /*
@@ -1396,16 +1396,16 @@ static void InitRBDecomp(Home_t *home, RBDecomp_t *decomp,
  *      Sub-decomposition will be into octants, quadrants halves or none
  *      at all.
  */
-        cut[X] = (decomp->numDoms[X] > 1);
-        cut[Y] = (decomp->numDoms[Y] > 1);
-        cut[Z] = (decomp->numDoms[Z] > 1);
+        cut[XC] = (decomp->numDoms[XC] > 1);
+        cut[YC] = (decomp->numDoms[YC] > 1);
+        cut[ZC] = (decomp->numDoms[ZC] > 1);
 
 /*
  *      If there is no need to further decompose this portion, we're
  *      down to a leaf node of the tree associated with an individual
  *      domain, so set the associated domain ID and return.
  */
-        if ((cut[X] + cut[Y] + cut[Z]) == 0) {
+        if ((cut[XC] + cut[YC] + cut[ZC]) == 0) {
             decomp->domID = DecompID2DomID(home, decomp->decompID);
             return;
         }
@@ -1428,15 +1428,15 @@ static void InitRBDecomp(Home_t *home, RBDecomp_t *decomp,
  *      octants on each side of the X bisection (left and right
  *      side octants).
  */
-        if (!cut[X]) {
+        if (!cut[XC]) {
             subDecompUsed[LRF] = 0;           
             subDecompUsed[URF] = 0;           
             subDecompUsed[LRB] = 0;           
             subDecompUsed[URB] = 0;           
-            xDoms[0] = decomp->numDoms[X];
+            xDoms[0] = decomp->numDoms[XC];
         } else {
-            xDoms[0] = decomp->numDoms[X] >> 1;
-            xDoms[1] = decomp->numDoms[X] - xDoms[0];
+            xDoms[0] = decomp->numDoms[XC] >> 1;
+            xDoms[1] = decomp->numDoms[XC] - xDoms[0];
         }
 
 /*
@@ -1446,15 +1446,15 @@ static void InitRBDecomp(Home_t *home, RBDecomp_t *decomp,
  *      octants on each side of the Y bisection (lower and upper
  *      octants).
  */
-        if (!cut[Y]) {
+        if (!cut[YC]) {
             subDecompUsed[ULF] = 0;           
             subDecompUsed[URF] = 0;           
             subDecompUsed[ULB] = 0;           
             subDecompUsed[URB] = 0;           
-            yDoms[0] = decomp->numDoms[Y];
+            yDoms[0] = decomp->numDoms[YC];
         } else {
-            yDoms[0] = decomp->numDoms[Y] >> 1;
-            yDoms[1] = decomp->numDoms[Y] - yDoms[0];
+            yDoms[0] = decomp->numDoms[YC] >> 1;
+            yDoms[1] = decomp->numDoms[YC] - yDoms[0];
         }
 
 /*
@@ -1464,15 +1464,15 @@ static void InitRBDecomp(Home_t *home, RBDecomp_t *decomp,
  *      octants on each side of the Z bisection (front and back
  *      octants).
  */
-        if (!cut[Z]) {
+        if (!cut[ZC]) {
             subDecompUsed[LLB] = 0;           
             subDecompUsed[LRB] = 0;           
             subDecompUsed[ULB] = 0;           
             subDecompUsed[URB] = 0;           
-            zDoms[0] = decomp->numDoms[Z];
+            zDoms[0] = decomp->numDoms[ZC];
         } else {
-            zDoms[0] = decomp->numDoms[Z] >> 1;
-            zDoms[1] = decomp->numDoms[Z] - zDoms[0];
+            zDoms[0] = decomp->numDoms[ZC] >> 1;
+            zDoms[1] = decomp->numDoms[ZC] - zDoms[0];
         }
 
 /*
@@ -1498,44 +1498,44 @@ static void InitRBDecomp(Home_t *home, RBDecomp_t *decomp,
  */
             switch (i) {
                 case LLF:
-                    subDecomp->numDoms[X] = xDoms[0];
-                    subDecomp->numDoms[Y] = yDoms[0];
-                    subDecomp->numDoms[Z] = zDoms[0];
+                    subDecomp->numDoms[XC] = xDoms[0];
+                    subDecomp->numDoms[YC] = yDoms[0];
+                    subDecomp->numDoms[ZC] = zDoms[0];
                     break;
                 case LRF:
-                    subDecomp->numDoms[X] = xDoms[1];
-                    subDecomp->numDoms[Y] = yDoms[0];
-                    subDecomp->numDoms[Z] = zDoms[0];
+                    subDecomp->numDoms[XC] = xDoms[1];
+                    subDecomp->numDoms[YC] = yDoms[0];
+                    subDecomp->numDoms[ZC] = zDoms[0];
                     break;
                 case ULF:
-                    subDecomp->numDoms[X] = xDoms[0];
-                    subDecomp->numDoms[Y] = yDoms[1];
-                    subDecomp->numDoms[Z] = zDoms[0];
+                    subDecomp->numDoms[XC] = xDoms[0];
+                    subDecomp->numDoms[YC] = yDoms[1];
+                    subDecomp->numDoms[ZC] = zDoms[0];
                     break;
                 case URF:
-                    subDecomp->numDoms[X] = xDoms[1];
-                    subDecomp->numDoms[Y] = yDoms[1];
-                    subDecomp->numDoms[Z] = zDoms[0];
+                    subDecomp->numDoms[XC] = xDoms[1];
+                    subDecomp->numDoms[YC] = yDoms[1];
+                    subDecomp->numDoms[ZC] = zDoms[0];
                     break;
                 case LLB:
-                    subDecomp->numDoms[X] = xDoms[0];
-                    subDecomp->numDoms[Y] = yDoms[0];
-                    subDecomp->numDoms[Z] = zDoms[1];
+                    subDecomp->numDoms[XC] = xDoms[0];
+                    subDecomp->numDoms[YC] = yDoms[0];
+                    subDecomp->numDoms[ZC] = zDoms[1];
                     break;
                 case LRB:
-                    subDecomp->numDoms[X] = xDoms[1];
-                    subDecomp->numDoms[Y] = yDoms[0];
-                    subDecomp->numDoms[Z] = zDoms[1];
+                    subDecomp->numDoms[XC] = xDoms[1];
+                    subDecomp->numDoms[YC] = yDoms[0];
+                    subDecomp->numDoms[ZC] = zDoms[1];
                     break;
                 case ULB:
-                    subDecomp->numDoms[X] = xDoms[0];
-                    subDecomp->numDoms[Y] = yDoms[1];
-                    subDecomp->numDoms[Z] = zDoms[1];
+                    subDecomp->numDoms[XC] = xDoms[0];
+                    subDecomp->numDoms[YC] = yDoms[1];
+                    subDecomp->numDoms[ZC] = zDoms[1];
                     break;
                 case URB:
-                    subDecomp->numDoms[X] = xDoms[1];
-                    subDecomp->numDoms[Y] = yDoms[1];
-                    subDecomp->numDoms[Z] = zDoms[1];
+                    subDecomp->numDoms[XC] = xDoms[1];
+                    subDecomp->numDoms[YC] = yDoms[1];
+                    subDecomp->numDoms[ZC] = zDoms[1];
                     break;
             }
 
@@ -1721,15 +1721,15 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
  *      sub-partitioned.  Sub-partitioning will be into octants, quadrants
  *      halves or no subpartitions at all.
  */
-        cut[X] = decomp->numDoms[X] > 1;
-        cut[Y] = decomp->numDoms[Y] > 1;
-        cut[Z] = decomp->numDoms[Z] > 1;
+        cut[XC] = decomp->numDoms[XC] > 1;
+        cut[YC] = decomp->numDoms[YC] > 1;
+        cut[ZC] = decomp->numDoms[ZC] > 1;
 
 /*
  *      If there is no need to do further decomposition, we're
  *      down to an individual domain, so we can return to the caller.
  */
-        if ((cut[X] + cut[Y] + cut[Z]) == 0) {
+        if ((cut[XC] + cut[YC] + cut[ZC]) == 0) {
             return;
         }
 
@@ -1739,12 +1739,12 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
  *      calculate the portion of the load that will be associated with
  *      the lower side of the bisection plane in each dimension.
  */
-        minRatio[X] = (real8)(decomp->numDoms[X] / 2) /
-                      (real8)decomp->numDoms[X];
-        minRatio[Y] = (real8)(decomp->numDoms[Y] / 2) /
-                      (real8)decomp->numDoms[Y];
-        minRatio[Z] = (real8)(decomp->numDoms[Z] / 2) /
-                      (real8)decomp->numDoms[Z];
+        minRatio[XC] = (real8)(decomp->numDoms[XC] / 2) /
+                      (real8)decomp->numDoms[XC];
+        minRatio[YC] = (real8)(decomp->numDoms[YC] / 2) /
+                      (real8)decomp->numDoms[YC];
+        minRatio[ZC] = (real8)(decomp->numDoms[ZC] / 2) /
+                      (real8)decomp->numDoms[ZC];
 
         
 /*
@@ -1767,13 +1767,13 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
 
                 if (subDecomp != (RBDecomp_t *)NULL) {
     
-                    subDecomp->cMin[X] = decomp->cMin[X];
-                    subDecomp->cMin[Y] = decomp->cMin[Y];
-                    subDecomp->cMin[Z] = decomp->cMin[Z];
+                    subDecomp->cMin[XC] = decomp->cMin[XC];
+                    subDecomp->cMin[YC] = decomp->cMin[YC];
+                    subDecomp->cMin[ZC] = decomp->cMin[ZC];
 
-                    subDecomp->cMax[X] = decomp->cMax[X];
-                    subDecomp->cMax[Y] = decomp->cMax[Y];
-                    subDecomp->cMax[Z] = decomp->cMax[Z];
+                    subDecomp->cMax[XC] = decomp->cMax[XC];
+                    subDecomp->cMax[YC] = decomp->cMax[YC];
+                    subDecomp->cMax[ZC] = decomp->cMax[ZC];
 
                     octantLoad[i] = oldDecomp->subDecomp[i]->totLoad;
                 } else {
@@ -1792,7 +1792,7 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
             numSlices = 2;
             subDecompList = decomp->subDecomp;
 
-            if (cut[X]) {
+            if (cut[XC]) {
 /*
  *              Given the load on each side of the current X bisection
  *              determine the coordinate for the new bisection.  At the
@@ -1804,12 +1804,12 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
                                octantLoad[ULF] + octantLoad[ULB];
                 sliceLoad[1] = octantLoad[LRF] + octantLoad[LRB] +
                                octantLoad[URF] + octantLoad[URB];
-                oldBounds[0] = oldDecomp->cMin[X];
-                oldBounds[1] = oldDecomp->subDecomp[LLF]->cMax[X];
-                oldBounds[2] = oldDecomp->cMax[X];
+                oldBounds[0] = oldDecomp->cMin[XC];
+                oldBounds[1] = oldDecomp->subDecomp[LLF]->cMax[XC];
+                oldBounds[2] = oldDecomp->cMax[XC];
 
-                GetBisection(decomp->cMin[X], decomp->cMax[X], numSlices,
-                             sliceLoad, oldBounds, &coord, minRatio[X]);
+                GetBisection(decomp->cMin[XC], decomp->cMax[XC], numSlices,
+                             sliceLoad, oldBounds, &coord, minRatio[XC]);
 
 /*
  *              If we're restricting the domain boundary motion at the
@@ -1832,15 +1832,15 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
  *              before we try accessing them.  The same situation also
  *              applies further on when we cut the Y and Z dimension.
  */
-                subDecompList[LLF]->cMax[X] = coord;
-                subDecompList[LRF]->cMin[X] = coord;
+                subDecompList[LLF]->cMax[XC] = coord;
+                subDecompList[LRF]->cMin[XC] = coord;
 
-                if (subDecompList[ULF]) subDecompList[ULF]->cMax[X] = coord;
-                if (subDecompList[URF]) subDecompList[URF]->cMin[X] = coord;
-                if (subDecompList[LLB]) subDecompList[LLB]->cMax[X] = coord;
-                if (subDecompList[LRB]) subDecompList[LRB]->cMin[X] = coord;
-                if (subDecompList[ULB]) subDecompList[ULB]->cMax[X] = coord;
-                if (subDecompList[URB]) subDecompList[URB]->cMin[X] = coord;
+                if (subDecompList[ULF]) subDecompList[ULF]->cMax[XC] = coord;
+                if (subDecompList[URF]) subDecompList[URF]->cMin[XC] = coord;
+                if (subDecompList[LLB]) subDecompList[LLB]->cMax[XC] = coord;
+                if (subDecompList[LRB]) subDecompList[LRB]->cMin[XC] = coord;
+                if (subDecompList[ULB]) subDecompList[ULB]->cMax[XC] = coord;
+                if (subDecompList[URB]) subDecompList[URB]->cMin[XC] = coord;
             }
 
 /*
@@ -1852,7 +1852,7 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
  *          that could be affected by slicing the partition in this
  *          dimension.
  */
-            if (cut[Y]) {
+            if (cut[YC]) {
 
 /*
  *              Unless we're calculating *all* the domain boundaries 
@@ -1864,12 +1864,12 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
 
                     sliceLoad[0] = octantLoad[LLF] + octantLoad[LLB];
                     sliceLoad[1] = octantLoad[ULF] + octantLoad[ULB];
-                    oldBounds[0] = oldDecomp->cMin[Y];
-                    oldBounds[1] = oldDecomp->subDecomp[LLF]->cMax[Y];
-                    oldBounds[2] = oldDecomp->cMax[Y];
+                    oldBounds[0] = oldDecomp->cMin[YC];
+                    oldBounds[1] = oldDecomp->subDecomp[LLF]->cMax[YC];
+                    oldBounds[2] = oldDecomp->cMax[YC];
 
-                    GetBisection(decomp->cMin[Y], decomp->cMax[Y], numSlices,
-                                 sliceLoad, oldBounds, &coord, minRatio[Y]);
+                    GetBisection(decomp->cMin[YC], decomp->cMax[YC], numSlices,
+                                 sliceLoad, oldBounds, &coord, minRatio[YC]);
 
                     if (restrictMovement) {
                         oldBisection = oldBounds[1];
@@ -1877,11 +1877,11 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
                                 ((coord - oldBisection) * MAX_BOUND_SHIFT_FACT);
                     }
 
-                    subDecompList[LLF]->cMax[Y] = coord;
-                    subDecompList[ULF]->cMin[Y] = coord;
+                    subDecompList[LLF]->cMax[YC] = coord;
+                    subDecompList[ULF]->cMin[YC] = coord;
 
-                    if (subDecompList[LLB]) subDecompList[LLB]->cMax[Y] = coord;
-                    if (subDecompList[ULB]) subDecompList[ULB]->cMin[Y] = coord;
+                    if (subDecompList[LLB]) subDecompList[LLB]->cMax[YC] = coord;
+                    if (subDecompList[ULB]) subDecompList[ULB]->cMin[YC] = coord;
                 }
 
 /*
@@ -1892,12 +1892,12 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
 
                     sliceLoad[0] = octantLoad[LRF] + octantLoad[LRB];
                     sliceLoad[1] = octantLoad[URF] + octantLoad[URB];
-                    oldBounds[0] = oldDecomp->cMin[Y];
-                    oldBounds[1] = oldDecomp->subDecomp[LRF]->cMax[Y];
-                    oldBounds[2] = oldDecomp->cMax[Y];
+                    oldBounds[0] = oldDecomp->cMin[YC];
+                    oldBounds[1] = oldDecomp->subDecomp[LRF]->cMax[YC];
+                    oldBounds[2] = oldDecomp->cMax[YC];
 
-                    GetBisection(decomp->cMin[Y], decomp->cMax[Y], numSlices,
-                                 sliceLoad, oldBounds, &coord, minRatio[Y]);
+                    GetBisection(decomp->cMin[YC], decomp->cMax[YC], numSlices,
+                                 sliceLoad, oldBounds, &coord, minRatio[YC]);
 
                     if (restrictMovement) {
                         oldBisection = oldBounds[1];
@@ -1905,11 +1905,11 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
                                 ((coord - oldBisection) * MAX_BOUND_SHIFT_FACT);
                     }
 
-                    subDecompList[LRF]->cMax[Y] = coord;
-                    subDecompList[URF]->cMin[Y] = coord;
+                    subDecompList[LRF]->cMax[YC] = coord;
+                    subDecompList[URF]->cMin[YC] = coord;
 
-                    if (subDecompList[LRB]) subDecompList[LRB]->cMax[Y] = coord;
-                    if (subDecompList[URB]) subDecompList[URB]->cMin[Y] = coord;
+                    if (subDecompList[LRB]) subDecompList[LRB]->cMax[YC] = coord;
+                    if (subDecompList[URB]) subDecompList[URB]->cMin[YC] = coord;
                 }
             }  /* if (cut[Y]) */
 
@@ -1922,7 +1922,7 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
  *          each subpartition that could be affected by slicing
  *          the partition in this dimension.
  */
-            if (cut[Z]) {
+            if (cut[ZC]) {
 
 /*
  *              If we don't need *all* boundaries for the repartition utility
@@ -1936,12 +1936,12 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
 
                     sliceLoad[0] = octantLoad[LLF];
                     sliceLoad[1] = octantLoad[LLB];
-                    oldBounds[0] = oldDecomp->cMin[Z];
-                    oldBounds[1] = oldDecomp->subDecomp[LLF]->cMax[Z];
-                    oldBounds[2] = oldDecomp->cMax[Z];
+                    oldBounds[0] = oldDecomp->cMin[ZC];
+                    oldBounds[1] = oldDecomp->subDecomp[LLF]->cMax[ZC];
+                    oldBounds[2] = oldDecomp->cMax[ZC];
 
-                    GetBisection(decomp->cMin[Z], decomp->cMax[Z], numSlices,
-                                 sliceLoad, oldBounds, &coord, minRatio[Z]);
+                    GetBisection(decomp->cMin[ZC], decomp->cMax[ZC], numSlices,
+                                 sliceLoad, oldBounds, &coord, minRatio[ZC]);
 
                     if (restrictMovement) {
                         oldBisection = oldBounds[1];
@@ -1949,8 +1949,8 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
                                 ((coord - oldBisection) * MAX_BOUND_SHIFT_FACT);
                     }
 
-                    subDecompList[LLF]->cMax[Z] = coord;
-                    subDecompList[LLB]->cMin[Z] = coord;
+                    subDecompList[LLF]->cMax[ZC] = coord;
+                    subDecompList[LLB]->cMin[ZC] = coord;
                 }
 
 /*
@@ -1962,12 +1962,12 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
 
                     sliceLoad[0] = octantLoad[LRF];
                     sliceLoad[1] = octantLoad[LRB];
-                    oldBounds[0] = oldDecomp->cMin[Z];
-                    oldBounds[1] = oldDecomp->subDecomp[LRF]->cMax[Z];
-                    oldBounds[2] = oldDecomp->cMax[Z];
+                    oldBounds[0] = oldDecomp->cMin[ZC];
+                    oldBounds[1] = oldDecomp->subDecomp[LRF]->cMax[ZC];
+                    oldBounds[2] = oldDecomp->cMax[ZC];
 
-                    GetBisection(decomp->cMin[Z], decomp->cMax[Z], numSlices,
-                                 sliceLoad, oldBounds, &coord, minRatio[Z]);
+                    GetBisection(decomp->cMin[ZC], decomp->cMax[ZC], numSlices,
+                                 sliceLoad, oldBounds, &coord, minRatio[ZC]);
 
                     if (restrictMovement) {
                         oldBisection = oldBounds[1];
@@ -1975,8 +1975,8 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
                                 ((coord - oldBisection) * MAX_BOUND_SHIFT_FACT);
                     }
 
-                    subDecompList[LRF]->cMax[Z] = coord;
-                    subDecompList[LRB]->cMin[Z] = coord;
+                    subDecompList[LRF]->cMax[ZC] = coord;
+                    subDecompList[LRB]->cMin[ZC] = coord;
                 }
 
 /*
@@ -1988,12 +1988,12 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
 
                     sliceLoad[0] = octantLoad[ULF];
                     sliceLoad[1] = octantLoad[ULB];
-                    oldBounds[0] = oldDecomp->cMin[Z];
-                    oldBounds[1] = oldDecomp->subDecomp[ULF]->cMax[Z];
-                    oldBounds[2] = oldDecomp->cMax[Z];
+                    oldBounds[0] = oldDecomp->cMin[ZC];
+                    oldBounds[1] = oldDecomp->subDecomp[ULF]->cMax[ZC];
+                    oldBounds[2] = oldDecomp->cMax[ZC];
 
-                    GetBisection(decomp->cMin[Z], decomp->cMax[Z], numSlices,
-                                 sliceLoad, oldBounds, &coord, minRatio[Z]);
+                    GetBisection(decomp->cMin[ZC], decomp->cMax[ZC], numSlices,
+                                 sliceLoad, oldBounds, &coord, minRatio[ZC]);
 
                     if (restrictMovement) {
                         oldBisection = oldBounds[1];
@@ -2001,8 +2001,8 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
                                 ((coord - oldBisection) * MAX_BOUND_SHIFT_FACT);
                     }
 
-                    subDecompList[ULF]->cMax[Z] = coord;
-                    subDecompList[ULB]->cMin[Z] = coord;
+                    subDecompList[ULF]->cMax[ZC] = coord;
+                    subDecompList[ULB]->cMin[ZC] = coord;
                 }
 
 /*
@@ -2014,12 +2014,12 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
 
                     sliceLoad[0] = octantLoad[URF];
                     sliceLoad[1] = octantLoad[URB];
-                    oldBounds[0] = oldDecomp->cMin[Z];
-                    oldBounds[1] = oldDecomp->subDecomp[URF]->cMax[Z];
-                    oldBounds[2] = oldDecomp->cMax[Z];
+                    oldBounds[0] = oldDecomp->cMin[ZC];
+                    oldBounds[1] = oldDecomp->subDecomp[URF]->cMax[ZC];
+                    oldBounds[2] = oldDecomp->cMax[ZC];
 
-                    GetBisection(decomp->cMin[Z], decomp->cMax[Z], numSlices,
-                                 sliceLoad, oldBounds, &coord, minRatio[Z]);
+                    GetBisection(decomp->cMin[ZC], decomp->cMax[ZC], numSlices,
+                                 sliceLoad, oldBounds, &coord, minRatio[ZC]);
 
                     if (restrictMovement) {
                         oldBisection = oldBounds[1];
@@ -2027,8 +2027,8 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
                                 ((coord - oldBisection) * MAX_BOUND_SHIFT_FACT);
                     }
 
-                    subDecompList[URF]->cMax[Z] = coord;
-                    subDecompList[URB]->cMin[Z] = coord;
+                    subDecompList[URF]->cMax[ZC] = coord;
+                    subDecompList[URB]->cMin[ZC] = coord;
                 }
     
             }  /* if (cut[Z]) */
@@ -2088,11 +2088,11 @@ void UniformRBDecomp(Param_t *param, RBDecomp_t *decomp, int level)
  *      be further partitioned.  If no further partitioning is
  *      necessary, we can return to the caller.
  */
-        cut[X] = (decomp->numDoms[X] > 1);
-        cut[Y] = (decomp->numDoms[Y] > 1);
-        cut[Z] = (decomp->numDoms[Z] > 1);
+        cut[XC] = (decomp->numDoms[XC] > 1);
+        cut[YC] = (decomp->numDoms[YC] > 1);
+        cut[ZC] = (decomp->numDoms[ZC] > 1);
 
-        if ((cut[X] + cut[Y] + cut[Z]) == 0) {
+        if ((cut[XC] + cut[YC] + cut[ZC]) == 0) {
             return;
         }
 
@@ -2127,7 +2127,7 @@ void UniformRBDecomp(Param_t *param, RBDecomp_t *decomp, int level)
  *      If we're not cutting in the X dimension, none of the
  *      right side octants will be used
  */
-        if (!cut[X]) {
+        if (!cut[XC]) {
             subDecompUsed[LRF] = 0;
             subDecompUsed[URF] = 0;
             subDecompUsed[LRB] = 0;
@@ -2138,7 +2138,7 @@ void UniformRBDecomp(Param_t *param, RBDecomp_t *decomp, int level)
  *      If we're not cutting in the Y dimension, none of the
  *      upper octants will be used
  */
-        if (!cut[Y]) {
+        if (!cut[YC]) {
             subDecompUsed[ULF] = 0;
             subDecompUsed[URF] = 0;
             subDecompUsed[ULB] = 0;
@@ -2149,7 +2149,7 @@ void UniformRBDecomp(Param_t *param, RBDecomp_t *decomp, int level)
  *      If we're not cutting in the Z dimension, none of the
  *      back octants will be used
  */
-        if (!cut[Z]) {
+        if (!cut[ZC]) {
             subDecompUsed[LLB] = 0;
             subDecompUsed[LRB] = 0;
             subDecompUsed[ULB] = 0;
@@ -2171,53 +2171,53 @@ void UniformRBDecomp(Param_t *param, RBDecomp_t *decomp, int level)
  */
             subP = decomp->subDecomp[octant];
 
-            subP->cMin[X] = decomp->cMin[X];
-            subP->cMax[X] = decomp->cMax[X];
-            subP->cMin[Y] = decomp->cMin[Y];
-            subP->cMax[Y] = decomp->cMax[Y];
-            subP->cMin[Z] = decomp->cMin[Z];
-            subP->cMax[Z] = decomp->cMax[Z];
+            subP->cMin[XC] = decomp->cMin[XC];
+            subP->cMax[XC] = decomp->cMax[XC];
+            subP->cMin[YC] = decomp->cMin[YC];
+            subP->cMax[YC] = decomp->cMax[YC];
+            subP->cMin[ZC] = decomp->cMin[ZC];
+            subP->cMax[ZC] = decomp->cMax[ZC];
 
             switch(octant) {
                 case LLF:
-                    if (cut[X]) subP->cMax[X] = Ctr[X];
-                    if (cut[Y]) subP->cMax[Y] = Ctr[Y];
-                    if (cut[Z]) subP->cMax[Z] = Ctr[Z];
+                    if (cut[XC]) subP->cMax[XC] = Ctr[XC];
+                    if (cut[YC]) subP->cMax[YC] = Ctr[YC];
+                    if (cut[ZC]) subP->cMax[ZC] = Ctr[ZC];
                     break;
                 case LRF:
-                    if (cut[X]) subP->cMin[X] = Ctr[X];
-                    if (cut[Y]) subP->cMax[Y] = Ctr[Y];
-                    if (cut[Z]) subP->cMax[Z] = Ctr[Z];
+                    if (cut[XC]) subP->cMin[XC] = Ctr[XC];
+                    if (cut[YC]) subP->cMax[YC] = Ctr[YC];
+                    if (cut[ZC]) subP->cMax[ZC] = Ctr[ZC];
                     break;
                 case ULF:
-                    if (cut[X]) subP->cMax[X] = Ctr[X];
-                    if (cut[Y]) subP->cMin[Y] = Ctr[Y];
-                    if (cut[Z]) subP->cMax[Z] = Ctr[Z];
+                    if (cut[XC]) subP->cMax[XC] = Ctr[XC];
+                    if (cut[YC]) subP->cMin[YC] = Ctr[YC];
+                    if (cut[ZC]) subP->cMax[ZC] = Ctr[ZC];
                     break;
                 case URF:
-                    if (cut[X]) subP->cMin[X] = Ctr[X];
-                    if (cut[Y]) subP->cMin[Y] = Ctr[Y];
-                    if (cut[Z]) subP->cMax[Z] = Ctr[Z];
+                    if (cut[XC]) subP->cMin[XC] = Ctr[XC];
+                    if (cut[YC]) subP->cMin[YC] = Ctr[YC];
+                    if (cut[ZC]) subP->cMax[ZC] = Ctr[ZC];
                     break;
                 case LLB:
-                    if (cut[X]) subP->cMax[X] = Ctr[X];
-                    if (cut[Y]) subP->cMax[Y] = Ctr[Y];
-                    if (cut[Z]) subP->cMin[Z] = Ctr[Z];
+                    if (cut[XC]) subP->cMax[XC] = Ctr[XC];
+                    if (cut[YC]) subP->cMax[YC] = Ctr[YC];
+                    if (cut[ZC]) subP->cMin[ZC] = Ctr[ZC];
                     break;
                 case LRB:
-                    if (cut[X]) subP->cMin[X] = Ctr[X];
-                    if (cut[Y]) subP->cMax[Y] = Ctr[Y];
-                    if (cut[Z]) subP->cMin[Z] = Ctr[Z];
+                    if (cut[XC]) subP->cMin[XC] = Ctr[XC];
+                    if (cut[YC]) subP->cMax[YC] = Ctr[YC];
+                    if (cut[ZC]) subP->cMin[ZC] = Ctr[ZC];
                     break;
                 case ULB:
-                    if (cut[X]) subP->cMax[X] = Ctr[X];
-                    if (cut[Y]) subP->cMin[Y] = Ctr[Y];
-                    if (cut[Z]) subP->cMin[Z] = Ctr[Z];
+                    if (cut[XC]) subP->cMax[XC] = Ctr[XC];
+                    if (cut[YC]) subP->cMin[YC] = Ctr[YC];
+                    if (cut[ZC]) subP->cMin[ZC] = Ctr[ZC];
                     break;
                 case URB:
-                    if (cut[X]) subP->cMin[X] = Ctr[X];
-                    if (cut[Y]) subP->cMin[Y] = Ctr[Y];
-                    if (cut[Z]) subP->cMin[Z] = Ctr[Z];
+                    if (cut[XC]) subP->cMin[XC] = Ctr[XC];
+                    if (cut[YC]) subP->cMin[YC] = Ctr[YC];
+                    if (cut[ZC]) subP->cMin[ZC] = Ctr[ZC];
                     break;
 
             }

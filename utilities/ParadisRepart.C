@@ -499,24 +499,24 @@ static int XCmp(const void *a, const void *b)
 {
 	NodeData_t *nodeA = (NodeData_t *)a, *nodeB = (NodeData_t *)b;
 
-	if (nodeA->coord[X] < nodeB->coord[X]) return(-1);
-	return(nodeA->coord[X] > nodeB->coord[X]);
+	if (nodeA->coord[XC] < nodeB->coord[XC]) return(-1);
+	return(nodeA->coord[XC] > nodeB->coord[XC]);
 }
 
 static int YCmp(const void *a, const void *b)
 {
 	NodeData_t *nodeA = (NodeData_t *)a, *nodeB = (NodeData_t *)b;
 
-	if (nodeA->coord[Y] < nodeB->coord[Y]) return(-1);
-	return(nodeA->coord[Y] > nodeB->coord[Y]);
+	if (nodeA->coord[YC] < nodeB->coord[YC]) return(-1);
+	return(nodeA->coord[YC] > nodeB->coord[YC]);
 }
 
 static int ZCmp(const void *a, const void *b)
 {
 	NodeData_t *nodeA = (NodeData_t *)a, *nodeB = (NodeData_t *)b;
 
-	if (nodeA->coord[Z] < nodeB->coord[Z]) return(-1);
-	return(nodeA->coord[Z] > nodeB->coord[Z]);
+	if (nodeA->coord[ZC] < nodeB->coord[ZC]) return(-1);
+	return(nodeA->coord[ZC] > nodeB->coord[ZC]);
 }
 
 
@@ -838,13 +838,13 @@ static void ReadDataFile(Home_t *home, char *fileName, CellData_t *cellList,
  *                      is modified to remove references to these
  *                      values, we need to explicitly set them now.
  */
-                        param->minSideX = param->minCoordinates[X];
-                        param->minSideY = param->minCoordinates[Y];
-                        param->minSideZ = param->minCoordinates[Z];
+                        param->minSideX = param->minCoordinates[XC];
+                        param->minSideY = param->minCoordinates[YC];
+                        param->minSideZ = param->minCoordinates[ZC];
 
-                        param->maxSideX = param->maxCoordinates[X];
-                        param->maxSideY = param->maxCoordinates[Y];
-                        param->maxSideZ = param->maxCoordinates[Z];
+                        param->maxSideX = param->maxCoordinates[XC];
+                        param->maxSideY = param->maxCoordinates[YC];
+                        param->maxSideZ = param->maxCoordinates[ZC];
 
                         tokenType = GetNextToken(fp, token, maxTokenLen);
                         ReadDecompBounds(home, (void **)&fp, binRead,
@@ -953,11 +953,11 @@ static void ReadDataFile(Home_t *home, char *fileName, CellData_t *cellList,
  *          Got information on the next node, so deal with it.
  */
             sscanf(inLine, "%*d,%*d %lf %lf %lf %d %*d %*f",
-                   &nodeList[i].coord[X], &nodeList[i].coord[Y],
-                   &nodeList[i].coord[Z], &numArms);
+                   &nodeList[i].coord[XC], &nodeList[i].coord[YC],
+                   &nodeList[i].coord[ZC], &numArms);
 
-            FoldBox(param, &nodeList[i].coord[X], &nodeList[i].coord[Y],
-                    &nodeList[i].coord[Z]);
+            FoldBox(param, &nodeList[i].coord[XC], &nodeList[i].coord[YC],
+                    &nodeList[i].coord[ZC]);
 
             for (j = 0; j < numArms; j++) {
                 Getline(inLine, sizeof(inLine), fp);
@@ -968,8 +968,8 @@ static void ReadDataFile(Home_t *home, char *fileName, CellData_t *cellList,
  *          increment that cell's node count.
  */
             cellID = GetNodesCellID(param, cellSizeX, cellSizeY, cellSizeZ,
-                                    nodeList[i].coord[X], nodeList[i].coord[Y],
-                                    nodeList[i].coord[Z]);
+                                    nodeList[i].coord[XC], nodeList[i].coord[YC],
+                                    nodeList[i].coord[ZC]);
 
             cellList[cellID].cellWeight += (real8)(numArms-1);
             cellList[cellID].cellNodeCount++;
@@ -1065,7 +1065,7 @@ static void RepartRSDecomp(Home_t *home, NodeData_t *nodeList,
 
         qsort(nodeList, numNodes, sizeof(NodeData_t), XCmp);
 
-        GetBounds(cellList, nodeList, X, numNodes, numXdoms, param->minSideX,
+        GetBounds(cellList, nodeList, XC, numNodes, numXdoms, param->minSideX,
                   param->maxSideX, xBound, xSlices);
 
 /*
@@ -1087,7 +1087,7 @@ static void RepartRSDecomp(Home_t *home, NodeData_t *nodeList,
             qsort(&nodeList[yFirstIndex], yLastIndex-yFirstIndex,
                   sizeof(NodeData_t), YCmp);
 
-            GetBounds(cellList, &nodeList[yFirstIndex], Y,
+            GetBounds(cellList, &nodeList[yFirstIndex], YC,
                       yLastIndex-yFirstIndex, numYdoms, param->minSideY,
                       param->maxSideY, yBound, ySlices);
 
@@ -1112,7 +1112,7 @@ static void RepartRSDecomp(Home_t *home, NodeData_t *nodeList,
                 qsort(&nodeList[zFirstIndex], zLastIndex-zFirstIndex,
                       sizeof(NodeData_t), ZCmp);
 
-                GetBounds(cellList, &nodeList[zFirstIndex], Z,
+                GetBounds(cellList, &nodeList[zFirstIndex], ZC,
                           zLastIndex-zFirstIndex, numZdoms, param->minSideZ,
                           param->maxSideZ, zBound, zSlices);
 
@@ -1166,9 +1166,9 @@ static void GenUGrid(Home_t *home, int gridDim[3], real8 **xBoundaries,
         real8 xMinCoord, yMinCoord, zMinCoord;
         real8 *xBounds, *yBounds, *zBounds;
 
-        xSectorLen = home->param->Lx / gridDim[X];
-        ySectorLen = home->param->Ly / gridDim[Y];
-        zSectorLen = home->param->Lz / gridDim[Z];
+        xSectorLen = home->param->Lx / gridDim[XC];
+        ySectorLen = home->param->Ly / gridDim[YC];
+        zSectorLen = home->param->Lz / gridDim[ZC];
 
         xMinCoord = home->param->minSideX;
         yMinCoord = home->param->minSideY;
@@ -1180,25 +1180,25 @@ static void GenUGrid(Home_t *home, int gridDim[3], real8 **xBoundaries,
  *      uniformly sectioned. Then go ahead and calculate the plane
  *      coordinates.
  */
-        xBounds = (real8 *)calloc(1, (gridDim[X]+1) * sizeof(real8));
-        yBounds = (real8 *)calloc(1, (gridDim[Y]+1) * sizeof(real8));
-        zBounds = (real8 *)calloc(1, (gridDim[Z]+1) * sizeof(real8));
+        xBounds = (real8 *)calloc(1, (gridDim[XC]+1) * sizeof(real8));
+        yBounds = (real8 *)calloc(1, (gridDim[YC]+1) * sizeof(real8));
+        zBounds = (real8 *)calloc(1, (gridDim[ZC]+1) * sizeof(real8));
 
-        for (i = 0; i < gridDim[X]; i++) {
+        for (i = 0; i < gridDim[XC]; i++) {
             xBounds[i] = xMinCoord + (i * xSectorLen);
         }
 
-        for (i = 0; i < gridDim[Y]; i++) {
+        for (i = 0; i < gridDim[YC]; i++) {
             yBounds[i] = yMinCoord + (i * ySectorLen);
         }
 
-        for (i = 0; i < gridDim[Z]; i++) {
+        for (i = 0; i < gridDim[ZC]; i++) {
             zBounds[i] = zMinCoord + (i * zSectorLen);
         }
 
-        xBounds[gridDim[X]] = home->param->maxSideX;
-        yBounds[gridDim[Y]] = home->param->maxSideY;
-        zBounds[gridDim[Z]] = home->param->maxSideZ;
+        xBounds[gridDim[XC]] = home->param->maxSideX;
+        yBounds[gridDim[YC]] = home->param->maxSideY;
+        zBounds[gridDim[ZC]] = home->param->maxSideZ;
 
         *xBoundaries = xBounds; 
         *yBoundaries = yBounds; 
@@ -1259,11 +1259,11 @@ static void GetDecompCnt(int xNumDoms, int yNumDoms, int zNumDoms,
  *      Figure out the dimensions (if any) in which this portion of the
  *      deocmposition must be further decomposed.
  */
-        cut[X] = (xNumDoms > 1);
-        cut[Y] = (yNumDoms > 1);
-        cut[Z] = (zNumDoms > 1);
+        cut[XC] = (xNumDoms > 1);
+        cut[YC] = (yNumDoms > 1);
+        cut[ZC] = (zNumDoms > 1);
 
-        if (cut[X] + cut[Y] + cut[Z] == 0) {
+        if (cut[XC] + cut[YC] + cut[ZC] == 0) {
             return;
         }
 
@@ -1279,7 +1279,7 @@ static void GetDecompCnt(int xNumDoms, int yNumDoms, int zNumDoms,
  *
  *      Then the same sort of thing for Y and Z dimensions.
  */
-        if (!cut[X]) {
+        if (!cut[XC]) {
             subDecompUsed[LRF] = 0;
             subDecompUsed[URF] = 0;
             subDecompUsed[LRB] = 0;
@@ -1290,7 +1290,7 @@ static void GetDecompCnt(int xNumDoms, int yNumDoms, int zNumDoms,
             xDoms[1] = xNumDoms - xDoms[0];
         }
 
-        if (!cut[Y]) {
+        if (!cut[YC]) {
             subDecompUsed[ULF] = 0;
             subDecompUsed[URF] = 0;
             subDecompUsed[ULB] = 0;
@@ -1301,7 +1301,7 @@ static void GetDecompCnt(int xNumDoms, int yNumDoms, int zNumDoms,
             yDoms[1] = yNumDoms - yDoms[0];
         }
 
-        if (!cut[Z]) {
+        if (!cut[ZC]) {
             subDecompUsed[LLB] = 0;
             subDecompUsed[LRB] = 0;
             subDecompUsed[ULB] = 0;
@@ -1407,17 +1407,17 @@ static void GetGridOverlap(real8 *cMin, real8 *cMax, int gridDim[3],
         int   xMax, yMax, zMax;
         real8 *xFactor, *yFactor, *zFactor, overLap;
 
-        xFactor = (real8 *)calloc(1, gridDim[X] * sizeof(real8));
-        yFactor = (real8 *)calloc(1, gridDim[Y] * sizeof(real8));
-        zFactor = (real8 *)calloc(1, gridDim[Z] * sizeof(real8));
+        xFactor = (real8 *)calloc(1, gridDim[XC] * sizeof(real8));
+        yFactor = (real8 *)calloc(1, gridDim[YC] * sizeof(real8));
+        zFactor = (real8 *)calloc(1, gridDim[ZC] * sizeof(real8));
 
         xMin = 0;
         yMin = 0;
         zMin = 0;
 
-        xMax = gridDim[X] - 1;
-        yMax = gridDim[Y] - 1;
-        zMax = gridDim[Z] - 1;
+        xMax = gridDim[XC] - 1;
+        yMax = gridDim[YC] - 1;
+        zMax = gridDim[ZC] - 1;
 
 /*
  *      Find the minimum and maximum indices (in each dimension)
@@ -1425,28 +1425,28 @@ static void GetGridOverlap(real8 *cMin, real8 *cMax, int gridDim[3],
  *      the volume defined by the minimum and maximum coordinates
  *      in <cMin> and <cMax>.
  */
-        for (i = 0; i < gridDim[X]; i++) {
-            if (cMin[X] >= xBoundaries[i+1]) {
+        for (i = 0; i < gridDim[XC]; i++) {
+            if (cMin[XC] >= xBoundaries[i+1]) {
                 xMin = i + 1;
-            } else if (cMax[X] <= xBoundaries[i+1]) {
+            } else if (cMax[XC] <= xBoundaries[i+1]) {
                 xMax = i;
                 break;
             }
         }
 
-        for (i = 0; i < gridDim[Y]; i++) {
-            if (cMin[Y] >= yBoundaries[i+1]) {
+        for (i = 0; i < gridDim[YC]; i++) {
+            if (cMin[YC] >= yBoundaries[i+1]) {
                 yMin = i + 1;
-            } else if (cMax[Y] <= yBoundaries[i+1]) {
+            } else if (cMax[YC] <= yBoundaries[i+1]) {
                 yMax = i;
                 break;
             }
         }
 
-        for (i = 0; i < gridDim[Z]; i++) {
-            if (cMin[Z] >= zBoundaries[i+1]) {
+        for (i = 0; i < gridDim[ZC]; i++) {
+            if (cMin[ZC] >= zBoundaries[i+1]) {
                 zMin = i + 1;
-            } else if (cMax[Z] <= zBoundaries[i+1]) {
+            } else if (cMax[ZC] <= zBoundaries[i+1]) {
                 zMax = i;
                 break;
             }
@@ -1458,21 +1458,21 @@ static void GetGridOverlap(real8 *cMin, real8 *cMax, int gridDim[3],
  *      portion of the volume overlaps the slab.
  */
         for (i = xMin; i <= xMax; i++) {
-            overLap = MIN(cMax[X], xBoundaries[i+1]) -
-                      MAX(cMin[X], xBoundaries[i]);
-            xFactor[i] = overLap / (cMax[X] - cMin[X]);
+            overLap = MIN(cMax[XC], xBoundaries[i+1]) -
+                      MAX(cMin[XC], xBoundaries[i]);
+            xFactor[i] = overLap / (cMax[XC] - cMin[XC]);
         }
 
         for (i = yMin; i <= yMax; i++) {
-            overLap = MIN(cMax[Y], yBoundaries[i+1]) -
-                      MAX(cMin[Y], yBoundaries[i]);
-            yFactor[i] = overLap / (cMax[Y] - cMin[Y]);
+            overLap = MIN(cMax[YC], yBoundaries[i+1]) -
+                      MAX(cMin[YC], yBoundaries[i]);
+            yFactor[i] = overLap / (cMax[YC] - cMin[YC]);
         }
 
         for (i = zMin; i <= zMax; i++) {
-            overLap = MIN(cMax[Z], zBoundaries[i+1]) -
-                      MAX(cMin[Z], zBoundaries[i]);
-            zFactor[i] = overLap / (cMax[Z] - cMin[Z]);
+            overLap = MIN(cMax[ZC], zBoundaries[i+1]) -
+                      MAX(cMin[ZC], zBoundaries[i]);
+            zFactor[i] = overLap / (cMax[ZC] - cMin[ZC]);
         }
 
         *xOverlap = xFactor;
@@ -1555,17 +1555,17 @@ static void GetBisectionCoord(real8 *cMin, real8 *cMax, int dim,
         slabLoad = (real8 *)calloc(1, numSlabs * sizeof(real8));
 
         switch(dim) {
-            case X:
+            case XC:
                 slabMinIndex = xMin;
                 slabMaxIndex = xMax;
                 boundaries = xBoundaries;
                 break;
-            case Y:
+            case YC:
                 slabMinIndex = yMin;
                 slabMaxIndex = yMax;
                 boundaries = yBoundaries;
                 break;
-            case Z:
+            case ZC:
                 slabMinIndex = zMin;
                 slabMaxIndex = zMax;
                 boundaries = zBoundaries;
@@ -1581,16 +1581,16 @@ static void GetBisectionCoord(real8 *cMin, real8 *cMax, int dim,
  */
         totalLoad = 0.0;
 
-        for (index[X] = xMin; index[X] <= xMax; index[X]++) {
-            for (index[Y] = yMin; index[Y] <= yMax; index[Y]++) {
-                for (index[Z] = zMin; index[Z] <= zMax; index[Z]++) {
+        for (index[XC] = xMin; index[XC] <= xMax; index[XC]++) {
+            for (index[YC] = yMin; index[YC] <= yMax; index[YC]++) {
+                for (index[ZC] = zMin; index[ZC] <= zMax; index[ZC]++) {
 
-                    offset = (index[X] * gridDim[Y] * gridDim[Z]) +
-                             (index[Y] * gridDim[Z]) + index[Z];
+                    offset = (index[XC] * gridDim[YC] * gridDim[ZC]) +
+                             (index[YC] * gridDim[ZC]) + index[ZC];
 
-                    overlapFactor = xOverlap[index[X]] *
-                                    yOverlap[index[Y]] *
-                                    zOverlap[index[Z]];
+                    overlapFactor = xOverlap[index[XC]] *
+                                    yOverlap[index[YC]] *
+                                    zOverlap[index[ZC]];
 
                     slabLoad[index[dim]] += uloadData[offset] * overlapFactor;
                     totalLoad += uloadData[offset] * overlapFactor;
@@ -1702,15 +1702,15 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
  *      sub-partitioned.  Sub-partitioning will be into octants, quadrants
  *      halves or no subpartitions at all.
  */
-        cut[X] = (decomp->numDoms[X] > 1);
-        cut[Y] = (decomp->numDoms[Y] > 1);
-        cut[Z] = (decomp->numDoms[Z] > 1);
+        cut[XC] = (decomp->numDoms[XC] > 1);
+        cut[YC] = (decomp->numDoms[YC] > 1);
+        cut[ZC] = (decomp->numDoms[ZC] > 1);
 
 /*
  *      If there is no need to do further decomposition, we're
  *      down to an individual domain, so we can return to the caller.
  */
-        if ((cut[X] + cut[Y] + cut[Z]) == 0) {
+        if ((cut[XC] + cut[YC] + cut[ZC]) == 0) {
             return;
         }
 
@@ -1720,12 +1720,12 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
  *      calculate the portion of the load that will be associated with
  *      the lower side of the bisection plane in each dimension.
  */
-        minRatio[X] = (real8)(decomp->numDoms[X] / 2) /
-                      (real8)decomp->numDoms[X];
-        minRatio[Y] = (real8)(decomp->numDoms[Y] / 2) /
-                      (real8)decomp->numDoms[Y];
-        minRatio[Z] = (real8)(decomp->numDoms[Z] / 2) /
-                      (real8)decomp->numDoms[Z];
+        minRatio[XC] = (real8)(decomp->numDoms[XC] / 2) /
+                      (real8)decomp->numDoms[XC];
+        minRatio[YC] = (real8)(decomp->numDoms[YC] / 2) /
+                      (real8)decomp->numDoms[YC];
+        minRatio[ZC] = (real8)(decomp->numDoms[ZC] / 2) /
+                      (real8)decomp->numDoms[ZC];
 
 /*
  *      Set up the initial boundaries on all used subpartitions so
@@ -1740,13 +1740,13 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
 
             if (subDecomp != (RBDecomp_t *)NULL) {
     
-                subDecomp->cMin[X] = decomp->cMin[X];
-                subDecomp->cMin[Y] = decomp->cMin[Y];
-                subDecomp->cMin[Z] = decomp->cMin[Z];
+                subDecomp->cMin[XC] = decomp->cMin[XC];
+                subDecomp->cMin[YC] = decomp->cMin[YC];
+                subDecomp->cMin[ZC] = decomp->cMin[ZC];
 
-                subDecomp->cMax[X] = decomp->cMax[X];
-                subDecomp->cMax[Y] = decomp->cMax[Y];
-                subDecomp->cMax[Z] = decomp->cMax[Z];
+                subDecomp->cMax[XC] = decomp->cMax[XC];
+                subDecomp->cMax[YC] = decomp->cMax[YC];
+                subDecomp->cMax[ZC] = decomp->cMax[ZC];
             }
         }
 
@@ -1760,12 +1760,12 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
  */
         subDecompList = decomp->subDecomp;
 
-        if (cut[X]) {
+        if (cut[XC]) {
 
             GetBisectionCoord(subDecompList[LLF]->cMin,
-                              subDecompList[LLF]->cMax, X, gridDim,
+                              subDecompList[LLF]->cMax, XC, gridDim,
                               uloadData, xBoundaries, yBoundaries,
-                              zBoundaries, &coord, minRatio[X]);
+                              zBoundaries, &coord, minRatio[XC]);
 
 /*
  *          If the current partition is not being subpartitioned
@@ -1775,15 +1775,15 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
  *          before we try accessing them.  The same situation also
  *          applies further on when we cut the Y and Z dimension.
  */
-            subDecompList[LLF]->cMax[X] = coord;
-            subDecompList[LRF]->cMin[X] = coord;
+            subDecompList[LLF]->cMax[XC] = coord;
+            subDecompList[LRF]->cMin[XC] = coord;
 
-            if (subDecompList[ULF]) subDecompList[ULF]->cMax[X] = coord;
-            if (subDecompList[URF]) subDecompList[URF]->cMin[X] = coord;
-            if (subDecompList[LLB]) subDecompList[LLB]->cMax[X] = coord;
-            if (subDecompList[LRB]) subDecompList[LRB]->cMin[X] = coord;
-            if (subDecompList[ULB]) subDecompList[ULB]->cMax[X] = coord;
-            if (subDecompList[URB]) subDecompList[URB]->cMin[X] = coord;
+            if (subDecompList[ULF]) subDecompList[ULF]->cMax[XC] = coord;
+            if (subDecompList[URF]) subDecompList[URF]->cMin[XC] = coord;
+            if (subDecompList[LLB]) subDecompList[LLB]->cMax[XC] = coord;
+            if (subDecompList[LRB]) subDecompList[LRB]->cMin[XC] = coord;
+            if (subDecompList[ULB]) subDecompList[ULB]->cMax[XC] = coord;
+            if (subDecompList[URB]) subDecompList[URB]->cMin[XC] = coord;
         }
 
 /*
@@ -1795,33 +1795,33 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
  *      that could be affected by slicing the partition in this
  *      dimension.
  */
-        if (cut[Y]) {
+        if (cut[YC]) {
 
 /*
  *          Cut all the existing LLF, LRF halves in the Y dimension.
  */
             GetBisectionCoord(subDecompList[LLF]->cMin,
-                              subDecompList[LLF]->cMax, Y, gridDim,
+                              subDecompList[LLF]->cMax, YC, gridDim,
                               uloadData, xBoundaries, yBoundaries,
-                              zBoundaries, &coord, minRatio[Y]);
+                              zBoundaries, &coord, minRatio[YC]);
 
-            subDecompList[LLF]->cMax[Y] = coord;
-            subDecompList[ULF]->cMin[Y] = coord;
+            subDecompList[LLF]->cMax[YC] = coord;
+            subDecompList[ULF]->cMin[YC] = coord;
 
-            if (subDecompList[LLB]) subDecompList[LLB]->cMax[Y] = coord;
-            if (subDecompList[ULB]) subDecompList[ULB]->cMin[Y] = coord;
+            if (subDecompList[LLB]) subDecompList[LLB]->cMax[YC] = coord;
+            if (subDecompList[ULB]) subDecompList[ULB]->cMin[YC] = coord;
 
             if (subDecompList[LRF]) {
                 GetBisectionCoord(subDecompList[LRF]->cMin,
-                                  subDecompList[LRF]->cMax, Y, gridDim,
+                                  subDecompList[LRF]->cMax, YC, gridDim,
                                   uloadData, xBoundaries, yBoundaries,
-                                  zBoundaries, &coord, minRatio[Y]);
+                                  zBoundaries, &coord, minRatio[YC]);
 
-                subDecompList[LRF]->cMax[Y] = coord;
-                subDecompList[URF]->cMin[Y] = coord;
+                subDecompList[LRF]->cMax[YC] = coord;
+                subDecompList[URF]->cMin[YC] = coord;
 
-                if (subDecompList[LRB]) subDecompList[LRB]->cMax[Y] = coord;
-                if (subDecompList[URB]) subDecompList[URB]->cMin[Y] = coord;
+                if (subDecompList[LRB]) subDecompList[LRB]->cMax[YC] = coord;
+                if (subDecompList[URB]) subDecompList[URB]->cMin[YC] = coord;
             }
 
         }  /* if (cut[Y]) */
@@ -1835,48 +1835,48 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
  *      each subpartition that could be affected by slicing
  *      the partition in this dimension.
  */
-        if (cut[Z]) {
+        if (cut[ZC]) {
 
 /*
  *          Cut all the existing LLF, LRF, ULF and URF quadrants
  *          in the Z dimension.
  */
             GetBisectionCoord(subDecompList[LLF]->cMin,
-                              subDecompList[LLF]->cMax, Z, gridDim,
+                              subDecompList[LLF]->cMax, ZC, gridDim,
                               uloadData, xBoundaries, yBoundaries,
-                              zBoundaries, &coord, minRatio[Z]);
+                              zBoundaries, &coord, minRatio[ZC]);
 
-            subDecompList[LLF]->cMax[Z] = coord;
-            subDecompList[LLB]->cMin[Z] = coord;
+            subDecompList[LLF]->cMax[ZC] = coord;
+            subDecompList[LLB]->cMin[ZC] = coord;
 
             if (subDecompList[LRF]) {
                 GetBisectionCoord(subDecompList[LRF]->cMin,
-                                  subDecompList[LRF]->cMax, Z, gridDim,
+                                  subDecompList[LRF]->cMax, ZC, gridDim,
                                   uloadData, xBoundaries, yBoundaries,
-                                  zBoundaries, &coord, minRatio[Z]);
+                                  zBoundaries, &coord, minRatio[ZC]);
 
-                subDecompList[LRF]->cMax[Z] = coord;
-                subDecompList[LRB]->cMin[Z] = coord;
+                subDecompList[LRF]->cMax[ZC] = coord;
+                subDecompList[LRB]->cMin[ZC] = coord;
             }
 
             if (subDecompList[ULF]) {
                 GetBisectionCoord(subDecompList[ULF]->cMin,
-                                  subDecompList[ULF]->cMax, Z, gridDim,
+                                  subDecompList[ULF]->cMax, ZC, gridDim,
                                   uloadData, xBoundaries, yBoundaries,
-                                  zBoundaries, &coord, minRatio[Z]);
+                                  zBoundaries, &coord, minRatio[ZC]);
 
-                subDecompList[ULF]->cMax[Z] = coord;
-                subDecompList[ULB]->cMin[Z] = coord;
+                subDecompList[ULF]->cMax[ZC] = coord;
+                subDecompList[ULB]->cMin[ZC] = coord;
             }
 
             if (subDecompList[URF]) {
                 GetBisectionCoord(subDecompList[URF]->cMin,
-                                  subDecompList[URF]->cMax, Z, gridDim,
+                                  subDecompList[URF]->cMax, ZC, gridDim,
                                   uloadData, xBoundaries, yBoundaries,
-                                  zBoundaries, &coord, minRatio[Z]);
+                                  zBoundaries, &coord, minRatio[ZC]);
     
-                subDecompList[URF]->cMax[Z] = coord;
-                subDecompList[URB]->cMin[Z] = coord;
+                subDecompList[URF]->cMax[ZC] = coord;
+                subDecompList[URB]->cMin[ZC] = coord;
             }
     
         }  /* if (cut[Z]) */
@@ -2013,9 +2013,9 @@ main(int argc, char *argv[])
  *      Overwrite the domain geometry from the restart file with
  *      the user provided domain geometry.
  */
-        param->dataDecompGeometry[X] = numXdoms;
-        param->dataDecompGeometry[Y] = numYdoms;
-        param->dataDecompGeometry[Z] = numZdoms;
+        param->dataDecompGeometry[XC] = numXdoms;
+        param->dataDecompGeometry[YC] = numYdoms;
+        param->dataDecompGeometry[ZC] = numZdoms;
 
 /*
  *      Calculate the total weighting for the problem, and
@@ -2039,9 +2039,9 @@ main(int argc, char *argv[])
  *          we need to generate the grid and set the load data for
  *          each sector.
  */
-            gridDim[X] = numXcells;
-            gridDim[Y] = numYcells;
-            gridDim[Z] = numZcells;
+            gridDim[XC] = numXcells;
+            gridDim[YC] = numYcells;
+            gridDim[ZC] = numZcells;
 
             GenUGrid(&home, gridDim, &xBoundaries, &yBoundaries, &zBoundaries);
             GetRepartULoadData(numCells, cellList, &uloadData);

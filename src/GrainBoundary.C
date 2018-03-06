@@ -40,45 +40,45 @@ Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p,int oldO
 	if(oldOrCurr == 0){
 		
 		if(InWhichGrain(home, node2->oldx,node2->oldy,node2->oldz) != node2->inGrain){
-			vec[X] = node2->x - node1->oldx;
-			vec[Y] = node2->y - node1->oldy;
-			vec[Z] = node2->z - node1->oldz;
+			vec[XC] = node2->x - node1->oldx;
+			vec[YC] = node2->y - node1->oldy;
+			vec[ZC] = node2->z - node1->oldz;
 		}else{
-			vec[X] = node2->oldx - node1->oldx;
-			vec[Y] = node2->oldy - node1->oldy;
-			vec[Z] = node2->oldz - node1->oldz;
+			vec[XC] = node2->oldx - node1->oldx;
+			vec[YC] = node2->oldy - node1->oldy;
+			vec[ZC] = node2->oldz - node1->oldz;
 		}
 	}else if(oldOrCurr == 1){
-		vec[X] = node2->x - node1->x;
-		vec[Y] = node2->y - node1->y;
-		vec[Z] = node2->z - node1->z;
+		vec[XC] = node2->x - node1->x;
+		vec[YC] = node2->y - node1->y;
+		vec[ZC] = node2->z - node1->z;
 	}
 
-	ZImage(param, &vec[X], &vec[Y], &vec[Z]);
+	ZImage(param, &vec[XC], &vec[YC], &vec[ZC]);
 
 	if(oldOrCurr == 0){ 
-		newPos[X] = node1->oldx + vec[X] * 0.5;
-		newPos[Y] = node1->oldy + vec[Y] * 0.5;
-		newPos[Z] = node1->oldz + vec[Z] * 0.5;
+		newPos[XC] = node1->oldx + vec[XC] * 0.5;
+		newPos[YC] = node1->oldy + vec[YC] * 0.5;
+		newPos[ZC] = node1->oldz + vec[ZC] * 0.5;
 
-		if(InWhichGrain(home, newPos[X],newPos[Y],newPos[Z]) != node1->inGrain){
+		if(InWhichGrain(home, newPos[XC],newPos[YC],newPos[ZC]) != node1->inGrain){
 			printf("Warning: the position of insert node is error\n");
 			FormatVector(newPos,"newPos");
 		}
 		
 	}else if(oldOrCurr == 1){
-		newPos[X] = node1->x + vec[X] * 0.5;
-		newPos[Y] = node1->y + vec[Y] * 0.5;
-		newPos[Z] = node1->z + vec[Z] * 0.5;
+		newPos[XC] = node1->x + vec[XC] * 0.5;
+		newPos[YC] = node1->y + vec[YC] * 0.5;
+		newPos[ZC] = node1->z + vec[ZC] * 0.5;
 		
 	}else{
 		
 		VECTOR_COPY(newPos, p);
 	}
 
-	newVel[X] = (node1->vX + node2->vX) * 0.5;
-	newVel[Y] = (node1->vY + node2->vY) * 0.5;
-	newVel[Z] = (node1->vZ + node2->vZ) * 0.5;
+	newVel[XC] = (node1->vX + node2->vX) * 0.5;
+	newVel[YC] = (node1->vY + node2->vY) * 0.5;
+	newVel[ZC] = (node1->vZ + node2->vZ) * 0.5;
 	
 	/*
 	 *          Get an estimate of forces that would change due to refining
@@ -87,7 +87,7 @@ Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p,int oldO
 	/*EstRefinementForces(home, node1, node2, newPos, vec1,
 		 f0Seg1, f1Seg1, f0Seg2, f1Seg2);*/
 
-	FoldBox(param, &newPos[X], &newPos[Y], &newPos[Z]);
+	FoldBox(param, &newPos[XC], &newPos[YC], &newPos[ZC]);
 
 	/*
 	 *          This should be a global operation distributed out to remote
@@ -95,13 +95,13 @@ Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p,int oldO
 	 */
 	
 	
-	nodePos[X] = node1->x;
-	nodePos[Y] = node1->y;
-	nodePos[Z] = node1->z;
+	nodePos[XC] = node1->x;
+	nodePos[YC] = node1->y;
+	nodePos[ZC] = node1->z;
 	
-	nodeVel[X] = node1->vX;
-	nodeVel[Y] = node1->vY;
-	nodeVel[Z] = node1->vZ;
+	nodeVel[XC] = node1->vX;
+	nodeVel[YC] = node1->vY;
+	nodeVel[ZC] = node1->vZ;
 	
 	tag1 = &node1->myTag; 
 	tag2 = &node2->myTag; 
@@ -237,8 +237,8 @@ void GetGBPlane(Home_t *home,real8 oldGrain, real8 currGrain,
 		x0 = grain->x0[i]; y0 = grain->y0[i]; z0 = grain->z0[i];
 		yy = nx*(x - x0) + ny*(y - y0) + nz*(z - z0);
 		if(fabs(yy) < minDis){
-			GBPlane->normal[X] = nx; 	GBPlane->normal[Y] = ny; 	GBPlane->normal[Z] = nz; 
-			GBPlane->point[X] = x0; 	GBPlane->point[Y] = y0; 	GBPlane->point[Z] = z0; 
+			GBPlane->normal[XC] = nx; 	GBPlane->normal[YC] = ny; 	GBPlane->normal[ZC] = nz; 
+			GBPlane->point[XC] = x0; 	GBPlane->point[YC] = y0; 	GBPlane->point[ZC] = z0; 
 			minDis = fabs(yy);
 		}
 	}
@@ -389,15 +389,15 @@ int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane, PeneRes_t *peneRes)
 				   __FILE__, __LINE__);
 			continue;
 		}
-		inBurg[X] = node->burgX[i];
-		inBurg[Y] = node->burgY[i];
-		inBurg[Z] = node->burgZ[i];
+		inBurg[XC] = node->burgX[i];
+		inBurg[YC] = node->burgY[i];
+		inBurg[ZC] = node->burgZ[i];
 		bMag = Normal(inBurg); 
 		
 		NormalizeVec(inBurg);
-		vec[X] = nbr->x - node->x;
-		vec[Y] = nbr->y - node->y;
-		vec[Z] = nbr->z - node->z;
+		vec[XC] = nbr->x - node->x;
+		vec[YC] = nbr->y - node->y;
+		vec[ZC] = nbr->z - node->z;
 		ZImage(param, vec, vec+1, vec+2);
 		NormalizeVec(vec);
 		
@@ -406,12 +406,12 @@ int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane, PeneRes_t *peneRes)
 		inEnergy += (segEnergy/2.0);
 	}
 
-	normal[X] = node->nx[1];
-	normal[Y] = node->ny[1];
-	normal[Z] = node->nz[1];
-	temVec[X] = node->burgX[1];
-	temVec[Y] = node->burgY[1];
-	temVec[Z] = node->burgZ[1];
+	normal[XC] = node->nx[1];
+	normal[YC] = node->ny[1];
+	normal[ZC] = node->nz[1];
+	temVec[XC] = node->burgX[1];
+	temVec[YC] = node->burgY[1];
+	temVec[ZC] = node->burgZ[1];
 	burgMag = Normal(temVec);
 	
 	cross(normal, GBPlane->normal, vec);
@@ -439,9 +439,9 @@ int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane, PeneRes_t *peneRes)
 	}
 #endif 
 	
-	temVec[X] = node->burgX[0];
-	temVec[Y] = node->burgY[0];
-	temVec[Z] = node->burgZ[0];
+	temVec[XC] = node->burgX[0];
+	temVec[YC] = node->burgY[0];
+	temVec[ZC] = node->burgZ[0];
 	
 	if(fabs(DotProduct(temVec, GBPlane->normal)) < 1.0e-2)isScrew = 1;
 	
@@ -473,9 +473,9 @@ void InitPeneRes(PeneRes_t *peneRes){
 	int	i;
 	real8 zeroVec[3];
 	
-	zeroVec[X] = 0.0;
-	zeroVec[Y] = 0.0;
-	zeroVec[Z] = 0.0;
+	zeroVec[XC] = 0.0;
+	zeroVec[YC] = 0.0;
+	zeroVec[ZC] = 0.0;
 	
 	for(i=0; i<peneRes->nSets; i++){
 		peneRes->effective[i] = 0;
@@ -498,23 +498,23 @@ int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
 	
 	InitPeneRes(peneRes);
 
-	pos[X] = node->x;
-	pos[Y] = node->y;
-	pos[Z] = node->z;
+	pos[XC] = node->x;
+	pos[YC] = node->y;
+	pos[ZC] = node->z;
 	
-	zeroVec[X] = 0.0;
-	zeroVec[Y] = 0.0;
-	zeroVec[Z] = 0.0;
+	zeroVec[XC] = 0.0;
+	zeroVec[YC] = 0.0;
+	zeroVec[ZC] = 0.0;
 	
 	armID = GetArmID(home, node, nbr);
 
-	burg[X] = node->burgX[armID];
-	burg[Y] = node->burgY[armID];
-	burg[Z] = node->burgZ[armID];
+	burg[XC] = node->burgX[armID];
+	burg[YC] = node->burgY[armID];
+	burg[ZC] = node->burgZ[armID];
 	
-	normal[X] = node->nx[armID];
-	normal[Y] = node->ny[armID];
-	normal[Z] = node->nz[armID];
+	normal[XC] = node->nx[armID];
+	normal[YC] = node->ny[armID];
+	normal[ZC] = node->nz[armID];
 	
 	if(fabs(DotProduct(normal, GBPlane->normal)) > 0.95){
             FormatVector(normal,"GetPeneRes: arm noram parallel to GB");
@@ -531,9 +531,9 @@ int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
 #endif
 	
 	Matrix33Vector3Multiply(home->param->rotateNormal, normal, outNormal);
-        outNormal[X] = -outNormal[X];
-        outNormal[Y] = -outNormal[Y];
-        outNormal[Z] = -outNormal[Z];
+        outNormal[XC] = -outNormal[XC];
+        outNormal[YC] = -outNormal[YC];
+        outNormal[ZC] = -outNormal[ZC];
 
 	Matrix33Vector3Multiply(oldGrain->orientationInv, burg, crystalBurg);
 
@@ -553,40 +553,40 @@ int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
 		VECTOR_COPY(peneRes->outNormal[1],GBPlane->normal);
 		switch(BurgID_FCC(crystalBurg)){
 		    case 1 :
-		    burg1[X] = -1.0;
-		    burg1[Y] = 2.0;
-		    burg1[Z] = -1.0;
+		    burg1[XC] = -1.0;
+		    burg1[YC] = 2.0;
+		    burg1[ZC] = -1.0;
 		        break;
 		    case 3 :
-		    burg1[X] = 2.0;
-		    burg1[Y] = -1.0;
-		    burg1[Z] = -1.0;
+		    burg1[XC] = 2.0;
+		    burg1[YC] = -1.0;
+		    burg1[ZC] = -1.0;
 		        break;
 		    case 5 :
-		    burg1[X] = -1.0;
-		    burg1[Y] = 2.0;
-		    burg1[Z] = -1.0;
+		    burg1[XC] = -1.0;
+		    burg1[YC] = 2.0;
+		    burg1[ZC] = -1.0;
 		        break;
 		    default :
 			Fatal("GetPeneRes: Wrong screw ID");
 		}
 
 		NormalizeVec(burg1);
-		burg1[X] /= sqrt(3.0);	
-		burg1[Y] /= sqrt(3.0);	
-		burg1[Z] /= sqrt(3.0);	
+		burg1[XC] /= sqrt(3.0);	
+		burg1[YC] /= sqrt(3.0);	
+		burg1[ZC] /= sqrt(3.0);	
 		
 	        Matrix33Vector3Multiply(oldGrain->orientation, burg1, burg2);
 
 		if(DotProduct(burg2, burg) < 0.0){
-		    burg2[X] = -burg2[X];
-		    burg2[Y] = -burg2[Y];
-		    burg2[Z] = -burg2[Z];
+		    burg2[XC] = -burg2[XC];
+		    burg2[YC] = -burg2[YC];
+		    burg2[ZC] = -burg2[ZC];
 		}
 
-		burg1[X] = burg[X] - burg2[X];
-		burg1[Y] = burg[Y] - burg2[Y];
-		burg1[Z] = burg[Z] - burg2[Z];
+		burg1[XC] = burg[XC] - burg2[XC];
+		burg1[YC] = burg[YC] - burg2[YC];
+		burg1[ZC] = burg[ZC] - burg2[ZC];
 
 		VECTOR_COPY(peneRes->outBurg[1],burg1);
 		VECTOR_COPY(peneRes->GBBurg[1],burg2);
@@ -604,23 +604,23 @@ int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
 	    return(0);
         }
         
-        if(crystalBurg[X] < 1.0e-6 &&
-           crystalBurg[Y] < 1.0e-6 &&
-           crystalBurg[Z] < 1.0e-6){
+        if(crystalBurg[XC] < 1.0e-6 &&
+           crystalBurg[YC] < 1.0e-6 &&
+           crystalBurg[ZC] < 1.0e-6){
            sb = -1.0;
        }else sb = 1.0;
 
 	Matrix33Vector3Multiply(oldGrain->orientationInv, normal, crystalNormal);
         normalID = GlidePlaneID_FCC(crystalNormal);
         GetTBBurg_FCC(normalID, TBBurgCryst);
-        TBBurgCryst[X] *= sb;
-        TBBurgCryst[Y] *= sb;
-        TBBurgCryst[Z] *= sb;
+        TBBurgCryst[XC] *= sb;
+        TBBurgCryst[YC] *= sb;
+        TBBurgCryst[ZC] *= sb;
 	Matrix33Vector3Multiply(oldGrain->orientation, TBBurgCryst, burg2);
 
-	burg1[X] = burg[X] - burg2[X];
-	burg1[Y] = burg[Y] - burg2[Y];
-	burg1[Z] = burg[Z] - burg2[Z];
+	burg1[XC] = burg[XC] - burg2[XC];
+	burg1[YC] = burg[YC] - burg2[YC];
+	burg1[ZC] = burg[ZC] - burg2[ZC];
 	
         real8 burg1Mag;
         burg1Mag = Normal(burg1);
@@ -648,13 +648,13 @@ int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
 void PullToLine(real8 *p, Line_t *line){
 	real8 t;
 	
-	t = line->direction[X]*(p[X] - line->point[X])+ 
-		line->direction[Y]*(p[Y] - line->point[Y])+ 
-		line->direction[Z]*(p[Z] - line->point[Z]);
+	t = line->direction[XC]*(p[XC] - line->point[XC])+ 
+		line->direction[YC]*(p[YC] - line->point[YC])+ 
+		line->direction[ZC]*(p[ZC] - line->point[ZC]);
 	
-	p[X] = line->point[X] + t*line->direction[X];
-	p[Y] = line->point[Y] + t*line->direction[Y];
-	p[Z] = line->point[Z] + t*line->direction[Z];
+	p[XC] = line->point[XC] + t*line->direction[XC];
+	p[YC] = line->point[YC] + t*line->direction[YC];
+	p[ZC] = line->point[ZC] + t*line->direction[ZC];
 }
 
 int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
@@ -701,13 +701,13 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	burg[1] = node->burgY[0];
 	burg[2] = node->burgZ[0];
 	
-	burgStore[X] = node->burgX[1];
-	burgStore[Y] = node->burgY[1];
-	burgStore[Z] = node->burgZ[1];
+	burgStore[XC] = node->burgX[1];
+	burgStore[YC] = node->burgY[1];
+	burgStore[ZC] = node->burgZ[1];
 	
-	normalStore[X] = node->nx[1];
-	normalStore[Y] = node->ny[1];
-	normalStore[Z] = node->nz[1];
+	normalStore[XC] = node->nx[1];
+	normalStore[YC] = node->ny[1];
+	normalStore[ZC] = node->nz[1];
 	
 	flags = node->flags;
 	
@@ -807,9 +807,9 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	
 	ZImage(param, &vec[0], &vec[1], &vec[2]);
 	
-	newPos[X] = oldPos[X] + 0.5 * vec[X];
-	newPos[Y] = oldPos[Y] + 0.5 * vec[Y];
-	newPos[Z] = oldPos[Z] + 0.5 * vec[Z];
+	newPos[XC] = oldPos[XC] + 0.5 * vec[XC];
+	newPos[YC] = oldPos[YC] + 0.5 * vec[YC];
+	newPos[ZC] = oldPos[ZC] + 0.5 * vec[ZC];
 	
 	FoldBox(param, newPos, newPos+1, newPos+2);
 	VECTOR_COPY(plane.point,newPos);
@@ -836,9 +836,9 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	
 	ZImage(param, &vec[0], &vec[1], &vec[2]);
 	
-	newPos[X] = oldPos[X] + 0.5 * vec[X];
-	newPos[Y] = oldPos[Y] + 0.5 * vec[Y];
-	newPos[Z] = oldPos[Z] + 0.5 * vec[Z];
+	newPos[XC] = oldPos[XC] + 0.5 * vec[XC];
+	newPos[YC] = oldPos[YC] + 0.5 * vec[YC];
+	newPos[ZC] = oldPos[ZC] + 0.5 * vec[ZC];
 	
 	FoldBox(param, newPos, newPos+1, newPos+2);
 	VECTOR_COPY(plane.point,newPos);
@@ -853,13 +853,13 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	VECTOR_COPY(node1Pos,newPos);
 
 // centorNode12
-	vec[X] = node1Pos[X] - node2Pos[X];
-	vec[Y] = node1Pos[Y] - node2Pos[Y];
-	vec[Z] = node1Pos[Z] - node2Pos[Z];
+	vec[XC] = node1Pos[XC] - node2Pos[XC];
+	vec[YC] = node1Pos[YC] - node2Pos[YC];
+	vec[ZC] = node1Pos[ZC] - node2Pos[ZC];
 	ZImage(param, &vec[0], &vec[1], &vec[2]);
-	centorNode12[X] = node2Pos[X] + 0.5 * vec[X];
-	centorNode12[Y] = node2Pos[Y] + 0.5 * vec[Y];
-	centorNode12[Z] = node2Pos[Z] + 0.5 * vec[Z];
+	centorNode12[XC] = node2Pos[XC] + 0.5 * vec[XC];
+	centorNode12[YC] = node2Pos[YC] + 0.5 * vec[YC];
+	centorNode12[ZC] = node2Pos[ZC] + 0.5 * vec[ZC];
 	FoldBox(param, centorNode12, centorNode12+1, centorNode12+2);
 	
 //node3Pos
@@ -878,9 +878,9 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	}else{
             Fatal("wrong grain type");
 	}
-	GBPlane->point[X] += sb * eps * GBPlane->normal[X];
-	GBPlane->point[Y] += sb * eps * GBPlane->normal[Y];
-	GBPlane->point[Z] += sb * eps * GBPlane->normal[Z];
+	GBPlane->point[XC] += sb * eps * GBPlane->normal[XC];
+	GBPlane->point[YC] += sb * eps * GBPlane->normal[YC];
+	GBPlane->point[ZC] += sb * eps * GBPlane->normal[ZC];
 	
 	ClosetPointToGB(param, &outPlane, GBPlane, newPos);
 	
@@ -951,16 +951,16 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 		
 
 		ChangeArmBurg(home, node1, &node3->myTag, burg1[0], burg1[1], burg1[2],
-					  peneRes->outNormal[set][X],peneRes->outNormal[set][Y],peneRes->outNormal[set][Z],
+					  peneRes->outNormal[set][XC],peneRes->outNormal[set][YC],peneRes->outNormal[set][ZC],
 					  globalOp,DEL_SEG_NONE);
 		ChangeArmBurg(home, node3, &node1->myTag, -burg1[0], -burg1[1], -burg1[2],
-					 peneRes->outNormal[set][X],peneRes->outNormal[set][Y],peneRes->outNormal[set][Z],
+					 peneRes->outNormal[set][XC],peneRes->outNormal[set][YC],peneRes->outNormal[set][ZC],
 					  globalOp,DEL_SEG_NONE);
 		ChangeArmBurg(home, node3, &node2->myTag, burg1[0], burg1[1], burg1[2],
-					 peneRes->outNormal[set][X],peneRes->outNormal[set][Y],peneRes->outNormal[set][Z],
+					 peneRes->outNormal[set][XC],peneRes->outNormal[set][YC],peneRes->outNormal[set][ZC],
 					  globalOp,DEL_SEG_NONE);
 		ChangeArmBurg(home, node2, &node3->myTag, -burg1[0], -burg1[1], -burg1[2],
-					 peneRes->outNormal[set][X],peneRes->outNormal[set][Y],peneRes->outNormal[set][Z],
+					 peneRes->outNormal[set][XC],peneRes->outNormal[set][YC],peneRes->outNormal[set][ZC],
 					  globalOp,DEL_SEG_NONE);
 
 		node1->inGrain = TBInGrain;
@@ -1002,9 +1002,9 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
                                                   node4->fZ * node4->vZ;
 		}
 
-		newVel[X] = node3->vX; 
-		newVel[Y] = node3->vY; 
-		newVel[Z] = node3->vZ;
+		newVel[XC] = node3->vX; 
+		newVel[YC] = node3->vY; 
+		newVel[ZC] = node3->vZ;
 		
 		forward = 1;
 		if(peneThough){
@@ -1012,9 +1012,9 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 			newVelocity = Normal(newVel);
 			NormalizeVec(newVel);
 			
-			vec[X] = newPos[X] - outPlane.point[X];
-			vec[Y] = newPos[Y] - outPlane.point[Y];
-			vec[Z] = newPos[Z] - outPlane.point[Z];
+			vec[XC] = newPos[XC] - outPlane.point[XC];
+			vec[YC] = newPos[YC] - outPlane.point[YC];
+			vec[ZC] = newPos[ZC] - outPlane.point[ZC];
 			ZImage(param, vec, vec+1, vec+2);
 			NormalizeVec(vec);
 			
@@ -1127,20 +1127,20 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	VECTOR_COPY(burg1,peneRes->outBurg[maxPowerSet]);
 	VECTOR_COPY(burg2,peneRes->GBBurg[maxPowerSet]);
 	ChangeArmBurg(home, node1, &node3->myTag, burg1[0], burg1[1], burg1[2],
-				  peneRes->outNormal[maxPowerSet][X],peneRes->outNormal[maxPowerSet][Y],
-				  peneRes->outNormal[maxPowerSet][Z],
+				  peneRes->outNormal[maxPowerSet][XC],peneRes->outNormal[maxPowerSet][YC],
+				  peneRes->outNormal[maxPowerSet][ZC],
 				  globalOp,DEL_SEG_NONE);
 	ChangeArmBurg(home, node3, &node1->myTag, -burg1[0], -burg1[1], -burg1[2],
-				  peneRes->outNormal[maxPowerSet][X],peneRes->outNormal[maxPowerSet][Y],
-				  peneRes->outNormal[maxPowerSet][Z],
+				  peneRes->outNormal[maxPowerSet][XC],peneRes->outNormal[maxPowerSet][YC],
+				  peneRes->outNormal[maxPowerSet][ZC],
 				  globalOp,DEL_SEG_NONE);
 	ChangeArmBurg(home, node3, &node2->myTag, burg1[0], burg1[1], burg1[2],
-				  peneRes->outNormal[maxPowerSet][X],peneRes->outNormal[maxPowerSet][Y],
-				  peneRes->outNormal[maxPowerSet][Z],
+				  peneRes->outNormal[maxPowerSet][XC],peneRes->outNormal[maxPowerSet][YC],
+				  peneRes->outNormal[maxPowerSet][ZC],
 				  globalOp,DEL_SEG_NONE);
 	ChangeArmBurg(home, node2, &node3->myTag, -burg1[0], -burg1[1], -burg1[2],
-				  peneRes->outNormal[maxPowerSet][X],peneRes->outNormal[maxPowerSet][Y],
-				  peneRes->outNormal[maxPowerSet][Z],
+				  peneRes->outNormal[maxPowerSet][XC],peneRes->outNormal[maxPowerSet][YC],
+				  peneRes->outNormal[maxPowerSet][ZC],
 				  globalOp,DEL_SEG_NONE);
 
 	if(!IsZeroVector(burg2)){
@@ -1294,9 +1294,9 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
             }else{
                 ZImage(param, vector, vector+1, vector+2);
 
-                plane.point[X] = currPos[X] + 0.5 * vector[X];
-                plane.point[Y] = currPos[Y] + 0.5 * vector[Y];
-                plane.point[Z] = currPos[Z] + 0.5 * vector[Z];
+                plane.point[XC] = currPos[XC] + 0.5 * vector[XC];
+                plane.point[YC] = currPos[YC] + 0.5 * vector[YC];
+                plane.point[ZC] = currPos[ZC] + 0.5 * vector[ZC];
                 FoldBox(param, plane.point,plane.point+1,plane.point+2);
 
                 ClosetPointToGB(param, &plane, GBPlane, newPos);
@@ -1352,7 +1352,7 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	 
 	 FoldBox(home->param,&newPos[0],&newPos[1],&newPos[2]);
 	 
-         if(InWhichGrain(home,newPos[X],newPos[Y],newPos[Z]) != node->inGrain){
+         if(InWhichGrain(home,newPos[XC],newPos[YC],newPos[ZC]) != node->inGrain){
              PullBack(home,node,node->inGrain);
              printf("PenetrationSide: wrong node position.\n");
          }else{
@@ -1420,18 +1420,18 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	}
 
 	if(crossSlipNode){
-	    vec[X] = node->x - node->oldx;
-	    vec[Y] = node->y - node->oldy;
-	    vec[Z] = node->z - node->oldz;
+	    vec[XC] = node->x - node->oldx;
+	    vec[YC] = node->y - node->oldy;
+	    vec[ZC] = node->z - node->oldz;
 	    ZImage(home->param, &vec[0], &vec[1], &vec[2]);
 	    if(Normal(vec) < 1e-6)return(0);
 
 	    NormalizeVec(vec);
 	    Line_t line;
 	    VECTOR_COPY(line.direction, vec);
-	    line.point[X] = node->oldx;
-	    line.point[Y] = node->oldy;
-	    line.point[Z] = node->oldz;
+	    line.point[XC] = node->oldx;
+	    line.point[YC] = node->oldy;
+	    line.point[ZC] = node->oldz;
 	    
 	    if(!IntersectionOfLinePlane(&line, GBPlane, mergePos)){
 	        Fatal("PenetrationLast: intersect failed");
@@ -1449,14 +1449,14 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	}
 
 	if(nbrNode1->numNbrs > 3){
-	    mergePos[X] = nbrNode1->x;
-	    mergePos[Y] = nbrNode1->y;
-	    mergePos[Z] = nbrNode1->z;
+	    mergePos[XC] = nbrNode1->x;
+	    mergePos[YC] = nbrNode1->y;
+	    mergePos[ZC] = nbrNode1->z;
 	}
 	if(nbrNode2->numNbrs > 3){
-	    mergePos[X] = nbrNode2->x;
-	    mergePos[Y] = nbrNode2->y;
-	    mergePos[Z] = nbrNode2->z;
+	    mergePos[XC] = nbrNode2->x;
+	    mergePos[YC] = nbrNode2->y;
+	    mergePos[ZC] = nbrNode2->z;
 	}
 
 	PullBack(home,node, node->inGrain);
@@ -1508,17 +1508,17 @@ int PenetrationSurface(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	oldPos[1] = node->oldy;
 	oldPos[2] = node->oldz;
 
-	currPos[X] = node->x;
-	currPos[Y] = node->y;
-	currPos[Z] = node->z;
+	currPos[XC] = node->x;
+	currPos[YC] = node->y;
+	currPos[ZC] = node->z;
 
-	nDir[X] = node->nx[0];
-	nDir[Y] = node->ny[0];
-	nDir[Z] = node->nz[0];
+	nDir[XC] = node->nx[0];
+	nDir[YC] = node->ny[0];
+	nDir[ZC] = node->nz[0];
 	
-	nSur[X] = (node->constraint == 1);
-	nSur[Y] = (node->constraint == 2);
-	nSur[Z] = (node->constraint == 3);
+	nSur[XC] = (node->constraint == 1);
+	nSur[YC] = (node->constraint == 2);
+	nSur[ZC] = (node->constraint == 3);
 	
 	cross(nDir,nSur,line.direction);
 	if(Normal(line.direction) < 1e-8){
@@ -1552,12 +1552,12 @@ int PenetrationSurface(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	}
 
 #if 0
-	plane.normal[X] = node->nx[0];
-	plane.normal[Y] = node->ny[0];
-	plane.normal[Z] = node->nz[0];
-	burg[X] = node->burgX[0];
-	burg[Y] = node->burgY[0];
-	burg[Z] = node->burgZ[0];
+	plane.normal[XC] = node->nx[0];
+	plane.normal[YC] = node->ny[0];
+	plane.normal[ZC] = node->nz[0];
+	burg[XC] = node->burgX[0];
+	burg[YC] = node->burgY[0];
+	burg[ZC] = node->burgZ[0];
 	
 	storeConstraint = node->constraint;
 	node->constraint = UNCONSTRAINED;
@@ -1567,19 +1567,19 @@ int PenetrationSurface(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	oldInGrain = InWhichGrain(home,node->oldx,node->oldy,node->oldz);
 	
 	if(CurrNbrInGrain != nbrNode->inGrain || CurrNbrInGrain == -1){
-	    vec[X] = nbrNode->oldx - oldPos[0];
-	    vec[Y] = nbrNode->oldy - oldPos[1];
-	    vec[Z] = nbrNode->oldz - oldPos[2];
+	    vec[XC] = nbrNode->oldx - oldPos[0];
+	    vec[YC] = nbrNode->oldy - oldPos[1];
+	    vec[ZC] = nbrNode->oldz - oldPos[2];
 	}else{
-		vec[X] = nbrNode->x - oldPos[0];
-	    vec[Y] = nbrNode->y - oldPos[1];
-	    vec[Z] = nbrNode->z - oldPos[2];
+		vec[XC] = nbrNode->x - oldPos[0];
+	    vec[YC] = nbrNode->y - oldPos[1];
+	    vec[ZC] = nbrNode->z - oldPos[2];
 	}
 	ZImage(param, &vec[0], &vec[1], &vec[2]);
 	
-	newPos[X] = oldPos[X] + 0.5 * vec[X];
-	newPos[Y] = oldPos[Y] + 0.5 * vec[Y];
-	newPos[Z] = oldPos[Z] + 0.5 * vec[Z];
+	newPos[XC] = oldPos[XC] + 0.5 * vec[XC];
+	newPos[YC] = oldPos[YC] + 0.5 * vec[YC];
+	newPos[ZC] = oldPos[ZC] + 0.5 * vec[ZC];
 	FoldBox(param, newPos, newPos+1, newPos+2);
 	VECTOR_COPY(plane.point, newPos);
 	ClosetPointToGB(param, &plane, GBPlane, newPos);
@@ -1591,7 +1591,7 @@ int PenetrationSurface(Home_t *home, Node_t *node, Grain_t *oldGrain,
 		Fatal("PenetrationSurface: insert node failed.");
 	}
 	
-	TBInGrain = GetInGrainFromPos(home,newPos[X],newPos[Y],newPos[Z]);
+	TBInGrain = GetInGrainFromPos(home,newPos[XC],newPos[YC],newPos[ZC]);
 	if(TBInGrain - floor(TBInGrain) == 0.0){
 		Fatal("PenetrationSurface: TBInGrain is %3.1f", TBInGrain);
 	}
@@ -1622,9 +1622,9 @@ int PenetrationSurface(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	}else{
 		Fatal("PenetrationSurface: wrong grain type");
 	}
-	GBPlane->point[X] += sb * eps * GBPlane->normal[X];
-	GBPlane->point[Y] += sb * eps * GBPlane->normal[Y];
-	GBPlane->point[Z] += sb * eps * GBPlane->normal[Z];
+	GBPlane->point[XC] += sb * eps * GBPlane->normal[XC];
+	GBPlane->point[YC] += sb * eps * GBPlane->normal[YC];
+	GBPlane->point[ZC] += sb * eps * GBPlane->normal[ZC];
 	
 	VECTOR_COPY(plane.point, pos3);
 	
@@ -1636,21 +1636,21 @@ int PenetrationSurface(Home_t *home, Node_t *node, Grain_t *oldGrain,
 		ClosetPointToGB(param, &plane, GBPlane, pos1);
 		FormatVector(pos1,"node1 position");
 		
-		if(fabs(peneRes->outBurg[i][X]) < 1.0e-3 &&
-				fabs(peneRes->outBurg[i][Y]) < 1.0e-3 &&
-				fabs(peneRes->outBurg[i][Z]) < 1.0e-3){
+		if(fabs(peneRes->outBurg[i][XC]) < 1.0e-3 &&
+				fabs(peneRes->outBurg[i][YC]) < 1.0e-3 &&
+				fabs(peneRes->outBurg[i][ZC]) < 1.0e-3){
 			Fatal("PenetrationSurface: can not support this set.");
 		}
 		
 		RepositionNode(home, pos1, &node1->myTag, 1);
-		ChangeArmBurg(home, node1, &node2->myTag, peneRes->outBurg[i][X],
-					  peneRes->outBurg[i][Y], peneRes->outBurg[i][Z],
-					  peneRes->outNormal[i][X],peneRes->outNormal[i][Y],peneRes->outNormal[i][Z],
+		ChangeArmBurg(home, node1, &node2->myTag, peneRes->outBurg[i][XC],
+					  peneRes->outBurg[i][YC], peneRes->outBurg[i][ZC],
+					  peneRes->outNormal[i][XC],peneRes->outNormal[i][YC],peneRes->outNormal[i][ZC],
 					  1,DEL_SEG_NONE);
 		
-		ChangeArmBurg(home, node2, &node1->myTag, -peneRes->outBurg[i][X],
-					  -peneRes->outBurg[i][Y], -peneRes->outBurg[i][Z],
-					  peneRes->outNormal[i][X],peneRes->outNormal[i][Y],peneRes->outNormal[i][Z],
+		ChangeArmBurg(home, node2, &node1->myTag, -peneRes->outBurg[i][XC],
+					  -peneRes->outBurg[i][YC], -peneRes->outBurg[i][ZC],
+					  peneRes->outNormal[i][XC],peneRes->outNormal[i][YC],peneRes->outNormal[i][ZC],
 					  1,DEL_SEG_NONE);
 		
 		printf("node1<-->node2\n");
@@ -1677,9 +1677,9 @@ int PenetrationSurface(Home_t *home, Node_t *node, Grain_t *oldGrain,
 		node2->vZ = 0.0;
 		
 	
-		if(fabs(peneRes->GBBurg[i][X]) < 1.0e-3 &&
-			fabs(peneRes->GBBurg[i][Y]) < 1.0e-3 &&
-			fabs(peneRes->GBBurg[i][Z]) < 1.0e-3){
+		if(fabs(peneRes->GBBurg[i][XC]) < 1.0e-3 &&
+			fabs(peneRes->GBBurg[i][YC]) < 1.0e-3 &&
+			fabs(peneRes->GBBurg[i][ZC]) < 1.0e-3){
 			AssignGrain(home,node1, currInGrain);
 			AssignConstraint(home, node1, storeConstraint);
 		
@@ -1703,17 +1703,17 @@ int PenetrationSurface(Home_t *home, Node_t *node, Grain_t *oldGrain,
 			AssignConstraint(home, node1, storeConstraint);
 			
 			ChangeConnection(home, node1, &node3->myTag, &node2->myTag, 1);
-			InsertArm(home, node2, &node1->myTag, -peneRes->outBurg[i][X],
-					  -peneRes->outBurg[i][Y], -peneRes->outBurg[i][Z],
-					  peneRes->outNormal[i][X],peneRes->outNormal[i][Y],peneRes->outNormal[i][Z],1);
+			InsertArm(home, node2, &node1->myTag, -peneRes->outBurg[i][XC],
+					  -peneRes->outBurg[i][YC], -peneRes->outBurg[i][ZC],
+					  peneRes->outNormal[i][XC],peneRes->outNormal[i][YC],peneRes->outNormal[i][ZC],1);
 			ChangeArmBurg(home, node3, &node1->myTag, 0,0,0,0,0,0,1,DEL_SEG_NONE);
 			
-			ChangeArmBurg(home, node3, &node2->myTag, peneRes->GBBurg[i][X],
-					  peneRes->GBBurg[i][Y], peneRes->GBBurg[i][Z],
-					  GBPlane->normal[X],GBPlane->normal[Y],GBPlane->normal[Z],1,DEL_SEG_NONE);
-			ChangeArmBurg(home, node2, &node3->myTag, -peneRes->GBBurg[i][X],
-					  -peneRes->GBBurg[i][Y], -peneRes->GBBurg[i][Z],
-					  GBPlane->normal[X],GBPlane->normal[Y],GBPlane->normal[Z],1,DEL_SEG_NONE);
+			ChangeArmBurg(home, node3, &node2->myTag, peneRes->GBBurg[i][XC],
+					  peneRes->GBBurg[i][YC], peneRes->GBBurg[i][ZC],
+					  GBPlane->normal[XC],GBPlane->normal[YC],GBPlane->normal[ZC],1,DEL_SEG_NONE);
+			ChangeArmBurg(home, node2, &node3->myTag, -peneRes->GBBurg[i][XC],
+					  -peneRes->GBBurg[i][YC], -peneRes->GBBurg[i][ZC],
+					  GBPlane->normal[XC],GBPlane->normal[YC],GBPlane->normal[ZC],1,DEL_SEG_NONE);
 			AssignGrain(home,node3, TBInGrain);
 			AssignConstraint(home, node3, storeConstraint);
 			
@@ -2001,9 +2001,9 @@ void HandleGrainBoundary(Home_t *home){
             burg[0] = node->burgX[0];
             burg[1] = node->burgY[0];
             burg[2] = node->burgZ[0];
-            normal[0] = GBPlane.normal[X];
-            normal[1] = GBPlane.normal[Y];
-            normal[2] = GBPlane.normal[Z];
+            normal[0] = GBPlane.normal[XC];
+            normal[1] = GBPlane.normal[YC];
+            normal[2] = GBPlane.normal[ZC];
 		
             if((fabs(DotProduct(burg,normal))<0.001) &&
 				(numNbrOnGB > 0)){
@@ -2074,9 +2074,9 @@ void HandleGrainBoundary(Home_t *home){
 	        endNode = 1; 
 	    }
 	    
-	    vec[X] = node->x;
-	    vec[Y] = node->y;
-	    vec[Z] = node->z;
+	    vec[XC] = node->x;
+	    vec[YC] = node->y;
+	    vec[ZC] = node->z;
 
 	    VECTOR_ZERO(GBPlane.normal);
 	    distance =  ClosedGB(home, vec, &GBPlane);
@@ -2198,42 +2198,42 @@ void HandleGrainBoundary(Home_t *home){
 
 	    if(SurfaceNode(nbr1)){
 		if(NodeDistance(home, node, nbr1) > param->minSeg)continue;
-	        vec[X] = nbr2->x; 
-	        vec[Y] = nbr2->y; 
-	        vec[Z] = nbr2->z; 
+	        vec[XC] = nbr2->x; 
+	        vec[YC] = nbr2->y; 
+	        vec[ZC] = nbr2->z; 
 	        newInGrain = nbr2->inGrain; 
 		newConstraint = nbr1->constraint;
-	        norPlane.normal[X] = node->nx[1];
-	        norPlane.normal[Y] = node->ny[1];
-	        norPlane.normal[Z] = node->nz[1];
+	        norPlane.normal[XC] = node->nx[1];
+	        norPlane.normal[YC] = node->ny[1];
+	        norPlane.normal[ZC] = node->nz[1];
 		
-	        surPlane.point[X] = nbr1->x;
-	        surPlane.point[Y] = nbr1->y;
-	        surPlane.point[Z] = nbr1->z;
+	        surPlane.point[XC] = nbr1->x;
+	        surPlane.point[YC] = nbr1->y;
+	        surPlane.point[ZC] = nbr1->z;
 	    }else{
 		if(NodeDistance(home, node, nbr2) > param->minSeg)continue;
-	        vec[X] = nbr1->x; 
-	        vec[Y] = nbr1->y; 
-	        vec[Z] = nbr1->z; 
+	        vec[XC] = nbr1->x; 
+	        vec[YC] = nbr1->y; 
+	        vec[ZC] = nbr1->z; 
 	        newInGrain = nbr1->inGrain; 
 		newConstraint = nbr2->constraint;
-	        norPlane.normal[X] = node->nx[0];
-	        norPlane.normal[Y] = node->ny[0];
-	        norPlane.normal[Z] = node->nz[0];
-	        surPlane.point[X] = nbr2->x;
-	        surPlane.point[Y] = nbr2->y;
-	        surPlane.point[Z] = nbr2->z;
+	        norPlane.normal[XC] = node->nx[0];
+	        norPlane.normal[YC] = node->ny[0];
+	        norPlane.normal[ZC] = node->nz[0];
+	        surPlane.point[XC] = nbr2->x;
+	        surPlane.point[YC] = nbr2->y;
+	        surPlane.point[ZC] = nbr2->z;
 	    }
 	    VECTOR_ZERO(GBPlane.normal);
 	    distance =  ClosedGB(home, vec, &GBPlane);
 
-	    GBPlane.point[X] += Sign(distance) * param->rann * GBPlane.normal[X];
-	    GBPlane.point[Y] += Sign(distance) * param->rann * GBPlane.normal[Y];
-	    GBPlane.point[Z] += Sign(distance) * param->rann * GBPlane.normal[Z];
+	    GBPlane.point[XC] += Sign(distance) * param->rann * GBPlane.normal[XC];
+	    GBPlane.point[YC] += Sign(distance) * param->rann * GBPlane.normal[YC];
+	    GBPlane.point[ZC] += Sign(distance) * param->rann * GBPlane.normal[ZC];
 
-	    norPlane.point[X] = node->x;
-	    norPlane.point[Y] = node->y;
-	    norPlane.point[Z] = node->z;
+	    norPlane.point[XC] = node->x;
+	    norPlane.point[YC] = node->y;
+	    norPlane.point[ZC] = node->z;
 
             if(!IntersectionOfPlanePlane(&norPlane,&GBPlane,&line)){
 		PrintNode(node);
@@ -2280,15 +2280,15 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce){
 	Param_t *param;
 	
 	param = home->param;
-	pos[X] = node->x;
-	pos[Y] = node->y;
-	pos[Z] = node->z;
+	pos[XC] = node->x;
+	pos[YC] = node->y;
+	pos[ZC] = node->z;
 	VECTOR_ZERO(GBPlane.normal);
 	VECTOR_ZERO(forceGB);
 
-	nForce[X] = node->fX;
-	nForce[Y] = node->fY;
-	nForce[Z] = node->fZ;
+	nForce[XC] = node->fX;
+	nForce[YC] = node->fY;
+	nForce[ZC] = node->fZ;
 	VECTOR_COPY(oriNForce, nForce);
 
 	rann = 3.0 * param->rann;
@@ -2300,40 +2300,40 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce){
 	    armGrain = ChangeOrientation(home, node, nbr,0);
 	    if(armGrain - floor(armGrain) == 0.5)continue;
 
-	    lDir[X] = nbr->x - node->x;
-	    lDir[Y] = nbr->y - node->y;
-	    lDir[Z] = nbr->z - node->z;
+	    lDir[XC] = nbr->x - node->x;
+	    lDir[YC] = nbr->y - node->y;
+	    lDir[ZC] = nbr->z - node->z;
 	    ZImage(param, lDir, lDir+1, lDir+2);
 
-	    segCentor[X] = node->x + 0.5 * lDir[X];
-	    segCentor[Y] = node->y + 0.5 * lDir[Y];
-	    segCentor[Z] = node->z + 0.5 * lDir[Z];
+	    segCentor[XC] = node->x + 0.5 * lDir[XC];
+	    segCentor[YC] = node->y + 0.5 * lDir[YC];
+	    segCentor[ZC] = node->z + 0.5 * lDir[ZC];
 
 	    length = Normal(lDir);
 
 	    if(length < 1e-8)continue;
 
 	    NormalizeVec(lDir);
-	    nDir[X] = node->nx[i];
-	    nDir[Y] = node->ny[i];
-	    nDir[Z] = node->nz[i];
+	    nDir[XC] = node->nx[i];
+	    nDir[YC] = node->ny[i];
+	    nDir[ZC] = node->nz[i];
 	    cross(lDir, nDir, gDir);
 
 	    if(Normal(gDir) < 1e-5) continue;
 	    NormalizeVec(gDir);
 
-	    burg[X] = node->burgX[i];
-	    burg[Y] = node->burgY[i];
-	    burg[Z] = node->burgZ[i];
+	    burg[XC] = node->burgX[i];
+	    burg[YC] = node->burgY[i];
+	    burg[ZC] = node->burgZ[i];
 
-	    armf[X] = node->armfx[i];
-	    armf[Y] = node->armfy[i];
-	    armf[Z] = node->armfz[i];
+	    armf[XC] = node->armfx[i];
+	    armf[YC] = node->armfy[i];
+	    armf[ZC] = node->armfz[i];
 
 	    dot = DotProduct(armf, gDir);
-	    gForce[X] = dot * gDir[X];
-	    gForce[Y] = dot * gDir[Y];
-	    gForce[Z] = dot * gDir[Z];
+	    gForce[XC] = dot * gDir[XC];
+	    gForce[YC] = dot * gDir[YC];
+	    gForce[ZC] = dot * gDir[ZC];
 
 	    burgMag = sqrt(node->burgX[i] * node->burgX[i] +
 			   node->burgY[i] * node->burgY[i] +
@@ -2342,20 +2342,20 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce){
 	    fricMag = 0.5e0 * length * burgMag * param->fricStress;
 
 	    if(Normal(gForce) <= fricMag){
-		nForce[X] -= gForce[X];
-		nForce[Y] -= gForce[Y];
-		nForce[Z] -= gForce[Z];
+		nForce[XC] -= gForce[XC];
+		nForce[YC] -= gForce[YC];
+		nForce[ZC] -= gForce[ZC];
 		continue;
 	    }
 
 	    NormalizeVec(gForce);
-	    nForce[X] -= (fricMag * gForce[X]);
-	    nForce[Y] -= (fricMag * gForce[Y]);
-	    nForce[Z] -= (fricMag * gForce[Z]);
+	    nForce[XC] -= (fricMag * gForce[XC]);
+	    nForce[YC] -= (fricMag * gForce[YC]);
+	    nForce[ZC] -= (fricMag * gForce[ZC]);
 
-	    armf[X] -= (fricMag * gForce[X]);
-	    armf[Y] -= (fricMag * gForce[Y]);
-	    armf[Z] -= (fricMag * gForce[Z]);
+	    armf[XC] -= (fricMag * gForce[XC]);
+	    armf[YC] -= (fricMag * gForce[YC]);
+	    armf[ZC] -= (fricMag * gForce[ZC]);
 
 	    if(param->polycrystal == 0)continue;
 
@@ -2373,32 +2373,32 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce){
 	    if(GBForce == 0)continue;
 
 	    dot = DotProduct(armf, gDir);
-	    gForce[X] = dot * gDir[X];
-	    gForce[Y] = dot * gDir[Y];
-	    gForce[Z] = dot * gDir[Z];
+	    gForce[XC] = dot * gDir[XC];
+	    gForce[YC] = dot * gDir[YC];
+	    gForce[ZC] = dot * gDir[ZC];
 
-	    dir[X] = Sign(distance) * GBPlane.normal[X];
-	    dir[Y] = Sign(distance) * GBPlane.normal[Y];
-	    dir[Z] = Sign(distance) * GBPlane.normal[Z];
+	    dir[XC] = Sign(distance) * GBPlane.normal[XC];
+	    dir[YC] = Sign(distance) * GBPlane.normal[YC];
+	    dir[ZC] = Sign(distance) * GBPlane.normal[ZC];
 	    if(DotProduct(gForce, dir) >= 0.0)continue;
 
 	    GBStress = param->GBStrength * pow(2.7182,-(distance*distance/rann/rann));
 	    GBStress *= (length * burgMag * 0.5e0);
 	    if(Normal(gForce) <= GBStress){
-		nForce[X] -= gForce[X];
-		nForce[Y] -= gForce[Y];
-		nForce[Z] -= gForce[Z];
+		nForce[XC] -= gForce[XC];
+		nForce[YC] -= gForce[YC];
+		nForce[ZC] -= gForce[ZC];
 		continue;
 	    }
 
 	    NormalizeVec(gForce);
-	    nForce[X] -= (GBStress * gForce[X]);
-	    nForce[Y] -= (GBStress * gForce[Y]);
-	    nForce[Z] -= (GBStress * gForce[Z]);
+	    nForce[XC] -= (GBStress * gForce[XC]);
+	    nForce[YC] -= (GBStress * gForce[YC]);
+	    nForce[ZC] -= (GBStress * gForce[ZC]);
 
-	    armf[X] -= (GBStress * gForce[X]);
-	    armf[Y] -= (GBStress * gForce[Y]);
-	    armf[Z] -= (GBStress * gForce[Z]);
+	    armf[XC] -= (GBStress * gForce[XC]);
+	    armf[YC] -= (GBStress * gForce[YC]);
+	    armf[ZC] -= (GBStress * gForce[ZC]);
 	}
 
 	if(DotProduct(nForce, oriNForce) < -1.0){
@@ -2414,20 +2414,20 @@ void   ApplyPosConstraint(Param_t *param, Node_t *node){
 	int   i, constraintSurface;
 	real8 pos[3];
 
-	pos[X] = node->x;
-	pos[Y] = node->y;
-	pos[Z] = node->z;
+	pos[XC] = node->x;
+	pos[YC] = node->y;
+	pos[ZC] = node->z;
 
 	VECTOR_ZERO(disVec);
 
-	if(param->xBoundType == Free &&  fabs(pos[X])>param->xBoundMax) { 
-	    disVec[X] = fabs(pos[X]) - param->xBoundMax;
+	if(param->xBoundType == Free &&  fabs(pos[XC])>param->xBoundMax) { 
+	    disVec[XC] = fabs(pos[XC]) - param->xBoundMax;
 	}
-	if(param->yBoundType == Free &&  fabs(pos[Y])>param->yBoundMax) { 
-	    disVec[Y] = fabs(pos[Y]) - param->yBoundMax;
+	if(param->yBoundType == Free &&  fabs(pos[YC])>param->yBoundMax) { 
+	    disVec[YC] = fabs(pos[YC]) - param->yBoundMax;
 	}
-	if(param->zBoundType == Free &&  fabs(pos[Z])>param->zBoundMax) { 
-	    disVec[Z] = fabs(pos[Z]) - param->zBoundMax;
+	if(param->zBoundType == Free &&  fabs(pos[ZC])>param->zBoundMax) { 
+	    disVec[ZC] = fabs(pos[ZC]) - param->zBoundMax;
 	}
 
 	for(i=0; i<3; i++){
@@ -2467,21 +2467,21 @@ void   	AdjustSurfaceNode(Home_t *home)       //adjust surface node volecity
         if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
 
             node->flags &= ~NOT_HANDLE_SEG;
-	    nodePos[X] = node->x;
-	    nodePos[Y] = node->y;
-	    nodePos[Z] = node->z;
+	    nodePos[XC] = node->x;
+	    nodePos[YC] = node->y;
+	    nodePos[ZC] = node->z;
 	    ApplyPosConstraint(param, node);
 
 	    if(SurfaceNode(node) && node->numNbrs > 1){
-	        if(InWhichGrain(home, nodePos[X], nodePos[Y], nodePos[Z]) != node->inGrain &&
+	        if(InWhichGrain(home, nodePos[XC], nodePos[YC], nodePos[ZC]) != node->inGrain &&
 	           node->inGrain - floor(node->inGrain) == 0){
 		    node->x = node->oldx;
 		    node->y = node->oldy;
 		    node->z = node->oldz;
 
-	            nodePos[X] = node->x;
-	            nodePos[Y] = node->y;
-	            nodePos[Z] = node->z;
+	            nodePos[XC] = node->x;
+	            nodePos[YC] = node->y;
+	            nodePos[ZC] = node->z;
 	            ApplyPosConstraint(param, node);
 	        }
 	    }
@@ -2505,21 +2505,21 @@ void   	AdjustSurfaceNode(Home_t *home)       //adjust surface node volecity
 	node = home->ghostNodeQ;
 
         while (node) {
-	    nodePos[X] = node->x;
-	    nodePos[Y] = node->y;
-	    nodePos[Z] = node->z;
+	    nodePos[XC] = node->x;
+	    nodePos[YC] = node->y;
+	    nodePos[ZC] = node->z;
 	    ApplyPosConstraint(param, node);
 
 	    if(SurfaceNode(node) && node->numNbrs > 1){
-	        if(InWhichGrain(home, nodePos[X], nodePos[Y], nodePos[Z]) != node->inGrain &&
+	        if(InWhichGrain(home, nodePos[XC], nodePos[YC], nodePos[ZC]) != node->inGrain &&
 	           node->inGrain - floor(node->inGrain) == 0){
 		    node->x = node->oldx;
 		    node->y = node->oldy;
 		    node->z = node->oldz;
 
-	            nodePos[X] = node->x;
-	            nodePos[Y] = node->y;
-	            nodePos[Z] = node->z;
+	            nodePos[XC] = node->x;
+	            nodePos[YC] = node->y;
+	            nodePos[ZC] = node->z;
 	            ApplyPosConstraint(param, node);
 	        }
 	    }
@@ -2531,13 +2531,13 @@ void   	AdjustSurfaceNode(Home_t *home)       //adjust surface node volecity
 
             if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
 	    if(SurfaceNode(node))continue;
-	    nodePos[X] = node->x;
-	    nodePos[Y] = node->y;
-	    nodePos[Z] = node->z;
+	    nodePos[XC] = node->x;
+	    nodePos[YC] = node->y;
+	    nodePos[ZC] = node->z;
 
-	    if(param->xBoundType == Free &&  fabs(nodePos[X]) >= param->xBoundMax  &&
-	       param->yBoundType == Free &&  fabs(nodePos[Y]) >= param->yBoundMax  &&
-	       param->zBoundType == Free &&  fabs(nodePos[Z]) >= param->zBoundMax)continue;
+	    if(param->xBoundType == Free &&  fabs(nodePos[XC]) >= param->xBoundMax  &&
+	       param->yBoundType == Free &&  fabs(nodePos[YC]) >= param->yBoundMax  &&
+	       param->zBoundType == Free &&  fabs(nodePos[ZC]) >= param->zBoundMax)continue;
 
 	    for(j=0; j < node->numNbrs; j++){
 
@@ -2545,20 +2545,20 @@ void   	AdjustSurfaceNode(Home_t *home)       //adjust surface node volecity
 	        if(nbr == (Node_t *)NULL)continue;
 		if(nbr->numNbrs < 2)continue;
 	        if(!SurfaceNode(nbr))continue;
-	        nbrPos[X] = nbr->x;
-	        nbrPos[Y] = nbr->y;
-	        nbrPos[Z] = nbr->z;
+	        nbrPos[XC] = nbr->x;
+	        nbrPos[YC] = nbr->y;
+	        nbrPos[ZC] = nbr->z;
 
-	        if(param->xBoundType == Free &&  fabs(nbrPos[X]) <= param->xBoundMax + 1.0E-10 &&
-	           param->yBoundType == Free &&  fabs(nbrPos[Y]) <= param->yBoundMax + 1.0E-10 &&
-	           param->zBoundType == Free &&  fabs(nbrPos[Z]) <= param->zBoundMax + 1.0E-10)continue;
+	        if(param->xBoundType == Free &&  fabs(nbrPos[XC]) <= param->xBoundMax + 1.0E-10 &&
+	           param->yBoundType == Free &&  fabs(nbrPos[YC]) <= param->yBoundMax + 1.0E-10 &&
+	           param->zBoundType == Free &&  fabs(nbrPos[ZC]) <= param->zBoundMax + 1.0E-10)continue;
 
 		nodecst = node->constraint;
 	        constraint = nbr->constraint;
 		VECTOR_COPY(line.point, nodePos);
-	        line.direction[X] = nbrPos[X] - nodePos[X];
-	        line.direction[Y] = nbrPos[Y] - nodePos[Y];
-	        line.direction[Z] = nbrPos[Z] - nodePos[Z];
+	        line.direction[XC] = nbrPos[XC] - nodePos[XC];
+	        line.direction[YC] = nbrPos[YC] - nodePos[YC];
+	        line.direction[ZC] = nbrPos[ZC] - nodePos[ZC];
 
 	        if(Normal(line.direction) < 1.0e-3){
 	           continue;
@@ -2572,13 +2572,13 @@ void   	AdjustSurfaceNode(Home_t *home)       //adjust surface node volecity
 	        VECTOR_ZERO(plane.point);
 
 	        if(nbr->constraint == 1){
-	            plane.point[X] = Sign(nbrPos[X]) * param->xBoundMax;
+	            plane.point[XC] = Sign(nbrPos[XC]) * param->xBoundMax;
 	        }
 	        else if(nbr->constraint == 2){
-	            plane.point[Y] = Sign(nbrPos[Y]) * param->yBoundMax;
+	            plane.point[YC] = Sign(nbrPos[YC]) * param->yBoundMax;
 	        }
 	        else if(nbr->constraint == 3){
-	            plane.point[Z] = Sign(nbrPos[Z]) * param->zBoundMax;
+	            plane.point[ZC] = Sign(nbrPos[ZC]) * param->zBoundMax;
 	        }
 
 	        VECTOR_ZERO(interPos[0]);
@@ -2587,17 +2587,17 @@ void   	AdjustSurfaceNode(Home_t *home)       //adjust surface node volecity
                     VECTOR_COPY(interPos[0], nbrPos);
                 }
 
-		if(fabs(interPos[0][X] - nbrPos[X]) < 1e-10 &&
-		   fabs(interPos[0][Y] - nbrPos[Y]) < 1e-10 &&
-		   fabs(interPos[0][Z] - nbrPos[Z]) < 1e-10){
-		    interPos[0][X] = 0.99999 * nbrPos[X] + 0.00001 * nodePos[X]; 
-		    interPos[0][Y] = 0.99999 * nbrPos[Y] + 0.00001 * nodePos[Y]; 
-		    interPos[0][Z] = 0.99999 * nbrPos[Z] + 0.00001 * nodePos[Z]; 
+		if(fabs(interPos[0][XC] - nbrPos[XC]) < 1e-10 &&
+		   fabs(interPos[0][YC] - nbrPos[YC]) < 1e-10 &&
+		   fabs(interPos[0][ZC] - nbrPos[ZC]) < 1e-10){
+		    interPos[0][XC] = 0.99999 * nbrPos[XC] + 0.00001 * nodePos[XC]; 
+		    interPos[0][YC] = 0.99999 * nbrPos[YC] + 0.00001 * nodePos[YC]; 
+		    interPos[0][ZC] = 0.99999 * nbrPos[ZC] + 0.00001 * nodePos[ZC]; 
 		}
 
-	        if((InWhichGrain(home, interPos[0][X], interPos[0][Y], interPos[0][Z]) != node->inGrain &&
+	        if((InWhichGrain(home, interPos[0][XC], interPos[0][YC], interPos[0][ZC]) != node->inGrain &&
 	           node->inGrain - floor(node->inGrain) == 0) || 
-		   (GetInGrainFromPos(home,interPos[0][X], interPos[0][Y], interPos[0][Z]) != node->inGrain &&
+		   (GetInGrainFromPos(home,interPos[0][XC], interPos[0][YC], interPos[0][ZC]) != node->inGrain &&
 		   node->inGrain - floor(node->inGrain) == 0.5)){
 		    PrintNode(node);
 		    PrintNode(nbr);
@@ -2610,9 +2610,9 @@ void   	AdjustSurfaceNode(Home_t *home)       //adjust surface node volecity
 	        if(numConstraints == 2){
 	            real8	vec1[3], vec2[3];
 
-	            line.direction[X] = interPos[0][X] - node->x;
-	            line.direction[Y] = interPos[0][Y] - node->y;
-	            line.direction[Z] = interPos[0][Z] - node->z;
+	            line.direction[XC] = interPos[0][XC] - node->x;
+	            line.direction[YC] = interPos[0][YC] - node->y;
+	            line.direction[ZC] = interPos[0][ZC] - node->z;
 	            VECTOR_COPY(bakInter,interPos[0]);
 	            
 	            if(Normal(line.direction) > 1.0e-3){
@@ -2629,21 +2629,21 @@ void   	AdjustSurfaceNode(Home_t *home)       //adjust surface node volecity
                             printf("AdjustSurfaceNode: numConstrins = 2 and can not find the inertsection.");
 	                    continue;
                         }
-	                vec1[X] = interPos[0][X] - nodePos[X];
-	                vec1[Y] = interPos[0][Y] - nodePos[Y];
-	                vec1[Z] = interPos[0][Z] - nodePos[Z];
-	                vec2[X] = interPos[1][X] - nodePos[X];
-	                vec2[Y] = interPos[1][Y] - nodePos[Y];
-	                vec2[Z] = interPos[1][Z] - nodePos[Z];
+	                vec1[XC] = interPos[0][XC] - nodePos[XC];
+	                vec1[YC] = interPos[0][YC] - nodePos[YC];
+	                vec1[ZC] = interPos[0][ZC] - nodePos[ZC];
+	                vec2[XC] = interPos[1][XC] - nodePos[XC];
+	                vec2[YC] = interPos[1][YC] - nodePos[YC];
+	                vec2[ZC] = interPos[1][ZC] - nodePos[ZC];
 	                if(Normal(vec1) > Normal(vec2))VECTOR_COPY(interPos[0], interPos[1]);
 	                if(param->maxSeg < Normal(vec1) && param->maxSeg < Normal(vec2))continue;
 	            }
 		    printf("CR: %d, {%f,%f,%f}-->{%f,%f,%f},\n nbr {%f,%f,%f}, bakinter {%f,%f,%f}\n lineDir {%f,%f,%f}\n",
 	                   numConstraints, node->x,node->y,node->z,
-		           interPos[0][X], interPos[0][Y], interPos[0][Z],
+		           interPos[0][XC], interPos[0][YC], interPos[0][ZC],
 	                   nbr->x, nbr->y, nbr->z,
-	                   bakInter[X], bakInter[Y], bakInter[Z],
-	                   line.direction[X], line.direction[Y], line.direction[Z]);
+	                   bakInter[XC], bakInter[YC], bakInter[ZC],
+	                   line.direction[XC], line.direction[YC], line.direction[ZC]);
 	        }
 	        if( numConstraints < 3){
 		    RepositionNode(home, interPos[0], &node->myTag, 1);
@@ -2674,16 +2674,16 @@ int CheckReposition(Home_t *home, Node_t *node, real8 *newPos){
         *numGlideConstraints = 0;
 	
         glideConstraints = GC;
-	vec[X] = newPos[X] - node->x;
-	vec[Y] = newPos[Y] - node->y;
-	vec[Z] = newPos[Z] - node->z;
+	vec[XC] = newPos[XC] - node->x;
+	vec[YC] = newPos[YC] - node->y;
+	vec[ZC] = newPos[ZC] - node->z;
 	ZImage(home->param, vec, vec+1, vec+2);
 
 	GetGlideConstraintList(home, node, numGlideConstraints, glideConstraints);
 	ApplyConstraintsToVelocity(*numGlideConstraints,glideConstraints, vec);
 
-	newPos[X] = node->x + vec[X];
-	newPos[Y] = node->y + vec[Y];
-	newPos[Z] = node->z + vec[Z];
+	newPos[XC] = node->x + vec[XC];
+	newPos[YC] = node->y + vec[YC];
+	newPos[ZC] = node->z + vec[ZC];
 	return(*numGlideConstraints);
 }

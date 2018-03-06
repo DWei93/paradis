@@ -972,39 +972,39 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
             }
 #endif
 
-            pos1[X] = node1->x;
-            pos1[Y] = node1->y;
-            pos1[Z] = node1->z;
+            pos1[XC] = node1->x;
+            pos1[YC] = node1->y;
+            pos1[ZC] = node1->z;
 
-            dx = node2->x - pos1[X];
-            dy = node2->y - pos1[Y];
-            dz = node2->z - pos1[Z];
+            dx = node2->x - pos1[XC];
+            dy = node2->y - pos1[YC];
+            dz = node2->z - pos1[ZC];
 
             ZImage(param, &dx, &dy, &dz);
         
-            pos2[X] = pos1[X] + dx;
-            pos2[Y] = pos1[Y] + dy;
-            pos2[Z] = pos1[Z] + dz;
+            pos2[XC] = pos1[XC] + dx;
+            pos2[YC] = pos1[YC] + dy;
+            pos2[ZC] = pos1[ZC] + dz;
 
-            burg[X] = node1->burgX[armID12];
-            burg[Y] = node1->burgY[armID12];
-            burg[Z] = node1->burgZ[armID12];
+            burg[XC] = node1->burgX[armID12];
+            burg[YC] = node1->burgY[armID12];
+            burg[ZC] = node1->burgZ[armID12];
 /*
  *          If the segment is zero-length (which can occur when we're
  *          testing whether multinodes should be split or not), ignore
  *          the segment.
  */
-            if (((pos1[X]-pos2[X])*(pos1[X]-pos2[X])) +
-                ((pos1[Y]-pos2[Y])*(pos1[Y]-pos2[Y])) +
-                ((pos1[Z]-pos2[Z])*(pos1[Z]-pos2[Z])) < eps) {
+            if (((pos1[XC]-pos2[XC])*(pos1[XC]-pos2[XC])) +
+                ((pos1[YC]-pos2[YC])*(pos1[YC]-pos2[YC])) +
+                ((pos1[ZC]-pos2[ZC])*(pos1[ZC]-pos2[ZC])) < eps) {
                 continue;
             }
 
 /*
  *          Calculate the segment self-force, force from external stress, etc.
  */
-            if(!SelfForce(0, MU, NU, burg[X], burg[Y], burg[Z],
-                      pos1[X], pos1[Y], pos1[Z], pos2[X], pos2[Y], pos2[Z],
+            if(!SelfForce(0, MU, NU, burg[XC], burg[YC], burg[ZC],
+                      pos1[XC], pos1[YC], pos1[ZC], pos2[XC], pos2[YC], pos2[ZC],
                       a, Ecore, f1, f2)){
 
 //	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
@@ -1019,8 +1019,8 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
 /*
  *          PK force from external stress
  */
-            ExtPKForce(extstress, burg[X], burg[Y], burg[Z],
-                       pos1[X], pos1[Y], pos1[Z], pos2[X], pos2[Y], pos2[Z],
+            ExtPKForce(extstress, burg[XC], burg[YC], burg[ZC],
+                       pos1[XC], pos1[YC], pos1[ZC], pos2[XC], pos2[YC], pos2[ZC],
                        f1, f2);
 
             AddtoArmForce(node1, armID12, f1);
@@ -1031,9 +1031,9 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
  */
             if (param->vacancyConcEquilibrium > 0.0) {
 
-                OsmoticForce(home, pos1[X], pos1[Y], pos1[Z],
-                             pos2[X], pos2[Y], pos2[Z],
-                             burg[X], burg[Y], burg[Z], f1, f2);
+                OsmoticForce(home, pos1[XC], pos1[YC], pos1[ZC],
+                             pos2[XC], pos2[YC], pos2[ZC],
+                             burg[XC], burg[YC], burg[ZC], f1, f2);
 
                 AddtoArmForce(node1, armID12, f1);
                 AddtoArmForce(node2, armID21, f2);
@@ -1050,8 +1050,8 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
             sigb[1] = node1->sigbRem[armID12*3+1];
             sigb[2] = node1->sigbRem[armID12*3+2];
 
-            PKForce(sigb, pos1[X], pos1[Y], pos1[Z], pos2[X], pos2[Y],
-                    pos2[Z], f1, f2);
+            PKForce(sigb, pos1[XC], pos1[YC], pos1[ZC], pos2[XC], pos2[YC],
+                    pos2[ZC], f1, f2);
 
             AddtoArmForce(node1, armID12, f1);
             AddtoArmForce(node2, armID21, f2);
@@ -1293,9 +1293,9 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
             y2 = y1 + dy;
             z2 = z1 + dz;
 
-            burg[X] = node1->burgX[armID12];
-            burg[Y] = node1->burgY[armID12];
-            burg[Z] = node1->burgZ[armID12];
+            burg[XC] = node1->burgX[armID12];
+            burg[YC] = node1->burgY[armID12];
+            burg[ZC] = node1->burgZ[armID12];
 
             if (((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2)) < eps) {
                 continue;
@@ -1311,7 +1311,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
 
                 LineTensionForce(home, node1->x, node1->y, node1->z,
                                  node2->x, node2->y, node2->z,
-                                 burg[X], burg[Y], burg[Z], f1, f2);
+                                 burg[XC], burg[YC], burg[ZC], f1, f2);
 
                 AddtoArmForce(node1, armID12, f1);
                 AddtoArmForce(node2, armID21, f2);
@@ -1338,7 +1338,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
  *          direct interactions with other segments.  Start with force
  *          due to self stress.
  */
-            if(!SelfForce(0, MU, NU, burg[X], burg[Y], burg[Z],
+            if(!SelfForce(0, MU, NU, burg[XC], burg[YC], burg[ZC],
                       x1, y1, z1, x2, y2, z2, a, Ecore, f1, f2)){
 
 //	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
@@ -1353,7 +1353,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
 /*
  *          Now PK force from external stress
  */
-            ExtPKForce(extstress, burg[X], burg[Y], burg[Z],
+            ExtPKForce(extstress, burg[XC], burg[YC], burg[ZC],
                        x1, y1, z1, x2, y2, z2, f1,f2);
 
             VECTOR_ADD(fseg1node1, f1);
@@ -1365,7 +1365,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
             if (param->vacancyConcEquilibrium > 0.0) {
 
                 OsmoticForce(home, x1, y1, z1, x2, y2, z2,
-                             burg[X], burg[Y], burg[Z], f1, f2);
+                             burg[XC], burg[YC], burg[ZC], f1, f2);
 
                 VECTOR_ADD(fseg1node1, f1);
                 VECTOR_ADD(fseg1node2, f2);
@@ -1407,17 +1407,17 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
                 GetFieldPointStressRem(home, xm, ym, zm,
                                        cellX-1, cellY-1, cellZ-1, totRemSig);
 
-                sigb[0] = totRemSig[0][0] * burg[X] +
-                          totRemSig[0][1] * burg[Y] +
-                          totRemSig[0][2] * burg[Z];
+                sigb[0] = totRemSig[0][0] * burg[XC] +
+                          totRemSig[0][1] * burg[YC] +
+                          totRemSig[0][2] * burg[ZC];
 
-                sigb[1] = totRemSig[1][0] * burg[X] +
-                          totRemSig[1][1] * burg[Y] +
-                          totRemSig[1][2] * burg[Z];
+                sigb[1] = totRemSig[1][0] * burg[XC] +
+                          totRemSig[1][1] * burg[YC] +
+                          totRemSig[1][2] * burg[ZC];
 
-                sigb[2] = totRemSig[2][0] * burg[X] +
-                          totRemSig[2][1] * burg[Y] +
-                          totRemSig[2][2] * burg[Z];
+                sigb[2] = totRemSig[2][0] * burg[XC] +
+                          totRemSig[2][1] * burg[YC] +
+                          totRemSig[2][2] * burg[ZC];
 
                 VECTOR_COPY(&node1->sigbRem[armID12*3], sigb);
                 VECTOR_COPY(&node2->sigbRem[armID21*3], sigb);
@@ -1554,9 +1554,9 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
                                 segPairList[segPairCnt].node3 = node3;
                                 segPairList[segPairCnt].node4 = node4;
 
-                                segPairList[segPairCnt].cellCenter[X] = xCenter;
-                                segPairList[segPairCnt].cellCenter[Y] = yCenter;
-                                segPairList[segPairCnt].cellCenter[Z] = zCenter;
+                                segPairList[segPairCnt].cellCenter[XC] = xCenter;
+                                segPairList[segPairCnt].cellCenter[YC] = yCenter;
+                                segPairList[segPairCnt].cellCenter[ZC] = zCenter;
 
                                 segPairCnt++;
 
@@ -1609,9 +1609,9 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
                 armID21 = GetArmID(home, node2, node1);
                 armID34 = GetArmID(home, node3, node4);
 
-                burg[X] = node1->burgX[armID12];
-                burg[Y] = node1->burgY[armID12];
-                burg[Z] = node1->burgZ[armID12];
+                burg[XC] = node1->burgX[armID12];
+                burg[YC] = node1->burgY[armID12];
+                burg[ZC] = node1->burgZ[armID12];
 
 /*
  *              Find coordinates of image of the third node closest to the
@@ -1645,7 +1645,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
                 y4 = node4->y;
                 z4 = node4->z;
 
-                PBCPOSITION(param, cellCenter[X], cellCenter[Y], cellCenter[Z],
+                PBCPOSITION(param, cellCenter[XC], cellCenter[YC], cellCenter[ZC],
                             &x3, &y3, &z3);
                 PBCPOSITION(param, x3, y3, z3, &x4, &y4, &z4);
 
@@ -1661,7 +1661,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
  *              contribution from segment node3/node4 to segment node1/node2.
  */
                 SegSegForce(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4,
-                            burg[X], burg[Y], burg[Z],
+                            burg[XC], burg[YC], burg[ZC],
                             node3->burgX[armID34], node3->burgY[armID34],
                             node3->burgZ[armID34], a, MU, NU,
                             seg12Local, seg34Local,
@@ -1701,7 +1701,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
                                             -(node3->burgX[armID34]),
                                             -(node3->burgY[armID34]),
                                             -(node3->burgZ[armID34]),
-                                            burg[X], burg[Y], burg[Z],
+                                            burg[XC], burg[YC], burg[ZC],
                                             a, MU, NU,
                                             &fx1, &fy1, &fz1,
                                             &fx3, &fy3, &fz3,
@@ -1732,7 +1732,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
                                             (node3->burgX[armID34]),
                                             (node3->burgY[armID34]),
                                             (node3->burgZ[armID34]),
-                                            burg[X], burg[Y], burg[Z],
+                                            burg[XC], burg[YC], burg[ZC],
                                             a, MU, NU,
                                             &fx1, &fy1, &fz1,
                                             &fx3, &fy3, &fz3,

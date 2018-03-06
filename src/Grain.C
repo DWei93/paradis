@@ -291,27 +291,27 @@ void InitGrain(Home_t *home, Param_t *param){
 	        else{
 	            rho = twinRatio;  }
 
-	        if(i == X){
+	        if(i == XC){
 	            bound = lx;
 	            hMatrix = 2 * lx * rho - lx; 
-	            p[0][X] = 0; p[0][Y] = -ly; p[0][Z] = -lz;
-	            p[1][X] = 0; p[1][Y] = -ly; p[1][Z] =  lz;
-	            p[2][X] = 0; p[2][Y] =  ly; p[2][Z] = -lz;
-	            p[3][X] = 0; p[3][Y] =  ly; p[3][Z] =  lz;
-	        }else if(i == Y){
+	            p[0][XC] = 0; p[0][YC] = -ly; p[0][ZC] = -lz;
+	            p[1][XC] = 0; p[1][YC] = -ly; p[1][ZC] =  lz;
+	            p[2][XC] = 0; p[2][YC] =  ly; p[2][ZC] = -lz;
+	            p[3][XC] = 0; p[3][YC] =  ly; p[3][ZC] =  lz;
+	        }else if(i == YC){
 	            bound = ly;
 	            hMatrix = 2 * ly * rho - ly; 
-	            p[0][X] = -lx; p[0][Y] = 0; p[0][Z] = -lz;
-	            p[1][X] =  lx; p[1][Y] = 0; p[1][Z] = -lz;
-	            p[2][X] = -lx; p[2][Y] = 0; p[2][Z] =  lz;
-	            p[3][X] =  lx; p[3][Y] = 0; p[3][Z] =  lz;
-	        }else if(i == Z){
+	            p[0][XC] = -lx; p[0][YC] = 0; p[0][ZC] = -lz;
+	            p[1][XC] =  lx; p[1][YC] = 0; p[1][ZC] = -lz;
+	            p[2][XC] = -lx; p[2][YC] = 0; p[2][ZC] =  lz;
+	            p[3][XC] =  lx; p[3][YC] = 0; p[3][ZC] =  lz;
+	        }else if(i == ZC){
 	            bound = lz;
 	            hMatrix = 2 * lz * rho - lz; 
-	            p[0][X] = -lx; p[0][Y] = -ly; p[0][Z] = 0;
-	            p[1][X] =  lx; p[1][Y] = -ly; p[1][Z] = 0;
-	            p[2][X] = -lx; p[2][Y] =  ly; p[2][Z] = 0;
-	            p[3][X] =  lx; p[3][Y] =  ly; p[3][Z] = 0;
+	            p[0][XC] = -lx; p[0][YC] = -ly; p[0][ZC] = 0;
+	            p[1][XC] =  lx; p[1][YC] = -ly; p[1][ZC] = 0;
+	            p[2][XC] = -lx; p[2][YC] =  ly; p[2][ZC] = 0;
+	            p[3][XC] =  lx; p[3][YC] =  ly; p[3][ZC] = 0;
 	        }
 	        plane.point[i] = hMatrix;	        
 
@@ -343,13 +343,13 @@ void InitGrain(Home_t *home, Param_t *param){
 	        Fatal("Invert twin orientation faild!\n");
 	    }
 
-	    grain->nx[0] = -param->TBNormal[X];
-	    grain->ny[0] = -param->TBNormal[Y];
-	    grain->nz[0] = -param->TBNormal[Z];
+	    grain->nx[0] = -param->TBNormal[XC];
+	    grain->ny[0] = -param->TBNormal[YC];
+	    grain->nz[0] = -param->TBNormal[ZC];
 
-	    grain->x0[0] = plane.point[X];
-	    grain->y0[0] = plane.point[Y];
-	    grain->z0[0] = plane.point[Z];
+	    grain->x0[0] = plane.point[XC];
+	    grain->y0[0] = plane.point[YC];
+	    grain->z0[0] = plane.point[ZC];
 	    
 	    if(home->myDomain == 0){
 	        FormatMatrix(param->matrixOrientation,"basis orientation");
@@ -520,24 +520,24 @@ int GlidePlaneID_FCC(real8 nCryst[3]){
 void GetTBBurg_FCC(int nID, real8 burgTB[3]){
     if(nID == 0){
         /* Adelta*/
-        burgTB[X] = -1;
-        burgTB[Y] =  2;
-        burgTB[Z] = -1;
+        burgTB[XC] = -1;
+        burgTB[YC] =  2;
+        burgTB[ZC] = -1;
     }else if(nID == 1){
         /* Bdelta*/
-        burgTB[X] =  2;
-        burgTB[Y] = -1;
-        burgTB[Z] = -1;
+        burgTB[XC] =  2;
+        burgTB[YC] = -1;
+        burgTB[ZC] = -1;
     }else if (nID == 2){
         /* Cdelta*/
-        burgTB[X] = -1;
-        burgTB[Y] = -1;
-        burgTB[Z] =  2;
+        burgTB[XC] = -1;
+        burgTB[YC] = -1;
+        burgTB[ZC] =  2;
     }else Fatal("GetTBBurg_FCC: normal ID is %d\n", nID);
     NormalizeVec(burgTB);
-    burgTB[X] /= sqrt(3.0);
-    burgTB[Y] /= sqrt(3.0);
-    burgTB[Z] /= sqrt(3.0);
+    burgTB[XC] /= sqrt(3.0);
+    burgTB[YC] /= sqrt(3.0);
+    burgTB[ZC] /= sqrt(3.0);
 }
 
 int BurgID_FCC(real8 bCryst[3]){
@@ -642,14 +642,14 @@ int GetBurgID_FCC(Home_t *home, Node_t *node, Node_t *nbr){
 	segID  = GetArmID(home, node, nbr);
 	ChangeOrientation(home, node, nbr,3);
         if (home->param->useLabFrame) {
-            bLab[X] = node->burgX[segID];
-            bLab[Y] = node->burgY[segID];
-            bLab[Z] = node->burgZ[segID];
+            bLab[XC] = node->burgX[segID];
+            bLab[YC] = node->burgY[segID];
+            bLab[ZC] = node->burgZ[segID];
             Matrix33Vector3Multiply(home->rotMatrixInverse, bLab, bCryst);
         } else {
-            bCryst[X] = node->burgX[segID];
-            bCryst[Y] = node->burgY[segID];
-            bCryst[Z] = node->burgZ[segID];
+            bCryst[XC] = node->burgX[segID];
+            bCryst[YC] = node->burgY[segID];
+            bCryst[ZC] = node->burgZ[segID];
         }
 		
         burgID = BurgID_FCC(bCryst);
@@ -694,12 +694,12 @@ int HasShortSeg(Home_t *home, Node_t *node, real8 shortSegLenSq)
                 real8  segLenSq;
                 real8  segVector[3];
 
-                segVector[X] = node->x - nbrNode->x;
-                segVector[Y] = node->y - nbrNode->y;
-                segVector[Z] = node->z - nbrNode->z;
+                segVector[XC] = node->x - nbrNode->x;
+                segVector[YC] = node->y - nbrNode->y;
+                segVector[ZC] = node->z - nbrNode->z;
 
-                ZImage(home->param, &segVector[X], &segVector[Y],
-                       &segVector[Z]);
+                ZImage(home->param, &segVector[XC], &segVector[YC],
+                       &segVector[ZC]);
 
                 segLenSq = DotProduct(segVector, segVector);
 
@@ -906,12 +906,12 @@ real8 CorrectInGrain(Home_t *home, Node_t *node, real8 inGrainPos){
 		
 		numBoundaries = grain->numBoundaries;
 		for(i=0; i<numBoundaries; i++){
-			vec[X] = node->x - grain->x0[i];
-			vec[Y] = node->y - grain->y0[i];
-			vec[Z] = node->z - grain->z0[i];
-			plane[X] = grain->nx[i];
-			plane[Y] = grain->ny[i];
-			plane[Z] = grain->nz[i];
+			vec[XC] = node->x - grain->x0[i];
+			vec[YC] = node->y - grain->y0[i];
+			vec[ZC] = node->z - grain->z0[i];
+			plane[XC] = grain->nx[i];
+			plane[YC] = grain->ny[i];
+			plane[ZC] = grain->nz[i];
 			vecDotPlane = DotProduct(vec, plane);
 			if(fabs(vecDotPlane) > TWIN_LAYER_RADIUS) continue;
 			if(vecDotPlane < 0){
@@ -1014,12 +1014,12 @@ real8 ClosedGB(Home_t *home, real8 *pos, Plane_t *GBPlane){
 	        grain = home->grainKeys[i];
 	        if(grain->type == MATRIX_GRAIN)continue;	// skip matrix grain.
 	        for(j=0; j<grain->numBoundaries; j++){
-	            plane.normal[X] = grain->nx[j];
-	            plane.normal[Y] = grain->ny[j];
-	            plane.normal[Z] = grain->nz[j];
-	            plane.point[X] = grain->x0[j];
-	            plane.point[Y] = grain->y0[j];
-	            plane.point[Z] = grain->z0[j];
+	            plane.normal[XC] = grain->nx[j];
+	            plane.normal[YC] = grain->ny[j];
+	            plane.normal[ZC] = grain->nz[j];
+	            plane.point[XC] = grain->x0[j];
+	            plane.point[YC] = grain->y0[j];
+	            plane.point[ZC] = grain->z0[j];
 	            	
 	            tempDistance = PointPlaneDistance(pos, &plane);
 	            if(fabs(tempDistance) < fabs(minDistance)){
@@ -1065,9 +1065,9 @@ void PullToGB(Home_t *home, Node_t *node, real8 oldInGrain){
 	VECTOR_ZERO(path.point);
 	VECTOR_ZERO(path.direction);
 	
-	pos[X] = node->x; pos[Y] = node->y; pos[Z] = node->z;
+	pos[XC] = node->x; pos[YC] = node->y; pos[ZC] = node->z;
 	FoldBox(home->param, pos, pos+1, pos+2);
-	currInGrain = InWhichGrain(home, pos[X], pos[Y], pos[Z]);
+	currInGrain = InWhichGrain(home, pos[XC], pos[YC], pos[ZC]);
 
 	minDistance = ClosedGB(home, pos, &GBPlane);
 	
@@ -1077,14 +1077,14 @@ void PullToGB(Home_t *home, Node_t *node, real8 oldInGrain){
                        ,node->myTag.domainID,node->myTag.index,
                        minDistance);
             }
-            newPos[X] = pos[X] - GBPlane.normal[X] * minDistance;
-            newPos[Y] = pos[Y] - GBPlane.normal[Y] * minDistance;
-            newPos[Z] = pos[Z] - GBPlane.normal[Z] * minDistance;
+            newPos[XC] = pos[XC] - GBPlane.normal[XC] * minDistance;
+            newPos[YC] = pos[YC] - GBPlane.normal[YC] * minDistance;
+            newPos[ZC] = pos[ZC] - GBPlane.normal[ZC] * minDistance;
 	
 	    if(!(NodeOnGB(home, node) & TB_NODE)){
-	        newPos[X] =  node->oldx;
-	        newPos[Y] =  node->oldy;
-	        newPos[Z] =  node->oldz;
+	        newPos[XC] =  node->oldx;
+	        newPos[YC] =  node->oldy;
+	        newPos[ZC] =  node->oldz;
 	    }
 
 	}else{
@@ -1108,9 +1108,9 @@ void PullToGB(Home_t *home, Node_t *node, real8 oldInGrain){
                 sb = ((oldGrain->type == TWIN_GRAIN) ? 1.0 : -1.0);
             }
 		
-            GBPlane.point[X] -= GBPlane.normal[X] * eps * sb;
-            GBPlane.point[Y] -= GBPlane.normal[Y] * eps * sb;
-            GBPlane.point[Z] -= GBPlane.normal[Z] * eps * sb;
+            GBPlane.point[XC] -= GBPlane.normal[XC] * eps * sb;
+            GBPlane.point[YC] -= GBPlane.normal[YC] * eps * sb;
+            GBPlane.point[ZC] -= GBPlane.normal[ZC] * eps * sb;
 		
 	    if(node->numNbrs == 2){
 	        if(fabs(node->nx[0] * node->nx[1] +
@@ -1119,13 +1119,13 @@ void PullToGB(Home_t *home, Node_t *node, real8 oldInGrain){
 	    } 
 
             if(crossSlipNode){
-	        n1[X] = node->nx[0];
-	        n1[Y] = node->ny[0];
-	        n1[Z] = node->nz[0];
+	        n1[XC] = node->nx[0];
+	        n1[YC] = node->ny[0];
+	        n1[ZC] = node->nz[0];
 
-	        n2[X] = node->nx[1];
-	        n2[Y] = node->ny[1];
-	        n2[Z] = node->nz[1];
+	        n2[XC] = node->nx[1];
+	        n2[YC] = node->ny[1];
+	        n2[ZC] = node->nz[1];
 
 	        cross(n1,n2,path.direction);
 	        NormalizeVec(path.direction);
@@ -1136,9 +1136,9 @@ void PullToGB(Home_t *home, Node_t *node, real8 oldInGrain){
 	        }
             }else{
                 VECTOR_COPY(oldPlane.point, pos);
-                oldPlane.normal[X] = node->nx[0];
-                oldPlane.normal[Y] = node->ny[0];
-                oldPlane.normal[Z] = node->nz[0];
+                oldPlane.normal[XC] = node->nx[0];
+                oldPlane.normal[YC] = node->ny[0];
+                oldPlane.normal[ZC] = node->nz[0];
                 	
                 if(!IntersectionOfPlanePlane(&oldPlane,&GBPlane,&path)){
 		    PrintNode(node);
@@ -1149,7 +1149,7 @@ void PullToGB(Home_t *home, Node_t *node, real8 oldInGrain){
                 VECTOR_COPY(newPos, path.point);
             }
 
-            if(oldInGrain != InWhichGrain(home, newPos[X],newPos[Y],newPos[Z]) ){
+            if(oldInGrain != InWhichGrain(home, newPos[XC],newPos[YC],newPos[ZC]) ){
                 PrintNode(node);
                 Fatal("PullToGB: the new position is not in grain %3.1f",oldInGrain);
             }
@@ -1158,7 +1158,7 @@ void PullToGB(Home_t *home, Node_t *node, real8 oldInGrain){
 	if(Normal(newPos) > 1E5){
 	    PrintNode(node);
 	    PrintNeighbor(home,node);
-            Fatal("PullToGB: the new posion is (%f,%f,%f)",newPos[X], newPos[Y], newPos[Z]);
+            Fatal("PullToGB: the new posion is (%f,%f,%f)",newPos[XC], newPos[YC], newPos[ZC]);
 	}
 	
 	FoldBox(home->param,&newPos[0],&newPos[1],&newPos[2]);
@@ -1196,10 +1196,10 @@ void PullBack(Home_t *home, Node_t *node, real8 oldInGrain){
 	real8 	checkInGrain;
 	
 	if(oldInGrain - floor(oldInGrain) == 0.5){
-		checkInGrain = GetInGrainFromPos(home, newPos[X], newPos[Y], newPos[Z]);
+		checkInGrain = GetInGrainFromPos(home, newPos[XC], newPos[YC], newPos[ZC]);
 		
 	}else{
-		checkInGrain = InWhichGrain(home, newPos[X], newPos[Y], newPos[Z]);
+		checkInGrain = InWhichGrain(home, newPos[XC], newPos[YC], newPos[ZC]);
 	}
 	
 	if(checkInGrain != node->inGrain){
@@ -1247,9 +1247,9 @@ real8 Distance(Home_t *home,real8 *p1,real8 *p2){
 real8 PointPlaneDistance(real8 *point, Plane_t *plane){
 	real8 vec[3];
 	
-	vec[X] = point[X] - plane->point[X];
-	vec[Y] = point[Y] - plane->point[Y];
-	vec[Z] = point[Z] - plane->point[Z];
+	vec[XC] = point[XC] - plane->point[XC];
+	vec[YC] = point[YC] - plane->point[YC];
+	vec[ZC] = point[ZC] - plane->point[ZC];
 	
 	return(DotProduct(vec, plane->normal));
 }
@@ -1329,9 +1329,9 @@ int ClosestPointOfPointLine(real8 *p, Line_t *line, real8 *outP){
 	
 	t = dotPLD - dotLPLD;
 	
-	outP[X] = line->point[X] + line->direction[X] * t;
-	outP[Y] = line->point[Y] + line->direction[Y] * t;
-	outP[Z] = line->point[Z] + line->direction[Z] * t;
+	outP[XC] = line->point[XC] + line->direction[XC] * t;
+	outP[YC] = line->point[YC] + line->direction[YC] * t;
+	outP[ZC] = line->point[ZC] + line->direction[ZC] * t;
 	
 	return(1);
 
@@ -1353,11 +1353,11 @@ int IntersectionOfPlanePlane(Plane_t *plane1, Plane_t *plane2, Line_t *line){
 	real8	p2x,p2y,p2z,n2x,n2y,n2z;
 	real8	dx,dy,dz, denominator;
 	
-	p1x = plane1->point[X]; p1y = plane1->point[Y]; p1z = plane1->point[Z]; 
-	p2x = plane2->point[X]; p2y = plane2->point[Y]; p2z = plane2->point[Z]; 
-	n1x = plane1->normal[X]; n1y = plane1->normal[Y]; n1z = plane1->normal[Z]; 
-	n2x = plane2->normal[X]; n2y = plane2->normal[Y]; n2z = plane2->normal[Z]; 
-	dx = line->direction[X]; dy = line->direction[Y]; dz = line->direction[Z];
+	p1x = plane1->point[XC]; p1y = plane1->point[YC]; p1z = plane1->point[ZC]; 
+	p2x = plane2->point[XC]; p2y = plane2->point[YC]; p2z = plane2->point[ZC]; 
+	n1x = plane1->normal[XC]; n1y = plane1->normal[YC]; n1z = plane1->normal[ZC]; 
+	n2x = plane2->normal[XC]; n2y = plane2->normal[YC]; n2z = plane2->normal[ZC]; 
+	dx = line->direction[XC]; dy = line->direction[YC]; dz = line->direction[ZC];
 	
 	denominator = (dz*n1y*n2x - dy*n1z*n2x - dz*n1x*n2y + dx*n1z*n2y + dy*n1x*n2z - 
 				   dx*n1y*n2z);
@@ -1374,17 +1374,17 @@ int IntersectionOfPlanePlane(Plane_t *plane1, Plane_t *plane2, Line_t *line){
 		return(0);
 	}
 	
-	line->point[X] = -(dz*n1x*n2y*p1x - dx*n1z*n2y*p1x - dy*n1x*n2z*p1x + dx*n1y*n2z*p1x + 
+	line->point[XC] = -(dz*n1x*n2y*p1x - dx*n1z*n2y*p1x - dy*n1x*n2z*p1x + dx*n1y*n2z*p1x + 
 					   dz*n1y*n2y*p1y - dy*n1z*n2y*p1y + dz*n1y*n2z*p1z - 
 					   dy*n1z*n2z*p1z - dz*n1y*n2x*p2x + dy*n1z*n2x*p2x - 
 					   dz*n1y*n2y*p2y + dy*n1z*n2y*p2y - dz*n1y*n2z*p2z + dy*n1z*n2z*p2z)/denominator;
 	
-	line->point[Y] = -((-dz)*n1x*n2x*p1x + dx*n1z*n2x*p1x - dz*n1y*n2x*p1y + 
+	line->point[YC] = -((-dz)*n1x*n2x*p1x + dx*n1z*n2x*p1x - dz*n1y*n2x*p1y + 
 					   dy*n1z*n2x*p1y - dy*n1x*n2z*p1y + dx*n1y*n2z*p1y - dz*n1x*n2z*p1z + 
 					   dx*n1z*n2z*p1z + dz*n1x*n2x*p2x - dx*n1z*n2x*p2x + 
 					   dz*n1x*n2y*p2y - dx*n1z*n2y*p2y + dz*n1x*n2z*p2z - dx*n1z*n2z*p2z)/denominator;
 	
-	line->point[Z] = -(dy*n1x*n2x*p1x - dx*n1y*n2x*p1x + dy*n1x*n2y*p1y - dx*n1y*n2y*p1y - 
+	line->point[ZC] = -(dy*n1x*n2x*p1x - dx*n1y*n2x*p1x + dy*n1x*n2y*p1y - dx*n1y*n2y*p1y - 
 					   dz*n1y*n2x*p1z + dy*n1z*n2x*p1z + dz*n1x*n2y*p1z - 
 					   dx*n1z*n2y*p1z - dy*n1x*n2x*p2x + dx*n1y*n2x*p2x - 
 					   dy*n1x*n2y*p2y + dx*n1y*n2y*p2y - dy*n1x*n2z*p2z + dx*n1y*n2z*p2z)/denominator;
@@ -1419,9 +1419,9 @@ void ClosetPointToGB(Param_t *param, Plane_t *plane, Plane_t *GBPlane, real8 *p)
 }
 
 int	IsZeroVector(real8 *vec){
-	return(fabs(vec[X]) < 1.0e-10 && 
-		   fabs(vec[Y]) < 1.0e-10 && 
-		   fabs(vec[Z]) < 1.0e-10);
+	return(fabs(vec[XC]) < 1.0e-10 && 
+		   fabs(vec[YC]) < 1.0e-10 && 
+		   fabs(vec[ZC]) < 1.0e-10);
 }
 
 /****************************************************************************  
@@ -1494,9 +1494,9 @@ void AdjustSurfaceNodeVel(Param_t *param, Node_t *node)       //adjust surface n
 	    real8	nDir[3];
 
 	    for(i=1; i<node->numNbrs; i++){
-	        nDir[X] = node->nx[i];
-	        nDir[Y] = node->ny[i];
-	        nDir[Z] = node->nz[i];
+	        nDir[XC] = node->nx[i];
+	        nDir[YC] = node->ny[i];
+	        nDir[ZC] = node->nz[i];
 	        if(fabs(DotProduct(dir, nDir) > 0.001)){
 	            node->vX = 0.0;
 	            node->vY = 0.0;
@@ -1536,21 +1536,21 @@ void   AdjustSurfaceNode(Home_t *home)       //adjust surface node volecity
 	    VECTOR_ZERO(distance);
 	    if(param->xBoundType == Free &&  fabs(currx)>param->xBoundMax) { 
 				 
-	        distance[X] = fabs(currx) - param->xBoundMax;
+	        distance[XC] = fabs(currx) - param->xBoundMax;
 //		node->x=node->oldx; node->y=node->oldy; node->z=node->oldz;
 
 	    }
 
 	    if(param->yBoundType == Free &&  fabs(curry)>param->yBoundMax) { 
 			 
-	        distance[Y] = fabs(curry) - param->yBoundMax;
+	        distance[YC] = fabs(curry) - param->yBoundMax;
 //		node->x=node->oldx; node->y=node->oldy; node->z=node->oldz;
 
 	    }
 
 	    if(param->zBoundType == Free &&  fabs(currz)>param->zBoundMax) { 
 			
-	        distance[Z] = fabs(currz) - param->zBoundMax;
+	        distance[ZC] = fabs(currz) - param->zBoundMax;
 //		node->x=node->oldx; node->y=node->oldy; node->z=node->oldz;
 
 	    }
@@ -1599,21 +1599,21 @@ void   AdjustSurfaceNode(Home_t *home)       //adjust surface node volecity
 	    VECTOR_ZERO(distance);
 	    if(param->xBoundType == Free &&  fabs(currx)>param->xBoundMax) { 
 				 
-	        distance[X] = fabs(currx) - param->xBoundMax;
+	        distance[XC] = fabs(currx) - param->xBoundMax;
 //		node->x=node->oldx; node->y=node->oldy; node->z=node->oldz;
 
 	    }
 
 	    if(param->yBoundType == Free &&  fabs(curry)>param->yBoundMax) { 
 			 
-	        distance[Y] = fabs(curry) - param->yBoundMax;
+	        distance[YC] = fabs(curry) - param->yBoundMax;
 //		node->x=node->oldx; node->y=node->oldy; node->z=node->oldz;
 
 	    }
 
 	    if(param->zBoundType == Free &&  fabs(currz)>param->zBoundMax) { 
 			
-	        distance[Z] = fabs(currz) - param->zBoundMax;
+	        distance[ZC] = fabs(currz) - param->zBoundMax;
 //		node->x=node->oldx; node->y=node->oldy; node->z=node->oldz;
 
 	    }
@@ -1635,19 +1635,19 @@ void   AdjustSurfaceNode(Home_t *home)       //adjust surface node volecity
 
         if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
 	    if(node->constraint < 1 || node->consraint > 3)continue;
-	    nodePos[X] = node->x;
-	    nodePos[Y] = node->y;
-	    nodePos[Z] = node->z;
+	    nodePos[XC] = node->x;
+	    nodePos[YC] = node->y;
+	    nodePos[ZC] = node->z;
 
-	    if(param->xBoundType == Free &&  fabs(nodePos[X]) < param->xBoundMax + param->rann/2 &&
-	       param->yBoundType == Free &&  fabs(nodePos[Y]) < param->yBoundMax + param->rann/2 &&
-	       param->zBoundType == Free &&  fabs(nodePos[Z]) < param->zBoundMax + param->rann/2)continue;
+	    if(param->xBoundType == Free &&  fabs(nodePos[XC]) < param->xBoundMax + param->rann/2 &&
+	       param->yBoundType == Free &&  fabs(nodePos[YC]) < param->yBoundMax + param->rann/2 &&
+	       param->zBoundType == Free &&  fabs(nodePos[ZC]) < param->zBoundMax + param->rann/2)continue;
 
-	    if(InWhichGrain(home, nodePos[X], nodePos[Y], nodePos[Z]) != node->inGrain &&
+	    if(InWhichGrain(home, nodePos[XC], nodePos[YC], nodePos[ZC]) != node->inGrain &&
 	       node->inGrain - floor(node->inGrain) == 0){
-	        oldPos[X] = node->oldx;
-	        oldPos[Y] = node->oldy;
-	        oldPos[Z] = node->oldz;
+	        oldPos[XC] = node->oldx;
+	        oldPos[YC] = node->oldy;
+	        oldPos[ZC] = node->oldz;
 	        RepositionNode(home,oldPos,&node->myTag,1);
 	        continue;
 	    }
@@ -1656,53 +1656,53 @@ void   AdjustSurfaceNode(Home_t *home)       //adjust surface node volecity
 	        nbr = GetNeiborNode(home, node, j);
 	        if(nbr == (Node_t *)NULL)continue;
 	        if(nbr->constraint >= 1 &&  nbr->constraint <= 3)continue;
-	        nbrPos[X] = nbr->x;
-	        nbrPos[Y] = nbr->y;
-	        nbrPos[Z] = nbr->z;
-	        if(param->xBoundType == Free &&  fabs(nbrPos[X]) > param->xBoundMax - param->rann/2 ||
-	           param->yBoundType == Free &&  fabs(nbrPos[Y]) > param->yBoundMax - param->rann/2 ||
-	           param->zBoundType == Free &&  fabs(nbrPos[Z]) > param->zBoundMax - param->rann/2)continue;
+	        nbrPos[XC] = nbr->x;
+	        nbrPos[YC] = nbr->y;
+	        nbrPos[ZC] = nbr->z;
+	        if(param->xBoundType == Free &&  fabs(nbrPos[XC]) > param->xBoundMax - param->rann/2 ||
+	           param->yBoundType == Free &&  fabs(nbrPos[YC]) > param->yBoundMax - param->rann/2 ||
+	           param->zBoundType == Free &&  fabs(nbrPos[ZC]) > param->zBoundMax - param->rann/2)continue;
 		
-	        if(InWhichGrain(home, nbrPos[X], nbrPos[Y], nbrPos[Z]) != nbr->inGrain &&
+	        if(InWhichGrain(home, nbrPos[XC], nbrPos[YC], nbrPos[ZC]) != nbr->inGrain &&
 	           nbr->inGrain - floor(nbr->inGrain) == 0){
-	            oldPos[X] = nbr->oldx;
-	            oldPos[Y] = nbr->oldy;
-	            oldPos[Z] = nbr->oldz;
+	            oldPos[XC] = nbr->oldx;
+	            oldPos[YC] = nbr->oldy;
+	            oldPos[ZC] = nbr->oldz;
 	            RepositionNode(home,oldPos,&nbr->myTag,1);
 	            continue;
 	        }
 
 		VECTOR_COPY(line.point, nbrPos);
-	        line.direction[X] = nodePos[X] - nbrPos[X];
-	        line.direction[Y] = nodePos[Y] - nbrPos[Y];
-	        line.direction[Z] = nodePos[Z] - nbrPos[Z];
+	        line.direction[XC] = nodePos[XC] - nbrPos[XC];
+	        line.direction[YC] = nodePos[YC] - nbrPos[YC];
+	        line.direction[ZC] = nodePos[ZC] - nbrPos[ZC];
 	        if(Normal(line.direction) < 1.0e-8){
 	            Fatal("AdjustSurfaceNode: wrong direction.");
 		}
 
 	        NormalizeVec(line.direction);		
 
-	        plane.normal[X] = node->constraint==1;
-	        plane.normal[Y] = node->constraint==2;
-	        plane.normal[Z] = node->constraint==3;
+	        plane.normal[XC] = node->constraint==1;
+	        plane.normal[YC] = node->constraint==2;
+	        plane.normal[ZC] = node->constraint==3;
 
 	        VECTOR_ZERO(plane.point);
 
 	        if(node->constraint == 1){
-	            plane.point[X] = Sign(nodePos[X]) * param->xBoundMax;
+	            plane.point[XC] = Sign(nodePos[XC]) * param->xBoundMax;
 	        }
 	        else if(node->constraint == 2){
-	            plane.point[Y] = Sign(nodePos[Y]) * param->yBoundMax;
+	            plane.point[YC] = Sign(nodePos[YC]) * param->yBoundMax;
 	        }
 	        else if(node->constraint == 3){
-	            plane.point[Z] = Sign(nodePos[Z]) * param->zBoundMax;
+	            plane.point[ZC] = Sign(nodePos[ZC]) * param->zBoundMax;
 	        }
 
 	        if(!IntersectionOfLinePlane(&line, &plane, interPos)){
                     Fatal("AdjustSurfaceNode: intesectionfaild");
                 }
 
-	        if(InWhichGrain(home, interPos[X], interPos[Y], interPos[Z]) != node->inGrain &&
+	        if(InWhichGrain(home, interPos[XC], interPos[YC], interPos[ZC]) != node->inGrain &&
 	           node->inGrain - floor(node->inGrain) == 0){
 	            Fatal("AdjustSurfaceBode: at %s, Line %d",__FILE__,__LINE__);
 	            continue;
@@ -1747,18 +1747,18 @@ void RotateWithAxis(real8 a[3], real8 theta, real8 R[3][3]){
     NormalizeVec(a);
     real8 u,v,w;
     
-    u = a[X];
-    v = a[Y];
-    w = a[Z];
-    R[X][X] = (1.0 - cos(theta))*u*u + cos(theta);
-    R[X][Y] = u*v*(1.0 - cos(theta)) - w*sin(theta);
-    R[X][Z] = u*w*(1.0 - cos(theta)) + v*sin(theta);
-    R[Y][X] = u*v*(1.0 - cos(theta)) + w*sin(theta);
-    R[Y][Y] = (1.0 - cos(theta))*v*v + cos(theta);
-    R[Y][Z] = v*w*(1.0 - cos(theta)) - u*sin(theta);
-    R[Z][X] = u*w*(1.0 - cos(theta)) - v*sin(theta);
-    R[Z][Y] = v*w*(1.0 - cos(theta)) + u*sin(theta);
-    R[Z][Z] = (1.0 - cos(theta))*w*w + cos(theta);
+    u = a[XC];
+    v = a[YC];
+    w = a[ZC];
+    R[XC][XC] = (1.0 - cos(theta))*u*u + cos(theta);
+    R[XC][YC] = u*v*(1.0 - cos(theta)) - w*sin(theta);
+    R[XC][ZC] = u*w*(1.0 - cos(theta)) + v*sin(theta);
+    R[YC][XC] = u*v*(1.0 - cos(theta)) + w*sin(theta);
+    R[YC][YC] = (1.0 - cos(theta))*v*v + cos(theta);
+    R[YC][ZC] = v*w*(1.0 - cos(theta)) - u*sin(theta);
+    R[ZC][XC] = u*w*(1.0 - cos(theta)) - v*sin(theta);
+    R[ZC][YC] = v*w*(1.0 - cos(theta)) + u*sin(theta);
+    R[ZC][ZC] = (1.0 - cos(theta))*w*w + cos(theta);
     return;
 }
 
@@ -1769,9 +1769,9 @@ int SurfaceNode(Node_t *node){
 
 int ExceedBox(Param_t *param, real8 *pos){
 	int flags = 0x0000;
-        if (param->xBoundMax + 1.0E-6 < fabs(pos[X]))flags |= EXCEEDX;
-        if (param->yBoundMax + 1.0E-6 < fabs(pos[Y]))flags |= EXCEEDY;
-        if (param->zBoundMax + 1.0E-6 < fabs(pos[Z]))flags |= EXCEEDZ;
+        if (param->xBoundMax + 1.0E-6 < fabs(pos[XC]))flags |= EXCEEDX;
+        if (param->yBoundMax + 1.0E-6 < fabs(pos[YC]))flags |= EXCEEDY;
+        if (param->zBoundMax + 1.0E-6 < fabs(pos[ZC]))flags |= EXCEEDZ;
 	return(flags);
 }
 
@@ -1781,9 +1781,9 @@ int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]){
 	Plane_t plane;
 	real8	box[3];
 
-	box[X] = param->xBoundMax;
-	box[Y] = param->yBoundMax;
-	box[Z] = param->zBoundMax;
+	box[XC] = param->xBoundMax;
+	box[YC] = param->yBoundMax;
+	box[ZC] = param->zBoundMax;
 
 	if(ExceedBox(param, line->point)){
 	    Fatal("IntersectionOfLineBox: the line exceed the box\n");

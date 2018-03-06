@@ -594,9 +594,9 @@ void FindPreciseGlidePlane(Home_t *home, real8 burgVecIn[3], real8 dirIn[3],
  *      Just a safety check to prevent tiny non-zero components of glide
  *      plane normal due to machine precision or round-off issues.
  */
-        if (fabs(glidePlane[X]) < 1.0e-06) glidePlane[X] = 0.0;
-        if (fabs(glidePlane[Y]) < 1.0e-06) glidePlane[Y] = 0.0;
-        if (fabs(glidePlane[Z]) < 1.0e-06) glidePlane[Z] = 0.0;
+        if (fabs(glidePlane[XC]) < 1.0e-06) glidePlane[XC] = 0.0;
+        if (fabs(glidePlane[YC]) < 1.0e-06) glidePlane[YC] = 0.0;
+        if (fabs(glidePlane[ZC]) < 1.0e-06) glidePlane[ZC] = 0.0;
 
 /*
  *      If the glide plane is sufficiently close to zero, the

@@ -104,9 +104,9 @@ void FMSetTaylorExpansions(Home_t *home)
  *          Loop through all cells owned by this domain at the next
  *          layer down (i.e. more refined) in the hierarchy.
  */
-            for (cx = bMin[X]; cx <= bMax[X]; cx++) {
-                for (cy = bMin[Y]; cy <= bMax[Y]; cy++) {
-                    for (cz = bMin[Z]; cz <= bMax[Z]; cz++) {
+            for (cx = bMin[XC]; cx <= bMax[XC]; cx++) {
+                for (cy = bMin[YC]; cy <= bMax[YC]; cy++) {
+                    for (cz = bMin[ZC]; cz <= bMax[ZC]; cz++) {
 
 /*
  *                      Get the ID and indices for the current FM cell
@@ -124,13 +124,13 @@ void FMSetTaylorExpansions(Home_t *home)
  *                      Now find all the "near" neighbors of the current cell
  *                      and loop though each one.
  */
-                        tmp1Min[X] = cx;
-                        tmp1Min[Y] = cy;
-                        tmp1Min[Z] = cz;
+                        tmp1Min[XC] = cx;
+                        tmp1Min[YC] = cy;
+                        tmp1Min[ZC] = cz;
 
-                        tmp1Max[X] = cx;
-                        tmp1Max[Y] = cy;
-                        tmp1Max[Z] = cz;
+                        tmp1Max[XC] = cx;
+                        tmp1Max[YC] = cy;
+                        tmp1Max[ZC] = cz;
 
                         trimOverlap = 0;
 
@@ -147,15 +147,15 @@ void FMSetTaylorExpansions(Home_t *home)
  *                      with the tx/y/z indices matching the image of the
  *                      cell that is within the primary problem space
  */
-                        for (itx = tMin[X]; itx <= tMax[X]; itx++) {
-                            tx = itx % layer->lDim[X];
-                            tx = GETPBCINDEX(tx, layer->lDim[X]);
-                            for (ity = tMin[Y]; ity <= tMax[Y]; ity++) {
-                                ty = ity % layer->lDim[Y];
-                                ty = GETPBCINDEX(ty, layer->lDim[Y]);
-                                for (itz = tMin[Z]; itz <= tMax[Z]; itz++) {
-                                    tz = itz % layer->lDim[Z];
-                                    tz = GETPBCINDEX(tz, layer->lDim[Z]);
+                        for (itx = tMin[XC]; itx <= tMax[XC]; itx++) {
+                            tx = itx % layer->lDim[XC];
+                            tx = GETPBCINDEX(tx, layer->lDim[XC]);
+                            for (ity = tMin[YC]; ity <= tMax[YC]; ity++) {
+                                ty = ity % layer->lDim[YC];
+                                ty = GETPBCINDEX(ty, layer->lDim[YC]);
+                                for (itz = tMin[ZC]; itz <= tMax[ZC]; itz++) {
+                                    tz = itz % layer->lDim[ZC];
+                                    tz = GETPBCINDEX(tz, layer->lDim[ZC]);
 
 /*
  *                                  If this neighbor is an immediate
@@ -180,9 +180,9 @@ void FMSetTaylorExpansions(Home_t *home)
                                     nCell = LookupFMCell(layer->cellTable,
                                                          nCellID);
 
-                                    R[X] = (layer->cellSize[X] * (cx-itx));
-                                    R[Y] = (layer->cellSize[Y] * (cy-ity));
-                                    R[Z] = (layer->cellSize[Z] * (cz-itz));
+                                    R[XC] = (layer->cellSize[XC] * (cx-itx));
+                                    R[YC] = (layer->cellSize[YC] * (cy-ity));
+                                    R[ZC] = (layer->cellSize[ZC] * (cz-itz));
 
                                     if (param->fmEnabled) {
 /*
@@ -272,9 +272,9 @@ static void FMCellCharge(Home_t *home)
         bMin = layer->intersectMin;
         bMax = layer->intersectMax;
 
-        for (cx = bMin[X]; cx <= bMax[X]; cx++) {
-            for (cy = bMin[Y]; cy <= bMax[Y]; cy++) {
-                for (cz = bMin[Z]; cz <= bMax[Z]; cz++) {
+        for (cx = bMin[XC]; cx <= bMax[XC]; cx++) {
+            for (cy = bMin[YC]; cy <= bMax[YC]; cy++) {
+                for (cz = bMin[ZC]; cz <= bMax[ZC]; cz++) {
                     cellID = EncodeFMCellIndex(layer->lDim, cx, cy, cz);
                     cell = LookupFMCell(layer->cellTable, cellID);
                     if (param->fmEnabled) {
@@ -298,9 +298,9 @@ static void FMCellCharge(Home_t *home)
 
             if ((node = home->nodeKeys[inode]) == (Node_t *)NULL) continue;
 
-            p1[X] = node->x;
-            p1[Y] = node->y;
-            p1[Z] = node->z;
+            p1[XC] = node->x;
+            p1[YC] = node->y;
+            p1[ZC] = node->z;
 
 /*
  *          Find out which simulation cell the current node is in and convert
@@ -338,23 +338,23 @@ static void FMCellCharge(Home_t *home)
                    continue;
                }
 
-               p2[X] = nbr->x;
-               p2[Y] = nbr->y;
-               p2[Z] = nbr->z;
+               p2[XC] = nbr->x;
+               p2[YC] = nbr->y;
+               p2[ZC] = nbr->z;
 
-               PBCPOSITION(param, p1[X], p1[Y], p1[Z], &p2[X], &p2[Y], &p2[Z]);
+               PBCPOSITION(param, p1[XC], p1[YC], p1[ZC], &p2[XC], &p2[YC], &p2[ZC]);
 
-               burg[X] = node->burgX[inbr];
-               burg[Y] = node->burgY[inbr];
-               burg[Z] = node->burgZ[inbr];
+               burg[XC] = node->burgX[inbr];
+               burg[YC] = node->burgY[inbr];
+               burg[ZC] = node->burgZ[inbr];
         
 /*
  *             Set vector from the segment starting point to segment
  *             end point
  */
-               vec2[X] = p2[X] - p1[X];
-               vec2[Y] = p2[Y] - p1[Y];
-               vec2[Z] = p2[Z] - p1[Z];
+               vec2[XC] = p2[XC] - p1[XC];
+               vec2[YC] = p2[YC] - p1[YC];
+               vec2[ZC] = p2[ZC] - p1[ZC];
 
 /*
  *             Set vector from the segment starting point to the 
@@ -362,9 +362,9 @@ static void FMCellCharge(Home_t *home)
  *             multipole expansion for the lowest layer FM cell
  *             containing the segment with the contribution from this segment.
  */
-               vec1[X] = p1[X] - cell->cellCtr[X];
-               vec1[Y] = p1[Y] - cell->cellCtr[Y];
-               vec1[Z] = p1[Z] - cell->cellCtr[Z];
+               vec1[XC] = p1[XC] - cell->cellCtr[XC];
+               vec1[YC] = p1[YC] - cell->cellCtr[YC];
+               vec1[ZC] = p1[ZC] - cell->cellCtr[ZC];
 
                makeeta(param->fmMPOrder, vec1, vec2, burg, etatemp);
 

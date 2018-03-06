@@ -98,9 +98,9 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
     /* copy glide plane constraints and determine line constraints */
     for(i=0;i<nc;i++){
 	real8 norm[3];
-        norm[X] = node->nx[i];
-        norm[Y] = node->ny[i];
-        norm[Z] = node->nz[i];
+        norm[XC] = node->nx[i];
+        norm[YC] = node->ny[i];
+        norm[ZC] = node->nz[i];
 
 	normx[i] = node->nx[i];
 	normy[i] = node->ny[i];
@@ -121,8 +121,8 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
             VECTOR_COPY(norm, normRot);
         }
 
-	if ((fabs(fabs(norm[X]) - fabs(norm[Y])) > FFACTOR_NORMAL) ||
-	    (fabs(fabs(norm[Y]) - fabs(norm[Z])) > FFACTOR_NORMAL) ){ 
+	if ((fabs(fabs(norm[XC]) - fabs(norm[YC])) > FFACTOR_NORMAL) ||
+	    (fabs(fabs(norm[YC]) - fabs(norm[ZC])) > FFACTOR_NORMAL) ){ 
 	    /* not {111} plane */
             lineX[i] = nbr->x - node->x;
             lineY[i] = nbr->y - node->y; 
@@ -248,9 +248,9 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
     LtimesB/=2;
 
 #if 0
-	nForce[X] = node->fX;
-	nForce[Y] = node->fY;
-	nForce[Z] = node->fZ;
+	nForce[XC] = node->fX;
+	nForce[YC] = node->fY;
+	nForce[ZC] = node->fZ;
 #else
 	DoResistance(home, node, nForce);
 #endif

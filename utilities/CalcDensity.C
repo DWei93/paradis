@@ -191,9 +191,9 @@ static void SetDensity(Home_t *home, real8 *densGrid, int gridSize[3],
 /*
  *      Calculate rho for segment from <startPos> to <intersectPos>
  */
-        xLen = startPos[X] - intersectPos[X];
-        yLen = startPos[Y] - intersectPos[Y];
-        zLen = startPos[Z] - intersectPos[Z];
+        xLen = startPos[XC] - intersectPos[XC];
+        yLen = startPos[YC] - intersectPos[YC];
+        zLen = startPos[ZC] - intersectPos[ZC];
 
 
         rho = sqrt(xLen*xLen + yLen*yLen + zLen*zLen);
@@ -205,29 +205,29 @@ static void SetDensity(Home_t *home, real8 *densGrid, int gridSize[3],
  *      primary image, use the closest density field cell.
  */ 
         
-        if (trueIndex[X] < 0) {
-            trueIndex[X] = (gridSize[X]-1) * (param->xBoundType == Periodic);
-        } else if (trueIndex[X] >= gridSize[X]) {
-            trueIndex[X] = (gridSize[X]-1) * (param->xBoundType != Periodic);
+        if (trueIndex[XC] < 0) {
+            trueIndex[XC] = (gridSize[XC]-1) * (param->xBoundType == Periodic);
+        } else if (trueIndex[XC] >= gridSize[XC]) {
+            trueIndex[XC] = (gridSize[XC]-1) * (param->xBoundType != Periodic);
         }
 
-        if (trueIndex[Y] < 0) {
-            trueIndex[Y] = (gridSize[Y]-1) * (param->yBoundType == Periodic);
-        } else if (trueIndex[Y] >= gridSize[Y]) {
-            trueIndex[Y] = (gridSize[Y]-1) * (param->yBoundType != Periodic);
+        if (trueIndex[YC] < 0) {
+            trueIndex[YC] = (gridSize[YC]-1) * (param->yBoundType == Periodic);
+        } else if (trueIndex[YC] >= gridSize[YC]) {
+            trueIndex[YC] = (gridSize[YC]-1) * (param->yBoundType != Periodic);
         }
 
-        if (trueIndex[Z] < 0) {
-            trueIndex[Z] = (gridSize[Z]-1) * (param->zBoundType == Periodic);
-        } else if (trueIndex[Z] >= gridSize[Z]) {
-            trueIndex[Z] = (gridSize[Z]-1) * (param->zBoundType != Periodic);
+        if (trueIndex[ZC] < 0) {
+            trueIndex[ZC] = (gridSize[ZC]-1) * (param->zBoundType == Periodic);
+        } else if (trueIndex[ZC] >= gridSize[ZC]) {
+            trueIndex[ZC] = (gridSize[ZC]-1) * (param->zBoundType != Periodic);
         }
 
 /*
  *      Increment rho for the cell containing the segment
  */
-        offset = trueIndex[X] * gridSize[Y] * gridSize[Z] +
-                 trueIndex[Y] * gridSize[Z] + trueIndex[Z];
+        offset = trueIndex[XC] * gridSize[YC] * gridSize[ZC] +
+                 trueIndex[YC] * gridSize[ZC] + trueIndex[ZC];
 
         densGrid[offset] += rho;
 
@@ -369,7 +369,7 @@ static void FindDensity(Home_t *home, Seg_t *segList, int *numAllocSegs,
                p2[j] = nodeInfo[index2].pos[j];
             }
 
-            PBCPOSITION(param, p1[X], p1[Y], p1[Z], &p2[X], &p2[Y], &p2[Z]);
+            PBCPOSITION(param, p1[XC], p1[YC], p1[ZC], &p2[XC], &p2[YC], &p2[ZC]);
 /*
  *          Get the direction of the segment from point p1 to p2.
  */
@@ -639,13 +639,13 @@ static void ReadDataParams(Home_t *home, FILE *fpData)
  *                      is modified to remove references to these
  *                      values, we need to explicitly set them now.
  */
-                        param->minSideX = param->minCoordinates[X];
-                        param->minSideY = param->minCoordinates[Y];
-                        param->minSideZ = param->minCoordinates[Z];
+                        param->minSideX = param->minCoordinates[XC];
+                        param->minSideY = param->minCoordinates[YC];
+                        param->minSideZ = param->minCoordinates[ZC];
 
-                        param->maxSideX = param->maxCoordinates[X];
-                        param->maxSideY = param->maxCoordinates[Y];
-                        param->maxSideZ = param->maxCoordinates[Z];
+                        param->maxSideX = param->maxCoordinates[XC];
+                        param->maxSideY = param->maxCoordinates[YC];
+                        param->maxSideZ = param->maxCoordinates[ZC];
 
                         tokenType = GetNextToken(fpData, token, maxTokenLen);
 /*
@@ -821,11 +821,11 @@ static void ProcessNodalData(Home_t *home, FILE *fpData, char *baseFileName,
             sscanf(inLine, "%d,%d %lf %lf %lf %d %*d",
                    &nodeInfo[nodeIndex].tag.domainID,
                    &nodeInfo[nodeIndex].tag.index,
-                   &nodeInfo[nodeIndex].pos[X], &nodeInfo[nodeIndex].pos[Y],
-                   &nodeInfo[nodeIndex].pos[Z], &numArms);
+                   &nodeInfo[nodeIndex].pos[XC], &nodeInfo[nodeIndex].pos[YC],
+                   &nodeInfo[nodeIndex].pos[ZC], &numArms);
 
-            FoldBox(param, &nodeInfo[nodeIndex].pos[X], &nodeInfo[nodeIndex].pos[Y],
-                    &nodeInfo[nodeIndex].pos[Z]);
+            FoldBox(param, &nodeInfo[nodeIndex].pos[XC], &nodeInfo[nodeIndex].pos[YC],
+                    &nodeInfo[nodeIndex].pos[ZC]);
 
             nodeInfo[nodeIndex].refCnt = numArms;
 
@@ -1098,18 +1098,18 @@ static void ProcessBinNodalData(Home_t *home, hid_t fileID, char *baseFileName,
                         ReallocNodeInfo(&nodeInfo, &numAllocNodes, numNodes);
                     }
 
-                    nodeInfo[numNodes].pos[X] = nodePos[i*3  ];
-                    nodeInfo[numNodes].pos[Y] = nodePos[i*3+1];
-                    nodeInfo[numNodes].pos[Z] = nodePos[i*3+2];
+                    nodeInfo[numNodes].pos[XC] = nodePos[i*3  ];
+                    nodeInfo[numNodes].pos[YC] = nodePos[i*3+1];
+                    nodeInfo[numNodes].pos[ZC] = nodePos[i*3+2];
 
                     nodeInfo[numNodes].refCnt = nodeNumSegs[i];
 
                     nodeInfo[numNodes].tag.domainID = nextTaskID;
                     nodeInfo[numNodes].tag.index    = nodeIndices[i];
 
-                    FoldBox(param, &nodeInfo[numNodes].pos[X],
-                            &nodeInfo[numNodes].pos[Y],
-                            &nodeInfo[numNodes].pos[Z]);
+                    FoldBox(param, &nodeInfo[numNodes].pos[XC],
+                            &nodeInfo[numNodes].pos[YC],
+                            &nodeInfo[numNodes].pos[ZC]);
 
                     numNodes++;
                 }
@@ -1204,9 +1204,9 @@ main(int argc, char *argv[])
         doBinRead = 0;
         fileSeqNum = 0;
 
-        gridSize[X] = 25;
-        gridSize[Y] = 25;
-        gridSize[Z] = 25;
+        gridSize[XC] = 25;
+        gridSize[YC] = 25;
+        gridSize[ZC] = 25;
 
         memset(&home, 0, sizeof(Home_t));
 /*
@@ -1232,20 +1232,20 @@ main(int argc, char *argv[])
                 }
                 argValue = argv[++i];
                 argTok = strtok(argValue, ",");
-                gridSize[X] = atoi(argTok);
+                gridSize[XC] = atoi(argTok);
                 argTok = strtok(NULL, ",");
                 if (argTok == (char *)NULL) {
-                    gridSize[Y] = gridSize[X];
-                    gridSize[Z] = gridSize[X];
+                    gridSize[YC] = gridSize[XC];
+                    gridSize[ZC] = gridSize[XC];
                     continue;
                 }
-                gridSize[Y] = atoi(argTok);
+                gridSize[YC] = atoi(argTok);
                 argTok = strtok(NULL, ",");
                 if (argTok == (char *)NULL) {
                     Usage(argv[0]);
                     exit(1);
                 }
-                gridSize[Z] = atoi(argTok);
+                gridSize[ZC] = atoi(argTok);
             } else if (!strcmp(argv[i], "-o")) {
                 if (i >= (argc - 1)) {
                     Usage(argv[0]);
@@ -1257,11 +1257,11 @@ main(int argc, char *argv[])
             }
         }
 
-        if ((gridSize[X] < 1) ||
-            (gridSize[Y] < 1) ||
-            (gridSize[Z] < 1)) {
+        if ((gridSize[XC] < 1) ||
+            (gridSize[YC] < 1) ||
+            (gridSize[ZC] < 1)) {
             Fatal("Invalid density grid size %dX%dX%d",
-                  gridSize[X], gridSize[Y], gridSize[Z]);
+                  gridSize[XC], gridSize[YC], gridSize[ZC]);
         }
 
 /*
@@ -1275,7 +1275,7 @@ main(int argc, char *argv[])
 /*
  *      Allocate the density grid
  */
-        numGridElements = gridSize[X] * gridSize[Y] * gridSize[Z];
+        numGridElements = gridSize[XC] * gridSize[YC] * gridSize[ZC];
 
         densityGrid = (real8 *)calloc(1, numGridElements*sizeof(real8));
 
@@ -1429,9 +1429,9 @@ main(int argc, char *argv[])
         }
 
 
-        param->Lx = param->maxCoordinates[X] - param->minCoordinates[X];
-        param->Ly = param->maxCoordinates[Y] - param->minCoordinates[Y];
-        param->Lz = param->maxCoordinates[Z] - param->minCoordinates[Z];
+        param->Lx = param->maxCoordinates[XC] - param->minCoordinates[XC];
+        param->Ly = param->maxCoordinates[YC] - param->minCoordinates[YC];
+        param->Lz = param->maxCoordinates[ZC] - param->minCoordinates[ZC];
 
         param->invLx = 1.0 / param->Lx;
         param->invLy = 1.0 / param->Ly;
@@ -1442,16 +1442,16 @@ main(int argc, char *argv[])
             (param->zBoundType == Free)) {
 
             if (param->xBoundType == Periodic) {
-                param->xBoundMin = param->minCoordinates[X];
-                param->xBoundMax = param->maxCoordinates[X];
+                param->xBoundMin = param->minCoordinates[XC];
+                param->xBoundMax = param->maxCoordinates[XC];
             }
             if (param->yBoundType == Periodic) {
-                param->yBoundMin = param->minCoordinates[Y];
-                param->yBoundMax = param->maxCoordinates[Y];
+                param->yBoundMin = param->minCoordinates[YC];
+                param->yBoundMax = param->maxCoordinates[YC];
             }
             if (param->zBoundType == Periodic) {
-                param->zBoundMin = param->minCoordinates[Z];
-                param->zBoundMax = param->maxCoordinates[Z];
+                param->zBoundMin = param->minCoordinates[ZC];
+                param->zBoundMax = param->maxCoordinates[ZC];
             }
         }
 
@@ -1485,9 +1485,9 @@ main(int argc, char *argv[])
 
         burgVolFactor = 1.0 / (param->burgMag * param->burgMag * cellVol);
 
-        cellSize[X] = param->Lx / (real8)gridSize[X];
-        cellSize[Y] = param->Ly / (real8)gridSize[Y];
-        cellSize[Z] = param->Lz / (real8)gridSize[Z];
+        cellSize[XC] = param->Lx / (real8)gridSize[XC];
+        cellSize[YC] = param->Ly / (real8)gridSize[YC];
+        cellSize[ZC] = param->Lz / (real8)gridSize[ZC];
 
 /*
  *      Now need to read the nodal data and process it.  There may
@@ -1527,23 +1527,23 @@ main(int argc, char *argv[])
         fprintf(fpOut, "#   associated with that cell.\n");
         fprintf(fpOut, "#\n");
         fprintf(fpOut, "#  Grid size (in X,Y,Z):  %d %d %d\n",
-                gridSize[X], gridSize[Y], gridSize[Z]);
+                gridSize[XC], gridSize[YC], gridSize[ZC]);
         fprintf(fpOut, "#\n");
 
-        for (i = 0; i < gridSize[X]; i++) {
-            centerCoord[X] = param->minCoordinates[X] +
-                             ((0.5 + (real8)i) * cellSize[X]);
-            for (j = 0; j < gridSize[Y]; j++) {
-                centerCoord[Y] = param->minCoordinates[Y] +
-                                 ((0.5 + (real8)j) * cellSize[Y]);
-                for (k = 0; k < gridSize[Z]; k++) {
-                    centerCoord[Z] = param->minCoordinates[Z] +
-                                     ((0.5 + (real8)k) * cellSize[Z]);
-                    offset = i * gridSize[Y] * gridSize[Z] +
-                             j * gridSize[Z] + k;
+        for (i = 0; i < gridSize[XC]; i++) {
+            centerCoord[XC] = param->minCoordinates[XC] +
+                             ((0.5 + (real8)i) * cellSize[XC]);
+            for (j = 0; j < gridSize[YC]; j++) {
+                centerCoord[YC] = param->minCoordinates[YC] +
+                                 ((0.5 + (real8)j) * cellSize[YC]);
+                for (k = 0; k < gridSize[ZC]; k++) {
+                    centerCoord[ZC] = param->minCoordinates[ZC] +
+                                     ((0.5 + (real8)k) * cellSize[ZC]);
+                    offset = i * gridSize[YC] * gridSize[ZC] +
+                             j * gridSize[ZC] + k;
                     fprintf(fpOut, "%13.5e %13.5e %13.5e %13.5e  "
                             "# cell = %d,%d,%d\n",
-                            centerCoord[X], centerCoord[Y], centerCoord[Z],
+                            centerCoord[XC], centerCoord[YC], centerCoord[ZC],
                             densityGrid[offset], i, j, k);
                 }
             }

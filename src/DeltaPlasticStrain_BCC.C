@@ -164,24 +164,24 @@ void DeltaPlasticStrain_BCC(Home_t *home)
                 for (bIndex = 0; bIndex < 4; bIndex++) {
                     real8 nanvCryst[3], nanvLab[3], tanvCryst[3], tanvLab[3];
 
-                    nanvCryst[X] = nanv[plane][X][bIndex];
-                    nanvCryst[Y] = nanv[plane][Y][bIndex];
-                    nanvCryst[Z] = nanv[plane][Z][bIndex];
+                    nanvCryst[XC] = nanv[plane][XC][bIndex];
+                    nanvCryst[YC] = nanv[plane][YC][bIndex];
+                    nanvCryst[ZC] = nanv[plane][ZC][bIndex];
 
-                    tanvCryst[X] = tanv[plane][X][bIndex];
-                    tanvCryst[Y] = tanv[plane][Y][bIndex];
-                    tanvCryst[Z] = tanv[plane][Z][bIndex];
+                    tanvCryst[XC] = tanv[plane][XC][bIndex];
+                    tanvCryst[YC] = tanv[plane][YC][bIndex];
+                    tanvCryst[ZC] = tanv[plane][ZC][bIndex];
 
                     Matrix33Vector3Multiply(home->rotMatrix,nanvCryst,nanvLab);
                     Matrix33Vector3Multiply(home->rotMatrix,tanvCryst,tanvLab);
 
-                    nanv[plane][X][bIndex] = nanvLab[X];
-                    nanv[plane][Y][bIndex] = nanvLab[Y];
-                    nanv[plane][Z][bIndex] = nanvLab[Z];
+                    nanv[plane][XC][bIndex] = nanvLab[XC];
+                    nanv[plane][YC][bIndex] = nanvLab[YC];
+                    nanv[plane][ZC][bIndex] = nanvLab[ZC];
 
-                    tanv[plane][X][bIndex] = tanvLab[X];
-                    tanv[plane][Y][bIndex] = tanvLab[Y];
-                    tanv[plane][Z][bIndex] = tanvLab[Z];
+                    tanv[plane][XC][bIndex] = tanvLab[XC];
+                    tanv[plane][YC][bIndex] = tanvLab[YC];
+                    tanv[plane][ZC][bIndex] = tanvLab[ZC];
                 }
             }
         }
@@ -318,9 +318,9 @@ void DeltaPlasticStrain_BCC(Home_t *home)
                    real8 bLab[3] = {bx, by, bz};
                    Matrix33Vector3Multiply(home->rotMatrixInverse,bLab,bCryst);
                } else {
-                   bCryst[X] = bx;
-                   bCryst[Y] = by;
-                   bCryst[Z] = bz;
+                   bCryst[XC] = bx;
+                   bCryst[YC] = by;
+                   bCryst[ZC] = bz;
                }
 
                ex = nbr->x - node->oldx; 
@@ -442,21 +442,21 @@ void DeltaPlasticStrain_BCC(Home_t *home)
  */
                burgGroup = -1;
 
-               zeroCount = (bCryst[X] == 0.0) +
-                           (bCryst[Y] == 0.0) +
-                           (bCryst[Z] == 0.0);
+               zeroCount = (bCryst[XC] == 0.0) +
+                           (bCryst[YC] == 0.0) +
+                           (bCryst[ZC] == 0.0);
 
                switch(zeroCount) {
 
                   case 0:
                     /* all types  [-]1 [-]1 [-]1 */
 
-                    tx = bCryst[X];  ty = bCryst[Y];  tz = bCryst[Z];
+                    tx = bCryst[XC];  ty = bCryst[YC];  tz = bCryst[ZC];
 
                     if ((tx * ty * tz) < 0.0) {
-                         tx = -bCryst[X];
-                         ty = -bCryst[Y];
-                         tz = -bCryst[Z];
+                         tx = -bCryst[XC];
+                         ty = -bCryst[YC];
+                         tz = -bCryst[ZC];
                     }
 
                     /* types -1  1  1 */
@@ -500,7 +500,7 @@ void DeltaPlasticStrain_BCC(Home_t *home)
 /*
  *             If this is not a [1 1 1] type burgers vector, skip it.
  */
-               if ((fabs(bCryst[X])*fabs(bCryst[Y])*fabs(bCryst[Z])) < eps) {
+               if ((fabs(bCryst[XC])*fabs(bCryst[YC])*fabs(bCryst[ZC])) < eps) {
                    continue;
                }
 

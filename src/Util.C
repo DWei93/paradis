@@ -1979,24 +1979,24 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
 */
             } else {
 
-                dir[X] = node1->x - node2->x;
-                dir[Y] = node1->y - node2->y;
-                dir[Z] = node1->z - node2->z;
+                dir[XC] = node1->x - node2->x;
+                dir[YC] = node1->y - node2->y;
+                dir[ZC] = node1->z - node2->z;
 
-                ZImage(param, &dir[X], &dir[Y], &dir[Z]);
+                ZImage(param, &dir[XC], &dir[YC], &dir[ZC]);
 
-                burg[X] = bx;
-                burg[Y] = by;
-                burg[Z] = bz;
+                burg[XC] = bx;
+                burg[YC] = by;
+                burg[ZC] = bz;
 
                 FindPreciseGlidePlane(home, burg, dir, glidePlane,node1,node2);
 
                 gpDotgp = DotProduct(glidePlane, glidePlane);
 
                 if (gpDotgp < eps) {
-                    vel[X] = (node1->vX + node2->vX) * 0.5;
-                    vel[Y] = (node1->vY + node2->vY) * 0.5;
-                    vel[Z] = (node1->vZ + node2->vZ) * 0.5;
+                    vel[XC] = (node1->vX + node2->vX) * 0.5;
+                    vel[YC] = (node1->vY + node2->vY) * 0.5;
+                    vel[ZC] = (node1->vZ + node2->vZ) * 0.5;
 
                     FindPreciseGlidePlane(home, vel, dir, glidePlane,node1,node2);
 
@@ -2015,9 +2015,9 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
                     }
                 }
 
-                nx = glidePlane[X];
-                ny = glidePlane[Y];
-                nz = glidePlane[Z];
+                nx = glidePlane[XC];
+                ny = glidePlane[YC];
+                nz = glidePlane[ZC];
             }
         }
 
@@ -2581,15 +2581,15 @@ void RecalcSegGlidePlane(Home_t *home, Node_t *node1, Node_t *node2,
 
         node2SegID = GetArmID(home, node2, node1);
 
-        burg[X] = node1->burgX[node1SegID];
-        burg[Y] = node1->burgY[node1SegID];
-        burg[Z] = node1->burgZ[node1SegID];
+        burg[XC] = node1->burgX[node1SegID];
+        burg[YC] = node1->burgY[node1SegID];
+        burg[ZC] = node1->burgZ[node1SegID];
 
-        lineDir[X] = node2->x - node1->x;
-        lineDir[Y] = node2->y - node1->y;
-        lineDir[Z] = node2->z - node1->z;
+        lineDir[XC] = node2->x - node1->x;
+        lineDir[YC] = node2->y - node1->y;
+        lineDir[ZC] = node2->z - node1->z;
 
-        ZImage(home->param, &lineDir[X], &lineDir[Y], &lineDir[Z]);
+        ZImage(home->param, &lineDir[XC], &lineDir[YC], &lineDir[ZC]);
         NormalizeVec(lineDir);
 
          FindPreciseGlidePlane(home, burg, lineDir, newPlane,node1,node2);
@@ -2599,15 +2599,15 @@ void RecalcSegGlidePlane(Home_t *home, Node_t *node1, Node_t *node2,
             PickScrewGlidePlane(home, burg, newPlane,node1,node2);
         }
 
-        Normalize(&newPlane[X], &newPlane[Y], &newPlane[Z]);
+        Normalize(&newPlane[XC], &newPlane[YC], &newPlane[ZC]);
 
-        node1->nx[node1SegID] = newPlane[X];
-        node1->ny[node1SegID] = newPlane[Y];
-        node1->nz[node1SegID] = newPlane[Z];
+        node1->nx[node1SegID] = newPlane[XC];
+        node1->ny[node1SegID] = newPlane[YC];
+        node1->nz[node1SegID] = newPlane[ZC];
 
-        node2->nx[node2SegID] = newPlane[X];
-        node2->ny[node2SegID] = newPlane[Y];
-        node2->nz[node2SegID] = newPlane[Z];
+        node2->nx[node2SegID] = newPlane[XC];
+        node2->ny[node2SegID] = newPlane[YC];
+        node2->nz[node2SegID] = newPlane[ZC];
 
         return;
 }
@@ -2885,7 +2885,7 @@ void ResetGlidePlane(Home_t *home, real8 newPlane[3], Tag_t *tag1,
                 -1,-1,
                 0, 0, 0,
                 0, 0, 0,
-                newPlane[X], newPlane[Y], newPlane[Z]);
+                newPlane[XC], newPlane[YC], newPlane[ZC]);
         }
 
 /*
@@ -2899,9 +2899,9 @@ void ResetGlidePlane(Home_t *home, real8 newPlane[3], Tag_t *tag1,
             for (armID = 0; armID < node->numNbrs; armID++) {
                 if ((node->nbrTag[armID].domainID == tag2->domainID) &&
                     (node->nbrTag[armID].index == tag2->index)) {
-                    node->nx[armID] = newPlane[X];
-                    node->ny[armID] = newPlane[Y];
-                    node->nz[armID] = newPlane[Z];
+                    node->nx[armID] = newPlane[XC];
+                    node->ny[armID] = newPlane[YC];
+                    node->nz[armID] = newPlane[ZC];
                 }
             }
         }
@@ -2912,9 +2912,9 @@ void ResetGlidePlane(Home_t *home, real8 newPlane[3], Tag_t *tag1,
             for (armID = 0; armID < node->numNbrs; armID++) {
                 if ((node->nbrTag[armID].domainID == tag1->domainID) &&
                     (node->nbrTag[armID].index == tag1->index)) {
-                    node->nx[armID] = newPlane[X];
-                    node->ny[armID] = newPlane[Y];
-                    node->nz[armID] = newPlane[Z];
+                    node->nx[armID] = newPlane[XC];
+                    node->ny[armID] = newPlane[YC];
+                    node->nz[armID] = newPlane[ZC];
                 }
             }
         }
@@ -2949,7 +2949,7 @@ void RepositionNode(Home_t *home, real8 newPos[3], Tag_t *tag, int globalOp)
                 -1, -1,                 /* 2nd tag unneeded */
                 -1, -1,                 /* 3rd node tag unneeded */
                 0.0, 0.0, 0.0,          /* burgers vector unneeded */
-                newPos[X], newPos[Y], newPos[Z],
+                newPos[XC], newPos[YC], newPos[ZC],
                 0.0, 0.0, 0.0);         /* plane normal not needed */
         }
 
@@ -2963,14 +2963,14 @@ void RepositionNode(Home_t *home, real8 newPos[3], Tag_t *tag, int globalOp)
 	    if(node->constraint >= 1 && node->constraint <= 3){
 	        real8	vec[3], nSurf[3];
 
-	        vec[X] = node->x - newPos[X];
-	        vec[Y] = node->y - newPos[Y];
-	        vec[Z] = node->z - newPos[Z];
+	        vec[XC] = node->x - newPos[XC];
+	        vec[YC] = node->y - newPos[YC];
+	        vec[ZC] = node->z - newPos[ZC];
 	        NormalizeVec(vec);
 
-	        nSurf[X] = (node->constraint==1);
-	        nSurf[Y] = (node->constraint==2);
-	        nSurf[Z] = (node->constraint==3);
+	        nSurf[XC] = (node->constraint==1);
+	        nSurf[YC] = (node->constraint==2);
+	        nSurf[ZC] = (node->constraint==3);
 	        if(fabs(DotProduct(vec,nSurf)) > 1e-5){
 	            PrintNode(node);
 	            FormatVector(newPos,"newPos");
@@ -2980,9 +2980,9 @@ void RepositionNode(Home_t *home, real8 newPos[3], Tag_t *tag, int globalOp)
 
 	    }
 
-            node->x = newPos[X];
-            node->y = newPos[Y];
-            node->z = newPos[Z];
+            node->x = newPos[XC];
+            node->y = newPos[YC];
+            node->z = newPos[ZC];
 
         }
 
@@ -3546,22 +3546,22 @@ void FindCellCenter(Param_t *param, real8 x, real8 y, real8 z, int type,
         real8   xStart, yStart, zStart;
         real8   minCoord[3], cellSize[3];
 
-        cellSize[X] = (param->maxSideX - param->minSideX) / param->nXcells;
-        cellSize[Y] = (param->maxSideY - param->minSideY) / param->nYcells;
-        cellSize[Z] = (param->maxSideZ - param->minSideZ) / param->nZcells;
+        cellSize[XC] = (param->maxSideX - param->minSideX) / param->nXcells;
+        cellSize[YC] = (param->maxSideY - param->minSideY) / param->nYcells;
+        cellSize[ZC] = (param->maxSideZ - param->minSideZ) / param->nZcells;
 
-        minCoord[X] = param->minSideX;
-        minCoord[Y] = param->minSideY;
-        minCoord[Z] = param->minSideZ;
+        minCoord[XC] = param->minSideX;
+        minCoord[YC] = param->minSideY;
+        minCoord[ZC] = param->minSideZ;
 
         if (type == 1) {
 /*
  *          x, y and z are positions.  Find the cell encompassing the
  *          point and return the center point of the cell
  */
-            cellIndex[X] = (int)((x - minCoord[X]) / cellSize[X]);
-            cellIndex[Y] = (int)((y - minCoord[Y]) / cellSize[Y]);
-            cellIndex[Z] = (int)((z - minCoord[Z]) / cellSize[Z]);
+            cellIndex[XC] = (int)((x - minCoord[XC]) / cellSize[XC]);
+            cellIndex[YC] = (int)((y - minCoord[YC]) / cellSize[YC]);
+            cellIndex[ZC] = (int)((z - minCoord[ZC]) / cellSize[ZC]);
 
 
         } else if (type == 2) {
@@ -3569,21 +3569,21 @@ void FindCellCenter(Param_t *param, real8 x, real8 y, real8 z, int type,
  *          x, y and z are the indices of a cell. Range is 0 thru num{XYZ}Cells
  *          i.e. not adjusted for ghost cell
  */
-            cellIndex[X] = (int)x;
-            cellIndex[Y] = (int)y;
-            cellIndex[Z] = (int)z;
+            cellIndex[XC] = (int)x;
+            cellIndex[YC] = (int)y;
+            cellIndex[ZC] = (int)z;
 
         } else {
             Fatal("Unknown arugment type in FindCellCenter()!");
         }
 
-        xStart = minCoord[X] + cellSize[X]*0.5;
-        yStart = minCoord[Y] + cellSize[Y]*0.5;
-        zStart = minCoord[Z] + cellSize[Z]*0.5;
+        xStart = minCoord[XC] + cellSize[XC]*0.5;
+        yStart = minCoord[YC] + cellSize[YC]*0.5;
+        zStart = minCoord[ZC] + cellSize[ZC]*0.5;
 
-        *xCenter = xStart + (cellIndex[X] * cellSize[X]);
-        *yCenter = yStart + (cellIndex[Y] * cellSize[Y]);
-        *zCenter = zStart + (cellIndex[Z] * cellSize[Z]);
+        *xCenter = xStart + (cellIndex[XC] * cellSize[XC]);
+        *yCenter = yStart + (cellIndex[YC] * cellSize[YC]);
+        *zCenter = zStart + (cellIndex[ZC] * cellSize[ZC]);
 
         return;
 }
@@ -3645,7 +3645,7 @@ void LocateCell(Home_t *home, int *cellID, real8 coord[3])
             cellMax = rint((minCoordX) + (cIndex * cellSizeX));
             cellMin = rint((minCoordX) + (cIndex-1) * cellSizeX);
 
-            if ((coord[X] >= cellMin) && (coord[X] < cellMax)) {
+            if ((coord[XC] >= cellMin) && (coord[XC] < cellMax)) {
                 cellIndexX = cIndex;
                 break;
             }
@@ -3661,7 +3661,7 @@ void LocateCell(Home_t *home, int *cellID, real8 coord[3])
             cellMax = rint((minCoordY) + (cIndex * cellSizeY));
             cellMin = rint((minCoordY) + (cIndex-1) * cellSizeY);
 
-            if ((coord[Y] >= cellMin) && (coord[Y] < cellMax)) {
+            if ((coord[YC] >= cellMin) && (coord[YC] < cellMax)) {
                 cellIndexY = cIndex;
                 break;
             }
@@ -3677,7 +3677,7 @@ void LocateCell(Home_t *home, int *cellID, real8 coord[3])
             cellMax = rint((minCoordZ) + (cIndex * cellSizeZ));
             cellMin = rint((minCoordZ) + (cIndex-1) * cellSizeZ);
 
-            if ((coord[Z] >= cellMin) && (coord[Z] < cellMax)) {
+            if ((coord[ZC] >= cellMin) && (coord[ZC] < cellMax)) {
                 cellIndexZ = cIndex;
                 break;
             }
@@ -3763,9 +3763,9 @@ int NodePinned(Home_t *home, Node_t *node, int planeIndex,
  *          has a different glide plane index than <planeIndex>, the
  *          node should be considered 'pinned'
  */
-            segplane[X] = node->nx[i];
-            segplane[Y] = node->ny[i];
-            segplane[Z] = node->nz[i];
+            segplane[XC] = node->nx[i];
+            segplane[YC] = node->ny[i];
+            segplane[ZC] = node->nz[i];
 
             planetest = 0;
             planetestmin = 10.0;
@@ -4173,9 +4173,9 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
             real8   temp, testVal, dpnnm;
 
 	    if(i < node->numNbrs){
-                glidePlane[X] = node->nx[i];
-                glidePlane[Y] = node->ny[i];
-                glidePlane[Z] = node->nz[i];
+                glidePlane[XC] = node->nx[i];
+                glidePlane[YC] = node->ny[i];
+                glidePlane[ZC] = node->nz[i];
 	    }else{
 		if(i == node->numNbrs){
 		    if(TBConstraint == 0)continue;
@@ -4190,34 +4190,34 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 
             switch(numConstraints) {
                 case 0:   // the first glide plane
-                    glideConstraints[0][X] = glidePlane[X] / gpNormal;
-                    glideConstraints[0][Y] = glidePlane[Y] / gpNormal;
-                    glideConstraints[0][Z] = glidePlane[Z] / gpNormal;
+                    glideConstraints[0][XC] = glidePlane[XC] / gpNormal;
+                    glideConstraints[0][YC] = glidePlane[YC] / gpNormal;
+                    glideConstraints[0][ZC] = glidePlane[ZC] / gpNormal;
                     numConstraints = 1;
                     break;
 
                 case 1:
-                    temp = glideConstraints[0][X] * glidePlane[X] +
-                           glideConstraints[0][Y] * glidePlane[Y] +
-                           glideConstraints[0][Z] * glidePlane[Z];
+                    temp = glideConstraints[0][XC] * glidePlane[XC] +
+                           glideConstraints[0][YC] * glidePlane[YC] +
+                           glideConstraints[0][ZC] * glidePlane[ZC];
 
                     testVal = 1.0 - fabs(temp) / gpNormal;
 
                     if (testVal > eps) { // the second glide plane
-                        dpnnm = (glidePlane[X] * glideConstraints[0][X] +
-                                glidePlane[Y] * glideConstraints[0][Y] +
-                                glidePlane[Z] * glideConstraints[0][Z]);
+                        dpnnm = (glidePlane[XC] * glideConstraints[0][XC] +
+                                glidePlane[YC] * glideConstraints[0][YC] +
+                                glidePlane[ZC] * glideConstraints[0][ZC]);
 
-                        glideConstraints[1][X] = glidePlane[X] -
-                                                 dpnnm * glideConstraints[0][X];
-                        glideConstraints[1][Y] = glidePlane[Y] -
-                                                 dpnnm * glideConstraints[0][Y];
-                        glideConstraints[1][Z] = glidePlane[Z] -
-                                                 dpnnm * glideConstraints[0][Z];
+                        glideConstraints[1][XC] = glidePlane[XC] -
+                                                 dpnnm * glideConstraints[0][XC];
+                        glideConstraints[1][YC] = glidePlane[YC] -
+                                                 dpnnm * glideConstraints[0][YC];
+                        glideConstraints[1][ZC] = glidePlane[ZC] -
+                                                 dpnnm * glideConstraints[0][ZC];
 
-                        Normalize(&glideConstraints[1][X],
-                                  &glideConstraints[1][Y],
-                                  &glideConstraints[1][Z]);
+                        Normalize(&glideConstraints[1][XC],
+                                  &glideConstraints[1][YC],
+                                  &glideConstraints[1][ZC]);
 
                         cross(glideConstraints[0], glideConstraints[1],
                               glideConstraints[2]);
@@ -4226,9 +4226,9 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                     break;
 
                 case 2:
-                    temp = glideConstraints[2][X] * glidePlane[X] +
-                           glideConstraints[2][Y] * glidePlane[Y] +
-                           glideConstraints[2][Z] * glidePlane[Z];
+                    temp = glideConstraints[2][XC] * glidePlane[XC] +
+                           glideConstraints[2][YC] * glidePlane[YC] +
+                           glideConstraints[2][ZC] * glidePlane[ZC];
 
                     testVal = fabs(temp) / gpNormal;
 

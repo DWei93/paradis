@@ -361,17 +361,17 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->zSurf[0]   = 0;
         inArgs->zSurf[1]   = 0;
 
-	inArgs->xMatDir[X] =  1;
-	inArgs->xMatDir[Y] = -1;
-	inArgs->xMatDir[Z] =  0;
+	inArgs->xMatDir[XC] =  1;
+	inArgs->xMatDir[YC] = -1;
+	inArgs->xMatDir[ZC] =  0;
 	    
-	inArgs->yMatDir[X] =  1;
-	inArgs->yMatDir[Y] =  1;
-	inArgs->yMatDir[Z] =  1;
+	inArgs->yMatDir[XC] =  1;
+	inArgs->yMatDir[YC] =  1;
+	inArgs->yMatDir[ZC] =  1;
 
-	inArgs->zMatDir[X] = -1;
-	inArgs->zMatDir[Y] = -1;
-	inArgs->zMatDir[Z] =  2;
+	inArgs->zMatDir[XC] = -1;
+	inArgs->zMatDir[YC] = -1;
+	inArgs->zMatDir[ZC] =  2;
 
 	inArgs->TBAngle = 0;
 	inArgs->maxDensity = 5.0E14;
@@ -731,7 +731,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                     if (token == (char *)NULL) Fatal("orientation wrong");
 	            inArgs->xMatDir[2] = atof(token);
 	            NormalizeVec(inArgs->xMatDir);
-	            existDir[X] = 1;
+	            existDir[XC] = 1;
 	            orientationType = 1;
 	                break;
 	        case OPT_YMATDIR:
@@ -744,7 +744,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                     if (token == (char *)NULL) Fatal("orientation wrong");
 	            inArgs->yMatDir[2] = atof(token);
 	            NormalizeVec(inArgs->yMatDir);
-	            existDir[Y] = 1;
+	            existDir[YC] = 1;
 	            orientationType = 1;
 	                break;
 	        case OPT_ZMATDIR:
@@ -757,7 +757,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                     if (token == (char *)NULL) Fatal("orientation wrong");
 	            inArgs->zMatDir[2] = atof(token);
 	            NormalizeVec(inArgs->yMatDir);
-	            existDir[Y] = 1;
+	            existDir[YC] = 1;
 	            orientationType = 1;
 	                break;
 	        case OPT_TBANGLE:
@@ -1090,9 +1090,9 @@ main(int argc, char *argv[])
 	param->yBoundType = ((inArgs.pbcVal & 0x02) == 0 ? Periodic : Free);
 	param->zBoundType = ((inArgs.pbcVal & 0x04) == 0 ? Periodic : Free);
 
-	VECTOR_COPY(param->matrixOrientation[X],inArgs.xMatDir);
-	VECTOR_COPY(param->matrixOrientation[Y],inArgs.yMatDir);
-	VECTOR_COPY(param->matrixOrientation[Z],inArgs.zMatDir);
+	VECTOR_COPY(param->matrixOrientation[XC],inArgs.xMatDir);
+	VECTOR_COPY(param->matrixOrientation[YC],inArgs.yMatDir);
+	VECTOR_COPY(param->matrixOrientation[ZC],inArgs.zMatDir);
 
 	InitGrain(&home, param);
 		
@@ -1114,13 +1114,13 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
  *      And some additional initializations for when we write the
  *      data portion of the restart file.
  */
-        param->minCoordinates[X] = minHigh;
-        param->minCoordinates[Y] = minHigh;
-        param->minCoordinates[Z] = minHigh;
+        param->minCoordinates[XC] = minHigh;
+        param->minCoordinates[YC] = minHigh;
+        param->minCoordinates[ZC] = minHigh;
 
-        param->maxCoordinates[X] = maxHigh;
-        param->maxCoordinates[Y] = maxHigh;
-        param->maxCoordinates[Z] = maxHigh;
+        param->maxCoordinates[XC] = maxHigh;
+        param->maxCoordinates[YC] = maxHigh;
+        param->maxCoordinates[ZC] = maxHigh;
 
         param->decompType = param->dataDecompType;
 
@@ -1128,9 +1128,9 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
  *      Generate an initial domain decomposition.  Uses default
  *      geometry from param->dataDecompGeometry.
  */
-        param->nXdoms = param->dataDecompGeometry[X];
-        param->nYdoms = param->dataDecompGeometry[Y];
-        param->nZdoms = param->dataDecompGeometry[Z];
+        param->nXdoms = param->dataDecompGeometry[XC];
+        param->nYdoms = param->dataDecompGeometry[YC];
+        param->nZdoms = param->dataDecompGeometry[ZC];
 
         for (home.xMaxLevel = 0; param->nXdoms >> home.xMaxLevel != 1;
              home.xMaxLevel++);
@@ -1178,24 +1178,24 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
                     param->xBoundMin = inArgs.xSurf[0];
                     param->xBoundMax = inArgs.xSurf[1];
                 } else {
-                    param->xBoundMin = param->minCoordinates[X];
-                    param->xBoundMax = param->maxCoordinates[X];
+                    param->xBoundMin = param->minCoordinates[XC];
+                    param->xBoundMax = param->maxCoordinates[XC];
                 }
 
                 if (inArgs.ySurf[0] != inArgs.ySurf[1]) {
                     param->yBoundMin = inArgs.ySurf[0];
                     param->yBoundMax = inArgs.ySurf[1];
                 } else {
-                    param->yBoundMin = param->minCoordinates[Y];
-                    param->yBoundMax = param->maxCoordinates[Y];
+                    param->yBoundMin = param->minCoordinates[YC];
+                    param->yBoundMax = param->maxCoordinates[YC];
                 }
 
                 if (inArgs.zSurf[0] != inArgs.zSurf[1]) {
                     param->zBoundMin = inArgs.zSurf[0];
                     param->zBoundMax = inArgs.zSurf[1];
                 } else {
-                    param->zBoundMin = param->minCoordinates[Z];
-                    param->zBoundMax = param->maxCoordinates[Z];
+                    param->zBoundMin = param->minCoordinates[ZC];
+                    param->zBoundMax = param->maxCoordinates[ZC];
                 }
 
                 CreateFiniteMixedConfig(&home, &inData, inArgs.cubeLength,
@@ -1316,14 +1316,14 @@ int GetBurgID_FCCFromArm(Home_t *home, Node_t *node, int segID){
 	    ChangeOrientation(home, node, node,3);
 
 	    real8 bLab[3];
-	    bLab[X] = node->burgX[segID];
-	    bLab[Y] = node->burgY[segID];
-	    bLab[Z] = node->burgZ[segID];
+	    bLab[XC] = node->burgX[segID];
+	    bLab[YC] = node->burgY[segID];
+	    bLab[ZC] = node->burgZ[segID];
             Matrix33Vector3Multiply(home->rotMatrixInverse, bLab, bCryst);
 	} else {
-	    bCryst[X] = node->burgX[segID];
-	    bCryst[Y] = node->burgY[segID];
-	    bCryst[Z] = node->burgZ[segID];
+	    bCryst[XC] = node->burgX[segID];
+	    bCryst[YC] = node->burgY[segID];
+	    bCryst[ZC] = node->burgZ[segID];
 	}
 	
 	

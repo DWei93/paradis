@@ -658,16 +658,16 @@ static void WriteVisitSegmentsText(Home_t *home, char *baseFileName,
                 if (OrderNodes(node, nbrNode) > 0) {
                     real8 nbrPos[3];
 
-                    nbrPos[X] = nbrNode->x;
-                    nbrPos[Y] = nbrNode->y;
-                    nbrPos[Z] = nbrNode->z;
+                    nbrPos[XC] = nbrNode->x;
+                    nbrPos[YC] = nbrNode->y;
+                    nbrPos[ZC] = nbrNode->z;
 
                     PBCPOSITION(param, node->x, node->y, node->z,
-                                &nbrPos[X], &nbrPos[Y], &nbrPos[Z]);
+                                &nbrPos[XC], &nbrPos[YC], &nbrPos[ZC]);
 
                     fprintf(fpSeg, "%e %e %e %e %e %e %e %e %e %e %e %e\n",
                             node->x, node->y, node->z,
-                            nbrPos[X], nbrPos[Y], nbrPos[Z],
+                            nbrPos[XC], nbrPos[YC], nbrPos[ZC],
                             node->burgX[arm],node->burgY[arm],node->burgZ[arm],
                             node->nx[arm], node->ny[arm], node->nz[arm]);
 
@@ -819,19 +819,19 @@ static void WriteVisitSegmentsBinary(Home_t *home, char *baseFileName,
                 if (OrderNodes(node, nbrNode) > 0) {
                     real8 nbrPos[3];
 
-                    nbrPos[X] = nbrNode->x;
-                    nbrPos[Y] = nbrNode->y;
-                    nbrPos[Z] = nbrNode->z;
+                    nbrPos[XC] = nbrNode->x;
+                    nbrPos[YC] = nbrNode->y;
+                    nbrPos[ZC] = nbrNode->z;
 
                     PBCPOSITION(param, node->x, node->y, node->z,
-                                &nbrPos[X], &nbrPos[Y], &nbrPos[Z]);
+                                &nbrPos[XC], &nbrPos[YC], &nbrPos[ZC]);
 
                     BUF_PACK(nextPos, node->x, double);
                     BUF_PACK(nextPos, node->y, double);
                     BUF_PACK(nextPos, node->z, double);
-                    BUF_PACK(nextPos, nbrPos[X], double);
-                    BUF_PACK(nextPos, nbrPos[Y], double);
-                    BUF_PACK(nextPos, nbrPos[Z], double);
+                    BUF_PACK(nextPos, nbrPos[XC], double);
+                    BUF_PACK(nextPos, nbrPos[YC], double);
+                    BUF_PACK(nextPos, nbrPos[ZC], double);
                     BUF_PACK(nextPos, node->burgX[arm], double);
                     BUF_PACK(nextPos, node->burgY[arm], double);
                     BUF_PACK(nextPos, node->burgZ[arm], double);

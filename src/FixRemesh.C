@@ -173,33 +173,33 @@ void FixRemesh(Home_t *home, const char flag[256])
 /*
  *                              Insure the node is assigned to the proper cell
  */
-                                cellSize[X] = param->Lx / param->nXcells;
-                                cellSize[Y] = param->Ly / param->nYcells;
-                                cellSize[Z] = param->Lz / param->nZcells;
+                                cellSize[XC] = param->Lx / param->nXcells;
+                                cellSize[YC] = param->Ly / param->nYcells;
+                                cellSize[ZC] = param->Lz / param->nZcells;
 
-                                cellIndex[X] = (int)(node2->x-param->minSideX) /
-                                               (int)cellSize[X];
-                                cellIndex[Y] = (int)(node2->y-param->minSideY) /
-                                               (int)cellSize[Y];
-                                cellIndex[Z] = (int)(node2->z-param->minSideZ) /
-                                               (int)cellSize[Z];
+                                cellIndex[XC] = (int)(node2->x-param->minSideX) /
+                                               (int)cellSize[XC];
+                                cellIndex[YC] = (int)(node2->y-param->minSideY) /
+                                               (int)cellSize[YC];
+                                cellIndex[ZC] = (int)(node2->z-param->minSideZ) /
+                                               (int)cellSize[ZC];
 
-                                cellIndex[X] = MAX(0, cellIndex[X]);
-                                cellIndex[Y] = MAX(0, cellIndex[Y]);
-                                cellIndex[Z] = MAX(0, cellIndex[Z]);
+                                cellIndex[XC] = MAX(0, cellIndex[XC]);
+                                cellIndex[YC] = MAX(0, cellIndex[YC]);
+                                cellIndex[ZC] = MAX(0, cellIndex[ZC]);
 
-                                cellIndex[X] = MIN(param->nXcells,cellIndex[X]);
-                                cellIndex[Y] = MIN(param->nYcells,cellIndex[Y]);
-                                cellIndex[Z] = MIN(param->nZcells,cellIndex[Z]);
+                                cellIndex[XC] = MIN(param->nXcells,cellIndex[XC]);
+                                cellIndex[YC] = MIN(param->nYcells,cellIndex[YC]);
+                                cellIndex[ZC] = MIN(param->nZcells,cellIndex[ZC]);
 
-                                cellIndex[X]++;
-                                cellIndex[Y]++;
-                                cellIndex[Z]++;
+                                cellIndex[XC]++;
+                                cellIndex[YC]++;
+                                cellIndex[ZC]++;
 
                                 node2->cellIdx = EncodeCellIdx(home,
-                                                               cellIndex[X],
-                                                               cellIndex[Y],
-                                                               cellIndex[Z]);
+                                                               cellIndex[XC],
+                                                               cellIndex[YC],
+                                                               cellIndex[ZC]);
 				break;
 
 /*

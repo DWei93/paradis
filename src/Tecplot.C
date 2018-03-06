@@ -205,9 +205,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
             y = node->y;
             z = node->z;
 			
-            vecOldNew[X] = x - node->oldx;
-            vecOldNew[Y] = y - node->oldy;
-            vecOldNew[Z] = z - node->oldz;
+            vecOldNew[XC] = x - node->oldx;
+            vecOldNew[YC] = y - node->oldy;
+            vecOldNew[ZC] = z - node->oldz;
             	
             ZImage(param, vecOldNew, vecOldNew+1, vecOldNew+2);
             	
@@ -264,9 +264,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                     Fatal("The burgers ID of non-FCC material has not defined\n");
                 }
 				
-                normal[X] = node->nx[j];
-                normal[Y] = node->ny[j];
-                normal[Z] = node->nz[j];
+                normal[XC] = node->nx[j];
+                normal[YC] = node->ny[j];
+                normal[ZC] = node->nz[j];
 
                 if(home->param->useLabFrame){
 	            ChangeOrientation(home, node, nbrNode,3);
@@ -344,9 +344,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 	        y = node->y;
 	        z = node->z;
 			
-	        vecOldNew[X] = x - node->oldx;
-	        vecOldNew[Y] = y - node->oldy;
-	        vecOldNew[Z] = z - node->oldz;
+	        vecOldNew[XC] = x - node->oldx;
+	        vecOldNew[YC] = y - node->oldy;
+	        vecOldNew[ZC] = z - node->oldz;
 	        	
 	        ZImage(param, vecOldNew, vecOldNew+1, vecOldNew+2);
 	        	
@@ -370,9 +370,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 	                continue;
 	            }
 				
-                    normal[X] = node->nx[arm];
-                    normal[Y] = node->ny[arm];
-                    normal[Z] = node->nz[arm];
+                    normal[XC] = node->nx[arm];
+                    normal[YC] = node->ny[arm];
+                    normal[ZC] = node->nz[arm];
     
                     if(home->param->useLabFrame){
 	                ChangeOrientation(home, node, nbrNode,3);
@@ -561,9 +561,9 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 
 			burgMag = sqrt(bX*bX + bY*bY +bZ*bZ);
 
-			burg[X] = bX;
-			burg[Y] = bY;
-			burg[Z] = bZ;
+			burg[XC] = bX;
+			burg[YC] = bY;
+			burg[ZC] = bZ;
 			
 			iBurg = BurgType_FCC(home,burg);
 

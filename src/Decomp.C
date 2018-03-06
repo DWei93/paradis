@@ -254,9 +254,9 @@ void ReadDecompBounds(Home_t *home, void **filePtr, int doBinRead,
 
         oldDecompType = param->dataDecompType;
 
-        decompDomX = param->dataDecompGeometry[X];
-        decompDomY = param->dataDecompGeometry[Y];
-        decompDomZ = param->dataDecompGeometry[Z];
+        decompDomX = param->dataDecompGeometry[XC];
+        decompDomY = param->dataDecompGeometry[YC];
+        decompDomZ = param->dataDecompGeometry[ZC];
 
 /*
  *      If the domain geometry was not provided, no domain decomposition

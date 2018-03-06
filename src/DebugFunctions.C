@@ -618,9 +618,9 @@ void TecplotCurrDomain(Home_t *home, char *baseFileName, int ioGroup, int firstI
             y = node->y;
             z = node->z;
 			
-            vecOldNew[X] = x - node->oldx;
-            vecOldNew[Y] = y - node->oldy;
-            vecOldNew[Z] = z - node->oldz;
+            vecOldNew[XC] = x - node->oldx;
+            vecOldNew[YC] = y - node->oldy;
+            vecOldNew[ZC] = z - node->oldz;
             	
             ZImage(param, vecOldNew, vecOldNew+1, vecOldNew+2);
             	
@@ -677,9 +677,9 @@ void TecplotCurrDomain(Home_t *home, char *baseFileName, int ioGroup, int firstI
                     Fatal("The burgers ID of non-FCC material has not defined\n");
                 }
 				
-                normal[X] = node->nx[j];
-                normal[Y] = node->ny[j];
-                normal[Z] = node->nz[j];
+                normal[XC] = node->nx[j];
+                normal[YC] = node->ny[j];
+                normal[ZC] = node->nz[j];
 
                 if(home->param->useLabFrame){
 	            ChangeOrientation(home, node, nbrNode,3);
@@ -721,12 +721,12 @@ void TecplotCurrDomain(Home_t *home, char *baseFileName, int ioGroup, int firstI
                   
                 narm = node->numNbrs;
 				
-                plane.normal[X] = node->nx[j];
-                plane.normal[Y] = node->ny[j];
-                plane.normal[Z] = node->nz[j];
-                pos[X] = x;
-                pos[Y] = y;
-                pos[Z] = z;
+                plane.normal[XC] = node->nx[j];
+                plane.normal[YC] = node->ny[j];
+                plane.normal[ZC] = node->nz[j];
+                pos[XC] = x;
+                pos[YC] = y;
+                pos[ZC] = z;
                 	
                 minDistance = PointPlaneDistance(pos, &plane);
                 	
@@ -762,9 +762,9 @@ void TecplotCurrDomain(Home_t *home, char *baseFileName, int ioGroup, int firstI
             y = node->y;
             z = node->z;
 			
-	    vecOldNew[X] = x - node->oldx;
-	    vecOldNew[Y] = y - node->oldy;
-	    vecOldNew[Z] = z - node->oldz;
+	    vecOldNew[XC] = x - node->oldx;
+	    vecOldNew[YC] = y - node->oldy;
+	    vecOldNew[ZC] = z - node->oldz;
 	    	
 	    ZImage(param, vecOldNew, vecOldNew+1, vecOldNew+2);
 	    	
@@ -826,12 +826,12 @@ void TecplotCurrDomain(Home_t *home, char *baseFileName, int ioGroup, int firstI
 	        	
 	        narm = node->numNbrs;
 	        	
-	        plane.normal[X] = node->nx[arm];
-	        plane.normal[Y] = node->ny[arm];
-	        plane.normal[Z] = node->nz[arm];
-	        pos[X] = x;
-	        pos[Y] = y;
-	        pos[Z] = z;
+	        plane.normal[XC] = node->nx[arm];
+	        plane.normal[YC] = node->ny[arm];
+	        plane.normal[ZC] = node->nz[arm];
+	        pos[XC] = x;
+	        pos[YC] = y;
+	        pos[ZC] = z;
 	        
                 if(home->param->materialType == MAT_TYPE_FCC){
                     burgID = GetBurgID_FCC(home, node, nbrNode);
@@ -839,9 +839,9 @@ void TecplotCurrDomain(Home_t *home, char *baseFileName, int ioGroup, int firstI
                     Fatal("The burgers ID of non-FCC material has not defined\n");
                 }
 
-                normal[X] = node->nx[j];
-                normal[Y] = node->ny[j];
-                normal[Z] = node->nz[j];
+                normal[XC] = node->nx[j];
+                normal[YC] = node->ny[j];
+                normal[ZC] = node->nz[j];
 
                 if(home->param->useLabFrame){
 	            ChangeOrientation(home, node, nbrNode,3);
@@ -945,9 +945,9 @@ void DebugGB(Home_t *home, int flag){
 //
 	    VECTOR_ZERO(resiBurg);
 	    for(j=0; j<node->numNbrs; j++){
-	        resiBurg[X] += node->burgX[j];
-	        resiBurg[Y] += node->burgY[j];
-	        resiBurg[Z] += node->burgZ[j];
+	        resiBurg[XC] += node->burgX[j];
+	        resiBurg[YC] += node->burgY[j];
+	        resiBurg[ZC] += node->burgZ[j];
 
 		nbr = GetNeighborNode(home,node,j);
 		if(nbr == (Node_t *)NULL)continue;
@@ -955,9 +955,9 @@ void DebugGB(Home_t *home, int flag){
 		sameNode = 0;
 		VECTOR_ZERO(resiVec);
 		for(k=0; k<nbr->numNbrs; k++){
-		    resiVec[X] += nbr->burgX[k];
-		    resiVec[Y] += nbr->burgY[k];
-		    resiVec[Z] += nbr->burgZ[k];
+		    resiVec[XC] += nbr->burgX[k];
+		    resiVec[YC] += nbr->burgY[k];
+		    resiVec[ZC] += nbr->burgZ[k];
 
 		    if(nbr->nbrTag[k].domainID == node->myTag.domainID &&
 		       nbr->nbrTag[k].index == node->myTag.index){
@@ -995,9 +995,9 @@ void DebugGB(Home_t *home, int flag){
 		        Fatal("\nTask %d, flag %d, Wrong inGrain\n",home->myDomain,flag);
 		    }
 
-		vec2[X] = nbr->x - node->x;
-		vec2[Y] = nbr->y - node->y;
-		vec2[Z] = nbr->z - node->z;
+		vec2[XC] = nbr->x - node->x;
+		vec2[YC] = nbr->y - node->y;
+		vec2[ZC] = nbr->z - node->z;
 		ZImage(param,vec2,vec2+1,vec2+2);
 		if(Normal(vec2) < 1e-12){
 		    PrintTag(node);
@@ -1005,9 +1005,9 @@ void DebugGB(Home_t *home, int flag){
 		    printf("\nTask %d, flag %d, zero length segement\n",home->myDomain,flag);
 		}	
 		
-		vec[X] = node->nx[j];
-		vec[Y] = node->ny[j];
-		vec[Z] = node->nz[j];
+		vec[XC] = node->nx[j];
+		vec[YC] = node->ny[j];
+		vec[ZC] = node->nz[j];
                 
                 if(home->param->useLabFrame){
 	            ChangeOrientation(home, node, nbr,3);

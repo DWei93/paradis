@@ -648,9 +648,9 @@ void TrapezoidIntegrator(Home_t *home)
                     errMax = MAX(errMax, fabs(node->z - oldz -
                                          ((node->vZ+node->currvZ)*0.5*newDT)));
 
-                    nodeVec[X] = node->x - oldx;
-                    nodeVec[Y] = node->y - oldy;
-                    nodeVec[Z] = node->z - oldz;
+                    nodeVec[XC] = node->x - oldx;
+                    nodeVec[YC] = node->y - oldy;
+                    nodeVec[ZC] = node->z - oldz;
                     ZImage(param, nodeVec, nodeVec+1, nodeVec+2);
                     	
                     localMaxDisp = MAX(localMaxDisp, Normal(nodeVec));

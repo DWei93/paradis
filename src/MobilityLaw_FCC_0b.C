@@ -156,13 +156,13 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 		      __FILE__, __LINE__);
 	    }
 	    if(grainNode){	
-		glideConstraints[0][X] = node->nx[0];
-		glideConstraints[0][Y] = node->ny[0];
-		glideConstraints[0][Z] = node->nz[0]; 
+		glideConstraints[0][XC] = node->nx[0];
+		glideConstraints[0][YC] = node->ny[0];
+		glideConstraints[0][ZC] = node->nz[0]; 
 	    }else{
-		glideConstraints[0][X] = param->TBNormal[X];
-		glideConstraints[0][Y] = param->TBNormal[Y];
-		glideConstraints[0][Z] = param->TBNormal[Z];
+		glideConstraints[0][XC] = param->TBNormal[XC];
+		glideConstraints[0][YC] = param->TBNormal[YC];
+		glideConstraints[0][ZC] = param->TBNormal[ZC];
 	    }
 
 	    NormalizeVec(glideConstraints[0]);
@@ -185,9 +185,9 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 	 *  Here glide planes are assumed to be of 111 type and any zero in the
 	 *  plane data is assumed to be associated with a non-glide plane
 	 */
-	    temp = normCrystal[0][X] *
-		   normCrystal[0][Y] *
-		   normCrystal[0][Z];
+	    temp = normCrystal[0][XC] *
+		   normCrystal[0][YC] *
+		   normCrystal[0][ZC];
 
 	    if(fabs(temp) < eps && !grainNode){
 		FormatVector(normCrystal[0],"TB direction in Crystal");
@@ -198,12 +198,12 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 
 		numNorms = 1;
 
-		glideConstraints[2][X] = node->x - nbrNode->x;
-		glideConstraints[2][Y] = node->y - nbrNode->y;
-		glideConstraints[2][Z] = node->z - nbrNode->z;
+		glideConstraints[2][XC] = node->x - nbrNode->x;
+		glideConstraints[2][YC] = node->y - nbrNode->y;
+		glideConstraints[2][ZC] = node->z - nbrNode->z;
 
-		ZImage(param, &glideConstraints[2][X], &glideConstraints[2][Y], 
-				   &glideConstraints[2][Z]);
+		ZImage(param, &glideConstraints[2][XC], &glideConstraints[2][YC], 
+				   &glideConstraints[2][ZC]);
 
 		NormalizeVec(glideConstraints[2]);
 		cross(glideConstraints[2], glideConstraints[0], glideConstraints[1]);
@@ -225,23 +225,23 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 	    
 		    if (numNorms == 0) {
 
-			temp = fabs(glideConstraints[0][X] * nx +
-				    glideConstraints[0][Y] * ny +
-				    glideConstraints[0][Z] * nz);
+			temp = fabs(glideConstraints[0][XC] * nx +
+				    glideConstraints[0][YC] * ny +
+				    glideConstraints[0][ZC] * nz);
 
 			if (fabs(1.0e0-temp) > tor) {		// second effective glide plane !
 
 			    numNorms = 1;
 
-			    nx -= temp * glideConstraints[0][X];
-			    ny -= temp * glideConstraints[0][Y];
-			    nz -= temp * glideConstraints[0][Z];
+			    nx -= temp * glideConstraints[0][XC];
+			    ny -= temp * glideConstraints[0][YC];
+			    nz -= temp * glideConstraints[0][ZC];
 
 			    Normalize(&nx, &ny, &nz);
 
-			    glideConstraints[1][X] = nx;
-			    glideConstraints[1][Y] = ny; 
-			    glideConstraints[1][Z] = nz;
+			    glideConstraints[1][XC] = nx;
+			    glideConstraints[1][YC] = ny; 
+			    glideConstraints[1][ZC] = nz;
 
 			    cross(glideConstraints[0], 
 							  glideConstraints[1], 
@@ -250,9 +250,9 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 
 		    } else {/* numNorms==1*/
 
-			temp = glideConstraints[2][X] * nx +
-			       glideConstraints[2][Y] * ny +
-			       glideConstraints[2][Z] * nz;
+			temp = glideConstraints[2][XC] * nx +
+			       glideConstraints[2][YC] * ny +
+			       glideConstraints[2][ZC] * nz;
 
 			if (fabs(temp) > tor ) {		// third effective glide plane
 			    numNorms = 2;
@@ -264,9 +264,9 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 	 *          the checks so that it constrains the junction dislocation to
 	 *          only move along its line
 	 */
-		    temp = normCrystal[0][X] *
-			   normCrystal[0][Y] *
-			   normCrystal[0][Z];
+		    temp = normCrystal[0][XC] *
+			   normCrystal[0][YC] *
+			   normCrystal[0][ZC];
 
 		    if (fabs(temp) < eps) {
 
@@ -282,32 +282,32 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 
 			if (numNorms == 0) {
 
-			    temp = fabs(glideConstraints[0][X] * nx2 +
-					glideConstraints[0][Y] * ny2 +
-					glideConstraints[0][Z] * nz2);
+			    temp = fabs(glideConstraints[0][XC] * nx2 +
+					glideConstraints[0][YC] * ny2 +
+					glideConstraints[0][ZC] * nz2);
 
 			    if (fabs(1.0e0 - temp) > tor ) {
 
 				numNorms = 1;
 
-				nx2 -= temp * glideConstraints[0][X];
-				ny2 -= temp * glideConstraints[0][Y];
-				nz2 -= temp * glideConstraints[0][Z];
+				nx2 -= temp * glideConstraints[0][XC];
+				ny2 -= temp * glideConstraints[0][YC];
+				nz2 -= temp * glideConstraints[0][ZC];
 
 				Normalize(&nx2, &ny2, &nz2);
 
-				glideConstraints[1][X] = nx2;
-				glideConstraints[1][Y] = ny2; 
-				glideConstraints[1][Z] = nz2;
+				glideConstraints[1][XC] = nx2;
+				glideConstraints[1][YC] = ny2; 
+				glideConstraints[1][ZC] = nz2;
 
 				cross(glideConstraints[0], glideConstraints[1], glideConstraints[2]);
 			    }
 
 			} else {/* numNorms==1*/
 
-			    temp = glideConstraints[2][X] * nx2 +
-				   glideConstraints[2][Y] * ny2 +
-				   glideConstraints[2][Z] * nz2;
+			    temp = glideConstraints[2][XC] * nx2 +
+				   glideConstraints[2][YC] * ny2 +
+				   glideConstraints[2][ZC] * nz2;
 
 			    if (fabs(temp) > tor) {
 				numNorms = 2;
@@ -338,11 +338,11 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 		    for (i = 0; i < numNbrs; i++) {
 			real8 b[3], d[3], m[3], n[3], nCryst[3];
 
-			b[X] = node->burgX[i];
-			b[Y] = node->burgY[i];
-			b[Z] = node->burgZ[i];
+			b[XC] = node->burgX[i];
+			b[YC] = node->burgY[i];
+			b[ZC] = node->burgZ[i];
 
-			bMag2 = (b[X]*b[X] + b[Y]*b[Y] + b[Z]*b[Z]);
+			bMag2 = (b[XC]*b[XC] + b[YC]*b[YC] + b[ZC]*b[ZC]);
 			invbMag2 = 1.0 / bMag2;
 
 	/*
@@ -356,13 +356,13 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 			    continue;
 			}
 
-			d[X] = nbrNode->x - node->x;
-			d[Y] = nbrNode->y - node->y;
-			d[Z] = nbrNode->z - node->z;
+			d[XC] = nbrNode->x - node->x;
+			d[YC] = nbrNode->y - node->y;
+			d[ZC] = nbrNode->z - node->z;
 
-			ZImage(param, &d[X], &d[Y], &d[Z]);
+			ZImage(param, &d[XC], &d[YC], &d[ZC]);
 
-			mag2 = d[X]*d[X] + d[Y]*d[Y] + d[Z]*d[Z];
+			mag2 = d[XC]*d[XC] + d[YC]*d[YC] + d[ZC]*d[ZC];
 
 	/*
 	 *              If the segment is zero length (which can happen when
@@ -377,9 +377,9 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 			halfMag = mag/2.0;
 			invMag  = 1.0 / mag;
 
-			d[X] *= invMag;
-			d[Y] *= invMag;
-			d[Z] *= invMag;
+			d[XC] *= invMag;
+			d[YC] *= invMag;
+			d[ZC] *= invMag;
 
 	/*
 	 *              If the node has a very short segment, we need to flag it
@@ -393,7 +393,7 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 /*
  *              Calculate how close to screw the arm is
  */
-                costheta = (d[X]*b[X] + d[Y]*b[Y] + d[Z]*b[Z]);
+                costheta = (d[XC]*b[XC] + d[YC]*b[YC] + d[ZC]*b[ZC]);
                 costheta2 = (costheta*costheta) * invbMag2;
     
 /*
@@ -403,9 +403,9 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
  *              If needed, rotate a copy of the glide plane vector from the
  *              laboratory frame to the crystal frame.
  */
-                n[X] = node->nx[i];
-                n[Y] = node->ny[i];
-                n[Z] = node->nz[i];
+                n[XC] = node->nx[i];
+                n[YC] = node->ny[i];
+                n[ZC] = node->nz[i];
 
                 if (param->useLabFrame) {
 	            ChangeOrientation(home, node, nbrNode, 3);
@@ -414,30 +414,30 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
                     VECTOR_COPY(nCryst, n);
                 }
 
-                if (fabs(nCryst[X] * nCryst[Y] * nCryst[Z]) < eps) {
+                if (fabs(nCryst[XC] * nCryst[YC] * nCryst[ZC]) < eps) {
                     if (numNbrs == 2) {
                         Btotal[0][0] += halfMag * Beclimb;
                         Btotal[1][1] += halfMag * Beclimb;
                         Btotal[2][2] += halfMag * Beclimb;
                     } else {
-                        Btotal[0][0] += halfMag * (d[X]*d[X]*BlmBecl + Beclimb);
-                        Btotal[0][1] += halfMag * (d[X]*d[Y]*BlmBecl);
-                        Btotal[0][2] += halfMag * (d[X]*d[Z]*BlmBecl);
-                        Btotal[1][1] += halfMag * (d[Y]*d[Y]*BlmBecl + Beclimb);
-                        Btotal[1][2] += halfMag * (d[Y]*d[Z]*BlmBecl);
-                        Btotal[2][2] += halfMag * (d[Z]*d[Z]*BlmBecl + Beclimb);
+                        Btotal[0][0] += halfMag * (d[XC]*d[XC]*BlmBecl + Beclimb);
+                        Btotal[0][1] += halfMag * (d[XC]*d[YC]*BlmBecl);
+                        Btotal[0][2] += halfMag * (d[XC]*d[ZC]*BlmBecl);
+                        Btotal[1][1] += halfMag * (d[YC]*d[YC]*BlmBecl + Beclimb);
+                        Btotal[1][2] += halfMag * (d[YC]*d[ZC]*BlmBecl);
+                        Btotal[2][2] += halfMag * (d[ZC]*d[ZC]*BlmBecl + Beclimb);
                     }
                 } else  {
 /*
  *                  Arm is a regular glide arm, so build the drag matrix
  *                  assuming the dislocation is screw type
  */
-                    Btotal[0][0] += halfMag * (d[X]*d[X] * BlmBsc + Bscrew);
-                    Btotal[0][1] += halfMag * (d[X]*d[Y] * BlmBsc);
-                    Btotal[0][2] += halfMag * (d[X]*d[Z] * BlmBsc);
-                    Btotal[1][1] += halfMag * (d[Y]*d[Y] * BlmBsc + Bscrew);
-                    Btotal[1][2] += halfMag * (d[Y]*d[Z] * BlmBsc);
-                    Btotal[2][2] += halfMag * (d[Z]*d[Z] * BlmBsc + Bscrew);
+                    Btotal[0][0] += halfMag * (d[XC]*d[XC] * BlmBsc + Bscrew);
+                    Btotal[0][1] += halfMag * (d[XC]*d[YC] * BlmBsc);
+                    Btotal[0][2] += halfMag * (d[XC]*d[ZC] * BlmBsc);
+                    Btotal[1][1] += halfMag * (d[YC]*d[YC] * BlmBsc + Bscrew);
+                    Btotal[1][2] += halfMag * (d[YC]*d[ZC] * BlmBsc);
+                    Btotal[2][2] += halfMag * (d[ZC]*d[ZC] * BlmBsc + Bscrew);
 
 /*
  *                  Now correct the drag matrix for dislocations that are
@@ -476,18 +476,18 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
                         BglmBsc = Bglide - Bscrew;
 
 
-                        Btotal[0][0] += halfMag * (n[X]*n[X] * BclmBsc +
-                                        m[X]*m[X] * BglmBsc);
-                        Btotal[0][1] += halfMag * (n[X]*n[Y] * BclmBsc +
-                                        m[X]*m[Y] * BglmBsc);
-                        Btotal[0][2] += halfMag * (n[X]*n[Z] * BclmBsc +
-                                        m[X]*m[Z] * BglmBsc);
-                        Btotal[1][1] += halfMag * (n[Y]*n[Y] * BclmBsc +
-                                        m[Y]*m[Y] * BglmBsc);
-                        Btotal[1][2] += halfMag * (n[Y]*n[Z] * BclmBsc +
-                                        m[Y]*m[Z] * BglmBsc);
-                        Btotal[2][2] += halfMag * (n[Z]*n[Z] * BclmBsc +
-                                        m[Z]*m[Z] * BglmBsc);
+                        Btotal[0][0] += halfMag * (n[XC]*n[XC] * BclmBsc +
+                                        m[XC]*m[XC] * BglmBsc);
+                        Btotal[0][1] += halfMag * (n[XC]*n[YC] * BclmBsc +
+                                        m[XC]*m[YC] * BglmBsc);
+                        Btotal[0][2] += halfMag * (n[XC]*n[ZC] * BclmBsc +
+                                        m[XC]*m[ZC] * BglmBsc);
+                        Btotal[1][1] += halfMag * (n[YC]*n[YC] * BclmBsc +
+                                        m[YC]*m[YC] * BglmBsc);
+                        Btotal[1][2] += halfMag * (n[YC]*n[ZC] * BclmBsc +
+                                        m[YC]*m[ZC] * BglmBsc);
+                        Btotal[2][2] += halfMag * (n[ZC]*n[ZC] * BclmBsc +
+                                        m[ZC]*m[ZC] * BglmBsc);
                     }
                 }  /* End non-[0 0 1] arm */
             }  /* End loop over arms */
@@ -518,23 +518,23 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
  */
             if (numNorms == 0){
 
-                temp = nVel[0] * glideConstraints[0][X] +
-                       nVel[1] * glideConstraints[0][Y] +
-                       nVel[2] * glideConstraints[0][Z];
+                temp = nVel[0] * glideConstraints[0][XC] +
+                       nVel[1] * glideConstraints[0][YC] +
+                       nVel[2] * glideConstraints[0][ZC];
 
-                nVel[0] -= temp * glideConstraints[0][X];
-                nVel[1] -= temp * glideConstraints[0][Y];
-                nVel[2] -= temp * glideConstraints[0][Z];
+                nVel[0] -= temp * glideConstraints[0][XC];
+                nVel[1] -= temp * glideConstraints[0][YC];
+                nVel[2] -= temp * glideConstraints[0][ZC];
 
             } else { /*numNorms==1*/
 
-                temp = nVel[0] * glideConstraints[2][X] +
-                       nVel[1] * glideConstraints[2][Y] +
-                       nVel[2] * glideConstraints[2][Z];
+                temp = nVel[0] * glideConstraints[2][XC] +
+                       nVel[1] * glideConstraints[2][YC] +
+                       nVel[2] * glideConstraints[2][ZC];
 
-                nVel[0] = temp * glideConstraints[2][X];
-                nVel[1] = temp * glideConstraints[2][Y];
-                nVel[2] = temp * glideConstraints[2][Z];
+                nVel[0] = temp * glideConstraints[2][XC];
+                nVel[1] = temp * glideConstraints[2][YC];
+                nVel[2] = temp * glideConstraints[2][ZC];
             }
 
             node->vX = nVel[0];
