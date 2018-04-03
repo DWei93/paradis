@@ -567,6 +567,8 @@ void CorrectionTableInit(Home_t *home)
         FILE    *fp;
         Param_t *param;
 
+        int     reInt;
+
         param = home->param;
         fileName = param->fmCorrectionTbl;
         NU = param->pois;
@@ -636,7 +638,7 @@ void CorrectionTableInit(Home_t *home)
  *              Other values must be read from the file.
  */
                 sscanf(line,"%lf%lf%lf", &ctab_MU, &ctab_NU, &ctab_boxl);
-                fscanf(fp,"%d%d%d", &ctab_norder, &ctab_uorder, &ctab_levels);
+                reInt = fscanf(fp,"%d%d%d", &ctab_norder, &ctab_uorder, &ctab_levels);
                 break;
 
             case 1:
@@ -713,7 +715,7 @@ void CorrectionTableInit(Home_t *home)
 
         for (i = 0; i < n*k; i++) {
             for (j = 0; j < 6; j++) {
-                fscanf(fp, "%lf", &correctionTbl[i*6+j]);
+                reInt = fscanf(fp, "%lf", &correctionTbl[i*6+j]);
             }
         }
 

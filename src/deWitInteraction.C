@@ -236,6 +236,8 @@ void ReadRijm(Home_t *home)
 	real8	ratiox, ratioy, ratioz;
 	real8	rijml[3];
 
+    int     reInt;
+
 	param=home->param;
 
 	Offset1 = 10*MAXSTRGRID*MAXSTRGRID;
@@ -258,9 +260,9 @@ void ReadRijm(Home_t *home)
 			exit (-1);
 		}
 
-		fscanf(fp,"%d %d %d",&NX,&NY,&NZ);
-		fscanf(fp,"%le %le %le",&Lx,&Ly,&Lz);
-		fscanf(fp,"%d %d %d",&NIMGX,&NIMGY,&NIMGZ);
+		reInt = fscanf(fp,"%d %d %d",&NX,&NY,&NZ);
+		reInt = fscanf(fp,"%le %le %le",&Lx,&Ly,&Lz);
+		reInt = fscanf(fp,"%d %d %d",&NIMGX,&NIMGY,&NIMGZ);
 
 		if ((NX>MAXSTRGRID)||(NY>MAXSTRGRID)||(NZ>MAXSTRGRID)) {
 			fprintf(stderr,"NX=%d NY=%d NZ=%d MAXSTRGRID=%d\n",
@@ -291,7 +293,7 @@ void ReadRijm(Home_t *home)
 		for(j=0;j<NY;j++)
 		for(k=0;k<NZ;k++)
 		for(m=0;m<10;m++) {
-			fscanf(fp,"%le\n", &RIJMTABLE[i*Offset1+j*Offset2+k*Offset3+m]);
+			reInt = fscanf(fp,"%le\n", &RIJMTABLE[i*Offset1+j*Offset2+k*Offset3+m]);
 		}
 
 		fclose(fp);
@@ -336,6 +338,7 @@ void ReadRijmPBC(Home_t *home)
 	real8	Lx, Ly, Lz;
 	real8	ratiox, ratioy, ratioz;
 	real8	rijml[3];
+    int     reInt;
 
 	param=home->param;
 
@@ -359,9 +362,9 @@ void ReadRijmPBC(Home_t *home)
 			Fatal("ReadRijmPBC() error");
 		}
 
-		fscanf(fp,"%d %d %d",&NX,&NY,&NZ);
-		fscanf(fp,"%le %le %le",&Lx,&Ly,&Lz);
-		fscanf(fp,"%d %d %d",&NIMGX,&NIMGY,&NIMGZ);
+		reInt = fscanf(fp,"%d %d %d",&NX,&NY,&NZ);
+		reInt = fscanf(fp,"%le %le %le",&Lx,&Ly,&Lz);
+		reInt = fscanf(fp,"%d %d %d",&NIMGX,&NIMGY,&NIMGZ);
  
 		RIJMLX = Lx;
 		RIJMLY = Ly;
@@ -386,7 +389,7 @@ void ReadRijmPBC(Home_t *home)
 		for(j=0;j<NY;j++)
 		for(k=0;k<NZ;k++)
 		for(m=0;m<10;m++) {
-			fscanf(fp,"%le\n", &RIJMPBCTABLE[i*Offset1+j*Offset2+k*Offset3+m]);
+			reInt = fscanf(fp,"%le\n", &RIJMPBCTABLE[i*Offset1+j*Offset2+k*Offset3+m]);
 		}
 
 		fclose(fp);

@@ -1098,6 +1098,7 @@ static void PrintBanner(Home_t *home, int argc, char *argv[])
         char           userName[32];
         struct utsname utsInfo;
         struct passwd  *pwInfo;
+        char*           reStr;
 
         time(&currTime);
         strcpy(currTimeStr, ctime(&currTime));
@@ -1115,7 +1116,7 @@ static void PrintBanner(Home_t *home, int argc, char *argv[])
         }
 
 #ifndef _XT4
-        (void *)getcwd(workingDir, sizeof(workingDir) - 1);
+        reStr = getcwd(workingDir, sizeof(workingDir) - 1);
         (void)uname(&utsInfo);
 
         uid = getuid();

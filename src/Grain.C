@@ -15,6 +15,7 @@
 #include "Grain.h"
 #include "Util.h" 
 
+
 void PrintNeighbor(Home_t *home, Node_t *node){
 	int 	i;
 	Node_t	*nbr;

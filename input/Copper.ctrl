@@ -19,7 +19,7 @@
 #
 numXdoms = 2
 numYdoms = 2
-numZdoms = 2
+numZdoms = 1
 #
 #  Cell geometry
 #

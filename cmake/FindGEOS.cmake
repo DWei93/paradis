@@ -1,0 +1,17 @@
+FIND_PATH(GEOS_INCLUDE_DIR geos.h /usr/include/geos /usr/local/include/geos)
+FIND_LIBRARY(GEOS_LIBRARY NAMES geos PATH /usr/lib /usr/local/lib) 
+FIND_PATH(GEOS_LINK_DIR libgeos.so /usr/lib/geos /usr/local/lib /usr/local/lib/geos) 
+
+IF (GEOS_INCLUDE_DIR AND GEOS_LIBRARY)
+   SET(GEOS_FOUND TRUE) 
+ENDIF (GEOS_INCLUDE_DIR AND GEOS_LIBRARY) 
+IF (GEOS_FOUND)
+   IF (NOT GEOS_FIND_QUIETLY)
+      MESSAGE(STATUS "Found Hello: ${GEOS_LIBRARY}")
+   ENDIF (NOT GEOS_FIND_QUIETLY)
+ELSE (GEOS_FOUND)
+   IF (GEOS_FIND_REQUIRED)
+      MESSAGE(FATAL_ERROR "Could not find geos library!") 
+   ENDIF (GEOS_FIND_REQUIRED)
+ENDIF (GEOS_FOUND)
+

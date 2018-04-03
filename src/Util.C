@@ -1552,8 +1552,8 @@ void PrintNode(Node_t *node)
 
 #if 1
         printf("  node(%d,%d,%3.1f) arms %d,",
-               node->myTag.domainID, node->myTag.index, 
-               node->numNbrs,node->inGrain);
+               node->myTag.domainID, node->myTag.index, node->inGrain, 
+               node->numNbrs);
 #if 1
         for (i = 0; i < node->numNbrs; i++) {
             printf("(%d,%d) ", node->nbrTag[i].domainID,
