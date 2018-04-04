@@ -13,7 +13,7 @@ HelpMessages () {
 
 Copy () {
     case "$1" in
-        1)
+    1)
 	    cp makefi* $2 -rf > /dev/null 2>&1
 	    cp gen $2 -rf > /dev/null 2>&1
 	    cp *.pot $2 -rf > /dev/null 2>&1
@@ -22,7 +22,9 @@ Copy () {
 	    cp src $2 -rf > /dev/null 2>&1
 	    cp utilities $2 -rf > /dev/null 2>&1
 	    cp input $2 -rf > /dev/null 2>&1
-            ;;
+        cp cmake $2 -rf > /dev/null 2>&1
+        cp CMakeLists.txt $2 -rf > /dev/null 2>&1
+        ;;
 	2)
 	    rm $2 -rf
 	    mkdir $2

@@ -167,5 +167,5 @@ int SurfaceNode(Node_t *node);
 int CheckReposition(Home_t *home, Node_t *node, real8 *newPos);
 int ExceedBox(Param_t *param, real8 *pos);
 int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]);
-int Test();
+int GeosTest();
 #endif

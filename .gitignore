@@ -5,3 +5,8 @@ core*
 log*
 *.log
 *.o
+bin/
+*.data
+*.bkup
+./
+build/

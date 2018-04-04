@@ -55,7 +55,7 @@ void run(int nPts, GeometryFactory *fact) {
     // FIXME - mloskot: Why generated test geometries are not destroyed?"
 }
 
-int Test() {
+int GeosTest() {
 
 	GeometryFactory *fact=new GeometryFactory();
 
@@ -75,7 +75,7 @@ int Test() {
 
 	cout << "Done" << endl;
 
-    Fatal("Done");
+    Fatal("Geos Test Done!");
     // FIXME - mloskot: Who's gonna to eat the 'fact'? Mr. Leak!
 
 	return 0;

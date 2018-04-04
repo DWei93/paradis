@@ -1150,8 +1150,8 @@ HDF_LIB.gcc           =
 HDF_INCS.gcc          = 
 
 GEOS_LIBDIR.gcc        =  
-GEOS_LIB.gcc           = -L/sharefs/home/zhangxu/WDA/LIB/geos/lib -lgeos -rdynamic -Wl,-rpath,/sharefs/home/zhangxu/WDA/LIB/geos/lib
-GEOS_INCS.gcc          = -I/sharefs/home/zhangxu/WDA/LIB/geos/include
+GEOS_LIB.gcc           = -L/usr/local/lib -lgeos -rdynamic -Wl,-rpath,/usr/local/lib
+GEOS_INCS.gcc          = -I/usr/local/include
 
 OPENMP_FLAG.gcc       = -fopenmp
 
