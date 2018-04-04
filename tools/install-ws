@@ -5,6 +5,10 @@ config=~/.wsconfig
 
 cp ~/.bashrc ~/.bashrc.bak
 
+if [ -e ~/.zshrc ]; then
+    cp ~/.zshrc ~/.zshrc.bak
+fi
+
 if [ $# -ne 0 ]; then
     config=~/.wsconfig-$1
     touch $config
@@ -20,6 +24,9 @@ if [ $# -ne 0 ]; then
 else
     touch $config
     echo "# This block for scientific shell #" >> ~/.bashrc
+    if [ -e ~/.zshrc ]; then
+        echo "# This block for scientific shell #" >> ~/.zshrc
+    fi
     for file in ${root_dir}/shell/*
     do
         lineNumber=`grep  -n "config=" $file | cut -d : -f 1`
@@ -27,9 +34,15 @@ else
         sed -i "${lineNumber}iconfig=~/.wsconfig" $file
         name=${file##*/}
         echo "alias ${name}='${root_dir}/shell/${name}'" >> ~/.bashrc
+        if [ -e ~/.zshrc ]; then
+            echo "alias ${name}='${root_dir}/shell/${name}'" >> ~/.zshrc
+        fi
     done
 fi
 echo "#       end scientific shell     #" >> ~/.bashrc
+if [ -e ~/.zshrc ]; then
+echo "#       end scientific shell     #" >> ~/.zshrc
+fi
 source ~/.bashrc
 
 if [ ! -d log ]; then
