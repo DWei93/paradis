@@ -1,6 +1,6 @@
 FIND_PATH(GEOS_INCLUDE_DIR geos.h /usr/include/geos /usr/local/include/geos)
-FIND_LIBRARY(GEOS_LIBRARY NAMES geos PATH /usr/lib /usr/local/lib) 
-FIND_PATH(GEOS_LINK_DIR libgeos.so /usr/lib/geos /usr/local/lib /usr/local/lib/geos) 
+FIND_LIBRARY(GEOS_LIBRARY NAMES geos PATH /usr/lib /usr/local/lib /usr/lib64) 
+FIND_PATH(GEOS_LINK_DIR libgeos.so /usr/lib/geos /usr/local/lib /usr/local/lib/geos /usr/lib64) 
 
 IF (GEOS_INCLUDE_DIR AND GEOS_LIBRARY)
    SET(GEOS_FOUND TRUE) 
