@@ -10,3 +10,5 @@ bin/
 *.bkup
 ./
 build/
+res*
+utilities/*.C
