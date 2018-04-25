@@ -11,11 +11,6 @@
 /*
  * 	Mesh number used for output of plastic strain field.
  */
-#define MESH_NUM	41
-#define ASPECT_RATIO	2
-#define MESH_NUM1	(MESH_NUM+1)
-#define TOT_ELE_NUM	(MESH_NUM*MESH_NUM*MESH_NUM*ASPECT_RATIO)
-#define TOT_NODE_NUM	(MESH_NUM1*MESH_NUM1*(ASPECT_RATIO*MESH_NUM+1))
 
 #define GRAIN_DEBUG			1
 
@@ -167,5 +162,8 @@ int SurfaceNode(Node_t *node);
 int CheckReposition(Home_t *home, Node_t *node, real8 *newPos);
 int ExceedBox(Param_t *param, real8 *pos);
 int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]);
+void ImageForce(Home_t *home, real8 armGrain, real8 x1, real8 y1, real8 z1,
+                  real8 x2, real8 y2, real8 z2, real8 bx, real8 by, real8 bz,
+                  real8 f1[3], real8 f2[3]);
 int GeosTest();
 #endif

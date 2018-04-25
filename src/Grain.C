@@ -132,7 +132,7 @@ void InitGrain(Home_t *home, Param_t *param){
 
 	grain = (Grain_t *)calloc(1, sizeof(Grain_t));
 
-	if(param->polycrystal ==0)param->nGrain = 0;
+	if(param->polycrystal == 0)param->nGrain = 0;
 	nGrain = param->nGrain;
 
 	for(i=0; i<3; i++){
@@ -1434,20 +1434,22 @@ int Coor2EleNum(Home_t *home,real8 position[3]){
 
 	int	nx,ny,nz;
 	real8	eleLx,eleLy,eleLz;
+    Param_t *param;
 
-	eleLx = home->param->Lx/MESH_NUM;
-	eleLy = home->param->Ly/MESH_NUM;
-	eleLz = home->param->Lz/MESH_NUM/ASPECT_RATIO;
+    param = home->param;
+	eleLx = param->meshSizeX;
+	eleLy = param->meshSizeY;
+	eleLz = param->meshSizeZ;
 
 	nx = (position[0] + home->param->Lx/2)/eleLx;
 	ny = (position[1] + home->param->Ly/2)/eleLy;
 	nz = (position[2] + home->param->Lz/2)/eleLz;
 
-	if(nx == MESH_NUM) nx--;
-	if(ny == MESH_NUM) ny--;
-	if(nz == MESH_NUM) nz--;
+	if(nx == param->meshNumX) nx--;
+	if(ny == param->meshNumY) ny--;
+	if(nz == param->meshNumX) nz--;
 
-	return(nz*MESH_NUM*MESH_NUM + ny*MESH_NUM +nx);
+	return(nz*param->meshNumX*param->meshNumY + ny*param->meshNumX +nx);
 
 }
 
@@ -1812,3 +1814,34 @@ int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]){
 }
 
 
+/*---------------------------------------------------------------------------
+ *
+ *      Function:     ImageForce
+ *      Description:  
+ *
+ *      Arguments:
+ *          x1,y1,z1  Coordinates of segment's first endpoint
+ *          x2,y2,z2  Coordinates of segment's second endpoint
+ *          bx,by,bz  Components of burgers vector from first endpoint
+ *                    to second endpoint
+ *          f1        Array in which to return osmotic force at pos1
+ *          f2        Array in which to return osmotic force at pos2
+ *
+ *-------------------------------------------------------------------------*/
+void ImageForce(Home_t *home, real8 armGrain, real8 x1, real8 y1, real8 z1,
+                  real8 x2, real8 y2, real8 z2, real8 bx, real8 by, real8 bz,
+                  real8 f1[3], real8 f2[3])
+{
+
+    int         grainID;
+    Grain_t    *grain;
+    Param_t     *param;
+
+    param = home->param;
+
+    VECTOR_ZERO(f1);
+    VECTOR_ZERO(f2);
+
+
+    return;
+}

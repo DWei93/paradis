@@ -1174,7 +1174,7 @@ static void PrintBanner(Home_t *home, int argc, char *argv[])
  *-------------------------------------------------------------------------*/
 void Initialize(Home_t *home,int argc, char *argv[]) 
 {
-        int          i, skipIO = 0;
+        int          i, j, skipIO = 0;
         int          numDLBCycles = 0;
         int          maxNumThreads = 1;
         int          doBinRead;
@@ -1186,6 +1186,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
         Param_t      *param;
         InData_t     *inData;
         int          fd;
+        int          totMeshNum;
 
 
 /*
@@ -1692,16 +1693,39 @@ void Initialize(Home_t *home,int argc, char *argv[])
             Matrix33Invert(home->rotMatrix, home->rotMatrixInverse);
         }
 
+        param->meshNumX = (int)(param->Lx/(real8)param->meshSizeX);
+        param->meshNumY = (int)(param->Ly/(real8)param->meshSizeY);
+        param->meshNumZ = (int)(param->Lz/(real8)param->meshSizeZ);
+
+        param->meshSizeX = param->Lx/(real8)param->meshNumX;
+        param->meshSizeY = param->Ly/(real8)param->meshNumY;
+        param->meshSizeZ = param->Lz/(real8)param->meshNumZ;
+
+        totMeshNum = param->meshNumX*param->meshNumY*param->meshNumZ;
+        home->pstnEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
+        home->disDenEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
+
+        for(i=0; i<totMeshNum; i++){
+            home->pstnEle[i] = (real8 *)malloc(6*sizeof(real8)); 
+            for(j=0; j<6; j++){
+                home->pstnEle[i][j] = 0.0;
+            }
+        }
+
+        for(i=0; i<totMeshNum; i++){
+           home->disDenEle[i] = (real8 *)malloc(4*sizeof(real8)); 
+        }
+        
 /*
  *	Iinitialize grain
  */
-	InitGrain(home, param);
+	    InitGrain(home, param);
 
-	param->vshr = sqrt(param->YoungsModulus / param->rho ) / param->burgMag;
-	if(home->myDomain == 0)printf("shear Wave velocity (m/s): %e.\n",
-	   param->vshr * param->burgMag);
+	    param->vshr = sqrt(param->YoungsModulus / param->rho ) / param->burgMag;
+	    if(home->myDomain == 0)printf("shear Wave velocity: %6.2f m/s.\n",
+	    param->vshr * param->burgMag);
 
-	CheckMemUsage(home, "Initialize");
+	    CheckMemUsage(home, "Initialize");
 	
         return;
 }

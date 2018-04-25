@@ -356,10 +356,10 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "pois", &param->pois, V_DBL, 1, VFLAG_NULL);
         param->pois = 3.327533e-01;    /* Ta: temp=600K, pressure=0Pa */
 	
-	BindVar(CPList, "rho", &param->rho, V_DBL, 1, VFLAG_NULL);
-	param->rho=8900;  //(unit: kg/m**3) 
+	    BindVar(CPList, "rho", &param->rho, V_DBL, 1, VFLAG_NULL);
+    	param->rho=8900;  //(unit: kg/m**3) 
 	
-	BindVar(CPList, "outRadius", &param->outRadius, V_DBL, 1,
+	    BindVar(CPList, "outRadius", &param->outRadius, V_DBL, 1,
                 VFLAG_NULL);
         param->outRadius = 1.0e4; 
 		
@@ -376,9 +376,9 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 
         BindVar(CPList, "YoungsModulus", &param->YoungsModulus, V_DBL, 1,
                 VFLAG_NULL);
-	param->YoungsModulus=2.0 * param->shearModulus * (1.0 + param->pois); /* Ta: units=Pa @t=600K, p=0Pa */
+	    param->YoungsModulus=2.0 * param->shearModulus * (1.0 + param->pois); /* Ta: units=Pa @t=600K, p=0Pa */
 
-	param->vshr = sqrt(param->YoungsModulus / param->rho) / param->burgMag;
+    	param->vshr = sqrt(param->YoungsModulus / param->rho) / param->burgMag;
 
 		BindVar(CPList, "elasticConstantMatrix", param->elasticConstantMatrix,
                 V_DBL, 36, VFLAG_NULL);
@@ -785,24 +785,18 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
                 V_INT, 1, VFLAG_NULL);
         param->elasticinteraction = 1;
 		
-	    BindVar(CPList, "pstnEle", param->pstnEle, V_DBL, TOT_ELE_NUM*6, 
-				VFLAG_NULL);
+        BindVar(CPList, "meshSizeX", &param->meshSizeX, V_DBL, 1,
+                VFLAG_NULL);
+        param->meshSizeX = 20;
 
-		BindVar(CPList, "disDenEle", param->disDenEle, V_DBL, TOT_ELE_NUM*4, 
-				VFLAG_NULL);
-		
-		for(i=0;i<TOT_ELE_NUM;i++){
-		
-			param->pstnEle[i][0] = 0.0;
-			param->pstnEle[i][1] = 0.0;
-			param->pstnEle[i][2] = 0.0;
-			param->pstnEle[i][3] = 0.0;
-			param->pstnEle[i][4] = 0.0;
-			param->pstnEle[i][5] = 0.0;
-		
-		}
+        BindVar(CPList, "meshSizeY", &param->meshSizeY, V_DBL, 1,
+                VFLAG_NULL);
+        param->meshSizeY = 20;
 
-				
+        BindVar(CPList, "meshSizeZ", &param->meshSizeZ, V_DBL, 1,
+                VFLAG_NULL);
+        param->meshSizeZ = 20;
+
 /*
  *      Grain parameters
  */

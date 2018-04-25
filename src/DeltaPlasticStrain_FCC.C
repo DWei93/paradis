@@ -457,8 +457,8 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                                 0.5/param->simVol;
                       thread_dstn[l][k] += tmpDstn;
 					  
-	                if(l==k)param->pstnEle[eleNum][l] += tmpDstn; // element
-	                if(l<k)param->pstnEle[eleNum][l+k+2] += tmpDstn; // element
+	                if(l==k)home->pstnEle[eleNum][l] += tmpDstn; // element
+	                if(l<k)home->pstnEle[eleNum][l+k+2] += tmpDstn; // element
 					  
                       thread_dspn[l][k] += (thread_dyad[l][k] -
                                             thread_dyad[k][l]) *

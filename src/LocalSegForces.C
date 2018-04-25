@@ -2764,6 +2764,7 @@ void LocalSegForces(Home_t *home, int reqType)
         for (i = 0; i < nativeSegListCnt; i++) {
             int   j;
             int   armID12, armID21;
+            real8 armGrain;
             real8 x1, y1, z1;
             real8 x2, y2, z2;
             real8 bx1, by1, bz1;
@@ -2871,6 +2872,24 @@ void LocalSegForces(Home_t *home, int reqType)
 
                 OsmoticForce(home, x1, y1, z1, x2, y2, z2,
                              bx1, by1, bz1, f1, f2);
+
+                VECTOR_ADD(node1SegForce, f1);
+                VECTOR_ADD(node2SegForce, f2);
+
+                for (j = 0; j < 3; j++) {
+                    nativeSegList[i].seg->f1[j] += f1[j];
+                    nativeSegList[i].seg->f2[j] += f2[j];
+                }
+            }
+
+/*
+ *          If we're including grain boundary or free surface, 
+ *          add the image force in now.
+ */
+            if(param->polycrystal){
+                armGrain = GetArmInGrain(node1->inGrain, node2->inGrain);
+                ImageForce(home, armGrain, x1, y1, z1, x2, y2, z2, 
+                           bx1, by1, bz1, f1, f2);
 
                 VECTOR_ADD(node1SegForce, f1);
                 VECTOR_ADD(node2SegForce, f2);

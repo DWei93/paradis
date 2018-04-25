@@ -2345,7 +2345,7 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce){
 		nForce[XC] -= gForce[XC];
 		nForce[YC] -= gForce[YC];
 		nForce[ZC] -= gForce[ZC];
-		continue;
+		    continue;
 	    }
 
 	    NormalizeVec(gForce);
@@ -2359,7 +2359,7 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce){
 
 	    if(param->polycrystal == 0)continue;
 
-	    GBForce = 1;
+	    GBForce = 0;
 	    distance =  ClosedGB(home, segCentor, &GBPlane);
 	    GBForce &= (fabs(distance) < 2.0e0 * rann);
 	    GBForce &= (fabs(distance) > 1.0e-3);
@@ -2385,10 +2385,10 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce){
 	    GBStress = param->GBStrength * pow(2.7182,-(distance*distance/rann/rann));
 	    GBStress *= (length * burgMag * 0.5e0);
 	    if(Normal(gForce) <= GBStress){
-		nForce[XC] -= gForce[XC];
-		nForce[YC] -= gForce[YC];
-		nForce[ZC] -= gForce[ZC];
-		continue;
+		    nForce[XC] -= gForce[XC];
+		    nForce[YC] -= gForce[YC];
+		    nForce[ZC] -= gForce[ZC];
+		    continue;
 	    }
 
 	    NormalizeVec(gForce);
