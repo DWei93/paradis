@@ -39,6 +39,7 @@
 #define DIR_PROPERTIES "properties"
 #define DIR_RESTART    "restart"
 #define DIR_TECPLOT    "tecplot"
+#define DIR_TECMESH    "tecmesh"
 #define DIR_TIMERS     "timers"
 #define DIR_VELOCITY   "velocity"
 #define DIR_VISIT      "visit"
@@ -91,6 +92,7 @@
 #define GEN_XWIN_DATA           0x2000
 #define GEN_FRAG_DATA           0x4000
 #define GEN_FORCE_DATA          0x8000
+#define GEN_TECMESH_DATA        0x10000
 
 
 #define EXX	 0x0001

@@ -658,14 +658,16 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
  *      tecplot files
  */
         BindVar(CPList, "tecplot", &param->tecplot, V_INT, 1, VFLAG_NULL);
-		
-		BindVar(CPList, "meshInterval", &param->meshInterval, V_INT, 1, VFLAG_NULL);
-		
-		param->meshInterval = 10;
 
         BindVar(CPList, "tecplotfreq", &param->tecplotfreq, V_INT, 1,
                 VFLAG_NULL);
         param->tecplotfreq = 100;
+
+        BindVar(CPList, "tecmesh", &param->tecmesh, V_INT, 1, VFLAG_NULL);
+
+        BindVar(CPList, "tecmeshfreq", &param->tecmeshfreq, V_INT, 1,
+                VFLAG_NULL);
+        param->tecmeshfreq = 100;
 
         BindVar(CPList, "tecplotdt", &param->tecplotdt, V_DBL, 1, VFLAG_NULL);
         param->tecplotdt = -1.0;

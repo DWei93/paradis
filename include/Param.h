@@ -348,7 +348,8 @@ struct _param {
 
         int   savedensityspec[3];
 
-        int   tecplot, tecplotfreq, tecplotcounter, meshInterval; 
+        int   tecplot, tecplotfreq, tecplotcounter; 
+        int   tecmesh, tecmeshfreq, tecmeshcounter;
         real8 tecplotdt, tecplottime;
 		
 		
@@ -480,27 +481,27 @@ struct _param {
 /*
  *	Define the variables about grain
  */
-        int	polycrystal;
-        int	nGrain;
+        int	    polycrystal;
+        int	    nGrain;
         real8	twinRatio;
         real8	peneTB;
         real8   TBNormal[3];
         real8   rotateNormal[3][3];
-	real8	matrixOrientation[3][3];
-	real8   GBStrength;
-	real8	fricStress;
+	    real8	matrixOrientation[3][3];
+	    real8   GBStrength;
+	    real8	fricStress;
 /*
  *		
  */
-        int	preDecreaseDT;
+        int	    preDecreaseDT;
         int     limitDisplacement;
         real8	preRann;
-        int	markPreDTDisable;
+        int	    markPreDTDisable;
         real8	pstnEle[TOT_ELE_NUM][6];
         real8	disDenEle[TOT_ELE_NUM][4];
-	int	finish;
-	real8	maxStn;
-	real8	maxPst;
+	    int	    finish;
+	    real8	maxStn;
+	    real8	maxPst;
 
 #ifdef _FEM
 /*

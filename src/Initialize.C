@@ -440,6 +440,10 @@ int OpenDir(Home_t *home)
                 (void) mkdir(subdir, S_IRWXU);
             }
 
+            if (home->param->tecmesh) {
+                snprintf(subdir, sizeof(subdir), "./%s", DIR_TECMESH);
+                (void) mkdir(subdir, S_IRWXU);
+            }
         }
 
         return(0);

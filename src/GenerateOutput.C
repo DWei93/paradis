@@ -225,6 +225,17 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
             }
         }
 
+        
+        if (param->tecmesh) {
+            if (stage == STAGE_TERM) {
+                *outputTypes |= GEN_TECMESH_DATA;
+            } else if (stage == STAGE_CYCLE || stage == STAGE_DEBUG) {
+                if ((home->cycle % param->tecmeshfreq) == 0) {
+                    param->tecmeshcounter++;
+                    *outputTypes |= GEN_TECMESH_DATA;
+                }
+            }
+        }
 /*
  *      If velocity file dumps are enabled, do so if the code is
  *      in the termination stage, or it is at the end of a cycle
@@ -978,6 +989,7 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
  *      beginning the I/O.
  */
         if ((outputTypes & GEN_RESTART_DATA) ||
+            (outputTypes & GEN_TECMESH_DATA) || 
             (outputTypes & GEN_TECPLOT_DATA)) {
             GetCounts(home, &param->nodeCount, &numSegs, &numArms,
                       &binData.nodeCount, &binData.segCount);
@@ -1058,7 +1070,7 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
                 snprintf(baseName, sizeof(baseName), "tecdata%06d",
                          param->tecplotcounter);
 #endif
-            } else if(stage == STAGE_DEBUG){
+        } else if(stage == STAGE_DEBUG){
                 snprintf(baseName, sizeof(baseName),"tecdata%06d%s",
 			home->cycle,msg);
 	    }else{
@@ -1069,16 +1081,26 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
             Tecplot(home, baseName, ioGroup, isFirstInGroup,
                     writePrologue, writeEpilogue, numArms, 0);
             if (sendToken) SendWriteToken(nextInGroup);
-			
-	    static int iMesh = 1;
-            if(iMesh % param->meshInterval == 0 || stage == STAGE_TERM){  
-	        TecplotMesh(home, baseName, ioGroup, 
-	                    isFirstInGroup, writePrologue, 
-	                    writeEpilogue, numSegs);
-	    }
-	    iMesh++;
         }
 
+
+        if ((outputTypes & GEN_TECMESH_DATA) != 0) {
+            if (stage == STAGE_CYCLE) {
+                snprintf(baseName, sizeof(baseName), "tecmesh%06d",
+                         param->tecmeshcounter);
+            } else if (stage == STAGE_DEBUG){
+                snprintf(baseName, sizeof(baseName),"tecmesh%06d%s",
+			             home->cycle,msg);
+            } else if (stage == STAGE_TERM){
+                snprintf(baseName, sizeof(baseName), "tecmesh.final");
+            }
+            if (recvToken) RecvWriteToken(prevInGroup);
+            printf("%d: %p,%s (%d,%d,%d,%d,%d) \n",home->myDomain, home, baseName,
+                    ioGroup,isFirstInGroup, writePrologue, writeEpilogue, numSegs);
+	        TecplotMesh(home, baseName, ioGroup,isFirstInGroup, writePrologue, 
+	                    writeEpilogue, numSegs);
+            if (sendToken) SendWriteToken(nextInGroup);
+        }
 
         if ((outputTypes & GEN_VELOCITY_DATA) != 0) {
             if (stage == STAGE_CYCLE) {
@@ -1442,6 +1464,7 @@ void GenerateOutput(Home_t *home, int stage, const char *msg)
             ((outputTypes & GEN_POVRAY_DATA)   != 0) ||
             ((outputTypes & GEN_FRAG_DATA)     != 0) ||
             ((outputTypes & GEN_VISIT_DATA)    != 0) ||
+            ((outputTypes & GEN_TECMESH_DATA)  != 0) ||
             ((outputTypes & GEN_TECPLOT_DATA)  != 0)) {
             if (!param->skipIO) {
                 DoParallelIO(home, outputTypes, stage, msg);
