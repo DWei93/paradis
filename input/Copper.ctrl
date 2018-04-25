@@ -27,6 +27,13 @@ numXcells = 4
 numYcells = 4
 numZcells = 4
 
+#
+# Mesh size for tecmesh
+#
+meshSizeX = 500
+meshSizeY = 500
+meshSizeZ = 500
+
 #  Dynamic load balancing
 #
 decompType = 2

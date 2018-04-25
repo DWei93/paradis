@@ -496,11 +496,13 @@ struct _param {
         int     limitDisplacement;
         real8	preRann;
         int	markPreDTDisable;
-        real8	pstnEle[TOT_ELE_NUM][6];
-        real8	disDenEle[TOT_ELE_NUM][4];
 	int	finish;
 	real8	maxStn;
 	real8	maxPst;
+        real8   meshSizeX;
+        real8   meshSizeY;
+        real8   meshSizeZ;
+        int     meshNumX, meshNumY, meshNumZ;
 
 #ifdef _FEM
 /*

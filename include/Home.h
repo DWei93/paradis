@@ -428,7 +428,8 @@ struct _home {
 		Grain_t		**grainKeys;
 		int			newGrainKeyPtr;
 		
-		
+        real8	**pstnEle;
+        real8	**disDenEle;
 
 #ifdef _FEM
 /*

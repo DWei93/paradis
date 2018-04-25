@@ -11,11 +11,6 @@
 /*
  * 	Mesh number used for output of plastic strain field.
  */
-#define MESH_NUM	11
-#define ASPECT_RATIO	2
-#define MESH_NUM1	(MESH_NUM+1)
-#define TOT_ELE_NUM	(MESH_NUM*MESH_NUM*MESH_NUM*ASPECT_RATIO)
-#define TOT_NODE_NUM	(MESH_NUM1*MESH_NUM1*(ASPECT_RATIO*MESH_NUM+1))
 
 #define GRAIN_DEBUG			1
 

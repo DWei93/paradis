@@ -5,21 +5,21 @@
 #include <stdio.h>
 #include <math.h>
 
-static void NodeofEle(int eleNum, int node[8]){
+static void NodeofEle(Param_t *param, int eleNum, int node[8]){
 
 	int	nx,ny,nz;
 
-	nx = eleNum%MESH_NUM;
-	ny = eleNum%(MESH_NUM*MESH_NUM)/MESH_NUM; 
-	nz = eleNum/(MESH_NUM*MESH_NUM); 
+	nx = eleNum%param->meshNumX;
+	ny = eleNum%(param->meshNumX*param->meshNumY)/param->meshNumX; 
+	nz = eleNum/(param->meshNumX*param->meshNumY); 
 
-	node[0] = nx + ny*(MESH_NUM1) + nz*(MESH_NUM1)*(MESH_NUM1);
+	node[0] = nx + ny*(param->meshNumX+1) + nz*(param->meshNumX+1)*(param->meshNumY+1);
 	node[1] = node[0] + 1;
-	node[2] = node[0] + MESH_NUM1;
+	node[2] = node[0] + param->meshNumX+1;
 	node[3] = node[2] + 1;
-	node[4] = node[0] + (MESH_NUM1)*(MESH_NUM1);
+	node[4] = node[0] + (param->meshNumX+1)*(param->meshNumY+1);
 	node[5] = node[4] + 1;
-	node[6] = node[4] + MESH_NUM1;
+	node[6] = node[4] + param->meshNumX+1;
 	node[7] = node[6] + 1;
 	
 	return;
@@ -483,8 +483,16 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	Param_t  *param;
 	FILE     *fpEle;
 
-	real8	totPlaStn[TOT_ELE_NUM][6];
-	real8	totDisDen[TOT_ELE_NUM][4];
+	int		nodeEle[8],nx,ny,nz;
+	int		imageNode[8],imageNum;
+    int     meshNodeNumX, meshNodeNumY, meshNodeNumZ, totNodeNum;
+    int     totEleNum;
+	real8 	**nodeContour;
+	real8	eleLx,eleLy,eleLz;
+	real8	effPlaStn,currDisDen;
+
+	real8	**totPlaStn;
+	real8	**totDisDen;
 
 	param      = home->param;
 
@@ -492,13 +500,35 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	Ly = param->Ly;
 	Lz = param->Lz;
 
+    meshNodeNumX = param->meshNumX + 1;
+    meshNodeNumY = param->meshNumY + 1;
+    meshNodeNumZ = param->meshNumZ + 1;
+    totNodeNum = meshNodeNumX*meshNodeNumY*meshNodeNumZ;
+
+    totEleNum = param->meshNumX*param->meshNumY*param->meshNumZ;
+    nodeContour = (real8 **)malloc(totNodeNum*sizeof(real8*));
+    for(i=0; i<totNodeNum; i++){
+        nodeContour[i] = (real8*)malloc(3*sizeof(real8));
+    }
+
+    totPlaStn = (real8 **)malloc(totEleNum*sizeof(real8*));        
+    totDisDen = (real8 **)malloc(totEleNum*sizeof(real8*));        
+    
+    for(i=0; i<totEleNum; i++){
+        totPlaStn[i] = (real8 *)malloc(6*sizeof(real8));
+        totDisDen[i] = (real8 *)malloc(4*sizeof(real8));
+    }
+	eleLx = param->meshSizeX;
+	eleLy = param->meshSizeY;
+	eleLz = param->meshSizeZ;
+
 	/*	Zero the arrays of dislocation density in each element.	*/
 
-	for(i=0; i<TOT_ELE_NUM; i++){
-	    param->disDenEle[i][0] = 0.0;
-	    param->disDenEle[i][1] = 0.0;
-	    param->disDenEle[i][2] = 0.0;
-	    param->disDenEle[i][3] = 0.0;
+	for(i=0; i<totEleNum; i++){
+	    home->disDenEle[i][0] = 0.0;
+	    home->disDenEle[i][1] = 0.0;
+	    home->disDenEle[i][2] = 0.0;
+	    home->disDenEle[i][3] = 0.0;
 	}
 	
 	/*
@@ -567,7 +597,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 			
 			iBurg = BurgType_FCC(home,burg);
 
-			param->disDenEle[eleNum][iBurg] += deltDen;
+			home->disDenEle[eleNum][iBurg] += deltDen;
 			
 		}
 	}
@@ -578,54 +608,43 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	 */
 #ifdef PARALLEL
 
-	MPI_Reduce(param->pstnEle, totPlaStn, 6*TOT_ELE_NUM, MPI_DOUBLE,
+	MPI_Reduce(home->pstnEle, totPlaStn, 6*totEleNum, MPI_DOUBLE,
 			   MPI_SUM, 0, MPI_COMM_WORLD);
 
-	MPI_Reduce(param->disDenEle, totDisDen, 4*TOT_ELE_NUM, MPI_DOUBLE,
+	MPI_Reduce(home->disDenEle, totDisDen, 4*totEleNum, MPI_DOUBLE,
 			   MPI_SUM, 0, MPI_COMM_WORLD);
 #else
-	for(i=0;i<TOT_ELE_NUM;i++){
-	    totPlaStn[i][0] = param->pstnEle[i][0];
-	    totPlaStn[i][1] = param->pstnEle[i][1];
-	    totPlaStn[i][2] = param->pstnEle[i][2];
-	    totPlaStn[i][3] = param->pstnEle[i][3];
-	    totPlaStn[i][4] = param->pstnEle[i][4];
-	    totPlaStn[i][5] = param->pstnEle[i][5];
+	for(i=0;i<totEleNum;i++){
+	    totPlaStn[i][0] = home->pstnEle[i][0];
+	    totPlaStn[i][1] = home->pstnEle[i][1];
+	    totPlaStn[i][2] = home->pstnEle[i][2];
+	    totPlaStn[i][3] = home->pstnEle[i][3];
+	    totPlaStn[i][4] = home->pstnEle[i][4];
+	    totPlaStn[i][5] = home->pstnEle[i][5];
 
-	    totDisDen[i][0] = param->disDenEle[i][0];
-	    totDisDen[i][1] = param->disDenEle[i][1];
-	    totDisDen[i][2] = param->disDenEle[i][2];
-	    totDisDen[i][3] = param->disDenEle[i][3];
+	    totDisDen[i][0] = home->disDenEle[i][0];
+	    totDisDen[i][1] = home->disDenEle[i][1];
+	    totDisDen[i][2] = home->disDenEle[i][2];
+	    totDisDen[i][3] = home->disDenEle[i][3];
 	}
 
 #endif
 
 	if (firstInGroup) {
 		
-	    int		nodeEle[8],nx,ny,nz;
-	    int		imageNode[8],imageNum;
-	    real8	nodeContour[TOT_NODE_NUM][3];
-	    real8	eleLx,eleLy,eleLz;
-	    real8	effPlaStn,currDisDen;
-
-	    eleLx = Lx/MESH_NUM;
-	    eleLy = Ly/MESH_NUM;
-	    eleLz = Lz/MESH_NUM/ASPECT_RATIO;
-
-	    for(i=0;i<TOT_NODE_NUM;i++){
-			
-		VECTOR_ZERO(nodeContour[i]);
+	    for(i=0;i<totNodeNum;i++){
+		    VECTOR_ZERO(nodeContour[i]);
 	    }
 	
 //	    fprintf(fpEle,"solutiontime = %e\n", param->timeNow);
 	    fprintf(fpEle, "Variables = \"X\", \"Y\", \"Z\",\"plaStn"
 				"\",\"disDen\"\n"); 
 	    fprintf(fpEle, "Zone T = \"%10.5f\" N= %d  E= %d F=FEPOINT ET=Brick\n",
-				param->timeNow*1.0E9, TOT_NODE_NUM,TOT_ELE_NUM); 
+				param->timeNow*1.0E9, totNodeNum,totEleNum); 
 
-	    for(i=0;i<TOT_ELE_NUM;i++){
+	    for(i=0;i<totEleNum;i++){
 
-			effPlaStn=((real8)TOT_ELE_NUM) * sqrt((totPlaStn[i][0]*totPlaStn[i][0] +
+			effPlaStn=sqrt((totPlaStn[i][0]*totPlaStn[i][0] +
 							totPlaStn[i][1]*totPlaStn[i][1] +
 							totPlaStn[i][2]*totPlaStn[i][2] +
 							2*totPlaStn[i][3]*totPlaStn[i][3] +
@@ -635,7 +654,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 			currDisDen = totDisDen[i][0] + totDisDen[i][1] + 
 						 totDisDen[i][2] + totDisDen[i][3]; 
 
-			NodeofEle(i,nodeEle);	
+			NodeofEle(param, i,nodeEle);	
 			
 			for(j=0;j<8;j++){
 
@@ -647,15 +666,15 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 			
 	    }
 
-	    for(i=0;i<TOT_NODE_NUM;i++){
+	    for(i=0;i<totNodeNum;i++){
 
 			imageNode[0] = i;		
 			
 			imageNum = 1;
 
-			nx = i%MESH_NUM1;
-			ny = i%(MESH_NUM1*MESH_NUM1)/MESH_NUM1; 
-			nz = i/(MESH_NUM1*MESH_NUM1); 
+			nx = i%meshNodeNumX;
+			ny = i%(meshNodeNumX*meshNodeNumY)/meshNodeNumX; 
+			nz = i/(meshNodeNumX*meshNodeNumY); 
 			
 			if(nodeContour[i][2] >8){
 
@@ -667,26 +686,26 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 			/*
 			 * 		For surface with periodic boundary condition.
 			 */
-			if((nx==0||nx==MESH_NUM1)&&param->xBoundType == Periodic){
+			if((nx==0||nx==meshNodeNumX)&&param->xBoundType == Periodic){
 				
-				imageNode[1] = i+ (nx==0?1:-1)*MESH_NUM;
+				imageNode[1] = i+ (nx==0?1:-1)*meshNodeNumX;
 				imageNum *= 2;
 			}
 
-			if((ny==0||ny==MESH_NUM1)&&param->yBoundType == Periodic){
+			if((ny==0||ny==meshNodeNumY)&&param->yBoundType == Periodic){
 				
 				for(j=0;j<imageNum;j++){
 					imageNode[imageNum+j] = imageNode[j] + (ny==0?1:-1)*
-											MESH_NUM1*MESH_NUM;
+											meshNodeNumX*meshNodeNumZ;
 				}
 				imageNum *= 2;
 			}
 
-			if((nz==0||nz==MESH_NUM1)&&param->zBoundType == Periodic){
+			if((nz==0||nz==meshNodeNumZ)&&param->zBoundType == Periodic){
 				
 				for(j=0;j<imageNum;j++){
 					imageNode[imageNum+j] = imageNode[j] + (nz==0?1:-1)*
-											MESH_NUM1*MESH_NUM1*MESH_NUM;
+											meshNodeNumX*meshNodeNumY*meshNodeNumZ;
 				}
 				imageNum *= 2;
 			}
@@ -715,9 +734,9 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 
 	    }
 
-	    for(i=0;i<TOT_ELE_NUM;i++){
+	    for(i=0;i<totEleNum;i++){
 
-			NodeofEle(i,nodeEle);	
+			NodeofEle(param, i,nodeEle);	
 			
 			fprintf(fpEle, "%8d %8d %8d %8d %8d %8d %8d %8d\n", nodeEle[0]+1,
 					nodeEle[1]+1,nodeEle[3]+1,nodeEle[2]+1,nodeEle[4]+1,

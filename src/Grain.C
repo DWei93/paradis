@@ -1434,20 +1434,22 @@ int Coor2EleNum(Home_t *home,real8 position[3]){
 
 	int	nx,ny,nz;
 	real8	eleLx,eleLy,eleLz;
+    Param_t *param;
 
-	eleLx = home->param->Lx/MESH_NUM;
-	eleLy = home->param->Ly/MESH_NUM;
-	eleLz = home->param->Lz/MESH_NUM/ASPECT_RATIO;
+    param = home->param;
+	eleLx = param->meshSizeX;
+	eleLy = param->meshSizeY;
+	eleLz = param->meshSizeZ;
 
 	nx = (position[0] + home->param->Lx/2)/eleLx;
 	ny = (position[1] + home->param->Ly/2)/eleLy;
 	nz = (position[2] + home->param->Lz/2)/eleLz;
 
-	if(nx == MESH_NUM) nx--;
-	if(ny == MESH_NUM) ny--;
-	if(nz == MESH_NUM) nz--;
+	if(nx == param->meshNumX) nx--;
+	if(ny == param->meshNumY) ny--;
+	if(nz == param->meshNumX) nz--;
 
-	return(nz*MESH_NUM*MESH_NUM + ny*MESH_NUM +nx);
+	return(nz*param->meshNumX*param->meshNumY + ny*param->meshNumX +nx);
 
 }
 
