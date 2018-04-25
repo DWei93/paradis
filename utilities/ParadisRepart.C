@@ -2129,7 +2129,7 @@ main(int argc, char *argv[])
         fsetpos(oldFP, &nodeDataPos);
 
         while (fgets(textLine, sizeof(textLine)-1, oldFP) != NULL) {
-            fprintf(newFP, textLine);
+            fprintf(newFP,"%s", textLine);
         }
 
         fclose(oldFP);
