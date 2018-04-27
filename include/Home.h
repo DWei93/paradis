@@ -54,6 +54,7 @@
 #include "DebugFunctions.h"
 #include "Force.h"
 #include "Grain.h"
+#include "Math.h"
 
 #ifdef PARALLEL
 #include "mpi.h"

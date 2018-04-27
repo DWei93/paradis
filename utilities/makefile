@@ -72,6 +72,7 @@ PARADISGEN_CPP_SRCS = ParadisGen.C   \
                RSDecomp.C          \
                Timer.C             \
                Util.C              \
+      		   Math.C	           \
 			   Grain.C
 
 #PARADISGEN_CPP_SRCS = DisplayC.C   \
@@ -116,6 +117,7 @@ PARADISREPART_CPP_SRCS = ParadisRepart.C  \
                     Timer.C             \
                     Util.C              \
                     WriteRestart.C		\
+      		   		Math.C	           \
 					Grain.C
 
 #PARADISREPART_CPP_SRCS = DisplayC.C     \
@@ -159,6 +161,7 @@ CALCDENSITY_CPP_SRCS = CalcDensity.C      \
                     RSDecomp.C          \
                     Timer.C             \
                     Util.C              \
+      		   		Math.C	           \
 					Grain.C
              
 #
@@ -202,6 +205,7 @@ STRESSTABLEGEN_SRCS = StressTableGen.C \
                       PickScrewGlidePlane.C \
                       QueueOps.C       \
                       Util.C      		\
+      		   		  Math.C	           \
 					  Grain.C
 
 STRESSTABLEGEN_OBJS = $(STRESSTABLEGEN_SRCS:.C=.o)
@@ -242,6 +246,7 @@ PARADISCONVERT_CPP_SRCS = ParadisConvert.C \
                      RSDecomp.C          \
                      Timer.C             \
                      Util.C         	\
+                     Math.C         	\
 					 Grain.C
 
 #PARADISCONVERT_CPP_SRCS = DisplayC.C     \

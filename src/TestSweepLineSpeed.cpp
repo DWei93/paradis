@@ -21,14 +21,13 @@
 #include <stdio.h>
 #include <time.h>
 
-#include "Home.h" 
-#include "Grain.h"
-#include "Util.h" 
-
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/Polygon.h>
 #include "bigtest.h"
 
+#include "Home.h" 
+#include "Grain.h"
+#include "Util.h" 
 using namespace geos::geom;
 
 /**

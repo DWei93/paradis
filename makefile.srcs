@@ -20,6 +20,7 @@
 
 PARADIS_CPP_SRCS = GrainBoundary.C \
       Grain.C	               \
+      Math.C	               \
       CellCharge.C             \
       Collision.C              \
       CommSendGhosts.C         \
@@ -121,13 +122,13 @@ PARADIS_CPP_SRCS = GrainBoundary.C \
 	  WriteVisit.C             \
       WriteVelocity.C          
 #      GeometryTestFactory.cpp  TestSweepLineSpeed.cpp \
-       DisplayC.C display.C
+#       DisplayC.C display.C
 
 
 PARADIS_C_SRCS =  
 
 PARADIS_SRCS = $(PARADIS_C_SRCS) $(PARADIS_CPP_SRCS)
-PARADIS_OBJS = $(PARADIS_C_SRCS:.c=.o) $(PARADIS_CPP_SRCS:.C=.o)
+PARADIS_OBJS = $(PARADIS_C_SRCS:.c=.o) $(PARADIS_CPP_SRCS:.C=.o) 
 
 
 ###########################################################################
@@ -147,6 +148,7 @@ CTABLEGEN_SRCS = CTableGen.C             \
                  PickScrewGlidePlane.C   \
                  QueueOps.C              \
                  Util.C					\
+      			 Math.C	               \
 				 Grain.C	
 
 CTABLEGEN_OBJS = $(CTABLEGEN_SRCS:.C=.o)

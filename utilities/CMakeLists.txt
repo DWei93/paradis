@@ -29,6 +29,7 @@ Set ( PARADISGEN_SRCS
                ../src/RSDecomp.C          
                ../src/Timer.C             
                ../src/Util.C              
+               ../src/Math.C              
                ../src/Grain.C )
 
 Set ( PARADISREPART_SRCS
@@ -58,6 +59,7 @@ Set ( PARADISREPART_SRCS
                     ../src/RSDecomp.C          
                     ../src/Timer.C             
                     ../src/Util.C              
+                    ../src/Math.C              
                     ../src/WriteRestart.C		
 					../src/Grain.C )
 Set( CALCDENSITY_SRCS
@@ -87,6 +89,7 @@ Set( CALCDENSITY_SRCS
                     RSDecomp.C          
                     Timer.C             
                     Util.C              
+                    Math.C              
 					Grain.C )
 
 Set ( STRESSTABLEGEN_SRCS
@@ -98,6 +101,7 @@ Set ( STRESSTABLEGEN_SRCS
                       PickScrewGlidePlane.C 
                       QueueOps.C       
                       Util.C      		
+                      Math.C      		
 					  Grain.C )
 
 Set( PARADISCONVERT_SRCS 
@@ -127,6 +131,7 @@ Set( PARADISCONVERT_SRCS
                      RSDecomp.C          
                      Timer.C             
                      Util.C         	
+                     Math.C         	
 					 Grain.C )
 INCLUDE_DIRECTORIES(../include ${GEOS_INCLUDE_DIR})    
 LINK_DIRECTORIES(${GEOS_LINK_DIR})

@@ -11,4 +11,5 @@ bin/
 ./
 build/
 res*
+utilities/*.cpp
 utilities/*.C

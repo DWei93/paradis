@@ -1706,14 +1706,11 @@ void Initialize(Home_t *home,int argc, char *argv[])
         home->disDenEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
 
         for(i=0; i<totMeshNum; i++){
-            home->pstnEle[i] = (real8 *)malloc(6*sizeof(real8)); 
-            for(j=0; j<6; j++){
-                home->pstnEle[i][j] = 0.0;
-            }
+            home->pstnEle[i] = (real8 *)calloc(6, sizeof(real8)); 
         }
 
         for(i=0; i<totMeshNum; i++){
-           home->disDenEle[i] = (real8 *)malloc(4*sizeof(real8)); 
+           home->disDenEle[i] = (real8 *)calloc(4, sizeof(real8)); 
         }
         
 /*
@@ -1727,5 +1724,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
 	    CheckMemUsage(home, "Initialize");
 	
+        Fatal("Arrane: %d %d",Arrange(4),Arrange(4,2));
         return;
 }

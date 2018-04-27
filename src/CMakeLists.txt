@@ -1,5 +1,5 @@
 Set ( PARADIS_SRCS 
-bigtest.h   GeometryTestFactory.cpp TestSweepLineSpeed.cpp  
+#bigtest.h   GeometryTestFactory.cpp TestSweepLineSpeed.cpp  
 CellCharge.C               FindPreciseGlidePlane.C   InputSanity.C            ParadisThread.C            SplitSurfaceNodes.C
 Collision.C                FixRemesh.C               LoadCurve.C              Param.C                    Tecplot.C
 CommSendGhostPlanes.C      FMComm.C                  LocalSegForces.C         Parse.C                    Timer.C
@@ -12,7 +12,7 @@ CommSendVelocity.C         GetDensityDelta.C         Meminfo.C                RB
 CorrectionTable.C          GetNewGhostNode.C         Migrate.C                ReadBinaryRestart.C        WriteDensityField.C
 CrossSlipBCC.C             GetNewNativeNode.C        MobilityLaw_BCC_0b.C     ReadRestart.C              WriteForce.C
 CrossSlip.C                Gnuplot.C                 MobilityLaw_BCC_0.C      RemapInitialTags.C         WriteFragments.C
-CrossSlipFCC.C             GrainBoundary.C         MobilityLaw_BCC_glide.C  Remesh.C                   WritePoleFig.C
+CrossSlipFCC.C             GrainBoundary.C           MobilityLaw_BCC_glide.C  Remesh.C                   WritePoleFig.C
                            Grain.C                   MobilityLaw_FCC_0b.C     RemeshRule_2.C             WritePovray.C
 DebugFunctions.C           Heap.C                    MobilityLaw_FCC_0.C      RemeshRule_3.C             WriteProp.C
 Decomp.C                   InitCellDomains.C         MobilityLaw_FCC_climb.C  RemoteSegForces.C          WriteRestart.C
@@ -21,7 +21,7 @@ DeltaPlasticStrain.C       InitCellNeighbors.C       NodeVelocity.C           Re
 DeltaPlasticStrain_FCC.C   InitHome.C                OsmoticForce.C           RSDecomp.C
 deWitInteraction.C         Initialize.C              ParadisFinish.C          SemiInfiniteSegSegForce.C
 DisableUnneededParams.C    InitRemoteDomains.C       ParadisInit.C            SortNativeNodes.C
-DLBfreeOld.C               InitSendDomains.C         ParadisStep.C            SortNodesForCollision.C )
+DLBfreeOld.C               InitSendDomains.C         ParadisStep.C            SortNodesForCollision.C   Math.C)
 #      DisplayC.C display.C )
 
 Set (CTABLEGEN_SRCS 
@@ -36,6 +36,7 @@ Set (CTABLEGEN_SRCS
                  PickScrewGlidePlane.C   
                  QueueOps.C              
                  Util.C					
+                 Math.C					
 				 Grain.C)
 
 INCLUDE_DIRECTORIES(../include ${GEOS_INCLUDE_DIR})    

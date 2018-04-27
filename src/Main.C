@@ -98,7 +98,7 @@ main (int argc, char *argv[])
  */
         home->cycle = home->param->cycleStart;
 
-//      GeosTest();		
+//        GeosTest();		
         while (home->cycle < cycleEnd && home->param->finish == 0) {
             ParadisStep(home);
             TimerClearAll(home);

@@ -30,9 +30,9 @@ numZcells = 4
 #
 # Mesh size for tecmesh
 #
-meshSizeX = 500
-meshSizeY = 500
-meshSizeZ = 500
+meshSizeX = 1000
+meshSizeY = 1000
+meshSizeZ = 1000
 
 #  Dynamic load balancing
 #
@@ -109,7 +109,7 @@ tecplotfreq = 500
 saveprop = 1
 savepropfreq = 500
 tecmesh = 1
-tecmeshfreq = 5
+tecmeshfreq = 50
 velfile = 0
 velfilefreq = 1000
 savecn = 1

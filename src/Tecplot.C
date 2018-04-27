@@ -472,7 +472,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 {
 	int      i, j;
 	int      newNodeKeyPtr;
-	int	 eleNum,iBurg;
+	int	     eleNum,iBurg;
 	real8    prx,pry,prz,burg[3];
 	real8    bX, bY, bZ;
 	real8    Lx, Ly, Lz;
@@ -494,6 +494,8 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	real8	**totPlaStn;
 	real8	**totDisDen;
 
+    real8     *locVals, *gloVals;
+
 	param      = home->param;
 
 	Lx = param->Lx;
@@ -513,11 +515,15 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 
     totPlaStn = (real8 **)malloc(totEleNum*sizeof(real8*));        
     totDisDen = (real8 **)malloc(totEleNum*sizeof(real8*));        
+
+    locVals = (real8 *)calloc(totEleNum*10, sizeof(real8));
+    gloVals = (real8 *)calloc(totEleNum*10, sizeof(real8));
     
     for(i=0; i<totEleNum; i++){
-        totPlaStn[i] = (real8 *)malloc(6*sizeof(real8));
-        totDisDen[i] = (real8 *)malloc(4*sizeof(real8));
+        totPlaStn[i] = (real8 *)calloc(6,sizeof(real8));
+        totDisDen[i] = (real8 *)calloc(4,sizeof(real8));
     }
+
 	eleLx = param->meshSizeX;
 	eleLy = param->meshSizeY;
 	eleLz = param->meshSizeZ;
@@ -537,8 +543,8 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	 *      multiple files.
 	 */
 	if (firstInGroup) {
-		snprintf(fileNameEle, sizeof(fileNameEle), "%s/mesh%s.plt",
-				 DIR_TECPLOT, baseFileName);
+		snprintf(fileNameEle, sizeof(fileNameEle), "%s/%s.plt",
+				 DIR_TECMESH, baseFileName);
 		/*
 		 *          First task in the I/O group must open the data file for writing
 		 *          to overwrite any existing file of the same name.
@@ -608,12 +614,40 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	 */
 #ifdef PARALLEL
 
-	MPI_Reduce(home->pstnEle, totPlaStn, 6*totEleNum, MPI_DOUBLE,
+    for (i=0; i<totEleNum; i++){
+        j = 0;
+        locVals[i+(j++)] = home->pstnEle[i][0];
+        locVals[i+(j++)] = home->pstnEle[i][1];
+        locVals[i+(j++)] = home->pstnEle[i][2];
+        locVals[i+(j++)] = home->pstnEle[i][3];
+        locVals[i+(j++)] = home->pstnEle[i][4];
+        locVals[i+(j++)] = home->pstnEle[i][5];
+
+        locVals[i+(j++)] = home->disDenEle[i][0];
+        locVals[i+(j++)] = home->disDenEle[i][1];
+        locVals[i+(j++)] = home->disDenEle[i][2];
+        locVals[i+(j++)] = home->disDenEle[i][3];
+    }
+
+	MPI_Reduce(locVals, gloVals, 10*totEleNum, MPI_DOUBLE,
 			   MPI_SUM, 0, MPI_COMM_WORLD);
 
-	MPI_Reduce(home->disDenEle, totDisDen, 4*totEleNum, MPI_DOUBLE,
-			   MPI_SUM, 0, MPI_COMM_WORLD);
-#else
+    for(i=0; i<totEleNum; i++){
+        j=0;
+        home->pstnEle[i][0] = gloVals[i+(j++)];
+        home->pstnEle[i][1] = gloVals[i+(j++)];
+        home->pstnEle[i][2] = gloVals[i+(j++)];
+        home->pstnEle[i][3] = gloVals[i+(j++)];
+        home->pstnEle[i][4] = gloVals[i+(j++)];
+        home->pstnEle[i][5] = gloVals[i+(j++)];
+
+        home->disDenEle[i][0] = gloVals[i+(j++)];
+        home->disDenEle[i][1] = gloVals[i+(j++)];
+        home->disDenEle[i][2] = gloVals[i+(j++)];
+        home->disDenEle[i][3] = gloVals[i+(j++)];
+    }
+#endif
+
 	for(i=0;i<totEleNum;i++){
 	    totPlaStn[i][0] = home->pstnEle[i][0];
 	    totPlaStn[i][1] = home->pstnEle[i][1];
@@ -628,7 +662,6 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	    totDisDen[i][3] = home->disDenEle[i][3];
 	}
 
-#endif
 
 	if (firstInGroup) {
 		
@@ -742,6 +775,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 					nodeEle[1]+1,nodeEle[3]+1,nodeEle[2]+1,nodeEle[4]+1,
 					nodeEle[5]+1,nodeEle[7]+1,nodeEle[6]+1);
 	    }
+        
 
 	    fclose(fpEle);
 	}

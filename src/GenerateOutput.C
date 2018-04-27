@@ -1094,12 +1094,8 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
             } else if (stage == STAGE_TERM){
                 snprintf(baseName, sizeof(baseName), "tecmesh.final");
             }
-            if (recvToken) RecvWriteToken(prevInGroup);
-            printf("%d: %p,%s (%d,%d,%d,%d,%d) \n",home->myDomain, home, baseName,
-                    ioGroup,isFirstInGroup, writePrologue, writeEpilogue, numSegs);
 	        TecplotMesh(home, baseName, ioGroup,isFirstInGroup, writePrologue, 
 	                    writeEpilogue, numSegs);
-            if (sendToken) SendWriteToken(nextInGroup);
         }
 
         if ((outputTypes & GEN_VELOCITY_DATA) != 0) {
