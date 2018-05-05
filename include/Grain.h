@@ -82,8 +82,11 @@ typedef struct {
 	real8 point[3];
 } Line_t;
 
-struct _peneResults{
+
+struct _penetration{
 	int		nSets;
+    Node_t  *node;
+    
 	real8	(*outNormal)[3];
 	real8	(*outBurg)[3];
 	real8	(*GBBurg)[3];
@@ -128,8 +131,8 @@ real8 Distance(Home_t *home,real8 *p1,real8 *p2);
 int NodeOnLine(real8 *p, Line_t *line);
 void PullToLine(real8 *p, Line_t *line);
 void PrintTag(Node_t *node);
-void InitPeneRes(PeneRes_t *peneRes);
-int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
+void InitPenRes(Pene_t *pene);
+int GetPenResults(Home_t *home, Node_t *node, Node_t *nbr, Pene_t *pene,
 				   Grain_t *oldGrain, Grain_t *currGrain, Plane_t *GBPlane);
 
 /*

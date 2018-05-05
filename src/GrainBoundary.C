@@ -370,7 +370,7 @@ real8 SegementEnergy(Param_t *param, real8 cosTheta, real8 bMag){
 		  
 }
 
-int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane, PeneRes_t *peneRes){
+int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane, Pene_t *pene){
 	
 	int		i, isScrew = 0;
 	real8	inBurg[3], inEnergy=0.0, cosTheta, bMag;
@@ -417,23 +417,23 @@ int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane, PeneRes_t *peneRes)
 	cross(normal, GBPlane->normal, vec);
 	NormalizeVec(vec);
 	
-	for(i=0; i<peneRes->nSets; i++){
+	for(i=0; i<pene->nSets; i++){
 		outEnergy = 0.0;
-		if(peneRes->effective[i] == 0)continue;
-		cosTheta = DotProduct(peneRes->outBurg[i],vec);
-		bMag = Normal(peneRes->outBurg[i]);
+		if(pene->effective[i] == 0)continue;
+		cosTheta = DotProduct(pene->outBurg[i],vec);
+		bMag = Normal(pene->outBurg[i]);
 		segEnergy = SegementEnergy(param, cosTheta, bMag);
 		outEnergy += segEnergy;
 		
-		cosTheta = DotProduct(peneRes->GBBurg[i],vec);
-		bMag = Normal(peneRes->GBBurg[i]);
+		cosTheta = DotProduct(pene->GBBurg[i],vec);
+		bMag = Normal(pene->GBBurg[i]);
 		segEnergy = SegementEnergy(param, cosTheta, bMag);
 		outEnergy += segEnergy;
 		
 		outEnergy += burgMag * param->TBEnergy/param->burgMag;
 		
 		if(FGlidePerLength(home,node,GBPlane) * burgMag < outEnergy - inEnergy){
-			peneRes->effective[i] = 0;
+			pene->effective[i] = 0;
 		
 		}
 	}
@@ -469,7 +469,7 @@ int ScrewEnergyRule(Home_t *home, Node_t *node, real8 oldInGrain,
 	return(1);
 }
 
-void InitPeneRes(PeneRes_t *peneRes){
+void InitPenRes(Pene_t *pene){
 	int	i;
 	real8 zeroVec[3];
 	
@@ -477,26 +477,26 @@ void InitPeneRes(PeneRes_t *peneRes){
 	zeroVec[YC] = 0.0;
 	zeroVec[ZC] = 0.0;
 	
-	for(i=0; i<peneRes->nSets; i++){
-		peneRes->effective[i] = 0;
-		VECTOR_COPY(peneRes->outNormal[i],zeroVec);
-		VECTOR_COPY(peneRes->outBurg[i],zeroVec);
-		VECTOR_COPY(peneRes->GBBurg[i],zeroVec);
-		peneRes->powerDis[i] = -1.0e50;
+	for(i=0; i<pene->nSets; i++){
+		pene->effective[i] = 0;
+		VECTOR_COPY(pene->outNormal[i],zeroVec);
+		VECTOR_COPY(pene->outBurg[i],zeroVec);
+		VECTOR_COPY(pene->GBBurg[i],zeroVec);
+		pene->powerDis[i] = -1.0e50;
 		
 	}
 	return;
 }
 
-int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
+int GetPenResults(Home_t *home, Node_t *node, Node_t *nbr, Pene_t *pene,
 		   Grain_t *oldGrain, Grain_t *currGrain, Plane_t *GBPlane){
 	
 	real8		pos[3], burg[3], normal[3], crystalNormal[3], burg1[3], burg2[3];
 	real8		crystalBurg[3], dot, vec[3], outNormal[3], zeroVec[3];
-        real8           sb, TBBurgCryst[3];
+    real8       sb, TBBurgCryst[3];
 	int 		isScrew = 0, armID, i, normalID;
 	
-	InitPeneRes(peneRes);
+	InitPenRes(pene);
 
 	pos[XC] = node->x;
 	pos[YC] = node->y;
@@ -517,7 +517,7 @@ int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
 	normal[ZC] = node->nz[armID];
 	
 	if(fabs(DotProduct(normal, GBPlane->normal)) > 0.95){
-            FormatVector(normal,"GetPeneRes: arm noram parallel to GB");
+            FormatVector(normal,"GetPenRes: arm noram parallel to GB");
             return(0);
         }
 
@@ -538,37 +538,35 @@ int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
 	Matrix33Vector3Multiply(oldGrain->orientationInv, burg, crystalBurg);
 
 	if(isScrew){
-		peneRes->nSets = 2;
+		pene->nSets = 2;
 		
-		for(i=0; i<peneRes->nSets; i++){
-			peneRes->effective[i] = 1;
+		for(i=0; i<pene->nSets; i++){
+			pene->effective[i] = 1;
 		}
 	
-		VECTOR_COPY(peneRes->outNormal[0],outNormal);
-		VECTOR_COPY(peneRes->outBurg[0],burg);
-		VECTOR_COPY(peneRes->GBBurg[0],zeroVec);
+		VECTOR_COPY(pene->outNormal[0],outNormal);
+		VECTOR_COPY(pene->outBurg[0],burg);
+		VECTOR_COPY(pene->GBBurg[0],zeroVec);
 
-		peneRes->effective[1] = 1;
-
-		VECTOR_COPY(peneRes->outNormal[1],GBPlane->normal);
+		VECTOR_COPY(pene->outNormal[1],GBPlane->normal);
 		switch(BurgID_FCC(crystalBurg)){
 		    case 1 :
 		    burg1[XC] = -1.0;
-		    burg1[YC] = 2.0;
+		    burg1[YC] =  2.0;
 		    burg1[ZC] = -1.0;
 		        break;
 		    case 3 :
-		    burg1[XC] = 2.0;
+		    burg1[XC] =  2.0;
 		    burg1[YC] = -1.0;
 		    burg1[ZC] = -1.0;
 		        break;
 		    case 5 :
 		    burg1[XC] = -1.0;
-		    burg1[YC] = 2.0;
+		    burg1[YC] =  2.0;
 		    burg1[ZC] = -1.0;
 		        break;
 		    default :
-			Fatal("GetPeneRes: Wrong screw ID");
+			Fatal("GetPenRes: Wrong screw ID");
 		}
 
 		NormalizeVec(burg1);
@@ -576,7 +574,7 @@ int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
 		burg1[YC] /= sqrt(3.0);	
 		burg1[ZC] /= sqrt(3.0);	
 		
-	        Matrix33Vector3Multiply(oldGrain->orientation, burg1, burg2);
+	    Matrix33Vector3Multiply(oldGrain->orientation, burg1, burg2);
 
 		if(DotProduct(burg2, burg) < 0.0){
 		    burg2[XC] = -burg2[XC];
@@ -588,8 +586,8 @@ int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
 		burg1[YC] = burg[YC] - burg2[YC];
 		burg1[ZC] = burg[ZC] - burg2[ZC];
 
-		VECTOR_COPY(peneRes->outBurg[1],burg1);
-		VECTOR_COPY(peneRes->GBBurg[1],burg2);
+		VECTOR_COPY(pene->outBurg[1],burg1);
+		VECTOR_COPY(pene->GBBurg[1],burg2);
 		return(1);
 	}
 
@@ -601,7 +599,7 @@ int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
             FormatVector(outNormal,"outNormal");
             FormatVector(GBPlane->normal,"GBPlane->normal");
             printf("the burg is not a non-screw burg, dot %.15e\n",dot);
-	    return(0);
+	        return(0);
         }
         
         if(crystalBurg[XC] < 1.0e-6 &&
@@ -629,17 +627,17 @@ int GetPeneResults(Home_t *home, Node_t *node, Node_t *nbr, PeneRes_t *peneRes,
             FormatVector(burg,"burg");
             FormatVector(burg1,"burg1");
             FormatVector(burg2,"burg2");
-            Fatal("GetPeneResults: burg1Mag is %f",burg1Mag);
+            Fatal("GetPenResults: burg1Mag is %f",burg1Mag);
 #else
 	    return(0);
 #endif
 	}
 
-	peneRes->nSets = 1;
-	VECTOR_COPY(peneRes->outNormal[0],outNormal);
-	VECTOR_COPY(peneRes->outBurg[0],burg1);
-	VECTOR_COPY(peneRes->GBBurg[0],burg2);
-	peneRes->effective[0] = 1;
+	pene->nSets = 1;
+	VECTOR_COPY(pene->outNormal[0],outNormal);
+	VECTOR_COPY(pene->outBurg[0],burg1);
+	VECTOR_COPY(pene->GBBurg[0],burg2);
+	pene->effective[0] = 1;
 
 	return(1);
 }
@@ -658,7 +656,7 @@ void PullToLine(real8 *p, Line_t *line){
 }
 
 int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
-					 Grain_t *newGrain, Plane_t *GBPlane, PeneRes_t *peneRes){
+					 Grain_t *newGrain, Plane_t *GBPlane, Pene_t *pene){
 
 	real8		nDir1[3], nodeVel[3], currPos[3], oldPos[3], burg[3], bMag;
 	real8 		burgStore[3], normalStore[3],eps, sb, newVelocity, CurrNbrInGrain;
@@ -668,7 +666,7 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	real8		maxPowerDis = - 1.0e50;
 	int			armID, switchNode=0,i, set, peneThough, maxPowerSet=-1;
 	int			iScrew = 0, globalOp, mobError, forward, myDomian;
-	int		flags;
+	int		    flags;
 	Node_t 		*nbrNode1,*nbrNode2,*newNode,*globalNode, *nbr;
 	Node_t		*node1,*node2,*node3, *node1Bak,*bkupNodeList;
 	Node_t		*node4,*node5;
@@ -753,7 +751,6 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	
 	GetIntersection(&oldGlidePlane, GBPlane, &pathLine, &interLine);
 
-	
 	nbrNode1 = GetNeighborNode(home,node,0);
 	nbrNode2 = GetNeighborNode(home,node,1);
 	
@@ -794,13 +791,13 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	
 	if( CurrNbrInGrain != nbrNode2->inGrain || CurrNbrInGrain == -1.0){
 		
-            vec[0] = nbrNode2->oldx - oldPos[0];
+        vec[0] = nbrNode2->oldx - oldPos[0];
 	    vec[1] = nbrNode2->oldy - oldPos[1];
 	    vec[2] = nbrNode2->oldz - oldPos[2];
 
 	}else {
 		
-            vec[0] = nbrNode2->x - oldPos[0];
+        vec[0] = nbrNode2->x - oldPos[0];
 	    vec[1] = nbrNode2->y - oldPos[1];
 	    vec[2] = nbrNode2->z - oldPos[2];
 	}
@@ -823,13 +820,13 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	
 	if( CurrNbrInGrain != nbrNode1->inGrain || CurrNbrInGrain == -1.0){
 		
-            vec[0] = nbrNode1->oldx - oldPos[0];
+        vec[0] = nbrNode1->oldx - oldPos[0];
 	    vec[1] = nbrNode1->oldy - oldPos[1];
 	    vec[2] = nbrNode1->oldz - oldPos[2];
 		
 	}else {
 
-            vec[0] = nbrNode1->x - oldPos[0];
+        vec[0] = nbrNode1->x - oldPos[0];
 	    vec[1] = nbrNode1->y - oldPos[1];
 	    vec[2] = nbrNode1->z - oldPos[2];
 	}
@@ -847,7 +844,7 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	
 	TBInGrain = GetInGrainFromPos(home, newPos[0], newPos[1], newPos[2]);
 	if(TBInGrain - floor(TBInGrain) == 0){
-            Fatal("the node is not pulled to the  GB");
+        Fatal("the node is not pulled to the GB");
 	}
 	
 	VECTOR_COPY(node1Pos,newPos);
@@ -924,19 +921,19 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	BackupNode(home, node1, &bkupNodeList[3]);
 	BackupNode(home, node2, &bkupNodeList[4]);
 	
-	for(set=0; set < peneRes->nSets; set++){
+	for(set=0; set < pene->nSets; set++){
 		
-		if(peneRes->effective[set] == 0)continue;
+		if(pene->effective[set] == 0)continue;
 		
-		peneRes->powerDis[set] = 0.0;
+		pene->powerDis[set] = 0.0;
 		
 		node1->inGrain = oldInGrain;
 		node2->inGrain = oldInGrain;
 		
-		VECTOR_COPY(burg1, peneRes->outBurg[set]);
-		VECTOR_COPY(burg2, peneRes->GBBurg[set]);
+		VECTOR_COPY(burg1, pene->outBurg[set]);
+		VECTOR_COPY(burg2, pene->GBBurg[set]);
 		
-		peneThough = (fabs(DotProduct(peneRes->outNormal[set], GBPlane->normal)) < 0.995) ? 1 : 0;
+		peneThough = (fabs(DotProduct(pene->outNormal[set], GBPlane->normal)) < 0.995) ? 1 : 0;
 		if(peneThough){
 			node3 = InsertNode(home,node1,node2,node3Pos,2, globalOp);
 		}else{
@@ -951,16 +948,16 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 		
 
 		ChangeArmBurg(home, node1, &node3->myTag, burg1[0], burg1[1], burg1[2],
-					  peneRes->outNormal[set][XC],peneRes->outNormal[set][YC],peneRes->outNormal[set][ZC],
+					  pene->outNormal[set][XC],pene->outNormal[set][YC],pene->outNormal[set][ZC],
 					  globalOp,DEL_SEG_NONE);
 		ChangeArmBurg(home, node3, &node1->myTag, -burg1[0], -burg1[1], -burg1[2],
-					 peneRes->outNormal[set][XC],peneRes->outNormal[set][YC],peneRes->outNormal[set][ZC],
+					 pene->outNormal[set][XC],pene->outNormal[set][YC],pene->outNormal[set][ZC],
 					  globalOp,DEL_SEG_NONE);
 		ChangeArmBurg(home, node3, &node2->myTag, burg1[0], burg1[1], burg1[2],
-					 peneRes->outNormal[set][XC],peneRes->outNormal[set][YC],peneRes->outNormal[set][ZC],
+					 pene->outNormal[set][XC],pene->outNormal[set][YC],pene->outNormal[set][ZC],
 					  globalOp,DEL_SEG_NONE);
 		ChangeArmBurg(home, node2, &node3->myTag, -burg1[0], -burg1[1], -burg1[2],
-					 peneRes->outNormal[set][XC],peneRes->outNormal[set][YC],peneRes->outNormal[set][ZC],
+					 pene->outNormal[set][XC],pene->outNormal[set][YC],pene->outNormal[set][ZC],
 					  globalOp,DEL_SEG_NONE);
 
 		node1->inGrain = TBInGrain;
@@ -973,7 +970,6 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 
 		node1->constraint = UNCONSTRAINED;
 		node2->constraint = UNCONSTRAINED;
-
 		
 		if(!IsZeroVector(burg2)){
 			InsertArm(home, node1, &node2->myTag, burg2[0], burg2[1],  burg2[2],
@@ -988,18 +984,16 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 
 		SetOneNodeForce(home,node3);
 		mobError = EvaluateMobility(home,node3);
-		
-		peneRes->powerDis[set] += node3->fX * node3->vX + 
-                                          node3->fY * node3->vY + 
-                                          node3->fZ * node3->vZ;
+		pene->powerDis[set] += node3->fX * node3->vX + 
+                                  node3->fY * node3->vY + 
+                                  node3->fZ * node3->vZ;
 
-		if(!IsZeroVector(burg2)){
+		if(node4){
 			SetOneNodeForce(home,node4);
 			mobError = EvaluateMobility(home,node4);
-			
-			peneRes->powerDis[set] += node4->fX * node4->vX + 
-                                                  node4->fY * node4->vY + 
-                                                  node4->fZ * node4->vZ;
+			pene->powerDis[set] += node4->fX * node4->vX + 
+                                      node4->fY * node4->vY + 
+                                      node4->fZ * node4->vZ;
 		}
 
 		newVel[XC] = node3->vX; 
@@ -1021,7 +1015,7 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 			forward = (DotProduct(newVel,vec) > 0) ? 1 : 0;
 			forward &= newVelocity > 1.0;
 		}
-		if(!forward)peneRes->effective[set] = 0;
+		if(!forward)pene->effective[set] = 0;
 		
 		node3->numNbrs = 0;
 		RemoveNode(home, node3, globalOp);
@@ -1064,15 +1058,15 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	node->oldz = oldPos[2];
 	node->flags = flags;
 	
-	for(i=0; i<peneRes->nSets; i++){
-		if(peneRes->effective[i] == 0)continue;
+	for(i=0; i<pene->nSets; i++){
+		if(pene->effective[i] == 0)continue;
 		
 		if(i==0){
-			maxPowerDis = peneRes->powerDis[i];
+			maxPowerDis = pene->powerDis[i];
 			maxPowerSet = i;
 		}else{
-			maxPowerDis = MAX(maxPowerDis,peneRes->powerDis[i]);
-			if(maxPowerDis == peneRes->powerDis[i]){
+			maxPowerDis = MAX(maxPowerDis,pene->powerDis[i]);
+			if(maxPowerDis == pene->powerDis[i]){
 				maxPowerSet = i;
 			}
 		}
@@ -1105,7 +1099,7 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	RepositionNode(home, node1Pos, &node1->myTag, globalOp);
 	RepositionNode(home, node2Pos, &node2->myTag, globalOp);
 	
-	peneThough = (fabs(DotProduct(peneRes->outNormal[maxPowerSet], GBPlane->normal)) < 0.995) ? 1 : 0;
+	peneThough = (fabs(DotProduct(pene->outNormal[maxPowerSet], GBPlane->normal)) < 0.995) ? 1 : 0;
 	
 	if(peneThough){
 		node1->inGrain = currInGrain;		// ensure node3 is in current grain.
@@ -1124,23 +1118,23 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	    Fatal("PenetrationFirst: failed to creat node.\n");
 	}
 
-	VECTOR_COPY(burg1,peneRes->outBurg[maxPowerSet]);
-	VECTOR_COPY(burg2,peneRes->GBBurg[maxPowerSet]);
+	VECTOR_COPY(burg1,pene->outBurg[maxPowerSet]);
+	VECTOR_COPY(burg2,pene->GBBurg[maxPowerSet]);
 	ChangeArmBurg(home, node1, &node3->myTag, burg1[0], burg1[1], burg1[2],
-				  peneRes->outNormal[maxPowerSet][XC],peneRes->outNormal[maxPowerSet][YC],
-				  peneRes->outNormal[maxPowerSet][ZC],
+				  pene->outNormal[maxPowerSet][XC],pene->outNormal[maxPowerSet][YC],
+				  pene->outNormal[maxPowerSet][ZC],
 				  globalOp,DEL_SEG_NONE);
 	ChangeArmBurg(home, node3, &node1->myTag, -burg1[0], -burg1[1], -burg1[2],
-				  peneRes->outNormal[maxPowerSet][XC],peneRes->outNormal[maxPowerSet][YC],
-				  peneRes->outNormal[maxPowerSet][ZC],
+				  pene->outNormal[maxPowerSet][XC],pene->outNormal[maxPowerSet][YC],
+				  pene->outNormal[maxPowerSet][ZC],
 				  globalOp,DEL_SEG_NONE);
 	ChangeArmBurg(home, node3, &node2->myTag, burg1[0], burg1[1], burg1[2],
-				  peneRes->outNormal[maxPowerSet][XC],peneRes->outNormal[maxPowerSet][YC],
-				  peneRes->outNormal[maxPowerSet][ZC],
+				  pene->outNormal[maxPowerSet][XC],pene->outNormal[maxPowerSet][YC],
+				  pene->outNormal[maxPowerSet][ZC],
 				  globalOp,DEL_SEG_NONE);
 	ChangeArmBurg(home, node2, &node3->myTag, -burg1[0], -burg1[1], -burg1[2],
-				  peneRes->outNormal[maxPowerSet][XC],peneRes->outNormal[maxPowerSet][YC],
-				  peneRes->outNormal[maxPowerSet][ZC],
+				  pene->outNormal[maxPowerSet][XC],pene->outNormal[maxPowerSet][YC],
+				  pene->outNormal[maxPowerSet][ZC],
 				  globalOp,DEL_SEG_NONE);
 
 	if(!IsZeroVector(burg2)){
@@ -1476,7 +1470,7 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
 }
 
 int PenetrationSurface(Home_t *home, Node_t *node, Grain_t *oldGrain, 
-						Grain_t *newGrain, Plane_t *GBPlane, PeneRes_t *peneRes)
+						Grain_t *newGrain, Plane_t *GBPlane, Pene_t *pene)
 {
 	
 	if(node->constraint <1 || node->constraint >3)return(0);
@@ -1628,29 +1622,29 @@ int PenetrationSurface(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	
 	VECTOR_COPY(plane.point, pos3);
 	
-	for(i=0; i<peneRes->nSets; i++){
+	for(i=0; i<pene->nSets; i++){
 		if(i == 1){
 			Fatal("PenetrationSurface: can not support muti penetrationresults.");
 		}
-		VECTOR_COPY(plane.normal,peneRes->outNormal[i]);
+		VECTOR_COPY(plane.normal,pene->outNormal[i]);
 		ClosetPointToGB(param, &plane, GBPlane, pos1);
 		FormatVector(pos1,"node1 position");
 		
-		if(fabs(peneRes->outBurg[i][XC]) < 1.0e-3 &&
-				fabs(peneRes->outBurg[i][YC]) < 1.0e-3 &&
-				fabs(peneRes->outBurg[i][ZC]) < 1.0e-3){
+		if(fabs(pene->outBurg[i][XC]) < 1.0e-3 &&
+				fabs(pene->outBurg[i][YC]) < 1.0e-3 &&
+				fabs(pene->outBurg[i][ZC]) < 1.0e-3){
 			Fatal("PenetrationSurface: can not support this set.");
 		}
 		
 		RepositionNode(home, pos1, &node1->myTag, 1);
-		ChangeArmBurg(home, node1, &node2->myTag, peneRes->outBurg[i][XC],
-					  peneRes->outBurg[i][YC], peneRes->outBurg[i][ZC],
-					  peneRes->outNormal[i][XC],peneRes->outNormal[i][YC],peneRes->outNormal[i][ZC],
+		ChangeArmBurg(home, node1, &node2->myTag, pene->outBurg[i][XC],
+					  pene->outBurg[i][YC], pene->outBurg[i][ZC],
+					  pene->outNormal[i][XC],pene->outNormal[i][YC],pene->outNormal[i][ZC],
 					  1,DEL_SEG_NONE);
 		
-		ChangeArmBurg(home, node2, &node1->myTag, -peneRes->outBurg[i][XC],
-					  -peneRes->outBurg[i][YC], -peneRes->outBurg[i][ZC],
-					  peneRes->outNormal[i][XC],peneRes->outNormal[i][YC],peneRes->outNormal[i][ZC],
+		ChangeArmBurg(home, node2, &node1->myTag, -pene->outBurg[i][XC],
+					  -pene->outBurg[i][YC], -pene->outBurg[i][ZC],
+					  pene->outNormal[i][XC],pene->outNormal[i][YC],pene->outNormal[i][ZC],
 					  1,DEL_SEG_NONE);
 		
 		printf("node1<-->node2\n");
@@ -1677,9 +1671,9 @@ int PenetrationSurface(Home_t *home, Node_t *node, Grain_t *oldGrain,
 		node2->vZ = 0.0;
 		
 	
-		if(fabs(peneRes->GBBurg[i][XC]) < 1.0e-3 &&
-			fabs(peneRes->GBBurg[i][YC]) < 1.0e-3 &&
-			fabs(peneRes->GBBurg[i][ZC]) < 1.0e-3){
+		if(fabs(pene->GBBurg[i][XC]) < 1.0e-3 &&
+			fabs(pene->GBBurg[i][YC]) < 1.0e-3 &&
+			fabs(pene->GBBurg[i][ZC]) < 1.0e-3){
 			AssignGrain(home,node1, currInGrain);
 			AssignConstraint(home, node1, storeConstraint);
 		
@@ -1703,16 +1697,16 @@ int PenetrationSurface(Home_t *home, Node_t *node, Grain_t *oldGrain,
 			AssignConstraint(home, node1, storeConstraint);
 			
 			ChangeConnection(home, node1, &node3->myTag, &node2->myTag, 1);
-			InsertArm(home, node2, &node1->myTag, -peneRes->outBurg[i][XC],
-					  -peneRes->outBurg[i][YC], -peneRes->outBurg[i][ZC],
-					  peneRes->outNormal[i][XC],peneRes->outNormal[i][YC],peneRes->outNormal[i][ZC],1);
+			InsertArm(home, node2, &node1->myTag, -pene->outBurg[i][XC],
+					  -pene->outBurg[i][YC], -pene->outBurg[i][ZC],
+					  pene->outNormal[i][XC],pene->outNormal[i][YC],pene->outNormal[i][ZC],1);
 			ChangeArmBurg(home, node3, &node1->myTag, 0,0,0,0,0,0,1,DEL_SEG_NONE);
 			
-			ChangeArmBurg(home, node3, &node2->myTag, peneRes->GBBurg[i][XC],
-					  peneRes->GBBurg[i][YC], peneRes->GBBurg[i][ZC],
+			ChangeArmBurg(home, node3, &node2->myTag, pene->GBBurg[i][XC],
+					  pene->GBBurg[i][YC], pene->GBBurg[i][ZC],
 					  GBPlane->normal[XC],GBPlane->normal[YC],GBPlane->normal[ZC],1,DEL_SEG_NONE);
-			ChangeArmBurg(home, node2, &node3->myTag, -peneRes->GBBurg[i][XC],
-					  -peneRes->GBBurg[i][YC], -peneRes->GBBurg[i][ZC],
+			ChangeArmBurg(home, node2, &node3->myTag, -pene->GBBurg[i][XC],
+					  -pene->GBBurg[i][YC], -pene->GBBurg[i][ZC],
 					  GBPlane->normal[XC],GBPlane->normal[YC],GBPlane->normal[ZC],1,DEL_SEG_NONE);
 			AssignGrain(home,node3, TBInGrain);
 			AssignConstraint(home, node3, storeConstraint);
@@ -1826,18 +1820,18 @@ void HandleGrainBoundary(Home_t *home){
 	Plane_t		GBPlane, norPlane, surPlane;
 	Line_t		line;
 	Grain_t		*oldGrain, *currGrain;
-	PeneRes_t	peneRes;
+	Pene_t	pene;
 
 	
 	param = home->param;
 	
-	peneRes.nSets = MAX_PENE_SETS;
+	pene.nSets = MAX_PENE_SETS;
 	
-	peneRes.effective = (int *) calloc(1, sizeof(int) * MAX_PENE_SETS);
-	peneRes.powerDis = (real8 *) calloc(1, sizeof(real8) * MAX_PENE_SETS);
-	peneRes.outNormal = (real8 (*)[3]) calloc(1, sizeof(real8) * MAX_PENE_SETS * 3);
-	peneRes.outBurg = (real8 (*)[3]) calloc(1, sizeof(real8) * MAX_PENE_SETS * 3);
-	peneRes.GBBurg = (real8 (*)[3]) calloc(1, sizeof(real8) * MAX_PENE_SETS * 3);
+	pene.effective = (int *) calloc(1, sizeof(int) * MAX_PENE_SETS);
+	pene.powerDis = (real8 *) calloc(1, sizeof(real8) * MAX_PENE_SETS);
+	pene.outNormal = (real8 (*)[3]) calloc(1, sizeof(real8) * MAX_PENE_SETS * 3);
+	pene.outBurg = (real8 (*)[3]) calloc(1, sizeof(real8) * MAX_PENE_SETS * 3);
+	pene.GBBurg = (real8 (*)[3]) calloc(1, sizeof(real8) * MAX_PENE_SETS * 3);
 	
 	
 	for(i=0;i<home->newNodeKeyPtr;i++){
@@ -1925,7 +1919,7 @@ void HandleGrainBoundary(Home_t *home){
 	            continue;
 	        }
 
-	        if(!PenetrationSurface(home, node, oldGrain, currGrain, &GBPlane, &peneRes)){
+	        if(!PenetrationSurface(home, node, oldGrain, currGrain, &GBPlane, &pene)){
 	            PullBack(home, node, oldInGrain);
 	        }
 
@@ -1979,7 +1973,7 @@ void HandleGrainBoundary(Home_t *home){
             }
             	
 	    if(numNbrOnGB == 0){
-                if(!GetPeneResults(home, node, nbrNode2, &peneRes,
+                if(!GetPenResults(home, node, nbrNode2, &pene,
                    oldGrain, currGrain, &GBPlane)){
 		    PullBack(home,node, oldInGrain);
 		    continue;
@@ -1992,7 +1986,7 @@ void HandleGrainBoundary(Home_t *home){
  */
 
 #if ENERGY_RULER
-	    if(EnergyRule(home, node, &GBPlane, &peneRes) == 0){
+	    if(EnergyRule(home, node, &GBPlane, &pene) == 0){
                 PullBack(home,node, oldInGrain);
                 continue;
 	    }
@@ -2021,7 +2015,7 @@ void HandleGrainBoundary(Home_t *home){
 
             if(numNbrOnGB == 0){
 
-                if(!PenetrationFirst(home, node, oldGrain, currGrain, &GBPlane, &peneRes)){
+                if(!PenetrationFirst(home, node, oldGrain, currGrain, &GBPlane, &pene)){
                     PullBack(home,node, oldInGrain);
                     continue;
                 }

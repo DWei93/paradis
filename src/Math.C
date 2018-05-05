@@ -10,8 +10,13 @@
  **************************************************************************/
 
 #include <stdio.h>
-#include <math.h> 
+#include <unistd.h>
+#include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
+#include <errno.h>
+
+#include "Math.h"
 
 #ifdef PARALLEL
 #include "mpi.h"
