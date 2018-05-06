@@ -178,7 +178,7 @@ static void BuildMigLists(Home_t *home, int *migCommList, int **migList,
  *          migCounts  Array of counts of items being migrated to each
  *                     remote domain. Array size equals the number of domains
  *                     Number of nodes being migrated to domain X will be
- *                     located in migCounts[X]
+ *                     located in migCounts[0]
  *          sendBuf    Pointer in which to return the pointer to the
  *                     allocated buffer.  Caller will be responsible for
  *                     freeing the buffer.
@@ -418,7 +418,7 @@ static void UnpackMigrators(Home_t *home, real8 *buf, int remDomID)
  *          migListCnt  Array of counts of items being migrated to each
  *                      remote domain. Array size equals the number of domains
  *                      Number of nodes being migrated to domain X will be
- *                      located in migCounts[X].
+ *                      located in migCounts[0].
  *          sendBufDest Array of of domain IDs to which this domain will
  *                      be migrating nodes.
  *          numSendBufs The number of domains to which the local domain

@@ -243,13 +243,13 @@ static void TestSurfaceSplit(Home_t *home, Node_t *node, int segCnt,
         *errStatus = 0;
         *isSelected = 0;
 
-        origPos[X] = node->x;
-        origPos[Y] = node->y;
-        origPos[Z] = node->z;
+        origPos[0] = node->x;
+        origPos[1] = node->y;
+        origPos[2] = node->z;
 
-        origVel[X] = node->vX;
-        origVel[Y] = node->vY;
-        origVel[Z] = node->vZ;
+        origVel[0] = node->vX;
+        origVel[1] = node->vY;
+        origVel[2] = node->vZ;
 
 /*
  *      Note: for this test, both the node being split and the resulting
@@ -367,13 +367,13 @@ static void TestSurfaceSplit(Home_t *home, Node_t *node, int segCnt,
  *                  Calculate glide plane normal as
  *                  n = cross ( burg(x,y,z), dir(x,y,z))
  */
-                    burg[X] = node->burgX[armIndex];
-                    burg[Y] = node->burgY[armIndex];
-                    burg[Z] = node->burgZ[armIndex];
+                    burg[0] = node->burgX[armIndex];
+                    burg[1] = node->burgY[armIndex];
+                    burg[2] = node->burgZ[armIndex];
 
-                    dirvec[X] = dirx;
-                    dirvec[Y] = diry;
-                    dirvec[Z] = dirz;
+                    dirvec[0] = dirx;
+                    dirvec[1] = diry;
+                    dirvec[2] = dirz;
 
                     FindPreciseGlidePlane(home, burg, dirvec, nplane, splitNode1,splitNode2);
 
@@ -387,18 +387,18 @@ static void TestSurfaceSplit(Home_t *home, Node_t *node, int segCnt,
 											splitNode1,splitNode2);
                     }
 
-                    Normalize(&nplane[X], &nplane[Y], &nplane[Z]);
+                    Normalize(&nplane[0], &nplane[1], &nplane[2]);
 
-                    splitNode1->nx[armIndex] = nplane[X];
-                    splitNode1->ny[armIndex] = nplane[Y];
-                    splitNode1->nz[armIndex] = nplane[Z];
+                    splitNode1->nx[armIndex] = nplane[0];
+                    splitNode1->ny[armIndex] = nplane[1];
+                    splitNode1->nz[armIndex] = nplane[2];
 
                     armIndex = GetArmID(home, splitNode2,
                                         splitNode1);
 
-                    splitNode2->nx[armIndex] = nplane[X];
-                    splitNode2->ny[armIndex] = nplane[Y];
-                    splitNode2->nz[armIndex] = nplane[Z];
+                    splitNode2->nx[armIndex] = nplane[0];
+                    splitNode2->ny[armIndex] = nplane[1];
+                    splitNode2->nz[armIndex] = nplane[2];
                  }
 
                 mobError  = EvaluateMobility(home, splitNode1);
@@ -455,13 +455,13 @@ static void TestSurfaceSplit(Home_t *home, Node_t *node, int segCnt,
  */
             if ((powerTest - (*powerMax)) > eps) {
 
-                v1[X] = splitNode1->vX;
-                v1[Y] = splitNode1->vY;
-                v1[Z] = splitNode1->vZ;
+                v1[0] = splitNode1->vX;
+                v1[1] = splitNode1->vY;
+                v1[2] = splitNode1->vZ;
 
-                v2[X] = splitNode2->vX;
-                v2[Y] = splitNode2->vY;
-                v2[Z] = splitNode2->vZ;
+                v2[0] = splitNode2->vX;
+                v2[1] = splitNode2->vY;
+                v2[2] = splitNode2->vZ;
 
                 *isSelected = 1;
                 *powerMax = powerTest;
@@ -498,9 +498,9 @@ static void TestSurfaceSplit(Home_t *home, Node_t *node, int segCnt,
  */
         if (origNode->constraint != SURFACE_NODE) {
 
-            origNode->x = origPos[X];
-            origNode->y = origPos[Y];
-            origNode->z = origPos[Z];
+            origNode->x = origPos[0];
+            origNode->y = origPos[1];
+            origNode->z = origPos[2];
 
             origNode->constraint = SURFACE_NODE;
 
@@ -746,38 +746,38 @@ void SplitSurfaceNodes(Home_t *home)
  *              at the original location and node with the
  *              higher velocity will be moved.
  */
-                vd1 = v1[X] * v1[X] +
-                      v1[Y] * v1[Y] +
-                      v1[Z] * v1[Z];
+                vd1 = v1[0] * v1[0] +
+                      v1[1] * v1[1] +
+                      v1[2] * v1[2];
 
-                vd2 = v2[X] * v2[X] +
-                      v2[Y] * v2[Y] +
-                      v2[Z] * v2[Z];
+                vd2 = v2[0] * v2[0] +
+                      v2[1] * v2[1] +
+                      v2[2] * v2[2];
 
                 if (vd1 > vd2) {
                     invvNorm = 1.0 / sqrt(vd1);
-                    dirx = v1[X] * invvNorm;
-                    diry = v1[Y] * invvNorm;
-                    dirz = v1[Z] * invvNorm;
-                    pos2[X] = node->x;
-                    pos2[Y] = node->y;
-                    pos2[Z] = node->z;
-                    pos1[X] = node->x+(splitDist*(1.0+eps)*dirx);
-                    pos1[Y] = node->y+(splitDist*(1.0+eps)*diry);
-                    pos1[Z] = node->z+(splitDist*(1.0+eps)*dirz);
-                    FoldBox(param, &pos1[X], &pos1[Y], &pos1[Z]);
+                    dirx = v1[0] * invvNorm;
+                    diry = v1[1] * invvNorm;
+                    dirz = v1[2] * invvNorm;
+                    pos2[0] = node->x;
+                    pos2[1] = node->y;
+                    pos2[2] = node->z;
+                    pos1[0] = node->x+(splitDist*(1.0+eps)*dirx);
+                    pos1[1] = node->y+(splitDist*(1.0+eps)*diry);
+                    pos1[2] = node->z+(splitDist*(1.0+eps)*dirz);
+                    FoldBox(param, &pos1[0], &pos1[1], &pos1[2]);
                 } else {
                     invvNorm = 1.0 / sqrt(vd2);
-                    dirx = v2[X] * invvNorm;
-                    diry = v2[Y] * invvNorm;
-                    dirz = v2[Z] * invvNorm;
-                    pos1[X] = node->x;
-                    pos1[Y] = node->y;
-                    pos1[Z] = node->z;
-                    pos2[X] = node->x+(splitDist*(1.0+eps)*dirx);
-                    pos2[Y] = node->y+(splitDist*(1.0+eps)*diry);
-                    pos2[Z] = node->z+(splitDist*(1.0+eps)*dirz);
-                    FoldBox(param, &pos2[X], &pos2[Y], &pos2[Z]);
+                    dirx = v2[0] * invvNorm;
+                    diry = v2[1] * invvNorm;
+                    dirz = v2[2] * invvNorm;
+                    pos1[0] = node->x;
+                    pos1[1] = node->y;
+                    pos1[2] = node->z;
+                    pos2[0] = node->x+(splitDist*(1.0+eps)*dirx);
+                    pos2[1] = node->y+(splitDist*(1.0+eps)*diry);
+                    pos2[2] = node->z+(splitDist*(1.0+eps)*dirz);
+                    FoldBox(param, &pos2[0], &pos2[1], &pos2[2]);
                 }
 
 /*

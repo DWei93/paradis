@@ -112,8 +112,13 @@ int NodeOwnsSeg(Home_t *home, Node_t *node1, Node_t *node2)
         int    cell2X, cell2Y, cell2Z;
         int    diffX, diffY, diffZ;
         Cell_t *cell;
-
-
+        if(node1 == (Node_t *)NULL || node2 == (Node_t *)NULL){
+            Fatal("NodeOwnsSeg (Node_t *)NULL");
+        }
+        
+        if(node1->cellIdx < 0 || node2->cellIdx < 0){
+            Fatal("NodeOwnsSeg: cellIdx < 0");
+        }
         if (node1->cellIdx == node2->cellIdx) {
             if (node1->myTag.domainID == node2->myTag.domainID) {
                 return(node1->myTag.index > node2->myTag.index);
@@ -263,17 +268,17 @@ void FindSubFSeg(Home_t *home, real8 p1[3], real8 p2[3], real8 burg[3],
     NU    = param->pois;
     a     = param->rc;
 
-    L = (p2[XC]-p1[XC])*(p2[XC]-p1[XC]) + 
-        (p2[YC]-p1[YC])*(p2[YC]-p1[YC]) + 
-        (p2[ZC]-p1[ZC])*(p2[ZC]-p1[ZC]);
+    L = (p2[0]-p1[0])*(p2[0]-p1[0]) + 
+        (p2[1]-p1[1])*(p2[1]-p1[1]) + 
+        (p2[2]-p1[2])*(p2[2]-p1[2]);
 
-    Lsub1 = (newpos[XC]-p1[XC])*(newpos[XC]-p1[XC]) +
-            (newpos[YC]-p1[YC])*(newpos[YC]-p1[YC]) +
-            (newpos[ZC]-p1[ZC])*(newpos[ZC]-p1[ZC]);
+    Lsub1 = (newpos[0]-p1[0])*(newpos[0]-p1[0]) +
+            (newpos[1]-p1[1])*(newpos[1]-p1[1]) +
+            (newpos[2]-p1[2])*(newpos[2]-p1[2]);
 
-    Lsub2 = (p2[XC]-newpos[XC])*(p2[XC]-newpos[XC]) +
-            (p2[YC]-newpos[YC])*(p2[YC]-newpos[YC]) +
-            (p2[ZC]-newpos[ZC])*(p2[ZC]-newpos[ZC]);
+    Lsub2 = (p2[0]-newpos[0])*(p2[0]-newpos[0]) +
+            (p2[1]-newpos[1])*(p2[1]-newpos[1]) +
+            (p2[2]-newpos[2])*(p2[2]-newpos[2]);
 
 /*
  *  It is possible to have a zero-length segment generated during
@@ -300,8 +305,8 @@ void FindSubFSeg(Home_t *home, real8 p1[3], real8 p2[3], real8 burg[3],
 /*
  *  Find the self-force for this segment and subtract it off
  */
-    SelfForce(0, MU, NU, burg[XC], burg[YC], burg[ZC], p1[XC], p1[YC], p1[ZC],
-              p2[XC], p2[YC], p2[ZC], a, Ecore, f1, f2);
+    SelfForce(0, MU, NU, burg[0], burg[1], burg[2], p1[0], p1[1], p1[2],
+              p2[0], p2[1], p2[2], a, Ecore, f1, f2);
 
     for (i = 0; i < 3; i++) {
         oldfp1[i] -= f1[i];
@@ -336,28 +341,28 @@ void FindSubFSeg(Home_t *home, real8 p1[3], real8 p2[3], real8 burg[3],
  *  new interaction between the two new segments that was not 
  *  included in the previous segment calculation
  */
-    SelfForce(0, MU, NU, burg[XC], burg[YC], burg[ZC], p1[XC], p1[YC], p1[ZC],
-              newpos[XC], newpos[YC], newpos[ZC], a, Ecore, f1, f2);
+    SelfForce(0, MU, NU, burg[0], burg[1], burg[2], p1[0], p1[1], p1[2],
+              newpos[0], newpos[1], newpos[2], a, Ecore, f1, f2);
 
     for (i = 0; i < 3; i++) {
         f0seg1[i] += f1[i];
         f1seg1[i] += f2[i];
     }
 
-    SelfForce(0, MU, NU, burg[XC], burg[YC], burg[ZC], newpos[XC], newpos[YC],
-              newpos[ZC], p2[XC], p2[YC], p2[ZC], a, Ecore, f1, f2);
+    SelfForce(0, MU, NU, burg[0], burg[1], burg[2], newpos[0], newpos[1],
+              newpos[2], p2[0], p2[1], p2[2], a, Ecore, f1, f2);
     
     for (i = 0; i < 3; i++) {
         f0seg2[i] += f1[i];
         f1seg2[i] += f2[i];
     }
 
-    SegSegForce(p1[XC], p1[YC], p1[ZC], newpos[XC], newpos[YC], newpos[ZC],
-                newpos[XC], newpos[YC], newpos[ZC], p2[XC], p2[YC], p2[ZC],
-                burg[XC], burg[YC], burg[ZC], burg[XC], burg[YC], burg[ZC],
+    SegSegForce(p1[0], p1[1], p1[2], newpos[0], newpos[1], newpos[2],
+                newpos[0], newpos[1], newpos[2], p2[0], p2[1], p2[2],
+                burg[0], burg[1], burg[2], burg[0], burg[1], burg[2],
                 a, MU, NU, isLocal, isLocal,
-                &f1[XC], &f1[YC], &f1[ZC], &f2[XC], &f2[YC], &f2[ZC],
-                &f3[XC], &f3[YC], &f3[ZC], &f4[XC], &f4[YC], &f4[ZC]);
+                &f1[0], &f1[1], &f1[2], &f2[0], &f2[1], &f2[2],
+                &f3[0], &f3[1], &f3[2], &f4[0], &f4[1], &f4[2]);
 
     for (i = 0; i < 3; i++) {
         f0seg1[i] += f1[i];
@@ -412,28 +417,28 @@ void FindFSegComb(Home_t *home, real8 p0[3], real8 p1[3], real8 p2[3],
     NU    = param->pois;
     a     = param->rc;
 
-    Lsub1 = (p1[XC]-p0[XC])*(p1[XC]-p0[XC]) +
-            (p1[YC]-p0[YC])*(p1[YC]-p0[YC]) +
-            (p1[ZC]-p0[ZC])*(p1[ZC]-p0[ZC]);
+    Lsub1 = (p1[0]-p0[0])*(p1[0]-p0[0]) +
+            (p1[1]-p0[1])*(p1[1]-p0[1]) +
+            (p1[2]-p0[2])*(p1[2]-p0[2]);
 
-    Lsub2 = (p1[XC]-p2[XC])*(p1[XC]-p2[XC]) +
-            (p1[YC]-p2[YC])*(p1[YC]-p2[YC]) +
-            (p1[ZC]-p2[ZC])*(p1[ZC]-p2[ZC]);
+    Lsub2 = (p1[0]-p2[0])*(p1[0]-p2[0]) +
+            (p1[1]-p2[1])*(p1[1]-p2[1]) +
+            (p1[2]-p2[2])*(p1[2]-p2[2]);
 
 /*
  *  Find the self force of each segment at each point and subtract
  *  it off.
  */
-    SelfForce(0, MU, NU, burg1[XC], burg1[YC], burg1[ZC], p0[XC], p0[YC], p0[ZC],
-              p1[XC], p1[YC], p1[ZC], a, Ecore, f1, f2);
+    SelfForce(0, MU, NU, burg1[0], burg1[1], burg1[2], p0[0], p0[1], p0[2],
+              p1[0], p1[1], p1[2], a, Ecore, f1, f2);
     
     for (i = 0; i < 3; i++) {
         tmpfp0seg1[i] = fp0seg1[i] - f1[i];
         tmpfp1seg1[i] = fp1seg1[i] - f2[i];
     }
 
-    SelfForce(0, MU, NU, burg2[XC], burg2[YC], burg2[ZC], p1[XC], p1[YC], p1[ZC],
-              p2[XC], p2[YC], p2[ZC], a, Ecore, f1, f2);
+    SelfForce(0, MU, NU, burg2[0], burg2[1], burg2[2], p1[0], p1[1], p1[2],
+              p2[0], p2[1], p2[2], a, Ecore, f1, f2);
     
     for (i = 0; i < 3; i++) {
         tmpfp1seg2[i] = fp1seg2[i] - f1[i];
@@ -444,12 +449,12 @@ void FindFSegComb(Home_t *home, real8 p0[3], real8 p1[3], real8 p2[3],
  *  Find the segment/segment forces between the two segments and subtract
  *  that off also.
  */
-    SegSegForce(p0[XC], p0[YC], p0[ZC], p1[XC], p1[YC], p1[ZC],
-                p1[XC], p1[YC], p1[ZC], p2[XC], p2[YC], p2[ZC],
-                burg1[XC], burg1[YC], burg1[ZC], burg2[XC], burg2[YC], burg2[ZC],
+    SegSegForce(p0[0], p0[1], p0[2], p1[0], p1[1], p1[2],
+                p1[0], p1[1], p1[2], p2[0], p2[1], p2[2],
+                burg1[0], burg1[1], burg1[2], burg2[0], burg2[1], burg2[2],
                 a, MU, NU, isLocal, isLocal,
-                &f1[XC], &f1[YC], &f1[ZC], &f2[XC], &f2[YC], &f2[ZC],
-                &f3[XC], &f3[YC], &f3[ZC], &f4[XC], &f4[YC], &f4[ZC]);
+                &f1[0], &f1[1], &f1[2], &f2[0], &f2[1], &f2[2],
+                &f3[0], &f3[1], &f3[2], &f4[0], &f4[1], &f4[2]);
 
     for (i = 0; i < 3; i++) {
         tmpfp0seg1[i] -= f1[i];
@@ -469,7 +474,7 @@ void FindFSegComb(Home_t *home, real8 p0[3], real8 p1[3], real8 p2[3],
  *  If the two segments are redundant links between two nodes, we have
  *  to do some special handling.
  */
-    if ((p0[XC] == p2[XC]) && (p0[XC] == p2[XC]) && (p0[XC] == p2[XC])) {
+    if ((p0[0] == p2[0]) && (p0[0] == p2[0]) && (p0[0] == p2[0])) {
         L = Lsub1;
         for (i = 0; i < 3; i++) {
             f0new[i] = (2.0 * (fLinv1a[i] + fLinv2b[i]) +
@@ -478,9 +483,9 @@ void FindFSegComb(Home_t *home, real8 p0[3], real8 p1[3], real8 p2[3],
                         fLinv1a[i]+fLinv2b[i]) * L / 6.0;
         }
     } else {
-        L = (p0[XC]-p2[XC]) * (p0[XC]-p2[XC]) +
-            (p0[YC]-p2[YC]) * (p0[YC]-p2[YC]) +
-            (p0[ZC]-p2[ZC]) * (p0[ZC]-p2[ZC]);
+        L = (p0[0]-p2[0]) * (p0[0]-p2[0]) +
+            (p0[1]-p2[1]) * (p0[1]-p2[1]) +
+            (p0[2]-p2[2]) * (p0[2]-p2[2]);
         
         for (i = 0; i < 3; i++) {
             f0new[i] = ((2.0 * fLinv1a[i]) + fLinv1b[i]) * L / 6.0;
@@ -488,8 +493,8 @@ void FindFSegComb(Home_t *home, real8 p0[3], real8 p1[3], real8 p2[3],
         }
     }
 
-    SelfForce(0, MU, NU, burg1[XC], burg1[YC], burg1[ZC], p0[XC], p0[YC], p0[ZC],
-              p2[XC], p2[YC], p2[ZC], a, Ecore, f1, f2);
+    SelfForce(0, MU, NU, burg1[0], burg1[1], burg1[2], p0[0], p0[1], p0[2],
+              p2[0], p2[1], p2[2], a, Ecore, f1, f2);
 
     for (i = 0; i < 3; i++) {
         f0new[i] += f1[i];
@@ -1824,9 +1829,9 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
                                         x3, y3, z3, x4, y4, z4,
                                         -b12x, -b12y, -b12z,
                                         b34x, b34y, b34z, a, MU, NU,
-                                        &siF1[XC], &siF1[YC], &siF1[ZC],
-                                        &siF3[XC], &siF3[YC], &siF3[ZC],
-                                        &siF4[XC], &siF4[YC], &siF4[ZC]);
+                                        &siF1[0], &siF1[1], &siF1[2],
+                                        &siF3[0], &siF3[1], &siF3[2],
+                                        &siF4[0], &siF4[1], &siF4[2]);
                 for (i = 0; i < 3; i++) {
                     f3[i] += siF3[i];
                     f4[i] += siF4[i];
@@ -1851,9 +1856,9 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
                                         x3, y3, z3, x4, y4, z4,
                                         b12x, b12y, b12z,
                                         b34x, b34y, b34z, a, MU, NU,
-                                        &siF1[XC], &siF1[YC], &siF1[ZC],
-                                        &siF3[XC], &siF3[YC], &siF3[ZC],
-                                        &siF4[XC], &siF4[YC], &siF4[ZC]);
+                                        &siF1[0], &siF1[1], &siF1[2],
+                                        &siF3[0], &siF3[1], &siF3[2],
+                                        &siF4[0], &siF4[1], &siF4[2]);
                 for (i = 0; i < 3; i++) {
                     f3[i] += siF3[i];
                     f4[i] += siF4[i];
@@ -1877,9 +1882,9 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
                                         x1, y1, z1, x2, y2, z2,
                                         -b34x, -b34y, -b34z,
                                         b12x, b12y, b12z, a, MU, NU,
-                                        &siF1[XC], &siF1[YC], &siF1[ZC],
-                                        &siF3[XC], &siF3[YC], &siF3[ZC],
-                                        &siF4[XC], &siF4[YC], &siF4[ZC]);
+                                        &siF1[0], &siF1[1], &siF1[2],
+                                        &siF3[0], &siF3[1], &siF3[2],
+                                        &siF4[0], &siF4[1], &siF4[2]);
                 for (i = 0; i < 3; i++) {
                     f1[i] += siF3[i];
                     f2[i] += siF4[i];
@@ -1903,9 +1908,9 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
                                         x1, y1, z1, x2, y2, z2,
                                         b34x, b34y, b34z,
                                         b12x, b12y, b12z, a, MU, NU,
-                                        &siF1[XC], &siF1[YC], &siF1[ZC],
-                                        &siF3[XC], &siF3[YC], &siF3[ZC],
-                                        &siF4[XC], &siF4[YC], &siF4[ZC]);
+                                        &siF1[0], &siF1[1], &siF1[2],
+                                        &siF3[0], &siF3[1], &siF3[2],
+                                        &siF4[0], &siF4[1], &siF4[2]);
                  for (i = 0; i < 3; i++) {
                     f1[i] += siF3[i];
                     f2[i] += siF4[i];
@@ -2056,9 +2061,9 @@ void LocalSegForces(Home_t *home, int reqType)
                 continue;
             }
 
-            pos1[XC] = node1->x;
-            pos1[YC] = node1->y;
-            pos1[ZC] = node1->z;
+            pos1[0] = node1->x;
+            pos1[1] = node1->y;
+            pos1[2] = node1->z;
 
             for (j = 0; j < node1->numNbrs; j++) {
 
@@ -2077,9 +2082,9 @@ void LocalSegForces(Home_t *home, int reqType)
                     continue;
                 }
 
-                dx = node2->x - pos1[XC];
-                dy = node2->y - pos1[YC];
-                dz = node2->z - pos1[ZC];
+                dx = node2->x - pos1[0];
+                dy = node2->y - pos1[1];
+                dz = node2->z - pos1[2];
 
                 ZImage(param, &dx, &dy, &dz);
 
@@ -2092,13 +2097,13 @@ void LocalSegForces(Home_t *home, int reqType)
                     continue;
                 }
 
-                pos2[XC] = pos1[XC] + dx;
-                pos2[YC] = pos1[YC] + dy;
-                pos2[ZC] = pos1[ZC] + dz;
+                pos2[0] = pos1[0] + dx;
+                pos2[1] = pos1[1] + dy;
+                pos2[2] = pos1[2] + dz;
 
-                burg[XC] = node1->burgX[j];
-                burg[YC] = node1->burgY[j];
-                burg[ZC] = node1->burgZ[j];
+                burg[0] = node1->burgX[j];
+                burg[1] = node1->burgY[j];
+                burg[2] = node1->burgZ[j];
 
                 armID12 = j;
                 armID21 = GetArmID(home, node2, node1);
@@ -2125,9 +2130,9 @@ void LocalSegForces(Home_t *home, int reqType)
 /*
  *                  Add in force due to self stress
  */
-                    SelfForce(0, MU, NU, burg[XC], burg[YC], burg[ZC],
-                              pos1[XC], pos1[YC], pos1[ZC],
-                              pos2[XC], pos2[YC], pos2[ZC],
+                    SelfForce(0, MU, NU, burg[0], burg[1], burg[2],
+                              pos1[0], pos1[1], pos1[2],
+                              pos2[0], pos2[1], pos2[2],
                               a, Ecore, f1, f2);
 
                     AddtoArmForce(node1, armID12, f1);
@@ -2135,9 +2140,9 @@ void LocalSegForces(Home_t *home, int reqType)
 /*
  *                  Add in force due to external stress
  */
-                    ExtPKForce(extStress, burg[XC], burg[YC], burg[ZC],
-                               pos1[XC], pos1[YC], pos1[ZC],
-                               pos2[XC], pos2[YC], pos2[ZC], f1, f2);
+                    ExtPKForce(extStress, burg[0], burg[1], burg[2],
+                               pos1[0], pos1[1], pos1[2],
+                               pos2[0], pos2[1], pos2[2], f1, f2);
 
                     AddtoArmForce(node1, armID12, f1);
                     AddtoArmForce(node2, armID21, f2);
@@ -2152,8 +2157,8 @@ void LocalSegForces(Home_t *home, int reqType)
                     sigb[1] = node1->sigbRem[armID12*3+1];
                     sigb[2] = node1->sigbRem[armID12*3+2];
 
-                    PKForce(sigb, pos1[XC], pos1[YC], pos1[ZC],
-                            pos2[XC], pos2[YC], pos2[ZC], f1, f2);
+                    PKForce(sigb, pos1[0], pos1[1], pos1[2],
+                            pos2[0], pos2[1], pos2[2], f1, f2);
 
                     AddtoArmForce(node1, armID12, f1);
                     AddtoArmForce(node2, armID21, f2);
@@ -2472,7 +2477,7 @@ void LocalSegForces(Home_t *home, int reqType)
                     nbr = GetNeighborNode(home, node, arm);
 
                     if (nbr == (Node_t *)NULL) {
-                        printf("WARNING: Neighbor not found at %s line %d\n",
+                        Fatal("WARNING: Neighbor not found at %s line %d\n",
                                __FILE__, __LINE__);
                         continue;
                     }

@@ -33,7 +33,6 @@ int    EncodeCellIdx(Home_t *home, int iX, int jY, int kZ);
 int    EncodeCell2Idx(Home_t *home, int iX, int jY, int kZ);
 int    EncodeDomainIdx(Home_t *home, int iXdom, int jYdom, int kZdom);
 
-
 /*
  *      Various numerical operations
  */
@@ -82,6 +81,8 @@ void   InsertArm(Home_t *home, Node_t *nodeA, Tag_t *nodeBtag,
           real8 bx, real8 by, real8 bz,
           real8 nx, real8 ny, real8 nz, int Log);
 void   MarkNodeForceObsolete(Home_t *home, Node_t *node);
+void   MarkNodeNoMeshCoarsen(Home_t *home, Node_t *node);
+void   MarkNodeNoCollisions(Home_t *home, Node_t *node);
 real8 NodeDistance(Home_t *home, Node_t *node1, Node_t *node2);
 void   PrintNode(Node_t *node);
 void PrintNbr(Home_t *home, Node_t *node);

@@ -101,19 +101,19 @@ void FMPrint(Home_t *home)
         layer = &home->fmLayer[layerID];
 
         fprintf(fp, "\nLayer %d\n", layerID);
-        fprintf(fp, "	lDim      = %d, %d, %d\n", layer->lDim[XC],
-                layer->lDim[YC], layer->lDim[ZC]);
+        fprintf(fp, "	lDim      = %d, %d, %d\n", layer->lDim[0],
+                layer->lDim[1], layer->lDim[2]);
         fprintf(fp, "	ownedCnt  = %d\n", layer->ownedCnt);
-        fprintf(fp, "	ownedMin  = %d, %d, %d\n", layer->ownedMin[XC],
-                layer->ownedMin[YC], layer->ownedMin[ZC]);
-        fprintf(fp, "	ownedMax  = %d, %d, %d\n", layer->ownedMax[XC],
-                layer->ownedMax[YC], layer->ownedMax[ZC]);
+        fprintf(fp, "	ownedMin  = %d, %d, %d\n", layer->ownedMin[0],
+                layer->ownedMin[1], layer->ownedMin[2]);
+        fprintf(fp, "	ownedMax  = %d, %d, %d\n", layer->ownedMax[0],
+                layer->ownedMax[1], layer->ownedMax[2]);
 
         fprintf(fp, "\n	Domain ownership:\n");
 
-        for (x = 0; x < layer->lDim[XC]; x++) {
-            for (y = 0; y < layer->lDim[YC]; y++) {
-                for (z = 0; z < layer->lDim[ZC]; z++) {
+        for (x = 0; x < layer->lDim[0]; x++) {
+            for (y = 0; y < layer->lDim[1]; y++) {
+                for (z = 0; z < layer->lDim[2]; z++) {
                     cellID = EncodeFMCellIndex(layer->lDim, x, y, z);
                     cData = &layer->fmcData[cellID];
                     numDoms = cData->domCnt;
@@ -165,9 +165,9 @@ static int FindFMCellOwner(Home_t *home, FMLayer_t *layer, int cellX,
 
         param = home->param;
 
-        xFact = (real8)param->nXdoms / (real8)layer->lDim[XC];
-        yFact = (real8)param->nYdoms / (real8)layer->lDim[YC];
-        zFact = (real8)param->nZdoms / (real8)layer->lDim[ZC];
+        xFact = (real8)param->nXdoms / (real8)layer->lDim[0];
+        yFact = (real8)param->nYdoms / (real8)layer->lDim[1];
+        zFact = (real8)param->nZdoms / (real8)layer->lDim[2];
 
         tx = (real8)cellX * xFact;
         ty = (real8)cellY * yFact;
@@ -202,8 +202,8 @@ void DecodeFMCellIndex(int dim[3], int cellID, int *x, int *y, int *z)
 {
         int rem, fullPlane, fullLine;
 
-        fullPlane = dim[ZC] * dim[YC];
-        fullLine = dim[ZC];
+        fullPlane = dim[2] * dim[1];
+        fullLine = dim[2];
 
         *x  = cellID / fullPlane ;
         rem = cellID - (*x) * fullPlane ;
@@ -632,9 +632,9 @@ static void FMSetCellDomLists(Home_t *home)
  *      count and list of domains intersecting the cell.
  */ 
         if (layer->ownedCnt > 0) {
-            for (x = layer->ownedMin[XC]; x <= layer->ownedMax[XC]; x++) {
-                for (y = layer->ownedMin[YC]; y <= layer->ownedMax[YC]; y++) {
-                    for (z = layer->ownedMin[ZC]; z <= layer->ownedMax[ZC]; z++) {
+            for (x = layer->ownedMin[0]; x <= layer->ownedMax[0]; x++) {
+                for (y = layer->ownedMin[1]; y <= layer->ownedMax[1]; y++) {
+                    for (z = layer->ownedMin[2]; z <= layer->ownedMax[2]; z++) {
 
 /*
  *                      There are two distinct cell ID used here.  The first
@@ -678,9 +678,9 @@ static void FMSetCellDomLists(Home_t *home)
                 bMax[i] = (pLayer->ownedMax[i] << 1) + 1;
             }
 
-            for (x = bMin[XC]; x <= bMax[XC]; x++) {
-                for (y = bMin[YC]; y <= bMax[YC]; y++) {
-                    for (z = bMin[ZC]; z <= bMax[ZC]; z++) {
+            for (x = bMin[0]; x <= bMax[0]; x++) {
+                for (y = bMin[1]; y <= bMax[1]; y++) {
+                    for (z = bMin[2]; z <= bMax[2]; z++) {
     
                         cellID = EncodeCellIdx(home, x+1, y+1, z+1);
                         cellID2 = EncodeFMCellIndex(layer->lDim, x, y, z);
@@ -792,9 +792,9 @@ static void FMSetDomLists(Home_t *home, int layerID)
             listCnt = 0;
             list = (int *)NULL;
 
-            for (x = bMin[XC]; x <= bMax[XC]; x ++) {
-                for (y = bMin[YC]; y <= bMax[YC]; y ++) {
-                    for (z = bMin[ZC]; z <= bMax[ZC]; z ++) {
+            for (x = bMin[0]; x <= bMax[0]; x ++) {
+                for (y = bMin[1]; y <= bMax[1]; y ++) {
+                    for (z = bMin[2]; z <= bMax[2]; z ++) {
                         cellID = EncodeFMCellIndex(pLayer->lDim, x, y, z);
                         cell = LookupFMCell(pLayer->cellTable, cellID);
                         if (cell == (FMCell_t *)NULL) {
@@ -837,9 +837,9 @@ static void FMSetDomLists(Home_t *home, int layerID)
             listCnt = 0;
             list = (int *)NULL;
 
-            for (x = bMin[XC]; x <= bMax[XC]; x ++) {
-                for (y = bMin[YC]; y <= bMax[YC]; y ++) {
-                    for (z = bMin[ZC]; z <= bMax[ZC]; z ++) {
+            for (x = bMin[0]; x <= bMax[0]; x ++) {
+                for (y = bMin[1]; y <= bMax[1]; y ++) {
+                    for (z = bMin[2]; z <= bMax[2]; z ++) {
                         if (layerID == param->fmNumLayers-1) {
                             cellID = EncodeFMCellIndex(layer->lDim, x, y, z);
                             cell = LookupFMCell(layer->cellTable, cellID);
@@ -902,12 +902,12 @@ static void FMSetDomLists(Home_t *home, int layerID)
             FMFindNearNbrs(home, layerID+1, bMin, bMax,
                            tmp2Min, tmp2Max, trimOverlap);
 
-            for (ix = tmp2Min[XC]; ix <= tmp2Max[XC]; ix ++) {
-                x = GETPBCINDEX(ix, cLayer->lDim[XC]);
-                for (iy = tmp2Min[YC]; iy <= tmp2Max[YC]; iy ++) {
-                    y = GETPBCINDEX(iy, cLayer->lDim[YC]);
-                    for (iz = tmp2Min[ZC]; iz <= tmp2Max[ZC]; iz ++) {
-                        z = GETPBCINDEX(iz, cLayer->lDim[ZC]);
+            for (ix = tmp2Min[0]; ix <= tmp2Max[0]; ix ++) {
+                x = GETPBCINDEX(ix, cLayer->lDim[0]);
+                for (iy = tmp2Min[1]; iy <= tmp2Max[1]; iy ++) {
+                    y = GETPBCINDEX(iy, cLayer->lDim[1]);
+                    for (iz = tmp2Min[2]; iz <= tmp2Max[2]; iz ++) {
+                        z = GETPBCINDEX(iz, cLayer->lDim[2]);
                         cellID  = EncodeFMCellIndex(cLayer->lDim, x, y, z);
                         cell = LookupFMCell(cLayer->cellTable, cellID);
                         if (cell == (FMCell_t *)NULL) {
@@ -972,12 +972,12 @@ static void FMSetDomLists(Home_t *home, int layerID)
                 bMax[i] = tmp2Max[i] >> 1;
             }
             
-            for (ix = bMin[XC]; ix <= bMax[XC]; ix ++) {
-                x = GETPBCINDEX(ix, layer->lDim[XC]);
-                for (iy = bMin[YC]; iy <= bMax[YC]; iy ++) {
-                    y = GETPBCINDEX(iy, layer->lDim[YC]);
-                    for (iz = bMin[ZC]; iz <= bMax[ZC]; iz ++) {
-                        z = GETPBCINDEX(iz, layer->lDim[ZC]);
+            for (ix = bMin[0]; ix <= bMax[0]; ix ++) {
+                x = GETPBCINDEX(ix, layer->lDim[0]);
+                for (iy = bMin[1]; iy <= bMax[1]; iy ++) {
+                    y = GETPBCINDEX(iy, layer->lDim[1]);
+                    for (iz = bMin[2]; iz <= bMax[2]; iz ++) {
+                        z = GETPBCINDEX(iz, layer->lDim[2]);
                         cellID  = EncodeFMCellIndex(layer->lDim, x, y, z);
                         cell = LookupFMCell(layer->cellTable, cellID);
                         if (cell == (FMCell_t *)NULL) {
@@ -1026,9 +1026,9 @@ static void InitFMCell(Home_t *home, FMLayer_t *layer, FMCell_t *cell,
 
         DecodeFMCellIndex(layer->lDim, cell->cellID, &x, &y, &z);
 
-        xFact = (double)param->nXdoms / (double)layer->lDim[XC];
-        yFact = (double)param->nYdoms / (double)layer->lDim[YC];
-        zFact = (double)param->nZdoms / (double)layer->lDim[ZC];
+        xFact = (double)param->nXdoms / (double)layer->lDim[0];
+        yFact = (double)param->nYdoms / (double)layer->lDim[1];
+        zFact = (double)param->nZdoms / (double)layer->lDim[2];
 
         xDom = (int)((double)x * xFact);
         yDom = (int)((double)y * yFact);
@@ -1037,16 +1037,16 @@ static void InitFMCell(Home_t *home, FMLayer_t *layer, FMCell_t *cell,
         domID  = EncodeDomainIdx(home, xDom, yDom, zDom);
         cell->owningDom = domID;
 
-        cellSize[XC] = (param->maxSideX - param->minSideX) / layer->lDim[XC];
-        cellSize[YC] = (param->maxSideY - param->minSideY) / layer->lDim[YC];
-        cellSize[ZC] = (param->maxSideZ - param->minSideZ) / layer->lDim[ZC];
+        cellSize[0] = (param->maxSideX - param->minSideX) / layer->lDim[0];
+        cellSize[1] = (param->maxSideY - param->minSideY) / layer->lDim[1];
+        cellSize[2] = (param->maxSideZ - param->minSideZ) / layer->lDim[2];
 
-        cell->cellCtr[XC] = param->minSideX + (x * cellSize[XC]) +
-                           (0.5 * cellSize[XC]);
-        cell->cellCtr[YC] = param->minSideY + (y * cellSize[YC]) +
-                           (0.5 * cellSize[YC]);
-        cell->cellCtr[ZC] = param->minSideZ + (z * cellSize[ZC]) +
-                           (0.5 * cellSize[ZC]);
+        cell->cellCtr[0] = param->minSideX + (x * cellSize[0]) +
+                           (0.5 * cellSize[0]);
+        cell->cellCtr[1] = param->minSideY + (y * cellSize[1]) +
+                           (0.5 * cellSize[1]);
+        cell->cellCtr[2] = param->minSideZ + (z * cellSize[2]) +
+                           (0.5 * cellSize[2]);
 
 /*
  *      Don't need all coefficients for every cell... only allocate
@@ -1104,39 +1104,39 @@ static void AllocOwnedFMCells(Home_t *home, int layerID)
  */
         layer->ownedCnt = 0;
 
-        layer->ownedMin[XC] = 9999;
-        layer->ownedMin[YC] = 9999;
-        layer->ownedMin[ZC] = 9999;
+        layer->ownedMin[0] = 9999;
+        layer->ownedMin[1] = 9999;
+        layer->ownedMin[2] = 9999;
 
-        layer->ownedMax[XC] = -9999;
-        layer->ownedMax[YC] = -9999;
-        layer->ownedMax[ZC] = -9999;
+        layer->ownedMax[0] = -9999;
+        layer->ownedMax[1] = -9999;
+        layer->ownedMax[2] = -9999;
 
-        xFact = (double)param->nXdoms / (double)layer->lDim[XC];
-        yFact = (double)param->nYdoms / (double)layer->lDim[YC];
-        zFact = (double)param->nZdoms / (double)layer->lDim[ZC];
+        xFact = (double)param->nXdoms / (double)layer->lDim[0];
+        yFact = (double)param->nYdoms / (double)layer->lDim[1];
+        zFact = (double)param->nZdoms / (double)layer->lDim[2];
 
-        for (x = 0; x < layer->lDim[XC]; x++) {
-            for (y = 0; y < layer->lDim[YC]; y++) {
-                for (z = 0; z < layer->lDim[ZC]; z++) {
+        for (x = 0; x < layer->lDim[0]; x++) {
+            for (y = 0; y < layer->lDim[1]; y++) {
+                for (z = 0; z < layer->lDim[2]; z++) {
 
-                    dIndex[XC] = (double)x * xFact;
-                    dIndex[YC] = (double)y * yFact;
-                    dIndex[ZC] = (double)z * zFact;
+                    dIndex[0] = (double)x * xFact;
+                    dIndex[1] = (double)y * yFact;
+                    dIndex[2] = (double)z * zFact;
 
-                    domID = EncodeDomainIdx(home, dIndex[XC], dIndex[YC],
-                                            dIndex[ZC]);
+                    domID = EncodeDomainIdx(home, dIndex[0], dIndex[1],
+                                            dIndex[2]);
 
                     if (domID == thisDom) {
 
-                        layer->ownedMin[XC] = MIN(layer->ownedMin[XC], x);
-                        layer->ownedMax[XC] = MAX(layer->ownedMax[XC], x);
+                        layer->ownedMin[0] = MIN(layer->ownedMin[0], x);
+                        layer->ownedMax[0] = MAX(layer->ownedMax[0], x);
 
-                        layer->ownedMin[YC] = MIN(layer->ownedMin[YC], y);
-                        layer->ownedMax[YC] = MAX(layer->ownedMax[YC], y);
+                        layer->ownedMin[1] = MIN(layer->ownedMin[1], y);
+                        layer->ownedMax[1] = MAX(layer->ownedMax[1], y);
 
-                        layer->ownedMin[ZC] = MIN(layer->ownedMin[ZC], z);
-                        layer->ownedMax[ZC] = MAX(layer->ownedMax[ZC], z);
+                        layer->ownedMin[2] = MIN(layer->ownedMin[2], z);
+                        layer->ownedMax[2] = MAX(layer->ownedMax[2], z);
 
 /*
  *                      Add the cell ID to the layer cell table and cell list
@@ -1214,16 +1214,16 @@ void FMInit(Home_t *home)
 
                 layer = &home->fmLayer[layerID];
 
-                layer->lDim[XC] = 1 << layerID;
-                layer->lDim[YC] = 1 << layerID;
-                layer->lDim[ZC] = 1 << layerID;
+                layer->lDim[0] = 1 << layerID;
+                layer->lDim[1] = 1 << layerID;
+                layer->lDim[2] = 1 << layerID;
 
-                layer->cellSize[XC] = (param->maxSideX - param->minSideX) /
-                                     layer->lDim[XC];
-                layer->cellSize[YC] = (param->maxSideY - param->minSideY) /
-                                     layer->lDim[YC];
-                layer->cellSize[ZC] = (param->maxSideZ - param->minSideZ) /
-                                     layer->lDim[ZC];
+                layer->cellSize[0] = (param->maxSideX - param->minSideX) /
+                                     layer->lDim[0];
+                layer->cellSize[1] = (param->maxSideY - param->minSideY) /
+                                     layer->lDim[1];
+                layer->cellSize[2] = (param->maxSideZ - param->minSideZ) /
+                                     layer->lDim[2];
 
 /*
  *              Identify the block of cells owned by this domain at
@@ -1251,18 +1251,18 @@ void FMInit(Home_t *home)
  */
         layer = &home->fmLayer[param->fmNumLayers-1];
 
-        layer->intersectMin[XC] = param->iCellNatMin;
-        layer->intersectMin[YC] = param->jCellNatMin;
-        layer->intersectMin[ZC] = param->kCellNatMin;
+        layer->intersectMin[0] = param->iCellNatMin;
+        layer->intersectMin[1] = param->jCellNatMin;
+        layer->intersectMin[2] = param->kCellNatMin;
 
-        layer->intersectMax[XC] = param->iCellNatMax;
-        layer->intersectMax[YC] = param->jCellNatMax;
-        layer->intersectMax[ZC] = param->kCellNatMax;
+        layer->intersectMax[0] = param->iCellNatMax;
+        layer->intersectMax[1] = param->jCellNatMax;
+        layer->intersectMax[2] = param->kCellNatMax;
 
         layer->intersectCnt =
-                ((layer->intersectMax[XC] - layer->intersectMin[XC]) + 1) *
-                ((layer->intersectMax[YC] - layer->intersectMin[YC]) + 1) *
-                ((layer->intersectMax[ZC] - layer->intersectMin[ZC]) + 1);
+                ((layer->intersectMax[0] - layer->intersectMin[0]) + 1) *
+                ((layer->intersectMax[1] - layer->intersectMin[1]) + 1) *
+                ((layer->intersectMax[2] - layer->intersectMin[2]) + 1);
 
 /*
  *      We need cell data for some additional cells at each
@@ -1290,9 +1290,9 @@ void FMInit(Home_t *home)
 
                 cLayer = &home->fmLayer[layerID];
 
-                for (x = bMin[XC]; x <= bMax[XC]; x++) {
-                    for (y = bMin[YC]; y <= bMax[YC]; y++) {
-                        for (z = bMin[ZC]; z <= bMax[ZC]; z++) {
+                for (x = bMin[0]; x <= bMax[0]; x++) {
+                    for (y = bMin[1]; y <= bMax[1]; y++) {
+                        for (z = bMin[2]; z <= bMax[2]; z++) {
                             cellID = EncodeFMCellIndex(cLayer->lDim, x, y, z);
                             cell = AddFMCellToTable(cLayer, cellID);
                             InitFMCell(home, cLayer, cell, 1);
@@ -1321,12 +1321,12 @@ void FMInit(Home_t *home)
                 bMin = tmp2Min;
                 bMax = tmp2Max;
 
-                for (ix = bMin[XC]; ix <= bMax[XC]; ix++) {
-                    x = GETPBCINDEX(ix, layer->lDim[XC]);
-                    for (iy = bMin[YC]; iy <= bMax[YC]; iy++) {
-                        y = GETPBCINDEX(iy, layer->lDim[YC]);
-                        for (iz = bMin[ZC]; iz <= bMax[ZC]; iz++) {
-                            z = GETPBCINDEX(iz, layer->lDim[ZC]);
+                for (ix = bMin[0]; ix <= bMax[0]; ix++) {
+                    x = GETPBCINDEX(ix, layer->lDim[0]);
+                    for (iy = bMin[1]; iy <= bMax[1]; iy++) {
+                        y = GETPBCINDEX(iy, layer->lDim[1]);
+                        for (iz = bMin[2]; iz <= bMax[2]; iz++) {
+                            z = GETPBCINDEX(iz, layer->lDim[2]);
                             cellID = EncodeFMCellIndex(layer->lDim, x, y, z);
                             cell = AddFMCellToTable(layer, cellID);
                             InitFMCell(home, layer, cell, 0);
@@ -1353,9 +1353,9 @@ void FMInit(Home_t *home)
                 bMin = tmp1Min;
                 bMax = tmp1Max;
 
-                for (x = bMin[XC]; x <= bMax[XC]; x++) {
-                    for (y = bMin[YC]; y <= bMax[YC]; y++) {
-                        for (z = bMin[ZC]; z <= bMax[ZC]; z++) {
+                for (x = bMin[0]; x <= bMax[0]; x++) {
+                    for (y = bMin[1]; y <= bMax[1]; y++) {
+                        for (z = bMin[2]; z <= bMax[2]; z++) {
                             cellID = EncodeFMCellIndex(cLayer->lDim, x, y, z);
                             cell = AddFMCellToTable(cLayer, cellID);
                             InitFMCell(home, cLayer, cell, 0);
@@ -1476,9 +1476,9 @@ static void FMPackDownPassBufs(Home_t *home, int layerID, int sendCnt,
         bMin = layer->ownedMin;
         bMax = layer->ownedMax;
 
-        for (x = bMin[XC]; x <= bMax[XC]; x++) {
-            for (y = bMin[YC]; y <= bMax[YC]; y++) {
-                for (z = bMin[ZC]; z <= bMax[ZC]; z++) {
+        for (x = bMin[0]; x <= bMax[0]; x++) {
+            for (y = bMin[1]; y <= bMax[1]; y++) {
+                for (z = bMin[2]; z <= bMax[2]; z++) {
 
                     cellID = EncodeFMCellIndex(layer->lDim, x, y, z);
                     cell = LookupFMCell(layer->cellTable, cellID);
@@ -1489,9 +1489,9 @@ static void FMPackDownPassBufs(Home_t *home, int layerID, int sendCnt,
  *                  Get the block indices of the immediate children
  *                  of this cell.
  */
-                    cMin[XC] = x << 1; cMax[XC] = (x << 1) + 1;
-                    cMin[YC] = y << 1; cMax[YC] = (y << 1) + 1;
-                    cMin[ZC] = z << 1; cMax[ZC] = (z << 1) + 1;
+                    cMin[0] = x << 1; cMax[0] = (x << 1) + 1;
+                    cMin[1] = y << 1; cMax[1] = (y << 1) + 1;
+                    cMin[2] = z << 1; cMax[2] = (z << 1) + 1;
 
 /*
  *                  Now get the block encompassing those children
@@ -1504,16 +1504,16 @@ static void FMPackDownPassBufs(Home_t *home, int layerID, int sendCnt,
                     FMFindNearNbrs(home, layerID+1, cMin, cMax,
                                    tmpMin, tmpMax, trimOverlap);
 
-                    for (icx = tmpMin[XC]; icx <= tmpMax[XC]; icx++) {
-                        cx = GETPBCINDEX(icx, cLayer->lDim[XC]);
-                        for (icy = tmpMin[YC]; icy <= tmpMax[YC]; icy++) {
-                            cy = GETPBCINDEX(icy, cLayer->lDim[YC]);
-                            for (icz = tmpMin[ZC]; icz <= tmpMax[ZC]; icz++) {
-                                cz = GETPBCINDEX(icz, cLayer->lDim[ZC]);
+                    for (icx = tmpMin[0]; icx <= tmpMax[0]; icx++) {
+                        cx = GETPBCINDEX(icx, cLayer->lDim[0]);
+                        for (icy = tmpMin[1]; icy <= tmpMax[1]; icy++) {
+                            cy = GETPBCINDEX(icy, cLayer->lDim[1]);
+                            for (icz = tmpMin[2]; icz <= tmpMax[2]; icz++) {
+                                cz = GETPBCINDEX(icz, cLayer->lDim[2]);
 
-                                if ((icx >= cMin[XC]) && (icx <= cMax[XC]) &&
-                                    (icy >= cMin[YC]) && (icy <= cMax[YC]) &&
-                                    (icz >= cMin[ZC]) && (icz <= cMax[ZC]))
+                                if ((icx >= cMin[0]) && (icx <= cMax[0]) &&
+                                    (icy >= cMin[1]) && (icy <= cMax[1]) &&
+                                    (icz >= cMin[2]) && (icz <= cMax[2]))
                                     sendTaylor = 1;
                                 else
                                     sendTaylor = 0;
@@ -1553,9 +1553,9 @@ static void FMPackDownPassBufs(Home_t *home, int layerID, int sendCnt,
                                         buf[bufSize++] = (real8)y;
                                         buf[bufSize++] = (real8)z;
 
-                                        buf[bufSize++] = cell->cellCtr[XC];
-                                        buf[bufSize++] = cell->cellCtr[YC];
-                                        buf[bufSize++] = cell->cellCtr[ZC];
+                                        buf[bufSize++] = cell->cellCtr[0];
+                                        buf[bufSize++] = cell->cellCtr[1];
+                                        buf[bufSize++] = cell->cellCtr[2];
 
                                         for (j=0; j<numTaylorCoeff; j++){
                                             buf[bufSize++] =
@@ -1578,9 +1578,9 @@ static void FMPackDownPassBufs(Home_t *home, int layerID, int sendCnt,
                                 }
                                 packedMPCoeff[dIndex] = 1;
 
-                                for (tx = cMin[XC]; tx <= cMax[XC];tx++) {
-                                  for (ty = cMin[YC]; ty <= cMax[YC];ty++) {
-                                    for (tz = cMin[ZC]; tz <= cMax[ZC];tz++) {
+                                for (tx = cMin[0]; tx <= cMax[0];tx++) {
+                                  for (ty = cMin[1]; ty <= cMax[1];ty++) {
+                                    for (tz = cMin[2]; tz <= cMax[2];tz++) {
                                       if (setSizeOnly) {
                                         bufSize += 4 + numMPCoeff;
                                       } else {
@@ -1704,9 +1704,9 @@ static void FMUnPackDownPassBuf(Home_t *home, int layerID, int bufSize,
                 py = (int)buf[offset++];
                 pz = (int)buf[offset++];
 
-                pCtr[XC] = buf[offset++];
-                pCtr[YC] = buf[offset++];
-                pCtr[ZC] = buf[offset++];
+                pCtr[0] = buf[offset++];
+                pCtr[1] = buf[offset++];
+                pCtr[2] = buf[offset++];
 
                 for (i = 0; i < numTaylorCoeff; i++) {
                     pCoeff[i] = buf[offset++];
@@ -1728,15 +1728,15 @@ static void FMUnPackDownPassBuf(Home_t *home, int layerID, int bufSize,
                 cMin = layer->ownedMin;
                 cMax = layer->ownedMax;
 
-                for (cx = cMin[XC]; cx <= cMax[XC]; cx++) {
+                for (cx = cMin[0]; cx <= cMax[0]; cx++) {
 
                     if ((cx >> 1) != px) continue;
 
-                    for (cy = cMin[YC]; cy <= cMax[YC]; cy++) {
+                    for (cy = cMin[1]; cy <= cMax[1]; cy++) {
 
                         if ((cy >> 1) != py) continue;
 
-                        for (cz = cMin[ZC]; cz <= cMax[ZC]; cz++) {
+                        for (cz = cMin[2]; cz <= cMax[2]; cz++) {
 
                             if ((cz >> 1) != pz) continue;
 
@@ -1749,9 +1749,9 @@ static void FMUnPackDownPassBuf(Home_t *home, int layerID, int bufSize,
                             cellID = EncodeFMCellIndex(layer->lDim, cx, cy, cz);
                             cell = LookupFMCell(layer->cellTable, cellID);
 
-                            R[XC] = cell->cellCtr[XC] - pCtr[XC];
-                            R[YC] = cell->cellCtr[YC] - pCtr[YC];
-                            R[ZC] = cell->cellCtr[ZC] - pCtr[ZC];
+                            R[0] = cell->cellCtr[0] - pCtr[0];
+                            R[1] = cell->cellCtr[1] - pCtr[1];
+                            R[2] = cell->cellCtr[2] - pCtr[2];
 
                             if (param->fmEnabled) {
                                 memset(cell->taylorCoeff, 0,
@@ -1811,13 +1811,13 @@ static void FMUpPassMPShift(Home_t *home, int layerID)
  *      Loop through all the cells owned by this domain at 
  *      the next coarser FM layer.
  */
-        for (x = pLayer->ownedMin[XC]; x <= pLayer->ownedMax[XC]; x++) {
-            for (y = pLayer->ownedMin[YC]; y <= pLayer->ownedMax[YC]; y++) {
-                for (z = pLayer->ownedMin[ZC]; z <= pLayer->ownedMax[ZC]; z++) {
+        for (x = pLayer->ownedMin[0]; x <= pLayer->ownedMax[0]; x++) {
+            for (y = pLayer->ownedMin[1]; y <= pLayer->ownedMax[1]; y++) {
+                for (z = pLayer->ownedMin[2]; z <= pLayer->ownedMax[2]; z++) {
  
-                    cMin[XC] = x << 1; cMax[XC] = (x << 1) + 1;
-                    cMin[YC] = y << 1; cMax[YC] = (y << 1) + 1;
-                    cMin[ZC] = z << 1; cMax[ZC] = (z << 1) + 1;
+                    cMin[0] = x << 1; cMax[0] = (x << 1) + 1;
+                    cMin[1] = y << 1; cMax[1] = (y << 1) + 1;
+                    cMin[2] = z << 1; cMax[2] = (z << 1) + 1;
 
                     pCellID = EncodeFMCellIndex(pLayer->lDim, x, y, z);
                     pCell = LookupFMCell(pLayer->cellTable, pCellID);
@@ -1825,9 +1825,9 @@ static void FMUpPassMPShift(Home_t *home, int layerID)
 /*
  *                  Loop through all descendants of the current cell...
  */
-                    for (cx = cMin[XC]; cx <= cMax[XC]; cx++) {
-                        for (cy = cMin[YC]; cy <= cMax[YC]; cy++) {
-                            for (cz = cMin[ZC]; cz <= cMax[ZC]; cz++) {
+                    for (cx = cMin[0]; cx <= cMax[0]; cx++) {
+                        for (cy = cMin[1]; cy <= cMax[1]; cy++) {
+                            for (cz = cMin[2]; cz <= cMax[2]; cz++) {
 
                                 cCellID = EncodeFMCellIndex(cLayer->lDim, cx, cy, cz);
                                 cCell = LookupFMCell(cLayer->cellTable,
@@ -1838,9 +1838,9 @@ static void FMUpPassMPShift(Home_t *home, int layerID)
  *                              center of the child cell to the center of
  *                              the parent cell.
  */
-                                R[XC] = cCell->cellCtr[XC] - pCell->cellCtr[XC];
-                                R[YC] = cCell->cellCtr[YC] - pCell->cellCtr[YC];
-                                R[ZC] = cCell->cellCtr[ZC] - pCell->cellCtr[ZC];
+                                R[0] = cCell->cellCtr[0] - pCell->cellCtr[0];
+                                R[1] = cCell->cellCtr[1] - pCell->cellCtr[1];
+                                R[2] = cCell->cellCtr[2] - pCell->cellCtr[2];
 
                                 if (param->fmEnabled) {
                                     memset(newCoeff, 0, numCoeff *
@@ -1984,9 +1984,9 @@ static void FMUpPassZeroCharges(Home_t *home, int layerID)
  */
             for (i = layerID; i >= layerID-1; i--) {
                 layer = &home->fmLayer[i];
-                for (x = bMin[XC]; x <= bMax[XC]; x++) {
-                    for (y = bMin[YC]; y <= bMax[YC]; y++) {
-                        for (z = bMin[ZC]; z <= bMax[ZC]; z++) {
+                for (x = bMin[0]; x <= bMax[0]; x++) {
+                    for (y = bMin[1]; y <= bMax[1]; y++) {
+                        for (z = bMin[2]; z <= bMax[2]; z++) {
 
                             cellID = EncodeFMCellIndex(layer->lDim, x, y, z);
                             cell = LookupFMCell(layer->cellTable, cellID);
@@ -2075,9 +2075,9 @@ static int FMPackUpPassBuf(Home_t *home, int layerID, int domID, real8 *buf)
  *      that are intersected by the current domain.  At other FM
  *      layers, loop over all cells owned by the current domain.
  */
-        for (x = bMin[XC]; x <= bMax[XC]; x++) {
-            for (y = bMin[YC]; y <= bMax[YC]; y++) {
-                for (z = bMin[ZC]; z <= bMax[ZC]; z++) {
+        for (x = bMin[0]; x <= bMax[0]; x++) {
+            for (y = bMin[1]; y <= bMax[1]; y++) {
+                for (z = bMin[2]; z <= bMax[2]; z++) {
 /*
  *                  Get the indices (at the next layer up) of the
  *                  supercell containing this cell, and determine
@@ -2775,9 +2775,9 @@ void FMDistTaylorExp(Home_t *home)
         blkMin = layer->intersectMin;
         blkMax = layer->intersectMax;
 
-        for (x = blkMin[XC]; x <= blkMax[XC]; x++) {
-            for (y = blkMin[YC]; y <= blkMax[YC]; y++) {
-                for (z = blkMin[ZC]; z <= blkMax[ZC]; z++) {
+        for (x = blkMin[0]; x <= blkMax[0]; x++) {
+            for (y = blkMin[1]; y <= blkMax[1]; y++) {
+                for (z = blkMin[2]; z <= blkMax[2]; z++) {
 /*
  *                  Find the domain owning this cell and add it to
  *                  the list of remote domains from which we'll be
@@ -2834,9 +2834,9 @@ void FMDistTaylorExp(Home_t *home)
             blkMin = layer->ownedMin;
             blkMax = layer->ownedMax;
 
-            for (x = blkMin[XC]; x <= blkMax[XC]; x++) {
-                for (y = blkMin[YC]; y <= blkMax[YC]; y++) {
-                    for (z = blkMin[ZC]; z <= blkMax[ZC]; z++) {
+            for (x = blkMin[0]; x <= blkMax[0]; x++) {
+                for (y = blkMin[1]; y <= blkMax[1]; y++) {
+                    for (z = blkMin[2]; z <= blkMax[2]; z++) {
 
                         cellID = EncodeFMCellIndex(layer->lDim, x, y, z);
                         cell = LookupFMCell(layer->cellTable, cellID);

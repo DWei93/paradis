@@ -395,6 +395,9 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "MobEdge", &param->MobEdge, V_DBL, 1, VFLAG_NULL);
         param->MobEdge  = 10.0;
 
+        BindVar(CPList, "MobTwinning", &param->MobTwinning, V_DBL, 1, VFLAG_NULL);
+        param->MobTwinning  = 10.0;
+
         BindVar(CPList, "MobClimb", &param->MobClimb, V_DBL, 1, VFLAG_NULL);
         param->MobClimb = 1.0e-02;
 
@@ -772,6 +775,7 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 
         BindVar(CPList, "enforceGlidePlanes", &param->enforceGlidePlanes,
                 V_INT, 1, VFLAG_NULL);
+        param->enforceGlidePlanes = 1;
 
         BindVar(CPList, "enableCrossSlip", &param->enableCrossSlip,
                 V_INT, 1, VFLAG_NULL);
@@ -926,9 +930,9 @@ void DataParamInit(Param_t *param, ParamList_t *DPList)
 
         BindVar(DPList, "dataDecompGeometry", &param->dataDecompGeometry,
                 V_INT, 3, VFLAG_NULL);
-        param->dataDecompGeometry[XC] = 1;
-        param->dataDecompGeometry[YC] = 1;
-        param->dataDecompGeometry[ZC] = 1;
+        param->dataDecompGeometry[0] = 1;
+        param->dataDecompGeometry[1] = 1;
+        param->dataDecompGeometry[2] = 1;
 		
 #if 1
 	BindVar(DPList, "maxSeg", &param->maxSeg, V_DBL, 1, VFLAG_NULL);

@@ -160,20 +160,20 @@ void SegForceFromTaylorExp(Home_t *home, int cellID,
  *      to that of their periodic images closest to the cell
  *      center used for the taylor expansion.
  */
-        PBCPOSITION(param, cell->cellCtr[XC], cell->cellCtr[YC],
-                    cell->cellCtr[ZC], &p1[XC], &p1[YC], &p1[ZC]);
-        PBCPOSITION(param, cell->cellCtr[XC], cell->cellCtr[YC],
-                    cell->cellCtr[ZC], &p2[XC], &p2[YC], &p2[ZC]);
+        PBCPOSITION(param, cell->cellCtr[0], cell->cellCtr[1],
+                    cell->cellCtr[2], &p1[0], &p1[1], &p1[2]);
+        PBCPOSITION(param, cell->cellCtr[0], cell->cellCtr[1],
+                    cell->cellCtr[2], &p2[0], &p2[1], &p2[2]);
 
         numPoints = param->fmNumPoints;
 
-        pmidx  = 0.5 * (p2[XC]+p1[XC]);
-        pmidy  = 0.5 * (p2[YC]+p1[YC]);
-        pmidz  = 0.5 * (p2[ZC]+p1[ZC]);
+        pmidx  = 0.5 * (p2[0]+p1[0]);
+        pmidy  = 0.5 * (p2[1]+p1[1]);
+        pmidz  = 0.5 * (p2[2]+p1[2]);
 
-        pspanx = 0.5 * (p2[XC]-p1[XC]);
-        pspany = 0.5 * (p2[YC]-p1[YC]);
-        pspanz = 0.5 * (p2[ZC]-p1[ZC]);
+        pspanx = 0.5 * (p2[0]-p1[0]);
+        pspany = 0.5 * (p2[1]-p1[1]);
+        pspanz = 0.5 * (p2[2]-p1[2]);
 
 
         for (i = 0; i < numPoints; i++) {
@@ -182,29 +182,29 @@ void SegForceFromTaylorExp(Home_t *home, int cellID,
             sigby = 0.0;
             sigbz = 0.0;
 
-            evalPos[XC] = pmidx+pspanx*positions[i];
-            evalPos[YC] = pmidy+pspany*positions[i];
-            evalPos[ZC] = pmidz+pspanz*positions[i];
+            evalPos[0] = pmidx+pspanx*positions[i];
+            evalPos[1] = pmidy+pspany*positions[i];
+            evalPos[2] = pmidz+pspanz*positions[i];
 
             if (param->fmEnabled) {
 
-                R[XC] = evalPos[XC] - cell->cellCtr[XC];
-                R[YC] = evalPos[YC] - cell->cellCtr[YC];
-                R[ZC] = evalPos[ZC] - cell->cellCtr[ZC];
+                R[0] = evalPos[0] - cell->cellCtr[0];
+                R[1] = evalPos[1] - cell->cellCtr[1];
+                R[2] = evalPos[2] - cell->cellCtr[2];
 
                 EvalTaylor(param->fmTaylorOrder, R, cell->taylorCoeff, sigma);
 
-                sigbx += sigma[0][0]*burg[XC] +
-                         sigma[0][1]*burg[YC] +
-                         sigma[0][2]*burg[ZC];
+                sigbx += sigma[0][0]*burg[0] +
+                         sigma[0][1]*burg[1] +
+                         sigma[0][2]*burg[2];
 
-                sigby += sigma[1][0]*burg[XC] +
-                         sigma[1][1]*burg[YC] +
-                         sigma[1][2]*burg[ZC];
+                sigby += sigma[1][0]*burg[0] +
+                         sigma[1][1]*burg[1] +
+                         sigma[1][2]*burg[2];
 
-                sigbz += sigma[2][0]*burg[XC] +
-                         sigma[2][1]*burg[YC] +
-                         sigma[2][2]*burg[ZC];
+                sigbz += sigma[2][0]*burg[0] +
+                         sigma[2][1]*burg[1] +
+                         sigma[2][2]*burg[2];
             }
 
             fLinvx = (sigby*pspanz-sigbz*pspany);
@@ -261,19 +261,19 @@ void RemoteForceOneSeg(Home_t *home, Node_t *node1, Node_t *node2,
         armID    = GetArmID(home, node1, node2);
         nbrArmID = GetArmID(home, node2, node1);
 
-        p1[XC] = node1->x;
-        p1[YC] = node1->y;
-        p1[ZC] = node1->z;
+        p1[0] = node1->x;
+        p1[1] = node1->y;
+        p1[2] = node1->z;
 
-        p2[XC] = node2->x;
-        p2[YC] = node2->y;
-        p2[ZC] = node2->z;
+        p2[0] = node2->x;
+        p2[1] = node2->y;
+        p2[2] = node2->z;
 
-        burg[XC] = node1->burgX[armID];
-        burg[YC] = node1->burgY[armID];
-        burg[ZC] = node1->burgZ[armID];
+        burg[0] = node1->burgX[armID];
+        burg[1] = node1->burgY[armID];
+        burg[2] = node1->burgZ[armID];
 
-        PBCPOSITION(param, p1[XC], p1[YC], p1[ZC], &p2[XC], &p2[YC], &p2[ZC]);
+        PBCPOSITION(param, p1[0], p1[1], p1[2], &p2[0], &p2[1], &p2[2]);
 
 /*
  *      Find the indices (not shifted for ghost cells) of the cell
@@ -304,21 +304,21 @@ void RemoteForceOneSeg(Home_t *home, Node_t *node1, Node_t *node2,
  *            by two or more threads simulateously.  As such, we do
  *            lock the nodes segment forces before update.
  */
-        node1->armfx[armID] += p1f[XC];
-        node1->armfy[armID] += p1f[YC];
-        node1->armfz[armID] += p1f[ZC];
+        node1->armfx[armID] += p1f[0];
+        node1->armfy[armID] += p1f[1];
+        node1->armfz[armID] += p1f[2];
 
-        f1[XC] = p1f[XC];
-        f1[YC] = p1f[YC];
-        f1[ZC] = p1f[ZC];
+        f1[0] = p1f[0];
+        f1[1] = p1f[1];
+        f1[2] = p1f[2];
 
-        node2->armfx[nbrArmID] += p2f[XC];
-        node2->armfy[nbrArmID] += p2f[YC];
-        node2->armfz[nbrArmID] += p2f[ZC];
+        node2->armfx[nbrArmID] += p2f[0];
+        node2->armfy[nbrArmID] += p2f[1];
+        node2->armfz[nbrArmID] += p2f[2];
 
-        f2[XC] = p2f[XC];
-        f2[YC] = p2f[YC];
-        f2[ZC] = p2f[ZC];
+        f2[0] = p2f[0];
+        f2[1] = p2f[1];
+        f2[2] = p2f[2];
 
         return;
 }

@@ -45,6 +45,7 @@
 #define NODE_CURR_VEL 0x02
 #define NODE_OLD_VEL  0x04
 
+
 struct _node {
 	int	flags;
         

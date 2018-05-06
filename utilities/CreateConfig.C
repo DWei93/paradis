@@ -453,13 +453,13 @@ void CreatePrismaticLoop(Home_t *home, InData_t *inData, int cubeLength,
 
                 AllocNodeArms(node, 2);
 
-                node->burgX[0] = burg[burgIndex][XC];
-                node->burgY[0] = burg[burgIndex][YC];
-                node->burgZ[0] = burg[burgIndex][ZC];
+                node->burgX[0] = burg[burgIndex][0];
+                node->burgY[0] = burg[burgIndex][1];
+                node->burgZ[0] = burg[burgIndex][2];
 
-                node->burgX[1] = -burg[burgIndex][XC];
-                node->burgY[1] = -burg[burgIndex][YC];
-                node->burgZ[1] = -burg[burgIndex][ZC];
+                node->burgX[1] = -burg[burgIndex][0];
+                node->burgY[1] = -burg[burgIndex][1];
+                node->burgZ[1] = -burg[burgIndex][2];
 
                 node->nbrTag[0].domainID = dislocType;
                 node->nbrTag[0].index = nextNode + ((id+1)%numSegs);
@@ -735,13 +735,13 @@ void CreateScrewConfig(Home_t *home, InData_t *inData, int cubeLength,
             yp[1] = (randm(&seed)-0.5)*cubeSize;
             zp[1] = (randm(&seed)-0.5)*cubeSize;
 
-            xp[0] = xp[1] - (cubeSize * burg[burgIndex][XC]);
-            yp[0] = yp[1] - (cubeSize * burg[burgIndex][YC]);
-            zp[0] = zp[1] - (cubeSize * burg[burgIndex][ZC]);
+            xp[0] = xp[1] - (cubeSize * burg[burgIndex][0]);
+            yp[0] = yp[1] - (cubeSize * burg[burgIndex][1]);
+            zp[0] = zp[1] - (cubeSize * burg[burgIndex][2]);
 
-            xp[2] = xp[1] + (cubeSize * burg[burgIndex][XC]);
-            yp[2] = yp[1] + (cubeSize * burg[burgIndex][YC]);
-            zp[2] = zp[1] + (cubeSize * burg[burgIndex][ZC]);
+            xp[2] = xp[1] + (cubeSize * burg[burgIndex][0]);
+            yp[2] = yp[1] + (cubeSize * burg[burgIndex][1]);
+            zp[2] = zp[1] + (cubeSize * burg[burgIndex][2]);
 
 /*
  *          Loop over the points and set up the nodes, link them to 
@@ -769,18 +769,18 @@ void CreateScrewConfig(Home_t *home, InData_t *inData, int cubeLength,
                 node->burgX[0] = burg[burgIndex][0];
                 node->burgY[0] = burg[burgIndex][1];
                 node->burgZ[0] = burg[burgIndex][2];
-                node->nx[0] = glidePlane[burgIndex][gpIndex][XC];
-                node->ny[0] = glidePlane[burgIndex][gpIndex][YC];
-                node->nz[0] = glidePlane[burgIndex][gpIndex][ZC];
+                node->nx[0] = glidePlane[burgIndex][gpIndex][0];
+                node->ny[0] = glidePlane[burgIndex][gpIndex][1];
+                node->nz[0] = glidePlane[burgIndex][gpIndex][2];
             
                 node->nbrTag[1].domainID = dislocType;
                 node->nbrTag[1].index = id0 + nbr2Index;
                 node->burgX[1] = -burg[burgIndex][0];
                 node->burgY[1] = -burg[burgIndex][1];
                 node->burgZ[1] = -burg[burgIndex][2];
-                node->nx[1] = glidePlane[burgIndex][gpIndex][XC];
-                node->ny[1] = glidePlane[burgIndex][gpIndex][YC];
-                node->nz[1] = glidePlane[burgIndex][gpIndex][ZC];
+                node->nx[1] = glidePlane[burgIndex][gpIndex][0];
+                node->ny[1] = glidePlane[burgIndex][gpIndex][1];
+                node->nz[1] = glidePlane[burgIndex][gpIndex][2];
 
             }
 
@@ -1748,14 +1748,14 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
         
         param = inData->param;
 
-        pbc[XC] = (param->xBoundType == Periodic);
-        pbc[YC] = (param->yBoundType == Periodic);
-        pbc[ZC] = (param->zBoundType == Periodic);
+        pbc[0] = (param->xBoundType == Periodic);
+        pbc[1] = (param->yBoundType == Periodic);
+        pbc[2] = (param->zBoundType == Periodic);
 
 /*
  *      Just a sanity check...
  */
-        if (pbc[XC]*pbc[YC]*pbc[ZC] != 0) {
+        if (pbc[0]*pbc[1]*pbc[2] != 0) {
             Fatal("CreateFiniteMixedConfig: Requires free surfaces in at"
                   "least one dimension\n    but all boundaries are periodic!");
         }
@@ -1960,12 +1960,12 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
         glidePlane[3][5][1] = -0.0000000;
         glidePlane[3][5][2] = -0.7071068;
 
-        minCoord[XC] = param->xBoundMin;
-        maxCoord[XC] = param->xBoundMax;
-        minCoord[YC] = param->yBoundMin;
-        maxCoord[YC] = param->yBoundMax;
-        minCoord[ZC] = param->zBoundMin;
-        maxCoord[ZC] = param->zBoundMax;
+        minCoord[0] = param->xBoundMin;
+        maxCoord[0] = param->xBoundMax;
+        minCoord[1] = param->yBoundMin;
+        maxCoord[1] = param->yBoundMax;
+        minCoord[2] = param->zBoundMin;
+        maxCoord[2] = param->zBoundMax;
 
         for (i = 0; i < 3; i++) {
             range[i] = maxCoord[i] - minCoord[i];
@@ -1989,12 +1989,12 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
             gpIndex = (chain / 16) % 6;
             isScrew = (chain % 4) == 0;
 
-            normalizedBurg[XC] = linedir[burgIndex][XC];
-            normalizedBurg[YC] = linedir[burgIndex][YC];
-            normalizedBurg[ZC] = linedir[burgIndex][ZC];
+            normalizedBurg[0] = linedir[burgIndex][0];
+            normalizedBurg[1] = linedir[burgIndex][1];
+            normalizedBurg[2] = linedir[burgIndex][2];
 
-            Normalize(&normalizedBurg[XC], &normalizedBurg[YC],
-                      &normalizedBurg[ZC]);
+            Normalize(&normalizedBurg[0], &normalizedBurg[1],
+                      &normalizedBurg[2]);
 
 /*
  *          Select an initial point (p0) that is within the boundaries
@@ -2085,11 +2085,11 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
  *          Starting with the first intersection point, create a
  *          series of dislocation segments ending at the second point.
  */
-            newPos[XC] = intersectPos1[XC];
-            newPos[YC] = intersectPos1[YC];
-            newPos[ZC] = intersectPos1[ZC];
+            newPos[0] = intersectPos1[0];
+            newPos[1] = intersectPos1[1];
+            newPos[2] = intersectPos1[2];
 
-            FoldBox(param, &newPos[XC], &newPos[YC], &newPos[ZC]);
+            FoldBox(param, &newPos[0], &newPos[1], &newPos[2]);
 
             for (i = 0; i < numPoints; i++) {
                 if (i == 0) {
@@ -2104,10 +2104,10 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
  *                  Make sure the final node is at the surface
  *                  intersection point
  */
-                    newPos[XC] = intersectPos2[XC];
-                    newPos[YC] = intersectPos2[YC];
-                    newPos[ZC] = intersectPos2[ZC];
-                    FoldBox(param, &newPos[XC], &newPos[YC], &newPos[ZC]);
+                    newPos[0] = intersectPos2[0];
+                    newPos[1] = intersectPos2[1];
+                    newPos[2] = intersectPos2[2];
+                    FoldBox(param, &newPos[0], &newPos[1], &newPos[2]);
                 } else {
                     numConnections = 2;
                     burgSign = 1.0;
@@ -2119,9 +2119,9 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
                 node->myTag.domainID = dislocType;
                 node->myTag.index    = baseNodeID+i;
 
-                node->x = newPos[XC];
-                node->y = newPos[YC];
-                node->z = newPos[ZC];
+                node->x = newPos[0];
+                node->y = newPos[1];
+                node->z = newPos[2];
 
                 node->constraint = UNCONSTRAINED;
 
@@ -2130,9 +2130,9 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
                 node->nbrTag[0].domainID = dislocType;
                 node->nbrTag[0].index    = baseNodeID + nbr1Index;
 
-                node->burgX[0] = burgSign * linedir[burgIndex][XC];
-                node->burgY[0] = burgSign * linedir[burgIndex][YC];
-                node->burgZ[0] = burgSign * linedir[burgIndex][ZC];
+                node->burgX[0] = burgSign * linedir[burgIndex][0];
+                node->burgY[0] = burgSign * linedir[burgIndex][1];
+                node->burgZ[0] = burgSign * linedir[burgIndex][2];
 
 /*
  *              For screw dislocations, use the glide plane from the table.
@@ -2140,37 +2140,37 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
  *              of the burgers vector and line direction.
  */
                 if (isScrew) {
-                    node->nx[0] = glidePlane[gpBurgIndex][gpIndex][XC];
-                    node->ny[0] = glidePlane[gpBurgIndex][gpIndex][YC];
-                    node->nz[0] = glidePlane[gpBurgIndex][gpIndex][ZC];
+                    node->nx[0] = glidePlane[gpBurgIndex][gpIndex][0];
+                    node->ny[0] = glidePlane[gpBurgIndex][gpIndex][1];
+                    node->nz[0] = glidePlane[gpBurgIndex][gpIndex][2];
                     if (numConnections == 2) {
-                        node->nx[1] = glidePlane[gpBurgIndex][gpIndex][XC];
-                        node->ny[1] = glidePlane[gpBurgIndex][gpIndex][YC];
-                        node->nz[1] = glidePlane[gpBurgIndex][gpIndex][ZC];
+                        node->nx[1] = glidePlane[gpBurgIndex][gpIndex][0];
+                        node->ny[1] = glidePlane[gpBurgIndex][gpIndex][1];
+                        node->nz[1] = glidePlane[gpBurgIndex][gpIndex][2];
                     }
                 } else {
                     cross(linedir[burgIndex], linedir[lineIndex], plane);
-                    plane[XC] = (floor(plane[XC] * 1.0e+07)) * 1.0e-07;
-                    plane[YC] = (floor(plane[YC] * 1.0e+07)) * 1.0e-07;
-                    plane[ZC] = (floor(plane[ZC] * 1.0e+07)) * 1.0e-07;
-                    node->nx[0] = plane[XC];
-                    node->ny[0] = plane[YC];
-                    node->nz[0] = plane[ZC];
+                    plane[0] = (floor(plane[0] * 1.0e+07)) * 1.0e-07;
+                    plane[1] = (floor(plane[1] * 1.0e+07)) * 1.0e-07;
+                    plane[2] = (floor(plane[2] * 1.0e+07)) * 1.0e-07;
+                    node->nx[0] = plane[0];
+                    node->ny[0] = plane[1];
+                    node->nz[0] = plane[2];
                     if (numConnections == 2) {
-                        node->nx[1] = plane[XC];
-                        node->ny[1] = plane[YC];
-                        node->nz[1] = plane[ZC];
+                        node->nx[1] = plane[0];
+                        node->ny[1] = plane[1];
+                        node->nz[1] = plane[2];
                     }
                 }
 
 /*
  *              Calculate the next node's position relative to this one.
  */
-                newPos[XC] += vector[XC];
-                newPos[YC] += vector[YC];
-                newPos[ZC] += vector[ZC];
+                newPos[0] += vector[0];
+                newPos[1] += vector[1];
+                newPos[2] += vector[2];
 
-                FoldBox(param, &newPos[XC], &newPos[YC], &newPos[ZC]);
+                FoldBox(param, &newPos[0], &newPos[1], &newPos[2]);
 
                 if (numConnections == 1) {
                     node->constraint = SURFACE_NODE;
@@ -2180,9 +2180,9 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
                 node->nbrTag[1].domainID = dislocType;
                 node->nbrTag[1].index    = baseNodeID + nbr2Index;
 
-                node->burgX[1] = -burgSign * linedir[burgIndex][XC];
-                node->burgY[1] = -burgSign * linedir[burgIndex][YC];
-                node->burgZ[1] = -burgSign * linedir[burgIndex][ZC];
+                node->burgX[1] = -burgSign * linedir[burgIndex][0];
+                node->burgY[1] = -burgSign * linedir[burgIndex][1];
+                node->burgZ[1] = -burgSign * linedir[burgIndex][2];
             }
 
 /*
@@ -2362,14 +2362,14 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         inData->nodeCount = 0;
 		
         heightSize = 2 * param->zBoundMax;
-	volume = heightSize * cubeSize * cubeSize;
+	    volume = heightSize * cubeSize * cubeSize;
         thickness = heightSize / ((real8)nLayers);
         	
         x0 = (d*nLayers*(1 - nLayers) + 2*numSources)/(2 * nLayers);
         	
 
-	totSrcLen = 0.0;
-	finish = 0;
+	    totSrcLen = 0.0;
+	    finish = 0;
         for (layer = 0; layer < nLayers; layer++) {
 	    if(finish)break;
             xn = layer * d + x0;
@@ -2392,15 +2392,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
             gpIndex = lineIndex / 3; /* plane Index */
             isScrew	=	0;
 
-/*
- *          Reallocate the node array with sufficient size to add
- *          all the new nodes defining this chain.
- */
-            newNodeIndex = inData->nodeCount;
-            inData->nodeCount += numPoints;
-            inData->node = (Node_t *)realloc(inData->node, inData->nodeCount
-                                               * sizeof(Node_t));
-            memset(&inData->node[newNodeIndex], 0, sizeof(Node_t) * numPoints);
 
 /*
  *          Length of the frank read source should be a random length
@@ -2439,8 +2430,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 #if INTERACTION_TEST
             if(gpIndex != 2 ){
                 inData->nodeCount -=numPoints;
-                newNodeIndex = inData->nodeCount;
-                continue;
             }
 #endif
             n0[0] = tnx[gpIndex];	
@@ -2450,7 +2439,20 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
             b[0] = burg[burgIndex][0];
             b[1] = burg[burgIndex][1];
             b[2] = burg[burgIndex][2];
-            	
+
+//            randomAngle = 0;
+            
+//            if(gpIndex == 3)continue;
+//            if(fabs(b[0]+b[1]+b[2]) > 1.0E-1)continue;
+/*
+ *          Reallocate the node array with sufficient size to add
+ *          all the new nodes defining this chain.
+ */
+            newNodeIndex = inData->nodeCount;
+            inData->nodeCount += numPoints;
+            inData->node = (Node_t *)realloc(inData->node, inData->nodeCount
+                                               * sizeof(Node_t));
+            memset(&inData->node[newNodeIndex], 0, sizeof(Node_t) * numPoints);
 #if 0
             NormalizeVec(normalABC);
             if (fabs(DotProduct(b,normalABC)) > 1e-3 ){
@@ -2786,13 +2788,13 @@ void CreateEdges(Home_t *home, InData_t *inData, int cubeLength,
             yp[1] = (randm(&seed)-0.5)*cubeSize;
             zp[1] = (randm(&seed)-0.5)*cubeSize;
 
-            xp[0] = xp[1] - (posFactor * signFactor * lineDir[ldIndex][XC]);
-            yp[0] = yp[1] - (posFactor * signFactor * lineDir[ldIndex][YC]);
-            zp[0] = zp[1] - (posFactor * signFactor * lineDir[ldIndex][ZC]);
+            xp[0] = xp[1] - (posFactor * signFactor * lineDir[ldIndex][0]);
+            yp[0] = yp[1] - (posFactor * signFactor * lineDir[ldIndex][1]);
+            zp[0] = zp[1] - (posFactor * signFactor * lineDir[ldIndex][2]);
 
-            xp[2] = xp[1] + (posFactor * signFactor * lineDir[ldIndex][XC]);
-            yp[2] = yp[1] + (posFactor * signFactor * lineDir[ldIndex][YC]);
-            zp[2] = zp[1] + (posFactor * signFactor * lineDir[ldIndex][ZC]);
+            xp[2] = xp[1] + (posFactor * signFactor * lineDir[ldIndex][0]);
+            yp[2] = yp[1] + (posFactor * signFactor * lineDir[ldIndex][1]);
+            zp[2] = zp[1] + (posFactor * signFactor * lineDir[ldIndex][2]);
 
 /*
  *          Loop over the points and set up the nodes, link them to 
@@ -2820,18 +2822,18 @@ void CreateEdges(Home_t *home, InData_t *inData, int cubeLength,
                 node->burgX[0] = burg[burgIndex][0];
                 node->burgY[0] = burg[burgIndex][1];
                 node->burgZ[0] = burg[burgIndex][2];
-                node->nx[0] = glidePlane[gpIndex][XC];
-                node->ny[0] = glidePlane[gpIndex][YC];
-                node->nz[0] = glidePlane[gpIndex][ZC];
+                node->nx[0] = glidePlane[gpIndex][0];
+                node->ny[0] = glidePlane[gpIndex][1];
+                node->nz[0] = glidePlane[gpIndex][2];
             
                 node->nbrTag[1].domainID = dislocType;
                 node->nbrTag[1].index = id0 + nbr2Index;
                 node->burgX[1] = -burg[burgIndex][0];
                 node->burgY[1] = -burg[burgIndex][1];
                 node->burgZ[1] = -burg[burgIndex][2];
-                node->nx[1] = glidePlane[gpIndex][XC];
-                node->ny[1] = glidePlane[gpIndex][YC];
-                node->nz[1] = glidePlane[gpIndex][ZC];
+                node->nx[1] = glidePlane[gpIndex][0];
+                node->ny[1] = glidePlane[gpIndex][1];
+                node->nz[1] = glidePlane[gpIndex][2];
 
             }
 

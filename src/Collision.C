@@ -68,23 +68,23 @@ void FEM_AdjustCollisionPoint(Node_t *seg1Node1, Node_t *seg1Node2,
  *      closest to the originally selected collision point provided
  *      by the caller.
  */
-        lenX = seg1Node1->x - collisionPoint[X];
-        lenY = seg1Node1->y - collisionPoint[Y];
-        lenZ = seg1Node1->z - collisionPoint[Z];
+        lenX = seg1Node1->x - collisionPoint[0];
+        lenY = seg1Node1->y - collisionPoint[1];
+        lenZ = seg1Node1->z - collisionPoint[2];
 
         dist1 = sqrt(lenX * lenX + lenY * lenY + lenZ * lenZ);
 
-        lenX = seg2Node1->x - collisionPoint[X];
-        lenY = seg2Node1->y - collisionPoint[Y];
-        lenZ = seg2Node1->z - collisionPoint[Z];
+        lenX = seg2Node1->x - collisionPoint[0];
+        lenY = seg2Node1->y - collisionPoint[1];
+        lenZ = seg2Node1->z - collisionPoint[2];
 
         dist2 = sqrt(lenX * lenX + lenY * lenY + lenZ * lenZ);
 
         tmpNode = ((dist1 < dist2) ? seg1Node1 : seg2Node1);
 
-        collisionPoint[X] = tmpNode->x;
-        collisionPoint[Y] = tmpNode->y;
-        collisionPoint[Z] = tmpNode->z;
+        collisionPoint[0] = tmpNode->x;
+        collisionPoint[1] = tmpNode->y;
+        collisionPoint[2] = tmpNode->z;
 
 /*
  *      Return the surface properties for the surface containing the

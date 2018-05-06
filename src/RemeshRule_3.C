@@ -203,21 +203,21 @@ static void MeshCoarsen(Home_t *home)
                         real8 lineDir1[3], lineDir2[3];
                         real8 testPlane1[3], testPlane2[3];
 
-                        burg1[XC] = node->burgX[0];
-                        burg1[YC] = node->burgY[0];
-                        burg1[ZC] = node->burgZ[0];
+                        burg1[0] = node->burgX[0];
+                        burg1[1] = node->burgY[0];
+                        burg1[2] = node->burgZ[0];
 
-                        burg2[XC] = node->burgX[1];
-                        burg2[YC] = node->burgY[1];
-                        burg2[ZC] = node->burgZ[1];
+                        burg2[0] = node->burgX[1];
+                        burg2[1] = node->burgY[1];
+                        burg2[2] = node->burgZ[1];
 
-                        lineDir1[XC] = vec1x;
-                        lineDir1[YC] = vec1y;
-                        lineDir1[ZC] = vec1z;
+                        lineDir1[0] = vec1x;
+                        lineDir1[1] = vec1y;
+                        lineDir1[2] = vec1z;
 
-                        lineDir2[XC] = vec2x;
-                        lineDir2[YC] = vec2y;
-                        lineDir2[ZC] = vec2z;
+                        lineDir2[0] = vec2x;
+                        lineDir2[1] = vec2y;
+                        lineDir2[2] = vec2z;
 
 /*
  *                      FindPreciseGlidePlanes() just uses l cross b if fuzzy
@@ -352,9 +352,9 @@ static void MeshCoarsen(Home_t *home)
  */
                 if ((nbr1->flags & NO_MESH_COARSEN) == 0) {
         
-                    newPos[XC] = nbr1->x;
-                    newPos[YC] = nbr1->y;
-                    newPos[ZC] = nbr1->z;
+                    newPos[0] = nbr1->x;
+                    newPos[1] = nbr1->y;
+                    newPos[2] = nbr1->z;
         
                     MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
                               &mergedNode, &mergeStatus, globalOp);
@@ -367,9 +367,9 @@ static void MeshCoarsen(Home_t *home)
  */
                 if (mergeDone == 0) {
                     if ((nbr2->flags & NO_MESH_COARSEN) == 0) {
-                        newPos[XC] = nbr2->x;
-                        newPos[YC] = nbr2->y;
-                        newPos[ZC] = nbr2->z;
+                        newPos[0] = nbr2->x;
+                        newPos[1] = nbr2->y;
+                        newPos[2] = nbr2->z;
         
                         MergeNode(home, OPCLASS_REMESH, node, nbr2, newPos,
                                   &mergedNode, &mergeStatus, globalOp);
@@ -437,11 +437,11 @@ static void MeshCoarsen(Home_t *home)
  *              recalculate more exact forces for these nodes
  *              before (or at the beginning of) the next timestep.
  */
-                ResetSegForces(home, nbr1, &nbr2->myTag, f0seg1[XC],
-                               f0seg1[YC], f0seg1[ZC], 1);
+                ResetSegForces(home, nbr1, &nbr2->myTag, f0seg1[0],
+                               f0seg1[1], f0seg1[2], 1);
 
-                ResetSegForces(home, nbr2, &nbr1->myTag, f1seg1[XC],
-                               f1seg1[YC], f1seg1[ZC], 1);
+                ResetSegForces(home, nbr2, &nbr1->myTag, f1seg1[0],
+                               f1seg1[1], f1seg1[2], 1);
 
 /*
  *              Originally, we were resetting the velocity of the
@@ -566,25 +566,25 @@ static void MeshRefine(Home_t *home)
                     continue;
                 }
 
-                vec1[XC] = nbr1->x - node->x;
-                vec1[YC] = nbr1->y - node->y;
-                vec1[ZC] = nbr1->z - node->z;
+                vec1[0] = nbr1->x - node->x;
+                vec1[1] = nbr1->y - node->y;
+                vec1[2] = nbr1->z - node->z;
               
-                vec2[XC] = nbr2->x - node->x;
-                vec2[YC] = nbr2->y - node->y;
-                vec2[ZC] = nbr2->z - node->z;
+                vec2[0] = nbr2->x - node->x;
+                vec2[1] = nbr2->y - node->y;
+                vec2[2] = nbr2->z - node->z;
         
-                vec3[XC] = vec2[XC] - vec1[XC];
-                vec3[YC] = vec2[YC] - vec1[YC];
-                vec3[ZC] = vec2[ZC] - vec1[ZC];
+                vec3[0] = vec2[0] - vec1[0];
+                vec3[1] = vec2[1] - vec1[1];
+                vec3[2] = vec2[2] - vec1[2];
         
-                ZImage(param, &vec1[XC], &vec1[YC], &vec1[ZC]);
-                ZImage(param, &vec2[XC], &vec2[YC], &vec2[ZC]);
-                ZImage(param, &vec3[XC], &vec3[YC], &vec3[ZC]);
+                ZImage(param, &vec1[0], &vec1[1], &vec1[2]);
+                ZImage(param, &vec2[0], &vec2[1], &vec2[2]);
+                ZImage(param, &vec3[0], &vec3[1], &vec3[2]);
         
-                r1 = sqrt(vec1[XC]*vec1[XC] + vec1[YC]*vec1[YC] + vec1[ZC]*vec1[ZC]);
-                r2 = sqrt(vec2[XC]*vec2[XC] + vec2[YC]*vec2[YC] + vec2[ZC]*vec2[ZC]);
-                r3 = sqrt(vec3[XC]*vec3[XC] + vec3[YC]*vec3[YC] + vec3[ZC]*vec3[ZC]);
+                r1 = sqrt(vec1[0]*vec1[0] + vec1[1]*vec1[1] + vec1[2]*vec1[2]);
+                r2 = sqrt(vec2[0]*vec2[0] + vec2[1]*vec2[1] + vec2[2]*vec2[2]);
+                r3 = sqrt(vec3[0]*vec3[0] + vec3[1]*vec3[1] + vec3[2]*vec3[2]);
         
                 s = 0.5 * (r1 + r2 + r3);
                 area2 = (s * (s - r1) * (s - r2) * (s - r3));
@@ -600,11 +600,11 @@ static void MeshRefine(Home_t *home)
  *              and placing new nodes on an arc containing the 3 nodes
  *              turns out to be the incorrect placement.
  */
-                dr1dt = ((vec1[XC] * -node->vX) + (vec1[YC] * -node->vY) +
-                         (vec1[ZC] * -node->vZ)) / (r1 + delta);
+                dr1dt = ((vec1[0] * -node->vX) + (vec1[1] * -node->vY) +
+                         (vec1[2] * -node->vZ)) / (r1 + delta);
         
-                dr2dt = ((vec2[XC] * -node->vX) + (vec2[YC] * -node->vY) +
-                         (vec2[ZC] * -node->vZ)) / (r2 + delta);
+                dr2dt = ((vec2[0] * -node->vX) + (vec2[1] * -node->vY) +
+                         (vec2[2] * -node->vZ)) / (r2 + delta);
         
                 dr3dt = 0.0;
         
@@ -620,36 +620,36 @@ static void MeshRefine(Home_t *home)
  *              the node and its two neighbors so we can position the
  *              new nodes on the arc.
  */
-                mid1[XC] = node->x + (vec1[XC] * 0.5);
-                mid1[YC] = node->y + (vec1[YC] * 0.5);
-                mid1[ZC] = node->z + (vec1[ZC] * 0.5);
+                mid1[0] = node->x + (vec1[0] * 0.5);
+                mid1[1] = node->y + (vec1[1] * 0.5);
+                mid1[2] = node->z + (vec1[2] * 0.5);
 
-                mid2[XC] = node->x + (vec2[XC] * 0.5);
-                mid2[YC] = node->y + (vec2[YC] * 0.5);
-                mid2[ZC] = node->z + (vec2[ZC] * 0.5);
+                mid2[0] = node->x + (vec2[0] * 0.5);
+                mid2[1] = node->y + (vec2[1] * 0.5);
+                mid2[2] = node->z + (vec2[2] * 0.5);
 
-                p1 = (vec1[XC]*mid1[XC] + vec1[YC]*mid1[YC] + vec1[ZC]*mid1[ZC]);
-                p2 = (vec2[XC]*mid2[XC] + vec2[YC]*mid2[YC] + vec2[ZC]*mid2[ZC]);
+                p1 = (vec1[0]*mid1[0] + vec1[1]*mid1[1] + vec1[2]*mid1[2]);
+                p2 = (vec2[0]*mid2[0] + vec2[1]*mid2[1] + vec2[2]*mid2[2]);
 
                 cross(vec1, vec2, mv3);
                         
-                p3 = (mv3[XC]*node->x + mv3[YC]*node->y + mv3[ZC]*node->z);
+                p3 = (mv3[0]*node->x + mv3[1]*node->y + mv3[2]*node->z);
 
-                mat[0][XC] = vec1[XC];
-                mat[0][YC] = vec1[YC];
-                mat[0][ZC] = vec1[ZC];
+                mat[0][0] = vec1[0];
+                mat[0][1] = vec1[1];
+                mat[0][2] = vec1[2];
 
-                mat[1][XC] = vec2[XC];
-                mat[1][YC] = vec2[YC];
-                mat[1][ZC] = vec2[ZC];
+                mat[1][0] = vec2[0];
+                mat[1][1] = vec2[1];
+                mat[1][2] = vec2[2];
 
-                mat[2][XC] = mv3[XC];
-                mat[2][YC] = mv3[YC];
-                mat[2][ZC] = mv3[ZC];
+                mat[2][0] = mv3[0];
+                mat[2][1] = mv3[1];
+                mat[2][2] = mv3[2];
 
-                rhs[XC] = p1;
-                rhs[YC] = p2;
-                rhs[ZC] = p3;
+                rhs[0] = p1;
+                rhs[1] = p2;
+                rhs[2] = p3;
 
 /*
  *              Check each arm to determine if it should be
@@ -701,69 +701,69 @@ static void MeshRefine(Home_t *home)
                         }
                         Matrix33Vector3Multiply(invMat, rhs, center);
 
-                        tmp3[XC] = node->x - center[XC];
-                        tmp3[YC] = node->y - center[YC];
-                        tmp3[ZC] = node->z - center[ZC];
+                        tmp3[0] = node->x - center[0];
+                        tmp3[1] = node->y - center[1];
+                        tmp3[2] = node->z - center[2];
 
                         radius = Normal(tmp3);
 
-                        tmp3[XC] = mid2[XC] - center[XC];
-                        tmp3[YC] = mid2[YC] - center[YC];
-                        tmp3[ZC] = mid2[ZC] - center[ZC];
+                        tmp3[0] = mid2[0] - center[0];
+                        tmp3[1] = mid2[1] - center[1];
+                        tmp3[2] = mid2[2] - center[2];
 
                         norm = Normal(tmp3);
 
-                        dir2[XC] = tmp3[XC] / norm;
-                        dir2[YC] = tmp3[YC] / norm;
-                        dir2[ZC] = tmp3[ZC] / norm;
+                        dir2[0] = tmp3[0] / norm;
+                        dir2[1] = tmp3[1] / norm;
+                        dir2[2] = tmp3[2] / norm;
 
-                        burg[XC] = node->burgX[1];
-                        burg[YC] = node->burgY[1];
-                        burg[ZC] = node->burgZ[1];
+                        burg[0] = node->burgX[1];
+                        burg[1] = node->burgY[1];
+                        burg[2] = node->burgZ[1];
 
                         cross(burg, vec2, nplane);
                         np = Normal(nplane);
 
                         if (np > eps) {
-                            nplane[XC] /= np;
-                            nplane[YC] /= np;
-                            nplane[ZC] /= np;
+                            nplane[0] /= np;
+                            nplane[1] /= np;
+                            nplane[2] /= np;
                         } else {
-                            nplane[XC] = 0.0;
-                            nplane[YC] = 0.0;
-                            nplane[ZC] = 0.0;
+                            nplane[0] = 0.0;
+                            nplane[1] = 0.0;
+                            nplane[2] = 0.0;
                         }
 
-                        diff[XC] = (radius*dir2[XC]) - (mid2[XC]-center[XC]);
-                        diff[YC] = (radius*dir2[YC]) - (mid2[YC]-center[YC]);
-                        diff[ZC] = (radius*dir2[ZC]) - (mid2[ZC]-center[ZC]);
+                        diff[0] = (radius*dir2[0]) - (mid2[0]-center[0]);
+                        diff[1] = (radius*dir2[1]) - (mid2[1]-center[1]);
+                        diff[2] = (radius*dir2[2]) - (mid2[2]-center[2]);
 
-                        tmp = (diff[XC]*nplane[XC] +
-                               diff[YC]*nplane[YC] +
-                               diff[ZC]*nplane[ZC]);
+                        tmp = (diff[0]*nplane[0] +
+                               diff[1]*nplane[1] +
+                               diff[2]*nplane[2]);
 
-                        diff[XC] = diff[XC] - (tmp * nplane[XC]);
-                        diff[YC] = diff[YC] - (tmp * nplane[YC]);
-                        diff[ZC] = diff[ZC] - (tmp * nplane[ZC]);
+                        diff[0] = diff[0] - (tmp * nplane[0]);
+                        diff[1] = diff[1] - (tmp * nplane[1]);
+                        diff[2] = diff[2] - (tmp * nplane[2]);
 
-                        newPos[XC] = mid2[XC] + diff[XC];
-                        newPos[YC] = mid2[YC] + diff[YC];
-                        newPos[ZC] = mid2[ZC] + diff[ZC];
+                        newPos[0] = mid2[0] + diff[0];
+                        newPos[1] = mid2[1] + diff[1];
+                        newPos[2] = mid2[2] + diff[2];
 
                     } else {
-                        newPos[XC] = node->x + (vec2[XC] * 0.5);
-                        newPos[YC] = node->y + (vec2[YC] * 0.5);
-                        newPos[ZC] = node->z + (vec2[ZC] * 0.5);
+                        newPos[0] = node->x + (vec2[0] * 0.5);
+                        newPos[1] = node->y + (vec2[1] * 0.5);
+                        newPos[2] = node->z + (vec2[2] * 0.5);
                     }
 
-                    newVel[XC] = (node->vX + nbr2->vX) * 0.5;
-                    newVel[YC] = (node->vY + nbr2->vY) * 0.5;
-                    newVel[ZC] = (node->vZ + nbr2->vZ) * 0.5;
+                    newVel[0] = (node->vX + nbr2->vX) * 0.5;
+                    newVel[1] = (node->vY + nbr2->vY) * 0.5;
+                    newVel[2] = (node->vZ + nbr2->vZ) * 0.5;
         
                     EstRefinementForces(home, node, nbr2, newPos, vec2,
                                         f0seg1, f1seg1, f0seg2, f1seg2);
         
-                    FoldBox(param, &newPos[XC], &newPos[YC], &newPos[ZC]);
+                    FoldBox(param, &newPos[0], &newPos[1], &newPos[2]);
         
 /*
  *                  This should be a global operation distributed
@@ -772,13 +772,13 @@ static void MeshRefine(Home_t *home)
  */
                     globalOp = (nbr2->myTag.domainID != node->myTag.domainID);
         
-                    nodePos[XC] = node->x;
-                    nodePos[YC] = node->y;
-                    nodePos[ZC] = node->z;
+                    nodePos[0] = node->x;
+                    nodePos[1] = node->y;
+                    nodePos[2] = node->z;
         
-                    nodeVel[XC] = node->vX;
-                    nodeVel[YC] = node->vY;
-                    nodeVel[ZC] = node->vZ;
+                    nodeVel[0] = node->vX;
+                    nodeVel[1] = node->vY;
+                    nodeVel[2] = node->vZ;
         
                     oldTag1 = node->myTag;
                     oldTag2 = nbr2->myTag;
@@ -811,16 +811,16 @@ static void MeshRefine(Home_t *home)
  *                      in the split.
  */
                         ResetSegForces(home, splitNode1, &splitNode2->myTag,
-                                       f0seg1[XC], f0seg1[YC], f0seg1[ZC], 1);
+                                       f0seg1[0], f0seg1[1], f0seg1[2], 1);
         
                         ResetSegForces(home, splitNode2, &splitNode1->myTag,
-                                       f1seg1[XC], f1seg1[YC], f1seg1[ZC], 1);
+                                       f1seg1[0], f1seg1[1], f1seg1[2], 1);
         
                         ResetSegForces(home, splitNode2, &nbr2->myTag,
-                                       f0seg2[XC], f0seg2[YC], f0seg2[ZC], 1);
+                                       f0seg2[0], f0seg2[1], f0seg2[2], 1);
         
                         ResetSegForces(home, nbr2, &splitNode2->myTag,
-                                       f1seg2[XC], f1seg2[YC], f1seg2[ZC], 1);
+                                       f1seg2[0], f1seg2[1], f1seg2[2], 1);
         
                         (void)EvaluateMobility(home, splitNode1);
                         (void)EvaluateMobility(home, splitNode2);
@@ -899,69 +899,69 @@ static void MeshRefine(Home_t *home)
                         Matrix33Invert(mat, invMat);
                         Matrix33Vector3Multiply(invMat, rhs, center);
 
-                        tmp3[XC] = node->x - center[XC];
-                        tmp3[YC] = node->y - center[YC];
-                        tmp3[ZC] = node->z - center[ZC];
+                        tmp3[0] = node->x - center[0];
+                        tmp3[1] = node->y - center[1];
+                        tmp3[2] = node->z - center[2];
 
                         radius = Normal(tmp3);
-                        tmp3[XC] = mid1[XC] - center[XC];
-                        tmp3[YC] = mid1[YC] - center[YC];
-                        tmp3[ZC] = mid1[ZC] - center[ZC];
+                        tmp3[0] = mid1[0] - center[0];
+                        tmp3[1] = mid1[1] - center[1];
+                        tmp3[2] = mid1[2] - center[2];
 
                         norm = Normal(tmp3);
 
-                        dir1[XC] = tmp3[XC] / norm;
-                        dir1[YC] = tmp3[YC] / norm;
-                        dir1[ZC] = tmp3[ZC] / norm;
+                        dir1[0] = tmp3[0] / norm;
+                        dir1[1] = tmp3[1] / norm;
+                        dir1[2] = tmp3[2] / norm;
 
-                        burg[XC] = node->burgX[0];
-                        burg[YC] = node->burgY[0];
-                        burg[ZC] = node->burgZ[0];
+                        burg[0] = node->burgX[0];
+                        burg[1] = node->burgY[0];
+                        burg[2] = node->burgZ[0];
 
                         cross(burg, vec1, nplane);
                         np = Normal(nplane);
 
                         if (np > eps) {
-                            nplane[XC] /= np;
-                            nplane[YC] /= np;
-                            nplane[ZC] /= np;
+                            nplane[0] /= np;
+                            nplane[1] /= np;
+                            nplane[2] /= np;
                         } else {
-                            nplane[XC] = 0.0;
-                            nplane[YC] = 0.0;
-                            nplane[ZC] = 0.0;
+                            nplane[0] = 0.0;
+                            nplane[1] = 0.0;
+                            nplane[2] = 0.0;
                         }
 
-                        diff[XC] = (radius*dir1[XC]) - (mid1[XC]-center[XC]);
-                        diff[YC] = (radius*dir1[YC]) - (mid1[YC]-center[YC]);
-                        diff[ZC] = (radius*dir1[ZC]) - (mid1[ZC]-center[ZC]);
+                        diff[0] = (radius*dir1[0]) - (mid1[0]-center[0]);
+                        diff[1] = (radius*dir1[1]) - (mid1[1]-center[1]);
+                        diff[2] = (radius*dir1[2]) - (mid1[2]-center[2]);
 
-                        tmp = (diff[XC]*nplane[XC] +
-                               diff[YC]*nplane[YC] +
-                               diff[ZC]*nplane[ZC]);
+                        tmp = (diff[0]*nplane[0] +
+                               diff[1]*nplane[1] +
+                               diff[2]*nplane[2]);
 
-                        diff[XC] = diff[XC] - (tmp * nplane[XC]);
-                        diff[YC] = diff[YC] - (tmp * nplane[YC]);
-                        diff[ZC] = diff[ZC] - (tmp * nplane[ZC]);
+                        diff[0] = diff[0] - (tmp * nplane[0]);
+                        diff[1] = diff[1] - (tmp * nplane[1]);
+                        diff[2] = diff[2] - (tmp * nplane[2]);
 
-                        newPos[XC] = mid1[XC] + diff[XC];
-                        newPos[YC] = mid1[YC] + diff[YC];
-                        newPos[ZC] = mid1[ZC] + diff[ZC];
+                        newPos[0] = mid1[0] + diff[0];
+                        newPos[1] = mid1[1] + diff[1];
+                        newPos[2] = mid1[2] + diff[2];
 
                     } else {
 
-                        newPos[XC] = node->x + (vec1[XC] * 0.5);
-                        newPos[YC] = node->y + (vec1[YC] * 0.5);
-                        newPos[ZC] = node->z + (vec1[ZC] * 0.5);
+                        newPos[0] = node->x + (vec1[0] * 0.5);
+                        newPos[1] = node->y + (vec1[1] * 0.5);
+                        newPos[2] = node->z + (vec1[2] * 0.5);
                     }
         
-                    newVel[XC] = (node->vX + nbr1->vX) * 0.5;
-                    newVel[YC] = (node->vY + nbr1->vY) * 0.5;
-                    newVel[ZC] = (node->vZ + nbr1->vZ) * 0.5;
+                    newVel[0] = (node->vX + nbr1->vX) * 0.5;
+                    newVel[1] = (node->vY + nbr1->vY) * 0.5;
+                    newVel[2] = (node->vZ + nbr1->vZ) * 0.5;
         
                     EstRefinementForces(home, node, nbr1, newPos, vec1,
                                         f0seg1, f1seg1, f0seg2, f1seg2);
 
-                    FoldBox(param, &newPos[XC], &newPos[YC], &newPos[ZC]);
+                    FoldBox(param, &newPos[0], &newPos[1], &newPos[2]);
 
 /*
  *                  This should be a global operation distributed
@@ -970,13 +970,13 @@ static void MeshRefine(Home_t *home)
  */
                     globalOp = (nbr1->myTag.domainID != node->myTag.domainID);
         
-                    nodePos[XC] = node->x;
-                    nodePos[YC] = node->y;
-                    nodePos[ZC] = node->z;
+                    nodePos[0] = node->x;
+                    nodePos[1] = node->y;
+                    nodePos[2] = node->z;
         
-                    nodeVel[XC] = node->vX;
-                    nodeVel[YC] = node->vY;
-                    nodeVel[ZC] = node->vZ;
+                    nodeVel[0] = node->vX;
+                    nodeVel[1] = node->vY;
+                    nodeVel[2] = node->vZ;
         
                     oldTag1 = node->myTag;
                     oldTag2 = nbr1->myTag;
@@ -1009,16 +1009,16 @@ static void MeshRefine(Home_t *home)
  *                      in the split.
  */
                         ResetSegForces(home, splitNode1, &splitNode2->myTag,
-                                       f0seg1[XC], f0seg1[YC], f0seg1[ZC], 1);
+                                       f0seg1[0], f0seg1[1], f0seg1[2], 1);
         
                         ResetSegForces(home, splitNode2, &splitNode1->myTag,
-                                       f1seg1[XC], f1seg1[YC], f1seg1[ZC], 1);
+                                       f1seg1[0], f1seg1[1], f1seg1[2], 1);
         
                         ResetSegForces(home, splitNode2, &nbr1->myTag,
-                                       f0seg2[XC], f0seg2[YC], f0seg2[ZC], 1);
+                                       f0seg2[0], f0seg2[1], f0seg2[2], 1);
         
                         ResetSegForces(home, nbr1, &splitNode2->myTag,
-                                       f1seg2[XC], f1seg2[YC], f1seg2[ZC], 1);
+                                       f1seg2[0], f1seg2[1], f1seg2[2], 1);
         
                         (void)EvaluateMobility(home, splitNode1);
                         (void)EvaluateMobility(home, splitNode2);
@@ -1076,28 +1076,28 @@ static void MeshRefine(Home_t *home)
                         continue;
                     }
         
-                    vec1[XC] = nbr1->x - node->x;
-                    vec1[YC] = nbr1->y - node->y;
-                    vec1[ZC] = nbr1->z - node->z;
+                    vec1[0] = nbr1->x - node->x;
+                    vec1[1] = nbr1->y - node->y;
+                    vec1[2] = nbr1->z - node->z;
         
-                    ZImage(param, &vec1[XC], &vec1[YC], &vec1[ZC]);
+                    ZImage(param, &vec1[0], &vec1[1], &vec1[2]);
         
-                    r1 = vec1[XC]*vec1[XC] + vec1[YC]*vec1[YC] + vec1[ZC]*vec1[ZC];
+                    r1 = vec1[0]*vec1[0] + vec1[1]*vec1[1] + vec1[2]*vec1[2];
         
                     if (r1 > maxSeg2) {
         
-                        newPos[XC] = node->x + (vec1[XC] * 0.5);
-                        newPos[YC] = node->y + (vec1[YC] * 0.5);
-                        newPos[ZC] = node->z + (vec1[ZC] * 0.5);
+                        newPos[0] = node->x + (vec1[0] * 0.5);
+                        newPos[1] = node->y + (vec1[1] * 0.5);
+                        newPos[2] = node->z + (vec1[2] * 0.5);
         
-                        newVel[XC] = (node->vX + nbr1->vX) * 0.5;
-                        newVel[YC] = (node->vY + nbr1->vY) * 0.5;
-                        newVel[ZC] = (node->vZ + nbr1->vZ) * 0.5;
+                        newVel[0] = (node->vX + nbr1->vX) * 0.5;
+                        newVel[1] = (node->vY + nbr1->vY) * 0.5;
+                        newVel[2] = (node->vZ + nbr1->vZ) * 0.5;
         
                         EstRefinementForces(home, node, nbr1, newPos, vec1,
                                             f0seg1, f1seg1, f0seg2, f1seg2);
 
-                        FoldBox(param, &newPos[XC], &newPos[YC], &newPos[ZC]);
+                        FoldBox(param, &newPos[0], &newPos[1], &newPos[2]);
 
 /*
  *                      When bisecting a segment, we always move
@@ -1114,13 +1114,13 @@ static void MeshRefine(Home_t *home)
                         globalOp = (nbr1->myTag.domainID !=
                                     node->myTag.domainID);
         
-                        nodePos[XC] = node->x;
-                        nodePos[YC] = node->y;
-                        nodePos[ZC] = node->z;
+                        nodePos[0] = node->x;
+                        nodePos[1] = node->y;
+                        nodePos[2] = node->z;
         
-                        nodeVel[XC] = node->vX;
-                        nodeVel[YC] = node->vY;
-                        nodeVel[ZC] = node->vZ;
+                        nodeVel[0] = node->vX;
+                        nodeVel[1] = node->vY;
+                        nodeVel[2] = node->vZ;
         
                         oldTag1 = node->myTag;
                         oldTag2 = nbr1->myTag;
@@ -1154,16 +1154,16 @@ static void MeshRefine(Home_t *home)
  *                          in the split.
  */
                             ResetSegForces(home, splitNode1, &splitNode2->myTag,
-                                           f0seg1[XC], f0seg1[YC], f0seg1[ZC], 1);
+                                           f0seg1[0], f0seg1[1], f0seg1[2], 1);
         
                             ResetSegForces(home, splitNode2, &splitNode1->myTag,
-                                           f1seg1[XC], f1seg1[YC], f1seg1[ZC], 1);
+                                           f1seg1[0], f1seg1[1], f1seg1[2], 1);
         
                             ResetSegForces(home, splitNode2, &nbr1->myTag,
-                                           f0seg2[XC], f0seg2[YC], f0seg2[ZC], 1);
+                                           f0seg2[0], f0seg2[1], f0seg2[2], 1);
         
                             ResetSegForces(home, nbr1, &splitNode2->myTag,
-                                           f1seg2[XC], f1seg2[YC], f1seg2[ZC], 1);
+                                           f1seg2[0], f1seg2[1], f1seg2[2], 1);
         
                             (void)EvaluateMobility(home, splitNode1);
                             (void)EvaluateMobility(home, splitNode2);

@@ -185,12 +185,12 @@ int  Mobility_BCC_0(Home_t *home, Node_t *node)
                 real8 bTmp[3] = {bx, by, bz};
                 Matrix33Vector3Multiply(home->rotMatrixInverse,bTmp,burgCryst);
             } else {
-                burgCryst[XC] = bx;
-                burgCryst[YC] = by;
-                burgCryst[ZC] = bz;
+                burgCryst[0] = bx;
+                burgCryst[1] = by;
+                burgCryst[2] = bz;
             }
 
-            if (fabs(burgCryst[XC]*burgCryst[YC]*burgCryst[ZC]) < eps) {
+            if (fabs(burgCryst[0]*burgCryst[1]*burgCryst[2]) < eps) {
                 Btotal[0][0] += halfMag * (dx*dx * BlmBecl + Beclimb);
                 Btotal[0][1] += halfMag * (dx*dy * BlmBecl);
                 Btotal[0][2] += halfMag * (dx*dz * BlmBecl);

@@ -618,9 +618,9 @@ void TecplotCurrDomain(Home_t *home, char *baseFileName, int ioGroup, int firstI
             y = node->y;
             z = node->z;
 			
-            vecOldNew[XC] = x - node->oldx;
-            vecOldNew[YC] = y - node->oldy;
-            vecOldNew[ZC] = z - node->oldz;
+            vecOldNew[0] = x - node->oldx;
+            vecOldNew[1] = y - node->oldy;
+            vecOldNew[2] = z - node->oldz;
             	
             ZImage(param, vecOldNew, vecOldNew+1, vecOldNew+2);
             	
@@ -677,9 +677,9 @@ void TecplotCurrDomain(Home_t *home, char *baseFileName, int ioGroup, int firstI
                     Fatal("The burgers ID of non-FCC material has not defined\n");
                 }
 				
-                normal[XC] = node->nx[j];
-                normal[YC] = node->ny[j];
-                normal[ZC] = node->nz[j];
+                normal[0] = node->nx[j];
+                normal[1] = node->ny[j];
+                normal[2] = node->nz[j];
 
                 if(home->param->useLabFrame){
 	            ChangeOrientation(home, node, nbrNode,3);
@@ -721,12 +721,12 @@ void TecplotCurrDomain(Home_t *home, char *baseFileName, int ioGroup, int firstI
                   
                 narm = node->numNbrs;
 				
-                plane.normal[XC] = node->nx[j];
-                plane.normal[YC] = node->ny[j];
-                plane.normal[ZC] = node->nz[j];
-                pos[XC] = x;
-                pos[YC] = y;
-                pos[ZC] = z;
+                plane.normal[0] = node->nx[j];
+                plane.normal[1] = node->ny[j];
+                plane.normal[2] = node->nz[j];
+                pos[0] = x;
+                pos[1] = y;
+                pos[2] = z;
                 	
                 minDistance = PointPlaneDistance(pos, &plane);
                 	
@@ -762,9 +762,9 @@ void TecplotCurrDomain(Home_t *home, char *baseFileName, int ioGroup, int firstI
             y = node->y;
             z = node->z;
 			
-	    vecOldNew[XC] = x - node->oldx;
-	    vecOldNew[YC] = y - node->oldy;
-	    vecOldNew[ZC] = z - node->oldz;
+	    vecOldNew[0] = x - node->oldx;
+	    vecOldNew[1] = y - node->oldy;
+	    vecOldNew[2] = z - node->oldz;
 	    	
 	    ZImage(param, vecOldNew, vecOldNew+1, vecOldNew+2);
 	    	
@@ -826,12 +826,12 @@ void TecplotCurrDomain(Home_t *home, char *baseFileName, int ioGroup, int firstI
 	        	
 	        narm = node->numNbrs;
 	        	
-	        plane.normal[XC] = node->nx[arm];
-	        plane.normal[YC] = node->ny[arm];
-	        plane.normal[ZC] = node->nz[arm];
-	        pos[XC] = x;
-	        pos[YC] = y;
-	        pos[ZC] = z;
+	        plane.normal[0] = node->nx[arm];
+	        plane.normal[1] = node->ny[arm];
+	        plane.normal[2] = node->nz[arm];
+	        pos[0] = x;
+	        pos[1] = y;
+	        pos[2] = z;
 	        
                 if(home->param->materialType == MAT_TYPE_FCC){
                     burgID = GetBurgID_FCC(home, node, nbrNode);
@@ -839,9 +839,9 @@ void TecplotCurrDomain(Home_t *home, char *baseFileName, int ioGroup, int firstI
                     Fatal("The burgers ID of non-FCC material has not defined\n");
                 }
 
-                normal[XC] = node->nx[j];
-                normal[YC] = node->ny[j];
-                normal[ZC] = node->nz[j];
+                normal[0] = node->nx[j];
+                normal[1] = node->ny[j];
+                normal[2] = node->nz[j];
 
                 if(home->param->useLabFrame){
 	            ChangeOrientation(home, node, nbrNode,3);
@@ -879,7 +879,7 @@ void TecplotCurrDomain(Home_t *home, char *baseFileName, int ioGroup, int firstI
 
 
 void DebugGB(Home_t *home, int flag){
-	return;
+    return;
 	int 	i,j,k,l, crossSlipNode, sameNode;
 	int	normalID;
 	real8   dot,resiBurg[3], resiVec[3];
@@ -897,8 +897,19 @@ void DebugGB(Home_t *home, int flag){
 	
         snprintf(subdir, sizeof(subdir), "./%s", DIR_DEBUG_GB);
 
-//	printf("%d %d\n",home->myDomain, flag);
+	printf("%d %d\n",home->myDomain, flag);
 
+    return;
+	for(i=0;i<home->newNodeKeyPtr;i++){
+        if((node = home->nodeKeys[i]) == (Node_t *) NULL)continue;
+        for(j=0; j<node->numNbrs; j++){
+            if(fabs(node->nbrTag[j].index) > 500){
+                PrintTag(node);
+                Fatal("%d %d nbrID wrong\n",home->myDomain, flag);
+            }
+        }
+    }
+    return;
 #if SEG_FAULT_CHECK
         snprintf(stepdir, sizeof(stepdir), "%s/%06d", subdir, home->cycle);
         snprintf(filename, sizeof(filename), "%s/%06d", stepdir,
@@ -908,7 +919,7 @@ void DebugGB(Home_t *home, int flag){
 
         if (mkdir(subdir, S_IRWXU) != 0) {
             if (errno != EEXIST) {
-                Fatal("Open error %d on directory %s",
+               Fatal("Open error %d on directory %s",
                       errno, subdir);
             }
         }
@@ -945,41 +956,54 @@ void DebugGB(Home_t *home, int flag){
 //
 	    VECTOR_ZERO(resiBurg);
 	    for(j=0; j<node->numNbrs; j++){
-	        resiBurg[XC] += node->burgX[j];
-	        resiBurg[YC] += node->burgY[j];
-	        resiBurg[ZC] += node->burgZ[j];
+            vec1[0] = node->burgX[j];            
+            vec1[1] = node->burgY[j];            
+            vec1[2] = node->burgZ[j];            
 
-		nbr = GetNeighborNode(home,node,j);
-		if(nbr == (Node_t *)NULL)continue;
-		
-		sameNode = 0;
-		VECTOR_ZERO(resiVec);
-		for(k=0; k<nbr->numNbrs; k++){
-		    resiVec[XC] += nbr->burgX[k];
-		    resiVec[YC] += nbr->burgY[k];
-		    resiVec[ZC] += nbr->burgZ[k];
+	        resiBurg[0] += node->burgX[j];
+	        resiBurg[1] += node->burgY[j];
+	        resiBurg[2] += node->burgZ[j];
 
-		    if(nbr->nbrTag[k].domainID == node->myTag.domainID &&
-		       nbr->nbrTag[k].index == node->myTag.index){
-			sameNode = 1;
-		    }
-		}
-#if 1
-		if(Normal(resiVec) > 0.01 && nbr->constraint == 0){
-                    snprintf(name,50,"NW%06d.%d.%d",home->cycle,home->myDomain,flag);
-                    Tecplot(home, name, 0, 0, 0, 0, 0, 1);
-		    PrintNode(node);
-		    PrintNode(nbr);
-		    printf("Neighbor Wrong\n");
-		}	
+		    nbr = GetNeighborNode(home,node,j);
+#if 0
+            if(BurgType_FCC(home, vec1) == UNKNOWN_BURG && flag == 11){
+                PrintNode(node);
+                PrintNode(nbr);
+                snprintf(name,50,"FatalBurg%06d.%d.%d",home->cycle,home->myDomain,flag);
+                Tecplot(home, name, 0, 0, 0, 0, 0, 1);
+                Fatal("burg == 33");
+            }
 #endif
-		if(sameNode == 0){
-                    snprintf(name,50,"WC%06d.%d.%d",home->cycle,home->myDomain,flag);
-                    Tecplot(home, name, 0, 0, 0, 0, 0, 1);
-		    PrintNode(node);
-		    PrintNode(nbr);
-		    printf("Wrong connection\n");
-		}
+		    if(nbr == (Node_t *)NULL)continue;
+		
+		    sameNode = 0;
+		    VECTOR_ZERO(resiVec);
+		    for(k=0; k<nbr->numNbrs; k++){
+		        resiVec[0] += nbr->burgX[k];
+		        resiVec[1] += nbr->burgY[k];
+		        resiVec[2] += nbr->burgZ[k];
+
+		        if(nbr->nbrTag[k].domainID == node->myTag.domainID &&
+		           nbr->nbrTag[k].index == node->myTag.index){
+			        sameNode = 1;
+		        }
+		    }   
+#if 1
+		    if(Normal(resiVec) > 0.01 && nbr->constraint == 0){
+                snprintf(name,50,"NW%06d.%d.%d",home->cycle,home->myDomain,flag);
+                Tecplot(home, name, 0, 0, 0, 0, 0, 1);
+		        PrintNode(node);
+		        PrintNode(nbr);
+		        printf("Neighbor Wrong\n");
+		    }	
+#endif
+		    if(sameNode == 0){
+                snprintf(name,50,"WC%06d.%d.%d",home->cycle,home->myDomain,flag);
+                Tecplot(home, name, 0, 0, 0, 0, 0, 1);
+		        PrintNode(node);
+		        PrintNode(nbr);
+		        printf("Wrong connection\n");
+		    }
 
 #if 0
                 if(nbr->myTag.domainID < node->myTag.domainID || 
@@ -995,19 +1019,19 @@ void DebugGB(Home_t *home, int flag){
 		        Fatal("\nTask %d, flag %d, Wrong inGrain\n",home->myDomain,flag);
 		    }
 
-		vec2[XC] = nbr->x - node->x;
-		vec2[YC] = nbr->y - node->y;
-		vec2[ZC] = nbr->z - node->z;
+		vec2[0] = nbr->x - node->x;
+		vec2[1] = nbr->y - node->y;
+		vec2[2] = nbr->z - node->z;
 		ZImage(param,vec2,vec2+1,vec2+2);
 		if(Normal(vec2) < 1e-12){
-		    PrintTag(node);
-		    PrintTag(nbr);
-		    printf("\nTask %d, flag %d, zero length segement\n",home->myDomain,flag);
+//		    PrintTag(node);
+//		    PrintTag(nbr);
+//		    printf("\nTask %d, flag %d, zero length segement\n",home->myDomain,flag);
 		}	
 		
-		vec[XC] = node->nx[j];
-		vec[YC] = node->ny[j];
-		vec[ZC] = node->nz[j];
+		vec[0] = node->nx[j];
+		vec[1] = node->ny[j];
+		vec[2] = node->nz[j];
                 
                 if(home->param->useLabFrame){
 	            ChangeOrientation(home, node, nbr,3);
@@ -1034,8 +1058,7 @@ void DebugGB(Home_t *home, int flag){
                         Tecplot(home, name, 0, 0, 0, 0, 0, 1);
 			PrintNode(node);
 			PrintNode(nbr);
-			Fatal("segement which normal ID is 3 penetrated though TB\n");
-			break;
+			printf("Warning:segement which normal ID is 3 penetrated though TB\n");
 		    }
 		}
 

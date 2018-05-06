@@ -57,15 +57,15 @@ void ResetGlidePlanes(Home_t *home)
                     continue;
                 }
 
-                burg[XC] = node->burgX[j];
-                burg[YC] = node->burgY[j];
-                burg[ZC] = node->burgZ[j];
+                burg[0] = node->burgX[j];
+                burg[1] = node->burgY[j];
+                burg[2] = node->burgZ[j];
 
-                lDir[XC] = nbrNode->x - node->x;
-                lDir[YC] = nbrNode->y - node->y;
-                lDir[ZC] = nbrNode->z - node->z;
+                lDir[0] = nbrNode->x - node->x;
+                lDir[1] = nbrNode->y - node->y;
+                lDir[2] = nbrNode->z - node->z;
 
-                ZImage(param, &lDir[XC], &lDir[YC], &lDir[ZC]);
+                ZImage(param, &lDir[0], &lDir[1], &lDir[2]);
                 NormalizeVec(lDir);
 
 /*
@@ -83,15 +83,15 @@ void ResetGlidePlanes(Home_t *home)
  *              Segment is not screw, so reset the segment' plane
  *              to the newly calculated one.
  */
-                node->nx[j] = newPlane[XC];
-                node->ny[j] = newPlane[YC];
-                node->nz[j] = newPlane[ZC];
+                node->nx[j] = newPlane[0];
+                node->ny[j] = newPlane[1];
+                node->nz[j] = newPlane[2];
 
                 nbrSegID = GetArmID(home, nbrNode, node);
 
-                nbrNode->nx[nbrSegID] = newPlane[XC];
-                nbrNode->ny[nbrSegID] = newPlane[YC];
-                nbrNode->nz[nbrSegID] = newPlane[ZC];
+                nbrNode->nx[nbrSegID] = newPlane[0];
+                nbrNode->ny[nbrSegID] = newPlane[1];
+                nbrNode->nz[nbrSegID] = newPlane[2];
             }
         }
 

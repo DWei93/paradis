@@ -318,13 +318,13 @@ void ReadBinDataFile(Home_t *home, InData_t *inData, char *dataFile)
  *          is modified to remove references to these
  *          values, we need to explicitly set them now.
  */
-            param->minSideX = param->minCoordinates[X];
-            param->minSideY = param->minCoordinates[Y];
-            param->minSideZ = param->minCoordinates[Z];
+            param->minSideX = param->minCoordinates[0];
+            param->minSideY = param->minCoordinates[1];
+            param->minSideZ = param->minCoordinates[2];
 
-            param->maxSideX = param->maxCoordinates[X];
-            param->maxSideY = param->maxCoordinates[Y];
-            param->maxSideZ = param->maxCoordinates[Z];
+            param->maxSideX = param->maxCoordinates[0];
+            param->maxSideY = param->maxCoordinates[1];
+            param->maxSideZ = param->maxCoordinates[2];
 
 /*
  *          Read domain decomposition, node and segment data (or 

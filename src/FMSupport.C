@@ -62,7 +62,7 @@ static int rveclist[][3] = { {12, 0, 0} , {12,12, 0} , {12,12,12} ,
  *--------------------------------------------------------------------------*/
 int EncodeFMCellIndex(int *dim, int x, int y, int z)
 {
-        return(z + (dim[ZC]*y) + (dim[ZC]*dim[YC]*x));
+        return(z + (dim[2]*y) + (dim[2]*dim[1]*x));
 }
 
 
@@ -1165,16 +1165,16 @@ static void EvalMeanTaylor(Home_t *home, real8 avgStress[3][3])
         bMax = layer->ownedMax;
 
         /* Cell size bounds*/
-        Min[0] = param->minSideX/layer->lDim[XC];
-        Max[0] = param->maxSideX/layer->lDim[XC];
+        Min[0] = param->minSideX/layer->lDim[0];
+        Max[0] = param->maxSideX/layer->lDim[0];
 
-        Min[1] = param->minSideY/layer->lDim[YC];
-        Max[1] = param->maxSideY/layer->lDim[YC];
+        Min[1] = param->minSideY/layer->lDim[1];
+        Max[1] = param->maxSideY/layer->lDim[1];
         
-        Min[2] = param->minSideZ/layer->lDim[ZC];
-        Max[2] = param->maxSideZ/layer->lDim[ZC];
+        Min[2] = param->minSideZ/layer->lDim[2];
+        Max[2] = param->maxSideZ/layer->lDim[2];
 
-        Ncells = layer->lDim[XC]*layer->lDim[YC]*layer->lDim[ZC];
+        Ncells = layer->lDim[0]*layer->lDim[1]*layer->lDim[2];
         Volume = (Max[0]- Min[0])*(Max[1]- Min[1])*(Max[2]- Min[2])*Ncells;
 
         for (j = 0; j < numRows; j++) {
@@ -1195,9 +1195,9 @@ static void EvalMeanTaylor(Home_t *home, real8 avgStress[3][3])
 /*
  *      Sum up the stress for all cells at the layer
  */
-        for (cx = bMin[XC]; cx <= bMax[XC]; cx++) {
-            for (cy = bMin[YC]; cy <= bMax[YC]; cy++) {
-                for (cz = bMin[ZC]; cz <= bMax[ZC]; cz++) {
+        for (cx = bMin[0]; cx <= bMax[0]; cx++) {
+            for (cy = bMin[1]; cy <= bMax[1]; cy++) {
+                for (cz = bMin[2]; cz <= bMax[2]; cz++) {
 
                     cellID = EncodeFMCellIndex(layer->lDim,cx,cy,cz);
                     cell = LookupFMCell(layer->cellTable, cellID);
@@ -1285,9 +1285,9 @@ void MeanStressCorrection(Home_t *home)
 
         EvalMeanTaylor(home, avgStress);
 
-        for (cx = bMin[XC]; cx <= bMax[XC]; cx++) {
-            for (cy = bMin[YC]; cy <= bMax[YC]; cy++) {
-                for (cz = bMin[ZC]; cz <= bMax[ZC]; cz++) {
+        for (cx = bMin[0]; cx <= bMax[0]; cx++) {
+            for (cy = bMin[1]; cy <= bMax[1]; cy++) {
+                for (cz = bMin[2]; cz <= bMax[2]; cz++) {
 
                     cellID = EncodeFMCellIndex(layer->lDim,cx,cy,cz);
                     cell = LookupFMCell(layer->cellTable, cellID);

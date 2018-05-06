@@ -20,17 +20,17 @@
 
 void FixRemesh(Home_t *home, const char flag[256])
 {
-	int			idom, domIdx, rcvOpCount, opidx;
+	int			    idom, domIdx, rcvOpCount, opidx;
 	real8			newPlane[3];
-    	real8   		cellSize[3], cellIndex[3];
-	RemoteDomain_t		*remDom;
+    real8   		cellSize[3], cellIndex[3];
+	RemoteDomain_t	*remDom;
 	Operate_t		*rcvOpList, *op;
 	Node_t			*node1, *node2, *node3;
 	Tag_t			tag1, tag2, tag3;
-    	Param_t     		*param;
+    Param_t     	*param;
 
 
-    	param = home->param;
+    param = home->param;
 
 /*
  *	Loop through the neighbor domains
@@ -171,36 +171,36 @@ void FixRemesh(Home_t *home, const char flag[256])
 				node2->vZ = op->nz;
 
 /*
- *                              Insure the node is assigned to the proper cell
+ *              Insure the node is assigned to the proper cell
  */
-                                cellSize[XC] = param->Lx / param->nXcells;
-                                cellSize[YC] = param->Ly / param->nYcells;
-                                cellSize[ZC] = param->Lz / param->nZcells;
+                cellSize[0] = param->Lx / param->nXcells;
+                cellSize[1] = param->Ly / param->nYcells;
+                cellSize[2] = param->Lz / param->nZcells;
 
-                                cellIndex[XC] = (int)(node2->x-param->minSideX) /
-                                               (int)cellSize[XC];
-                                cellIndex[YC] = (int)(node2->y-param->minSideY) /
-                                               (int)cellSize[YC];
-                                cellIndex[ZC] = (int)(node2->z-param->minSideZ) /
-                                               (int)cellSize[ZC];
+                cellIndex[0] = (int)(node2->x-param->minSideX) /
+                                (int)cellSize[0];
+                cellIndex[1] = (int)(node2->y-param->minSideY) /
+                                (int)cellSize[1];
+                cellIndex[2] = (int)(node2->z-param->minSideZ) /
+                                (int)cellSize[2];
 
-                                cellIndex[XC] = MAX(0, cellIndex[XC]);
-                                cellIndex[YC] = MAX(0, cellIndex[YC]);
-                                cellIndex[ZC] = MAX(0, cellIndex[ZC]);
+                cellIndex[0] = MAX(0, cellIndex[0]);
+                cellIndex[1] = MAX(0, cellIndex[1]);
+                cellIndex[2] = MAX(0, cellIndex[2]);
 
-                                cellIndex[XC] = MIN(param->nXcells,cellIndex[XC]);
-                                cellIndex[YC] = MIN(param->nYcells,cellIndex[YC]);
-                                cellIndex[ZC] = MIN(param->nZcells,cellIndex[ZC]);
+                cellIndex[0] = MIN(param->nXcells,cellIndex[0]);
+                cellIndex[1] = MIN(param->nYcells,cellIndex[1]);
+                cellIndex[2] = MIN(param->nZcells,cellIndex[2]);
 
-                                cellIndex[XC]++;
-                                cellIndex[YC]++;
-                                cellIndex[ZC]++;
+                cellIndex[0]++;
+                cellIndex[1]++;
+                cellIndex[2]++;
 
-                                node2->cellIdx = EncodeCellIdx(home,
-                                                               cellIndex[XC],
-                                                               cellIndex[YC],
-                                                               cellIndex[ZC]);
-				break;
+                node2->cellIdx = EncodeCellIdx(home,
+                                               cellIndex[0],
+                                               cellIndex[1],
+                                               cellIndex[2]);
+	        break;
 
 /*
  *			Mark a node so that new force and velocity
@@ -220,6 +220,29 @@ void FixRemesh(Home_t *home, const char flag[256])
 
 				break;
 
+			case(MARK_NO_MESH_COARSEN):
+				
+
+				node1 = GetNodeFromIndex(home, op->dom1,
+							 op->idx1);
+
+				if (node1 == (Node_t *)NULL) break;
+
+				node1->flags |= NO_MESH_COARSEN;
+
+				break;
+
+			case(MARK_NO_COLLISIONS):
+				
+
+				node1 = GetNodeFromIndex(home, op->dom1,
+							 op->idx1);
+
+				if (node1 == (Node_t *)NULL) break;
+
+				node1->flags |= NO_COLLISIONS;
+
+				break;
 /*
  *			Reset the forces on the specified segment of node1.
  *                      The op structure x,y,z values are loaded here with

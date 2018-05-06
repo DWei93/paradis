@@ -367,13 +367,13 @@ void ReadPreV4DataParams(Home_t *home, FILE *fp, void **dataDecomp)
  *      but until the rest of the code is modified to remove references
  *      to these values, we need to explicitly set them here.
  */
-        param->minSideX = param->minCoordinates[XC];
-        param->minSideY = param->minCoordinates[YC];
-        param->minSideZ = param->minCoordinates[ZC];
+        param->minSideX = param->minCoordinates[0];
+        param->minSideY = param->minCoordinates[1];
+        param->minSideZ = param->minCoordinates[2];
 
-        param->maxSideX = param->maxCoordinates[XC];
-        param->maxSideY = param->maxCoordinates[YC];
-        param->maxSideZ = param->maxCoordinates[ZC];
+        param->maxSideX = param->maxCoordinates[0];
+        param->maxSideY = param->maxCoordinates[1];
+        param->maxSideZ = param->maxCoordinates[2];
 
 /*
  *      Read domain decomposition (if present).  If the type of domain
@@ -559,13 +559,13 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
  *                          is modified to remove references to these
  *                          values, we need to explicitly set them now.
  */
-                            param->minSideX = param->minCoordinates[XC];
-                            param->minSideY = param->minCoordinates[YC];
-                            param->minSideZ = param->minCoordinates[ZC];
+                            param->minSideX = param->minCoordinates[0];
+                            param->minSideY = param->minCoordinates[1];
+                            param->minSideZ = param->minCoordinates[2];
 
-                            param->maxSideX = param->maxCoordinates[XC];
-                            param->maxSideY = param->maxCoordinates[YC];
-                            param->maxSideZ = param->maxCoordinates[ZC];
+                            param->maxSideX = param->maxCoordinates[0];
+                            param->maxSideY = param->maxCoordinates[1];
+                            param->maxSideZ = param->maxCoordinates[2];
 
                             tokenType = GetNextToken(fpSeg, token, maxTokenLen);
 /*

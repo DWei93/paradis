@@ -76,17 +76,17 @@ void GetDensityDelta(Home_t *home)
  *                5       [ 0  1  0] [ 0 -1  0]
  *                6       [ 0  0  1] [ 0  0 -1]
  */
-                burg[XC] = node->burgX[j];
-                burg[YC] = node->burgY[j];
-                burg[ZC] = node->burgZ[j];
+                burg[0] = node->burgX[j];
+                burg[1] = node->burgY[j];
+                burg[2] = node->burgZ[j];
 
-                zeroCount = (burg[XC] == 0.0) +
-                            (burg[YC] == 0.0) +
-                            (burg[ZC] == 0.0);
+                zeroCount = (burg[0] == 0.0) +
+                            (burg[1] == 0.0) +
+                            (burg[2] == 0.0);
 
-                negCount = (burg[XC] < 0.0) +
-                           (burg[YC] < 0.0) +
-                           (burg[ZC] < 0.0);
+                negCount = (burg[0] < 0.0) +
+                           (burg[1] < 0.0) +
+                           (burg[2] < 0.0);
 
 
                 burgGroup = -1;
@@ -100,9 +100,9 @@ void GetDensityDelta(Home_t *home)
  *                  burgers vector group below.
  */
                     if (negCount > 1) {
-                        burg[XC] = -burg[XC];
-                        burg[YC] = -burg[YC];
-                        burg[ZC] = -burg[ZC];
+                        burg[0] = -burg[0];
+                        burg[1] = -burg[1];
+                        burg[2] = -burg[2];
                     }
 
 /*
@@ -157,25 +157,25 @@ void GetDensityDelta(Home_t *home)
  *              length *before* the nodes were most recently
  *              repositioned.
  */
-                newLen[XC] = nbrNode->x - node->x;
-                newLen[YC] = nbrNode->y - node->y;
-                newLen[ZC] = nbrNode->z - node->z;
+                newLen[0] = nbrNode->x - node->x;
+                newLen[1] = nbrNode->y - node->y;
+                newLen[2] = nbrNode->z - node->z;
 
-                ZImage(home->param, &newLen[XC], &newLen[YC], &newLen[ZC]);
+                ZImage(home->param, &newLen[0], &newLen[1], &newLen[2]);
 
-                newLenTot = sqrt(newLen[XC]*newLen[XC] +
-                                 newLen[YC]*newLen[YC] +
-                                 newLen[ZC]*newLen[ZC]);
+                newLenTot = sqrt(newLen[0]*newLen[0] +
+                                 newLen[1]*newLen[1] +
+                                 newLen[2]*newLen[2]);
 
-                oldLen[XC] = nbrNode->oldx - node->oldx;
-                oldLen[YC] = nbrNode->oldy - node->oldy;
-                oldLen[ZC] = nbrNode->oldz - node->oldz;
+                oldLen[0] = nbrNode->oldx - node->oldx;
+                oldLen[1] = nbrNode->oldy - node->oldy;
+                oldLen[2] = nbrNode->oldz - node->oldz;
 
-                ZImage(home->param, &oldLen[XC], &oldLen[YC], &oldLen[ZC]);
+                ZImage(home->param, &oldLen[0], &oldLen[1], &oldLen[2]);
 
-                oldLenTot = sqrt(oldLen[XC]*oldLen[XC] +
-                                 oldLen[YC]*oldLen[YC] +
-                                 oldLen[ZC]*oldLen[ZC]);
+                oldLenTot = sqrt(oldLen[0]*oldLen[0] +
+                                 oldLen[1]*oldLen[1] +
+                                 oldLen[2]*oldLen[2]);
 
                 deltaLen = newLenTot - oldLenTot;
 

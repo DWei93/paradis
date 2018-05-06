@@ -238,12 +238,12 @@ int Mobility_BCC_glide(Home_t *home, Node_t *node)
                     Matrix33Vector3Multiply(home->rotMatrixInverse, bTmp,
                                             burgCryst);
                 } else {
-                    burgCryst[XC] = bx;
-                    burgCryst[YC] = by;
-                    burgCryst[ZC] = bz;
+                    burgCryst[0] = bx;
+                    burgCryst[1] = by;
+                    burgCryst[2] = bz;
                 }
 
-                if (fabs(burgCryst[XC]*burgCryst[YC]*burgCryst[ZC]) < eps) {
+                if (fabs(burgCryst[0]*burgCryst[1]*burgCryst[2]) < eps) {
                     if (nbrs == 2) {
                         Btotal[0][0] += halfMag * Beclimb;
                         Btotal[1][1] += halfMag * Beclimb;

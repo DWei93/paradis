@@ -248,12 +248,13 @@ void ParadisStep(Home_t *home)
         }
 #endif
 
+        DebugGB(home,15);
 /*
  *      Calculate the net charge tensor for each cell (includes global comm)
  */
         CellCharge(home);
 		
-        DebugGB(home,7);
+        DebugGB(home,16);
 /*
  *      Calculate new force and velocity data for all nodes or a selected
  *      subset and distribute the new data out to neighboring domains.
@@ -276,7 +277,7 @@ void ParadisStep(Home_t *home)
         }
 
 
-        DebugGB(home,8);
+        DebugGB(home,17);
 /*
  *      Invoke the selected time step integration method.  The
  *      selected method will calculate the time step as well as
@@ -296,13 +297,68 @@ void ParadisStep(Home_t *home)
  */
             TrapezoidIntegrator(home);
         }
-        DebugGB(home,12);
+        DebugGB(home,18);
+
+
+/*
+ *      Before doing topological changes, set flags indicating any
+ *      nodes exempt from topological changes.  These flags are used
+ *      in both splitting multi-arm nodes and collisions, so this
+ *      function should be invoked before either of those items are done.
+ */
+        InitTopologyExemptions(home);
+        DebugGB(home,19);
+
+#if CHECK_GB_TOPO
+        GenerateOutput(home, STAGE_DEBUG, "-4Trap");
+#endif
+
+        DebugGB(home,20);
+
+        if(param->xBoundType == Free ||
+           param->yBoundType == Free ||
+           param->zBoundType == Free){
+            ClearOpList(home);
+
+            AdjustSurfaceNode(home);
+
+            TimerStart(home, SEND_FS);
+            CommSendRemesh(home);
+            TimerStop(home, SEND_FS);
+	
+            TimerStart(home, FIX_FS);
+            FixRemesh(home, "Surface");
+            TimerStop(home, FIX_FS);
+#if CHECK_GB_TOPO
+            GenerateOutput(home, STAGE_DEBUG, "-5FS");
+#endif
+        }
+
+        DebugGB(home,21);
+        if(param->polycrystal && param->nGrain>1){
+            ClearOpList(home);
+            HandleGrainBoundary(home);
+            DebugGB(home,22);
+
+            TimerStart(home, SEND_GB);
+            CommSendRemesh(home);
+            TimerStop(home, SEND_GB);
+	
+            TimerStart(home, FIX_GB);
+            FixRemesh(home, "GB");
+            TimerStop(home, FIX_GB);
+
+        }
+
+        DebugGB(home,23);
+
 /*
  *      In some simulations, it is necessary to recalculate and distribute
  *      the glide plane infromation for segments after the nodes have been
  *      repositioned.  Do so now if needed.
  */
         ResetGlidePlanes(home);
+        DebugGB(home,24);
 		
 
 /*
@@ -314,10 +370,12 @@ void ParadisStep(Home_t *home)
  */
         GetDensityDelta(home);
 
+        DebugGB(home,25);
 /*
  *      Calculate the new plastic strain.
  */
         DeltaPlasticStrain(home);
+        DebugGB(home,26);
 
 /*
  *      The call to GenerateOutput will update the time and cycle counters,
@@ -326,14 +384,6 @@ void ParadisStep(Home_t *home)
  */
         GenerateOutput(home, STAGE_CYCLE,"-1cycle");
         DebugGB(home,1);
-/*
- *      Before doing topological changes, set flags indicating any
- *      nodes exempt from topological changes.  These flags are used
- *      in both splitting multi-arm nodes and collisions, so this
- *      function should be invoked before either of those items are done.
- */
-        InitTopologyExemptions(home);
-
 /*
  *      Now do all the topological changes from segment interactions
  *      (collisions, multinode splitting)...  Clear the list of local
@@ -412,6 +462,9 @@ void ParadisStep(Home_t *home)
             node->flags &= ~NODE_CHK_DBL_LINK;
         }
 
+#if CHECK_GB_TOPO
+        GenerateOutput(home, STAGE_DEBUG, "-2Collision");
+#endif
 /*
  *      If memory debugging is enabled, run a consistency check on all
  *      allocated memory blocks looking for corruption in any of the
@@ -428,13 +481,15 @@ void ParadisStep(Home_t *home)
         DebugGB(home,6);
 
 #if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-2remesh");
+        GenerateOutput(home, STAGE_DEBUG, "-3Remesh");
 #endif
 /*
  *      Define load curve and calculate change in applied stress this cycle
  */
+        DebugGB(home,7);
         LoadCurve(home, deltaStress);
 		
+        DebugGB(home,8);
 		
 
 /*
@@ -448,12 +503,14 @@ void ParadisStep(Home_t *home)
  */
         ApplyDeltaStress(home, deltaStress);
 
+        DebugGB(home,9);
 /*
  *      If necessary, use the current load data to generate a new
  *      domain decomposition to rebalance the workload among the
  *      processors.
  */
         Rebalance(home, DLB_USE_WALLCLK_TIME);
+        DebugGB(home,10);
 
 /*
  *      Send any nodes that have moved beyond the domain's
@@ -461,22 +518,26 @@ void ParadisStep(Home_t *home)
  */
 
         Migrate(home);
+        DebugGB(home,11);
 /*
  *      Recycle all the ghost nodes: move them back to the free Queue
  */
         RecycleGhostNodes(home);
+        DebugGB(home,12);
 
 /*
  *      Sort the native nodes into their proper subcells.  
  */
 		
         SortNativeNodes(home);
+        DebugGB(home,13);
 
 /*
  *      Communicate ghost cells to/from neighbor domains
  */
 		
         CommSendGhosts(home);
+        DebugGB(home,14);
 
 #ifdef NAN_CHECK
 /*

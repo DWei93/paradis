@@ -30,9 +30,9 @@ numZcells = 4
 #
 # Mesh size for tecmesh
 #
-meshSizeX = 1000
-meshSizeY = 1000
-meshSizeZ = 1000
+meshSizeX = 50
+meshSizeY = 50
+meshSizeZ = 50
 
 #  Dynamic load balancing
 #
@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res."
+dirname = "res.T1"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -50,6 +50,7 @@ splitMultiNodeFreq =   1
 #  Simulation time and timestepping controls
 #  
 maxstep =  40000000 
+#maxstep =  4 
 maxStn = 1.0E-2
 maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
@@ -92,24 +93,25 @@ shearModulus =   54.6e9  # Voight Average
 pois =   0.324
 burgMag =   2.55600e-10  
 limitDisplacement = 0
-GBStrength = 3.0e8
+GBStrength = 5.0e8
 fricStress = 0.0e0
 
 #fricStress = 3.46e7
 #  mobility values may be a little low for FCC
 MobScrew =   1.000000e+04
 MobEdge =    1.000000e+04  
+MobTwinning = 5.000000e+04
 rc =  10.0
 #
 #  I/O controls and parameters
 #  
 #
 tecplot = 1
-tecplotfreq = 500
+tecplotfreq = 200
 saveprop = 1
-savepropfreq = 500
+savepropfreq = 50
 tecmesh = 1
-tecmeshfreq = 50
+tecmeshfreq = 1000
 velfile = 0
 velfilefreq = 1000
 savecn = 1

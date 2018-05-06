@@ -89,18 +89,18 @@ static void RemapDomains(Home_t *home)
             return;
         }
 
-        logicalGeom[XC] = param->nXdoms;
-        logicalGeom[YC] = param->nYdoms;
-        logicalGeom[ZC] = param->nZdoms;
+        logicalGeom[0] = param->nXdoms;
+        logicalGeom[1] = param->nYdoms;
+        logicalGeom[2] = param->nZdoms;
 
 /*
  *      Get the physical domain geoemtry
  */
         Kernel_GetPersonality(&personality, sizeof(personality));
 
-        physicalGeom[XC] = personality.Network_Config.Xnodes;
-        physicalGeom[YC] = personality.Network_Config.Ynodes;
-        physicalGeom[ZC] = personality.Network_Config.Znodes;
+        physicalGeom[0] = personality.Network_Config.Xnodes;
+        physicalGeom[1] = personality.Network_Config.Ynodes;
+        physicalGeom[2] = personality.Network_Config.Znodes;
 
 /*
  *      Search for an environment variable specifying the method of MPI
@@ -149,13 +149,13 @@ static void RemapDomains(Home_t *home)
  *      tasks per node.
  */
         taskCount = home->numDomains;
-        nodeCount = physicalGeom[XC] * physicalGeom[YC] * physicalGeom[ZC];
+        nodeCount = physicalGeom[0] * physicalGeom[1] * physicalGeom[2];
 
         if ((taskCount != nodeCount) && (sequentialPerNode == 0)) {
             Fatal("Can't figure out how to map logical geometry %dx%dx%d\n"
                   "to physical geometry %dx%dx%d using %s\n",
-                  logicalGeom[XC], logicalGeom[YC], logicalGeom[ZC],
-                  physicalGeom[XC], physicalGeom[YC], physicalGeom[ZC],
+                  logicalGeom[0], logicalGeom[1], logicalGeom[2],
+                  physicalGeom[0], physicalGeom[1], physicalGeom[2],
                   taskDistributionSpec);
         }
 
@@ -174,9 +174,9 @@ static void RemapDomains(Home_t *home)
  *      compare the logical mappings for Z with physical mapping of
  *      the fastest changing dimension, and so on.
  */
-        if ((logicalGeom[ZC] == physicalTasks[allocationOrder[0]]) &&
-            (logicalGeom[YC] == physicalTasks[allocationOrder[1]]) &&
-            (logicalGeom[XC] == physicalTasks[allocationOrder[2]])) {
+        if ((logicalGeom[2] == physicalTasks[allocationOrder[0]]) &&
+            (logicalGeom[1] == physicalTasks[allocationOrder[1]]) &&
+            (logicalGeom[0] == physicalTasks[allocationOrder[2]])) {
             return;
         }
 
@@ -185,13 +185,13 @@ static void RemapDomains(Home_t *home)
         printf("Task count:         %d\n", taskCount);
         printf("Task distribution:  %s\n", taskDistributionSpec);
         printf("Physical geometry:  %d X %d X %d\n",
-               physicalGeom[XC], physicalGeom[YC], physicalGeom[ZC]);
+               physicalGeom[0], physicalGeom[1], physicalGeom[2]);
 
         printf("Physical tasks:     %d X %d X %d\n",
-               physicalTasks[XC], physicalTasks[YC], physicalTasks[ZC]);
+               physicalTasks[0], physicalTasks[1], physicalTasks[2]);
 
         printf("Logical geometry:   %d X %d X %d\n",
-               logicalGeom[XC], logicalGeom[YC], logicalGeom[ZC]);
+               logicalGeom[0], logicalGeom[1], logicalGeom[2]);
 #endif
 
 /*
@@ -207,17 +207,17 @@ static void RemapDomains(Home_t *home)
                        "inconsistent with\n    physical task geometry of"
                        "%d X %d X %d.\n    Resetting logical geometry to be "
                        "consistent with physical!\n",
-                       logicalGeom[XC], logicalGeom[YC], logicalGeom[ZC],
-                       physicalTasks[XC], physicalTasks[YC], physicalTasks[ZC]);
-                logicalGeom[ZC] = physicalTasks[allocationOrder[0]];
-                logicalGeom[YC] = physicalTasks[allocationOrder[1]];
-                logicalGeom[XC] = physicalTasks[allocationOrder[2]];
+                       logicalGeom[0], logicalGeom[1], logicalGeom[2],
+                       physicalTasks[0], physicalTasks[1], physicalTasks[2]);
+                logicalGeom[2] = physicalTasks[allocationOrder[0]];
+                logicalGeom[1] = physicalTasks[allocationOrder[1]];
+                logicalGeom[0] = physicalTasks[allocationOrder[2]];
                 break;
             case TASK_MAP_MISMATCH_ABORT:
                 Fatal("logical domain geometry %dx%dx%d mismatch with physical"
                       "task \ngeometry %dx%dx%d:  Aborting!\n",
-                      logicalGeom[XC], logicalGeom[YC], logicalGeom[ZC],
-                      physicalTasks[XC], physicalTasks[YC], physicalTasks[ZC]);
+                      logicalGeom[0], logicalGeom[1], logicalGeom[2],
+                      physicalTasks[0], physicalTasks[1], physicalTasks[2]);
                 break;
             default:
                 Fatal("Unsupported taskMappingMode = %d!\n",
@@ -230,9 +230,9 @@ static void RemapDomains(Home_t *home)
  *      This new domain geometry will then get distributed to remote domains
  *      when task 0 broadcasts the final param structure out.
  */
-        param->nXdoms = logicalGeom[XC];
-        param->nYdoms = logicalGeom[YC];
-        param->nZdoms = logicalGeom[ZC];
+        param->nXdoms = logicalGeom[0];
+        param->nYdoms = logicalGeom[1];
+        param->nZdoms = logicalGeom[2];
 
         return;
 }
@@ -669,14 +669,14 @@ void SetRemainingDefaults(Home_t *home)
  *          not within the primary bounding box, it's a problem.
  */
             if (((param->xBoundType == Free) &&
-                 (param->xBoundMin < param->minCoordinates[XC]) ||
-                 (param->xBoundMax > param->maxCoordinates[XC])) ||
+                 (param->xBoundMin < param->minCoordinates[0]) ||
+                 (param->xBoundMax > param->maxCoordinates[0])) ||
                 ((param->yBoundType == Free) &&
-                 (param->yBoundMin < param->minCoordinates[YC]) ||
-                 (param->yBoundMax > param->maxCoordinates[YC])) ||
+                 (param->yBoundMin < param->minCoordinates[1]) ||
+                 (param->yBoundMax > param->maxCoordinates[1])) ||
                 ((param->zBoundType == Free) &&
-                 (param->zBoundMin < param->minCoordinates[ZC]) ||
-                 (param->zBoundMax > param->maxCoordinates[ZC]))) {
+                 (param->zBoundMin < param->minCoordinates[2]) ||
+                 (param->zBoundMax > param->maxCoordinates[2]))) {
                 Fatal("Free surfaces are not within main bounding box!\n"
                       "    Surface min coordinates (%lf %lf %lf)\n"
                       "    Surface max coordinates (%lf %lf %lf)\n",
@@ -1225,9 +1225,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
         if (home->myDomain == 0) {
 
             dataFile = (char *)NULL;
-            printf("0\n");
             ctrlFile = (char*)"control.script";
-            printf("1\n");
 
             for (i = 1; i < argc; i++) {
                 if (!strcmp(argv[i], "-r")) {
@@ -1461,9 +1459,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *      point, so update the data file parameters to match the values
  *      desired for this particular run.
  */
-        param->dataDecompGeometry[XC] = param->nXdoms;
-        param->dataDecompGeometry[YC] = param->nYdoms;
-        param->dataDecompGeometry[ZC] = param->nZdoms;
+        param->dataDecompGeometry[0] = param->nXdoms;
+        param->dataDecompGeometry[1] = param->nYdoms;
+        param->dataDecompGeometry[2] = param->nZdoms;
 
         param->dataDecompType = param->decompType;
         param->dataFileVersion = NODEDATA_FILE_VERSION;
@@ -1717,13 +1715,12 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *	Iinitialize grain
  */
 	    InitGrain(home, param);
-
+        
 	    param->vshr = sqrt(param->YoungsModulus / param->rho ) / param->burgMag;
 	    if(home->myDomain == 0)printf("shear Wave velocity: %6.2f m/s.\n",
 	    param->vshr * param->burgMag);
 
 	    CheckMemUsage(home, "Initialize");
 	
-        Fatal("Arrane: %d %d",Arrange(4),Arrange(4,2));
         return;
 }

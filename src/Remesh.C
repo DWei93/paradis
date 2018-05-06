@@ -63,25 +63,25 @@ void EstRefinementForces(Home_t *home, Node_t *node1, Node_t *node2,
         arm12 = GetArmID(home, node1, node2);
         arm21 = GetArmID(home, node2, node1);
 
-        burg[XC] = node1->burgX[arm12];
-        burg[YC] = node1->burgY[arm12];
-        burg[ZC] = node1->burgZ[arm12];
+        burg[0] = node1->burgX[arm12];
+        burg[1] = node1->burgY[arm12];
+        burg[2] = node1->burgZ[arm12];
 
-        oldfp1[XC] = node1->armfx[arm12];
-        oldfp1[YC] = node1->armfy[arm12];
-        oldfp1[ZC] = node1->armfz[arm12];
+        oldfp1[0] = node1->armfx[arm12];
+        oldfp1[1] = node1->armfy[arm12];
+        oldfp1[2] = node1->armfz[arm12];
 
-        oldfp2[XC] = node2->armfx[arm21];
-        oldfp2[YC] = node2->armfy[arm21];
-        oldfp2[ZC] = node2->armfz[arm21];
+        oldfp2[0] = node2->armfx[arm21];
+        oldfp2[1] = node2->armfy[arm21];
+        oldfp2[2] = node2->armfz[arm21];
 
-        p1[XC] = node1->x;
-        p1[YC] = node1->y;
-        p1[ZC] = node1->z;
+        p1[0] = node1->x;
+        p1[1] = node1->y;
+        p1[2] = node1->z;
 
-        p2[XC] = p1[XC] + vec[XC];
-        p2[YC] = p1[YC] + vec[YC];
-        p2[ZC] = p1[ZC] + vec[ZC];
+        p2[0] = p1[0] + vec[0];
+        p2[1] = p1[1] + vec[1];
+        p2[2] = p1[2] + vec[2];
 
         FindSubFSeg(home, p1, p2, burg, oldfp1, oldfp2, newPos, f0Seg1,
                     f1Seg1, f0Seg2, f1Seg2);
@@ -124,41 +124,41 @@ void EstCoarsenForces(Home_t *home, Node_t *node1, Node_t *node2,
         arm12 = GetArmID(home, node1, node2);
         arm32 = GetArmID(home, node3, node2);
 
-        p1[XC] = node1->x; p2[XC] = node2->x; p3[XC] = node3->x;
-        p1[YC] = node1->y; p2[YC] = node2->y; p3[YC] = node3->y;
-        p1[ZC] = node1->z; p2[ZC] = node2->z; p3[ZC] = node3->z;
+        p1[0] = node1->x; p2[0] = node2->x; p3[0] = node3->x;
+        p1[1] = node1->y; p2[1] = node2->y; p3[1] = node3->y;
+        p1[2] = node1->z; p2[2] = node2->z; p3[2] = node3->z;
 
 /*
  *      If periodic boundaries are enabled, the nodes may
  *      be on opposite side of the problem space, so adjust
  *      the positions accordingly.
  */
-        PBCPOSITION(param, p1[XC], p1[YC], p1[ZC], &p2[XC], &p2[YC], &p2[ZC]);
-        PBCPOSITION(param, p1[XC], p1[YC], p1[ZC], &p3[XC], &p3[YC], &p3[ZC]);
+        PBCPOSITION(param, p1[0], p1[1], p1[2], &p2[0], &p2[1], &p2[2]);
+        PBCPOSITION(param, p1[0], p1[1], p1[2], &p3[0], &p3[1], &p3[2]);
 
-        burg1[XC] = node1->burgX[arm12];
-        burg1[YC] = node1->burgY[arm12];
-        burg1[ZC] = node1->burgZ[arm12];
+        burg1[0] = node1->burgX[arm12];
+        burg1[1] = node1->burgY[arm12];
+        burg1[2] = node1->burgZ[arm12];
 
-        burg2[XC] = node2->burgX[arm23];
-        burg2[YC] = node2->burgY[arm23];
-        burg2[ZC] = node2->burgZ[arm23];
+        burg2[0] = node2->burgX[arm23];
+        burg2[1] = node2->burgY[arm23];
+        burg2[2] = node2->burgZ[arm23];
 
-        fp0[XC] = node1->armfx[arm12];
-        fp0[YC] = node1->armfy[arm12];
-        fp0[ZC] = node1->armfz[arm12];
+        fp0[0] = node1->armfx[arm12];
+        fp0[1] = node1->armfy[arm12];
+        fp0[2] = node1->armfz[arm12];
 
-        fp1[XC] = node2->armfx[arm21];
-        fp1[YC] = node2->armfy[arm21];
-        fp1[ZC] = node2->armfz[arm21];
+        fp1[0] = node2->armfx[arm21];
+        fp1[1] = node2->armfy[arm21];
+        fp1[2] = node2->armfz[arm21];
 
-        fp2[XC] = node2->armfx[arm23];
-        fp2[YC] = node2->armfy[arm23];
-        fp2[ZC] = node2->armfz[arm23];
+        fp2[0] = node2->armfx[arm23];
+        fp2[1] = node2->armfy[arm23];
+        fp2[2] = node2->armfz[arm23];
 
-        fp3[XC] = node3->armfx[arm32];
-        fp3[YC] = node3->armfy[arm32];
-        fp3[ZC] = node3->armfz[arm32];
+        fp3[0] = node3->armfx[arm32];
+        fp3[1] = node3->armfy[arm32];
+        fp3[2] = node3->armfz[arm32];
 
 /*
  *      It is possible to we'll have to deal with extremely short
@@ -179,20 +179,20 @@ void EstCoarsenForces(Home_t *home, Node_t *node1, Node_t *node2,
 /*
  *      Segments less than .01b in length are treated as zero length
  */
-        if ((len1[XC]*len1[XC] + len1[YC]*len1[YC] + len1[ZC]*len1[ZC]) < 1.0e-4) {
-            f0Seg[XC] = node2->armfx[arm23];
-            f0Seg[YC] = node2->armfy[arm23];
-            f0Seg[ZC] = node2->armfz[arm23];
-            f1Seg[XC] = node3->armfx[arm32];
-            f1Seg[YC] = node3->armfy[arm32];
-            f1Seg[ZC] = node3->armfz[arm32];
-        } else if ((len2[XC]*len2[XC]+len2[YC]*len2[YC]+len2[ZC]*len2[ZC])<1.0e-4) {
-            f0Seg[XC] = node1->armfx[arm12];
-            f0Seg[YC] = node1->armfy[arm12];
-            f0Seg[ZC] = node1->armfz[arm12];
-            f1Seg[XC] = node2->armfx[arm21];
-            f1Seg[YC] = node2->armfy[arm21];
-            f1Seg[ZC] = node2->armfz[arm21];
+        if ((len1[0]*len1[0] + len1[1]*len1[1] + len1[2]*len1[2]) < 1.0e-4) {
+            f0Seg[0] = node2->armfx[arm23];
+            f0Seg[1] = node2->armfy[arm23];
+            f0Seg[2] = node2->armfz[arm23];
+            f1Seg[0] = node3->armfx[arm32];
+            f1Seg[1] = node3->armfy[arm32];
+            f1Seg[2] = node3->armfz[arm32];
+        } else if ((len2[0]*len2[0]+len2[1]*len2[1]+len2[2]*len2[2])<1.0e-4) {
+            f0Seg[0] = node1->armfx[arm12];
+            f0Seg[1] = node1->armfy[arm12];
+            f0Seg[2] = node1->armfz[arm12];
+            f1Seg[0] = node2->armfx[arm21];
+            f1Seg[1] = node2->armfy[arm21];
+            f1Seg[2] = node2->armfz[arm21];
         } else {
             FindFSegComb(home, p1, p2, p3, burg1, burg2,
                          fp0, fp1, fp2, fp3, f0Seg, f1Seg);
@@ -225,9 +225,9 @@ void CutSurfaceSegments(Home_t *home)
 		if ((node = home->nodeKeys[i]) == (Node_t *)NULL) {
 			continue;
 		}
-		/*
-		 *          If the node is not a surface node, skip it.
-		 */
+/*
+ *      If the node is not a surface node, skip it.
+ */
 		if (node->constraint<1 || node->constraint >3 ) {
 			continue;
 		}
@@ -242,10 +242,10 @@ void CutSurfaceSegments(Home_t *home)
 				continue;
 			}
 
-			/*
-			 *              if the neighboring node is not on the surface, skip
-			 *              to the next neighbor
-			 */
+/*
+ *          if the neighboring node is not on the surface, skip
+ *          to the next neighbor
+ */
 			if (nbr->constraint<1 || nbr->constraint>3) {
 				j++;
 				continue;
@@ -354,15 +354,10 @@ void Remesh(Home_t *home)
         TimerStart(home, SEND_REMESH);
         CommSendRemesh(home);
         TimerStop(home, SEND_REMESH);
-
-		
 		
         TimerStart(home, FIX_REMESH);
         FixRemesh(home, "Remesh");
         TimerStop(home, FIX_REMESH);
-
-		
-		
 		
 /*
  *      Under certain circumstances, parallel topological changes

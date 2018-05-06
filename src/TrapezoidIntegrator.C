@@ -648,9 +648,9 @@ void TrapezoidIntegrator(Home_t *home)
                     errMax = MAX(errMax, fabs(node->z - oldz -
                                          ((node->vZ+node->currvZ)*0.5*newDT)));
 
-                    nodeVec[XC] = node->x - oldx;
-                    nodeVec[YC] = node->y - oldy;
-                    nodeVec[ZC] = node->z - oldz;
+                    nodeVec[0] = node->x - oldx;
+                    nodeVec[1] = node->y - oldy;
+                    nodeVec[2] = node->z - oldz;
                     ZImage(param, nodeVec, nodeVec+1, nodeVec+2);
                     	
                     localMaxDisp = MAX(localMaxDisp, Normal(nodeVec));
@@ -861,33 +861,6 @@ void TrapezoidIntegrator(Home_t *home)
  */
         PreserveNodalData(home, NODE_OLD_VEL);
 		
-
-#if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-3trap");
-#endif
-
-        DebugGB(home,9);
-        ClearOpList(home);
-        	
-        AdjustSurfaceNode(home);
-        	
-        if(param->polycrystal && param->nGrain>1){
-            HandleGrainBoundary(home);
-        }
-
-        DebugGB(home,10);
-
-        TimerStart(home, SEND_GB);
-        CommSendRemesh(home);
-        TimerStop(home, SEND_GB);
-	
-        TimerStart(home, FIX_GB);
-        FixRemesh(home, "GB");
-        TimerStop(home, FIX_GB);
-		
-        DebugGB(home,11);
-		
-
 #ifdef _FEM
 /*
  *      If we're using the FEM code for simulating free surfaces, we

@@ -78,4 +78,7 @@ void   RestoreNode(Home_t *home, Node_t *origNode, Node_t *bkupNode);
 
 void DebugMergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
                real8 *position, Node_t **mergedNode, int *status, int globalOp);
+int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
+                     real8 inGrain, real8 pos[3], real8  burg[3], real8 normal[3],
+                     Node_t **newNodePtr);
 #endif /* _TOPOLOGY_H */

@@ -33,6 +33,10 @@
 #define SIDE_PENETRATION	1
 #define LAST_PENETRATION	3
 
+#define MAX_PENE_SETS               3
+#define MAX_PENE_PLANES             2
+#define MAX_PENE_DISS               3
+
 /*	define some node types	*/
 #define INGRAIN_NODE	0x0000	// node within grains
 #define INTERSECT_NODE	0x0001	// intersection node between TB node and node within grain
@@ -83,24 +87,39 @@ typedef struct {
 } Line_t;
 
 
+typedef struct {
+    bool    effective;
+    real8   powerDis;
+    int     nDiss;          
+
+    int     nPlanes;        // num of out plane i
+    bool    *passGB;        // plane i whether pass GB
+    real8   *inGrain;       // plane i in which grain
+    int     *nDissOnPlane;  // number of dislocations in the plane i
+    real8   (*normal)[3];   // plane i normal
+
+    real8   (*pos)[3];      // p[3]
+    real8   (*burg)[3];    
+} Res_t;
+
 struct _penetration{
-	int		nSets;
-    Node_t  *node;
-    
-	real8	(*outNormal)[3];
-	real8	(*outBurg)[3];
-	real8	(*GBBurg)[3];
-	real8	*powerDis;
-	int		*effective;
-	
+    Node_t  *node;          // penetration node
+    Plane_t *GBPlane;       // pointer of GB plane     
+
+    Line_t  line1;
+    Line_t  line2;
+	int		nSets;          // num of posible penetration sets
+    Res_t   *res;           // results list of penentration sets
 };
 
+Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p,int oldOrCurr, int globalOp, int opClass);
 void PrintNeighbor(Home_t *home, Node_t *node);
 void FormatMatrix(real8 M[3][3], const char *msg);
 void FormatMatrix66(real8 M[6][6], const char *msg);
 void FormatVector(real8 vec[3], const char *msg);
 void CopyMatrix33(real8 M1[3][3], real8 M2[3][3]);
 void InitOrientation(real8 MatrixOrientation[3][3], real8 TwinOrientation[3][3]);
+void FreeGrainStructure(Grain_t *grain);
 void InitGrain(Home_t *home, Param_t *param);
 real8 GetInGrainFromPos(Home_t *home, real8 x, real8 y, real8 z);
 Node_t *GetinDataNodeFromTag(InData_t *inData, Tag_t tag);
@@ -131,9 +150,10 @@ real8 Distance(Home_t *home,real8 *p1,real8 *p2);
 int NodeOnLine(real8 *p, Line_t *line);
 void PullToLine(real8 *p, Line_t *line);
 void PrintTag(Node_t *node);
-void InitPenRes(Pene_t *pene);
-int GetPenResults(Home_t *home, Node_t *node, Node_t *nbr, Pene_t *pene,
-				   Grain_t *oldGrain, Grain_t *currGrain, Plane_t *GBPlane);
+void InitPenStr(Pene_t *pene);
+void FreePenStr(Pene_t *pene);
+int  GetPenResults(Home_t *home, Node_t *node, Pene_t *pene,
+	               Plane_t *GBPlane);
 
 /*
  * geometrical relationship
@@ -162,11 +182,12 @@ int SameTag(Tag_t *tag1, Tag_t *tag2);
 void RotateWithAxis(real8 a[3], real8 theta, real8 R[3][3]);
 void DoResistance(Home_t *home, Node_t *node, real8 *nForce);
 int SurfaceNode(Node_t *node);
-int CheckReposition(Home_t *home, Node_t *node, real8 *newPos);
+int AdjustNodeDirection(Home_t *home, Node_t *node, real8 *vec);
 int ExceedBox(Param_t *param, real8 *pos);
 int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]);
 void ImageForce(Home_t *home, real8 armGrain, real8 x1, real8 y1, real8 z1,
                   real8 x2, real8 y2, real8 z2, real8 bx, real8 by, real8 bz,
                   real8 f1[3], real8 f2[3]);
+bool BeforeMergeArm(Home_t *home, Node_t *node1, Node_t *node2, real8 *vec1, real8 *vec2, int *type);
 int GeosTest();
 #endif

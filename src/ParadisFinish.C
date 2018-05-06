@@ -111,6 +111,15 @@ void ReleaseMemory(Home_t *home)
             home->nodeKeys = NULL;
         }
 
+        if(home->grainKeys){
+            for(i=0; i<home->newGrainKeyPtr; i++){
+                FreeGrainStructure(home->grainKeys[i]);            
+            }
+            free(home->grainKeys);
+            home->grainKeys = NULL;
+        }
+
+
 /*
  *      Free the heap used for recycling nodes that have bee deleted
  */

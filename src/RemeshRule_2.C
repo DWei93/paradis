@@ -20,6 +20,7 @@
 #include "Mobility.h"
 
 static int dbgDom;
+
 /*-------------------------------------------------------------------------
  *
  *      Function:    MeshCoarsen
@@ -28,10 +29,10 @@ static int dbgDom;
  *------------------------------------------------------------------------*/
 static void MeshCoarsen(Home_t *home)
 {
-        int     i,j, q, thisDomain, mergeDone, mergeStatus, globalOp;
+        int     i,j, k, q, thisDomain, mergeDone, mergeStatus, globalOp;
         int     localCoarsenCnt, globalCoarsenCnt, hasRemoteNbr;
-	int	inhibitMerge;
-        real8   tmpMag2;
+	    int	    breakLoop = 0, type;
+        real8   tmpMag2, vec1[3], vec2[3];
         real8   cellLength, cutoffLength1, cutoffLength2;
         real8   vec1x, vec1y, vec1z;
         real8   vec2x, vec2y, vec2z;
@@ -44,13 +45,17 @@ static void MeshCoarsen(Home_t *home)
         real8   dr1dt, dr2dt, dr3dt, dsdt, darea2dt;
         real8   newPos[3], f0seg1[3], f1seg1[3];
         real8   gp0[3], gp1[3], tmp3[3];
-        real8   burg[3],vec[3];
-	real8	armGrain1, armGrain2;
-	int	riskySeg1, riskySeg2, armID;
+        real8   burg[3],vec[3],vecStored;
+	    real8	armGrain1, armGrain2, mergedGrain;
+	    int	    riskySeg1, riskySeg2, armID;
         Tag_t   nbr1Tag, nbr2Tag, oldTag1, oldTag2, oldTag3;
         Node_t  *node, *nbr, *nbr1, *nbr2, *mergedNode;
         Param_t *param;
-	char 	name[50];
+        Node_t  bkupNodeList[2];
+	    char 	name[50];
+        Plane_t GBPlane;
+        bool    inhibitMerge,violateGlidePlanesOK = 0; 
+        int     mergedBasic;
 
         thisDomain = home->myDomain;
         param      = home->param;
@@ -89,65 +94,182 @@ static void MeshCoarsen(Home_t *home)
  */
             if (node->numNbrs < 2 || node->numNbrs > 3) continue;
 
-	    if(param->polycrystal){
-		if(node->inGrain - floor(node->inGrain) == 0.5){
-                    for(j=0; j<node->numNbrs; j++){
-                        nbr1 = GetNeighborNode(home, node, j);
-                        if(nbr1 == (Node_t *)NULL){
-                            printf("Warnig: neighbor not found. (at %s, L%d)\n",
-                                    __FILE__, __LINE__);
-                        }
-                        if(nbr1->inGrain - floor(nbr1->inGrain) == 0)continue;
-                        burg[XC] = node->burgX[j];
-                        burg[YC] = node->burgY[j];
-                        burg[ZC] = node->burgZ[j];
-                        if(BurgType_FCC(home,burg) != BASIC_BURG)continue;
-                        if (!DomainOwnsSeg(home, OPCLASS_REMESH, thisDomain, &nbr1->myTag))continue;
-                        vec[XC] = node->x - nbr1->x;
-                        vec[YC] = node->y - nbr1->y;
-                        vec[ZC] = node->z - nbr1->z;
-                        ZImage(home->param, vec, vec+1, vec+2);
-        
-                        newPos[XC] = node->x + 0.5 * vec[XC];
-                        newPos[YC] = node->y + 0.5 * vec[YC];
-                        newPos[ZC] = node->z + 0.5 * vec[ZC];
+            breakLoop = 0;
+		    if(param->polycrystal && (node->inGrain - floor(node->inGrain) == 0.5)){
+                
+                for(j=0; breakLoop == 0 && j<node->numNbrs; j++){
+                    inhibitMerge = 0;
+                    nbr1 = GetNeighborNode(home, node, j);
+                    if(nbr1 == (Node_t *)NULL){
+                        printf("Warnig: neighbor not found. (at %s, L%d)\n",
+                                __FILE__, __LINE__);
+                    }
+                    if(nbr1->inGrain - floor(nbr1->inGrain) == 0)continue;
+                    burg[0] = node->burgX[j];
+                    burg[1] = node->burgY[j];
+                    burg[2] = node->burgZ[j];
 
-//			if(CheckReposition(home, node, newPos);
+                    if(BurgType_FCC(home,burg) != BASIC_BURG){
+                        continue;
+                    }
 #if 1
-                        snprintf(name,50,"M5.%d.1",home->cycle);
-			Tecplot(home,(char*)name,0,0,0,0,0,1);
-			PrintNode(node);
-			PrintNode(nbr1);
+                    real8   normal[3], normalCryst[3]; 
+                    int     normalID;
+
+                    mergedBasic = 0;
+                    normal[0] = node->nx[j];
+                    normal[1] = node->ny[j];
+                    normal[2] = node->nz[j];
+                    if(home->param->useLabFrame){
+	                    ChangeOrientation(home, node, nbr1, 3);
+                        Matrix33Vector3Multiply(home->rotMatrixInverse, normal, normalCryst);
+                    }else{
+                        VECTOR_COPY(normalCryst, normal);
+                    }
+
+                    normalID = GlidePlaneID_FCC(normalCryst);
+                    if(normalID == 3){
+                        printf("Mergedbasic arm on tb: ");
+                        PrintTag(node);
+                        PrintTag(nbr1);
+                        mergedBasic = 1;
+                        printf("\n");
+                    }
+#endif
+
+                    if(!DomainOwnsSeg(home, OPCLASS_REMESH, thisDomain, &nbr1->myTag))continue;
+
+#if 0
+                    int specil = 0;
+                    if((NodeOnGB(home,node) & INTERSECT_NODE) == 0 ||
+                       (NodeOnGB(home,nbr1) & INTERSECT_NODE) == 0 ){
+                        snprintf(name,50,"Special.%d.1",home->cycle);
+			            Tecplot(home,(char*)name,0,0,0,0,0,1);
+                        PrintNode(node);
+                        PrintNode(nbr1);
+                        printf("Warning: Merge specil segement\n");
+                        specil = 1;
+                    }
+#endif
+                    VECTOR_ZERO(newPos);
+	                inhibitMerge = BeforeMergeArm(home, node, nbr1, vec1, vec2, &type);
+#if 1
+                    if(mergedBasic){
+                        FormatVector(vec1, "vec1");
+                        FormatVector(vec2, "vec2");
+                        printf("MergedBasic: %d type %d\n", inhibitMerge, type);
+                    }
+#endif
+
+#if 0
+                    snprintf(name,50,"MergeGBSeg.%d.1",home->cycle);
+			        Tecplot(home,(char*)name,0,0,0,0,0,1);
+#endif
+                    if(!inhibitMerge || mergedBasic){
+                        globalOp = (nbr1->myTag.domainID != thisDomain);
+
+                        for (q = 0; q < nbr1->numNbrs; q++) {
+                            globalOp |= (nbr1->nbrTag[q].domainID != thisDomain);
+                        }
+
+                        for (q = 0; q < node->numNbrs; q++) {
+                            globalOp |= (node->nbrTag[q].domainID != thisDomain);
+                        }
+
+                        VECTOR_COPY(newPos, vec2);
+                        if(type == LINE_INTERSECTION || mergedBasic){
+                            vec[0] = nbr1->x - node->x;
+                            vec[1] = nbr1->y - node->y;
+                            vec[2] = nbr1->z - node->z;
+                            ZImage(home->param, vec, vec+1, vec+2);
+
+                            newPos[0] = node->x + 0.5*vec[0];
+                            newPos[1] = node->y + 0.5*vec[1];
+                            newPos[2] = node->z + 0.5*vec[2];
+                        }
+#if 1
+                        if(mergedBasic){
+                            FormatVector(newPos, "newPos");
+                            printf("MergedBasic: %d type %d\n", inhibitMerge, type);
+                        }
 #endif
                         FoldBox(home->param, newPos, newPos+1, newPos+2);
-
                         MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
-                                  &mergedNode, &mergeStatus, 1);
+                                  &mergedNode, &mergeStatus, globalOp);
             
                         mergeDone = mergeStatus & MERGE_SUCCESS;
 
-                        snprintf(name,50,"M5.%d.2",home->cycle);
-			Tecplot(home,(char*)name,0,0,0,0,0,1);
+                        if(mergedNode != (Node_t *)NULL){
+                            if(mergedNode->myTag.domainID == home->myDomain){
+                                k = 0;
+                                for(q=0; q< mergedNode->numNbrs; q++){  
+                                    nbr2 = GetNeighborNode(home, mergedNode, q);
+                                    if(nbr2 == (Node_t*)NULL)continue;
+                                    if(nbr2->inGrain - floor(nbr2->inGrain) == 0){
+                                        if(k == 0){
+                                            k++;
+                                            mergedGrain = nbr2->inGrain;
+                                        }
+                                        if(mergedGrain != nbr2->inGrain){
+                                            k = -1;
+                                            break;
+                                        }
+                                    }else{
+                                        k = -1;
+                                        break;
+                                    }
+                                }
+                                if(k == 1){
+                                    if(normalID != 3){
+                                        PullToGB(home, mergedNode, mergedGrain);
+                                        AssignGrain(home, mergedNode, mergedGrain);
+                                    }
+                                }
+                            }
+                        }
+#if 0
+                        if(specil){
+                            snprintf(name,50,"Special.%d.2",home->cycle);
+			                Tecplot(home,(char*)name,0,0,0,0,0,1);
 
-			if(mergeStatus == 5){
-#if 1
-			    if(mergedNode != (Node_t *)NULL){
-                                snprintf(name,50,"M5.%d.2",home->cycle);
-				Tecplot(home,(char*)name,0,0,0,0,0,1);
-			        PrintNode(mergedNode);
-			    }
+                        }
 #endif
+
+#if 0
+			            if(mergeStatus == 5){
+			                if(mergedNode != (Node_t *)NULL){
+                                snprintf(name,50,"M5.%d.3",home->cycle);
+				                Tecplot(home,(char*)name,0,0,0,0,0,1);
+			                    PrintNode(mergedNode);
+			                }
                             printf("Task %d: merge basic GB segement status %d\n", home->myDomain, mergeStatus);
-			}
-		        break;
+			            }
+#endif
+                        if(mergeStatus & MERGE_SUCCESS || mergeStatus & MERGE_NO_REPOSITION){
+                            i--;
+                        }
+                        breakLoop = 1;
+		                break;
                     }
-		}
-	    }
-	    if(node ==(Node_t *)NULL)continue;
-	    if(node->numNbrs != 2 )continue;
+                }
+		    }
+            
+            if(breakLoop)continue;
+	        if(node ==(Node_t *)NULL)continue;
+	        if(node->numNbrs != 2 )continue;
 
             if (node->constraint == PINNED_NODE) continue;
 
+            nbr1 = GetNeighborNode(home, node, 0);
+            nbr2 = GetNeighborNode(home, node, 1);
+            if(nbr1 != (Node_t *)NULL && nbr2 != (Node_t *)NULL){
+                if(NodeOnGB(home, nbr1) == INTERSECT_NODE &&
+                   NodeOnGB(home, nbr2) == INTERSECT_NODE){
+                    continue;
+                }
+            }
+
+            inhibitMerge = 0;
             nbr1 = GetNeighborNode(home, node, 0);
             nbr2 = GetNeighborNode(home, node, 1);
         
@@ -169,9 +291,9 @@ static void MeshCoarsen(Home_t *home)
             hasRemoteNbr  = (node->myTag.domainID != nbr1->myTag.domainID);
             hasRemoteNbr |= (node->myTag.domainID != nbr2->myTag.domainID);
 
-	    armGrain1 = ChangeOrientation(home, node, nbr1, 0);
-	    armGrain2 = ChangeOrientation(home, node, nbr2, 0);
-	    if(armGrain1 != armGrain2)continue;
+	        armGrain1 = ChangeOrientation(home, node, nbr1, 0);
+	        armGrain2 = ChangeOrientation(home, node, nbr2, 0);
+	        if(armGrain1 != armGrain2)continue;
 /*
  *          Calculate the lengths of the node's 2 arms plus
  *          the distance between the two neighbor nodes.
@@ -217,15 +339,19 @@ static void MeshCoarsen(Home_t *home)
  *          3) If the glide planes are allowed to be 'fuzzy' add
  *             a few extra exceptions (see below)
  */
+            inhibitMerge = 0;
+            violateGlidePlanesOK = 0;
             if (param->enforceGlidePlanes) {
-                int   connectionID, violateGlidePlanesOK = 0;
-
+                int   connectionID; 
                 if ((r1 < 1.0) ||
                     (r2 < 1.0) ||
                     ((MAX(r1, r2) < MAX(1.0, 0.20 * param->minSeg) &&
                      (Connected(nbr1, nbr2, &connectionID))))) {
                     violateGlidePlanesOK = 1;
                 }
+
+                violateGlidePlanesOK &= ((node->inGrain == nbr1->inGrain) 
+                                        && (node->inGrain == nbr2->inGrain));
 
                 gp0[0] = node->nx[0];
                 gp0[1] = node->ny[0];
@@ -250,7 +376,6 @@ static void MeshCoarsen(Home_t *home)
  *                    the same
  */
                 if (param->allowFuzzyGlidePlanes) {
-	            Fatal("allow fuzzy glide plane");
                     if (fabs(DotProduct(gp0, gp1)) > 0.9555) {
                         violateGlidePlanesOK = 1;
                     } else if ((r1 < param->rann) || (r2 <  param->rann)) {
@@ -260,20 +385,20 @@ static void MeshCoarsen(Home_t *home)
                         real8 lineDir1[3], lineDir2[3];
                         real8 testPlane1[3], testPlane2[3];
 
-                        burg1[XC] = node->burgX[0];
-                        burg1[YC] = node->burgY[0];
-                        burg1[ZC] = node->burgZ[0];
+                        burg1[0] = node->burgX[0];
+                        burg1[1] = node->burgY[0];
+                        burg1[2] = node->burgZ[0];
 
-                        burg2[XC] = node->burgX[1];
-                        burg2[YC] = node->burgY[1];
-                        burg2[ZC] = node->burgZ[1];
-                        lineDir1[XC] = vec1x;
-                        lineDir1[YC] = vec1y;
-                        lineDir1[ZC] = vec1z;
+                        burg2[0] = node->burgX[1];
+                        burg2[1] = node->burgY[1];
+                        burg2[2] = node->burgZ[1];
+                        lineDir1[0] = vec1x;
+                        lineDir1[1] = vec1y;
+                        lineDir1[2] = vec1z;
 
-                        lineDir2[XC] = vec2x;
-                        lineDir2[YC] = vec2y;
-                        lineDir2[ZC] = vec2z;
+                        lineDir2[0] = vec2x;
+                        lineDir2[1] = vec2y;
+                        lineDir2[2] = vec2z;
 
 /*
  *                      FindPreciseGlidePlanes() just uses l cross b if fuzzy
@@ -292,15 +417,26 @@ static void MeshCoarsen(Home_t *home)
                 }
 
                 if (!violateGlidePlanesOK) {
-
                     cross(gp0, gp1, tmp3);
-
                     if (fabs(DotProduct(tmp3, tmp3)) > 1.0e-3) {
                         continue;
                     }
                 }
             }
 
+            if(SurfaceNode(nbr1) && SurfaceNode(node) ||
+               SurfaceNode(nbr2) && SurfaceNode(node))continue;
+
+            if(node->inGrain - floor(node->inGrain) == 0.5){
+                if(nbr1->inGrain != nbr2->inGrain)continue;
+                if((NodeOnGB(home, node) & INTERSECT_NODE) == 0){
+                    if((NodeOnGB(home, nbr1) & INTERSECT_NODE) == 1 &&
+                       (NodeOnGB(home, nbr2) & INTERSECT_NODE) == 1)continue;
+                }
+            }else{
+                if(nbr1->inGrain - floor(nbr1->inGrain) == 0.5 &&
+                   nbr2->inGrain - floor(nbr2->inGrain) == 0.5)continue;
+            }
 /*
  *          If coarsening out a node would leave a segment longer
  *          than a defined length, the node should not be removed.
@@ -407,29 +543,31 @@ static void MeshCoarsen(Home_t *home)
  *              operation, attempt to merge the nodes.
  */
                 if ((nbr1->flags & NO_MESH_COARSEN) == 0) {
-        
-                    newPos[XC] = nbr1->x;
-                    newPos[YC] = nbr1->y;
-                    newPos[ZC] = nbr1->z;
-	            
-	            inhibitMerge = 0;
-	            if(node->inGrain - floor(node->inGrain) == 0.5 &&
-                       nbr1->inGrain - floor(nbr1->inGrain) == 0){
-	                newPos[XC] = node->x;
-	                newPos[YC] = node->y;
-	                newPos[ZC] = node->z;
-	                if(CheckReposition(home, nbr1, newPos) > 1)inhibitMerge = 1;
+                    if(violateGlidePlanesOK == 1 && r1 < 1){
+                        newPos[0] = nbr1->x;
+                        newPos[1] = nbr1->y;
+                        newPos[2] = nbr1->z;
+                    }else{
+                        vec[0] = (node->x - nbr1->x);
+                        vec[1] = (node->y - nbr1->y);
+                        vec[2] = (node->z - nbr1->z);
+                        ZImage(param, vec, vec+1, vec+2);
+                        
+                        if(AdjustNodeDirection(home, nbr1, vec) == 1){
+                            newPos[0] = nbr1->x + 0.5*vec[0];
+                            newPos[1] = nbr1->y + 0.5*vec[1];
+                            newPos[2] = nbr1->z + 0.5*vec[2];
+                        }else{
+                            newPos[0] = nbr1->x;
+                            newPos[1] = nbr1->y;
+                            newPos[2] = nbr1->z;
+                        }
                     }
-        
-		    if(SurfaceNode(nbr1) && SurfaceNode(node) || inhibitMerge){
-			mergeDone = 0;
-			mergeStatus = -1;
-		    }else{
-                        MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
-                                  &mergedNode, &mergeStatus, globalOp);
-                        mergeDone = mergeStatus & MERGE_SUCCESS;
-		    }
-		
+
+                    FoldBox(home->param,newPos, newPos+1, newPos+2);
+                    MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
+                              &mergedNode, &mergeStatus, globalOp);
+                    mergeDone = mergeStatus & MERGE_SUCCESS;
                 }
 /*
  *              If the merge could not be done, try using
@@ -437,28 +575,31 @@ static void MeshCoarsen(Home_t *home)
  */
                 if (mergeDone == 0) {
                     if ((nbr2->flags & NO_MESH_COARSEN) == 0) {
-                        newPos[XC] = nbr2->x;
-                        newPos[YC] = nbr2->y;
-                        newPos[ZC] = nbr2->z;
-        
-	                inhibitMerge = 0;
-	                if(node->inGrain - floor(node->inGrain) == 0.5 &&
-                           nbr2->inGrain - floor(nbr2->inGrain) == 0){
-	                    newPos[XC] = node->x;
-	                    newPos[YC] = node->y;
-	                    newPos[ZC] = node->z;
-	                    if(CheckReposition(home, nbr2, newPos) > 1)inhibitMerge = 1;
+                        if(violateGlidePlanesOK == 1 && r2 < 1){
+                            newPos[0] = nbr2->x;
+                            newPos[1] = nbr2->y;
+                            newPos[2] = nbr2->z;
+                        }else{
+                            vec[0] = (node->x - nbr2->x);
+                            vec[1] = (node->y - nbr2->y);
+                            vec[2] = (node->z - nbr2->z);
+                            ZImage(param, vec, vec+1, vec+2);
+                         
+                            if(AdjustNodeDirection(home, nbr2, vec) == 1){
+                                newPos[0] = nbr2->x + 0.5*vec[0];
+                                newPos[1] = nbr2->y + 0.5*vec[1];
+                                newPos[2] = nbr2->z + 0.5*vec[2];
+                            }else{
+                                newPos[0] = nbr2->x;
+                                newPos[1] = nbr2->y;
+                                newPos[2] = nbr2->z;
+                            }
                         }
-
-		        if(SurfaceNode(node) && SurfaceNode(nbr2) || inhibitMerge){
-			    mergeDone = 0;
-			    mergeStatus = -1;
-		         }else{
-                            MergeNode(home, OPCLASS_REMESH, node, nbr2, newPos,
-                                      &mergedNode, &mergeStatus, globalOp);
-                
-                            mergeDone = mergeStatus & MERGE_SUCCESS;
-		        }
+    
+                        FoldBox(home->param,newPos, newPos+1, newPos+2);
+                        MergeNode(home, OPCLASS_REMESH, node, nbr2, newPos,
+                                  &mergedNode, &mergeStatus, globalOp);
+                        mergeDone = mergeStatus & MERGE_SUCCESS;
                     }
                 }
 
@@ -523,11 +664,11 @@ static void MeshCoarsen(Home_t *home)
  *              recalculate more exact forces for these nodes
  *              before (or at the beginning of) the next timestep.
  */
-                ResetSegForces(home, nbr1, &nbr2->myTag, f0seg1[XC],
-                               f0seg1[YC], f0seg1[ZC], 1);
+                ResetSegForces(home, nbr1, &nbr2->myTag, f0seg1[0],
+                               f0seg1[1], f0seg1[2], 1);
 
-                ResetSegForces(home, nbr2, &nbr1->myTag, f1seg1[XC],
-                               f1seg1[YC], f1seg1[ZC], 1);
+                ResetSegForces(home, nbr2, &nbr1->myTag, f1seg1[0],
+                               f1seg1[1], f1seg1[2], 1);
 
 /*
  *              Originally, we were resetting the velocity of the
@@ -673,18 +814,18 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
  *          from the original node to the node being created... in this
  *          case, the arm with index <armID>
  */
-            newVel[XC] = (node->vX + nbr->vX) * 0.5;
-            newVel[YC] = (node->vY + nbr->vY) * 0.5;
-            newVel[ZC] = (node->vZ + nbr->vZ) * 0.5;
+            newVel[0] = (node->vX + nbr->vX) * 0.5;
+            newVel[1] = (node->vY + nbr->vY) * 0.5;
+            newVel[2] = (node->vZ + nbr->vZ) * 0.5;
 
-            newPos[XC] = node->x + (vec[XC] * 0.5);
-            newPos[YC] = node->y + (vec[YC] * 0.5);
-            newPos[ZC] = node->z + (vec[ZC] * 0.5);
+            newPos[0] = node->x + (vec[0] * 0.5);
+            newPos[1] = node->y + (vec[1] * 0.5);
+            newPos[2] = node->z + (vec[2] * 0.5);
 
             EstRefinementForces(home, node, nbr, newPos, vec,
                                 f0seg1, f1seg1, f0seg2, f1seg2);
 
-            FoldBox(param, &newPos[XC], &newPos[YC], &newPos[ZC]);
+            FoldBox(param, &newPos[0], &newPos[1], &newPos[2]);
 
 /*
  *          This should be a global operation distributed
@@ -693,13 +834,13 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
  */
             globalOp = (nbr->myTag.domainID != node->myTag.domainID);
 
-            nodePos[XC] = node->x;
-            nodePos[YC] = node->y;
-            nodePos[ZC] = node->z;
+            nodePos[0] = node->x;
+            nodePos[1] = node->y;
+            nodePos[2] = node->z;
 
-            nodeVel[XC] = node->vX;
-            nodeVel[YC] = node->vY;
-            nodeVel[ZC] = node->vZ;
+            nodeVel[0] = node->vX;
+            nodeVel[1] = node->vY;
+            nodeVel[2] = node->vZ;
 
             oldTag1 = node->myTag;
             oldTag2 = nbr->myTag;
@@ -710,25 +851,19 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
 				if(node->inGrain - floor(node->inGrain) == 0.5){
 					real8 burg[3];
 					
-					burg[XC] = node->burgX[armList[0]];
-					burg[YC] = node->burgY[armList[0]];
-					burg[ZC] = node->burgZ[armList[0]];
+					burg[0] = node->burgX[armList[0]];
+					burg[1] = node->burgY[armList[0]];
+					burg[2] = node->burgZ[armList[0]];
 					
 					if(BurgType_FCC(home,burg) == BASIC_BURG){
-						static int first = 0;
-						if(first == 0){
-						PrintNode(node);
-						printf("Warning: the arm %d is a basic arm, can not mesh refine\n",armList[0]);
-					Tecplot(home,(char*)"BasicBurg",0,0,0,0,0,1);
-						first = 1;
-						}
-						return(0);
+					    PrintTag(node);
+						printf("Warning: the arm %d is a basic arm\n",armList[0]);
 					}
 					
-					posInGrain = GetInGrainFromPos(home,newPos[XC],newPos[YC],newPos[ZC]);
+					posInGrain = GetInGrainFromPos(home,newPos[0],newPos[1],newPos[2]);
 
 				}else{
-					posInGrain = InWhichGrain(home,newPos[XC],newPos[YC],newPos[ZC]);
+					posInGrain = InWhichGrain(home,newPos[0],newPos[1],newPos[2]);
 				}
 				if(newInGrain != posInGrain)return(0);
 				
@@ -774,16 +909,16 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
  *              in the split.
  */
                 ResetSegForces(home, splitNode1, &splitNode2->myTag,
-                               f0seg1[XC], f0seg1[YC], f0seg1[ZC], 1);
+                               f0seg1[0], f0seg1[1], f0seg1[2], 1);
 
                 ResetSegForces(home, splitNode2, &splitNode1->myTag,
-                               f1seg1[XC], f1seg1[YC], f1seg1[ZC], 1);
+                               f1seg1[0], f1seg1[1], f1seg1[2], 1);
 
                 ResetSegForces(home, splitNode2, &nbr->myTag,
-                               f0seg2[XC], f0seg2[YC], f0seg2[ZC], 1);
+                               f0seg2[0], f0seg2[1], f0seg2[2], 1);
 
                 ResetSegForces(home, nbr, &splitNode2->myTag,
-                               f1seg2[XC], f1seg2[YC], f1seg2[ZC], 1);
+                               f1seg2[0], f1seg2[1], f1seg2[2], 1);
 
                 (void)EvaluateMobility(home, splitNode1);
                 (void)EvaluateMobility(home, splitNode2);
@@ -893,25 +1028,25 @@ static void MeshRefine(Home_t *home)
                     continue;
                 }
 
-                vec1[XC] = nbr1->x - node->x;
-                vec1[YC] = nbr1->y - node->y;
-                vec1[ZC] = nbr1->z - node->z;
+                vec1[0] = nbr1->x - node->x;
+                vec1[1] = nbr1->y - node->y;
+                vec1[2] = nbr1->z - node->z;
               
-                vec2[XC] = nbr2->x - node->x;
-                vec2[YC] = nbr2->y - node->y;
-                vec2[ZC] = nbr2->z - node->z;
+                vec2[0] = nbr2->x - node->x;
+                vec2[1] = nbr2->y - node->y;
+                vec2[2] = nbr2->z - node->z;
         
-                vec3[XC] = vec2[XC] - vec1[XC];
-                vec3[YC] = vec2[YC] - vec1[YC];
-                vec3[ZC] = vec2[ZC] - vec1[ZC];
+                vec3[0] = vec2[0] - vec1[0];
+                vec3[1] = vec2[1] - vec1[1];
+                vec3[2] = vec2[2] - vec1[2];
         
-                ZImage(param, &vec1[XC], &vec1[YC], &vec1[ZC]);
-                ZImage(param, &vec2[XC], &vec2[YC], &vec2[ZC]);
-                ZImage(param, &vec3[XC], &vec3[YC], &vec3[ZC]);
+                ZImage(param, &vec1[0], &vec1[1], &vec1[2]);
+                ZImage(param, &vec2[0], &vec2[1], &vec2[2]);
+                ZImage(param, &vec3[0], &vec3[1], &vec3[2]);
         
-                r1 = sqrt(vec1[XC]*vec1[XC] + vec1[YC]*vec1[YC] + vec1[ZC]*vec1[ZC]);
-                r2 = sqrt(vec2[XC]*vec2[XC] + vec2[YC]*vec2[YC] + vec2[ZC]*vec2[ZC]);
-                r3 = sqrt(vec3[XC]*vec3[XC] + vec3[YC]*vec3[YC] + vec3[ZC]*vec3[ZC]);
+                r1 = sqrt(vec1[0]*vec1[0] + vec1[1]*vec1[1] + vec1[2]*vec1[2]);
+                r2 = sqrt(vec2[0]*vec2[0] + vec2[1]*vec2[1] + vec2[2]*vec2[2]);
+                r3 = sqrt(vec3[0]*vec3[0] + vec3[1]*vec3[1] + vec3[2]*vec3[2]);
         
                 s = 0.5 * (r1 + r2 + r3);
                 area2 = (s * (s - r1) * (s - r2) * (s - r3));
@@ -932,14 +1067,14 @@ static void MeshRefine(Home_t *home)
                 dvec3ydt = dvec2ydt - dvec1ydt;
                 dvec3zdt = dvec2zdt - dvec1zdt;
 
-                dr1dt = ((vec1[XC] * dvec1xdt) + (vec1[YC] * dvec1ydt) +
-                         (vec1[ZC] * dvec1zdt)) / (r1 + delta);
+                dr1dt = ((vec1[0] * dvec1xdt) + (vec1[1] * dvec1ydt) +
+                         (vec1[2] * dvec1zdt)) / (r1 + delta);
 
-                dr2dt = ((vec2[XC] * dvec2xdt) + (vec2[YC] * dvec2ydt) +
-                         (vec2[ZC] * dvec2zdt)) / (r2 + delta);
+                dr2dt = ((vec2[0] * dvec2xdt) + (vec2[1] * dvec2ydt) +
+                         (vec2[2] * dvec2zdt)) / (r2 + delta);
 
-                dr3dt = ((vec3[XC] * dvec3xdt) + (vec3[YC] * dvec3ydt) +
-                         (vec3[ZC] * dvec3zdt)) / (r3 + delta);
+                dr3dt = ((vec3[0] * dvec3xdt) + (vec3[1] * dvec3ydt) +
+                         (vec3[2] * dvec3zdt)) / (r3 + delta);
 
                 dsdt = 0.5 * (dr1dt + dr2dt + dr3dt);
 
@@ -1046,28 +1181,28 @@ static void MeshRefine(Home_t *home)
                         continue;
                     }
         
-                    vec1[XC] = nbr1->x - node->x;
-                    vec1[YC] = nbr1->y - node->y;
-                    vec1[ZC] = nbr1->z - node->z;
+                    vec1[0] = nbr1->x - node->x;
+                    vec1[1] = nbr1->y - node->y;
+                    vec1[2] = nbr1->z - node->z;
         
-                    ZImage(param, &vec1[XC], &vec1[YC], &vec1[ZC]);
+                    ZImage(param, &vec1[0], &vec1[1], &vec1[2]);
         
-                    r1 = vec1[XC]*vec1[XC] + vec1[YC]*vec1[YC] + vec1[ZC]*vec1[ZC];
+                    r1 = vec1[0]*vec1[0] + vec1[1]*vec1[1] + vec1[2]*vec1[2];
         
                     if (r1 > maxSeg2) {
         
-                        newPos[XC] = node->x + (vec1[XC] * 0.5);
-                        newPos[YC] = node->y + (vec1[YC] * 0.5);
-                        newPos[ZC] = node->z + (vec1[ZC] * 0.5);
+                        newPos[0] = node->x + (vec1[0] * 0.5);
+                        newPos[1] = node->y + (vec1[1] * 0.5);
+                        newPos[2] = node->z + (vec1[2] * 0.5);
         
-                        newVel[XC] = (node->vX + nbr1->vX) * 0.5;
-                        newVel[YC] = (node->vY + nbr1->vY) * 0.5;
-                        newVel[ZC] = (node->vZ + nbr1->vZ) * 0.5;
+                        newVel[0] = (node->vX + nbr1->vX) * 0.5;
+                        newVel[1] = (node->vY + nbr1->vY) * 0.5;
+                        newVel[2] = (node->vZ + nbr1->vZ) * 0.5;
         
                         EstRefinementForces(home, node, nbr1, newPos, vec1,
                                             f0seg1, f1seg1, f0seg2, f1seg2);
 
-                        FoldBox(param, &newPos[XC], &newPos[YC], &newPos[ZC]);
+                        FoldBox(param, &newPos[0], &newPos[1], &newPos[2]);
 
 /*
  *                      When bisecting a segment, we always move
@@ -1084,13 +1219,13 @@ static void MeshRefine(Home_t *home)
                         globalOp = (nbr1->myTag.domainID !=
                                     node->myTag.domainID);
         
-                        nodePos[XC] = node->x;
-                        nodePos[YC] = node->y;
-                        nodePos[ZC] = node->z;
+                        nodePos[0] = node->x;
+                        nodePos[1] = node->y;
+                        nodePos[2] = node->z;
         
-                        nodeVel[XC] = node->vX;
-                        nodeVel[YC] = node->vY;
-                        nodeVel[ZC] = node->vZ;
+                        nodeVel[0] = node->vX;
+                        nodeVel[1] = node->vY;
+                        nodeVel[2] = node->vZ;
         
                         oldTag1 = node->myTag;
                         oldTag2 = nbr1->myTag;
@@ -1103,10 +1238,10 @@ static void MeshRefine(Home_t *home)
 			if(node->inGrain == nbr1->inGrain){
                             newInGrain = node->inGrain;
                             if(node->inGrain - floor(node->inGrain) == 0.5){
-                                posInGrain = GetInGrainFromPos(home,newPos[XC],newPos[YC],newPos[ZC]);
-                                burg[XC] = node->burgX[armList[0]];
-                                burg[YC] = node->burgY[armList[0]];
-                                burg[ZC] = node->burgZ[armList[0]];
+                                posInGrain = GetInGrainFromPos(home,newPos[0],newPos[1],newPos[2]);
+                                burg[0] = node->burgX[armList[0]];
+                                burg[1] = node->burgY[armList[0]];
+                                burg[2] = node->burgZ[armList[0]];
                                 if(BurgType_FCC(home,burg) == BASIC_BURG){
                                     PrintTag(node);
                                     printf("Warning: a arm  is a basic arm.\n");
@@ -1114,7 +1249,7 @@ static void MeshRefine(Home_t *home)
                                     continue;
                                 }
                             }else{
-                                posInGrain = InWhichGrain(home,newPos[XC],newPos[YC],newPos[ZC]);
+                                posInGrain = InWhichGrain(home,newPos[0],newPos[1],newPos[2]);
                             }
                             if(newInGrain != posInGrain){
                                armIndex++;
@@ -1168,16 +1303,16 @@ static void MeshRefine(Home_t *home)
  *                          in the split.
  */
                             ResetSegForces(home, splitNode1, &splitNode2->myTag,
-                                           f0seg1[XC], f0seg1[YC], f0seg1[ZC], 1);
+                                           f0seg1[0], f0seg1[1], f0seg1[2], 1);
         
                             ResetSegForces(home, splitNode2, &splitNode1->myTag,
-                                           f1seg1[XC], f1seg1[YC], f1seg1[ZC], 1);
+                                           f1seg1[0], f1seg1[1], f1seg1[2], 1);
         
                             ResetSegForces(home, splitNode2, &nbr1->myTag,
-                                           f0seg2[XC], f0seg2[YC], f0seg2[ZC], 1);
+                                           f0seg2[0], f0seg2[1], f0seg2[2], 1);
         
                             ResetSegForces(home, nbr1, &splitNode2->myTag,
-                                           f1seg2[XC], f1seg2[YC], f1seg2[ZC], 1);
+                                           f1seg2[0], f1seg2[1], f1seg2[2], 1);
         
                             (void)EvaluateMobility(home, splitNode1);
                             (void)EvaluateMobility(home, splitNode2);

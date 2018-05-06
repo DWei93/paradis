@@ -271,6 +271,7 @@ struct _param {
 
         real8 MobScrew;
         real8 MobEdge;
+        real8 MobTwinning;
         real8 MobClimb;
         real8 MobGlide;  /* floor on mobility for glide dislocations */
         real8 MobLine;

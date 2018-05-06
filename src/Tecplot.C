@@ -171,9 +171,23 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,burgID,normalID,constraint,displace,domain,index\n");
 		    fprintf(fp, "zone T = \"%06d\" i = %d  F=POINT\n", home->cycle,numArms); 
 	        }else{
+
+#if CHECK_GB_TOPO
+            static int num = 0, cycle = 0;
+            if(cycle == home->cycle) {
+                num++;
+            }else{
+                cycle = home->cycle;
+                num = 0;
+            }
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,burgID,normalID,constraint,domain,index\n");
+		    fprintf(fp, "zone T = \"%10.5f%1d\" i = %d  F=POINT\n", param->timeNow*1.0E9,num, numArms); 
+#else
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,burgID,normalID,constraint\n");
 		    fprintf(fp, "zone T = \"%10.5f\" i = %d  F=POINT\n", param->timeNow*1.0E9,numArms); 
-		}
+	
+#endif
+	    }
 #endif	
 				
        	    }
@@ -205,9 +219,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
             y = node->y;
             z = node->z;
 			
-            vecOldNew[XC] = x - node->oldx;
-            vecOldNew[YC] = y - node->oldy;
-            vecOldNew[ZC] = z - node->oldz;
+            vecOldNew[0] = x - node->oldx;
+            vecOldNew[1] = y - node->oldy;
+            vecOldNew[2] = z - node->oldz;
             	
             ZImage(param, vecOldNew, vecOldNew+1, vecOldNew+2);
             	
@@ -264,9 +278,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                     Fatal("The burgers ID of non-FCC material has not defined\n");
                 }
 				
-                normal[XC] = node->nx[j];
-                normal[YC] = node->ny[j];
-                normal[ZC] = node->nz[j];
+                normal[0] = node->nx[j];
+                normal[1] = node->ny[j];
+                normal[2] = node->nz[j];
 
                 if(home->param->useLabFrame){
 	            ChangeOrientation(home, node, nbrNode,3);
@@ -324,8 +338,15 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,burgID,normalID,node->constraint,
 	                    displacement,node->myTag.domainID,node->myTag.index);
 	        }else{
+#if CHECK_GB_TOPO
+
+                    fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %3.1f %d %d %d %d %d\n", 
+                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,burgID,normalID,node->constraint,
+                            node->myTag.domainID,node->myTag.index);
+#else
                     fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %3.1f %d %d %d\n", 
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,burgID,normalID,node->constraint);
+#endif
 	        }
 #endif	
 			
@@ -344,9 +365,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 	        y = node->y;
 	        z = node->z;
 			
-	        vecOldNew[XC] = x - node->oldx;
-	        vecOldNew[YC] = y - node->oldy;
-	        vecOldNew[ZC] = z - node->oldz;
+	        vecOldNew[0] = x - node->oldx;
+	        vecOldNew[1] = y - node->oldy;
+	        vecOldNew[2] = z - node->oldz;
 	        	
 	        ZImage(param, vecOldNew, vecOldNew+1, vecOldNew+2);
 	        	
@@ -370,12 +391,12 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 	                continue;
 	            }
 				
-                    normal[XC] = node->nx[arm];
-                    normal[YC] = node->ny[arm];
-                    normal[ZC] = node->nz[arm];
+                    normal[0] = node->nx[arm];
+                    normal[1] = node->ny[arm];
+                    normal[2] = node->nz[arm];
     
                     if(home->param->useLabFrame){
-	                ChangeOrientation(home, node, nbrNode,3);
+	                    ChangeOrientation(home, node, nbrNode,3);
                         Matrix33Vector3Multiply(home->rotMatrixInverse, normal, normalCryst);
                     }else{
                         VECTOR_COPY(normalCryst, normal);
@@ -597,9 +618,9 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 
 			burgMag = sqrt(bX*bX + bY*bY +bZ*bZ);
 
-			burg[XC] = bX;
-			burg[YC] = bY;
-			burg[ZC] = bZ;
+			burg[0] = bX;
+			burg[1] = bY;
+			burg[2] = bZ;
 			
 			iBurg = BurgType_FCC(home,burg);
 

@@ -103,29 +103,29 @@ void WriteVelocity(Home_t *home, char *baseFileName, int ioGroup,
 		if(nbr == (Node_t *)NULL)continue;
 		length += (NodeDistance(home, node, nbr)/2.0);
 		
-	        lDir[XC] = nbr->x - node->x;
-	        lDir[YC] = nbr->y - node->y;
-	        lDir[ZC] = nbr->z - node->z;
+	        lDir[0] = nbr->x - node->x;
+	        lDir[1] = nbr->y - node->y;
+	        lDir[2] = nbr->z - node->z;
 	        ZImage(param, lDir, lDir+1, lDir+2);
 
 	        if(Normal(lDir) < 1e-5) continue;
 	        NormalizeVec(lDir);
-	        nDir[XC] = node->nx[j];
-	        nDir[YC] = node->ny[j];
-	        nDir[ZC] = node->nz[j];
+	        nDir[0] = node->nx[j];
+	        nDir[1] = node->ny[j];
+	        nDir[2] = node->nz[j];
 	        cross(lDir, nDir, gDir);
 
 	        if(Normal(gDir) < 1e-5) continue;
 	        NormalizeVec(gDir);
 
-	        armf[XC] = node->armfx[j];
-	        armf[YC] = node->armfy[j];
-	        armf[ZC] = node->armfz[j];
+	        armf[0] = node->armfx[j];
+	        armf[1] = node->armfy[j];
+	        armf[2] = node->armfz[j];
     
 	        dot = DotProduct(armf, gDir);
-	        gForce[XC] += (dot * gDir[XC]);
-	        gForce[YC] += (dot * gDir[YC]);
-	        gForce[ZC] += (dot * gDir[ZC]);
+	        gForce[0] += (dot * gDir[0]);
+	        gForce[1] += (dot * gDir[1]);
+	        gForce[2] += (dot * gDir[2]);
 	    }
 	    
             vx =  node->vX;
@@ -133,9 +133,9 @@ void WriteVelocity(Home_t *home, char *baseFileName, int ioGroup,
             vz =  node->vZ;
 	    velocity = sqrt(vx*vx +vy*vy + vz*vz);
 
-	    velDir[XC]= node->vX;
-	    velDir[YC]= node->vY;
-	    velDir[ZC]= node->vZ;
+	    velDir[0]= node->vX;
+	    velDir[1]= node->vY;
+	    velDir[2]= node->vZ;
 	    NormalizeVec(velDir);
 
 	    fNor = sqrt(node->fX * node->fX +
@@ -144,7 +144,7 @@ void WriteVelocity(Home_t *home, char *baseFileName, int ioGroup,
 
             fprintf(fp, "%7.1f %7.1f %7.1f %10.3e %10.3e %10.3e %10.3e %7.1f %2d \n", 
 		    node->x, node->y, node->z, 
-		    fNor*velDir[XC], fNor*velDir[YC],fNor*velDir[ZC],
+		    fNor*velDir[0], fNor*velDir[1],fNor*velDir[2],
 		    velocity, length, node->sgnv);
         }
 

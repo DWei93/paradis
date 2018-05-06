@@ -18,7 +18,7 @@
  *                          2) Change the burger's vector, force,
  *                             glide plane and all other segment
  *                             specific qualities.
- *                          3) Deletion of the segment
+ *                          /) Deletion of the segment
  *
  *                      Ownership of a node permits:
  *                          1) Change nodal position, force, velocity
@@ -270,6 +270,10 @@ void BackupNode(Home_t *home, Node_t *origNode, Node_t *bkupNode)
  *      individual values, then allocate new arrays in the backup node
  *      and copy all the nodal arrays from the original.
  */
+        if(origNode == (Node_t *)NULL){
+            bkupNode = (Node_t *)NULL;
+            return;
+        }
         memcpy(bkupNode, origNode, sizeof(Node_t));
         AllocNodeArrays(bkupNode, origNode->numNbrs);
         CopyNodeArrays(origNode, bkupNode);
@@ -307,6 +311,10 @@ void RestoreNode(Home_t *home, Node_t *origNode, Node_t *bkupNode)
  *      will be used to restore the original multiple times and
  *      hence must remain untouched.)
  */
+        if(bkupNode == (Node_t *)NULL){
+            origNode = (Node_t *)NULL;
+            return;
+        }
         FreeNodeArrays(origNode);
         memcpy(origNode, bkupNode, sizeof(Node_t));
         AllocNodeArrays(origNode, origNode->numNbrs);
@@ -327,7 +335,7 @@ void RestoreNode(Home_t *home, Node_t *origNode, Node_t *bkupNode)
 int InitTopologyExemptions(Home_t *home)
 {
         int     i;
-        Node_t  *node;
+        Node_t  *node, *nbr1, *nbr2;
 
         for (i = 0; i < home->newNodeKeyPtr; i++) {
             if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
@@ -552,9 +560,9 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
 
                         if (needGlide) {
                           for (arm = 0; arm < node->numNbrs; arm++) {
-                              bsum[XC] = node->burgX[arm] + bx;
-                              bsum[YC] = node->burgY[arm] + by;
-                              bsum[ZC] = node->burgZ[arm] + bz;
+                              bsum[0] = node->burgX[arm] + bx;
+                              bsum[1] = node->burgY[arm] + by;
+                              bsum[2] = node->burgZ[arm] + bz;
                               if (DotProduct(bsum, bsum) < 1.0e-4) {
                                   nx = node->nx[arm];
                                   ny = node->ny[arm];
@@ -567,9 +575,9 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
 
                         if (needGlide) {
                           for (arm = 0; arm < nbrNode->numNbrs; arm++) {
-                              bsum[XC] = nbrNode->burgX[arm] + bx;
-                              bsum[YC] = nbrNode->burgY[arm] + by;
-                              bsum[ZC] = nbrNode->burgZ[arm] + bz;
+                              bsum[0] = nbrNode->burgX[arm] + bx;
+                              bsum[1] = nbrNode->burgY[arm] + by;
+                              bsum[2] = nbrNode->burgZ[arm] + bz;
                               if (DotProduct(bsum, bsum) < 1.0e-4) {
                                   nx = nbrNode->nx[arm];
                                   ny = nbrNode->ny[arm];
@@ -1071,31 +1079,28 @@ void SplitMultiNodes(Home_t *home)
 	int	armIndex;
 	int	maxSplitCnt, splitCnt, maxStartArm, startArm;
 	int	level, maxSets, totalSets, colliding, origNumNbrs;
-        int     splitStatus, mergeStatus;
+    int splitStatus, mergeStatus;
 	int	globalOp = 1;
-        int     bkupNodeCount;
-        int     segIndex, mobError, skipSplits = 0;
+    int bkupNodeCount;
+    int segIndex, mobError, skipSplits = 0;
 	int	*armList, *currSet;
-	int	**armSets, sameBurgType;
-        int     localSplitVals[4], globalSplitVals[4];
+	int	**armSets;
+    int     localSplitVals[4], globalSplitVals[4];
 	real8	powerMax, powerTest;
 	real8	vd1, vd2, invvNorm;
 	real8	dirx, diry, dirz;
 	real8	minDist, splitDist, minArmLen, shortSeg;
-        real8   vDiffx, vDiffy, vDiffz;
-	real8	temp, minDis, temPos[3];
+    real8   vDiffx, vDiffy, vDiffz;
+	real8	temp;
 	real8	eps = 1.0e-12;
-        real8   pos1[3], pos2[3], vel1[3], vel2[3], origPos[3], origVel[3];
-        real8   vNoise, inGrain, sb;
-	real8 	armInGrain;
+    real8   pos1[3], pos2[3], vel1[3], vel2[3], origPos[3], origVel[3];
+    real8   vNoise;
 	Node_t	*node, *nbrNode, *origNode;
 	Node_t  *tmpNode, *newNode;
-        Node_t  *splitNode1, *splitNode2, *mergedNode;
-        Node_t  *bkupNodeList;
+    Node_t  *splitNode1, *splitNode2, *mergedNode;
+    Node_t  *bkupNodeList;
 	Param_t	*param;
-	Line_t  line;
-	Plane_t   GBPlane;
-        SegData_t *segData = (SegData_t *)NULL;
+    SegData_t *segData = (SegData_t *)NULL;
 
 /*
  *      Only do multinode splits on cycles that are multiples
@@ -1107,8 +1112,8 @@ void SplitMultiNodes(Home_t *home)
 
         TimerStart(home, SPLIT_MULTI_NODES);
 
-	param    = home->param;
-	minDist  = param->rann * 2.0;
+	    param    = home->param;
+	    minDist  = param->rann * 2.0;
         shortSeg = MIN(5.0, param->minSeg * 0.1);
         vNoise   = param->rTol* param->deltaTT;
 
@@ -1147,35 +1152,9 @@ void SplitMultiNodes(Home_t *home)
  *              lifetimes...
  */
                 if (skipSplits) continue;
-				
-/*	
- *		Grain node is skipped.	
- */
 
-				
-	            nbrs = node->numNbrs;
-#if 1
-		    int GBNode = 0;	
-				
-		    if(node->inGrain - floor(node->inGrain) ==  BOUNDARY_NODE)continue;
+		nbrs = node->numNbrs;
 
-				
-		    for (j = 0; j < node->numNbrs; j++) {
-				
-                    nbrNode = GetNodeFromTag(home, node->nbrTag[j]);
-				
-		    if(nbrNode == (Node_t*) NULL) continue;
-				
-			if(nbrNode->inGrain - floor(nbrNode->inGrain) == BOUNDARY_NODE){
-			    GBNode = 1;
-			    break;
-			}
-                    }
-				
-		    if(GBNode) continue;
-		    if(node->constraint >= 1 && node->constraint <=4)continue;
-				
-#endif
 /*
  *              If we haven't already done so, allocate a temporary array
  *              in which to store segment forces while evaluating possible
@@ -1313,7 +1292,7 @@ void SplitMultiNodes(Home_t *home)
  *		end of each array for the count of arms within
  *		that list that have been selected)
  */
-		armSets = (int**)calloc(1, maxSets * sizeof(int *));
+		armSets = (int **)calloc(1, maxSets * sizeof(int *));
 
 		for (j = 0; j < maxSets; j++) {
 			armSets[j] = (int *)calloc(1, (nbrs + 1) * sizeof(int));
@@ -1342,27 +1321,27 @@ void SplitMultiNodes(Home_t *home)
 		free(currSet);
 
 /*
- *				For each of the node-splitting possibilities, attempt
- *				the node split, evaluate the forces and velocities of
+ *		For each of the node-splitting possibilities, attempt
+ *		the node split, evaluate the forces and velocities of
  *              the two nodes after the split, and determine which 
  *              splitting possibility leads to the greatest energy
  *              release; that's the split that should ultimately be
  *              done.
  */
                 colliding = 0;
-				setIndex = -1;
-				numSets = totalSets;
+		setIndex = -1;
+		numSets = totalSets;
 
-                origPos[XC] = node->x;
-                origPos[YC] = node->y;
-                origPos[ZC] = node->z;
+                origPos[0] = node->x;
+                origPos[1] = node->y;
+                origPos[2] = node->z;
 
-                origVel[XC] = node->vX;
-                origVel[YC] = node->vY;
-                origVel[ZC] = node->vZ;
+                origVel[0] = node->vX;
+                origVel[1] = node->vY;
+                origVel[2] = node->vZ;
 
-                armList = (int*)calloc(1, (nbrs - 2) * sizeof(int));
-			
+                armList = (int *)calloc(1, (nbrs - 2) * sizeof(int));
+
 		for (j = 0; j < numSets; j++) {
 
 /*
@@ -1372,13 +1351,10 @@ void SplitMultiNodes(Home_t *home)
  *                      we need to evaluate the results then restore
  *                      the nodes to the original unsplit state.
  */
-					
-						
-						
                         for (armIndex = 0, k = nbrs - 1; k >= 0; k--) {
-	                    if (armSets[j][k] == 1) {
-	                        armList[armIndex++] = k;
-	                    }
+                                if (armSets[j][k] == 1) {
+                                        armList[armIndex++] = k;
+                                }
                         }
 
 /*
@@ -1394,14 +1370,12 @@ void SplitMultiNodes(Home_t *home)
  *                      will be connected to splitNode2 and all unselected
  *                      arms will be attached to splitNode1.
  */
-							
-	                splitStatus = SplitNode(home, OPCLASS_SEPARATION,
-	                                        node, origPos, origPos,
-	                                        origVel, origVel,
-	                                        armSets[j][nbrs],
-	                                        armList, 0, &splitNode1,
-	                                        &splitNode2, 0);
-	                	
+                        splitStatus = SplitNode(home, OPCLASS_SEPARATION,
+                                                node, origPos, origPos,
+                                                origVel, origVel,
+                                                armSets[j][nbrs],
+                                                armList, 0, &splitNode1,
+                                                &splitNode2, 0);
 
                         if (splitStatus != SPLIT_SUCCESS) continue;
 
@@ -1454,46 +1428,6 @@ void SplitMultiNodes(Home_t *home)
                                 splitNode1->z -= (splitDist*(1.0+eps)*dirz);
                                 FoldBox(param, &splitNode1->x, &splitNode1->y,
                                         &splitNode1->z);
-				
-				inGrain = InWhichGrain(home, splitNode1->x,
-					  splitNode1->y, splitNode1->z);
-				if(node->inGrain != inGrain && inGrain != -1){
-				    temPos[XC] = splitNode1->x;
-				    temPos[YC] = splitNode1->y;
-				    temPos[ZC] = splitNode1->z;
-
-				    VECTOR_ZERO(GBPlane.normal);
-				    VECTOR_ZERO(GBPlane.point);
-				    minDis = ClosedGB(home, origPos, &GBPlane);
-				    
-				    GBPlane.point[XC] += (Sign(minDis) * (fabs(minDis) - eps) * GBPlane.normal[XC]);
-				    GBPlane.point[YC] += (Sign(minDis) * (fabs(minDis) - eps) * GBPlane.normal[YC]);
-				    GBPlane.point[ZC] += (Sign(minDis) * (fabs(minDis) - eps) * GBPlane.normal[ZC]);
-
-				    line.direction[XC] = -dirx;
-				    line.direction[YC] = -diry;
-				    line.direction[ZC] = -dirz;
-
-				    VECTOR_COPY(line.point, temPos);
-				    if(!IntersectionOfLinePlane(&line, &GBPlane, temPos)){
-                    		        Fatal("SplitMutiNodes: IntersectionOfLinPlane faild");
-	        		    }
-
-				    FoldBox(param, temPos, temPos+1, temPos+2);
-
-				    splitNode1->x = temPos[XC];   
-				    splitNode1->y = temPos[YC];   
-				    splitNode1->z = temPos[ZC];   
-
-			            if(node->inGrain != InWhichGrain(home, splitNode1->x,
-				       splitNode1->y, splitNode1->z)){
-					PrintNode(splitNode1);
-					FormatVector(line.direction,"line.direction");
-                                        Tecplot(home, (char*)"SMN1", 0, 0, 0, 0, 0, 1);
-					Fatal("SplitMutiNodes: wrong position of splitNdoe1\n");
-				    }
-    
-				}
                             } else {
                                 invvNorm = 1.0 / sqrt(vd2);
                                 dirx = splitNode2->vX * invvNorm;
@@ -1504,46 +1438,6 @@ void SplitMultiNodes(Home_t *home)
                                 splitNode2->z += (splitDist*(1.0+eps)*dirz);
                                 FoldBox(param, &splitNode2->x, &splitNode2->y,
                                         &splitNode2->z);
-
-				inGrain = InWhichGrain(home, splitNode2->x,
-					  splitNode2->y, splitNode2->z);
-				if(node->inGrain != inGrain && inGrain != -1){
-				    temPos[XC] = splitNode2->x;
-				    temPos[YC] = splitNode2->y;
-				    temPos[ZC] = splitNode2->z;
-
-				    VECTOR_ZERO(GBPlane.normal);
-				    VECTOR_ZERO(GBPlane.point);
-				    minDis = ClosedGB(home, origPos, &GBPlane);
-				    
-				    GBPlane.point[XC] += (Sign(minDis) * (fabs(minDis) - eps) * GBPlane.normal[XC]);
-				    GBPlane.point[YC] += (Sign(minDis) * (fabs(minDis) - eps) * GBPlane.normal[YC]);
-				    GBPlane.point[ZC] += (Sign(minDis) * (fabs(minDis) - eps) * GBPlane.normal[ZC]);
-
-				    line.direction[XC] =  dirx;
-				    line.direction[YC] =  diry;
-				    line.direction[ZC] =  dirz;
-
-				    VECTOR_COPY(line.point, temPos);
-				    if(!IntersectionOfLinePlane(&line, &GBPlane, temPos)){
-                    		        Fatal("SplitMutiNodes: IntersectionOfLinPlane faild");
-	        		    }
-
-				    FoldBox(param, temPos, temPos+1, temPos+2);
-
-				    splitNode2->x = temPos[XC];   
-				    splitNode2->y = temPos[YC];   
-				    splitNode2->z = temPos[ZC];   
-
-			            if(node->inGrain != InWhichGrain(home, splitNode2->x,
-				       splitNode2->y, splitNode2->z)){
-					PrintNode(splitNode2);
-					FormatVector(line.direction,"line.direction");
-                                        Tecplot(home, (char*)"SMN2", 0, 0, 0, 0, 0, 1);
-					Fatal("SplitMutiNodes: wrong position of splitNdoe2\n");
-				    }
-    
-				}
                             }
 
                             SetOneNodeForce(home, splitNode1);
@@ -1573,16 +1467,16 @@ void SplitMultiNodes(Home_t *home)
  *                              Calculate glide plane normal as
  *                              n = cross ( burg(x,y,z), dir(x,y,z))
  */
-                                burg[XC] = splitNode1->burgX[armIndex];
-                                burg[YC] = splitNode1->burgY[armIndex];
-                                burg[ZC] = splitNode1->burgZ[armIndex];
+                                burg[0] = splitNode1->burgX[armIndex];
+                                burg[1] = splitNode1->burgY[armIndex];
+                                burg[2] = splitNode1->burgZ[armIndex];
 
-                                dirvec[XC] = dirx;
-                                dirvec[YC] = diry;
-                                dirvec[ZC] = dirz;
+                                dirvec[0] = dirx;
+                                dirvec[1] = diry;
+                                dirvec[2] = dirz;
 
                                 FindPreciseGlidePlane(home, burg, dirvec,
-                                                      nplane,splitNode1,splitNode2);
+                                                      nplane, splitNode1, splitNode2);
 
 /*
  *                              If the new segment is screw the glide
@@ -1591,21 +1485,21 @@ void SplitMultiNodes(Home_t *home)
  *                              appropriate to the burgers vector.
  */
                                 if (DotProduct(nplane, nplane) < 1.0e-03) {
-                                    PickScrewGlidePlane(home, burg, nplane,splitNode1,splitNode2);
+                                    PickScrewGlidePlane(home, burg, nplane, splitNode1, splitNode2);
                                 }
 
-                                Normalize(&nplane[XC], &nplane[YC], &nplane[ZC]);
+                                Normalize(&nplane[0], &nplane[1], &nplane[2]);
 
-                                splitNode1->nx[armIndex] = nplane[XC];
-                                splitNode1->ny[armIndex] = nplane[YC];
-                                splitNode1->nz[armIndex] = nplane[ZC];
+                                splitNode1->nx[armIndex] = nplane[0];
+                                splitNode1->ny[armIndex] = nplane[1];
+                                splitNode1->nz[armIndex] = nplane[2];
 
                                 armIndex = GetArmID(home, splitNode2,
                                                     splitNode1);
 
-                                splitNode2->nx[armIndex] = nplane[XC];
-                                splitNode2->ny[armIndex] = nplane[YC];
-                                splitNode2->nz[armIndex] = nplane[ZC];
+                                splitNode2->nx[armIndex] = nplane[0];
+                                splitNode2->ny[armIndex] = nplane[1];
+                                splitNode2->nz[armIndex] = nplane[2];
                              }
 
                             mobError  = EvaluateMobility(home, splitNode1);
@@ -1663,13 +1557,13 @@ void SplitMultiNodes(Home_t *home)
  */
                             if ((powerTest - powerMax) > eps) {
 
-                                    vel1[XC] = splitNode1->vX;
-                                    vel1[YC] = splitNode1->vY;
-                                    vel1[ZC] = splitNode1->vZ;
+                                    vel1[0] = splitNode1->vX;
+                                    vel1[1] = splitNode1->vY;
+                                    vel1[2] = splitNode1->vZ;
 
-                                    vel2[XC] = splitNode2->vX;
-                                    vel2[YC] = splitNode2->vY;
-                                    vel2[ZC] = splitNode2->vZ;
+                                    vel2[0] = splitNode2->vX;
+                                    vel2[1] = splitNode2->vY;
+                                    vel2[2] = splitNode2->vZ;
 
                                     powerMax = powerTest;
                                     setIndex = j;
@@ -1711,7 +1605,7 @@ void SplitMultiNodes(Home_t *home)
                         }
 
 /*
- *						Merge the new node back into the original node
+ *			Merge the new node back into the original node
  *                      then restore the original node and it's neighbors
  *                      to the pristine unsplit state.  (Need to do a 
  *                      restore to insure the ordering of arms since
@@ -1738,9 +1632,9 @@ void SplitMultiNodes(Home_t *home)
  *                      place as expected.
  */
                         if (newNode->constraint == PINNED_NODE) {
-                            origNode->x = origPos[XC];
-                            origNode->y = origPos[YC];
-                            origNode->z = origPos[ZC];
+                            origNode->x = origPos[0];
+                            origNode->y = origPos[1];
+                            origNode->z = origPos[2];
                             newNode->constraint = UNCONSTRAINED;
                             origNode->constraint = PINNED_NODE;
                         }
@@ -1752,8 +1646,6 @@ void SplitMultiNodes(Home_t *home)
  *                      If the merge failed, something's screwy!  Abort.
  */
                         if ((mergeStatus & MERGE_SUCCESS) == 0) {
-							
-			    printf("mergeStatus = %d\n",mergeStatus);
                             Fatal("Unable to merge (%d,%d) into (%d,%d)"
                                   "during separation test",
                                   newNode->myTag.domainID,
@@ -1807,38 +1699,38 @@ void SplitMultiNodes(Home_t *home)
  *			at the original location and node with the
  *			higher velocity will be moved.
  */
-                        vd1 = vel1[XC] * vel1[XC] +
-                              vel1[YC] * vel1[YC] +
-                              vel1[ZC] * vel1[ZC];
+                        vd1 = vel1[0] * vel1[0] +
+                              vel1[1] * vel1[1] +
+                              vel1[2] * vel1[2];
 
-                        vd2 = vel2[XC] * vel2[XC] +
-                              vel2[YC] * vel2[YC] +
-                              vel2[ZC] * vel2[ZC];
+                        vd2 = vel2[0] * vel2[0] +
+                              vel2[1] * vel2[1] +
+                              vel2[2] * vel2[2];
 
 			if (vd1 > vd2) {
 				invvNorm = 1.0 / sqrt(vd1);
-				dirx = vel1[XC] * invvNorm;
-				diry = vel1[YC] * invvNorm;
-				dirz = vel1[ZC] * invvNorm;
-				pos2[XC] = node->x;
-				pos2[YC] = node->y;
-				pos2[ZC] = node->z;
-				pos1[XC] = node->x+(splitDist*(1.0+eps)*dirx);
-				pos1[YC] = node->y+(splitDist*(1.0+eps)*diry);
-				pos1[ZC] = node->z+(splitDist*(1.0+eps)*dirz);
-				FoldBox(param, &pos1[XC], &pos1[YC], &pos1[ZC]);
+				dirx = vel1[0] * invvNorm;
+				diry = vel1[1] * invvNorm;
+				dirz = vel1[2] * invvNorm;
+				pos2[0] = node->x;
+				pos2[1] = node->y;
+				pos2[2] = node->z;
+				pos1[0] = node->x+(splitDist*(1.0+eps)*dirx);
+				pos1[1] = node->y+(splitDist*(1.0+eps)*diry);
+				pos1[2] = node->z+(splitDist*(1.0+eps)*dirz);
+				FoldBox(param, &pos1[0], &pos1[1], &pos1[2]);
 			} else {
 				invvNorm = 1.0 / sqrt(vd2);
-				dirx = vel2[XC] * invvNorm;
-				diry = vel2[YC] * invvNorm;
-				dirz = vel2[ZC] * invvNorm;
-				pos1[XC] = node->x;
-				pos1[YC] = node->y;
-				pos1[ZC] = node->z;
-				pos2[XC] = node->x+(splitDist*(1.0+eps)*dirx);
-				pos2[YC] = node->y+(splitDist*(1.0+eps)*diry);
-				pos2[ZC] = node->z+(splitDist*(1.0+eps)*dirz);
-				FoldBox(param, &pos2[XC], &pos2[YC], &pos2[ZC]);
+				dirx = vel2[0] * invvNorm;
+				diry = vel2[1] * invvNorm;
+				dirz = vel2[2] * invvNorm;
+				pos1[0] = node->x;
+				pos1[1] = node->y;
+				pos1[2] = node->z;
+				pos2[0] = node->x+(splitDist*(1.0+eps)*dirx);
+				pos2[1] = node->y+(splitDist*(1.0+eps)*diry);
+				pos2[2] = node->z+(splitDist*(1.0+eps)*dirz);
+				FoldBox(param, &pos2[0], &pos2[1], &pos2[2]);
 			}
 
 /*
@@ -1848,8 +1740,6 @@ void SplitMultiNodes(Home_t *home)
  *                      always considered *global* so other domains will be
  *                      notified of these ops.
  */
-			
-			
 			for (armIndex = 0, k = nbrs - 1; k >= 0; k--) {
 				if (armSets[setIndex][k] == 1) {
 					armList[armIndex++] = k;
@@ -1868,27 +1758,11 @@ void SplitMultiNodes(Home_t *home)
                         localSplitVals[2]++;
                         localSplitVals[3] += node->multiNodeLife;
 #endif
-						
-						
-#if 0
-			char name[256];
-	                printf("cycle %06d, Task %02d, SplitMutiNodes: ",home->cycle,home->myDomain);
-	                PrintTag(node);
-	                printf("\n");
-                        snprintf(name,50,"SplitMutiNodes%06d.%d.1",home->cycle,home->myDomain);
-                        Tecplot(home, name, 0, 0, 0, 0, 0, 1);
-#endif
-	                splitStatus = SplitNode(home, OPCLASS_SEPARATION,
-	                                        node, pos1, pos2, vel1, vel2,
-	                                        armSets[setIndex][nbrs],
-	                                        armList, globalOp,
-	                                        &splitNode1, &splitNode2, 0);
-						
-#if 0
-
-                        snprintf(name,50,"SplitMutiNodes%06d.%d.2",home->cycle,home->myDomain);
-                        Tecplot(home, name, 0, 0, 0, 0, 0, 1);
-#endif
+			splitStatus = SplitNode(home, OPCLASS_SEPARATION,
+						node, pos1, pos2, vel1, vel2,
+						armSets[setIndex][nbrs],
+						armList, globalOp,
+						&splitNode1, &splitNode2, 0);
 /*
  *			If the split failed, clean up then go back and
  *			continue looking for more multinodes to split.
@@ -1977,14 +1851,14 @@ void SplitMultiNodes(Home_t *home)
 					newNode->myTag.index,
 					origNode->myTag.domainID,
 					origNode->myTag.index);
-//				PrintNode(origNode);
-//				PrintNode(newNode);
+				PrintNode(origNode);
+				PrintNode(newNode);
 			}
 #endif
 		}  /* if (setIndex >= 0) */
 
 		for (k = 0; k < numSets; k++)  free(armSets[k]);
-				free(armSets);
+		free(armSets);
                 free(armList);
                 armList = (int *)NULL;
 
@@ -2043,9 +1917,9 @@ void CorrectNewInGrain(Home_t *home, Node_t *node, int globalOp){
 		real8	burg[3];
 		
 		for(i=0; i<node->numNbrs ;i++){
-			burg[XC] = node->burgX[i];
-			burg[YC] = node->burgY[i];
-			burg[ZC] = node->burgZ[i];
+			burg[0] = node->burgX[i];
+			burg[1] = node->burgY[i];
+			burg[2] = node->burgZ[i];
 			
 			if(BurgType_FCC(home,burg) == TB_BURG){
 				PrintNode(node);
@@ -2110,26 +1984,26 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 	real8	bx, by, bz;
 	real8	cx, cy, cz;
 	real8	nx, ny, nz,nodeInGrain,nbrInGrain;
-        real8   segPlaneX, segPlaneY, segPlaneZ;
+    real8   segPlaneX, segPlaneY, segPlaneZ;
 	real8	eps = 1.0e-12;
 	real8   ftmp[3],foldPos[3];
-        real8   burg[3], vel[3], dirVec[3], glidePlane[3];
+    real8   burg[3], vel[3], dirVec[3], glidePlane[3];
 	real8   inGrain1, inGrain2;
 	Node_t	*newNode, *nbrNode;
 	Param_t	*param;
-        int     thisDomain, ownsSelectedArms, switchedArms;
+    int     thisDomain, ownsSelectedArms, switchedArms;
 
 
-        thisDomain = home->myDomain;
+    thisDomain = home->myDomain;
 	param      = home->param;
 
-        *splitNode1 = (Node_t *)NULL;
-        *splitNode2 = (Node_t *)NULL;
+    *splitNode1 = (Node_t *)NULL;
+    *splitNode2 = (Node_t *)NULL;
 	
 	inGrain1 = -1;
 	inGrain2 = -1;
 
-        switchedArms = 0;
+    switchedArms = 0;
 /*
  *	Do a few sanity checks...
  */
@@ -2178,11 +2052,11 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 	        return(SPLIT_FAILED);
 	    }else{
 	        nodeInGrain = node->inGrain;
-	        if(nodeInGrain != InWhichGrain(home, pos1[XC], pos1[YC], pos1[ZC])){
+	        if(nodeInGrain != InWhichGrain(home, pos1[0], pos1[1], pos1[2])){
 	            return(SPLIT_FAILED);
 	        }
 				
-	        if(nodeInGrain != InWhichGrain(home, pos2[XC], pos2[YC], pos2[ZC])){
+	        if(nodeInGrain != InWhichGrain(home, pos2[0], pos2[1], pos2[2])){
 	            return(SPLIT_FAILED);
 	        }
 	    }
@@ -2282,6 +2156,7 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 	newNode->oldvY = 0.0;
 	newNode->oldvZ = 0.0;
 
+
 #ifdef _FEM
 /*
  *      If necessary copy the surface constraint and properties
@@ -2312,21 +2187,21 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
             *splitNode2 = newNode;
         }
 
-        (*splitNode1)->x = pos1[XC];
-        (*splitNode1)->y = pos1[YC];
-        (*splitNode1)->z = pos1[ZC];
+        (*splitNode1)->x = pos1[0];
+        (*splitNode1)->y = pos1[1];
+        (*splitNode1)->z = pos1[2];
 
-        (*splitNode1)->vX = vel1[XC];
-        (*splitNode1)->vY = vel1[YC];
-        (*splitNode1)->vZ = vel1[ZC];
+        (*splitNode1)->vX = vel1[0];
+        (*splitNode1)->vY = vel1[1];
+        (*splitNode1)->vZ = vel1[2];
 
-        (*splitNode2)->x = pos2[XC];
-        (*splitNode2)->y = pos2[YC];
-        (*splitNode2)->z = pos2[ZC];
+        (*splitNode2)->x = pos2[0];
+        (*splitNode2)->y = pos2[1];
+        (*splitNode2)->z = pos2[2];
 
-        (*splitNode2)->vX = vel2[XC];
-        (*splitNode2)->vY = vel2[YC];
-        (*splitNode2)->vZ = vel2[ZC];
+        (*splitNode2)->vX = vel2[0];
+        (*splitNode2)->vY = vel2[1];
+        (*splitNode2)->vZ = vel2[2];
 
 
 	newNode->oldx = newNode->x;
@@ -2413,7 +2288,7 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                 node->myTag.index,
                 newNode->myTag.domainID,
                 newNode->myTag.index,
-                newNode->constraint, -1,  /* node3 domain ID used to be constraint of new node*/
+                newNode->constraint, -1,  /* replace domainID of node3 */
                 0.0, 0.0, 0.0,          
                 newNode->x, newNode->y, newNode->z,
                 newNode->vX,            /* plane normal is not needed */
@@ -2443,7 +2318,6 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
  *	shifted.
  */
 	for (i = 0; i < armCount; i++) {
-
 		nbrNode = GetNeighborNode(home, node, tarmList[i]);
 
 		if (nbrNode == (Node_t *)NULL) {
@@ -2451,9 +2325,9 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 				  __FILE__, __LINE__);
 		}
 
-		ftmp[XC] = node->armfx[tarmList[i]];
-		ftmp[YC] = node->armfy[tarmList[i]];
-		ftmp[ZC] = node->armfz[tarmList[i]];
+		ftmp[0] = node->armfx[tarmList[i]];
+		ftmp[1] = node->armfy[tarmList[i]];
+		ftmp[2] = node->armfz[tarmList[i]];
 
 		SubtractSegForce(home, node, nbrNode);
 					   
@@ -2465,8 +2339,8 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 				  bx, by, bz, nx, ny, nz, globalOp);
 		ChangeArmBurg(home, node, &nbrNode->myTag, 0, 0, 0, 0, 0, 0,
 					  globalOp, DEL_SEG_NONE);
-		ResetSegForces(home, newNode, &nbrNode->myTag, ftmp[XC],
-					   ftmp[YC], ftmp[ZC], globalOp);
+		ResetSegForces(home, newNode, &nbrNode->myTag, ftmp[0],
+					   ftmp[1], ftmp[2], globalOp);
 	}
 
 	free(tarmList);
@@ -2534,15 +2408,15 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                     cy = segPlaneY;
                     cz = segPlaneZ;
                 } else {
-                    dirVec[XC] = (*splitNode1)->x - (*splitNode2)->x;
-                    dirVec[YC] = (*splitNode1)->y - (*splitNode2)->y;
-                    dirVec[ZC] = (*splitNode1)->z - (*splitNode2)->z;
+                    dirVec[0] = (*splitNode1)->x - (*splitNode2)->x;
+                    dirVec[1] = (*splitNode1)->y - (*splitNode2)->y;
+                    dirVec[2] = (*splitNode1)->z - (*splitNode2)->z;
 
-                    ZImage(param, &dirVec[XC], &dirVec[YC], &dirVec[ZC]);
+                    ZImage(param, &dirVec[0], &dirVec[1], &dirVec[2]);
 
-                    burg[XC] = bx;
-                    burg[YC] = by;
-                    burg[ZC] = bz;
+                    burg[0] = bx;
+                    burg[1] = by;
+                    burg[2] = bz;
 
 #if 0
 	            if(Normal(dirVec) < 0.001){
@@ -2557,9 +2431,9 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                     FindPreciseGlidePlane(home, burg, dirVec, glidePlane, *splitNode1,*splitNode2);
 
                     if (DotProduct(glidePlane,glidePlane) < eps) {
-                        vel[XC] = ((*splitNode1)->vX + (*splitNode2)->vX) * 0.5;
-                        vel[YC] = ((*splitNode1)->vY + (*splitNode2)->vY) * 0.5;
-                        vel[ZC] = ((*splitNode1)->vZ + (*splitNode2)->vZ) * 0.5;
+                        vel[0] = ((*splitNode1)->vX + (*splitNode2)->vX) * 0.5;
+                        vel[1] = ((*splitNode1)->vY + (*splitNode2)->vY) * 0.5;
+                        vel[2] = ((*splitNode1)->vZ + (*splitNode2)->vZ) * 0.5;
 
                         FindPreciseGlidePlane(home, vel, dirVec, glidePlane, *splitNode1,*splitNode2);
 
@@ -2571,9 +2445,9 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 
                     NormalizeVec(glidePlane);
 
-                    cx = glidePlane[XC];
-                    cy = glidePlane[YC];
-                    cz = glidePlane[ZC];
+                    cx = glidePlane[0];
+                    cy = glidePlane[1];
+                    cz = glidePlane[2];
                 }
 
 /*
@@ -2649,7 +2523,6 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	int     armID, armID1, armID2, thisDomain; 
 	int     node1Deletable, node2Deletable;
 	int     targetIsLocal, nbrIsLocal, targetOwnsSeg;
-	int	firstPeneNode1,firstPeneNode2;
 	real8	bx, by, bz;
 	real8	nx, ny, nz;
 	real8   ftmp[3], mergeInGrain;
@@ -2683,53 +2556,16 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	 *         for it to be deletable.  (May need to add restrictions
 	 *         that surface nodes be on the same surface)
 	 *		7) The intersection node between GB and grain nodes cannot be deleted.
-	 *		8) The node that connects two GB nodes may be the first penetrating node,
-	 *	   	we should keep it. 
 	 *
 	 *      NOTE: For now, a node that is pinned in ANY dimension is treated
 	 *            here as if it is pinned in ALL dimensions.
 	 */
-	firstPeneNode1 = 1;
 
-	if(node1->numNbrs != 2) firstPeneNode1 = 0;
-
-	for(i=0;i<node1->numNbrs;i++){
-	    nbrNode = GetNeighborNode(home, node1, i);
-		if(nbrNode == (Node_t *)NULL){
-			continue;
-	    }
-	    if(!(NodeOnGB(home,nbrNode) & INTERSECT_NODE)){
-		firstPeneNode1 = 0; break;}
-	}
-
-	firstPeneNode2 = 1;
-
-	if(node2->numNbrs != 2) firstPeneNode2 = 0;
-
-	for(i=0;i<node2->numNbrs;i++){
-	    
-		nbrNode = GetNeighborNode(home, node2, i);
-		if(nbrNode == (Node_t *)NULL){
-			continue;
-		}
-		
-	    if(!(NodeOnGB(home,nbrNode) & INTERSECT_NODE)){
-		firstPeneNode2 = 0; break;}
-
-	}
-	
 	node1Deletable  = (node1->myTag.domainID == thisDomain); 
 	node1Deletable &= (node1->constraint == UNCONSTRAINED);	
 
-	if(NodeOnGB(home,node1) & INTERSECT_NODE){
-
-	    if(!(NodeOnGB(home,node2) & INTERSECT_NODE)) node1Deletable &= 0;
-	}else{
-		node1Deletable &= ((node1->flags & NO_COLLISIONS) == 0);
-		node1Deletable &= ((node1->flags & NO_MESH_COARSEN) == 0);
-	}
-
-	node1Deletable &= (!firstPeneNode1);
+    node1Deletable &= ((node1->flags & NO_COLLISIONS) == 0);
+	node1Deletable &= ((node1->flags & NO_MESH_COARSEN) == 0);
 
 	for (armID = 0; armID < node1->numNbrs; armID++) {
 	    node1Deletable &= DomainOwnsSeg(home, opClass, thisDomain,
@@ -2746,17 +2582,10 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 		deadNode = node1;
 	} else {
 		node2Deletable  = (node2->myTag.domainID == thisDomain); 
-	        node2Deletable &= (node2->constraint == UNCONSTRAINED);	
+	    node2Deletable &= (node2->constraint == UNCONSTRAINED);	
 
-	    if(NodeOnGB(home,node2) & INTERSECT_NODE){
-		if(!(NodeOnGB(home,node1) & INTERSECT_NODE))node2Deletable &= 0;
-			
-	    }else{
-            node2Deletable &= ((node2->flags & NO_COLLISIONS) == 0);
-            node2Deletable &= ((node2->flags & NO_MESH_COARSEN) == 0);
-			
-	}
-        node2Deletable &= (!firstPeneNode2);
+        node2Deletable &= ((node2->flags & NO_COLLISIONS) == 0);
+        node2Deletable &= ((node2->flags & NO_MESH_COARSEN) == 0);
 
 		for (armID = 0; armID < node2->numNbrs; armID++){
 		     node2Deletable &= DomainOwnsSeg(home, opClass, thisDomain,
@@ -2844,50 +2673,36 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	*mergedNode = targetNode;
 	*status = MERGE_SUCCESS;
    
-	sameGrain = 0;
-	if(home->param->polycrystal){
-	    if(targetNode->inGrain - floor(targetNode->inGrain) == 0.5){
-	        if(GetInGrainFromPos(home,position[XC],position[YC],position[ZC]) == targetNode->inGrain)sameGrain=1;
-	    }else{
-		mergeInGrain = InWhichGrain(home,position[XC],position[YC],position[ZC]);
-	        if(mergeInGrain == targetNode->inGrain || mergeInGrain == -1)sameGrain=1;
-	    }
-	}else{
-	    sameGrain = 1;
-	}
-
+    if(deadNode->inGrain - floor(deadNode->inGrain) == 0.5){
+        targetNode->inGrain = deadNode->inGrain;
+    }
 	
-	if (sameGrain && (targetNode->myTag.domainID == thisDomain)) {
+	if ((targetNode->myTag.domainID == thisDomain)) {
 	
 	    if(targetNode->constraint == UNCONSTRAINED){
-		targetNode->x = position[XC];
-		targetNode->y = position[YC];
-		targetNode->z = position[ZC];
+		    targetNode->x = position[0];
+		    targetNode->y = position[1];
+		    targetNode->z = position[2];
 	    
 /*
- *              If we're updating the location of the target node, we may
- *              have to communicate the new position to remote domains.
+ *          If we're updating the location of the target node, we may
+ *          have to communicate the new position to remote domains.
  */
 	        if (globalOp) {
-		    AddOp(home, RESET_COORD,
-		          targetNode->myTag.domainID,
-		          targetNode->myTag.index,
-		          -1, -1,                 /* 2nd tag unneeded */
-		          -1, -1,                 /* 3rd node tag unneeded */
-		          0.0, 0.0, 0.0,          /* burgers vector unneeded */
-		          targetNode->x, targetNode->y, targetNode->z,
-		          0.0, 0.0, 0.0);         /* plane normal not needed */
+		        AddOp(home, RESET_COORD,
+		              targetNode->myTag.domainID,
+		              targetNode->myTag.index,
+		              -1, -1,                 /* 2nd tag unneeded */
+		              -1, -1,                 /* 3rd node tag unneeded */
+		              0.0, 0.0, 0.0,          /* burgers vector unneeded */
+		              targetNode->x, targetNode->y, targetNode->z,
+		              0.0, 0.0, 0.0);         /* plane normal not needed */
+                AssignGrain(home, targetNode, targetNode->inGrain);
 	        }
 	    }
-	} else {
+	}else{
 		*status |= MERGE_NO_REPOSITION;
-	        if(sameGrain == 0){
-		    PrintNode(targetNode);
-		    PrintNode(deadNode);
-		    FormatVector(position,"merge position");
-		    printf("MergeNode: the two nodes are not in same grain\n");
-		}
-        }
+    }
 
 
 /*
@@ -2926,9 +2741,9 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 		      __FILE__, __LINE__);
 	    }
 
-	    ftmp[XC] = deadNode->armfx[i];
-	    ftmp[YC] = deadNode->armfy[i];
-	    ftmp[ZC] = deadNode->armfz[i];
+	    ftmp[0] = deadNode->armfx[i];
+	    ftmp[1] = deadNode->armfy[i];
+	    ftmp[2] = deadNode->armfz[i];
 
 	    GetBurgersVectorNormal(home, deadNode, nbrNode,
 				   &bx, &by, &bz, &nx, &ny, &nz);
@@ -2939,8 +2754,8 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	    InsertArm(home, targetNode, &tmpTag, bx, by, bz,
 		      nx, ny, nz, globalOp);
 
-	    ResetSegForces(home, targetNode, &tmpTag, ftmp[XC], ftmp[YC],
-			   ftmp[ZC], globalOp);
+	    ResetSegForces(home, targetNode, &tmpTag, ftmp[0], ftmp[1],
+			   ftmp[2], globalOp);
 	}
 
 /*
@@ -3303,9 +3118,9 @@ void DebugMergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	sameGrain = 0;
 	if(home->param->polycrystal){
 	    if(targetNode->inGrain - floor(targetNode->inGrain) == 0.5){
-	        if(GetInGrainFromPos(home,position[XC],position[YC],position[ZC]) == targetNode->inGrain)sameGrain=1;
+	        if(GetInGrainFromPos(home,position[0],position[1],position[2]) == targetNode->inGrain)sameGrain=1;
 	    }else{
-	        if(InWhichGrain(home,position[XC],position[YC],position[ZC]) == targetNode->inGrain)sameGrain=1;
+	        if(InWhichGrain(home,position[0],position[1],position[2]) == targetNode->inGrain)sameGrain=1;
 	    }
 	}else{
 	    sameGrain = 1;
@@ -3321,9 +3136,9 @@ void DebugMergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
               (deadNode->constraint < 4 && deadNode->constraint > 0)))) {
 
 
-		targetNode->x = position[XC];
-		targetNode->y = position[YC];
-		targetNode->z = position[ZC];
+		targetNode->x = position[0];
+		targetNode->y = position[1];
+		targetNode->z = position[2];
 
 		/*
 		 *          If we're updating the location of the target node, we may
@@ -3392,9 +3207,9 @@ void DebugMergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 		      __FILE__, __LINE__);
 	    }
 
-	    ftmp[XC] = deadNode->armfx[i];
-	    ftmp[YC] = deadNode->armfy[i];
-	    ftmp[ZC] = deadNode->armfz[i];
+	    ftmp[0] = deadNode->armfx[i];
+	    ftmp[1] = deadNode->armfy[i];
+	    ftmp[2] = deadNode->armfz[i];
 
 	    GetBurgersVectorNormal(home, deadNode, nbrNode,
 				   &bx, &by, &bz, &nx, &ny, &nz);
@@ -3405,8 +3220,8 @@ void DebugMergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	    InsertArm(home, targetNode, &tmpTag, bx, by, bz,
 		      nx, ny, nz, globalOp);
 
-	    ResetSegForces(home, targetNode, &tmpTag, ftmp[XC], ftmp[YC],
-			   ftmp[ZC], globalOp);
+	    ResetSegForces(home, targetNode, &tmpTag, ftmp[0], ftmp[1],
+			   ftmp[2], globalOp);
 	}
 #if DEBUG_MERGENODE
 	printf("7; ");
@@ -3461,4 +3276,100 @@ void DebugMergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 #endif
 	return;
 }
+
+int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
+                     real8 inGrain, real8 pos[3], real8  burg[3], real8 normal[3],
+                     Node_t **newNodePtr)
+{
+    int         thisDomain;
+    Param_t     *param;
+    bool        switched = 0;
+    Node_t      *newNode;
+
+    thisDomain = home->myDomain;
+    param = home->param;
+
+    *newNodePtr = (Node_t *)NULL;
+    if (node1->myTag.domainID != thisDomain || 
+        node2->myTag.domainID != thisDomain){
+        PrintNode(node1);
+        PrintNode(node2);
+        Fatal("InsertConnection: only allow local node");
+    }
+
+
+    newNode = GetNewNativeNode(home);
+    FreeNodeArms(newNode);
+
+    *newNodePtr = newNode;
+
+    (*newNodePtr)->native = 1;
+    (*newNodePtr)->constraint = UNCONSTRAINED;
+    
+    (*newNodePtr)->oldvX = 0.0;    
+    (*newNodePtr)->oldvY = 0.0;
+    (*newNodePtr)->oldvZ = 0.0;
+
+    (*newNodePtr)->x = pos[0];
+    (*newNodePtr)->y = pos[1];
+    (*newNodePtr)->z = pos[2];
+
+    (*newNodePtr)->vX = 0.0;
+    (*newNodePtr)->vY = 0.0;
+    (*newNodePtr)->vZ = 0.0;
+    
+    (*newNodePtr)->oldx = (*newNodePtr)->x;
+    (*newNodePtr)->oldy = (*newNodePtr)->y;
+    (*newNodePtr)->oldz = (*newNodePtr)->z;
+
+    (*newNodePtr)->constraint = UNCONSTRAINED;
+
+    if (globalOp) {
+        AddOp(home, SPLIT_NODE,
+              node1->myTag.domainID,
+              node1->myTag.index,
+              (*newNodePtr)->myTag.domainID,
+              (*newNodePtr)->myTag.index,
+              (*newNodePtr)->constraint, -1,  /* node3 domain ID used to be constraint of new node*/
+              0.0, 0.0, 0.0,     
+              (*newNodePtr)->x, (*newNodePtr)->y, (*newNodePtr)->z,
+              (*newNodePtr)->vX,            /* plane normal is not needed */
+              (*newNodePtr)->vY,            /* but node velocity is, so we*/
+              (*newNodePtr)->vZ);           /* commandeer the AddOp normal*/
+                                        /* arguments for velocity data*/
+	    AssignGrain(home, (*newNodePtr), inGrain);
+    }
+
+	AssignNodeToCell(home, (*newNodePtr));
+    (*newNodePtr)->inGrain = inGrain;
+    
+    InsertArm(home, node1, &(*newNodePtr)->myTag,
+             burg[0], burg[1], burg[2],
+             normal[0], normal[1], normal[2], globalOp);
+
+    InsertArm(home, (*newNodePtr), &node2->myTag,
+             burg[0], burg[1], burg[2],
+             normal[0], normal[1], normal[2], globalOp);
+
+    InsertArm(home, node2, &(*newNodePtr)->myTag,
+             -burg[0], -burg[1], -burg[2],
+             normal[0], normal[1], normal[2], globalOp);
+
+    InsertArm(home, (*newNodePtr), &node1->myTag,
+             -burg[0], -burg[1], -burg[2],
+             normal[0], normal[1], normal[2], globalOp);
+    return(1);
+}
+
+
+
+
+
+
+
+
+
+
+
+
 

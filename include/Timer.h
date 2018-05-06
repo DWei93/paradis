@@ -24,6 +24,8 @@ enum {
     TOTAL_TIME = 0,
     INITIALIZE,
     SORT_NATIVE_NODES,
+    SEND_FS,
+    FIX_FS,
 	SEND_GB,
     FIX_GB,
     COMM_SEND_GHOSTS,

@@ -29,7 +29,7 @@
 int Mobility_FCC_0(Home_t *home, Node_t *node)
 {
     int numNonZeroLenSegs = 0;
-    int *numGlideConstraints = NULL, NM;
+    int numGlideConstraints;
     int grainNode;
     Param_t *param;
     real8 nVel[3], Veldotlcr, forceGB[3];
@@ -40,22 +40,19 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
     real8 dx, dy, dz, lx, ly, lz, lr, LtimesB;
     real8 lcx, lcy, lcz, normdotlc;
     Node_t *nbr;
-    real8 MobScrew, MobEdge, Mob;
+    real8 MobScrew, MobEdge, MobTwinning, Mob;
     real8 bx, by, bz, br, dangle;
     real8 glideConstraintsCrystal[3][3];
-    real8 nForce[3], armForce[3], (*glideConstraints)[3], GC[3][3];
+    real8 nForce[3], armForce[3], glideConstraints[3][3];
     real8 factor = 1.0;
 
     param = home->param;
 	
     MobScrew = param->MobScrew;
     MobEdge  = param->MobEdge;
+    MobTwinning = param->MobTwinning;
 	
-    glideConstraints = GC;
-    numGlideConstraints = &NM;
     nc = node->numNbrs;
-	
-    *numGlideConstraints = 0;
 	
 /*
  *  If node is 'pinned' in place by constraints, or the node has any arms 
@@ -71,7 +68,6 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
         return(0);
     }
 
-	grainNode = (node->inGrain -floor(node->inGrain) == 0 ? 1 : 0);
 /*
  *  It's possible this function was called for a node which had only zero-
  *  length segments (during SplitSurfaceNodes() for example).  If that is
@@ -94,89 +90,9 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
         return(0);
     }
 
-
-    /* copy glide plane constraints and determine line constraints */
-    for(i=0;i<nc;i++){
-	real8 norm[3];
-        norm[XC] = node->nx[i];
-        norm[YC] = node->ny[i];
-        norm[ZC] = node->nz[i];
-
-	normx[i] = node->nx[i];
-	normy[i] = node->ny[i];
-	normz[i] = node->nz[i];
-
 /*
- *      If needed, rotate the glide plane normals from the
- *      laboratory frame to the crystal frame.
- */		
-	if ((nbr = GetNeighborNode(home, node, i)) == (Node_t *)NULL) {
-	    Fatal("Neighbor not found at %s line %d\n",__FILE__,__LINE__);
-	}
-		
-        if (param->useLabFrame) {
-            real8 normRot[3];
-	    ChangeOrientation(home, node, nbr, 3);
-            Matrix33Vector3Multiply(home->rotMatrixInverse, norm, normRot);
-            VECTOR_COPY(norm, normRot);
-        }
-
-	if ((fabs(fabs(norm[XC]) - fabs(norm[YC])) > FFACTOR_NORMAL) ||
-	    (fabs(fabs(norm[YC]) - fabs(norm[ZC])) > FFACTOR_NORMAL) ){ 
-	    /* not {111} plane */
-            lineX[i] = nbr->x - node->x;
-            lineY[i] = nbr->y - node->y; 
-            lineZ[i] = nbr->z - node->z;
-            ZImage (param, lineX+i, lineY+i, lineZ+i);
-
-#if 0
-/*
- *          If needed, rotate the line sense from the laboratory frame to
- *          the crystal frame.
+ *  Find total dislocation length times drag coefficent (LtimesB)
  */
-            if (param->useLabFrame){
-                real8 lDir[3] = {lineX[i], lineY[i], lineZ[i]};
-                real8 lDirRot[3];
-
-                Matrix33Vector3Multiply(home->rotMatrixInverse, lDir, lDirRot);
-
-                lineX[i] = lDirRot[0];
-                lineY[i] = lDirRot[1];
-                lineZ[i] = lDirRot[2];
-            }
-#endif
-
-	}else{ /* no line constraint */
-	    lineX[i] = lineY[i] = lineZ[i] = 0;
-	}
-    }
-    
-    /* normalize glide plane normal vectors and lc line vectors*/
-    for(i=0; i<nc; i++){
-	b=sqrt(lineX[i]*lineX[i]+lineY[i]*lineY[i]+lineZ[i]*lineZ[i]);
-	
-        if(b>0){
-            lineX[i] /= b;
-            lineY[i] /= b;
-            lineZ[i] /= b;
-        }
-    }
-	
-    /* Find independent line constraints */
-    nlc = 0;
-    for(i=0;i<nc;i++){
-        for(j=0;j<i;j++){
-            Orthogonalize(lineX+i,lineY+i,lineZ+i,lineX[j],lineY[j],lineZ[j]);
-        }
-        if((lineX[i]*lineX[i]+lineY[i]*lineY[i]+lineZ[i]*lineZ[i])<FFACTOR_ORTH){
-            lineX[i] = lineY[i] = lineZ[i] = 0;
-        }
-        else{
-            nlc ++;
-        }
-    }
-
-    /* find total dislocation length times drag coefficent (LtimesB)*/
     LtimesB=0;
     for(j=0;j<nc;j++){
         if ((nbr=GetNeighborNode(home,node,j)) == (Node_t *)NULL) continue;
@@ -193,10 +109,8 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
         if (param->useLabFrame) {
             real8 dTmp[3] = {dx, dy, dz};
             real8 dRot[3];
-
-	    ChangeOrientation(home, node, nbr, 3);
+	        ChangeOrientation(home, node, nbr, 3);
             Matrix33Vector3Multiply(home->rotMatrixInverse, dTmp, dRot);
-
             dx = dRot[0]; dy = dRot[1]; dz = dRot[2];
         }
 
@@ -213,47 +127,47 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
               printf("Mobility_FCC_0: (%d,%d) glide plane norm = 0\n"
                      "for segment with nonzero length lr = %e!\n",
                      node->myTag.domainID, node->myTag.index, lr);
-           }
+        }
 
-           lx=dx/lr; ly=dy/lr; lz=dz/lr;
-
-           bx = node->burgX[j];
-           by = node->burgY[j];
-           bz = node->burgZ[j];
+        lx=dx/lr; ly=dy/lr; lz=dz/lr;
+        
+        bx = node->burgX[j];
+        by = node->burgY[j];
+        bz = node->burgZ[j];
 /*
  *         If needed, rotate the burgers vector from the laboratory frame to
  *         the crystal frame.
  */
 	    TBBurg = 0;
-            if (param->useLabFrame) {
-                real8 bTmp[3] = {bx, by, bz};
-                real8 bRot[3];
+        if (param->useLabFrame) {
+            real8 bTmp[3] = {bx, by, bz};
+            real8 bRot[3];
 
-		if(BurgType_FCC(home, bTmp) & TB_BURG)TBBurg = 1;
+		    if(BurgType_FCC(home, bTmp) & TB_BURG)TBBurg = 1;
                 Matrix33Vector3Multiply(home->rotMatrixInverse, bTmp, bRot);
-
                 bx = bRot[0]; by = bRot[1]; bz = bRot[2];
-            }
+            }       
 
-	    br = sqrt(bx*bx+by*by+bz*bz);
-	    bx/=br; by/=br; bz/=br; /* unit vector along Burgers vector */
-	    
-	    dangle = fabs(bx*lx+by*ly+bz*lz);
-	    Mob=MobEdge+(MobScrew-MobEdge)*dangle;
-	    if(TBBurg)Mob *= 5.0;
-	    
-	    LtimesB+=(lr/Mob);
-	}
+	        br = sqrt(bx*bx+by*by+bz*bz);
+	        bx/=br; by/=br; bz/=br; /* unit vector along Burgers vector */
+	        
+            if(TBBurg){ 
+                Mob = MobTwinning;
+	        }else{
+	            dangle = fabs(bx*lx+by*ly+bz*lz);
+	            Mob=MobEdge+(MobScrew-MobEdge)*dangle;
+            }
+	        LtimesB+=(lr/Mob);
+	    }
     }
     LtimesB/=2;
 
-#if 0
-	nForce[XC] = node->fX;
-	nForce[YC] = node->fY;
-	nForce[ZC] = node->fZ;
-#else
+/*
+ *  Add resitance of friction force of GB force
+ */
 	DoResistance(home, node, nForce);
-#endif
+
+#if 0
 /*
  *  If needed, rotate the force vector from the laboratory frame to the
  *  crystal frame
@@ -261,16 +175,19 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
     if (param->useLabFrame) {
         real8 rotForce[3];
 		
-	ChangeOrientation(home, node, node, 3);
+	    ChangeOrientation(home, node, node, 3);
         Matrix33Vector3Multiply(home->rotMatrixInverse, nForce, rotForce);
         VECTOR_COPY(nForce, rotForce);
     }
+
+#endif
 
 	/* Velocity is simply proportional to total force per unit length */
 	nVel[0] = nForce[0]/LtimesB;
 	nVel[1] = nForce[1]/LtimesB;
 	nVel[2] = nForce[2]/LtimesB;
- 
+
+#if 0 
 /*
  *  If needed, rotate the velocity vector back to the laboratory frame
  *  from the crystal frame
@@ -284,10 +201,10 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
         VECTOR_COPY(nVel, vRot)
 
     }   
-
-	GetGlideConstraintList(home, node, numGlideConstraints, glideConstraints);
+#endif
+	GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints);
 	 
-	ApplyConstraintsToVelocity(*numGlideConstraints,
+	ApplyConstraintsToVelocity(numGlideConstraints,
 				    glideConstraints, nVel);
 #if 0
 	if (param->uselabframe) {
@@ -312,8 +229,7 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
  * This rule includes LC junction which is on {100} plane
  */
 	 
-#if _ENABLE_LINE_CONSTRAINT
-	nconstraint = *numGlideConstraints;
+#if 0
 	if(nlc==1){ /* only one line constraint */
             for(i=0;i<nc;i++){
                 if((lineX[i]!=0)||(lineY[i]!=0)||(lineZ[i]!=0)){ 
@@ -360,8 +276,8 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
 	if(SurfaceNode(node))factor = 20.0;
 	    
 	velocity = sqrt(node->vX * node->vX+
-			node->vY * node->vY+
-			node->vZ * node->vZ);
+			   node->vY * node->vY+
+			   node->vZ * node->vZ);
 	if(velocity > param->vshr/factor && param->vshr > 0){
 	    node->vX = node->vX * param->vshr /velocity/factor ;
 	    node->vY = node->vY * param->vshr /velocity/factor ;

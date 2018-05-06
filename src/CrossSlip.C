@@ -151,7 +151,7 @@ void DumpCrossSlipEvent(Node_t *node, real8 newPlane[3], char *eventDesc)
             printf("  segment(%d %d)--(%d %d) new glide plane = (%f %f %f)\n",
                    node->myTag.domainID, node->myTag.index,
                    node->nbrTag[i].domainID, node->nbrTag[i].index,
-                   newPlane[XC], newPlane[YC], newPlane[ZC]);
+                   newPlane[0], newPlane[1], newPlane[2]);
         }
 #endif
 
@@ -198,35 +198,35 @@ void SaveCrossSlipInfo(Node_t *node, Node_t *nbr1, Node_t *nbr2,
 {
         
        /* original force at both endpoints of the first segment */
-       segForceOrig[0][XC] = node->armfx[0];
-       segForceOrig[0][YC] = node->armfy[0];
-       segForceOrig[0][ZC] = node->armfz[0];
+       segForceOrig[0][0] = node->armfx[0];
+       segForceOrig[0][1] = node->armfy[0];
+       segForceOrig[0][2] = node->armfz[0];
 
-       segForceOrig[1][XC] = nbr1->armfx[nbr1ArmID];
-       segForceOrig[1][YC] = nbr1->armfy[nbr1ArmID];
-       segForceOrig[1][ZC] = nbr1->armfz[nbr1ArmID];
+       segForceOrig[1][0] = nbr1->armfx[nbr1ArmID];
+       segForceOrig[1][1] = nbr1->armfy[nbr1ArmID];
+       segForceOrig[1][2] = nbr1->armfz[nbr1ArmID];
 
        /* original force at both endpoints of the second segment */
-       segForceOrig[2][XC] = node->armfx[1];
-       segForceOrig[2][YC] = node->armfy[1];
-       segForceOrig[2][ZC] = node->armfz[1];
+       segForceOrig[2][0] = node->armfx[1];
+       segForceOrig[2][1] = node->armfy[1];
+       segForceOrig[2][2] = node->armfz[1];
 
-       segForceOrig[3][XC] = nbr2->armfx[nbr2ArmID];
-       segForceOrig[3][YC] = nbr2->armfy[nbr2ArmID];
-       segForceOrig[3][ZC] = nbr2->armfz[nbr2ArmID];
+       segForceOrig[3][0] = nbr2->armfx[nbr2ArmID];
+       segForceOrig[3][1] = nbr2->armfy[nbr2ArmID];
+       segForceOrig[3][2] = nbr2->armfz[nbr2ArmID];
 
        /* original position of all three nodes */
-       nodePosOrig[XC] = node->x;
-       nodePosOrig[YC] = node->y;
-       nodePosOrig[ZC] = node->z;
+       nodePosOrig[0] = node->x;
+       nodePosOrig[1] = node->y;
+       nodePosOrig[2] = node->z;
 
-       nbr1PosOrig[XC] = nbr1->x;
-       nbr1PosOrig[YC] = nbr1->y;
-       nbr1PosOrig[ZC] = nbr1->z;
+       nbr1PosOrig[0] = nbr1->x;
+       nbr1PosOrig[1] = nbr1->y;
+       nbr1PosOrig[2] = nbr1->z;
 
-       nbr2PosOrig[XC] = nbr2->x;
-       nbr2PosOrig[YC] = nbr2->y;
-       nbr2PosOrig[ZC] = nbr2->z;
+       nbr2PosOrig[0] = nbr2->x;
+       nbr2PosOrig[1] = nbr2->y;
+       nbr2PosOrig[2] = nbr2->z;
 
        return;
 }
@@ -248,9 +248,9 @@ void SaveCrossSlipInfo(Node_t *node, Node_t *nbr1, Node_t *nbr2,
  *-------------------------------------------------------------------------*/
 void ResetPosition(Param_t *param, Node_t *node, real8 pos[3])
 {
-        node->x = pos[XC];
-        node->y = pos[YC];
-        node->z = pos[ZC];
+        node->x = pos[0];
+        node->y = pos[1];
+        node->z = pos[2];
 
         FoldBox(param, &node->x, &node->y, &node->z);
 
@@ -287,17 +287,17 @@ void RestoreCrossSlipForce(Node_t *node, Node_t *nbr1, Node_t *nbr2,
  *      Reset force at <node> for both segments of and simply set the
  *      total nodal force to the sum of both.
  */
-        node->armfx[0] = segForceOrig[0][XC];
-        node->armfy[0] = segForceOrig[0][YC];
-        node->armfz[0] = segForceOrig[0][ZC];
+        node->armfx[0] = segForceOrig[0][0];
+        node->armfy[0] = segForceOrig[0][1];
+        node->armfz[0] = segForceOrig[0][2];
 
-        node->armfx[1] = segForceOrig[2][XC];
-        node->armfy[1] = segForceOrig[2][YC];
-        node->armfz[1] = segForceOrig[2][ZC];
+        node->armfx[1] = segForceOrig[2][0];
+        node->armfy[1] = segForceOrig[2][1];
+        node->armfz[1] = segForceOrig[2][2];
 
-        node->fX = segForceOrig[0][XC] + segForceOrig[2][XC];
-        node->fY = segForceOrig[0][YC] + segForceOrig[2][YC];
-        node->fZ = segForceOrig[0][ZC] + segForceOrig[2][ZC];
+        node->fX = segForceOrig[0][0] + segForceOrig[2][0];
+        node->fY = segForceOrig[0][1] + segForceOrig[2][1];
+        node->fZ = segForceOrig[0][2] + segForceOrig[2][2];
 
 /*
  *      The neighbor nodes are having forces reset for only a single segment
@@ -313,13 +313,13 @@ void RestoreCrossSlipForce(Node_t *node, Node_t *nbr1, Node_t *nbr2,
         nbr2->fY -= nbr2->armfy[nbr2ArmID];
         nbr2->fZ -= nbr2->armfz[nbr2ArmID];
 
-        nbr1->armfx[nbr1ArmID] = segForceOrig[1][XC];
-        nbr1->armfy[nbr1ArmID] = segForceOrig[1][YC];
-        nbr1->armfz[nbr1ArmID] = segForceOrig[1][ZC];
+        nbr1->armfx[nbr1ArmID] = segForceOrig[1][0];
+        nbr1->armfy[nbr1ArmID] = segForceOrig[1][1];
+        nbr1->armfz[nbr1ArmID] = segForceOrig[1][2];
 
-        nbr2->armfx[nbr2ArmID] = segForceOrig[3][XC];
-        nbr2->armfy[nbr2ArmID] = segForceOrig[3][YC];
-        nbr2->armfz[nbr2ArmID] = segForceOrig[3][ZC];
+        nbr2->armfx[nbr2ArmID] = segForceOrig[3][0];
+        nbr2->armfy[nbr2ArmID] = segForceOrig[3][1];
+        nbr2->armfz[nbr2ArmID] = segForceOrig[3][2];
 
         nbr1->fX += nbr1->armfx[nbr1ArmID];
         nbr1->fY += nbr1->armfy[nbr1ArmID];

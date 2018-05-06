@@ -881,48 +881,48 @@ void ProximityCollisions(Home_t *home)
                                 real8 p1[3], p2[3];
                                 real8 cPoint[3], mPoint1[3], mPoint2[3];
 
-                                burg1[XC] = node1->burgX[arm12];
-                                burg1[YC] = node1->burgY[arm12];
-                                burg1[ZC] = node1->burgZ[arm12];
+                                burg1[0] = node1->burgX[arm12];
+                                burg1[1] = node1->burgY[arm12];
+                                burg1[2] = node1->burgZ[arm12];
     
-                                burg2[XC] = node3->burgX[arm34];
-                                burg2[YC] = node3->burgY[arm34];
-                                burg2[ZC] = node3->burgZ[arm34];
+                                burg2[0] = node3->burgX[arm34];
+                                burg2[1] = node3->burgY[arm34];
+                                burg2[2] = node3->burgZ[arm34];
     
 /*
  *                              Calculate the ideal collision point between
  *                              the two segments using the 'closest' points
  *                              identified above.
  */
-                                mPoint1[XC] = x1 * (1.0-L1) + x2 * L1;
-                                mPoint1[YC] = y1 * (1.0-L1) + y2 * L1;
-                                mPoint1[ZC] = z1 * (1.0-L1) + z2 * L1;
+                                mPoint1[0] = x1 * (1.0-L1) + x2 * L1;
+                                mPoint1[1] = y1 * (1.0-L1) + y2 * L1;
+                                mPoint1[2] = z1 * (1.0-L1) + z2 * L1;
 
-                                mPoint2[XC] = x3 * (1.0-L2) + x4 * L2;
-                                mPoint2[YC] = y3 * (1.0-L2) + y4 * L2;
-                                mPoint2[ZC] = z3 * (1.0-L2) + z4 * L2;
+                                mPoint2[0] = x3 * (1.0-L2) + x4 * L2;
+                                mPoint2[1] = y3 * (1.0-L2) + y4 * L2;
+                                mPoint2[2] = z3 * (1.0-L2) + z4 * L2;
 
                                 if (param->enforceGlidePlanes) {
-                                    p1[XC] = node1->nx[arm12];
-                                    p1[YC] = node1->ny[arm12];
-                                    p1[ZC] = node1->nz[arm12];
-                                    p2[XC] = node3->nx[arm34];
-                                    p2[YC] = node3->ny[arm34];
-                                    p2[ZC] = node3->nz[arm34];
+                                    p1[0] = node1->nx[arm12];
+                                    p1[1] = node1->ny[arm12];
+                                    p1[2] = node1->nz[arm12];
+                                    p2[0] = node3->nx[arm34];
+                                    p2[1] = node3->ny[arm34];
+                                    p2[2] = node3->nz[arm34];
                                 } else {
                                     real8 vec[3], vel[3];
-                                    vec[XC] = x1 - x2;
-                                    vec[YC] = y1 - y2;
-                                    vec[ZC] = z1 - z2;
+                                    vec[0] = x1 - x2;
+                                    vec[1] = y1 - y2;
+                                    vec[2] = z1 - z2;
                                     cross(vec, burg1, p1);
                                     if (Normal(p1) > eps) {
                                         NormalizeVec(p1);
                                     } else {
-                                        vel[XC] = node1->vX * (1.0-L1) +
+                                        vel[0] = node1->vX * (1.0-L1) +
                                                  node2->vX * L1;
-                                        vel[YC] = node1->vY * (1.0-L1) +
+                                        vel[1] = node1->vY * (1.0-L1) +
                                                  node2->vY * L1;
-                                        vel[ZC] = node1->vZ * (1.0-L1) +
+                                        vel[2] = node1->vZ * (1.0-L1) +
                                                  node2->vZ * L1;
                                         cross(vec, vel, p1);
                                         if (Normal(p1) > eps) {
@@ -932,18 +932,18 @@ void ProximityCollisions(Home_t *home)
                                         }
                                     }
 
-                                    vec[XC] = x3 - x4;
-                                    vec[YC] = y3 - y4;
-                                    vec[ZC] = z3 - z4;
+                                    vec[0] = x3 - x4;
+                                    vec[1] = y3 - y4;
+                                    vec[2] = z3 - z4;
                                     cross(vec, burg2, p2);
                                     if (Normal(p2) > eps) {
                                         NormalizeVec(p2);
                                     } else {
-                                        vel[XC] = node3->vX * (1.0-L2) +
+                                        vel[0] = node3->vX * (1.0-L2) +
                                                  node4->vX * L2;
-                                        vel[YC] = node3->vY * (1.0-L2) +
+                                        vel[1] = node3->vY * (1.0-L2) +
                                                  node4->vY * L2;
-                                        vel[ZC] = node3->vZ * (1.0-L2) +
+                                        vel[2] = node3->vZ * (1.0-L2) +
                                                  node4->vZ * L2;
                                         cross(vec, vel, p2);
                                         if (Normal(p2) > eps) {
@@ -968,9 +968,9 @@ void ProximityCollisions(Home_t *home)
  */
                                 GetMinDist(x1, y1, z1, 0.0, 0.0, 0.0,
                                            x2, y2, z2, 0.0, 0.0, 0.0,
-                                           cPoint[XC], cPoint[YC], cPoint[ZC],
+                                           cPoint[0], cPoint[1], cPoint[2],
                                            0.0, 0.0, 0.0,
-                                           cPoint[XC], cPoint[YC], cPoint[ZC],
+                                           cPoint[0], cPoint[1], cPoint[2],
                                            0.0, 0.0, 0.0,
                                            &dist2, &ddist2dt, &L1, &L2);
 
@@ -1035,29 +1035,29 @@ void ProximityCollisions(Home_t *home)
  */
                                      arm21 = GetArmID(home, node2, node1);
     
-                                     oldfp0[XC] = node1->armfx[arm12];
-                                     oldfp0[YC] = node1->armfy[arm12];
-                                     oldfp0[ZC] = node1->armfz[arm12];
+                                     oldfp0[0] = node1->armfx[arm12];
+                                     oldfp0[1] = node1->armfy[arm12];
+                                     oldfp0[2] = node1->armfz[arm12];
     
-                                     oldfp1[XC] = node2->armfx[arm21];
-                                     oldfp1[YC] = node2->armfy[arm21];
-                                     oldfp1[ZC] = node2->armfz[arm21];
+                                     oldfp1[0] = node2->armfx[arm21];
+                                     oldfp1[1] = node2->armfy[arm21];
+                                     oldfp1[2] = node2->armfz[arm21];
     
-                                     p0[XC] = x1;   p1[XC] = x2;
-                                     p0[YC] = y1;   p1[YC] = y2;
-                                     p0[ZC] = z1;   p1[ZC] = z2;
+                                     p0[0] = x1;   p1[0] = x2;
+                                     p0[1] = y1;   p1[1] = y2;
+                                     p0[2] = z1;   p1[2] = z2;
     
-                                     pnew[XC] = newx;
-                                     pnew[YC] = newy;
-                                     pnew[ZC] = newz;
+                                     pnew[0] = newx;
+                                     pnew[1] = newy;
+                                     pnew[2] = newz;
     
-                                     newNodeVel[XC] = newvx;
-                                     newNodeVel[YC] = newvy;
-                                     newNodeVel[ZC] = newvz;
+                                     newNodeVel[0] = newvx;
+                                     newNodeVel[1] = newvy;
+                                     newNodeVel[2] = newvz;
 
-                                     nodeVel[XC] = vx1;
-                                     nodeVel[YC] = vy1;
-                                     nodeVel[ZC] = vz1;
+                                     nodeVel[0] = vx1;
+                                     nodeVel[1] = vy1;
+                                     nodeVel[2] = vz1;
 
                                      FindSubFSeg(home, p0, p1, burg1, oldfp0,
                                                  oldfp1, pnew, f0seg1, f1seg1,
@@ -1066,7 +1066,7 @@ void ProximityCollisions(Home_t *home)
                                      oldTag1 = node1->myTag;
                                      oldTag2 = node2->myTag;
 
-                                     FoldBox(param, &pnew[XC], &pnew[YC], &pnew[ZC]);
+                                     FoldBox(param, &pnew[0], &pnew[1], &pnew[2]);
 
                                      splitStatus = SplitNode(home,
                                                              OPCLASS_COLLISION,
@@ -1111,23 +1111,23 @@ void ProximityCollisions(Home_t *home)
  */
                                      ResetSegForces(home, splitNode1,
                                                     &splitNode2->myTag,
-                                                    f0seg1[XC], f0seg1[YC],
-                                                    f0seg1[ZC], 1);
+                                                    f0seg1[0], f0seg1[1],
+                                                    f0seg1[2], 1);
     
                                      ResetSegForces(home, splitNode2,
                                                     &splitNode1->myTag,
-                                                    f1seg1[XC], f1seg1[YC],
-                                                    f1seg1[ZC], 1);
+                                                    f1seg1[0], f1seg1[1],
+                                                    f1seg1[2], 1);
     
                                      ResetSegForces(home, splitNode2,
                                                     &node2->myTag,
-                                                    f0seg2[XC], f0seg2[YC],
-                                                    f0seg2[ZC], 1);
+                                                    f0seg2[0], f0seg2[1],
+                                                    f0seg2[2], 1);
     
                                      ResetSegForces(home, node2,
                                                     &splitNode2->myTag,
-                                                    f1seg2[XC], f1seg2[YC],
-                                                    f1seg2[ZC], 1);
+                                                    f1seg2[0], f1seg2[1],
+                                                    f1seg2[2], 1);
     
                                      (void)EvaluateMobility(home, splitNode1);
                                      (void)EvaluateMobility(home, splitNode2);
@@ -1182,9 +1182,9 @@ void ProximityCollisions(Home_t *home)
  *                              on nodal position; hence all velocity
  *                              components are set to zero.
  */
-                                GetMinDist(cPoint[XC], cPoint[YC], cPoint[ZC],
+                                GetMinDist(cPoint[0], cPoint[1], cPoint[2],
                                            0.0, 0.0, 0.0,
-                                           cPoint[XC], cPoint[YC], cPoint[ZC],
+                                           cPoint[0], cPoint[1], cPoint[2],
                                            0.0, 0.0, 0.0,
                                            x3, y3, z3, 0.0, 0.0, 0.0,
                                            x4, y4, z4, 0.0, 0.0, 0.0,
@@ -1248,33 +1248,33 @@ void ProximityCollisions(Home_t *home)
  */
                                      arm43 = GetArmID(home, node4, node3);
     
-                                     burg1[XC] = node3->burgX[arm34];
-                                     burg1[YC] = node3->burgY[arm34];
-                                     burg1[ZC] = node3->burgZ[arm34];
+                                     burg1[0] = node3->burgX[arm34];
+                                     burg1[1] = node3->burgY[arm34];
+                                     burg1[2] = node3->burgZ[arm34];
     
-                                     oldfp0[XC] = node3->armfx[arm34];
-                                     oldfp0[YC] = node3->armfy[arm34];
-                                     oldfp0[ZC] = node3->armfz[arm34];
+                                     oldfp0[0] = node3->armfx[arm34];
+                                     oldfp0[1] = node3->armfy[arm34];
+                                     oldfp0[2] = node3->armfz[arm34];
     
-                                     oldfp1[XC] = node4->armfx[arm43];
-                                     oldfp1[YC] = node4->armfy[arm43];
-                                     oldfp1[ZC] = node4->armfz[arm43];
+                                     oldfp1[0] = node4->armfx[arm43];
+                                     oldfp1[1] = node4->armfy[arm43];
+                                     oldfp1[2] = node4->armfz[arm43];
     
-                                     p0[XC] = x3;   p1[XC] = x4;
-                                     p0[YC] = y3;   p1[YC] = y4;
-                                     p0[ZC] = z3;   p1[ZC] = z4;
+                                     p0[0] = x3;   p1[0] = x4;
+                                     p0[1] = y3;   p1[1] = y4;
+                                     p0[2] = z3;   p1[2] = z4;
     
-                                     pnew[XC] = newx;
-                                     pnew[YC] = newy;
-                                     pnew[ZC] = newz;
+                                     pnew[0] = newx;
+                                     pnew[1] = newy;
+                                     pnew[2] = newz;
     
-                                     newNodeVel[XC] = newvx;
-                                     newNodeVel[YC] = newvy;
-                                     newNodeVel[ZC] = newvz;
+                                     newNodeVel[0] = newvx;
+                                     newNodeVel[1] = newvy;
+                                     newNodeVel[2] = newvz;
 
-                                     nodeVel[XC] = vx3;
-                                     nodeVel[YC] = vy3;
-                                     nodeVel[ZC] = vz3;
+                                     nodeVel[0] = vx3;
+                                     nodeVel[1] = vy3;
+                                     nodeVel[2] = vz3;
 
                                      FindSubFSeg(home, p0, p1, burg1, oldfp0,
                                                  oldfp1, pnew, f0seg1, f1seg1,
@@ -1283,7 +1283,7 @@ void ProximityCollisions(Home_t *home)
                                      oldTag1 = node3->myTag;
                                      oldTag2 = node4->myTag;
 
-                                     FoldBox(param, &pnew[XC], &pnew[YC], &pnew[ZC]);
+                                     FoldBox(param, &pnew[0], &pnew[1], &pnew[2]);
 
                                      splitStatus = SplitNode(home,
                                                             OPCLASS_COLLISION,
@@ -1327,23 +1327,23 @@ void ProximityCollisions(Home_t *home)
  */
                                      ResetSegForces(home, splitNode1,
                                                     &splitNode2->myTag,
-                                                    f0seg1[XC], f0seg1[YC],
-                                                    f0seg1[ZC], 1);
+                                                    f0seg1[0], f0seg1[1],
+                                                    f0seg1[2], 1);
     
                                      ResetSegForces(home, splitNode2,
                                                     &splitNode1->myTag,
-                                                    f1seg1[XC], f1seg1[YC],
-                                                    f1seg1[ZC], 1);
+                                                    f1seg1[0], f1seg1[1],
+                                                    f1seg1[2], 1);
     
                                      ResetSegForces(home, splitNode2,
                                                     &node4->myTag,
-                                                    f0seg2[XC], f0seg2[YC],
-                                                    f0seg2[ZC], 1);
+                                                    f0seg2[0], f0seg2[1],
+                                                    f0seg2[2], 1);
     
                                      ResetSegForces(home, node4,
                                                     &splitNode2->myTag,
-                                                    f1seg2[XC], f1seg2[YC],
-                                                    f1seg2[ZC], 1);
+                                                    f1seg2[0], f1seg2[1],
+                                                    f1seg2[2], 1);
  
                                      (void)EvaluateMobility(home, splitNode1);
                                      (void)EvaluateMobility(home, splitNode2);
@@ -1387,23 +1387,23 @@ void ProximityCollisions(Home_t *home)
  *                             straints), don't do the collision.
  */
                                FindCollisionPoint(home, mergenode1, mergenode2,
-                                                  &newPos[XC], &newPos[YC],
-                                                  &newPos[ZC]);
+                                                  &newPos[0], &newPos[1],
+                                                  &newPos[2]);
     
-                               vec1[XC] = newPos[XC] - mergenode1->x;
-                               vec1[YC] = newPos[YC] - mergenode1->y;
-                               vec1[ZC] = newPos[ZC] - mergenode1->z;
+                               vec1[0] = newPos[0] - mergenode1->x;
+                               vec1[1] = newPos[1] - mergenode1->y;
+                               vec1[2] = newPos[2] - mergenode1->z;
 
-                               vec2[XC] = newPos[XC] - mergenode2->x;
-                               vec2[YC] = newPos[YC] - mergenode2->y;
-                               vec2[ZC] = newPos[ZC] - mergenode2->z;
+                               vec2[0] = newPos[0] - mergenode2->x;
+                               vec2[1] = newPos[1] - mergenode2->y;
+                               vec2[2] = newPos[2] - mergenode2->z;
 
                                if ((DotProduct(vec1, vec1) > 16 * mindist2) &&
                                    (DotProduct(vec2, vec2) > 16 * mindist2)) {
                                    continue;
                                }
 
-                               FoldBox(param, &newPos[XC],&newPos[YC],&newPos[ZC]);
+                               FoldBox(param, &newPos[0],&newPos[1],&newPos[2]);
     
 #ifdef _FEM
 /*
@@ -1432,11 +1432,11 @@ void ProximityCollisions(Home_t *home)
                                }
 #endif
 
-                               newVel[XC] = half * (mergenode1->vX +
+                               newVel[0] = half * (mergenode1->vX +
                                                    mergenode2->vX);
-                               newVel[YC] = half * (mergenode1->vY +
+                               newVel[1] = half * (mergenode1->vY +
                                                    mergenode2->vY);
-                               newVel[ZC] = half * (mergenode1->vZ +
+                               newVel[2] = half * (mergenode1->vZ +
                                                    mergenode2->vZ);
     
     
@@ -1527,9 +1527,9 @@ void ProximityCollisions(Home_t *home)
                                        if (len2 < 1.0e-20) {
                                            mergenode1 = targetNode;
                                            mergenode2 = nbr;
-                                           newPos[XC] = targetNode->x;
-                                           newPos[YC] = targetNode->y;
-                                           newPos[ZC] = targetNode->z;
+                                           newPos[0] = targetNode->x;
+                                           newPos[1] = targetNode->y;
+                                           newPos[2] = targetNode->z;
                                            zeroLenSeg = 1;
                                            break;
                                        }
@@ -1580,9 +1580,9 @@ void ProximityCollisions(Home_t *home)
  *                                 Estimate velocity so mobility function
  *                                 has a reasonable starting point
  */
-                                   targetNode->vX = newVel[XC];
-                                   targetNode->vY = newVel[YC];
-                                   targetNode->vZ = newVel[ZC];
+                                   targetNode->vX = newVel[0];
+                                   targetNode->vY = newVel[1];
+                                   targetNode->vZ = newVel[2];
     
                                    (void)EvaluateMobility(home, targetNode);
 
@@ -1682,35 +1682,35 @@ void ProximityCollisions(Home_t *home)
  *                      collision point between the node1/node4 segment and
  *                      point node3, using the 'closest' point identified above
  */
-                        mPoint1[XC] = x1 * (1.0-L1) + x4 * L1;
-                        mPoint1[YC] = y1 * (1.0-L1) + y4 * L1;
-                        mPoint1[ZC] = z1 * (1.0-L1) + z4 * L1;
+                        mPoint1[0] = x1 * (1.0-L1) + x4 * L1;
+                        mPoint1[1] = y1 * (1.0-L1) + y4 * L1;
+                        mPoint1[2] = z1 * (1.0-L1) + z4 * L1;
 
-                        mPoint2[XC] = x3;
-                        mPoint2[YC] = y3;
-                        mPoint2[ZC] = z3;
+                        mPoint2[0] = x3;
+                        mPoint2[1] = y3;
+                        mPoint2[2] = z3;
 
                         if (param->enforceGlidePlanes) {
-                            p1[XC] = node1->nx[k];
-                            p1[YC] = node1->ny[k];
-                            p1[ZC] = node1->nz[k];
-                            p2[XC] = node1->nx[j];
-                            p2[YC] = node1->ny[j];
-                            p2[ZC] = node1->nz[j];
+                            p1[0] = node1->nx[k];
+                            p1[1] = node1->ny[k];
+                            p1[2] = node1->nz[k];
+                            p2[0] = node1->nx[j];
+                            p2[1] = node1->ny[j];
+                            p2[2] = node1->nz[j];
                         } else {
-                            vec[XC] = x1 - x4;
-                            vec[YC] = y1 - y4;
-                            vec[ZC] = z1 - z4;
-                            burg1[XC] = node1->burgX[k];
-                            burg1[YC] = node1->burgY[k];
-                            burg1[ZC] = node1->burgZ[k];
+                            vec[0] = x1 - x4;
+                            vec[1] = y1 - y4;
+                            vec[2] = z1 - z4;
+                            burg1[0] = node1->burgX[k];
+                            burg1[1] = node1->burgY[k];
+                            burg1[2] = node1->burgZ[k];
                             cross(vec, burg1, p1);
                             if (Normal(p1) > eps) {
                                 NormalizeVec(p1);
                             } else {
-                                vel[XC] = node1->vX * (1.0-L1) + node4->vX * L1;
-                                vel[YC] = node1->vY * (1.0-L1) + node4->vY * L1;
-                                vel[ZC] = node1->vZ * (1.0-L1) + node4->vZ * L1;
+                                vel[0] = node1->vX * (1.0-L1) + node4->vX * L1;
+                                vel[1] = node1->vY * (1.0-L1) + node4->vY * L1;
+                                vel[2] = node1->vZ * (1.0-L1) + node4->vZ * L1;
                                 cross(vec, vel, p1);
                                 if (Normal(p1) > eps) {
                                     NormalizeVec(p1);
@@ -1719,19 +1719,19 @@ void ProximityCollisions(Home_t *home)
                                 }
                             }
 
-                            vec[XC] = x1 - x3;
-                            vec[YC] = y1 - y3;
-                            vec[ZC] = z1 - z3;
-                            burg2[XC] = node1->burgX[j];
-                            burg2[YC] = node1->burgY[j];
-                            burg2[ZC] = node1->burgZ[j];
+                            vec[0] = x1 - x3;
+                            vec[1] = y1 - y3;
+                            vec[2] = z1 - z3;
+                            burg2[0] = node1->burgX[j];
+                            burg2[1] = node1->burgY[j];
+                            burg2[2] = node1->burgZ[j];
                             cross(vec, burg2, p2);
                             if (Normal(p2) > eps) {
                                 NormalizeVec(p2);
                             } else {
-                                vel[XC] = node3->vX;
-                                vel[YC] = node3->vY;
-                                vel[ZC] = node3->vZ;
+                                vel[0] = node3->vX;
+                                vel[1] = node3->vY;
+                                vel[2] = node3->vZ;
                                 cross(vec, vel, p2);
                                 if (Normal(p2) > eps) {
                                     NormalizeVec(p2);
@@ -1758,9 +1758,9 @@ void ProximityCollisions(Home_t *home)
  */
                         GetMinDist(x1, y1, z1, 0.0, 0.0, 0.0,
                                    x4, y4, z4, 0.0, 0.0, 0.0,
-                                   cPoint[XC], cPoint[YC], cPoint[ZC],
+                                   cPoint[0], cPoint[1], cPoint[2],
                                    0.0, 0.0, 0.0,
-                                   cPoint[XC], cPoint[YC], cPoint[ZC],
+                                   cPoint[0], cPoint[1], cPoint[2],
                                    0.0, 0.0, 0.0,
                                    &dist2, &ddist2dt, &L1, &L2);
 
@@ -1806,17 +1806,17 @@ void ProximityCollisions(Home_t *home)
  *                           the segment endpoints, so bisect the segment
  *                           and add a new node.
  */
-                             newPos[XC] = x1*(1.0-L1) + x4*L1;
-                             newPos[YC] = y1*(1.0-L1) + y4*L1;
-                             newPos[ZC] = z1*(1.0-L1) + z4*L1;
+                             newPos[0] = x1*(1.0-L1) + x4*L1;
+                             newPos[1] = y1*(1.0-L1) + y4*L1;
+                             newPos[2] = z1*(1.0-L1) + z4*L1;
 
-                             newVel[XC] = vx1*(1.0-L1) + vx4*L1;
-                             newVel[YC] = vy1*(1.0-L1) + vy4*L1;
-                             newVel[ZC] = vz1*(1.0-L1) + vz4*L1;
+                             newVel[0] = vx1*(1.0-L1) + vx4*L1;
+                             newVel[1] = vy1*(1.0-L1) + vy4*L1;
+                             newVel[2] = vz1*(1.0-L1) + vz4*L1;
 
-                             nodeVel[XC] = node3->vX;
-                             nodeVel[YC] = node3->vY;
-                             nodeVel[ZC] = node3->vZ;
+                             nodeVel[0] = node3->vX;
+                             nodeVel[1] = node3->vY;
+                             nodeVel[2] = node3->vZ;
 
 /*
  *                           Estimate resulting forces on all segments
@@ -1825,27 +1825,27 @@ void ProximityCollisions(Home_t *home)
                              armAB = GetArmID(home, node1, node4);
                              armBA = GetArmID(home, node4, node1);
 
-                             burg1[XC] = node1->burgX[armAB];
-                             burg1[YC] = node1->burgY[armAB];
-                             burg1[ZC] = node1->burgZ[armAB];
+                             burg1[0] = node1->burgX[armAB];
+                             burg1[1] = node1->burgY[armAB];
+                             burg1[2] = node1->burgZ[armAB];
 
-                             oldfp0[XC] = node1->armfx[armAB];
-                             oldfp0[YC] = node1->armfy[armAB];
-                             oldfp0[ZC] = node1->armfz[armAB];
+                             oldfp0[0] = node1->armfx[armAB];
+                             oldfp0[1] = node1->armfy[armAB];
+                             oldfp0[2] = node1->armfz[armAB];
 
-                             oldfp1[XC] = node4->armfx[armBA];
-                             oldfp1[YC] = node4->armfy[armBA];
-                             oldfp1[ZC] = node4->armfz[armBA];
+                             oldfp1[0] = node4->armfx[armBA];
+                             oldfp1[1] = node4->armfy[armBA];
+                             oldfp1[2] = node4->armfz[armBA];
 
-                             p0[XC] = x1;   p1[XC] = x4;
-                             p0[YC] = y1;   p1[YC] = y4;
-                             p0[ZC] = z1;   p1[ZC] = z4;
+                             p0[0] = x1;   p1[0] = x4;
+                             p0[1] = y1;   p1[1] = y4;
+                             p0[2] = z1;   p1[2] = z4;
 
                              FindSubFSeg(home, p0, p1, burg1, oldfp0,
                                          oldfp1, newPos, f0seg1, f1seg1,
                                          f0seg2, f1seg2);
 
-                             FoldBox(param, &newPos[XC], &newPos[YC], &newPos[ZC]);
+                             FoldBox(param, &newPos[0], &newPos[1], &newPos[2]);
 
 /*
  *                           Attempt to split the segment.  If the split
@@ -1884,16 +1884,16 @@ void ProximityCollisions(Home_t *home)
  *                           split.
  */
                              ResetSegForces(home,splitNode1,&splitNode2->myTag,
-                                            f0seg1[XC], f0seg1[YC], f0seg1[ZC], 1);
+                                            f0seg1[0], f0seg1[1], f0seg1[2], 1);
 
                              ResetSegForces(home,splitNode2,&splitNode1->myTag,
-                                            f1seg1[XC], f1seg1[YC], f1seg1[ZC], 1);
+                                            f1seg1[0], f1seg1[1], f1seg1[2], 1);
 
                              ResetSegForces(home, splitNode2, &node4->myTag,
-                                            f0seg2[XC], f0seg2[YC], f0seg2[ZC], 1);
+                                            f0seg2[0], f0seg2[1], f0seg2[2], 1);
 
                              ResetSegForces(home, node3, &splitNode2->myTag,
-                                            f1seg2[XC], f1seg2[YC], f1seg2[ZC], 1);
+                                            f1seg2[0], f1seg2[1], f1seg2[2], 1);
 
                              (void)EvaluateMobility(home, splitNode1);
                              (void)EvaluateMobility(home, splitNode2);
@@ -1932,22 +1932,22 @@ void ProximityCollisions(Home_t *home)
  */
 
                         FindCollisionPoint(home, mergenode1, mergenode2,
-                                           &newPos[XC], &newPos[YC], &newPos[ZC]);
+                                           &newPos[0], &newPos[1], &newPos[2]);
 
-                        vec1[XC] = newPos[XC] - mergenode1->x;
-                        vec1[YC] = newPos[YC] - mergenode1->y;
-                        vec1[ZC] = newPos[ZC] - mergenode1->z;
+                        vec1[0] = newPos[0] - mergenode1->x;
+                        vec1[1] = newPos[1] - mergenode1->y;
+                        vec1[2] = newPos[2] - mergenode1->z;
 
-                        vec2[XC] = newPos[XC] - mergenode2->x;
-                        vec2[YC] = newPos[YC] - mergenode2->y;
-                        vec2[ZC] = newPos[ZC] - mergenode2->z;
+                        vec2[0] = newPos[0] - mergenode2->x;
+                        vec2[1] = newPos[1] - mergenode2->y;
+                        vec2[2] = newPos[2] - mergenode2->z;
 
                         if ((DotProduct(vec1, vec1) > 16 * mindist2) &&
                             (DotProduct(vec2, vec2) > 16 * mindist2)) {
                             continue;
                         }
 
-                        FoldBox(param, &newPos[XC], &newPos[YC], &newPos[ZC]);
+                        FoldBox(param, &newPos[0], &newPos[1], &newPos[2]);
 
 /*
  *                      The merge is going to happen, so there's a few

@@ -136,17 +136,17 @@ void CrossSlipFCC(Home_t *home)
  *          Only consider glide dislocations.  If burgers vector is not
  *          a [1 1 0] type, ignore it.
  */
-            if (!((fabs(fabs(burgCrystal[XC])-fabs(burgCrystal[YC])) < eps ) &&
-                  (fabs(burgCrystal[ZC]) < eps )) &&
-                !((fabs(fabs(burgCrystal[YC])-fabs(burgCrystal[ZC])) < eps ) &&
-                  (fabs(burgCrystal[XC]) < eps )) &&
-                !((fabs(fabs(burgCrystal[ZC])-fabs(burgCrystal[XC])) < eps ) &&
-                  (fabs(burgCrystal[YC]) < eps ))) {
+            if (!((fabs(fabs(burgCrystal[0])-fabs(burgCrystal[1])) < eps ) &&
+                  (fabs(burgCrystal[2]) < eps )) &&
+                !((fabs(fabs(burgCrystal[1])-fabs(burgCrystal[2])) < eps ) &&
+                  (fabs(burgCrystal[0]) < eps )) &&
+                !((fabs(fabs(burgCrystal[2])-fabs(burgCrystal[0])) < eps ) &&
+                  (fabs(burgCrystal[1]) < eps ))) {
                  continue;
             }
 
-            if ((fabs(burgCrystal[XC]) < eps) && (fabs(burgCrystal[YC]) < eps) &&
-                (fabs(burgCrystal[ZC]) < eps )) {
+            if ((fabs(burgCrystal[0]) < eps) && (fabs(burgCrystal[1]) < eps) &&
+                (fabs(burgCrystal[2]) < eps )) {
                  continue;
             }
 
@@ -200,14 +200,14 @@ void CrossSlipFCC(Home_t *home)
  *          be copied back into the respective nodal data structures and
  *          shifted back into the primary image space.
  */
-            nodep[XC] = node->x; nodep[YC] = node->y; nodep[ZC] = node->z;
-            nbr1p[XC] = nbr1->x; nbr1p[YC] = nbr1->y; nbr1p[ZC] = nbr1->z;
-            nbr2p[XC] = nbr2->x; nbr2p[YC] = nbr2->y; nbr2p[ZC] = nbr2->z;
+            nodep[0] = node->x; nodep[1] = node->y; nodep[2] = node->z;
+            nbr1p[0] = nbr1->x; nbr1p[1] = nbr1->y; nbr1p[2] = nbr1->z;
+            nbr2p[0] = nbr2->x; nbr2p[1] = nbr2->y; nbr2p[2] = nbr2->z;
 
-            PBCPOSITION(param, nodep[XC], nodep[YC], nodep[ZC],
-                        &nbr1p[XC], &nbr1p[YC], &nbr1p[ZC]);
-            PBCPOSITION(param, nodep[XC], nodep[YC], nodep[ZC],
-                        &nbr2p[XC], &nbr2p[YC], &nbr2p[ZC]);
+            PBCPOSITION(param, nodep[0], nodep[1], nodep[2],
+                        &nbr1p[0], &nbr1p[1], &nbr1p[2]);
+            PBCPOSITION(param, nodep[0], nodep[1], nodep[2],
+                        &nbr2p[0], &nbr2p[1], &nbr2p[2]);
 
             resetNodePos = 0;
             resetNbr1Pos = 0;
@@ -217,24 +217,24 @@ void CrossSlipFCC(Home_t *home)
  *          If the node is a point on a long screw then we can consider
  *          it for possible cross slip.
  */
-            vec1[XC] = nbr1p[XC] - nbr2p[XC];
-            vec1[YC] = nbr1p[YC] - nbr2p[YC];
-            vec1[ZC] = nbr1p[ZC] - nbr2p[ZC];
+            vec1[0] = nbr1p[0] - nbr2p[0];
+            vec1[1] = nbr1p[1] - nbr2p[1];
+            vec1[2] = nbr1p[2] - nbr2p[2];
 
-            vec2[XC] = nodep[XC] - nbr1p[XC];
-            vec2[YC] = nodep[YC] - nbr1p[YC];
-            vec2[ZC] = nodep[ZC] - nbr1p[ZC];
+            vec2[0] = nodep[0] - nbr1p[0];
+            vec2[1] = nodep[1] - nbr1p[1];
+            vec2[2] = nodep[2] - nbr1p[2];
 
-            vec3[XC] = nodep[XC] - nbr2p[XC];
-            vec3[YC] = nodep[YC] - nbr2p[YC];
-            vec3[ZC] = nodep[ZC] - nbr2p[ZC];
+            vec3[0] = nodep[0] - nbr2p[0];
+            vec3[1] = nodep[1] - nbr2p[1];
+            vec3[2] = nodep[2] - nbr2p[2];
 
 /*
  *          Force vector (initially in laboratory frame)
  */
-            fLab[XC] = node->fX;
-            fLab[YC] = node->fY;
-            fLab[ZC] = node->fZ;
+            fLab[0] = node->fX;
+            fLab[1] = node->fY;
+            fLab[2] = node->fZ;
 
 /*
  *          Calculate some test conditions
@@ -310,13 +310,13 @@ void CrossSlipFCC(Home_t *home)
                     glideDirCrystal[1][n] *= sqrt(1.0/6.0);
                 }
 
-                segplane1[XC] = node->nx[0];
-                segplane1[YC] = node->ny[0];
-                segplane1[ZC] = node->nz[0];
+                segplane1[0] = node->nx[0];
+                segplane1[1] = node->ny[0];
+                segplane1[2] = node->nz[0];
 
-                segplane2[XC] = node->nx[1];
-                segplane2[YC] = node->ny[1];
-                segplane2[ZC] = node->nz[1];
+                segplane2[0] = node->nx[1];
+                segplane2[1] = node->ny[1];
+                segplane2[2] = node->nz[1];
 
 /*
  *              Need copies of the glideDir matrix and the force vector
@@ -411,9 +411,9 @@ void CrossSlipFCC(Home_t *home)
  *                          Neighbor 2 can be moved, so proceed with the
  *                          cross-slip operation.
  */
-                            nbr2p[XC] = nbr1p[XC] - (vec1dotb * burgLab[XC]);
-                            nbr2p[YC] = nbr1p[YC] - (vec1dotb * burgLab[YC]);
-                            nbr2p[ZC] = nbr1p[ZC] - (vec1dotb * burgLab[ZC]);
+                            nbr2p[0] = nbr1p[0] - (vec1dotb * burgLab[0]);
+                            nbr2p[1] = nbr1p[1] - (vec1dotb * burgLab[1]);
+                            nbr2p[2] = nbr1p[2] - (vec1dotb * burgLab[2]);
                         }
 
 /*
@@ -421,17 +421,17 @@ void CrossSlipFCC(Home_t *home)
  *                      aligned with neighbor1 in the screw direction
  *                      so there is no need to move it.
  */
-                        nodep[XC] = nbr1p[XC] + (vec2dotb * burgLab[XC]);
-                        nodep[YC] = nbr1p[YC] + (vec2dotb * burgLab[YC]);
-                        nodep[ZC] = nbr1p[ZC] + (vec2dotb * burgLab[ZC]);
+                        nodep[0] = nbr1p[0] + (vec2dotb * burgLab[0]);
+                        nodep[1] = nbr1p[1] + (vec2dotb * burgLab[1]);
+                        nodep[2] = nbr1p[2] + (vec2dotb * burgLab[2]);
 
                         fdotglide = DotProduct(fLab, glideDirLab[fplane]);
                         tmp = areamin / fabs(vec1dotb) * 2.0 *
                                (1.0 + eps) * Sign(fdotglide);
 
-                        nodep[XC] += tmp * glideDirLab[fplane][XC];
-                        nodep[YC] += tmp * glideDirLab[fplane][YC];
-                        nodep[ZC] += tmp * glideDirLab[fplane][ZC];
+                        nodep[0] += tmp * glideDirLab[fplane][0];
+                        nodep[1] += tmp * glideDirLab[fplane][1];
+                        nodep[2] += tmp * glideDirLab[fplane][2];
 
 /*
  *                      It looks like we should do the cross-slip, but to
@@ -446,9 +446,9 @@ void CrossSlipFCC(Home_t *home)
 
                         SetOneNodeForce(home, node);
 
-                        newForce[XC] = node->fX;
-                        newForce[YC] = node->fY;
-                        newForce[ZC] = node->fZ;
+                        newForce[0] = node->fX;
+                        newForce[1] = node->fY;
+                        newForce[2] = node->fZ;
 
                         newfdotglide = DotProduct(newForce,glideDirLab[fplane]);
 
@@ -484,23 +484,23 @@ void CrossSlipFCC(Home_t *home)
  */
                         vec1dotb = DotProduct(vec1, burgLab);
 
-                        nbr1p[XC] = nbr2p[XC] + (vec1dotb * burgLab[XC]);
-                        nbr1p[YC] = nbr2p[YC] + (vec1dotb * burgLab[YC]);
-                        nbr1p[ZC] = nbr2p[ZC] + (vec1dotb * burgLab[ZC]);
+                        nbr1p[0] = nbr2p[0] + (vec1dotb * burgLab[0]);
+                        nbr1p[1] = nbr2p[1] + (vec1dotb * burgLab[1]);
+                        nbr1p[2] = nbr2p[2] + (vec1dotb * burgLab[2]);
 
                         vec3dotb = DotProduct(vec3, burgLab);
 
-                        nodep[XC] = nbr2p[XC] + (vec3dotb * burgLab[XC]);
-                        nodep[YC] = nbr2p[YC] + (vec3dotb * burgLab[YC]);
-                        nodep[ZC] = nbr2p[ZC] + (vec3dotb * burgLab[ZC]);
+                        nodep[0] = nbr2p[0] + (vec3dotb * burgLab[0]);
+                        nodep[1] = nbr2p[1] + (vec3dotb * burgLab[1]);
+                        nodep[2] = nbr2p[2] + (vec3dotb * burgLab[2]);
 
                         fdotglide = DotProduct(fLab, glideDirLab[fplane]);
                         tmp = areamin / fabs(vec1dotb) * 2.0 *
                                (1.0 + eps) * Sign(fdotglide);
 
-                        nodep[XC] += tmp * glideDirLab[fplane][XC];
-                        nodep[YC] += tmp * glideDirLab[fplane][YC];
-                        nodep[ZC] += tmp * glideDirLab[fplane][ZC];
+                        nodep[0] += tmp * glideDirLab[fplane][0];
+                        nodep[1] += tmp * glideDirLab[fplane][1];
+                        nodep[2] += tmp * glideDirLab[fplane][2];
 
 /*
  *                      It looks like we should do the cross-slip, but to
@@ -515,9 +515,9 @@ void CrossSlipFCC(Home_t *home)
 
                         SetOneNodeForce(home, node);
 
-                        newForce[XC] = node->fX;
-                        newForce[YC] = node->fY;
-                        newForce[ZC] = node->fZ;
+                        newForce[0] = node->fX;
+                        newForce[1] = node->fY;
+                        newForce[2] = node->fZ;
 
                         newfdotglide = DotProduct(newForce,glideDirLab[fplane]);
 
@@ -568,9 +568,9 @@ void CrossSlipFCC(Home_t *home)
  *                      to be 'zippered' is less than 5% larger on the new
  *                      plane than the old plane, leave the segment alone.
  */
-                        newSegForce[XC] = node->armfx[0]+nbr1->armfx[nbr1ArmID];
-                        newSegForce[YC] = node->armfy[0]+nbr1->armfy[nbr1ArmID];
-                        newSegForce[ZC] = node->armfz[0]+nbr1->armfz[nbr1ArmID];
+                        newSegForce[0] = node->armfx[0]+nbr1->armfx[nbr1ArmID];
+                        newSegForce[1] = node->armfy[0]+nbr1->armfy[nbr1ArmID];
+                        newSegForce[2] = node->armfz[0]+nbr1->armfz[nbr1ArmID];
 
                         zipperThreshold = noiseFactor * shearModulus *
                                           burgSize *  L1;
@@ -586,9 +586,9 @@ void CrossSlipFCC(Home_t *home)
                         if (!pinned1) {
                             vec2dotb = DotProduct(vec2, burgLab);
 
-                            nbr1p[XC] = nodep[XC] - (vec2dotb * burgLab[XC]);
-                            nbr1p[YC] = nodep[YC] - (vec2dotb * burgLab[YC]);
-                            nbr1p[ZC] = nodep[ZC] - (vec2dotb * burgLab[ZC]);
+                            nbr1p[0] = nodep[0] - (vec2dotb * burgLab[0]);
+                            nbr1p[1] = nodep[1] - (vec2dotb * burgLab[1]);
+                            nbr1p[2] = nodep[2] - (vec2dotb * burgLab[2]);
 
                             resetNbr1Pos = 1;
                         }
@@ -621,9 +621,9 @@ void CrossSlipFCC(Home_t *home)
  *                      to be 'zippered' is less than 5% larger on the new
  *                      plane than the old plane, leave the segment alone.
  */
-                        newSegForce[XC] = node->armfx[1]+nbr2->armfx[nbr2ArmID];
-                        newSegForce[YC] = node->armfy[1]+nbr2->armfy[nbr2ArmID];
-                        newSegForce[ZC] = node->armfz[1]+nbr2->armfz[nbr2ArmID];
+                        newSegForce[0] = node->armfx[1]+nbr2->armfx[nbr2ArmID];
+                        newSegForce[1] = node->armfy[1]+nbr2->armfy[nbr2ArmID];
+                        newSegForce[2] = node->armfz[1]+nbr2->armfz[nbr2ArmID];
 
                         zipperThreshold = noiseFactor * shearModulus *
                                           burgSize *  L2;
@@ -639,9 +639,9 @@ void CrossSlipFCC(Home_t *home)
                         if (!pinned2) {
                             vec3dotb = DotProduct(vec3, burgLab);
 
-                            nbr2p[XC] = nodep[XC] - (vec3dotb * burgLab[XC]);
-                            nbr2p[YC] = nodep[YC] - (vec3dotb * burgLab[YC]);
-                            nbr2p[ZC] = nodep[ZC] - (vec3dotb * burgLab[ZC]);
+                            nbr2p[0] = nodep[0] - (vec3dotb * burgLab[0]);
+                            nbr2p[1] = nodep[1] - (vec3dotb * burgLab[1]);
+                            nbr2p[2] = nodep[2] - (vec3dotb * burgLab[2]);
 
                             resetNbr2Pos = 1;
                         }
@@ -663,17 +663,17 @@ void CrossSlipFCC(Home_t *home)
  *              remote domains for processing.
  */
                 if (resetNodePos) {
-                    FoldBox(param, &nodep[XC], &nodep[YC], &nodep[ZC]);
+                    FoldBox(param, &nodep[0], &nodep[1], &nodep[2]);
                     RepositionNode(home, nodep, &node->myTag, 1);
                 }
 
                 if (resetNbr1Pos) {
-                    FoldBox(param, &nbr1p[XC], &nbr1p[YC], &nbr1p[ZC]);
+                    FoldBox(param, &nbr1p[0], &nbr1p[1], &nbr1p[2]);
                     RepositionNode(home, nbr1p, &nbr1->myTag, 1);
                 }
 
                 if (resetNbr2Pos) {
-                    FoldBox(param, &nbr2p[XC], &nbr2p[YC], &nbr2p[ZC]);
+                    FoldBox(param, &nbr2p[0], &nbr2p[1], &nbr2p[2]);
                     RepositionNode(home, nbr2p, &nbr2->myTag, 1);
                 }
 

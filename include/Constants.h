@@ -114,8 +114,6 @@
 #define FCC_NUM_GLIDE_PLANES	4
 #define FCC_NUM_GLIDE_BURGS	6
 
-#define MAX_PENE_SETS	4
-
 
 /* the old positon of new node is old position of the parent node */
 #define SHARE_OLDX	0 

@@ -117,12 +117,12 @@ int Mobility_FCC_climb(Home_t *home, Node_t *node)
                 continue;
             }
 
-            segVector[i][XC] = node->x - nbrNode->x;
-            segVector[i][YC] = node->y - nbrNode->y;
-            segVector[i][ZC] = node->z - nbrNode->z;
+            segVector[i][0] = node->x - nbrNode->x;
+            segVector[i][1] = node->y - nbrNode->y;
+            segVector[i][2] = node->z - nbrNode->z;
 
-            ZImage(param, &segVector[i][XC], &segVector[i][YC],
-                   &segVector[i][ZC]);
+            ZImage(param, &segVector[i][0], &segVector[i][1],
+                   &segVector[i][2]);
 
 /*
  *          Skip the zero length segments
@@ -141,16 +141,16 @@ int Mobility_FCC_climb(Home_t *home, Node_t *node)
 /*
  *          Save some segment specific stuff for later rather
  */
-            burgList[i][XC] = node->burgX[i];
-            burgList[i][YC] = node->burgY[i];
-            burgList[i][ZC] = node->burgZ[i];
+            burgList[i][0] = node->burgX[i];
+            burgList[i][1] = node->burgY[i];
+            burgList[i][2] = node->burgZ[i];
 
             VECTOR_COPY(lineDir[i], segVector[i]);
             NormalizeVec(lineDir[i]);
 
-            nDir[i][XC] = node->nx[i];
-            nDir[i][YC] = node->ny[i];
-            nDir[i][ZC] = node->nz[i];
+            nDir[i][0] = node->nx[i];
+            nDir[i][1] = node->ny[i];
+            nDir[i][2] = node->nz[i];
 
 /*
  *          If this is one arm of a 2-node, see if it is a screw segment
@@ -252,18 +252,18 @@ int Mobility_FCC_climb(Home_t *home, Node_t *node)
  *          arms not on [1 1 1] planes don't move as readily as
  *          other arms, so must be handled specially.
  */
-            if (fabs(nCryst[XC] * nCryst[YC] * nCryst[ZC]) < 0.13608) {
+            if (fabs(nCryst[0] * nCryst[1] * nCryst[2]) < 0.13608) {
                 if (numNbrs == 2) {
                     Btotal[0][0] += halfLen * Beclimb;
                     Btotal[1][1] += halfLen * Beclimb;
                     Btotal[2][2] += halfLen * Beclimb;
                 } else {
-                    Btotal[0][0] += halfLen * (d[XC]*d[XC]*BlmBecl + Beclimb);
-                    Btotal[0][1] += halfLen * (d[XC]*d[YC]*BlmBecl);
-                    Btotal[0][2] += halfLen * (d[XC]*d[ZC]*BlmBecl);
-                    Btotal[1][1] += halfLen * (d[YC]*d[YC]*BlmBecl + Beclimb);
-                    Btotal[1][2] += halfLen * (d[YC]*d[ZC]*BlmBecl);
-                    Btotal[2][2] += halfLen * (d[ZC]*d[ZC]*BlmBecl + Beclimb);
+                    Btotal[0][0] += halfLen * (d[0]*d[0]*BlmBecl + Beclimb);
+                    Btotal[0][1] += halfLen * (d[0]*d[1]*BlmBecl);
+                    Btotal[0][2] += halfLen * (d[0]*d[2]*BlmBecl);
+                    Btotal[1][1] += halfLen * (d[1]*d[1]*BlmBecl + Beclimb);
+                    Btotal[1][2] += halfLen * (d[1]*d[2]*BlmBecl);
+                    Btotal[2][2] += halfLen * (d[2]*d[2]*BlmBecl + Beclimb);
                 }
             } else {
                 NormalizedCrossVector(n, d, m);
@@ -271,24 +271,24 @@ int Mobility_FCC_climb(Home_t *home, Node_t *node)
                               costheta2);
                 Bglide = 1.0 / Bglide;
                 Bclimb = Beclimb;
-                Btotal[0][0] += (m[XC]*m[XC] * Bglide +
-                                 n[XC]*n[XC] * Bclimb +
-                                 d[XC]*d[XC] * Bline) * halfLen;
-                Btotal[0][1] += (m[XC]*m[YC] * Bglide +
-                                 n[XC]*n[YC] * Bclimb +
-                                 d[XC]*d[YC] * Bline) * halfLen;
-                Btotal[0][2] += (m[XC]*m[ZC] * Bglide +
-                                 n[XC]*n[ZC] * Bclimb +
-                                 d[XC]*d[ZC] * Bline) * halfLen;
-                Btotal[1][1] += (m[YC]*m[YC] * Bglide +
-                                 n[YC]*n[YC] * Bclimb +
-                                 d[YC]*d[YC] * Bline) * halfLen;
-                Btotal[1][2] += (m[YC]*m[ZC] * Bglide +
-                                 n[YC]*n[ZC] * Bclimb +
-                                 d[YC]*d[ZC] * Bline) * halfLen;
-                Btotal[2][2] += (m[ZC]*m[ZC] * Bglide +
-                                 n[ZC]*n[ZC] * Bclimb +
-                                 d[ZC]*d[ZC] * Bline) * halfLen;
+                Btotal[0][0] += (m[0]*m[0] * Bglide +
+                                 n[0]*n[0] * Bclimb +
+                                 d[0]*d[0] * Bline) * halfLen;
+                Btotal[0][1] += (m[0]*m[1] * Bglide +
+                                 n[0]*n[1] * Bclimb +
+                                 d[0]*d[1] * Bline) * halfLen;
+                Btotal[0][2] += (m[0]*m[2] * Bglide +
+                                 n[0]*n[2] * Bclimb +
+                                 d[0]*d[2] * Bline) * halfLen;
+                Btotal[1][1] += (m[1]*m[1] * Bglide +
+                                 n[1]*n[1] * Bclimb +
+                                 d[1]*d[1] * Bline) * halfLen;
+                Btotal[1][2] += (m[1]*m[2] * Bglide +
+                                 n[1]*n[2] * Bclimb +
+                                 d[1]*d[2] * Bline) * halfLen;
+                Btotal[2][2] += (m[2]*m[2] * Bglide +
+                                 n[2]*n[2] * Bclimb +
+                                 d[2]*d[2] * Bline) * halfLen;
             }
 
         }  /* End loop over arms */
