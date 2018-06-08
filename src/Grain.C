@@ -94,65 +94,32 @@ void InitOrientation(real8 MatrixOrientation[3][3], real8 TwinOrientation[3][3])
 	return;
 }
 
-void InitGrainStructure(Grain_t *grain, int numBound){
-	grain->numBoundaries = numBound;
-	
-	grain->BoundaryIndex = (int *)calloc(grain->numBoundaries, sizeof(int));
-	grain->BoundaryType = (int *)calloc(grain->numBoundaries, sizeof(int));
-	
-	grain->nx = (real8 *)calloc(grain->numBoundaries, sizeof(real8));
-	grain->ny = (real8 *)calloc(grain->numBoundaries, sizeof(real8));
-	grain->nz = (real8 *)calloc(grain->numBoundaries, sizeof(real8));
-	
-	grain->x0 = (real8 *)calloc(grain->numBoundaries, sizeof(real8));
-	grain->y0 = (real8 *)calloc(grain->numBoundaries, sizeof(real8));
-	grain->z0 = (real8 *)calloc(grain->numBoundaries, sizeof(real8));
-
-}
-
-void FreeGrainStructure(Grain_t *grain){
-    if(grain == (Grain_t *)NULL)return;
-    free(grain->BoundaryIndex);
-    free(grain->BoundaryType);
-
-    free(grain->nx);
-    free(grain->ny);
-    free(grain->nz);
-
-    free(grain->x0);
-    free(grain->y0);
-    free(grain->z0);
-
-    grain->nx = NULL;
-    grain->ny = NULL;
-    grain->nz = NULL;
-
-    grain->x0 = NULL;
-    grain->y0 = NULL;
-    grain->z0 = NULL;
+void InitGrainStructure(Grain_t *grain, int numBounds){
+	grain->nBounds = numBounds;
+    grain->GB = (GB_t **)malloc(numBounds*sizeof(GB_t *));	
+    grain->sign = (real8 *)malloc(numBounds*sizeof(real8));
     return;
 }
 
 void InitGrain(Home_t *home, Param_t *param){
-	int		i,j;
+	int		    i,j;
 	Grain_t		*grain;
+    GB_t        *GB;
 	real8		HalfMatrixThick, maxSeg;
 	real8		TwinOrientation[3][3], temR[3][3];
-	int		nGrain;
+	int		    nGrain, typei, GBID;
 	real8		twinRatio;
 
 	/*the following variables are placed in param.h*/
-	int		numTGrains;
+	int		    numTGrains;
 	real8		halfTwinThick;
-	int		invFlag;
+	int		    invFlag;
 	real8		lx=0, ly=0, lz=0;	/*half cube size in param.h*/
 
 	lx = param->xBoundMax;
 	ly = param->yBoundMax;
 	lz = param->zBoundMax;
 	maxSeg = param->maxSeg;
-
-	grain = (Grain_t *)calloc(1, sizeof(Grain_t));
 
 	if(param->polycrystal == 0)param->nGrain = 0;
 	nGrain = param->nGrain;
@@ -170,7 +137,34 @@ void InitGrain(Home_t *home, Param_t *param){
 	    param->useLabFrame = 1;
 	}
 
+    if(param->polycrystal == 0){
+        if(param->xBounType == Periodic && 
+           param->yBounType == Periodic && 
+           param->zBounType == Periodic ){
+            type = 1;
+        }else type = 2;
+    }else{
+        if(param->nGrain == 1){
+            if(param->xBounType == Periodic && 
+               param->yBounType == Periodic && 
+               param->zBounType == Periodic ){
+                type = 3;
+            }else{
+                Fatal("at file %s line %d", __FILE__, __LINE__);
+            }
+        }else{
+            if(param->xBounType == Periodic && 
+               param->yBounType == Periodic && 
+               param->zBounType == Periodic ){
+                type = 4;
+            }else{
+                type = 5;
+            }
 
+        }
+    }
+
+    if(type == 3)Fatal("Not supposed this type now");
 /*
  *	Type I: polycrystal = 0, nGrain = 0, PBC
  * 	origin PBC condition.
@@ -181,6 +175,8 @@ void InitGrain(Home_t *home, Param_t *param){
  *	single crystal, free surface.
  */
 	if(param->polycrystal ==0 ){
+        home->nGrains = 0;
+        home->nGBs = 0;
 	    if(home->myDomain == 0){
 	        FormatMatrix(param->matrixOrientation,"Orientation");
 	    }
@@ -193,42 +189,11 @@ void InitGrain(Home_t *home, Param_t *param){
  */
 	if(nGrain == 0)Fatal("polycrstal type, but nGrain = 0");
 
-	home->newGrainKeyPtr = nGrain;				/*num of grain and twins */
-	home->grainKeys	= (Grain_t **)malloc(home->newGrainKeyPtr * sizeof(Grain_t *));
+	home->nGrains = param->nGrain;				/*num of grain and twins */
+
+	home->grainKeys	= (Grain_t **)malloc(home->nGrains * sizeof(Grain_t *));
 	param->useLabFrame = 1;
 	
-/*
- *	Initilize first grain.
- */
-	home->grainKeys[0] = (Grain_t *)calloc(1, sizeof(Grain_t));
-	grain = home->grainKeys[0];
-	InitGrainStructure(grain, 6);
-
-	grain->type = MATRIX_GRAIN;
-	grain->cy = 0;
-
-	grain->nx[0] = -1;
-	grain->x0[0] = -lx;
-	grain->nx[1] =  1;
-	grain->x0[1] =  lx;
-
-	grain->ny[2] = -1;
-	grain->y0[2] = -ly;
-	grain->ny[3] =  1;
-	grain->y0[3] =  ly;
-
-	grain->nz[4] = -1;
-	grain->z0[4] = -lz;
-	grain->nz[5] =  1;
-	grain->z0[5] =  lz;
-
-	CopyMatrix33(param->matrixOrientation, grain->orientation);
-	invFlag = Matrix33Invert(grain->orientation, grain->orientationInv);
-	if(!invFlag){
-	    Fatal("Invert matrix orientation faild!\n");
-	}
-
-	if(nGrain == 1)return;
 
 /*
  *	Initialize twin grain.
@@ -242,56 +207,70 @@ void InitGrain(Home_t *home, Param_t *param){
 	NormalizeVec(planeABC);
 
 	Matrix33Vector3Multiply(param->matrixOrientation, CDeltaLab, CDelta);
-        RotateWithAxis(CDelta, PI, temR);
+    RotateWithAxis(CDelta, PI, temR);
 	Matrix33Mult33(temR, param->matrixOrientation, TwinOrientation);
-//	FormatVector(CDelta, "CDelta");
 
 	Matrix33Vector3Multiply(param->matrixOrientation, planeABC, param->TBNormal);
-        RotateWithAxis(param->TBNormal, PI, param->rotateNormal);
-//	FormatVector(param->TBNormal, "TBNormal");
+    RotateWithAxis(param->TBNormal, PI, param->rotateNormal);
 
-	if(param->xBoundType == 0 && param->yBoundType == 0 && 
-	   param->zBoundType == 0){	
+
 /*
  *	    Type V: polycrystal = 1, nGrain >= 2, PBC.
  *	    polycrystal, twin, RVE, XOZ plane is twin plane
  */
+    if(type == 4){
 	    halfTwinThick = twinRatio * ly / (real8)numTGrains;
 	    HalfMatrixThick = ly / (real8)numTGrains - halfTwinThick;
 	    	
-	    if (2.0 * halfTwinThick < maxSeg || HalfMatrixThick < maxSeg){
-#if 0
-	        printf("a segment may penetrate through a grain at %s line %d, max seg is %f (%f,%f)\n", 
-	              __FILE__, __LINE__,maxSeg,halfTwinThick,HalfMatrixThick);
-#endif
-	    }
 	    if (HalfMatrixThick <= 0){
 	        printf("the thickness of matrix is %f\n ", HalfMatrixThick);
 	        Fatal("the thickness of matrix is negative value at %s line %d\n", __FILE__, __LINE__);
 	    }
-    
-	    for(i=1; i<nGrain; i++){
+
+        home->nGBs = home->nGrains;
+        home->GBKeys = (GB_t **)malloc(home->nGrains*sizeof(GB_t *));   
+        for(i=0; i<home->nGrains; i++){
+            home->GBKeys[i] = (GB_t *)calloc(1, sizeof(GB_t));
+            home->GBKeys[i]->GBID = i;
+            VECTOR_ZERO(home->GBKeys[i]->n);
+            VECTOR_ZERO(home->GBKeys[i]->p);
+            home->GBKeys[i]->n[1] = 1.0;
+            home->GBKeys[i]->p[1] = -ly + HalfMatrixThick + 2*((real8)i)*halfTwinThick;
+        }
+
+	    for(i=0; i<nGrain; i++){
 	        home->grainKeys[i] = (Grain_t *)calloc(1, sizeof(Grain_t));
 	        grain = home->grainKeys[i];
 	        InitGrainStructure(grain, 2);
     
-	        grain->type = TWIN_GRAIN;
+	        grain->type = (i==0) ? MATRIX_GRAIN : TWIN_GRAIN;
 	        grain->cy = -ly + (2 * ((real8)i) - 1) * (HalfMatrixThick + halfTwinThick);
-	        grain->ny[0] = -1;
-	        grain->ny[1] =  1;
-	        grain->y0[0] = grain->cy - halfTwinThick;
-	        grain->y0[1] = grain->cy + halfTwinThick;
-    
-	        CopyMatrix33(TwinOrientation, grain->orientation);
+            grain->cx = 0.0;
+            grain->cz = 0.0;
+            grain->grainID = i;
+
+            GBID = i -1;
+            if(GBID < 0) GBID = nGrain - 1;
+            grain->GB[0] = home->GBKeys[GBID];
+            grain->sign[0] = -1.0;
+            grain->GB[1] = home->GBKeys[i];
+            grain->sign[1] =  1.0;
+
+            if(grain->type == TWIN_GRAIN){
+	            CopyMatrix33(TwinOrientation, grain->orientation);
+            }else{
+                CopyMatrix33(param->matrixOrientation, grain->orientation);
+            }
+
 	        invFlag = Matrix33Invert(grain->orientation, grain->orientationInv);
 	        if(!invFlag){
 	            Fatal("Invert twin orientation faild!\n");
 	        }
-	        
-	    }
-	    return;
+        }
+        return;
+    }
 
-	}else if(nGrain == 2){
+	if(nGrain == 2){
 /*
  *	    Type VI: polycrystal = 1, nGrain =2, Free surface.
  *	    simulat twin sample.
@@ -304,6 +283,7 @@ void InitGrain(Home_t *home, Param_t *param){
 
 	    VECTOR_COPY(plane.normal, param->TBNormal);
 
+        
 	    for(i=0; i<3; i++){
 	        VECTOR_ZERO(edge.direction);
 	        VECTOR_ZERO(plane.point);
@@ -314,21 +294,21 @@ void InitGrain(Home_t *home, Param_t *param){
 	        else{
 	            rho = twinRatio;  }
 
-	        if(i == XC){
+	        if(i == 0){
 	            bound = lx;
 	            hMatrix = 2 * lx * rho - lx; 
 	            p[0][0] = 0; p[0][1] = -ly; p[0][2] = -lz;
 	            p[1][0] = 0; p[1][1] = -ly; p[1][2] =  lz;
 	            p[2][0] = 0; p[2][1] =  ly; p[2][2] = -lz;
 	            p[3][0] = 0; p[3][1] =  ly; p[3][2] =  lz;
-	        }else if(i == YC){
+	        }else if(i == 1){
 	            bound = ly;
 	            hMatrix = 2 * ly * rho - ly; 
 	            p[0][0] = -lx; p[0][1] = 0; p[0][2] = -lz;
 	            p[1][0] =  lx; p[1][1] = 0; p[1][2] = -lz;
 	            p[2][0] = -lx; p[2][1] = 0; p[2][2] =  lz;
 	            p[3][0] =  lx; p[3][1] = 0; p[3][2] =  lz;
-	        }else if(i == ZC){
+	        }else if(i == 2){
 	            bound = lz;
 	            hMatrix = 2 * lz * rho - lz; 
 	            p[0][0] = -lx; p[0][1] = -ly; p[0][2] = 0;
@@ -354,11 +334,34 @@ void InitGrain(Home_t *home, Param_t *param){
 	    
 	    if(inner == 0)Fatal("InitGrain: can not find TB plane");
 	        
+        home->nGBs = 1;
+        home->GBKeys = (GB_t **)malloc(sizeof(GB_t *));
+        i = 0;
+        home->GBKeys[i] = (GB_t *)calloc(1, sizeof(GB_t));
+        home->GBKeys[i]->GBID = i;
+        VECTOR_COPY(home->GBKeys[i]->n, param->TBNormal);
+        VECTOR_COPY(home->GBKeys[i]->p, plane.point);
+
+	    home->grainKeys[0] = (Grain_t *)calloc(1, sizeof(Grain_t));
+        grain = home->grainKeys[0];
+	    InitGrainStructure(grain, 1);
+	    grain->type = TWIN_GRAIN;
+        grain->grainID = 0;
+        grain->sign[0] = 1.0;
+        grain->GB[0] = home->GBKeys[0];
+	    CopyMatrix33(param->matrixOrientation, grain->orientation);
+	    invFlag = Matrix33Invert(grain->orientation, grain->orientationInv);
+	    if(!invFlag){
+	        Fatal("Invert twin orientation faild!\n");
+	    }
+
 	    home->grainKeys[1] = (Grain_t *)calloc(1, sizeof(Grain_t));
 	    grain = home->grainKeys[1];
 	    InitGrainStructure(grain, 1);
-	     
 	    grain->type = TWIN_GRAIN;
+        grain->grainID = 1;
+        grain->sign[0] = -1.0;
+        grain->GB[0] = home->GBKeys[0];
     
 	    CopyMatrix33(TwinOrientation, grain->orientation);
 	    invFlag = Matrix33Invert(grain->orientation, grain->orientationInv);
@@ -366,14 +369,6 @@ void InitGrain(Home_t *home, Param_t *param){
 	        Fatal("Invert twin orientation faild!\n");
 	    }
 
-	    grain->nx[0] = -param->TBNormal[0];
-	    grain->ny[0] = -param->TBNormal[1];
-	    grain->nz[0] = -param->TBNormal[2];
-
-	    grain->x0[0] = plane.point[0];
-	    grain->y0[0] = plane.point[1];
-	    grain->z0[0] = plane.point[2];
-	    
 	    if(home->myDomain == 0){
 	        FormatMatrix(param->matrixOrientation,"basis orientation");
 	        printf("\n");
@@ -402,7 +397,7 @@ real8 GetInGrainFromPos(Home_t *home, real8 x, real8 y, real8 z){
 
 	if(home->param->polycrystal == 0)return(0.0);
 	param = home->param;
-	numGrains = home->newGrainKeyPtr;
+	numGrains = home->nGrains;
 
 	ID = 0;
 	eps = home->param->rann;
@@ -419,7 +414,7 @@ real8 GetInGrainFromPos(Home_t *home, real8 x, real8 y, real8 z){
 	    grainFlag = 0;
 	    boundaryFlag = 0;
 
-	    for (j = 0; j < grain->numBoundaries; j++){
+	    for (j = 0; j < grain->nBounds; j++){
 	        nx = grain->nx[j]; ny = grain->ny[j]; nz = grain->nz[j];
 	        x0 = grain->x0[j]; y0 = grain->y0[j]; z0 = grain->z0[j];
 
@@ -813,10 +808,10 @@ real8 InWhichGrain(Home_t *home, real8 x, real8 y, real8 z){
 	real8		ID, eps = 0;
 	real8		nx, ny, nz, x0, y0, z0;
 	real8		yy, distance;
-	int		i, j, numGrains, numBoundaries;
+	int		i, j, numGrains, nBounds;
 	int		grainFlag;
 
-	numGrains = home->newGrainKeyPtr;
+	numGrains = home->nGrains;
 	
 	if(home->param->polycrystal == 0)return(0);
 
@@ -829,9 +824,9 @@ real8 InWhichGrain(Home_t *home, real8 x, real8 y, real8 z){
 	    }
 
 	    grainFlag = 0;
-	    numBoundaries = grain->numBoundaries;
+	    nBounds = grain->nBounds;
 
-	    for (j = 0; j < numBoundaries; j++){
+	    for (j = 0; j < nBounds; j++){
 	        nx = grain->nx[j]; ny = grain->ny[j]; nz = grain->nz[j];
 	        x0 = grain->x0[j]; y0 = grain->y0[j]; z0 = grain->z0[j];
 	        	
@@ -935,12 +930,12 @@ real8 CorrectInGrain(Home_t *home, Node_t *node, real8 inGrainPos){
 	}else{
 		real8 		vec[3], plane[3], vecDotPlane;
 		Grain_t		*grain;
-		int			i, numBoundaries;
+		int			i, nBounds;
 		
 		grain = home->grainKeys[(int)inGrainPos];
 		
-		numBoundaries = grain->numBoundaries;
-		for(i=0; i<numBoundaries; i++){
+		nBounds = grain->nBounds;
+		for(i=0; i<nBounds; i++){
 			vec[0] = node->x - grain->x0[i];
 			vec[1] = node->y - grain->y0[i];
 			vec[2] = node->z - grain->z0[i];
@@ -1043,9 +1038,9 @@ real8 ClosedGB(Home_t *home, real8 *pos, Plane_t *GBPlane){
 	    Grain_t 	*grain;
 	    Plane_t 	plane;
 	    	
-	    for(i=existTB; i<home->newGrainKeyPtr; i++){
+	    for(i=existTB; i<home->nGrains; i++){
 	        grain = home->grainKeys[i];
-	        for(j=0; j<grain->numBoundaries; j++){
+	        for(j=0; j<grain->nBounds; j++){
 	            plane.normal[0] = grain->nx[j];
 	            plane.normal[1] = grain->ny[j];
 	            plane.normal[2] = grain->nz[j];

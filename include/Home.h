@@ -427,7 +427,10 @@ struct _home {
 #endif
 
 		Grain_t		**grainKeys;
-		int			newGrainKeyPtr;
+		int			nGrains;
+
+        GB_t        **GBKeys;
+        int         nGBs;
 		
         real8	**pstnEle;
         real8	**disDenEle;

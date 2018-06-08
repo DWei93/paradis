@@ -53,25 +53,24 @@
 #define EXCEEDX 0x0001
 #define EXCEEDY 0x0002
 #define EXCEEDZ 0x0004
+
+typedef struct {
+    int     GBID;
+    int     type;
+    real8   n[3];
+    real8   p[3];
+}
+
 struct _grain{
 	real8	cx, cy, cz;
 	real8	orientation[3][3];
 	real8	orientationInv[3][3];
+    int     grainID;
 	int		type;	/*0: Matrix*/
 					/*1: Twin*/
-
-	/*
-	 *	Boundaries	
-	 *	nx * (x - x0) + ny * (y - y0) + nz * (z - z0) =0
-	 *	(nx, ny, nz) is outer normal orientation
-	 */
-	int		numBoundaries;
-	int		*BoundaryIndex;
-	int		*BoundaryType;	/*0: grain boundary*/
-							/*1: twin boundary*/
-
-	real8	*nx, *ny, *nz;
-	real8	*x0, *y0, *z0;
+	int		nBounds;
+    GB_t    **GB;
+    real8   *sign;
 
 };
 

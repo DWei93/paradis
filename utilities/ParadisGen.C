@@ -1096,8 +1096,8 @@ main(int argc, char *argv[])
 
 	InitGrain(&home, param);
 		
-        strncpy(param->node_data_file, inArgs.outputFile,
-                sizeof(param->node_data_file)-1);
+    strncpy(param->node_data_file, inArgs.outputFile,
+            sizeof(param->node_data_file)-1);
 
 #if 1
 /*
