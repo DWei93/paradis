@@ -15,6 +15,11 @@
 #include "Grain.h"
 #include "Util.h" 
 
+bool IsOnGB(Node_t *node)
+{
+    return(node->onGB > -1);
+}
+
 void PrintNeighbor(Home_t *home, Node_t *node){
 	int 	i;
 	Node_t	*nbr;
@@ -55,44 +60,9 @@ void FormatMatrix66(real8 M[6][6], const char *msg){
 
 void FormatVector(real8 vec[3], const char *msg){
 	printf("%s vector:\n",msg);
-	printf("%.15f %.15f %.15f\n", vec[0], vec[1], vec[2]);
+	printf("{%.15f,%.15f,%.15f}\n", vec[0], vec[1], vec[2]);
 }
 
-void CopyMatrix33(real8 M1[3][3], real8 M2[3][3]){
-	int i, j;
-	for (i = 0; i < 3; i++)
-	{
-		for (j = 0; j < 3; j++){
-			M2[i][j] = M1[i][j];
-		}
-	}
-	return;
-}
-
-void InitOrientation(real8 MatrixOrientation[3][3], real8 TwinOrientation[3][3]){
-	real8 	newz[3];
-	int	i;
-	
-	real8 	newx[3] = {1, -1, 0};
-	real8 	newy[3] = {1,  1, 1};
-	
-	cross(newx, newy, newz);
-	NormalizeVec(newx);
-	NormalizeVec(newy);
-	NormalizeVec(newz);
-	
-	for(i = 0; i < 3; i++){
-		MatrixOrientation[0][i] = newx[i];
-		MatrixOrientation[1][i] = newy[i];
-		MatrixOrientation[2][i] = newz[i];
-		
-		TwinOrientation[0][i] = - newx[i];
-		TwinOrientation[1][i] = - newy[i];
-		TwinOrientation[2][i] =   newz[i];
-	}
-//	FormatMatrix(MatrixOrientation,"MatrixOrientation");
-	return;
-}
 
 void InitGrainStructure(Grain_t *grain, int numBounds){
 	grain->nBounds = numBounds;
@@ -107,8 +77,13 @@ void InitGrain(Home_t *home, Param_t *param){
     GB_t        *GB;
 	real8		HalfMatrixThick, maxSeg;
 	real8		TwinOrientation[3][3], temR[3][3];
-	int		    nGrain, typei, GBID;
+	int		    nGrain, type, GBID;
 	real8		twinRatio;
+    real8       I[3][3] = {
+                            {1.0e+00, 0.0e+00, 0.0e+00},
+                            {0.0e+00, 1.0e+00, 0.0e+00},
+                            {0.0e+00, 0.0e+00, 1.0e+00}
+                          };
 
 	/*the following variables are placed in param.h*/
 	int		    numTGrains;
@@ -127,6 +102,8 @@ void InitGrain(Home_t *home, Param_t *param){
 	for(i=0; i<3; i++){
 	    VECTOR_COPY(home->rotMatrix[i], param->matrixOrientation[i]);
 	}
+    GenerateFCCBurgInfo(&(home->burgData), param->matrixOrientation);
+    GenerateFCCBurgInfo(&(home->crystBurgData), I);
 	Matrix33Invert(home->rotMatrix, home->rotMatrixInverse);
 
 	if(fabs(home->rotMatrix[0][0]) > 0.9999999999 &&  
@@ -138,24 +115,24 @@ void InitGrain(Home_t *home, Param_t *param){
 	}
 
     if(param->polycrystal == 0){
-        if(param->xBounType == Periodic && 
-           param->yBounType == Periodic && 
-           param->zBounType == Periodic ){
+        if(param->xBoundType == Periodic && 
+           param->yBoundType == Periodic && 
+           param->zBoundType == Periodic ){
             type = 1;
         }else type = 2;
     }else{
         if(param->nGrain == 1){
-            if(param->xBounType == Periodic && 
-               param->yBounType == Periodic && 
-               param->zBounType == Periodic ){
+            if(param->xBoundType == Periodic && 
+               param->yBoundType == Periodic && 
+               param->zBoundType == Periodic ){
                 type = 3;
             }else{
                 Fatal("at file %s line %d", __FILE__, __LINE__);
             }
         }else{
-            if(param->xBounType == Periodic && 
-               param->yBounType == Periodic && 
-               param->zBounType == Periodic ){
+            if(param->xBoundType == Periodic && 
+               param->yBoundType == Periodic && 
+               param->zBoundType == Periodic ){
                 type = 4;
             }else{
                 type = 5;
@@ -236,6 +213,8 @@ void InitGrain(Home_t *home, Param_t *param){
             VECTOR_ZERO(home->GBKeys[i]->p);
             home->GBKeys[i]->n[1] = 1.0;
             home->GBKeys[i]->p[1] = -ly + HalfMatrixThick + 2*((real8)i)*halfTwinThick;
+            home->GBKeys[i]->nbrGrain[0] = i;
+            home->GBKeys[i]->nbrGrain[1] = ((i == home->nGrains -1) ? 0 : i+1);
         }
 
 	    for(i=0; i<nGrain; i++){
@@ -243,7 +222,7 @@ void InitGrain(Home_t *home, Param_t *param){
 	        grain = home->grainKeys[i];
 	        InitGrainStructure(grain, 2);
     
-	        grain->type = (i==0) ? MATRIX_GRAIN : TWIN_GRAIN;
+	        grain->type = (i==0) ? FOLDED_GRAIN : ODINARY_GRAIN;
 	        grain->cy = -ly + (2 * ((real8)i) - 1) * (HalfMatrixThick + halfTwinThick);
             grain->cx = 0.0;
             grain->cz = 0.0;
@@ -256,16 +235,21 @@ void InitGrain(Home_t *home, Param_t *param){
             grain->GB[1] = home->GBKeys[i];
             grain->sign[1] =  1.0;
 
-            if(grain->type == TWIN_GRAIN){
-	            CopyMatrix33(TwinOrientation, grain->orientation);
+            if(grain->type == ODINARY_GRAIN || i%2 == 0){
+                memcpy(grain->orientation, TwinOrientation, sizeof(real8 [3][3]));
             }else{
-                CopyMatrix33(param->matrixOrientation, grain->orientation);
+                memcpy(grain->orientation, param->matrixOrientation, sizeof(real8 [3][3]));
             }
 
+            GenerateFCCBurgInfo(&(grain->burgData), grain->orientation);
 	        invFlag = Matrix33Invert(grain->orientation, grain->orientationInv);
 	        if(!invFlag){
 	            Fatal("Invert twin orientation faild!\n");
 	        }
+        }
+
+        for(i=0; i<home->nGBs; i++){
+            GenerateGBBurgInfo(home, home->GBKeys[i]);    
         }
         return;
     }
@@ -341,15 +325,18 @@ void InitGrain(Home_t *home, Param_t *param){
         home->GBKeys[i]->GBID = i;
         VECTOR_COPY(home->GBKeys[i]->n, param->TBNormal);
         VECTOR_COPY(home->GBKeys[i]->p, plane.point);
+        home->GBKeys[i]->nbrGrain[0] = i;
+        home->GBKeys[i]->nbrGrain[1] = i+1;
 
 	    home->grainKeys[0] = (Grain_t *)calloc(1, sizeof(Grain_t));
         grain = home->grainKeys[0];
 	    InitGrainStructure(grain, 1);
-	    grain->type = TWIN_GRAIN;
+	    grain->type = ODINARY_GRAIN;
         grain->grainID = 0;
         grain->sign[0] = 1.0;
         grain->GB[0] = home->GBKeys[0];
-	    CopyMatrix33(param->matrixOrientation, grain->orientation);
+        memcpy(grain->orientation, param->matrixOrientation, sizeof(real8 [3][3]));
+        GenerateFCCBurgInfo(&(grain->burgData), grain->orientation);
 	    invFlag = Matrix33Invert(grain->orientation, grain->orientationInv);
 	    if(!invFlag){
 	        Fatal("Invert twin orientation faild!\n");
@@ -358,12 +345,12 @@ void InitGrain(Home_t *home, Param_t *param){
 	    home->grainKeys[1] = (Grain_t *)calloc(1, sizeof(Grain_t));
 	    grain = home->grainKeys[1];
 	    InitGrainStructure(grain, 1);
-	    grain->type = TWIN_GRAIN;
+	    grain->type = ODINARY_GRAIN;
         grain->grainID = 1;
         grain->sign[0] = -1.0;
         grain->GB[0] = home->GBKeys[0];
     
-	    CopyMatrix33(TwinOrientation, grain->orientation);
+        memcpy(grain->orientation, TwinOrientation, sizeof(real8 [3][3]));
 	    invFlag = Matrix33Invert(grain->orientation, grain->orientationInv);
 	    if(!invFlag){
 	        Fatal("Invert twin orientation faild!\n");
@@ -385,69 +372,73 @@ void InitGrain(Home_t *home, Param_t *param){
 	return;
 }
 
-real8 GetInGrainFromPos(Home_t *home, real8 x, real8 y, real8 z){
+void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB){
+    int         i, j, nGrains, type, breakLoop = 0;
+    real8       vec[3], dis, pos[3], sign;
 	Grain_t		*grain;
-	real8		ID;
-	real8		nx, ny, nz, x0, y0, z0;
-	real8		eps, yy, distance;
-	int		i, j, numGrains;
-	int		grainFlag, boundaryFlag;
-	int		existTwin = 0;
 	Param_t		*param;
 
-	if(home->param->polycrystal == 0)return(0.0);
+    inGrain = -1;
+    onGB = -1;
 	param = home->param;
-	numGrains = home->nGrains;
 
-	ID = 0;
-	eps = home->param->rann;
-	
-	if(numGrains > 1){
-	    existTwin = 1;
-	}
+	if(param->polycrystal == 0)return;
 
-	for (i = existTwin; i < numGrains; i++){
-	    if ((grain = home->grainKeys[i])==(Grain_t *)NULL){
-	        continue;
-	    }
+	nGrains = home->nGrains;
+    pos[0] = x;
+    pos[1] = y;
+    pos[2] = z;
+    FoldBox(param, pos, pos+1, pos+2);
 
-	    grainFlag = 0;
-	    boundaryFlag = 0;
+    for(i=0; i<nGrains; i++){
+        if(breakLoop)break;
+        grain = home->grainKeys[i];
+        for(j=0; j<grain->nBounds; j++){
+            type = PointPlaneIntersection(pos, grain->GB[j]->n, 
+                   grain->GB[j]->p, vec, &dis);
+            dis *= grain->sign[j];
 
-	    for (j = 0; j < grain->nBounds; j++){
-	        nx = grain->nx[j]; ny = grain->ny[j]; nz = grain->nz[j];
-	        x0 = grain->x0[j]; y0 = grain->y0[j]; z0 = grain->z0[j];
+            if(type == POINT_INTERSECTION){
+                if(dis < 0.0){
+                    inGrain = grain->grainID;
+                }else if (dis == 0){
+                    inGrain = -1;
+                }else{
+                    inGrain = ((grain->GB[j]->nbrGrain[0] == grain->grainID) ?
+                              grain->GB[j]->nbrGrain[1] : grain->GB[j]->nbrGrain[0]);
+                }
+                onGB = grain->GB[j]->GBID;
+                breakLoop = 1; 
+                break;
+            }
 
-	        yy = nx*(x - x0) + ny*(y - y0) + nz*(z - z0);
-	        distance = fabs(yy);
+            if(grain->type == FOLDED_GRAIN){
+                if(dis < 0.0){
+                    inGrain = grain->grainID;
+                    onGB = -1;
+                    breakLoop = 1; 
+                    break;
+                }else{
+                    continue;
+                }
+            }else{
+                if(dis > 0.0){
+                    break;
+                }else{
+                    if(j == grain->nBounds - 1){
+                        inGrain = grain->grainID;
+                        onGB = -1;
+                        breakLoop = 1;
+                        break;
+                    }
+                }
+            }
+        }   /*for(j=0; j<grain->nBounds; j++) */
+    }   /*for(i=0; i<home->nGrains; i++) */
 
-	        if (yy <= eps){
-	            grainFlag = 1;	  /* inner or on the boundary*/
-	            if (distance <= eps){
-	                boundaryFlag = 1; /* On the boundary : default is twin boundary */
-	                                  /* some matix nodes or twin nodes are part of the category*/
-	                break;
-	            }
-	        }else{
-	            grainFlag = 0;	 /* the node is not here */
-	            break;
-	        }
-	    }
+    if(breakLoop == 0)Fatal("at file %s at line %d", __FILE__, __LINE__);
 
-	    if (grainFlag == 1 && boundaryFlag == 0){
-	        ID = (real8)i;
-	    }
-	    else if (grainFlag == 1 && boundaryFlag == 1){
-	        ID = ((real8)i) + BOUNDARY_NODE;
-	        break;
-	    }
-	}
-
-	if(ID == 0.5 && param->xBoundType == 1 &&
-           param->yBoundType == 1 && param->zBoundType == 1){
-	    ID = 0;
-	} 
-	return(ID);
+	return;
 }
 
 Node_t *GetinDataNodeFromTag(InData_t *inData, Tag_t tag){
@@ -466,72 +457,6 @@ Node_t *GetinDataNodeFromTag(InData_t *inData, Tag_t tag){
 
 int JudgeNodeInCuboid(real8 *x1, real8 *y1, real8 *z1, real8 x2, real8 y2, real8 z2){
 	return(fabs(*x1) <= x2 && fabs(*y1) <= y2 && fabs(*z1) <= z2);
-}
-
-int	BurgType_FCC(Home_t *home, real8 *burg){
-
-/*	
- *	0: zero burgers
- */
-	real8 eps = 1e-2;
-
-	if(fabs(burg[0]) < eps &&
-	   fabs(burg[1]) < eps &&
-	   fabs(burg[2]) < eps){
-		return(ZERO_BURG);
-	}
-
-
-/*
- * 	1: basic Burgers vector
- */		
-	real8 burgMag;
-
-	burgMag = Normal(burg);
-
-	if(fabs(burgMag - 1) < eps){
-		return(BASIC_BURG);
-	}
-/*	
- *	2: TB burgers
- */
-	
-	if(fabs(burgMag - 1.0/sqrt(3.0)) < eps) {
-		return(TB_BURG);
-	}
-
-	return(UNKNOWN_BURG);
-
-}
-
-int GlidePlaneID_FCC(real8 nCryst[3]){
-    int    i, nID;
-    real8  crossProd[3];
-    static int normalIDMap[5] = {
-                                 0,           // alpha plane (BCD): [-1  1 -1]
-                                 1,           // beta  plane (ADC): [ 1 -1 -1]
-                                 2,           // gama  plane (BDA): [-1 -1  1]
-                                 3,           // delta plane (ABC): [ 1  1  1]
-                                 4
-                                };
-
-    static real8 normalList[4][3] = {
-               {-1,  1, -1},
-               { 1, -1, -1},
-               {-1, -1,  1},
-               { 1,  1,  1}
-
-                                  };
-
-    for(i=0; i<4; ){
-        cross(normalList[i], nCryst,crossProd);
-        if (fabs(DotProduct(crossProd, crossProd)) < 1.0e-3) {
-            break;
-        }
-        i++;
-    }
-    nID = normalIDMap[i];
-    return(nID);
 }
 
 void GetTBBurg_FCC(int nID, real8 burgTB[3]){
@@ -557,121 +482,164 @@ void GetTBBurg_FCC(int nID, real8 burgTB[3]){
     burgTB[2] /= sqrt(3.0);
 }
 
-int BurgID_FCC(real8 bCryst[3]){
+void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2, 
+                        real8 lab[3], real8 *cryst)
+{
+        if(home->param->polycrystal){
+            int     inGrain, onGB;
+            Grain_t *grain;
+            GB_t    *GB;
 
-        int          burgIndex, burgID;
-        real8        bCrystMag, crossProd[3], bEr;
-        static int   numBurgs = 21;
-/*
- *      Define the IDs for each type (or grouping) of burgers vector
- *      we're interested in (plus a value with which to associate any
- *      burgers vector for which we don't explicitly look.
- */
-        static int   burg2IDMap[21] =
-                { 0,                		/* [ 1  1  0] */
-                  1,                		/* [ 1 -1  0] */
-                  2,                		/* [ 1  0  1] */
-                  3,                		/* [ 1  0 -1] */
-                  4,                		/* [ 0  1  1] */
-                  5,               		/* [ 0  1 -1] */
-                  6, 7,  8,  9, 10, 11, 	/* all 12 [2 1 1] types */
-                  12, 13, 14, 15, 16, 17, 
-		  18, 19, 20,			/* [100] types*/
-                  };             		
-/*
- *      Define the list of burgers vectors for which we are explicitly
- *      looking.
- */
-        static real8 burgList[21][3] = {
-										/* glide burgers vectors */
-                { 1.0,  1.0,  0.0},
-                { 1.0, -1.0,  0.0},
-                { 1.0,  0.0,  1.0},
-                { 1.0,  0.0, -1.0},
-                { 0.0,  1.0,  1.0},
-                { 0.0,  1.0, -1.0},
-										/* all 12[211] types*/
-                { 2.0,  1.0,  1.0},		// Dbeta	6
-                {-2.0,  1.0,  1.0},		// deltaB	7
-                { 2.0, -1.0,  1.0},		// gamaA	8
-                { 2.0,  1.0, -1.0},		// alphaC	9
-                { 1.0,  2.0,  1.0},		// Dalpha	10	
-                {-1.0,  2.0,  1.0},		// gamaB	11
-                { 1.0, -2.0,  1.0},		// deltaA	12
-                { 1.0,  2.0, -1.0},		// betaC	13
-                { 1.0,  1.0,  2.0},		// Dgama	14
-                {-1.0,  1.0,  2.0},		// alphaB	15
-                { 1.0, -1.0,  2.0},		// betaA	16
-		{ 1.0,  1.0, -2.0},		// deltaC	17
-
-						/* other Junctiontypes*/
-		{ 1.0,  0.0,  0.0},		//			18
-                { 0.0,  1.0,  0.0},		//			19
-                { 0.0,  0.0,  1.0}		//			20
-	                            };	
-		
-/*
- *      Look through the list of reference burgers vectors for one
- *      that matches the segment burgers vector.  If we find a match
- *      return the ID associated with that burgers vector.  If no
- *      match is found, the ID defaults to the final one in the list
- *      to indicate it was some *other* burgers vector type.
- */
-
-        for (burgIndex = 0; burgIndex < numBurgs; ) {
-            cross(bCryst, burgList[burgIndex], crossProd);
-            if (fabs(DotProduct(crossProd, crossProd)) < 1.0e-3) {
-                burgID = burg2IDMap[burgIndex];
-                break;
+            GetArmGrain(home, node1, node2, inGrain, onGB);
+            if(onGB > -1){
+                GB = home->GBKeys[onGB];
+                grain = home->grainKeys[GB->nbrGrain[0]];
+            }else{
+                grain = home->grainKeys[inGrain];    
             }
-            burgIndex++;
+            Matrix33Vector3Multiply(grain->orientationInv, lab, cryst);
+        }else{
+            if(!home->param->useLabFrame){
+                VECTOR_COPY(cryst, lab);
+            }else{
+                Matrix33Vector3Multiply(home->rotMatrixInverse, 
+                                        lab, cryst);
+            }
         }
-		
-        if(burgIndex == numBurgs){					/* unknow types */
-            burgID = 33;				
+        return;
+}
+
+void VectorCrystalToLab(Home_t *home, Node_t *node1, Node_t *node2, 
+                        real8 cryst[3], real8 *lab)
+{
+        if(home->param->polycrystal){
+            int     inGrain, onGB;
+            Grain_t *grain;
+            GB_t    *GB;
+
+            GetArmGrain(home, node1, node2, inGrain, onGB);
+            if(onGB > -1){
+                GB = home->GBKeys[onGB];
+                grain = home->grainKeys[GB->nbrGrain[0]];
+            }else{
+                grain = home->grainKeys[inGrain];    
+            }
+            Matrix33Vector3Multiply(grain->orientation, cryst, lab);
+        }else{
+            if(!home->param->useLabFrame){
+                VECTOR_COPY(lab, cryst);
+            }else{
+                Matrix33Vector3Multiply(home->rotMatrix, 
+                                        cryst, lab);
+            }
         }
-		
-        if(burgID >= 6 && burgID <= 17){			/* [112] Junction types */
-            bCrystMag = Normal(bCryst);
-            bEr = fabs(bCrystMag - 1.0 / sqrt(3.0));
-            if(bEr > 1.0e-3) burgID += 15;
+        return;
+}
+
+int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3])
+{
+        int     i;
+        real8   crossProd[3];
+        
+        for(i=0; i<burgData->numBurgVectors; i++){
+            cross(burgData->burgList[i], burg, crossProd);
+            if(Normal(crossProd) < 1.0E-3)break;
         }
         
-        if(burgID < 6){
-            bCrystMag = Normal(bCryst);
-            bEr = fabs(bCrystMag - 1.0);
-            if(bEr > 1.0e-2) burgID = -burgID;
+        return(i);
+}
+
+int GlidePlaneID_FCC(BurgInfo_t *burgData, real8 plane[3])
+{
+        int     i;
+        real8   crossProd[3];
+        
+        for(i=0; i<burgData->numPlanes; i++){
+            cross(burgData->planeList[i], plane, crossProd);
+            if(Normal(crossProd) < 1.0E-3)break;
         }
+        
+        return(i);
+}
+
+int	BurgType_FCC(real8 burg[3]){
+
+	real8 eps = 1e-2;
+	real8 burgMag;
+
+	burgMag = Normal(burg);
+
+/*	
+ *	0: zero burgers
+ */
+    if(burgMag < eps)return(ZERO_BURG);
+
+/*
+ * 	1: basic Burgers vector
+ */		
+	if(fabs(burgMag - 1) < eps){
+		return(BASIC_BURG);
+	}
+/*	
+ *	2: TB burgers
+ */
+	
+	if(fabs(burgMag - 0.5773502691896258) < eps) {
+		return(SHOCKLEY_BURG);
+	}
+
+/*	
+ *	3: junction 1 burgers, like [Sqrt(2),0,0]
+ */
+	if(fabs(burgMag - 1.414213562373095) < eps) {
+		return(JUNCTION1_BURG);
+	}
+
+/*	
+ *	3: junction 2 burgers, like DA+DB
+ */
+	if(fabs(burgMag - 1.732050807568877) < eps) {
+		return(JUNCTION2_BURG);
+	}
+	return(UNKNOWN_BURG);
+
+}
+
+
+int GlidePlaneType_FCC(BurgInfo_t *burgData, real8 plane[3])
+{
+    int planeID;
+
+    planeID = GlidePlaneID_FCC(burgData, plane);
+
+    if(planeID >= NUM_PLANES_IN_FCC) return(UNKOWN_PLANE);
  
-        return(burgID);
+    return(burgData->planeType[planeID]);
 }
 
 int GetBurgID_FCC(Home_t *home, Node_t *node, Node_t *nbr){
 
-        int          burgID, segID;
-        int	     intGID;
-        real8        bLab[3], bCryst[3];
-/*
- *      If needed, rotate the provided burgers vector from the lab frame
- *      into the crystal frame.
- */
-				
-	    segID  = GetArmID(home, node, nbr);
-	    ChangeOrientation(home, node, nbr,3);
-        if (home->param->useLabFrame) {
-            bLab[0] = node->burgX[segID];
-            bLab[1] = node->burgY[segID];
-            bLab[2] = node->burgZ[segID];
-            Matrix33Vector3Multiply(home->rotMatrixInverse, bLab, bCryst);
-        } else {
-            bCryst[0] = node->burgX[segID];
-            bCryst[1] = node->burgY[segID];
-            bCryst[2] = node->burgZ[segID];
+        int         inGrain, onGB, segID;
+        real8       burg[3];
+        BurgInfo_t  *burgData;
+
+        if(home->param->polycrystal){
+            GetArmGrain(home, node, node, inGrain, onGB);
+            if(onGB > -1){
+                burgData = &(home->GBKeys[onGB]->burgData);
+            }else{
+                burgData = &(home->grainKeys[inGrain]->burgData);
+            }
+        }else{
+            burgData = &(home->burgData);
         }
-		
-        burgID = BurgID_FCC(bCryst);
-               
-        return(burgID);
+        
+	    segID  = GetArmID(home, node, nbr);
+        burg[0] = node->burgX[segID];
+        burg[1] = node->burgY[segID];
+        burg[2] = node->burgZ[segID];        
+    
+        return(BurgID_FCC(burgData, burg)); 
 }
 
 
@@ -735,7 +703,7 @@ int HasShortSeg(Home_t *home, Node_t *node, real8 shortSegLenSq)
 *	Oplist to send to other domains. 
 *
 ****************************************************************************/  
-void AssignGrain(Home_t *home, Node_t *node, real8 inGrain) 
+void AssignGrain(Home_t *home, Node_t *node, int inGrain, int onGB) 
 {
 	if(node == (Node_t *)NULL){
 		printf("Task %d: %s, line %d -- Node = NULL",
@@ -744,10 +712,28 @@ void AssignGrain(Home_t *home, Node_t *node, real8 inGrain)
 	}
 
 	node->inGrain = inGrain;
+	node->onGB = onGB;
 
-	AddOpGB(home,UPDATE_GRAIN,
-		node->myTag.domainID,node->myTag.index,
-		inGrain);
+	Operate_t *op;
+
+/*
+ *   Make sure the buffer allocated for the operation list is
+ *   large enough to contain another operation.  If not, increase
+ *   the size of the buffer.
+ */
+    if (home->OpCount >= home->OpListLen) {
+		ExtendOpList (home);
+	}
+        
+	op = &home->opList[home->OpCount];
+
+	op->type = UPDATE_GRAIN;
+	op->dom1 = node->myTag.domainID;
+	op->idx1 = node->myTag.index;
+	op->inGrain = inGrain;
+	op->onGB = onGB;
+
+	home->OpCount++;
 
 	return;
 }
@@ -763,93 +749,26 @@ void AssignConstraint(Home_t *home, Node_t *node, int constraint)
 
 	node->constraint = constraint;
 
-	AddOpGB(home,UPDATE_CONSTRAINT,
-		node->myTag.domainID,node->myTag.index,
-		(real8)constraint);
-
-	return;
-}
-
-/****************************************************************************  
-*
-*	Add a topological operation to the list to be sent to 
-*	remote domains for processing. Note this is only used 
-*	for sending grain number of node.
-*
-****************************************************************************/  
-void AddOpGB (Home_t *home, OpType_t type, int dom1, int idx1, 
-			  real8 inGrain) 
-{
 	Operate_t *op;
 
-		/*
-		 *          Make sure the buffer allocated for the operation list is
-		 *          large enough to contain another operation.  If not, increase
-		 *          the size of the buffer.
-		 */
-		if (home->OpCount >= home->OpListLen) {
-			ExtendOpList (home);
-		}
-        
-		op = &home->opList[home->OpCount];
-
-		op->type = type;
-		op->dom1 = dom1;
-		op->idx1 = idx1;
-		op->inGrain = inGrain;
-
-		home->OpCount++;
-
-	return;
-}
-
-real8 InWhichGrain(Home_t *home, real8 x, real8 y, real8 z){
-	Grain_t		*grain;
-	real8		ID, eps = 0;
-	real8		nx, ny, nz, x0, y0, z0;
-	real8		yy, distance;
-	int		i, j, numGrains, nBounds;
-	int		grainFlag;
-
-	numGrains = home->nGrains;
-	
-	if(home->param->polycrystal == 0)return(0);
-
-	ID = 0;
-	
-//	FoldBox(home->param, &x, &y, &z);
-	for (i = 1; i < numGrains; i++){
-	    if ((grain = home->grainKeys[i])==(Grain_t *)NULL){
-	        continue;
-	    }
-
-	    grainFlag = 0;
-	    nBounds = grain->nBounds;
-
-	    for (j = 0; j < nBounds; j++){
-	        nx = grain->nx[j]; ny = grain->ny[j]; nz = grain->nz[j];
-	        x0 = grain->x0[j]; y0 = grain->y0[j]; z0 = grain->z0[j];
-	        	
-	        yy = nx*(x - x0) + ny*(y - y0) + nz*(z - z0);
-	        distance = fabs(yy);
-
-	        if (yy < -eps){
-	            grainFlag = 1;				
-	        }
-	        else if(yy > eps){
-	            grainFlag = 0;						/* the node is not here */
-	            break;
-	        }else{
-	            return(-1);
-	        }
-	    }
-
-	    if (grainFlag == 1){
-	        ID = (real8)i;
-	        return(ID);
-	    }
+/*
+ *   Make sure the buffer allocated for the operation list is
+ *   large enough to contain another operation.  If not, increase
+ *   the size of the buffer.
+ */
+    if (home->OpCount >= home->OpListLen) {
+		ExtendOpList (home);
 	}
-	return(0);
+        
+	op = &home->opList[home->OpCount];
+
+	op->type = UPDATE_CONSTRAINT;
+	op->dom1 = node->myTag.domainID;
+	op->idx1 = node->myTag.index;
+	op->inGrain = constraint;
+
+	home->OpCount++;
+	return;
 }
 
 
@@ -864,7 +783,7 @@ int NodeOnGB(Home_t *home, Node_t *node){
 
 	}
 
-	if(node->inGrain - floor(node->inGrain) == 0)return(INGRAIN_NODE);
+	if(!IsOnGB(node))return(INGRAIN_NODE);
 
 	numNbrs = node->numNbrs;
 	
@@ -873,11 +792,19 @@ int NodeOnGB(Home_t *home, Node_t *node){
 	    burg[1] = node->burgY[i];
 	    burg[2] = node->burgZ[i];
 		
-	    burgType = BurgType_FCC(home,burg);
+	    burgType = BurgType_FCC(burg);
 		
-	    if(burgType == TB_BURG) type |= TB_NODE;
-	    if(burgType == BASIC_BURG) type |= INTERSECT_NODE;
-	    if(burgType == UNKNOWN_BURG) type |= RESIDUAL_NODE;
+        switch(burgType){
+            case SHOCKLEY_BURG:
+                type |= TB_NODE;
+                break;
+            case BASIC_BURG:
+                type |= INTERSECT_NODE;
+                break;
+            default:
+                type |= JUNCTION_NODE;
+                break;
+        }
 	}
 	return(type);
 }
@@ -895,297 +822,99 @@ int AdjustNodeDirection(Home_t *home, Node_t *node, real8 *vec){
 	return(NM);
 }
 
-real8 CorrectInGrain(Home_t *home, Node_t *node, real8 inGrainPos){
-	real8 inGrain;
-	
-	if(node == (Node_t *)NULL){
-		Fatal("Task %d: %s, line %d -- Node = NULL",
-			   home->myDomain, __FILE__, __LINE__);
-		
-	}
-	
-	if(inGrainPos == 0.5) return(MATRIX_NODE);
-/*
- *	Before CorrectInGrain, we must ensure that the node which inGrain equal	to
- *	n is a matrix or twin node. 
- */		
-	if(inGrainPos - floor(inGrainPos) == 0){
-		return(inGrainPos);
-	}
-	
-	if(NodeOnGB(home, node) & TB_NODE) {
-		return(inGrainPos);
-	}else if(NodeOnGB(home, node) & INTERSECT_NODE
-			 && node->numNbrs == 2){
-		Node_t *nbr1,*nbr2;
-		nbr1 = GetNeighborNode(home, node, 0);
-		nbr2 = GetNeighborNode(home, node, 1);
-		if(nbr1->inGrain != nbr2->inGrain &&
-		   nbr1->inGrain - floor(nbr1->inGrain) ==0 &&
-		   nbr2->inGrain - floor(nbr2->inGrain) ==0){
-			return(inGrainPos);
-		}else{
-			Fatal("the node is not a INTERSECT_NODE");
-		}
-	}else{
-		real8 		vec[3], plane[3], vecDotPlane;
-		Grain_t		*grain;
-		int			i, nBounds;
-		
-		grain = home->grainKeys[(int)inGrainPos];
-		
-		nBounds = grain->nBounds;
-		for(i=0; i<nBounds; i++){
-			vec[0] = node->x - grain->x0[i];
-			vec[1] = node->y - grain->y0[i];
-			vec[2] = node->z - grain->z0[i];
-			plane[0] = grain->nx[i];
-			plane[1] = grain->ny[i];
-			plane[2] = grain->nz[i];
-			vecDotPlane = DotProduct(vec, plane);
-			if(fabs(vecDotPlane) > TWIN_LAYER_RADIUS) continue;
-			if(vecDotPlane < 0){
-				return(floor(inGrainPos));
-			}else if(vecDotPlane > 0){
-				return(MATRIX_NODE);
-			}else{
-				return(node->inGrain);
-			}
-		}
-	}
-	
-	Fatal(" Boundary node (%d,%d) inGrain (%f) is wrong",
-		  node->myTag.domainID,node->myTag.index,node->inGrain);
-	
-}
 
-real8 ChangeOrientation(Home_t *home, Node_t *node, Node_t *nbr, int flag){
-	
-	static int currInGrain = -999;
-	real8	inGrain1, inGrain2, armInGrain;
-	real8	inGrainPos;
-	real8	cuurInGrain;
-	
-	if(!home->param->polycrystal) {
-            return(0.0);
-	}
-	
-	
-	if(node == (Node_t *)NULL){
-            Fatal("Task %d: %s, line %d -- Node = NULL",
-                  home->myDomain, __FILE__, __LINE__);
-	}
-	
-	
-	inGrain1 = node->inGrain;
-	inGrain2 = nbr->inGrain;	
-	
-	if(inGrain1 == inGrain2){
-            armInGrain = inGrain1;
-	}else{
-            if(inGrain1 - floor(inGrain1) == 0 && inGrain2 - floor(inGrain2) == 0.5){
-                armInGrain = inGrain1;
-            }else if(inGrain2 - floor(inGrain2) == 0 && inGrain1 - floor(inGrain1) == 0.5){
-                armInGrain = inGrain2;
-            }else if(inGrain1 - floor(inGrain1) == 0 && inGrain2 - floor(inGrain2) == 0){	
-	        if(SurfaceNode(node) && SurfaceNode(nbr)){
-	            armInGrain = node->inGrain;
-//		    printf("Surface segment: (%d,%d)--(%d,%d)\n",node->myTag.domainID,node->myTag.index,
-//	                   nbr->myTag.domainID, nbr->myTag.index);
-	        }else{
-		    PrintNode(node);
-		    PrintNode(nbr);
-                    Fatal("ChangeOrienatation: Wrong inGrain\n");
-	        }
-	    }else{
-                Fatal(" ChangeOrientation: wrong inGrain, Node %d's inGrain is %f, neighbor %d's inGrain is %f.",
-                      node->myTag.index,node->inGrain,nbr->myTag.index,nbr->inGrain);
-	    }
-	}
-	if(flag == 0)return(armInGrain);
-	
-	
-	
-	Grain_t	*grain;
-	grain = home->grainKeys[(int)armInGrain];
-	
-	if(flag == 1){
-	    CopyMatrix33(grain->orientationInv,home->rotMatrixInverse);
-	}
-	else if(flag == 2){
-	    CopyMatrix33(grain->orientation, home->rotMatrix);
-	}
-	else if(flag == 3){
-	    if(((int)armInGrain) == currInGrain)return(armInGrain);
-	    currInGrain = (int)armInGrain;
+real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB){
+	real8	    tempDistance, vec[3];
+	real8 	    minDistance = 1e14;
+	GB_t 	    *temGB;
 	    	
-	    CopyMatrix33(grain->orientationInv,home->rotMatrixInverse);
-	    CopyMatrix33(grain->orientation, home->rotMatrix);
-	}
-	
-	return(armInGrain);
-}
-
-
-real8 ClosedGB(Home_t *home, real8 *pos, Plane_t *GBPlane){
-	real8	tempDistance, vec[3], vec1[3];
-	int	existTB = 0;
-	real8 	minDistance = 1e14;
-	
-	if(home->param->nGrain > 1)existTB = 1;
-	if(Normal(GBPlane->normal) < 1.0e-3){	// the GB was not defined, so should define the nearest GB. 
-	    int			i,j;
-	    Grain_t 	*grain;
-	    Plane_t 	plane;
-	    	
-	    for(i=existTB; i<home->nGrains; i++){
-	        grain = home->grainKeys[i];
-	        for(j=0; j<grain->nBounds; j++){
-	            plane.normal[0] = grain->nx[j];
-	            plane.normal[1] = grain->ny[j];
-	            plane.normal[2] = grain->nz[j];
-	            plane.point[0] = grain->x0[j];
-	            plane.point[1] = grain->y0[j];
-	            plane.point[2] = grain->z0[j];
-	            	
-	            PointPlaneIntersection(pos, plane.normal, plane.point, vec, &tempDistance);
-
-	            if(fabs(tempDistance) < fabs(minDistance)){
-	                minDistance = tempDistance;
-	                VECTOR_COPY(GBPlane->normal,plane.normal);
-	                VECTOR_COPY(GBPlane->point,plane.point);
-	            }
-	        }
-	    }
-		
-	}else{
-        PointPlaneIntersection(pos, GBPlane->normal, GBPlane->point, vec, &minDistance);	
-	}
+    int     i;
+    for(i=0; i<home->nGBs; i++){
+        temGB = home->GBKeys[i];
+        PointPlaneIntersection(pos, temGB->n, temGB->p, vec, &tempDistance);
+        if(fabs(tempDistance) < fabs(minDistance)){
+            *GB = temGB;
+            minDistance = tempDistance;
+        }
+    }
 	return(minDistance);
 }
 
-/****************************************************************************  
-*
-*	The GB nodes may glide out of GB due to dislocation climb and 
-*	computational error, so here we modify the coordinate to ensure node
-*	on GB.
-*
-*****************************************************************************/
-void PullToGB(Home_t *home, Node_t *node, real8 oldInGrain){
-
-	
-	real8		eps, pos[3], minDistance, newPos[3],vec[3],oldPos[3];
-	real8 		sb, currInGrain, changeGrain,n1[3],n2[3];
-    real8       vec1[3];
-	int		    numGlideConstraints;
-	Plane_t	 	GBPlane,oldPlane;
-	Line_t		path;
-	Grain_t 	*oldGrain;
-	
-	if(node == (Node_t *)NULL){
-            printf("Task %d: %s, line %d -- Node = NULL",
-                   home->myDomain, __FILE__, __LINE__);
-            return;
-	}
-	
-	eps = home->param->rann;
-	VECTOR_ZERO(GBPlane.normal);
-	VECTOR_ZERO(GBPlane.point);
-	
-	pos[0] = node->x; pos[1] = node->y; pos[2] = node->z;
-	FoldBox(home->param, pos, pos+1, pos+2);
-	currInGrain = InWhichGrain(home, pos[0], pos[1], pos[2]);
-
-	minDistance = ClosedGB(home, pos, &GBPlane);
-    
-	if(oldInGrain - floor(oldInGrain) == 0.5){
-        if(fabs(minDistance) > 2.0*eps){
-            printf("warning: the GB node (%d,%d) diviate far from GB, minDistance is %f\n"
-                   ,node->myTag.domainID,node->myTag.index,
-                   minDistance);
-        }
-        newPos[0] = pos[0] - GBPlane.normal[0] * minDistance;
-        newPos[1] = pos[1] - GBPlane.normal[1] * minDistance;
-        newPos[2] = pos[2] - GBPlane.normal[2] * minDistance;
-	
-	    if(!(NodeOnGB(home, node) & TB_NODE)){
-	        newPos[0] =  node->oldx;
-	        newPos[1] =  node->oldy;
-	        newPos[2] =  node->oldz;
-	    }
-
-	}else{
-        if(fabs(minDistance) > 1.0e1*eps){
-            FormatVector(GBPlane.normal,"GB noromal");
-            FormatVector(GBPlane.point,"GB noromal");
-            printf("warning: the grain node (%d,%d,%3.1f) diviate far from GB, minDistance is %f\n"
-                   ,node->myTag.domainID,node->myTag.index,
-                   node->inGrain,minDistance);
-        }
-		
-        if(currInGrain != -1.0){
-            if(currInGrain != oldInGrain){
-                changeGrain = 1.0;
-            }else{
-                changeGrain = -1.0;
-            }
-			
-            sb = ((minDistance < 0) ? -1.0 : 1.0);
-            sb *= changeGrain;
-        }else{
-            oldGrain = home->grainKeys[(int)oldInGrain];
-             sb = ((oldGrain->type == TWIN_GRAIN) ? 1.0 : -1.0);
-        }
-		
-        GBPlane.point[0] -= GBPlane.normal[0] * eps * sb;
-        GBPlane.point[1] -= GBPlane.normal[1] * eps * sb;
-        GBPlane.point[2] -= GBPlane.normal[2] * eps * sb;
-		
-        VECTOR_COPY(vec, GBPlane.normal);
-	    numGlideConstraints = AdjustNodeDirection(home, node, vec);
-        if(Normal(vec) < 1.0E-4){
-	        newPos[0] =  node->oldx;
-	        newPos[1] =  node->oldy;
-	        newPos[2] =  node->oldz;
-            PrintNode(node);
-            printf("PullToGB: node constraints is %d, and vec is zero\n", 
-                   numGlideConstraints);
-        }else{
-            NormalizeVec(vec);
-            switch(LinePlaneIntersection(vec, pos, GBPlane.normal, 
-               GBPlane.point, vec1, newPos)){
-                case POINT_INTERSECTION:
-                    break;
-                default:
-                    printf("PullToGB: warning at Line %d", __LINE__);
-                    break;
-            }
-
-            if(oldInGrain != InWhichGrain(home, newPos[0],newPos[1],newPos[2]) ){
-                GBPlane.point[0] += (2*GBPlane.normal[0] * eps * sb);
-                GBPlane.point[1] += (2*GBPlane.normal[1] * eps * sb);
-                GBPlane.point[2] += (2*GBPlane.normal[2] * eps * sb);
-                switch(LinePlaneIntersection(vec, pos, GBPlane.normal, 
-                       GBPlane.point, vec1, newPos)){
-                    case POINT_INTERSECTION:
-                        break;
-                    default:
-                        printf("PullToGB: warning at Line %d", __LINE__);
-                        break;
-                }
-            }
-        }
-
-        if(oldInGrain != InWhichGrain(home, newPos[0],newPos[1],newPos[2]) ){
-            printf("PullToGB: at line %d\n", __LINE__);    
-        }
-        
-	}
-
-	FoldBox(home->param,&newPos[0],&newPos[1],&newPos[2]);
-	RepositionNode(home,newPos,&node->myTag,1);
-
+int GetGBIndexOfGrain(Grain_t *grain, int inGB){
+    int i;
+    for(i=0; i<grain->nBounds; i++){
+         if(grain->GB[i]->GBID == inGB)return(i);
+    }
+    return(-1);
 }
+
+bool GetPublicGB(Grain_t *grain1, Grain_t *grain2, GB_t **GB)
+{
+    int id, i;
+    for(i=0; i<grain1->nBounds; i++){
+        id = GetGBIndexOfGrain(grain1, grain2->GB[i]->GBID);
+        if(id > -1){
+            *GB = grain1->GB[id];
+            return(1);
+        } 
+    }
+    return(0);
+}
+
+bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos){
+    
+    real8       dis, vec[3], vec1[3], vec2[3];
+    real8       pos[3], interPos[3], vec3[3]; 
+    int         currInGrain, currOnGB, type, index;
+    Param_t     *param;
+    GB_t        *GB;
+    Grain_t     *grain;
+    Plane_t     *plane;
+
+    param = home->param;
+
+	if(node == (Node_t *)NULL){
+        Fatal("Task %d: %s, line %d -- Node = NULL",
+               home->myDomain, __FILE__, __LINE__);
+	}
+
+	pos[0] = node->x; pos[1] = node->y; pos[2] = node->z;
+	FoldBox(param, pos, pos+1, pos+2);
+
+    if(onGB < 0)Fatal("in %s at %d", __FILE__, __LINE__);
+    GB = home->GBKeys[onGB];
+
+    VECTOR_COPY(vec1, GB->n);
+    VECTOR_COPY(vec2, GB->p);
+    if(inGrain > -1){
+        grain = home->grainKeys[inGrain];
+        index = GetGBIndexOfGrain(grain, onGB);
+        if(index < 0)Fatal("in %s at %d", __FILE__, __LINE__);
+        vec2[0] -= (grain->sign[index] * param->rann * GB->n[0]);
+        vec2[1] -= (grain->sign[index] * param->rann * GB->n[1]);
+        vec2[2] -= (grain->sign[index] * param->rann * GB->n[2]);
+    }
+    
+    VECTOR_COPY(vec, vec1);
+    AdjustNodeDirection(home, node, vec);
+    if(Normal(vec) < 1E-12){
+        printf("Warning: in %s at %d", __FILE__, __LINE__);
+        VECTOR_ZERO(newPos);
+        return(0);
+    }
+    NormalizeVec(vec);
+    
+    type = LinePlaneIntersection(vec, pos, vec1, vec2, vec3, newPos); 
+    if(type != POINT_INTERSECTION){
+        printf("Warning: in %s at %d", __FILE__, __LINE__);
+        VECTOR_ZERO(newPos);
+        return(0);
+    }
+    
+    FoldBox(param, newPos, newPos+1, newPos+2);
+    return(1);
+}
+
 
 /****************************************************************************  
 *
@@ -1193,35 +922,46 @@ void PullToGB(Home_t *home, Node_t *node, real8 oldInGrain){
 *	back into its grain.
 *
 *****************************************************************************/
-void PullBack(Home_t *home, Node_t *node, real8 oldInGrain){
+void PullBack(Home_t *home, Node_t *node){
 
-	real8	inGrainPos;
+    int     currInGrain, currOnGB;
 	real8	newPos[3];
 	
 	if(node == (Node_t *)NULL){
-            printf("Task %d: %s, line %d -- Node = NULL",
-		   home->myDomain, __FILE__, __LINE__);
-            return;
+        printf("Task %d: %s, line %d -- Node = NULL",
+		       home->myDomain, __FILE__, __LINE__);
+        return;
 	}
-	
+
 	newPos[0] = node->oldx;
 	newPos[1] = node->oldy;
 	newPos[2] = node->oldz;
 	
-	FoldBox(home->param, newPos, newPos+1, newPos+2);
-	
-	inGrainPos = GetInGrainFromPos(home,newPos[0],newPos[1],newPos[2]);
+	NodeLocation(home,newPos[0],newPos[1],newPos[2], currInGrain, currOnGB);
 
-	if(inGrainPos != oldInGrain){
-            PullToGB(home, node, oldInGrain);
-	}else{
-            RepositionNode(home,newPos,&node->myTag,1);
-	}
+    if(IsOnGB(node)){
+        if(node->onGB != currOnGB){
+            if(!NewPosToGB(home, node, -1, node->onGB, newPos)){
+                Fatal("in %s at %d", __FILE__, __LINE__);
+            }
+        }
+    }else{
+        if(currOnGB == -1){
+            if(node->inGrain != currInGrain){
+                Fatal("in %s at %d", __FILE__, __LINE__);
+            }
+        }else{
+            if(!NewPosToGB(home, node, node->inGrain, currOnGB, newPos)){
+                Fatal("in %s at %d", __FILE__, __LINE__);
+            }
+        }
+    }
+
+	FoldBox(home->param, newPos, newPos+1, newPos+2);
+    RepositionNode(home,newPos,&node->myTag,1);
 
 	return;
 }
-
-
 
 int SameTag(Tag_t *tag1, Tag_t *tag2){
 
@@ -1317,107 +1057,49 @@ int LineOnPlane(Line_t *line, Plane_t *plane){
 	return(0);
 }
 
-int ClosestPointOfPointLine(real8 *p, Line_t *line, real8 *outP){
-	if(NodeOnLine(p, line)){
-		VECTOR_COPY(outP, p);
-		return(0);
-	}
-	
-	real8 t,dotPLD, dotLPLD;
-	
-	dotPLD = DotProduct(p, line->direction);
-	dotLPLD = DotProduct(line->point, line->direction);
-	
-	t = dotPLD - dotLPLD;
-	
-	outP[0] = line->point[0] + line->direction[0] * t;
-	outP[1] = line->point[1] + line->direction[1] * t;
-	outP[2] = line->point[2] + line->direction[2] * t;
-	
-	return(1);
 
+void GetArmGrain(Home_t *home, Node_t *node1, Node_t *node2, int &inGrain, int &onGB){
+
+    inGrain = -1;
+    onGB = -1;
+    if(home->param->polycrystal == 0)return;
+
+    if(IsOnGB(node1)){
+        if(IsOnGB(node2)){
+            if(node1->onGB == node2->onGB){
+                onGB = node1->onGB;
+            }else{
+                int     i, j;
+                bool    found = 0;
+                GB_t    *GB1, *GB2;
+                GB1 = home->GBKeys[node1->onGB];
+                GB2 = home->GBKeys[node2->onGB];
+
+                for(i=0; i<2; i++){
+                    if(found)break;
+                    for(j=0; j<2; j++){
+                        if(GB1->nbrGrain[i] == GB2->nbrGrain[j]){
+                            found = 1;
+                            break;
+                        }
+                    }
+                }
+                inGrain = GB1->nbrGrain[i];
+                if(!found)Fatal("file %s at line %d", __FILE__, __LINE__);
+            }
+        }else{
+            inGrain = node2->inGrain;
+        }
+    }else {
+        inGrain = node1->inGrain;
+        if(!IsOnGB(node2) && node1->inGrain != node2->inGrain){
+            printf("Warning in GetArmGrain: node1 in %d grain, but node2 in %d grain",
+                   node1->inGrain, node2->inGrain);
+        }
+    }
+    return;
 }
 
-
-int IntersectionOfPlanePlane(Plane_t *plane1, Plane_t *plane2, Line_t *line){
-	real8 dotNormal;
-	
-	dotNormal = DotProduct(plane1->normal, plane2->normal);
-	if(fabs(1.0-fabs(dotNormal)) < 1.0e-2){
-	    printf("warning: the two planes has a same normal vector. at %s, line %d \n",__FILE__,__LINE__);
-	    return(0);
-	}
-	
-	NormalizedCrossVector(plane1->normal, plane2->normal, line->direction);
-	
-	real8	p1x,p1y,p1z,n1x,n1y,n1z;
-	real8	p2x,p2y,p2z,n2x,n2y,n2z;
-	real8	dx,dy,dz, denominator;
-	
-	p1x = plane1->point[0]; p1y = plane1->point[1]; p1z = plane1->point[2]; 
-	p2x = plane2->point[0]; p2y = plane2->point[1]; p2z = plane2->point[2]; 
-	n1x = plane1->normal[0]; n1y = plane1->normal[1]; n1z = plane1->normal[2]; 
-	n2x = plane2->normal[0]; n2y = plane2->normal[1]; n2z = plane2->normal[2]; 
-	dx = line->direction[0]; dy = line->direction[1]; dz = line->direction[2];
-	
-	denominator = (dz*n1y*n2x - dy*n1z*n2x - dz*n1x*n2y + dx*n1z*n2y + dy*n1x*n2z - 
-				   dx*n1y*n2z);
-	if(denominator == 0){
-		FormatVector(plane1->normal,"plane1->normal");
-		FormatVector(plane1->point,"plane1->point");
-		FormatVector(plane2->normal,"plane2->normal");
-		FormatVector(plane2->point,"plane2->point");
-		FormatVector(line->direction,"line->direction");
-		
-		printf("warning: denominator is zero. at %s, line %d \n",__FILE__,__LINE__);
-		VECTOR_COPY(line->direction,plane1->normal);
-		IntersectionOfLinePlane(line, plane2, line->point);
-		return(0);
-	}
-	
-	line->point[0] = -(dz*n1x*n2y*p1x - dx*n1z*n2y*p1x - dy*n1x*n2z*p1x + dx*n1y*n2z*p1x + 
-					   dz*n1y*n2y*p1y - dy*n1z*n2y*p1y + dz*n1y*n2z*p1z - 
-					   dy*n1z*n2z*p1z - dz*n1y*n2x*p2x + dy*n1z*n2x*p2x - 
-					   dz*n1y*n2y*p2y + dy*n1z*n2y*p2y - dz*n1y*n2z*p2z + dy*n1z*n2z*p2z)/denominator;
-	
-	line->point[1] = -((-dz)*n1x*n2x*p1x + dx*n1z*n2x*p1x - dz*n1y*n2x*p1y + 
-					   dy*n1z*n2x*p1y - dy*n1x*n2z*p1y + dx*n1y*n2z*p1y - dz*n1x*n2z*p1z + 
-					   dx*n1z*n2z*p1z + dz*n1x*n2x*p2x - dx*n1z*n2x*p2x + 
-					   dz*n1x*n2y*p2y - dx*n1z*n2y*p2y + dz*n1x*n2z*p2z - dx*n1z*n2z*p2z)/denominator;
-	
-	line->point[2] = -(dy*n1x*n2x*p1x - dx*n1y*n2x*p1x + dy*n1x*n2y*p1y - dx*n1y*n2y*p1y - 
-					   dz*n1y*n2x*p1z + dy*n1z*n2x*p1z + dz*n1x*n2y*p1z - 
-					   dx*n1z*n2y*p1z - dy*n1x*n2x*p2x + dx*n1y*n2x*p2x - 
-					   dy*n1x*n2y*p2y + dx*n1y*n2y*p2y - dy*n1x*n2z*p2z + dx*n1y*n2z*p2z)/denominator;
-	
-	return(1);
-}
-
-real8 GetArmInGrain(real8 inGrain1, real8 inGrain2){
-	if(inGrain1 == inGrain2)return(inGrain1);
-	if(inGrain1 - floor(inGrain1) == 0 && 
-			inGrain2 - floor(inGrain2) == 0.5){
-		return(inGrain1);
-	}else if(inGrain2 - floor(inGrain2) == 0 && 
-			  inGrain1 - floor(inGrain1) == 0.5){
-		return(inGrain2);
-	}else{
-		Fatal("GetArmInGrain: the arm penetrate through GB.");
-	}
-}
-
-void ClosetPointToGB(Param_t *param, Plane_t *plane, Plane_t *GBPlane, real8 *p){
-	 Line_t  line;
-
-	VECTOR_ZERO(line.direction);
-	VECTOR_ZERO(line.point);
-	
-	IntersectionOfPlanePlane(plane, GBPlane, &line);
-
-	VECTOR_COPY(p,line.point);
-	FoldBox(param,p,p+1,p+2);
-	
-}
 
 int	IsZeroVector(real8 *vec){
 	return(fabs(vec[0]) < 1.0e-10 && 
@@ -1453,97 +1135,30 @@ int Coor2EleNum(Home_t *home,real8 position[3]){
 
 }
 
-void AdjustSurfaceNodeVel(Param_t *param, Node_t *node)       //adjust surface node volecity
-{
-	if(node->constraint > 3 || node->constraint < 1) return;
-
-	real8 nSfc[3],nPln[3],dir[3],resLen;
-
-	nSfc[0] = node->constraint==1;
-	nSfc[1] = node->constraint==2;
-	nSfc[2] = node->constraint==3;
-
-	nPln[0] = node->nx[0];
-	nPln[1] = node->ny[0];
-	nPln[2] = node->nz[0];
-
-
-	cross(nSfc,nPln,dir);
-
-	if(Normal(dir) < 1e-5)return;
-
-	NormalizeVec(dir);
-
-	resLen = node->vX * dir[0] +
-		node->vY * dir[1] +
-		node->vZ * dir[2] ;
-
-	node->vX = resLen * dir[0];
-	node->vY = resLen * dir[1];
-	node->vZ = resLen * dir[2];
-	
-	if(node->inGrain - floor(node->inGrain) == 0.5){
-	    if(fabs(DotProduct(dir, param->TBNormal)) > 0.001){
-	        node->vX = 0.0;
-	        node->vY = 0.0;
-	        node->vZ = 0.0;
-	        return;
-	    }
-
-	}
-
-	if(node->numNbrs > 1){
-	    int 	i;
-	    real8	nDir[3];
-
-	    for(i=1; i<node->numNbrs; i++){
-	        nDir[0] = node->nx[i];
-	        nDir[1] = node->ny[i];
-	        nDir[2] = node->nz[i];
-	        if(fabs(DotProduct(dir, nDir) > 0.001)){
-	            node->vX = 0.0;
-	            node->vY = 0.0;
-	            node->vZ = 0.0;
-	            return;
-	        }
-	    }
-	}
-
-//	printf("surface node velocitiy is %f, origin is %f\n",resLen * param->burgMag);
-
-//if(fabs(fabs(node->x) - param->Lx/2.0) < 20) node->vX = 0.0;  //gb surface nodes
-}
-
-
 void PrintTag(Node_t *node){
 
-        if(node == (Node_t *)NULL){
-            printf("(NULL)");
-        }else{
-            printf("[%d %d %d %3.1f %d]-{%e,%e,%e} ",node->myTag.domainID,
-                   node->myTag.index,node->numNbrs,node->inGrain,
-	               node->constraint, node->x,node->y,node->z);
+    if(node == (Node_t *)NULL){
+        printf("(NULL)");
+    }else{
+        printf("[%d %d %d %d %d %d]-{%e,%e,%e} ",node->myTag.domainID,
+               node->myTag.index,node->numNbrs,node->inGrain,
+               node->onGB, node->constraint, node->x,node->y,node->z);
 	}
-		
-
+    return;
 }
 
 void RotateWithAxis(real8 a[3], real8 theta, real8 R[3][3]){
-    NormalizeVec(a);
-    real8 u,v,w;
     
-    u = a[0];
-    v = a[1];
-    w = a[2];
-    R[0][0] = (1.0 - cos(theta))*u*u + cos(theta);
-    R[0][1] = u*v*(1.0 - cos(theta)) - w*sin(theta);
-    R[0][2] = u*w*(1.0 - cos(theta)) + v*sin(theta);
-    R[1][0] = u*v*(1.0 - cos(theta)) + w*sin(theta);
-    R[1][1] = (1.0 - cos(theta))*v*v + cos(theta);
-    R[1][2] = v*w*(1.0 - cos(theta)) - u*sin(theta);
-    R[2][0] = u*w*(1.0 - cos(theta)) - v*sin(theta);
-    R[2][1] = v*w*(1.0 - cos(theta)) + u*sin(theta);
-    R[2][2] = (1.0 - cos(theta))*w*w + cos(theta);
+    NormalizeVec(a);
+    R[0][0] = (1.0 - cos(theta))*a[0]*a[0] + cos(theta);
+    R[0][1] = a[0]*a[1]*(1.0 - cos(theta)) - a[2]*sin(theta);
+    R[0][2] = a[0]*a[2]*(1.0 - cos(theta)) + a[1]*sin(theta);
+    R[1][0] = a[0]*a[1]*(1.0 - cos(theta)) + a[2]*sin(theta);
+    R[1][1] = (1.0 - cos(theta))*a[1]*a[1] + cos(theta);
+    R[1][2] = a[1]*a[2]*(1.0 - cos(theta)) - a[0]*sin(theta);
+    R[2][0] = a[0]*a[2]*(1.0 - cos(theta)) - a[1]*sin(theta);
+    R[2][1] = a[1]*a[2]*(1.0 - cos(theta)) + a[0]*sin(theta);
+    R[2][2] = (1.0 - cos(theta))*a[2]*a[2] + cos(theta);
     return;
 }
 
@@ -1761,3 +1376,237 @@ bool BeforeMergeArm(Home_t *home, Node_t *node1, Node_t *node2, real8 *vec1, rea
     }
     return(inhibitMerge);
 }
+
+void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3])
+{
+        int         i;
+
+        burgData->numBurgVectors = NUM_BURGS_IN_FCC;
+        burgData->numPlanes   = NUM_PLANES_IN_FCC;
+
+        burgData->burgList = (real8 (*)[3])calloc(3*burgData->numBurgVectors, sizeof(real8));
+        burgData->planeList = (real8 (*)[3])calloc(3*burgData->numPlanes, sizeof(real8));
+        burgData->planeType = (int *)calloc(burgData->numPlanes, sizeof(int));
+
+        burgData->numPlanesPerBurg = (int *)calloc(burgData->numBurgVectors, sizeof(int));        
+        burgData->burgFirstPlaneIndex = (int *)calloc(burgData->numBurgVectors, sizeof(int));
+
+        real8 burgList[NUM_BURGS_IN_FCC][3] = {
+/* 
+ *          basic Roman-Roman burgers vectors       (6)
+ *          magnitude: 1.0
+ */
+           { 0.7071067811865475,    0.7071067811865475,     0.0e+00   },   // DC
+           { 0.7071067811865475,    -0.7071067811865475,    0.0e+00   },   // BA
+           { 0.7071067811865475,    0.0e+00   ,    0.7071067811865475 },   // DA
+           { 0.7071067811865475,    0.0e+00   ,    -0.7071067811865475},   // BC
+           { 0.0e+00   ,   0.7071067811865475,     0.7071067811865475 },   // DB
+           { 0.0e+00   ,   0.7071067811865475,     -0.7071067811865475},   // AC
+/* 
+ *          Shocklay Roman-Greek burgers vectors    (12)
+ *          magnitude: 1/Sqrt(3)
+ */
+           { 0.4714045207910317,       0.2357022603955158,        0.2357022603955158 },      // Db
+           {-0.4714045207910317,       0.2357022603955158,        0.2357022603955158 },      // dB
+           { 0.4714045207910317,       -0.2357022603955158,       0.2357022603955158 },      // gA
+           { 0.4714045207910317,       0.2357022603955158,        -0.2357022603955158},      // aC
+           { 0.2357022603955158,       0.4714045207910317,        0.2357022603955158 },      // Da
+           {-0.2357022603955158,       0.4714045207910317,        0.2357022603955158 },      // gB 
+           { 0.2357022603955158,       -0.4714045207910317,       0.2357022603955158 },      // dA
+           { 0.2357022603955158,       0.4714045207910317,        -0.2357022603955158},      // bC
+           { 0.2357022603955158,       0.2357022603955158,        0.4714045207910317 },      // Dg
+           {-0.2357022603955158,       0.2357022603955158,        0.4714045207910317 },      // aB
+           { 0.2357022603955158,       -0.2357022603955158,       0.4714045207910317 },      // bA
+           { 0.2357022603955158,       0.2357022603955158,        -0.4714045207910317},      // dC
+/* 
+ *          compound Roman-Roman burgers vectors    (3) 
+ *          magnitude: Sqrt(2)
+ */
+           { 1.414213562373095,         0.0e+00,                    0.0e+00           },   // DC+BA
+           { 0.0e+00,                   1.414213562373095,          0.0e+00           },   // DC+AB
+           { 0.0e+00,                   0.0e+00,                    1.414213562373095 }    // CA+DB
+        };
+
+        for(i=0; i<NUM_BURGS_IN_FCC; i++){
+            Matrix33Vector3Multiply(rotMatrix, burgList[i], burgData->burgList[i]);
+        }
+
+        int numPlanesPerBurg[NUM_BURGS_IN_FCC] = { 3, 3, 3, 3, 3, 3, 
+                                                          2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                                                          4, 4, 4 }; 
+        memcpy(burgData->numPlanesPerBurg,numPlanesPerBurg,sizeof(int [NUM_BURGS_IN_FCC]));
+
+        int burgFirstPlaneIndex[NUM_BURGS_IN_FCC] = { 0, 3, 6, 9, 12, 15, 
+                                                            17,19,21,23,25,27,29,31,33,35,37,39,
+                                                            43,47,51};
+        memcpy(burgData->burgFirstPlaneIndex,burgFirstPlaneIndex,sizeof(int [NUM_BURGS_IN_FCC]));
+
+        real8 planeList[NUM_PLANES_IN_FCC][3] = {
+            {-0.5773502691896258,      0.5773502691896258,       -0.5773502691896258 },          // a plane  ID: 0
+            {0.5773502691896258,       -0.5773502691896258,       -0.5773502691896258},          // b plane  ID: 1
+            {-0.5773502691896258,      -0.5773502691896258,       0.5773502691896258 },          // g plane  ID: 2
+            {0.5773502691896258,       0.5773502691896258,        0.5773502691896258 },          // d plane  ID: 3
+
+            {1.0e+00,                   0.0e+00,                           0.0e+00   },          // (100) junction plane     ID: 4
+            {0.0e+00,                   1.0e+00,                           0.0e+00   },          // (010) junction plane     ID: 5
+            {0.0e+00,                   0.0e+00,                           1.0e+00   },          // (001) junction plane     ID: 6
+
+            {0.0e+00,                   0.7071067811865475,        0.7071067811865475 },          // (011) junction plane     ID: 7
+            {0.0e+00,                   -0.7071067811865475,       0.7071067811865475 },          // (0-11) junction plane    ID: 8
+
+            {0.7071067811865475,        0.0e+00,                    0.7071067811865475 },          // (101) junction plane     ID: 9
+            {-0.7071067811865475,       0.0e+00,                    0.7071067811865475 },          // (-101) junction plane    ID: 10
+
+            {0.7071067811865475,        0.7071067811865475,          0.0e+00           },          // (110) junction plane     ID: 11
+            {-0.7071067811865475,       0.7071067811865475,          0.0e+00           }          // (-110) junction plane    ID: 12
+        };
+
+        for(i=0; i<NUM_PLANES_IN_FCC; i++){
+            Matrix33Vector3Multiply(rotMatrix, planeList[i], burgData->planeList[i]);
+        }
+
+        int planeType[NUM_PLANES_IN_FCC] = { 0, 0, 0, 0,                           // basic glide plane
+                                                    1, 1, 1, 1, 1, 1, 1, 1, 1 };          // junction plane
+        memcpy(burgData->planeType,planeType,NUM_PLANES_IN_FCC*sizeof(int));
+        
+        int burgOnPlaneID[54] = {
+                                          /* DC on plane */
+                                         0,  // a plane 
+                                         1,  // b plane
+                                         6, 
+                                         
+                                          /* BA on plane */
+                                         2,  // g plane
+                                         3,  // d plane
+                                         6, 
+                                         
+                                          /* DA on plane */
+                                         1,  // b plane
+                                         2,  // g plane
+                                         5, 
+                                         
+                                          /* BC on plane */
+                                         0,  // a plane
+                                         3,  // d plane
+                                         5, 
+                                         
+                                          /* DB on plane */
+                                         0,  // a plane
+                                         2,  // g plane
+                                         4, 
+                                         
+                                          /* AC on plane */
+                                         1,  // b plane
+                                         3,  // d plane
+                                         4, 
+                                         
+                                          /* Db */
+                                         1,
+                                         8,
+                                         
+                                          /* dB */
+                                         3,
+                                         8,
+                                         
+                                          /* gA */
+                                         2,
+                                         7,
+                                         
+                                          /* aC */
+                                         0,
+                                         7,
+                                         
+                                          /* Da */
+                                         0,
+                                         10,
+                                         
+                                          /* gB */
+                                         2,
+                                         9,
+                                         
+                                          /* dA */
+                                         3,
+                                         10,
+                                         
+                                          /* bC */
+                                         1,
+                                         9,
+                                         
+                                          /* Dg */
+                                         2,
+                                         12,
+                                         
+                                          /* aB */
+                                         0,
+                                         11,
+                                         
+                                          /* bA */
+                                         1,
+                                         11,
+                                         
+                                          /* dC */
+                                         3,
+                                         12,
+
+                                          /* [100] */
+                                         5, /* junction plane */
+                                         6, /* junction plane */
+                                         7, /* junction plane */
+                                         8, /* junction plane */
+                                         
+                                          /* [010] */
+                                         4, /* junction plane */
+                                         6, /* junction plane */
+                                         9, /* junction plane */
+                                         10, /* junction plane */
+                                         
+                                         4, /* junction plane */
+                                         5, /* junction plane */
+                                         11, /* junction plane */
+                                         12 /* junction plane */
+                                       };
+        burgData->burgOnPlaneID = (int *)calloc(54, sizeof(int));        
+        memcpy(burgData->burgOnPlaneID,burgOnPlaneID,sizeof(int [54]));
+        
+        return;
+}
+
+void FreeBurgInfoStr(BurgInfo_t *burgData)
+{
+    free(burgData->numPlanesPerBurg); 
+    burgData->numPlanesPerBurg = NULL;
+
+    free(burgData->burgFirstPlaneIndex); 
+    burgData->burgFirstPlaneIndex = NULL;
+
+    free(burgData->burgList); 
+    burgData->burgList = NULL;
+
+    free(burgData->planeList); 
+    burgData->planeList = NULL;
+
+    free(burgData->planeType); 
+    burgData->planeType = NULL;
+
+    free(burgData->burgOnPlaneID); 
+    burgData->burgOnPlaneID = NULL;
+
+    return;
+}
+
+void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
+{
+    Grain_t     *grain1, *grain2;
+    BurgInfo_t  *bd1, *bd2;
+    
+    grain1 = home->grainKeys[GB->nbrGrain[0]];
+    grain2 = home->grainKeys[GB->nbrGrain[1]];
+
+    bd1 = &(grain1->burgData);
+    bd2 = &(grain2->burgData);
+
+    GenerateFCCBurgInfo(&(GB->burgData), grain1->orientation);
+
+    return;
+}
+
