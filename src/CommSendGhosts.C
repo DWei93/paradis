@@ -198,7 +198,8 @@ static void CommPackGhosts(Home_t *home)
         
                     outBuf[bufIndex++] = (real8)node->constraint;
                     outBuf[bufIndex++] = (real8)node->flags;
-					outBuf[bufIndex++] =  node->inGrain;
+					outBuf[bufIndex++] = (real8)node->inGrain;
+					outBuf[bufIndex++] = (real8)node->onGB;
 
 #ifdef _FEM
                     outBuf[bufIndex++] = (real8)node->fem_Surface[0];
@@ -368,7 +369,8 @@ static void CommUnpackGhosts(Home_t *home)
         
                     node->constraint = (int)inBuf[bufIndex++];
                     node->flags = (int)inBuf[bufIndex++];
-					node->inGrain = inBuf[bufIndex++];
+					node->inGrain = (int)inBuf[bufIndex++];
+					node->onGB = (int)inBuf[bufIndex++];
 #ifdef _FEM
                     node->fem_Surface[0] = (int)inBuf[bufIndex++];
                     node->fem_Surface[1] = (int)inBuf[bufIndex++];

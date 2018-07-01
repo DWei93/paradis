@@ -46,8 +46,9 @@ static void MeshCoarsen(Home_t *home)
         real8   newPos[3], f0seg1[3], f1seg1[3];
         real8   gp0[3], gp1[3], tmp3[3];
         real8   burg[3],vec[3],vecStored;
-	    real8	armGrain1, armGrain2, mergedGrain;
-	    int	    riskySeg1, riskySeg2, armID;
+	    real8	mergedGrain;
+	    int	    riskySeg1, riskySeg2, armID;    
+        int     armInGrain1, armInGrain2, armOnGB1, armOnGB2;   
         Tag_t   nbr1Tag, nbr2Tag, oldTag1, oldTag2, oldTag3;
         Node_t  *node, *nbr, *nbr1, *nbr2, *mergedNode;
         Param_t *param;
@@ -291,9 +292,13 @@ static void MeshCoarsen(Home_t *home)
             hasRemoteNbr  = (node->myTag.domainID != nbr1->myTag.domainID);
             hasRemoteNbr |= (node->myTag.domainID != nbr2->myTag.domainID);
 
-	        armGrain1 = ChangeOrientation(home, node, nbr1, 0);
-	        armGrain2 = ChangeOrientation(home, node, nbr2, 0);
-	        if(armGrain1 != armGrain2)continue;
+            if(home->param->polycrystal){
+                GetArmGrain(home, node, nbr1, armInGrain1, armOnGB1);
+                GetArmGrain(home, node, nbr2, armInGrain2, armOnGB2);
+                              
+                if(armOnGB1 != armOnGB2)continue;
+                if(armOnGB1 == -1 && armInGrain1 != armInGrain2)continue;
+            }
 /*
  *          Calculate the lengths of the node's 2 arms plus
  *          the distance between the two neighbor nodes.
@@ -860,7 +865,7 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
 						printf("Warning: the arm %d is a basic arm\n",armList[0]);
 					}
 					
-					posInGrain = GetInGrainFromPos(home,newPos[0],newPos[1],newPos[2]);
+					posInGrain = NodeLocation(home,newPos[0],newPos[1],newPos[2]);
 
 				}else{
 					posInGrain = InWhichGrain(home,newPos[0],newPos[1],newPos[2]);
@@ -1238,7 +1243,7 @@ static void MeshRefine(Home_t *home)
 			if(node->inGrain == nbr1->inGrain){
                             newInGrain = node->inGrain;
                             if(node->inGrain - floor(node->inGrain) == 0.5){
-                                posInGrain = GetInGrainFromPos(home,newPos[0],newPos[1],newPos[2]);
+                                posInGrain = NodeLocation(home,newPos[0],newPos[1],newPos[2]);
                                 burg[0] = node->burgX[armList[0]];
                                 burg[1] = node->burgY[armList[0]];
                                 burg[2] = node->burgZ[armList[0]];

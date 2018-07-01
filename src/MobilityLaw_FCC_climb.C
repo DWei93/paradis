@@ -328,7 +328,7 @@ int Mobility_FCC_climb(Home_t *home, Node_t *node)
  *      Note: If the node moves outside the box, it's allowed here, then
  *      position is adjusted in AdjustNodePosition().
  */
-        AdjustSurfaceNodeVel(home, node);
+//        AdjustSurfaceNodeVel(home, node);
 #endif
 
         return(0);

@@ -226,8 +226,7 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
                 n[2] = node->nz[i];
 
                 if (param->useLabFrame) {
-	            ChangeOrientation(home, node, nbrNode, 3);
-                    Matrix33Vector3Multiply(home->rotMatrixInverse, n, nCryst);
+                   VectorLabToCrystal(home, node, nbrNode, n, nCryst);
                 } else {
                     VECTOR_COPY(nCryst, n);
                 }
@@ -388,7 +387,7 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
  *      Note: If the node moves outside the box, it's allowed here, then
  *      position is adjusted in AdjustNodePosition().
  */
-        AdjustSurfaceNodeVel(home, node);
+//        AdjustSurfaceNodeVel(home, node);
 #endif
 
 	velocity = sqrt(node->vX * node->vX+

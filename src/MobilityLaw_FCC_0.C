@@ -109,8 +109,7 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
         if (param->useLabFrame) {
             real8 dTmp[3] = {dx, dy, dz};
             real8 dRot[3];
-	        ChangeOrientation(home, node, nbr, 3);
-            Matrix33Vector3Multiply(home->rotMatrixInverse, dTmp, dRot);
+            VectorLabToCrystal(home, node, nbr, dTmp, dRot);
             dx = dRot[0]; dy = dRot[1]; dz = dRot[2];
         }
 
@@ -143,10 +142,10 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
             real8 bTmp[3] = {bx, by, bz};
             real8 bRot[3];
 
-		    if(BurgType_FCC(home, bTmp) & TB_BURG)TBBurg = 1;
-                Matrix33Vector3Multiply(home->rotMatrixInverse, bTmp, bRot);
-                bx = bRot[0]; by = bRot[1]; bz = bRot[2];
-            }       
+		    if(BurgType_FCC(home, bTmp) & SHOCKLEY_BURG)TBBurg = 1;
+            VectorLabToCrystal(home, node, nbr, bTmp, bRot);
+            bx = bRot[0]; by = bRot[1]; bz = bRot[2];
+        }       
 
 	        br = sqrt(bx*bx+by*by+bz*bz);
 	        bx/=br; by/=br; bz/=br; /* unit vector along Burgers vector */
@@ -167,41 +166,12 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
  */
 	DoResistance(home, node, nForce);
 
-#if 0
-/*
- *  If needed, rotate the force vector from the laboratory frame to the
- *  crystal frame
- */
-    if (param->useLabFrame) {
-        real8 rotForce[3];
-		
-	    ChangeOrientation(home, node, node, 3);
-        Matrix33Vector3Multiply(home->rotMatrixInverse, nForce, rotForce);
-        VECTOR_COPY(nForce, rotForce);
-    }
-
-#endif
 
 	/* Velocity is simply proportional to total force per unit length */
 	nVel[0] = nForce[0]/LtimesB;
 	nVel[1] = nForce[1]/LtimesB;
 	nVel[2] = nForce[2]/LtimesB;
 
-#if 0 
-/*
- *  If needed, rotate the velocity vector back to the laboratory frame
- *  from the crystal frame
- */
-    if (param->useLabFrame) {
-        real8 vTmp[3] = {nVel[0], nVel[1], nVel[2]};
-        real8 vRot[3];
-		
-        Matrix33Vector3Multiply(home->rotMatrix, vTmp, vRot);
-
-        VECTOR_COPY(nVel, vRot)
-
-    }   
-#endif
 	GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints);
 	 
 	ApplyConstraintsToVelocity(numGlideConstraints,

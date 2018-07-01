@@ -534,12 +534,9 @@ void FindPreciseGlidePlane(Home_t *home, real8 burgVecIn[3], real8 dirIn[3],
  *      laboratory frame to the crystal frame.
  */
         if (home->param->useLabFrame) {
-	    ChangeOrientation(home, node, nbr, 3);
-            Matrix33Vector3Multiply(home->rotMatrixInverse, burgVecIn,
-                                    burgVecRotated);
+            VectorLabToCrystal(home, node, nbr, burgVecIn, burgVecRotated);
             burgVec = burgVecRotated;
-            Matrix33Vector3Multiply(home->rotMatrixInverse, dirIn,
-                                    dirRotated);
+            VectorLabToCrystal(home, node, nbr, dirIn, dirRotated);
             dir = dirRotated;
         }
 
@@ -614,7 +611,7 @@ void FindPreciseGlidePlane(Home_t *home, real8 burgVecIn[3], real8 dirIn[3],
  */
         if (home->param->useLabFrame) {
             real8 plane[3];
-            Matrix33Vector3Multiply(home->rotMatrix, glidePlane, plane);
+            VectorCrystalToLab(home, node, nbr, glidePlane, plane);
             glidePlane[0] = plane[0];
             glidePlane[1] = plane[1];
             glidePlane[2] = plane[2];

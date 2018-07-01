@@ -35,6 +35,7 @@ typedef struct _timer Timer_t;
 typedef struct _unmappedarm_t UnMappedArm_t;
 typedef struct _grain Grain_t;
 typedef struct _penetration Pene_t;
+typedef struct _burgInfo BurgInfo_t;
 
 typedef enum {
 	Periodic=0,

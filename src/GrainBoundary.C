@@ -406,22 +406,23 @@ void FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
     return;
 }
 
-int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, Plane_t *GBPlane){
+int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb){
 	
 	real8		pos[3], burg[3], normal[3], crystalNormal[3], burg1[3], burg2[3];
 	real8		crystalBurg[3], dot, vec[3], outNormal[3];
     real8       sb, TBBurgCryst[3], centorPos[3];
     real8       vec1[3], vec2[3], eps = 0.1, dis;
-    real8       currInGrain, TBInGrain;
+    int         currInGrain, currOnGB, TBID;
     Line_t      line;
 	int 		isScrew = 0, disID, i, j, k, normalID, type;
     Node_t      *node1, *node2;
-    Grain_t    *oldGrain;
+    Grain_t     *oldGrain;
+    Plane_t     GBPlane;
 	
     FreePenStr(pene);
 
     pene->node = node;
-    pene->GBPlane = GBPlane;
+    pene->gb = gb;
 
     oldGrain  = home->grainKeys[node->inGrain];
 	node1 = GetNeighborNode(home,node,0);
@@ -430,6 +431,8 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, Plane_t *GBPlane){
         Fatal("In file %s at line %d", __FILE__, __LINE__);
     }
 
+    VECTOR_COPY(GBPlane.normal, gb->n);
+    VECTOR_COPY(GBPlane.point, gb->p);
     FindIntersectionWithGB(home, node, node1, GBPlane, &line);
     VECTOR_COPY(pene->line1.direction, line.direction);
     VECTOR_COPY(pene->line1.point, line.point);
@@ -445,7 +448,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, Plane_t *GBPlane){
     type = LineLineIntersection(pene->line1.direction, pene->line1.point,
            pene->line2.direction, pene->line2.point, vec1, vec2, &dis);
     if(type != LINE_INTERSECTION && fabs(dis) > 5){
-        printf("Warning: type %d\n in file %s at line %d, dis %f", 
+        printf("Warning: type %d in file %s at line %d, dis %f \n", 
                 type, __FILE__, __LINE__, dis);
     }
 
@@ -453,9 +456,8 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, Plane_t *GBPlane){
 	pos[1] = node->y;
 	pos[2] = node->z;
 
-    currInGrain = InWhichGrain(home, pos[0], pos[1], pos[2]);	
-    TBInGrain   = NodeLocation(home, centorPos[0],
-                  centorPos[1], centorPos[2]);
+    NodeLocation(home, pos[0], pos[1], pos[2],currInGrain, currOnGB);
+    TBID = gb->GBID;
 
     vec[0] = node->burgX[1] + node->burgX[0];
     vec[1] = node->burgY[1] + node->burgY[0];
@@ -488,7 +490,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, Plane_t *GBPlane){
         pene->res = (Res_t *)calloc(pene->nSets, sizeof(Res_t));
 /*
  *      set 1, secrew dislocation cut through the CTB like cross-slip
- * */
+ */ 
         i = 0;
         j = 0;
         k = 0;
@@ -528,8 +530,8 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, Plane_t *GBPlane){
         pene->res[i].pos[k][2] = centorPos[2] + vec1[2]*eps*((real8)k+1.0);
         
 /*
- *      set 2 and 3, dislocation dissociate on the CTB
- * */
+ *      set 2 and 3, dislocation dissociate at the CTB
+ */
         i = 1;
         j = 0;
         for(i=1; i<3; i++){
@@ -579,7 +581,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, Plane_t *GBPlane){
 /*
  *      Find the out burg
  * */
-		switch(BurgID_FCC(crystalBurg)){
+		switch(BurgID_FCC(gb)){
 		    case 1 :
 		    burg1[0] = -1.0;
 		    burg1[1] =  2.0;
@@ -1308,65 +1310,50 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	return(1);
 }
 
-int PenetrationSurface(Home_t *home, Node_t *node, Grain_t *oldGrain, 
-						Grain_t *newGrain, Plane_t *GBPlane)
+int PenetrationSurface(Home_t *home, Node_t *node, GB_t *gb)
 {
-	
-	if(node->constraint <1 || node->constraint >3)return(0);
-	
-	Node_t 		*nbrNode, *mergedNode, *newNode,*secNbrNode, *node1, *node2, *node3;
-	real8		newPos[3], vec[3], CurrNbrInGrain, currInGrain,oldInGrain,TBInGrain;
-	real8		oldPos[3], burg[3], sb, pos1[3], pos3[3],currPos[3],eps;
-	real8		nDir[3], nSur[3], lDir[3];
-	int		mergeStatus, storeConstraint,i,penetration = 0;
-	Plane_t		plane;
+    int         type;
+    real8       n1[3], p1[3], n2[3], p2[3], n3[3], p[3];
+    real8       lDir[3], lPos[3], vec[3], newPos[3];
+    Node_t      *nbrNode;
 	Param_t 	*param;
-	Line_t		line;
-	
+
 	param = home->param;
-	
-	VECTOR_ZERO(vec);
-	
-	eps = param->rann;
-	
+
+    if(!SurfaceNode(node))Fatal("in %s at %d", __FILE__, __LINE__);
+
 	nbrNode = GetNeighborNode(home, node, 0);
-	if(nbrNode->myTag.domainID != home->myDomain)return(0);
-    
-	if(nbrNode == (Node_t *)NULL){
-	    PrintNode(node);
-	    printf("PenetrationSurface: can not found neighbor node\n");
-	    return(0);
-	}
-	
-	oldPos[0] = node->oldx;
-	oldPos[1] = node->oldy;
-	oldPos[2] = node->oldz;
+    if(nbrNode == (Node_t *)NULL)Fatal("in %s at %d", __FILE__, __LINE__);
+    if(nbrNode->myTag.domainID != home->myDomain || !IsOnGB(nbrNode))return(0);
+    if(!Surface(node))Fatal("in %s at %d", __FILE__, __LINE__);
 
-	currPos[0] = node->x;
-	currPos[1] = node->y;
-	currPos[2] = node->z;
+    VECTOR_ZERO(n1);
+    n1[node->constraint - 1] = 1.0;
+    p1[0] = node->x;
+    p1[1] = node->y;
+    p1[2] = node->z;
 
-	nDir[0] = node->nx[0];
-	nDir[1] = node->ny[0];
-	nDir[2] = node->nz[0];
-	
-	nSur[0] = (node->constraint == 1);
-	nSur[1] = (node->constraint == 2);
-	nSur[2] = (node->constraint == 3);
-	
-	cross(nDir,nSur,lDir);
-	if(Normal(lDir) < 1e-8){
-	    Fatal("PenetrationSurface: line direction = 0");
-	}
-	NormalizeVec(lDir);
-	
-	if(LinePlaneIntersection(lDir, currPos, GBPlane->normal, 
-       GBPlane->point, vec, newPos) == NO_INTERSECTION){
-        PrintNode(node);
-        PrintNode(nbrNode);
-	    printf("PenetrationSurface: warning intersect failed\n");
+    VECTOR_COPY(n2, gb->n);
+    p2[0] = nbrNode->x;
+    p2[1] = nbrNode->y;
+    p2[2] = nbrNode->z;
+
+    type = PlanePlaneIntersection(n2, p2, n1, p1, lDir, lPos);
+    if(type != LINE_INTERSECTION){
+        printf("Warning in PenetrationSurface: in %s at %d", __FILE__, __LINE__);
         return(0);
-	}
+    }
+
+    n3[0] = node->nx[0];
+    n3[1] = node->ny[0];
+    n3[2] = node->nz[0];
+    VECTOR_COPY(p3, p2);
+    type = LinePlaneIntersection(lDir, lPos, n3, p3, vec, newPos);
+    if(type != POINT_INTERSECTION){
+        printf("Warning in PenetrationSurface: in %s at %d", __FILE__, __LINE__);
+        return(0);
+    }
+    
 
     FoldBox(home->param, newPos, newPos+1, newPos+2);
 	RepositionNode(home, newPos, &nbrNode->myTag, 1);
@@ -1384,9 +1371,9 @@ int PenetrationSurface(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	    Fatal("the surface node can not removed");
 	}
 
-	return(1);
-	
+    return(1);
 }
+
 
 void HandleGrainBoundary(Home_t *home)
 {
@@ -1395,7 +1382,7 @@ void HandleGrainBoundary(Home_t *home)
 	int	 	    grainNode = 0, endNode, newConstraint;
     int         newNodeKeyPtr, type;
 	int 		oldInGrain, oldOnGB, currInGrain, currOnGB;	
-    int         crossSlipNode;
+    int         crossSlipNode, nbr1OnGB, nbr2OnGB;
 	real8		x,y,z,burgj[3], burgk[3], vec[3], mergPos[3];
 	real8		burg[3], normal[3], nDir1[3], nDir2[3];
 	real8		mergePos[3], distance, newInGrain, newPos[3];
@@ -1416,7 +1403,6 @@ void HandleGrainBoundary(Home_t *home)
         
         if((node = home->nodeKeys[i]) == (Node_t *) NULL)continue;
 
-        numNbrOnGB = 0;
         oldInGrain = node->inGrain;
 
         x = node->x; y = node->y; z=node->z;
@@ -1430,7 +1416,7 @@ void HandleGrainBoundary(Home_t *home)
             continue;
         }
 		
-        if(node->numNbrs < 1)continue;
+        if(node->numNbrs < 1 node->constraint == PINNED_NODE)continue;
         if(currInGrain == oldInGrain || currInGrain < 0)continue;
 
         if(!param->peneTB || node->numNbrs > 2){
@@ -1476,69 +1462,69 @@ void HandleGrainBoundary(Home_t *home)
                 Fatal("HandleGrainBoundary: nbrNode1 not found");
             }
 
-	        if(!IsOnGB(nbrNode1)){
-	            PullBack(home, node, oldInGrain);
+	        if(!IsOnGB(nbrNode1) || nbrNode1->myTag.domainID != home->myDomain){
+	            PullBack(home, node);
 	            continue;
 	        }
 
-	        if(!PenetrationSurface(home, node, oldGrain, currGrain, &GBPlane)){
+	        if(!PenetrationSurface(home, node, gb)){
 	            PullBack(home, node, oldInGrain);
 	        }
-
-	            continue;
-	        }
+	        continue;
+	    }
 		    
-	        nbrNode1 = GetNeighborNode(home,node,0);
-	        nbrNode2 = GetNeighborNode(home,node,1);
+	    nbrNode1 = GetNeighborNode(home,node,0);
+	    nbrNode2 = GetNeighborNode(home,node,1);
 			
-	        if(nbrNode1==(Node_t *)NULL || nbrNode2==(Node_t *)NULL){
-	            printf("warning: nbrNode1==(Node_t *)NULL || nbrNode2==(Node_t *)NULL\n");
-	            PullBack(home,node,oldInGrain);
-	            continue;
-	        }		
-	        if(nbrNode1 == nbrNode2) {
-	            printf("warning: nbrNode1 == nbrNode2\n");
-	            PullBack(home,node,oldInGrain); 
-	            continue;
-	        }		
+	    if(nbrNode1==(Node_t *)NULL || nbrNode2==(Node_t *)NULL){
+	        printf("warning: nbrNode1==(Node_t *)NULL || nbrNode2==(Node_t *)NULL\n");
+	        PullBack(home,node,oldInGrain);
+	        continue;
+	    }		
+	    if(nbrNode1 == nbrNode2) {
+	        printf("warning: nbrNode1 == nbrNode2\n");
+	        PullBack(home,node,oldInGrain); 
+	        continue;
+	    }		
 
 /*
- *          If the neighbor is not only intersect GB node, it is also junction node,
- *          pull back the penetrated node.
+ *      If the neighbor is not only intersect GB node, it is also junction node,
+ *      pull back the penetrated node.
  */
-	        if(NodeOnGB(home,nbrNode1)) {
-	            if(!(NodeOnGB(home, nbrNode1) & TB_NODE) &&
-	               nbrNode1->numNbrs == 3){
-	                PullBack(home, node, node->inGrain);
-	                continue;
-	            } 
-	            numNbrOnGB++;	
-	        }
+        numNbrOnGB = 0;
+        nbr1OnGB = NodeOnGB(home, nbrNode1);
+        nbr2OnGB = NodeOnGB(home, nbrNode2);
 
-	        if(NodeOnGB(home,nbrNode2)){
-	            if(!(NodeOnGB(home, nbrNode2) & TB_NODE) &&
-	               nbrNode2->numNbrs == 3){
-	                PullBack(home, node, node->inGrain);
+	    if(nbr1OnGB > 0) {
+	        if(!(nbr1OnGB & TB_NODE) && nbrNode1->numNbrs == 3){
+	           PullBack(home, node, node->inGrain);
+	           continue;
+	        } 
+	        numNbrOnGB++;	
+	    }
 
-	                continue;
-	            }	        
-	            numNbrOnGB++;	
-	        }
+	    if(nbr2OnGB > 0) {
+	        if(!(nbr2OnGB & TB_NODE) && nbrNode2->numNbrs == 3){
+	           PullBack(home, node, node->inGrain);
+	           continue;
+	        } 
+	        numNbrOnGB++;	
+	    }
 			
-	        if(numNbrOnGB != 2 && crossSlipNode == 1){
+	    if(numNbrOnGB != 2 && crossSlipNode == 1){
 /*
- *		    CrossSlip node is only allowed to penetrationLast. 
+ *		CrossSlip node is only allowed to penetrationLast. 
  */
-                PullBack(home,node, oldInGrain);
-                continue;
-            }
+            PullBack(home,node, oldInGrain);
+            continue;
+        }
             	
-	        if(numNbrOnGB == 0 && crossSlipNode != 1){
-                if(!GetPenResults(home, node, &pene, &GBPlane)){
-		            PullBack(home,node, oldInGrain);
-		            continue;
-		        }
-            }
+	    if(numNbrOnGB == 0 && crossSlipNode != 1){
+            if(!GetPenResults(home, node, &pene, gb)){
+		        PullBack(home,node, oldInGrain);
+		        continue;
+		    }
+        }
 /*		
  *	        Node: this energy rule is used for nonscrew dislocation, 
  *	        since we donot know the resultant slip plane for nonscrew 

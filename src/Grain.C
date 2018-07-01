@@ -828,6 +828,7 @@ real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB){
 	real8 	    minDistance = 1e14;
 	GB_t 	    *temGB;
 	    	
+    if(!home->param->polycrystal)return(0.0);
     int     i;
     for(i=0; i<home->nGBs; i++){
         temGB = home->GBKeys[i];
@@ -1381,62 +1382,72 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3])
 {
         int         i;
 
+        
         burgData->numBurgVectors = NUM_BURGS_IN_FCC;
         burgData->numPlanes   = NUM_PLANES_IN_FCC;
+        burgData->numKeyLines = NUM_KEY_LINES_IN_FCC;
 
         burgData->burgList = (real8 (*)[3])calloc(3*burgData->numBurgVectors, sizeof(real8));
         burgData->planeList = (real8 (*)[3])calloc(3*burgData->numPlanes, sizeof(real8));
         burgData->planeType = (int *)calloc(burgData->numPlanes, sizeof(int));
+        burgData->keyLineList = (real8 (*)[3])calloc(3*burgData->numKeyLines, sizeof(real8));
 
         burgData->numPlanesPerBurg = (int *)calloc(burgData->numBurgVectors, sizeof(int));        
         burgData->burgFirstPlaneIndex = (int *)calloc(burgData->numBurgVectors, sizeof(int));
 
-        real8 burgList[NUM_BURGS_IN_FCC][3] = {
+        burgData->numBurgsPerPlane = (int *)calloc(burgData->numPlanes, sizeof(int));        
+        burgData->planeFirstBurgIndex = (int *)calloc(burgData->numPlanes, sizeof(int));
+
+        burgData->numPlanesPerKeyLine = (int *)calloc(burgData->numKeyLines, sizeof(int));        
+        burgData->keyLineFirstPlaneIndex = (int *)calloc(burgData->numKeyLines, sizeof(int));
+        
+
+        static real8 burgList[NUM_BURGS_IN_FCC][3] = {
 /* 
  *          basic Roman-Roman burgers vectors       (6)
  *          magnitude: 1.0
  */
-           { 0.7071067811865475,    0.7071067811865475,     0.0e+00   },   // DC
-           { 0.7071067811865475,    -0.7071067811865475,    0.0e+00   },   // BA
-           { 0.7071067811865475,    0.0e+00   ,    0.7071067811865475 },   // DA
-           { 0.7071067811865475,    0.0e+00   ,    -0.7071067811865475},   // BC
-           { 0.0e+00   ,   0.7071067811865475,     0.7071067811865475 },   // DB
-           { 0.0e+00   ,   0.7071067811865475,     -0.7071067811865475},   // AC
+           { 0.7071067811865475,    0.7071067811865475,     0.0e+00   },   // DC -- 0
+           { 0.7071067811865475,    -0.7071067811865475,    0.0e+00   },   // BA -- 1
+           { 0.7071067811865475,    0.0e+00   ,    0.7071067811865475 },   // DA -- 2
+           { 0.7071067811865475,    0.0e+00   ,    -0.7071067811865475},   // BC -- 3
+           { 0.0e+00   ,   0.7071067811865475,     0.7071067811865475 },   // DB -- 4
+           { 0.0e+00   ,   0.7071067811865475,     -0.7071067811865475},   // AC -- 5
 /* 
  *          Shocklay Roman-Greek burgers vectors    (12)
  *          magnitude: 1/Sqrt(3)
  */
-           { 0.4714045207910317,       0.2357022603955158,        0.2357022603955158 },      // Db
-           {-0.4714045207910317,       0.2357022603955158,        0.2357022603955158 },      // dB
-           { 0.4714045207910317,       -0.2357022603955158,       0.2357022603955158 },      // gA
-           { 0.4714045207910317,       0.2357022603955158,        -0.2357022603955158},      // aC
-           { 0.2357022603955158,       0.4714045207910317,        0.2357022603955158 },      // Da
-           {-0.2357022603955158,       0.4714045207910317,        0.2357022603955158 },      // gB 
-           { 0.2357022603955158,       -0.4714045207910317,       0.2357022603955158 },      // dA
-           { 0.2357022603955158,       0.4714045207910317,        -0.2357022603955158},      // bC
-           { 0.2357022603955158,       0.2357022603955158,        0.4714045207910317 },      // Dg
-           {-0.2357022603955158,       0.2357022603955158,        0.4714045207910317 },      // aB
-           { 0.2357022603955158,       -0.2357022603955158,       0.4714045207910317 },      // bA
-           { 0.2357022603955158,       0.2357022603955158,        -0.4714045207910317},      // dC
+           { 0.4714045207910317,       0.2357022603955158,        0.2357022603955158 },      // Db -- 6
+           {-0.4714045207910317,       0.2357022603955158,        0.2357022603955158 },      // dB -- 7
+           { 0.4714045207910317,       -0.2357022603955158,       0.2357022603955158 },      // gA -- 8
+           { 0.4714045207910317,       0.2357022603955158,        -0.2357022603955158},      // aC -- 9
+           { 0.2357022603955158,       0.4714045207910317,        0.2357022603955158 },      // Da -- 10
+           {-0.2357022603955158,       0.4714045207910317,        0.2357022603955158 },      // gB -- 11
+           { 0.2357022603955158,       -0.4714045207910317,       0.2357022603955158 },      // dA -- 12
+           { 0.2357022603955158,       0.4714045207910317,        -0.2357022603955158},      // bC -- 13
+           { 0.2357022603955158,       0.2357022603955158,        0.4714045207910317 },      // Dg -- 14
+           {-0.2357022603955158,       0.2357022603955158,        0.4714045207910317 },      // aB -- 15
+           { 0.2357022603955158,       -0.2357022603955158,       0.4714045207910317 },      // bA -- 16
+           { 0.2357022603955158,       0.2357022603955158,        -0.4714045207910317},      // dC -- 17
 /* 
  *          compound Roman-Roman burgers vectors    (3) 
  *          magnitude: Sqrt(2)
  */
-           { 1.414213562373095,         0.0e+00,                    0.0e+00           },   // DC+BA
-           { 0.0e+00,                   1.414213562373095,          0.0e+00           },   // DC+AB
-           { 0.0e+00,                   0.0e+00,                    1.414213562373095 }    // CA+DB
+           { 1.414213562373095,         0.0e+00,                    0.0e+00           },   // DC+BA -- 18
+           { 0.0e+00,                   1.414213562373095,          0.0e+00           },   // DC+AB -- 19
+           { 0.0e+00,                   0.0e+00,                    1.414213562373095 }    // CA+DB -- 20
         };
 
         for(i=0; i<NUM_BURGS_IN_FCC; i++){
             Matrix33Vector3Multiply(rotMatrix, burgList[i], burgData->burgList[i]);
         }
 
-        int numPlanesPerBurg[NUM_BURGS_IN_FCC] = { 3, 3, 3, 3, 3, 3, 
+        static int numPlanesPerBurg[NUM_BURGS_IN_FCC] = { 3, 3, 3, 3, 3, 3, 
                                                           2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
                                                           4, 4, 4 }; 
         memcpy(burgData->numPlanesPerBurg,numPlanesPerBurg,sizeof(int [NUM_BURGS_IN_FCC]));
 
-        int burgFirstPlaneIndex[NUM_BURGS_IN_FCC] = { 0, 3, 6, 9, 12, 15, 
+        static int burgFirstPlaneIndex[NUM_BURGS_IN_FCC] = { 0, 3, 6, 9, 12, 15, 
                                                             17,19,21,23,25,27,29,31,33,35,37,39,
                                                             43,47,51};
         memcpy(burgData->burgFirstPlaneIndex,burgFirstPlaneIndex,sizeof(int [NUM_BURGS_IN_FCC]));
@@ -1464,102 +1475,135 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3])
         for(i=0; i<NUM_PLANES_IN_FCC; i++){
             Matrix33Vector3Multiply(rotMatrix, planeList[i], burgData->planeList[i]);
         }
-
-        int planeType[NUM_PLANES_IN_FCC] = { 0, 0, 0, 0,                           // basic glide plane
-                                                    1, 1, 1, 1, 1, 1, 1, 1, 1 };          // junction plane
+        static int planeType[NUM_PLANES_IN_FCC] = { 0, 0, 0, 0,                           // basic glide planes
+                                                    1, 1, 1, 1, 1, 1, 1, 1, 1 };          // junction planes
         memcpy(burgData->planeType,planeType,NUM_PLANES_IN_FCC*sizeof(int));
-        
-        int burgOnPlaneID[54] = {
-                                          /* DC on plane */
+
+        static int numBurgsPerPlane[NUM_PLANES_IN_FCC] = { 6, 6, 6, 6,                   // basic glide planes
+                                                          4, 4, 4,                      // Junction plane 1 
+                                                          3, 3, 3, 3, 3, 3              // Junction plane 2
+                                                        }; 
+
+        memcpy(burgData->numBurgsPerPlane, numBurgsPerPlane,sizeof(int [NUM_PLANES_IN_FCC]));
+
+        static int planeFirstBurgIndex[NUM_PLANES_IN_FCC] = { 0, 6, 12, 18,
+                                                              24,28,32,
+                                                              36,39,42,45,48,52 };  
+
+        memcpy(burgData->planeFirstBurgIndex,planeFirstBurgIndex,sizeof(int [NUM_PLANES_IN_FCC]));
+
+        static real8 keyLineList[NUM_KEY_LINES_IN_FCC][3] = {
+           { 0.7071067811865475,    0.7071067811865475,     0.0e+00   },   // DC -- 0
+           { 0.7071067811865475,    -0.7071067811865475,    0.0e+00   },   // BA -- 1
+           { 0.7071067811865475,    0.0e+00   ,    0.7071067811865475 },   // DA -- 2
+           { 0.7071067811865475,    0.0e+00   ,    -0.7071067811865475},   // BC -- 3
+           { 0.0e+00   ,   0.7071067811865475,     0.7071067811865475 },   // DB -- 4
+           { 0.0e+00   ,   0.7071067811865475,     -0.7071067811865475}    // AC -- 5
+        };
+
+        for(i=0; i<NUM_KEY_LINES_IN_FCC; i++){
+            Matrix33Vector3Multiply(rotMatrix, keyLineList[i], burgData->keyLineList[i]);
+        }
+
+        static int numPlanesPerKeyLine[NUM_KEY_LINES_IN_FCC] = { 3, 3, 3, 3, 3, 3};
+ 
+        memcpy(burgData->numPlanesPerKeyLine,numPlanesPerKeyLine,sizeof(int [NUM_KEY_LINES_IN_FCC]));
+
+        static int keyLineFirstPlaneIndex[NUM_BURGS_IN_FCC] = { 0, 3, 6, 9, 12, 15 }; 
+        memcpy(burgData->keyLineFirstPlaneIndex,keyLineFirstPlaneIndex,sizeof(int [NUM_KEY_LINES_IN_FCC]));
+
+        static int burgOnPlaneID[54] = {
+                                          /* DC on plane (0) */
                                          0,  // a plane 
                                          1,  // b plane
                                          6, 
                                          
-                                          /* BA on plane */
+                                          /* BA on plane (1) */
                                          2,  // g plane
                                          3,  // d plane
                                          6, 
                                          
-                                          /* DA on plane */
+                                          /* DA on plane (2) */
                                          1,  // b plane
                                          2,  // g plane
                                          5, 
                                          
-                                          /* BC on plane */
+                                          /* BC on plane (3) */
                                          0,  // a plane
                                          3,  // d plane
                                          5, 
                                          
-                                          /* DB on plane */
+                                          /* DB on plane (4) */
                                          0,  // a plane
                                          2,  // g plane
                                          4, 
                                          
-                                          /* AC on plane */
+                                          /* AC on plane (5) */
                                          1,  // b plane
                                          3,  // d plane
                                          4, 
                                          
-                                          /* Db */
+                                          /* Db (6) */
                                          1,
                                          8,
                                          
-                                          /* dB */
+                                          /* dB (7) */
                                          3,
                                          8,
                                          
-                                          /* gA */
+                                          /* gA (8) */
                                          2,
                                          7,
                                          
-                                          /* aC */
+                                          /* aC (9) */
                                          0,
                                          7,
                                          
-                                          /* Da */
+                                          /* Da (10) */
                                          0,
                                          10,
                                          
-                                          /* gB */
+                                          /* gB (11) */
                                          2,
                                          9,
                                          
-                                          /* dA */
+                                          /* dA (12) */
                                          3,
                                          10,
                                          
-                                          /* bC */
+                                          /* bC (13) */
                                          1,
                                          9,
                                          
-                                          /* Dg */
+                                          /* Dg (14) */
                                          2,
                                          12,
                                          
-                                          /* aB */
+                                          /* aB (15) */
                                          0,
                                          11,
                                          
-                                          /* bA */
+                                          /* bA (16) */
                                          1,
                                          11,
                                          
-                                          /* dC */
+                                          /* dC (17) */
                                          3,
                                          12,
 
-                                          /* [100] */
+                                          /* [100] (18) */
                                          5, /* junction plane */
                                          6, /* junction plane */
                                          7, /* junction plane */
                                          8, /* junction plane */
                                          
-                                          /* [010] */
+                                          /* [010] (19) */
                                          4, /* junction plane */
                                          6, /* junction plane */
                                          9, /* junction plane */
                                          10, /* junction plane */
                                          
+                                           /* [001] (20) */
                                          4, /* junction plane */
                                          5, /* junction plane */
                                          11, /* junction plane */
@@ -1568,6 +1612,34 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3])
         burgData->burgOnPlaneID = (int *)calloc(54, sizeof(int));        
         memcpy(burgData->burgOnPlaneID,burgOnPlaneID,sizeof(int [54]));
         
+        static int planeOnBurgID[54] = { 0,  3,  4,  9, 10, 15,     // plane (0)
+                                         0,  2,  5,  6, 13, 16,     // plane (1)
+                                         1,  2,  4,  8, 11, 14,     //    .
+                                         1,  3,  5,  7, 12, 17,     //    .
+                                         4,  5, 19, 20,             //  
+                                         2,  3, 18, 20,             //
+                                         0,  1, 18, 19,             //
+                                         8,  9, 18,                 //
+                                         6,  7, 18,                 //
+                                        11, 13, 19,                 //
+                                        10, 12, 19,                 //
+                                        15, 16, 20,                 //
+                                        14, 17, 20                  //
+                                       };
+        burgData->planeOnBurgID = (int *)calloc(54, sizeof(int));        
+        memcpy(burgData->planeOnBurgID,planeOnBurgID,sizeof(int [54]));
+
+        static int keyLineOnPlaneID[18] = {
+                                            0, 1, 6,
+                                            2, 3, 6,
+                                            1, 2, 5,
+                                            0, 3, 5,
+                                            0, 2, 4,
+                                            1, 3, 4
+                                          };
+        burgData->keyLineOnPlaneID = (int *)calloc(18, sizeof(int));        
+        memcpy(burgData->keyLineOnPlaneID, keyLineOnPlaneID,sizeof(int [54]));
+
         return;
 }
 
@@ -1594,8 +1666,29 @@ void FreeBurgInfoStr(BurgInfo_t *burgData)
     return;
 }
 
+int CompressDirectionList(real8 **dirList, int nRows)
+{
+    int     i, j;
+    real8   crossProdt[3];
+    int     newNRows = 0;
+
+    for(i=0; i<nRows; i++){
+        for(j=0; j<newNRows; j++){
+            cross(dirList[i], dirList[j], crossProdt);
+            if(Normal(crossProdt) < 1.0E-2)break;
+
+            if(j == newNRows){
+                VECTOR_COPY(dirList[newNRows], dirList[i])
+                newNRows++;
+            }
+        }
+    }
+    return(newNRows);
+}
+
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
 {
+
     Grain_t     *grain1, *grain2;
     BurgInfo_t  *bd1, *bd2;
     
@@ -1605,7 +1698,12 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
     bd1 = &(grain1->burgData);
     bd2 = &(grain2->burgData);
 
+
+#if 1
+    
+#else
     GenerateFCCBurgInfo(&(GB->burgData), grain1->orientation);
+#endif
 
     return;
 }

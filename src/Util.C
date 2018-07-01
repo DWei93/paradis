@@ -4221,12 +4221,11 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 
 	            nbr = GetNeighborNode(home, node, i);
                 if(nbr != (Node_t *)NULL){
-	                ChangeOrientation(home, node, nbr,3);
                     if (home->param->useLabFrame) {
                         nLab[0] = node->nx[i];
                         nLab[1] = node->ny[i];
                         nLab[2] = node->nz[i];
-                        Matrix33Vector3Multiply(home->rotMatrixInverse, nLab, nCryst);
+                        VectorLabToCrystal(home, node, nbr, nLab, nCryst);
                     }else{
                         nCryst[0] = node->nx[i];
                         nCryst[1] = node->ny[i];
@@ -4392,3 +4391,21 @@ void ApplyConstraintsToVelocity(int numGlideConstraints,
         return;
 }
 
+
+
+void ForceRemoveNode(Home_t *home, Node_t *node, int globalOp)
+{
+
+    int i;
+
+    for(i=0; i<node->numNbrs; i++){
+        node->nbrTag[i].domainID = -1;
+        node->nbrTag[i].index = -1;
+    }
+
+    CompressArmLists(node);
+
+	RemoveNode(home, node, globalOp);
+
+    return;
+}

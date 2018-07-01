@@ -199,7 +199,8 @@ static void Pack1SecondaryGhost(Node_t *node, real8 **outBuf, int *outBufSize,
         buf[bufOffset++] = (real8)node->flags;
         buf[bufOffset++] = (real8)node->cellIdx;
 		
-		buf[bufOffset++] = node->inGrain;
+		buf[bufOffset++] = (real8)node->inGrain;
+		buf[bufOffset++] = (real8)node->onGB;
 
 #ifdef _FEM
         buf[bufOffset++] = (real8)node->fem_Surface[0];
@@ -419,7 +420,8 @@ static void UnpackSecondaryGhostResponse(Home_t *home, real8 *inBuf)
             node->flags = (int)inBuf[bufOffset++];
             node->cellIdx = (int)inBuf[bufOffset++];
 			
-            node->inGrain = inBuf[bufOffset++];
+            node->inGrain = (int)inBuf[bufOffset++];
+            node->onGB = (int)inBuf[bufOffset++];
         
 #ifdef _FEM
             node->fem_Surface[0] = (int)inBuf[bufOffset++];

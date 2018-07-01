@@ -130,30 +130,6 @@ typedef struct {
 } Segment_t;
 
 
-/*
- *     Define a structure to hold the burgers vectors and associated
- *     glide planes for material for which we dynamically calculate
- *     those values.
- */
-typedef struct {
-        int   numBurgVectors;       /* Total number of burgers vectors */
-                                    /* in <burgList> below             */
-
-        int   numPlanes;            /* Total number of planes in */
-                                    /* <planeList> below         */
-
-        int   *numPlanesPerBurg;    /* Number of planes associated with */
-                                    /* each burgers vector in the list  */
-
-        int   *burgFirstPlaneIndex; /* Index (0 offset) of the first plane */
-                                    /* in <planeList> associated with each */
-                                    /* burgers vector                      */ 
-
-        real8 (*burgList)[3];       /* Array of burgers vectors */
-
-        real8 (*planeList)[3];      /* Arraay of burgers vector planes */
-} BurgInfo_t;
-
 
 
 
@@ -401,6 +377,7 @@ struct _home {
  *      code as needed.
  */
         BurgInfo_t burgData;
+        BurgInfo_t crystBurgData;
 
 /*
  *      For parallel IO, each process needs to know things like

@@ -40,7 +40,8 @@ Node_t *GetNewNativeNode(Home_t *home)
         newNode->oldvZ = 0.0;
 
         newNode->flags = 0;
-		newNode->inGrain = -1.0;
+		newNode->inGrain = -1;
+		newNode->onGB = -1;
 
 #ifdef DEBUG_LOG_MULTI_NODE_SPLITS
         newNode->multiNodeLife = 0;

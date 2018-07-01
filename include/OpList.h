@@ -32,7 +32,8 @@ struct _operate {
 	real8		nx;
 	real8		ny;
 	real8		nz;
-	real8		inGrain;
+	int		inGrain;
+	int		onGB;
 };
 
 /*

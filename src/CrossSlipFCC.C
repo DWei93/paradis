@@ -61,6 +61,7 @@ void CrossSlipFCC(Home_t *home)
         real8  zipperThreshold;
         Node_t *node, *nbr1, *nbr2;
         Param_t *param;
+        real8   rotMatrix[3][3], rotMatrixInverse[3][3];
 
 #ifdef DEBUG_CROSSSLIP_DOMAIN
         dbgDom = DEBUG_CROSSSLIP_DOMAIN;
@@ -122,9 +123,7 @@ void CrossSlipFCC(Home_t *home)
  *          are identical.
  */
             if (param->useLabFrame) {
-				ChangeOrientation(home,node,node,3);
-                Matrix33Vector3Multiply(home->rotMatrixInverse, burgLab,
-                                        burgCrystal);
+                VectorLabToCrystal(home, node, node, burgLab, burgCrystal);
             }
 
             burgSize = sqrt(DotProduct(burgLab, burgLab));
@@ -174,8 +173,7 @@ void CrossSlipFCC(Home_t *home)
 /*
  *			Boundary node is not allowed to	cross slip.	
  */
-			if(nbr1->inGrain - floor(nbr1->inGrain) == BOUNDARY_NODE) continue;
-			if(nbr2->inGrain - floor(nbr2->inGrain) == BOUNDARY_NODE) continue;
+            if(IsOnGB(nbr1) || IsOnGB(nbr2) || IsOnGB(node))continue;
 
 /*
  *          Before we commit to doing a cross-slip event, we may shift
@@ -324,31 +322,41 @@ void CrossSlipFCC(Home_t *home)
  *              Also need to rotate the segment planes into the crystal frame.
  */
                 if (param->useLabFrame) {
-                    int   row;
-                    real8 tmpPlane[3];
+                    int     row;
+                    real8   tmpPlane[3];
+
+                    if(home->param->polycrystal){
+                        Grain_t *grain;
+                        grain = home->grainKeys[node->inGrain];
+                        memcpy(rotMatrix, grain->orientation, sizeof(real8 [3][3]));
+                        memcpy(rotMatrixInverse, grain->orientationInv, sizeof(real8 [3][3]));
+                    }else{
+                        memcpy(rotMatrix, home->rotMatrix, sizeof(real8 [3][3]));
+                        memcpy(rotMatrixInverse, home->rotMatrixInverse, sizeof(real8 [3][3]));
+                    }   
 /*
  *                  Rotate initial glide dir from crystal to lab frame
  */
                     for (row = 0; row < 3; row++) {
-                        Matrix33Vector3Multiply(home->rotMatrix,
+                        Matrix33Vector3Multiply(rotMatrix,
                                                 glideDirCrystal[row],
                                                 glideDirLab[row]);
                     }
 /*
  *                  Rotate segment planes to crystal frame
  */
-                    Matrix33Vector3Multiply(home->rotMatrixInverse, segplane1,
+                    Matrix33Vector3Multiply(rotMatrixInverse, segplane1,
                                             tmpPlane);
                     VECTOR_COPY(segplane1, tmpPlane);
 
-                    Matrix33Vector3Multiply(home->rotMatrixInverse, segplane2,
+                    Matrix33Vector3Multiply(rotMatrixInverse, segplane2,
                                             tmpPlane);
                     VECTOR_COPY(segplane2, tmpPlane);
 
 /*
  *                  Rotate force vector to crystal frame
  */
-                    Matrix33Vector3Multiply(home->rotMatrixInverse, fLab,
+                    Matrix33Vector3Multiply(rotMatrixInverse, fLab,
                                             fCrystal);
                 } else {
 /*

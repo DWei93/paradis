@@ -886,6 +886,7 @@ void PredictiveCollisions(Home_t *home)
         int     cell2X, cell2Y, cell2Z, cx, cy, cz;
         int     localCollisionCnt, globalCollisionCnt;
         int     collisionConditionIsMet, adjustCollisionPoint;
+        int     inGrain1, inGrain2, onGB1, onGB2;
         real8   mindist2, dist2, ddist2dt, L1, L2, eps, half;
         real8   cTime, cPoint[3];
         real8   x1, y1, z1, vx1, vy1, vz1;
@@ -1056,10 +1057,13 @@ void PredictiveCollisions(Home_t *home)
                                 continue;
                             }
 
-                            armInGrain12 = ChangeOrientation(home, node1, node2, 0);
-                            armInGrain34 = ChangeOrientation(home, node3, node4, 0);
-                            if(armInGrain12 != armInGrain34)continue;
-
+                            if(home->param->polycrystal){
+                                GetArmGrain(home, node1, node2, inGrain1, onGB1);
+                                GetArmGrain(home, node3, node4, inGrain2, onGB2);
+                                
+                                if(onGB1 != onGB2)continue;
+                                if(onGB1 == -1 && inGrain1 != inGrain2)continue;
+                            }
 /*
  *                          At this point, segment node3/node4 is owned by
  *                          node3.  If node3 is not native to this domain,
@@ -1735,9 +1739,13 @@ void PredictiveCollisions(Home_t *home)
                     node3 = GetNodeFromTag(home, node1->nbrTag[j]);
                     node4 = GetNodeFromTag(home, node1->nbrTag[k]);
 
-                    armInGrain12 = ChangeOrientation(home, node1, node3, 0);
-                    armInGrain34 = ChangeOrientation(home, node1, node4, 0);
-                    if(armInGrain12 != armInGrain34)continue;
+                    if(home->param->polycrystal){
+                           GetArmGrain(home, node1, node3, inGrain1, onGB1);
+                           GetArmGrain(home, node1, node4, inGrain2, onGB2);
+                                
+                           if(onGB1 != onGB2)continue;
+                           if(onGB1 == -1 && inGrain1 != inGrain2)continue;
+                    }
 
                     x1 = node1->x; y1 = node1->y; z1 = node1->z;
                     x3 = node3->x; y3 = node3->y; z3 = node3->z;

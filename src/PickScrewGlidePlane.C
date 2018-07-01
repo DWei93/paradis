@@ -139,9 +139,7 @@ void PickScrewGlidePlane(Home_t *home, real8 burgVecIn[3], real8 glidePlane[3],
  *      to the crystal frame.
  */
         if (home->param->useLabFrame) {
-	    ChangeOrientation(home, node, nbr, 3);
-            Matrix33Vector3Multiply(home->rotMatrixInverse, burgVecIn,
-                                    burgVecRotated);
+            VectorLabToCrystal(home, node, nbr, burgVecIn, burgVecRotated);
             burgVec = burgVecRotated;
         }
 
@@ -161,7 +159,7 @@ void PickScrewGlidePlane(Home_t *home, real8 burgVecIn[3], real8 glidePlane[3],
  */
         if (home->param->useLabFrame) {
             real8 plane[3];
-            Matrix33Vector3Multiply(home->rotMatrix, glidePlane, plane);
+            VectorCrystalToLab(home, node, nbr, glidePlane, plane);
             glidePlane[0] = plane[0];
             glidePlane[1] = plane[1];
             glidePlane[2] = plane[2];

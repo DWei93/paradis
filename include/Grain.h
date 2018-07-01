@@ -18,8 +18,8 @@
 #define	SAFE_LAYER_RADIUS			1
 #define ERROR_TWIN_LAYER_RADIUS		500
 
-#define	MATRIX_GRAIN		0
-#define TWIN_GRAIN			1
+#define	FOLDED_GRAIN		0
+#define ODINARY_GRAIN			1
 #define MATRIX_BOUNDARY		0
 #define TWIN_BOUNDARY		1
 
@@ -38,39 +38,105 @@
 #define MAX_PENE_DISS               3
 
 /*	define some node types	*/
-#define INGRAIN_NODE	0x0000	// node within grains
-#define INTERSECT_NODE	0x0001	// intersection node between TB node and node within grain
-#define TB_NODE		0x0002	// node with a segment with TB burgers
-#define	RESIDUAL_NODE	0x0004	// other node except TB node
-
-/*	define some burg types	*/
-#define ZERO_BURG		0x0000	// zero burgers
-#define BASIC_BURG		0x0001	// basic burgers
-#define TB_BURG			0x0002	// TB burgers
-#define UNKNOWN_BURG	0x0004	
+#define INGRAIN_NODE	    0x0000	
+#define INTERSECT_NODE	    0x0001	
+#define TB_NODE		        0x0002	
+#define	JUNCTION_NODE	    0x0004
 
 #define INBOX   0x0000
 #define EXCEEDX 0x0001
 #define EXCEEDY 0x0002
 #define EXCEEDZ 0x0004
 
+#define NUM_BURGS_IN_FCC        21
+#define NUM_PLANES_IN_FCC       13
+#define NUM_KEY_LINES_IN_FCC    6
+
+#define GLIDE_PlANE         0
+#define JUNCTION_PLANE      1
+#define UNKOWN_PLANE        2
+
+typedef	enum{
+    ZERO_BURG,
+    BASIC_BURG,
+    SHOCKLEY_BURG,
+    JUNCTION1_BURG,
+    JUNCTION2_BURG, 
+    UNKNOWN_BURG 
+} BurgTypeFCC_t;
+
+/*
+ *     Define a structure to hold the burgers vectors and associated
+ *     glide planes for material for which we dynamically calculate
+ *     those values.
+ */
+struct _burgInfo {
+        int     numBurgVectors;           /* Total number of burgers vectors */
+                                          /* in <burgList> below             */
+
+        int     numPlanes;                /* Total number of planes in */
+                                          /* <planeList> below         */
+
+        int     numKeyLines;              /* Total number of planes in */
+                                          /* <keyLineList> below         */
+
+        int     *numPlanesPerBurg;        /* Number of planes associated with */
+                                          /* each burgers vector in the list  */
+
+        int     *numPlanesPerKeyLine;     /* Number of planes associated with */
+                                          /* each key line in the list  */
+
+        int     *numBurgsPerPlane;        /* Number of burgers associated with */
+                                          /* each plane in the list  */
+
+        int     *burgFirstPlaneIndex;     /* Index (0 offset) of the first plane */
+                                          /* in <burgOnPlaneID> associated with each */
+                                          /* burgers vector                      */ 
+
+        int     *planeFirstBurgIndex;     /* Index (0 offset) of the first burg ID */
+                                          /* in <planeOnBurgID> associated with each */
+                                          /* plane                      */ 
+
+        int     *keyLineFirstPlaneIndex;  /* Index (0 offset) of the first plane ID */
+                                          /* in <keyLineOnPlaneID> associated with each */
+                                          /* key line                      */ 
+
+        real8   (*burgList)[3];           /* Array of burgers vectors */
+
+        real8   (*planeList)[3];          /* Array of planes */
+        int     *planeType;               /* Array of type of planes*/
+
+        real8   (*keyLineList)[3];         /* Array of key line vectors */
+
+        int     *burgOnPlaneID;
+
+        int     *keyLineOnPlaneID;
+        
+        int     *planeOnBurgID;
+};
+
 typedef struct {
-    int     GBID;
-    int     type;
-    real8   n[3];
-    real8   p[3];
-}
+    int         GBID;
+    int         type;
+    int         nbrGrain[2];
+    BurgInfo_t  burgData;
+
+    real8       n[3];
+    real8       p[3];
+} GB_t;
 
 struct _grain{
-	real8	cx, cy, cz;
-	real8	orientation[3][3];
-	real8	orientationInv[3][3];
-    int     grainID;
-	int		type;	/*0: Matrix*/
-					/*1: Twin*/
-	int		nBounds;
-    GB_t    **GB;
-    real8   *sign;
+	real8	    cx, cy, cz;
+	real8	    orientation[3][3];
+	real8	    orientationInv[3][3];
+    int         grainID;
+	int		    type;	/*0: folded grain*/
+					    /*1: ordinary grain*/
+    BurgInfo_t  burgData;
+
+	int		    nBounds;
+    GB_t        **GB;
+    real8       *sign;
 
 };
 
@@ -93,7 +159,7 @@ typedef struct {
 
     int     nPlanes;        // num of out plane i
     bool    *passGB;        // plane i whether pass GB
-    real8   *inGrain;       // plane i in which grain
+    int     *inGrain;       // plane i in which grain
     int     *nDissOnPlane;  // number of dislocations in the plane i
     real8   (*normal)[3];   // plane i normal
 
@@ -103,7 +169,7 @@ typedef struct {
 
 struct _penetration{
     Node_t  *node;          // penetration node
-    Plane_t *GBPlane;       // pointer of GB plane     
+    GB_t    *gb;
 
     Line_t  line1;
     Line_t  line2;
@@ -111,48 +177,47 @@ struct _penetration{
     Res_t   *res;           // results list of penentration sets
 };
 
-Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p,int oldOrCurr, int globalOp, int opClass);
+Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int globalOp, int opClass);
 void PrintNeighbor(Home_t *home, Node_t *node);
 void FormatMatrix(real8 M[3][3], const char *msg);
 void FormatMatrix66(real8 M[6][6], const char *msg);
 void FormatVector(real8 vec[3], const char *msg);
-void CopyMatrix33(real8 M1[3][3], real8 M2[3][3]);
 void InitOrientation(real8 MatrixOrientation[3][3], real8 TwinOrientation[3][3]);
 void FreeGrainStructure(Grain_t *grain);
 void InitGrain(Home_t *home, Param_t *param);
-real8 GetInGrainFromPos(Home_t *home, real8 x, real8 y, real8 z);
+void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB);
 Node_t *GetinDataNodeFromTag(InData_t *inData, Tag_t tag);
 int JudgeNodeInCuboid(real8 *x1, real8 *y1, real8 *z1, real8 x2, real8 y2, real8 z2);
-int GlidePlaneID_FCC(real8 nCryst[3]);
 void GetTBBurg_FCC(int nID, real8 burgTB[3]);
-int	BurgType_FCC(Home_t *home, real8 *burg);
-int BurgID_FCC(real8 bCryst[3]);
+int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3]);
+int GlidePlaneID_FCC(BurgInfo_t *burgData, real8 plane[3]);
+int	BurgType_FCC(real8 *burg[3]);
+int GlidePlaneType_FCC(BurgInfo_t *burgData, int planeID);
 int GetBurgID_FCC(Home_t *home, Node_t *node, Node_t *nbr);
 int HasShortSeg(Home_t *home, Node_t *node, real8 shortSegLenSq);
-void AssignGrain (Home_t *home, Node_t *node, real8 inGrain);
+void AssignGrain (Home_t *home, Node_t *node, int inGrain, int onGB);
 void AssignConstraint(Home_t *home, Node_t *node, int constraint) ;
-void AddOpGB (Home_t *home, OpType_t type, int dom1, int idx1, real8 inGrain);
-real8 InWhichGrain(Home_t *home, real8 x, real8 y, real8 z);
+int GetGBIndexOfGrain(Grain_t *grain, int inGB);
+bool GetPublicGB(Grain_t *grain1, Grain_t *grain2, GB_t **GB);
+void AddOpGB (Home_t *home, OpType_t type, int dom1, int idx1, int inGrain, int onGB);
 int NodeOnGB(Home_t *home, Node_t *node);
-real8 CorrectInGrain(Home_t *home, Node_t *node, real8 inGrainPos);
-real8 ChangeOrientation(Home_t *home, Node_t *node, Node_t *nbr, int flag);
-real8 ClosedGB(Home_t *home, real8 *pos, Plane_t *GBPlane);
-void PullToGB(Home_t *home, Node_t *node, real8 oldInGrain);
-void PullBack(Home_t *home, Node_t *node, real8 oldInGrain);
+void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2, 
+                        real8 lab[3], real8 *cryst);
+void VectorCrystalToLab(Home_t *home, Node_t *node1, Node_t *node2, 
+                        real8 cryst[3], real8 *lab);
+real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB);
+bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos);
+void PullBack(Home_t *home, Node_t *node);
 void PenetrationRule(Home_t *home, Node_t *node);
 void HandleGrainBoundary(Home_t *home);
-void GetGBPlane(Home_t *home,real8 oldGrain, real8 currGrain, 
-				Node_t *node, Plane_t *GBPlane);
 
 real8 FGlidePerLength(Home_t *home,Node_t *node,Plane_t *GBPlane);
 real8 Distance(Home_t *home,real8 *p1,real8 *p2);
 int NodeOnLine(real8 *p, Line_t *line);
-void PullToLine(real8 *p, Line_t *line);
 void PrintTag(Node_t *node);
 void InitPenStr(Pene_t *pene);
 void FreePenStr(Pene_t *pene);
-int  GetPenResults(Home_t *home, Node_t *node, Pene_t *pene,
-	               Plane_t *GBPlane);
+int  GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb);
 
 /*
  * geometrical relationship
@@ -164,8 +229,7 @@ int NodeOnLine(real8 *p, Line_t *line);
 int LineOnPlane(Line_t *line, Plane_t *plane);
 int ClosestPointOfPointLine(real8 *p, Line_t *line, real8 *outP);
 int IntersectionOfPlanePlane(Plane_t *plane1, Plane_t *plane2, Line_t *line);
-real8 GetArmInGrain(real8 inGrain1, real8 inGrain2);
-void ClosetPointToGB(Param_t *param, Plane_t *plane, Plane_t *GBPlane, real8 *p);
+void GetArmGrain(Home_t *home, Node_t *node1, Node_t *node2, int &inGrain, int &onGB);
 
 /*
  * 	others
@@ -174,7 +238,6 @@ void ClosetPointToGB(Param_t *param, Plane_t *plane, Plane_t *GBPlane, real8 *p)
 int	IsZeroVector(real8 *vec);
 
 int  Coor2EleNum(Home_t *home,real8 position[3]);
-void AdjustSurfaceNodeVel(Param_t *param, Node_t *node);
 void AdjustSurfaceNode(Home_t *home);
 int SameTag(Tag_t *tag1, Tag_t *tag2);
 
@@ -188,5 +251,9 @@ void ImageForce(Home_t *home, real8 armGrain, real8 x1, real8 y1, real8 z1,
                   real8 x2, real8 y2, real8 z2, real8 bx, real8 by, real8 bz,
                   real8 f1[3], real8 f2[3]);
 bool BeforeMergeArm(Home_t *home, Node_t *node1, Node_t *node2, real8 *vec1, real8 *vec2, int *type);
+bool IsOnGB(Node_t *node);
+void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3]);
+void GenerateGBBurgInfo(Home_t *home, GB_t *GB);
+void FreeBurgInfoStr(BurgInfo_t *burgData);
 int GeosTest();
 #endif

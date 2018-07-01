@@ -111,8 +111,17 @@ void ReleaseMemory(Home_t *home)
             home->nodeKeys = NULL;
         }
         
+        if(&home->burgData != NULL){
+            FreeBurgInfoStr(&(home->burgData));
+        }
+
+        if(&home->crystBurgData != NULL){
+            FreeBurgInfoStr(&(home->crystBurgData));
+        }
+
         if(home->nGBs > 0){
             for(i=0; i<home->nGBs; i++){
+                FreeBurgInfoStr(&(home->GBKeys[i]->burgData));
                 free(home->GBKeys[i]); home->GBKeys[i] = NULL;
             }
             free(home->GBKeys);
@@ -120,6 +129,7 @@ void ReleaseMemory(Home_t *home)
         }
         if(home->nGrains > 0){
             for(i=0; i<home->nGrains; i++){
+                FreeBurgInfoStr(&(home->grainKeys[i]->burgData));
                 free(home->grainKeys[i]->GB); home->grainKeys[i]->GB = NULL;
                 free(home->grainKeys[i]->sign); home->grainKeys[i]->sign = NULL;
                 free(home->grainKeys[i]); home->grainKeys[i] = NULL;

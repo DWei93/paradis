@@ -346,8 +346,31 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                }
 			   
 			   if(param->useLabFrame){
-					ChangeOrientation(home, node, nbr, 3);
+                    real8   bakRot[3][3], bakRotInv[3][3];
+                    memcpy(bakRot, home->rotMatrix, sizeof(int [3][3]));
+                    memcpy(bakRotInv, home->rotMatrixInverse, sizeof(int [3][3]));
+
+                    if(param->polycrystal){
+
+                        int     inGrain, onGB;
+                        Grain_t *grain;
+                        GB_t    *GB;
+
+                        GetArmGrain(home, node, nbr, inGrain, onGB);
+                        if(onGB > -1){
+                            GB = home->GBKeys[onGB];
+                            grain = home->grainKeys[GB->nbrGrain[0]];
+                        }else{
+                            grain = home->grainKeys[inGrain];    
+                        }
+                        
+                        memcpy(home->rotMatrix, grain->orientation, sizeof(int [3][3]));
+                        memcpy(home->rotMatrixInverse, grain->orientationInv, sizeof(int [3][3]));
+                    }
+
 					InitDeltaPlasticStrain_FCC(home, nanv, tanv, burgv, bnorm);
+                    memcpy(home->rotMatrix, bakRot, sizeof(int [3][3]));
+                    memcpy(home->rotMatrixInverse, bakRotInv, sizeof(int [3][3]));
 			   }
 			   
 /*
@@ -372,8 +395,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 
                if (param->useLabFrame) {
                    real8 bLab[3] = {bx, by, bz};
-		   ChangeOrientation(home, node, nbr, 3);
-                   Matrix33Vector3Multiply(home->rotMatrixInverse,bLab,bCryst);
+                   VectorLabToCrystal(home, node, nbr, bLab, bCryst);
                } else {
                    bCryst[0] = bx;
                    bCryst[1] = by;

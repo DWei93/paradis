@@ -141,7 +141,7 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2,
 
     if(sqrt(SQUARE(fabs(p1x - p2x)) + SQUARE(fabs(p1y - p2y)) + 
        SQUARE(fabs(p1z - p2z))) < EPS2){
-        VECTOR_COPY(vec2,p1);
+        VECTOR_COPY(vec2,p2);
         return(LINE_INTERSECTION);
     }
 

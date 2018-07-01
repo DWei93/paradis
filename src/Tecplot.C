@@ -283,7 +283,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 normal[2] = node->nz[j];
 
                 if(home->param->useLabFrame){
-	            ChangeOrientation(home, node, nbrNode,3);
+	                ChangeOrientation(home, node, nbrNode,3);
                     Matrix33Vector3Multiply(home->rotMatrixInverse, normal, normalCryst);
                 }else{
                     VECTOR_COPY(normalCryst, normal);

@@ -317,8 +317,8 @@ void FixRemesh(Home_t *home, const char flag[256])
 				
 #if CHECK_FIXREMESH				
 				printf("FR %s: Task %d, ", flag, home->myDomain);
-				printf("UG (%d,%d), %3.1f ",op->dom1,op->idx1,
-					  op->inGrain);
+				printf("UG (%d,%d), %d %d ",op->dom1,op->idx1,
+					  op->inGrain, op->onGB);
 
 				PrintTag(node1);
 				printf("\n");
@@ -331,6 +331,7 @@ void FixRemesh(Home_t *home, const char flag[256])
 					printf("Task %d, Warning , the native node change inGrain\n",home->myDomain);
 				}
 				node1->inGrain = op->inGrain;
+				node1->inGrain = op->onGB;
 				break;
 				
 			case(UPDATE_CONSTRAINT):
@@ -338,7 +339,7 @@ void FixRemesh(Home_t *home, const char flag[256])
 #if CHECK_FIXREMESH				
 				printf("FR %s: Task %d, ", flag, home->myDomain);
 				printf("UC (%d,%d), %d ",op->dom1,op->idx1,
-					  (int)op->inGrain);
+					  op->inGrain);
 				PrintTag(node1);
 				printf("\n");
 #endif				
@@ -348,7 +349,7 @@ void FixRemesh(Home_t *home, const char flag[256])
 				}
 				if (node1 == (Node_t *)NULL) break;
 
-				node1->constraint = (int)op->inGrain;
+				node1->constraint = op->inGrain;
 				
 				break;
 
