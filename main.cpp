@@ -739,17 +739,11 @@ int DisassembleDislocation(BurgDataInfo_t *bd, real8 *burg, real8 *lDir)
             lineOnPlanes++;        
         }
     }
+    if(lineOnPlanes)return(0);
 
-    switch (lineOnPlanes){
-        case 0:
-            return 0;
-            break;
-        case 1:
-            
-            break;    
-    }
+    
 
-    return
+    return 1;
 }
 
 int main(){
