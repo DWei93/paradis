@@ -52,9 +52,10 @@
 #define NUM_PLANES_IN_FCC       13
 #define NUM_KEY_LINES_IN_FCC    6
 
-#define GLIDE_PlANE         0
-#define JUNCTION_PLANE      1
-#define UNKOWN_PLANE        2
+#define GLIDE_PLANE         0x0000
+#define JUNCTION_PLANE      0x0001
+#define GB_PLANE            0x0002
+#define UNKOWN_PLANE        0x0004
 
 typedef	enum{
     ZERO_BURG,
