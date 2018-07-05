@@ -816,11 +816,26 @@ int	BurgType_FCC(real8 burg[3]){
 
 }
 
+
+void SumOfValuesIsConstant(int n, int sum, int *valueList){
+    if(n == 0 || sum == 0)return;
+    
+    int i;
+
+    for(i=0; i<= sum; i++){
+        valueList[n-1] = i;
+        SumOfValuesIsConstant(n-1, sum-i, valueList);
+    }
+    return;
+}
+
 int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir)
 {
     int     i, j, k, m, nPlanes = 0, nBurgs = 0;
-    int     newNBurgs;
+    int     newNBurgs, nShockleyBurgs = 0;
+    int     nDiss, *nDissOnBurg;
     real8   (*planeList)[3], (*burgList)[3];
+    real8   (*ShockleyBurgList)[3];
     real8   crossProd[3];
 
     for(i=0; i<bd->numPlanes; i++){
@@ -866,12 +881,40 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir)
     
     newNBurgs = CompressDirectionList(burgList, nBurgs);
 
+    
     for(i=0; i<newNBurgs; i++){
-        if(BurgType_FCC(burgList[i]) & SHOCKLEY_BURG){
-            printf("%-2d: {%-7.4f, %-7.4f, %-7.4f}\n", i,
-                   burgList[i][0], burgList[i][1], burgList[i][2]);
+        if(BurgType_FCC(burgList[i]) & SHOCKLEY_BURG)continue;
+        nShockleyBurgs++;
+    }
+    ShockleyBurgList = (real8 (*)[3])malloc(3*nShockleyBurgs*sizeof(real8));
+    j = 0;
+    for(i=0; i<newNBurgs; i++){
+        if(BurgType_FCC(burgList[i]) & SHOCKLEY_BURG)continue;
+        if(DotProduct(burgList[i], burg) < 0){
+            burgList[i][0] = -burgList[i][0];
+            burgList[i][1] = -burgList[i][1];
+            burgList[i][2] = -burgList[i][2];
+        }
+        VECTOR_COPY(ShockleyBurgList[j],burgList[i]);
+        j++;
+    }
+    
+    nDissOnBurg = (int *)malloc(nShockleyBurgs*sizeof(int)); 
+    while(nDiss < 4*nShockleyBurgs){
+        
+        if(nDissOnBurg[nShockleyBurgs-1] == 3){
+            nDiss++;
         }
     }
+    free(nDissOnBurg);
+    nDissOnBurg = NULL;
+
+    free(burgList);
+    free(planeList);
+    free(ShockleyBurgList);
+    burgList = NULL;
+    planeList = NULL;
+    ShockleyBurgList = NULL;
 
     return(1);
 }
