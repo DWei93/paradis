@@ -24,6 +24,14 @@
 #define GB_PLANE            0x0002
 #define UNKOWN_PLANE        0x0004
 
+typedef	enum{
+    ZERO_BURG,
+    BASIC_BURG,
+    SHOCKLEY_BURG,
+    JUNCTION1_BURG,
+    JUNCTION2_BURG, 
+    UNKNOWN_BURG 
+} BurgTypeFCC_t;
 typedef struct {
         int     numBurgVectors;           /* Total number of burgers vectors */
                                           /* in <burgList> below             */
@@ -106,6 +114,7 @@ real8 Normal(real8 a[3])
 void GenerateFCCBurgInfo(BurgInfo_t *burgData, Grain_t *grain);
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB);
 void FreeBurgInfoStr(BurgInfo_t *burgData);
+int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir);
 
 void InitGrain(Home_t *home);
 
@@ -189,6 +198,11 @@ void InitGrain(Home_t *home){
     
     GenerateGBBurgInfo(home, gb); 
 
+#if 1
+    real8 line[3] = {0,1,0};
+    real8 burg[3] = {2,0,0};
+    DisassembleDislocation(&(gb->burgData), burg, line);
+#endif
     return;
 
 }
@@ -318,6 +332,14 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, Grain_t *grain)
         for(i=0; i<NUM_BURGS_IN_FCC; i++){
             Matrix33Vector3Multiply(grain->orientation, burgList[i], burgData->burgList[i]);
         }
+
+#if 1
+        real8 testBurg[3] = { 0.7071067811865475,      -0.7071067811865475,        0.0e+00            };
+        real8 resBurg[3];
+        Matrix33Vector3Multiply(grain->orientation, testBurg, resBurg);
+        printf("grain %d, {%-15.12f,%-15.12f,%-15.12f}\n", grain->grainID, 
+                resBurg[0],resBurg[1],resBurg[2]);
+#endif
 
         int numPlanesPerBurg[NUM_BURGS_IN_FCC] = { 3, 3, 3, 3, 3, 3, 
                                                    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
@@ -506,6 +528,27 @@ void FreeBurgInfoStr(BurgInfo_t *burgData)
     return;
 }
 
+int CompressDirectionList(real8 (*dirList)[3], int nRows)
+{
+    int     i, j;
+    real8   crossProdt[3];
+    int     newNRows = 0;
+
+    for(i=0; i<nRows; i++){
+        for(j=0; j<newNRows; j++){
+            cross(dirList[i], dirList[j], crossProdt);
+            if(Normal(crossProdt) < 1.0E-2)break;
+
+        }
+        if(j == newNRows){
+            VECTOR_COPY(dirList[newNRows], dirList[i])
+            newNRows++;
+        }
+    }
+    return(newNRows);
+
+}
+
 int CompressDirectionList(real8 (*dirList)[3], int *IDList, int nRows)
 {
     int     i, j;
@@ -600,6 +643,7 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
     for(i=0; i<bd2->numBurgVectors; i++){
         bd2BurgOnPlaneID[i] = (int *)malloc(bd2->numPlanesPerBurg[i]*sizeof(int));
     }
+
     for(i=0; i<bd2->numBurgVectors; i++){
         for(j=0; j<bd2->numPlanesPerBurg[i]; j++){
             bd2BurgOnPlaneID[i][j] = bd2->burgOnPlaneID[i][j]+bd1->numPlanes;
@@ -725,54 +769,111 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
     for(i=0; i<bd2->numKeyLines; i++){
         free(*(bd2KeyLineOnPlaneID+i));
     }
-    return;
 
+    return;
 }
 
+int	BurgType_FCC(real8 burg[3]){
 
-void KeyLineIDList(BurgInfo_t *bd, real8 *lDir, int *keyLineIDList, int &nKeyLineIDs)
-{
-    int     i;
-    real8   crossProd[3];
-    
+	real8 eps = 1e-2;
+	real8 burgMag;
 
-    return;
+	burgMag = Normal(burg);
+
+/*	
+ *	0: zero burgers
+ */
+    if(burgMag < eps)return(ZERO_BURG);
+
+/*
+ * 	1: basic Burgers vector
+ */		
+	if(fabs(burgMag - 1) < eps){
+		return(BASIC_BURG);
+	}
+/*	
+ *	2: TB burgers
+ */
+	
+	if(fabs(burgMag - 0.5773502691896258) < eps) {
+		return(SHOCKLEY_BURG);
+	}
+
+/*	
+ *	3: junction 1 burgers, like [Sqrt(2),0,0]
+ */
+	if(fabs(burgMag - 1.414213562373095) < eps) {
+		return(JUNCTION1_BURG);
+	}
+
+/*	
+ *	3: junction 2 burgers, like DA+DB
+ */
+	if(fabs(burgMag - 1.732050807568877) < eps) {
+		return(JUNCTION2_BURG);
+	}
+	return(UNKNOWN_BURG);
+
 }
 
 int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir)
 {
-    int     i, n, lineOnPlanes = 0;
-    int     *keyLineIDList, nKeyLineIDs;
+    int     i, j, k, m, nPlanes = 0, nBurgs = 0;
+    int     newNBurgs;
+    real8   (*planeList)[3], (*burgList)[3];
     real8   crossProd[3];
 
     for(i=0; i<bd->numPlanes; i++){
-        if(fabs(DotProduct(lDir, bd->planeList[i])) < 1.0E-2){
-            lineOnPlanes++;        
+        cross(lDir, bd->planeList[i], crossProd);
+        if(Normal(crossProd) < 1.0E-2){
+            nPlanes++;        
         }
     }
-    if(lineOnPlanes)return(0);
 
-    nKeyLineIDs = 0;
-    for(i=0; i<bd->numKeyLines; i++){
-        cross(bd->keyLineList[i], lDir, crossProd);
-        if(Normal(crossProd) < 1.0E-3)nKeyLineIDs++;
+    if(nPlanes == 0)return(0);
+
+    planeList = (real8 (*)[3])malloc(3*nPlanes*sizeof(real8));    
+
+    nBurgs = 0;
+    j = 0;
+    for(i=0; i<bd->numPlanes; i++){
+        cross(lDir, bd->planeList[i], crossProd);
+        if(Normal(crossProd) < 1.0E-2){
+            if(j == nPlanes)continue;
+            VECTOR_COPY(planeList[j], bd->planeList[i]);
+            nBurgs += (bd->numBurgsPerPlane[i]);
+            j++;
+        }
+        
+    }
+
+    burgList = (real8 (*)[3])malloc(3*nBurgs*sizeof(real8));
+
+    j = 0;
+    m = 0;
+    for(i=0; i<bd->numPlanes; i++){
+        cross(lDir, bd->planeList[i], crossProd);
+        if(Normal(crossProd) < 1.0E-2){
+            if(j == nPlanes)continue;
+            for(k=0; k<bd->numBurgsPerPlane[i]; k++){
+                if(m == nBurgs)printf("Warning in %s at %d", __FILE__, __LINE__);
+                VECTOR_COPY(burgList[m], bd->burgList[bd->planeOnBurgID[i][k]]);
+                m++;
+            }
+            j++;
+        }
     }
     
-    if(nKeyLineIDs > 0){
-        keyLineIDList = (int *)malloc(nKeyLineIDs*sizeof(int));
-        int j=0;
-        for(i=0; i<bd->numKeyLines; i++){
-            cross(bd->keyLineList[i], lDir, crossProd);
-            if(Normal(crossProd) < 1.0E-3)keyLineIDList[j++] = i;
+    newNBurgs = CompressDirectionList(burgList, nBurgs);
+
+    for(i=0; i<newNBurgs; i++){
+        if(BurgType_FCC(burgList[i]) & SHOCKLEY_BURG){
+            printf("%-2d: {%-7.4f, %-7.4f, %-7.4f}\n", i,
+                   burgList[i][0], burgList[i][1], burgList[i][2]);
         }
     }
 
-
-
-    free(keyLineIDList);
-    keyLineIDList = NULL;
-
-    return 1;
+    return(1);
 }
 
 int main(){
