@@ -550,6 +550,7 @@ void AddDirectionList(real8 (*list1)[3], int n1, real8 (*list2)[3], int n2, real
     return;    
 }
 
+
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
 {
 
@@ -729,19 +730,47 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
 }
 
 
-int DisassembleDislocation(BurgDataInfo_t *bd, real8 *burg, real8 *lDir)
+void KeyLineIDList(BurgInfo_t *bd, real8 *lDir, int *keyLineIDList, int &nKeyLineIDs)
+{
+    int     i;
+    real8   crossProd[3];
+    
+
+    return;
+}
+
+int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir)
 {
     int     i, n, lineOnPlanes = 0;
-
+    int     *keyLineIDList, nKeyLineIDs;
+    real8   crossProd[3];
 
     for(i=0; i<bd->numPlanes; i++){
-        if(fabs(DotProduct(ldir, bd->planeList[i])) < 1.0E-2){
+        if(fabs(DotProduct(lDir, bd->planeList[i])) < 1.0E-2){
             lineOnPlanes++;        
         }
     }
     if(lineOnPlanes)return(0);
 
+    nKeyLineIDs = 0;
+    for(i=0; i<bd->numKeyLines; i++){
+        cross(bd->keyLineList[i], lDir, crossProd);
+        if(Normal(crossProd) < 1.0E-3)nKeyLineIDs++;
+    }
     
+    if(nKeyLineIDs > 0){
+        keyLineIDList = (int *)malloc(nKeyLineIDs*sizeof(int));
+        int j=0;
+        for(i=0; i<bd->numKeyLines; i++){
+            cross(bd->keyLineList[i], lDir, crossProd);
+            if(Normal(crossProd) < 1.0E-3)keyLineIDList[j++] = i;
+        }
+    }
+
+
+
+    free(keyLineIDList);
+    keyLineIDList = NULL;
 
     return 1;
 }
