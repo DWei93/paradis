@@ -5,6 +5,8 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
+#include <vector>
+#include <algorithm>
 
 #define VECTOR_ZERO(a) {a[0]=0; a[1]=0; a[2]=0;}
 #define VECTOR_COPY(a,b) {(a)[0] = (b)[0]; (a)[1] = (b)[1]; (a)[2] = (b)[2];}
@@ -23,6 +25,9 @@
 #define JUNCTION_PLANE      0x0001
 #define GB_PLANE            0x0002
 #define UNKOWN_PLANE        0x0004
+
+
+using namespace std;
 
 typedef	enum{
     ZERO_BURG,
@@ -200,7 +205,7 @@ void InitGrain(Home_t *home){
 
 #if 1
     real8 line[3] = {0,1,0};
-    real8 burg[3] = {2,0,0};
+    real8 burg[3] = {1,0,0};
     DisassembleDislocation(&(gb->burgData), burg, line);
 #endif
     return;
@@ -816,27 +821,40 @@ int	BurgType_FCC(real8 burg[3]){
 
 }
 
+void SumOfValuesIsConstant(int n, int sum, vector<int>& valueList, int tot, 
+                            vector<vector<int> >& valueLists, int maxVar)
+{
+    int i, j, nextSum;
 
-void SumOfValuesIsConstant(int n, int sum, int *valueList){
-    if(n == 0 || sum == 0)return;
-    
-    int i;
-
-    for(i=0; i<= sum; i++){
+    if(n == 0)return;
+    for(i=0; i<= maxVar && i<= sum; i++){
         valueList[n-1] = i;
-        SumOfValuesIsConstant(n-1, sum-i, valueList);
+        nextSum = sum - i;
+        if(nextSum > (n-1)*maxVar)continue;
+        SumOfValuesIsConstant(n-1, nextSum, valueList, tot
+                                 ,valueLists, maxVar);
+    }
+
+    if(n-1 == 0 && nextSum <= maxVar){
+        valueLists.push_back(valueList);
     }
     return;
 }
 
+bool cmp(vector<int >& p,vector<int >& q)
+{
+    return (p[p.size()-1] < q[q.size()-1]);
+}
 int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir)
 {
     int     i, j, k, m, nPlanes = 0, nBurgs = 0;
     int     newNBurgs, nShockleyBurgs = 0;
-    int     nDiss, *nDissOnBurg;
+    int     sum, maxVals;
     real8   (*planeList)[3], (*burgList)[3];
     real8   (*ShockleyBurgList)[3];
-    real8   crossProd[3];
+    real8   crossProd[3], resiBurg[3];
+    real8   resiBurgMag;
+
 
     for(i=0; i<bd->numPlanes; i++){
         cross(lDir, bd->planeList[i], crossProd);
@@ -883,31 +901,56 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir)
 
     
     for(i=0; i<newNBurgs; i++){
-        if(BurgType_FCC(burgList[i]) & SHOCKLEY_BURG)continue;
+        if(BurgType_FCC(burgList[i]) != SHOCKLEY_BURG)continue;
         nShockleyBurgs++;
     }
     ShockleyBurgList = (real8 (*)[3])malloc(3*nShockleyBurgs*sizeof(real8));
     j = 0;
     for(i=0; i<newNBurgs; i++){
-        if(BurgType_FCC(burgList[i]) & SHOCKLEY_BURG)continue;
+        if(BurgType_FCC(burgList[i]) != SHOCKLEY_BURG)continue;
         if(DotProduct(burgList[i], burg) < 0){
             burgList[i][0] = -burgList[i][0];
             burgList[i][1] = -burgList[i][1];
             burgList[i][2] = -burgList[i][2];
         }
         VECTOR_COPY(ShockleyBurgList[j],burgList[i]);
+        printf("Shockley %2d: {%-7.5f,%-7.5f,%-7.5f}\n",
+               j, ShockleyBurgList[j][0], ShockleyBurgList[j][1],
+               ShockleyBurgList[j][2]);
         j++;
     }
     
-    nDissOnBurg = (int *)malloc(nShockleyBurgs*sizeof(int)); 
-    while(nDiss < 4*nShockleyBurgs){
-        
-        if(nDissOnBurg[nShockleyBurgs-1] == 3){
-            nDiss++;
-        }
+    maxVals = 3;
+    vector<int>         valueList(nShockleyBurgs);
+    vector<vector<int>> valueLists;
+    for(sum=0; sum < maxVals*nShockleyBurgs+1; sum++){
+        SumOfValuesIsConstant(nShockleyBurgs, sum, valueList, 
+                              nShockleyBurgs, valueLists, maxVals);
     }
-    free(nDissOnBurg);
-    nDissOnBurg = NULL;
+
+    for(i=0; i<valueLists.size(); i++){
+        resiBurg[0] = burg[0];
+        resiBurg[1] = burg[1];
+        resiBurg[2] = burg[2];
+
+        for(j=0; j<valueLists[i].size(); j++){
+            resiBurg[0] -= ((real8)valueLists[i][j] * ShockleyBurgList[j][0]); 
+            resiBurg[1] -= ((real8)valueLists[i][j] * ShockleyBurgList[j][1]); 
+            resiBurg[2] -= ((real8)valueLists[i][j] * ShockleyBurgList[j][2]); 
+        }
+        
+        resiBurgMag = Normal(resiBurg);
+        valueLists[i].push_back((int)(resiBurgMag*100));
+    }
+
+    sort(valueLists.begin(),valueLists.end(),cmp); 
+    for(i=0; i<valueLists.size(); i++){
+        printf("i = %d: ", i);
+        for(j=0; j<valueLists[i].size(); j++){
+            printf("%-5d ", valueLists[i][j]);
+        }
+        printf("\n");
+    }
 
     free(burgList);
     free(planeList);
