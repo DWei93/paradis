@@ -28,9 +28,9 @@ int main(){
     int i,j, n, sum;
     
 
-    n = 3;
+    n = 9;
     vector<int>         valueList(n);
-    vector<vector<int>> valueLists;
+    vector<vector<int> > valueLists;
 
 
     for(sum=0; sum<3*n+1; sum++){
@@ -46,7 +46,7 @@ int main(){
         }
     }
 
-   vector<vector<int>> vec;
+   vector<vector<int> > vec;
 
     vector<int> a;
     a.push_back(1);
