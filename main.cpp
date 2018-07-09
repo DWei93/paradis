@@ -32,6 +32,12 @@
 #define JUNCTION2_BURG_MAG_FCC  1.732050807568877
 
 using namespace std;
+    
+typedef struct {
+    int planeID;
+    int burgID;
+}Dislocation_t;
+
 
 typedef	enum{
     ZERO_BURG,
@@ -123,9 +129,11 @@ real8 Normal(real8 a[3])
 void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainID = -1);
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB);
 void FreeBurgInfoStr(BurgInfo_t *burgData);
-int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir, real8 *plane,
+int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                            vector< vector<double> >&  burgList, 
-                           vector< vector< vector<int> > >& sets);
+                           vector<vector<int> >&      disOnBurgIDList,
+                           vector<vector<Dislocation_t> >&    disArray,
+                           real8* plane = (real8*)NULL);
 
 void InitGrain(Home_t *home);
 
@@ -187,10 +195,12 @@ void InitGrain(Home_t *home){
         {-4.082482904638631e-01,-4.082482904638631e-01,8.164965809277261e-01}
     };
 
-    real8 rotTwin[3][3] = {{-0.816497, 0.408248, 
+    real8 rotTwin[3][3] = 
+#if 1        
+        {{-0.816497, 0.408248, 
         0.408248}, {-0.57735, -0.57735, -0.57735}, {0., -0.707107, 
         0.707107}};
-#if 0
+#else
     {
         {-7.071067811865476e-01,7.071067811865474e-01,-7.070501591499380e-17},
         {-5.773502691896257e-01,-5.773502691896260e-01,-5.773502691896258e-01},
@@ -216,19 +226,22 @@ void InitGrain(Home_t *home){
 #if 1
     real8   burgCry[3] = {0.707107, -0.707107, 0.};
     real8   lineCry[3] = {0.707107, -0.707107, 0.};
-    real8   planeCry[3]= {0.57735, 0.57735, -0.57735}; 
+//    real8   planeCry[3]= {0.57735, 0.57735, -0.57735}; 
+    real8   planeCry[3]= {0.57735, 0.57735, 0.57735}; 
     int     grainID = 0;
     real8   burg[3], line[3], plane[3];
 
-    vector< vector<double> >            burgList;
-    vector< vector< vector<int> > >     sets;
+    vector< vector<double> >                    burgList;
+    vector<vector<int> >                        disOnBurgIDList;
+    std::vector<std::vector<Dislocation_t> >    disArray;
 
     grain = home->grainKeys[grainID];
     Matrix33Vector3Multiply(grain->orientation, burgCry, burg);
     Matrix33Vector3Multiply(grain->orientation, lineCry, line);
     Matrix33Vector3Multiply(grain->orientation, planeCry,plane);
-    DisassembleDislocation(&(gb->burgData), burg, line, plane,
-                           burgList, sets);
+    DisassembleDislocation(&(gb->burgData), burg, line,
+                           burgList, disOnBurgIDList,disArray);
+//                           burgList, disOnBurgIDList,disArray, plane);
 
     printf("A test burg:\n");
     printf("crystal burg {%7.4f,%7.4f,%7.4f} to global burg {%7.4f,%7.4f,%7.4f}\n",
@@ -238,13 +251,18 @@ void InitGrain(Home_t *home){
     printf("crystal plane {%7.4f,%7.4f,%7.4f} to global plane {%7.4f,%7.4f,%7.4f}\n",
            planeCry[0],planeCry[1],planeCry[2], plane[0],plane[1],plane[2]);
 
-    for(i=0; i<sets.size(); i++){
-        printf("set %d:\n",i);
-        for(j=0; j<sets[i].size(); j++){
-            for(k=0; k<sets[i][j].size(); k++){
-                printf("%2d ", sets[i][j][k]);
-            }
-            printf("\n");
+
+    printf("\n Basic shockley burg\n");
+    for(i=0; i<burgList.size(); i++){
+        printf("%d: {%7.4f,%7.4f,%7.4f}\n",i, 
+                burgList[i][0], burgList[i][1],burgList[i][2]);
+    }
+
+    printf("Dislocation Arrray:\n");
+    for(i=0; i<disArray.size(); i++){
+        printf("%d: ",i);
+        for(j=0; j<disArray[i].size(); j++){
+            printf("(%d)[%d] ",disArray[i][j].planeID,disArray[i][j].burgID);
         }
         printf("\n");
     }
@@ -325,7 +343,7 @@ void F2(real8 M1[3][3], real8 M2[3][3]){
 
 void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainID)
 {
-        int         i, j;
+        int         i;
 
         burgData->numBurgVectors = NUM_BURGS_IN_FCC;
         burgData->numPlanes   = NUM_PLANES_IN_FCC;
@@ -623,8 +641,7 @@ int CompressDirectionList(real8 (*dirList)[3], int *IDList, int nRows)
 
 void AddDirectionList(real8 (*list1)[3], int n1, real8 (*list2)[3], int n2, real8 (*list)[3])
 {
-    int     i, j;
-    int     newRows;
+    int     i;
 
     for(i=0; i<n1+n2; i++){
         if(i<n1){
@@ -641,7 +658,7 @@ void AddDirectionList(real8 (*list1)[3], int n1, real8 (*list2)[3], int n2, real
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
 {
 
-    int         i, j, newRows, numRows;
+    int         i, j, numRows;
     real8       crossProdt[3];
     Grain_t     *grain1, *grain2;
     BurgInfo_t  *bd1, *bd2, *gbd;
@@ -896,6 +913,11 @@ bool cmp(vector<int >& p,vector<int >& q)
     return(sum1 < sum2);
 }
 
+bool cmp2(Dislocation_t& p, Dislocation_t& q)
+{
+    return(p.planeID < q.planeID);
+}
+
 void Iter(vector<int>& disLocalBurgID, 
           vector< vector<int> >& burgOnPlaneID,
           vector<int>& planeIDList, 
@@ -968,6 +990,30 @@ void CompressVectorList(vector< vector<int> >& list)
     list.resize(nRows);
 }
 
+void CompressDislocationArray(vector< vector<Dislocation_t> >& list)
+{
+    int i, j, k, nRows = 0;
+    for(i=0; i<list.size(); i++){
+        for(j=0; j<nRows; j++){
+            if(list[i].size() == list[j].size()){
+                for(k=0; k<list[i].size(); k++){
+                    if(list[i][k].planeID != list[j][k].planeID ||
+                    list[i][k].burgID != list[j][k].burgID)break;
+                }
+                if(k == list[i].size())break;
+            }
+            
+        }
+        if(j == nRows){
+            for(k=0; k<list[nRows].size(); k++){
+                list[nRows][k].planeID = list[i][k].planeID;
+                list[nRows][k].burgID = list[i][k].burgID;
+            }
+            nRows++;
+        }
+    }
+    list.resize(nRows);
+}
 void IterFun1(int n, int m, vector<int>& list,
        vector<vector<int> >& lists)
 {
@@ -1022,19 +1068,20 @@ void IterFun2(vector<int>& oriVec, int iLayer,
     return;
 }
 
-int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir, real8 *plane,
+int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                            vector< vector<double> >&  burgList, 
-                           vector< vector< vector<int> > >& sets)
+                           vector<vector<int> >&      disOnBurgIDList,
+                           vector<vector<Dislocation_t> >&    disArray,
+                           real8 *plane)
 {
-    int     i, j, k, m, n, l, nPlanes = 0, nBurgs = 0;
-    int     newNBurgs, nShockleyBurgs = 0;
-    int     sum, maxVals, stat = 1, onGBPlane;
+    int     i, j, k, m, nPlanes = 0, nBurgs = 0;
+    int     nShockleyBurgs = 0;
+    int     sum, maxVals, onGBPlane;
     int     nBurgSets;
     real8   vec[3];
     real8   crossProd[3], resiBurg[3];
     real8   resiBurgMag;
 
-    vector<vector<int> >                planeOnLocalBurgID;
     vector< vector<double> >            planeList;
     vector<int>                         planeIDList;
     vector< vector<int> >               burgOnPlaneID;
@@ -1046,28 +1093,58 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir, real8 *plan
     vector<int>                         planeID;
     vector<double>                      vector(3);
 
+    std::vector<int>                    disOnBurgID;
+    std::vector<int>                    disOnPlaneID;
+    std::vector<int>                    oriVec;
+    std::vector<int>                    orderList;
+    std::vector<std::vector<int> >      disOnPlaneIDList;
+    std::vector<std::vector<int> >      orderArray;
+
+    std::vector<std::vector<int> >      recordList(3);
+    std::vector<std::vector<int> >      recordArray;
+    
+    std::vector<int>                            sortList;
+    std::vector<Dislocation_t>                  disList;
+    std::vector<Dislocation_t>                  tempDisList;
+    std::vector<std::vector<Dislocation_t> >    tempDisArray;
+    
+    std::vector<std::vector<std::vector<int> > >       disOnPlaneIDArray;
 
 #if DEBUG_DisassembleDislocation 
     printf("Burg Vector: {%7.4f,%7.4f,%7.4f}\n", burg[0],burg[1],burg[2]);
     printf("Line Vector: {%7.4f,%7.4f,%7.4f}\n", lDir[0],lDir[1],lDir[2]);
-    printf("Plane Normal: {%7.4f,%7.4f,%7.4f}\n\n", plane[0],plane[1],plane[2]);
-#endif
-
-#if DEBUG_DisassembleDislocation
+    if(plane != (real8 *)NULL){
+        printf("Plane Normal constraint: {%7.4f,%7.4f,%7.4f}\n\n", plane[0],plane[1],plane[2]);
+    }else{
+        printf("Without plane constraint\n");
+    }
     printf("Basic glide planes : \n");
 #endif
+
     for(i=0; i<bd->numPlanes; i++){
         planeID.push_back(nPlanes);
         if(bd->planeType[i] & GLIDE_PLANE == 0)continue;
         if(fabs(DotProduct(lDir,bd->planeList[i])) < 1.0E-2){
             VECTOR_COPY(vector, bd->planeList[i]);
             planeList.push_back(vector);
-            planeIDList.push_back(i);
+            if(plane != (real8 *)NULL){
+                cross(bd->planeList[i], plane, crossProd);
+                if(Normal(crossProd) < 1.0E-2){
+                    planeIDList.push_back(i);
 #if DEBUG_DisassembleDislocation
-            printf("%2d: {%7.4f,%7.4f,%7.4f} (%2d)\n",nPlanes,
-                   vector[0], vector[1], vector[2], i);
+                    printf("%2d: {%7.4f,%7.4f,%7.4f} (%2d)\n",nPlanes,
+                        vector[0], vector[1], vector[2], i);
 #endif
-            nPlanes++;
+                    nPlanes++;
+                }
+            }else{
+                planeIDList.push_back(i);
+#if DEBUG_DisassembleDislocation
+                printf("%2d: {%7.4f,%7.4f,%7.4f} (%2d)\n",nPlanes,
+                       vector[0], vector[1], vector[2], i);
+#endif
+                nPlanes++;
+            }
         }
     }
 
@@ -1099,14 +1176,10 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir, real8 *plan
         }
     }
     
-#if 0
-    nShockleyBurgs = nBurgs;
-#else
     nShockleyBurgs = CompressDirectionList(burgList, nBurgs);
     for(it = burgList.end(); it != burgList.begin()+nShockleyBurgs; it--){
         burgList.erase(it);
     }
-#endif
     if(nShockleyBurgs == 0)return(0); 
 
 #if DEBUG_DisassembleDislocation
@@ -1119,9 +1192,9 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir, real8 *plan
     printf("\n");
 #endif
     
-    maxVals = 5;
+    maxVals = 4;
     valueList.resize(nShockleyBurgs);
-    for(sum=0; sum < 10; sum++){
+    for(sum=0; sum < 8; sum++){
         SumOfValuesIsConstant(nShockleyBurgs, sum, valueList, 
                               nShockleyBurgs, setLists, maxVals);
     }
@@ -1162,7 +1235,7 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir, real8 *plan
            (int)(SHOCKLEY_BURG_MAG_FCC * 100 + 1.0)){
             break;
         }
-#if 0
+#if 1
         if(setLists[0][setLists[i].size()-1] == 0){
             if(setLists[i][setLists[i].size()-1] > 0){
                 break;
@@ -1171,6 +1244,7 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir, real8 *plan
 #endif
 
 #if DEBUG_DisassembleDislocation
+//#if 1
         printf("Set %2d: ", i);
         for(j=0; j<setLists[i].size(); j++){
             printf("%5d ", setLists[i][j]);
@@ -1190,34 +1264,23 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir, real8 *plan
 
     burgOnPlaneID.resize(nShockleyBurgs);
     for(i=0; i<burgOnPlaneID.size(); i++){
-//        onGBPlane = 0;
+        onGBPlane = 0;
         for(j=0; j<nPlanes; j++){
             if(fabs(DotProduct(burgList[i], 
                 planeList[j])) < 1.0E-2){
-//                if((bd->planeType[planeIDList[j]] & GB_PLANE) > 0){
-//                    onGBPlane ++;
-//                    if(onGBPlane == 2)continue;
-//                }
+                if((bd->planeType[planeIDList[j]] & GB_PLANE) > 0){
+                    onGBPlane ++;
+                    if(onGBPlane == 2)continue;
+                }
                 if(bd->planeType[planeIDList[j]] & GLIDE_PLANE == 0)continue;
                 burgOnPlaneID[i].push_back(planeIDList[j]);
             }
         }
     }
 
-
-    int                             nDiss, dis, pls, bID, iit, jit;
-    std::vector<int>                disLocalBurgID;
-    std::vector<int >               plIDList;
-    std::vector<int >               a(1);
-    std::vector<int >               lastPlIDList;
-    std::vector<std::vector<int> >  plIDLists;
-    std::vector<std::vector<std::vector<int> > >    setsPlaneOnLocalBurgID;
-    std::vector<std::vector<std::vector<int> > >    disLocalBurgPlaneIDList;
-
-
-
 #if DEBUG_DisassembleDislocation
-//    burgOnPlaneID[2].push_back(14);
+//    burgOnPlaneID[3].push_back(15);
+//    burgOnPlaneID[7].push_back(3);
 //    printf("burgOnPlaneID[2].size() %d\n", burgOnPlaneID[2].size());
     for(i=0; i<burgOnPlaneID.size(); i++){
         printf("Shockley burg %2d on plane:", i);
@@ -1233,201 +1296,112 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir, real8 *plan
     printf("\n");
 #endif
 
-#if 0
-    for(i=0; i<setLists.size(); i++){
-        std::vector< std::vector<int> >().swap(planeOnLocalBurgID);
-        for(j=0; j<setLists[i].size()-1; j++){
-            if(setLists[i][j] == 0)continue;
-            for(k=0; k<burgOnPlaneID[j].size(); k++){
-                for(m = 0; m<planeOnLocalBurgID.size(); m++){
-                    if(burgOnPlaneID[j][k] != planeOnLocalBurgID[m][0]){
-                        a[0] = burgOnPlaneID[j][k];
-                        planeOnLocalBurgID.push_back(a);
-                    }
-                    planeOnLocalBurgID[m].push_back(j);
-                }
-                if(planeOnLocalBurgID.size() == 0){
-                    a[0] = burgOnPlaneID[j][k];
-                    planeOnLocalBurgID.push_back(a);
-                    planeOnLocalBurgID[m].push_back(j);
-                }
-            }
-        }
-        setsPlaneOnLocalBurgID.push_back(planeOnLocalBurgID);
-    }
 
+    printf("Dis On Burg ID, burgList size %d\n", burgList.size());
     for(i=0; i<setLists.size(); i++){
-        nDiss = 0;
-        nDiss = accumulate(setLists[i].begin(), setLists[i].end()-1, 0);
-        dis = 0;
-        disLocalBurgID.resize(nDiss);
-        for(j=0; j<setLists[i].size()-1; j++){
-            if(setLists[i][j] == 0)continue;
+        std::vector<int>().swap(disOnBurgID);
+        for(j=0; j<burgList.size(); j++){
             for(k=0; k<setLists[i][j]; k++){
-                disLocalBurgID[dis]= j;
-                dis++;
+                disOnBurgID.push_back(j);
             }
         }
-
-        printf("%d SET: \n",i);
-        for(j=0;j<disLocalBurgID.size(); j++){
-            printf("%d ",disLocalBurgID[j]);
-        }
-        printf("\n");
-
-
-        plIDList.resize(nDiss, -1);
-        lastPlIDList.resize(nDiss, -1);
-        std::vector< std::vector<int> >().swap(plIDLists);
-
-        iit = 0; jit = 0;
-        Iter(disLocalBurgID, burgOnPlaneID, plIDList,
-         lastPlIDList, plIDLists, iit, jit);
-        
-        printf("%d Set:\n",i);
-        for(j=0; j<plIDLists.size(); j++){
-            printf("Set[%d][%d]: ",i,j);
-            for(k=0; k<plIDLists[j].size(); k++){
-                printf("[%d](%d) ",disLocalBurgID[k],
-        //        printf("(%2d) ",
-                        plIDLists[j][k]);
-            }
-            printf("\n");
-        }
-        printf("\n");
+        disOnBurgIDList.push_back(disOnBurgID);
     }
 
-
-    // i set, j burg, k local burg, 
-    int                                             nBurg;
-    int                                             nLocalDiss;
-    std::vector<int>                                nDissOnPlane;
-    std::vector<int>                                kBurgID;
-    std::vector<int>                                nSetsPerBurg;
-    std::vector<int>                                orderList;
-    std::vector< std::vector<int> >                 nDissOnPlaneList;
-    std::vector< std::vector<int> >                 localDisOnPlaneIDList;
-    std::vector< std::vector<int> >                 localDisOnBurgIDList;
-    std::vector< std::vector<int> >                 disOnPlaneIDList;
-    std::vector< std::vector<int> >                 disOnBurgIDList;
-    std::vector< std::vector<int> >                 orderArray;
-    std::vector< std::vector< std::vector<int> > >  nDissOnPlaneArray;
-    for(i=0; i<setLists.size(); i++){
-        std::vector< std::vector< std::vector<int> > >().swap(nDissOnPlaneArray);
-        k = 0;
-        nDiss = 0;
-        std::vector<int>().swap(kBurgID);
-        for(j=0; j<setLists[i].size()-1; j++){
-            if(setLists[i][j] == 0)continue;
-            nDiss += setLists[i][j];
-            kBurgID.push_back(j);
-            std::vector<int>().swap(nDissOnPlane);
-            std::vector< std::vector<int> >().swap(nDissOnPlaneList);
-            nDissOnPlane.resize(burgOnPlaneID[j].size());
-            IterFun1(setLists[i][j], burgOnPlaneID[j].size(),
-                     nDissOnPlane, nDissOnPlaneList);
-            nDissOnPlaneArray.push_back(nDissOnPlaneList);
-
-            k++;
-        }/* for(j=0; j<setLists[i].size()-1; j++) */
-        
-        printf("nSetsPerBurg: i,j = (%d,%d) ",i,j);
-        nSetsPerBurg.resize(kBurgID.size());
-        for(k=0; k<kBurgID.size(); k++){
-            nSetsPerBurg[k] = nDissOnPlaneArray[k].size();
-            printf("%d ", nSetsPerBurg[k]);
+    for(i=0; i<burgOnPlaneID.size(); i++){
+        for(j=0; j<burgOnPlaneID[i].size(); j++){
+            recordList[0].push_back(i);
+            recordList[1].push_back(j);
+            recordList[2].push_back(0);
         }
-        printf("\n");
+    }
 
-        orderList.resize(kBurgID.size());
-        std::vector< std::vector<int> >().swap(orderArray);
-        IterFun2(nSetsPerBurg, 0, orderList, orderArray);
-#if 1
-        printf("set %d orderArray %d (%d):\n", i, nDiss
-               , kBurgID.size());
-        for(m=0; m<orderArray.size(); m++){
-            printf("%d: ", m);
-            for(n=0; n<orderArray[m].size(); n++){
-                printf("%d ",orderArray[m][n]);
-            }
-            printf("\n");
+    for(i=0; i<disOnBurgIDList.size(); i++){
+        disOnPlaneID.resize(disOnBurgIDList[i].size());
+        oriVec.resize(disOnBurgIDList[i].size());
+        orderList.resize(disOnBurgIDList[i].size());
+        std::vector<std::vector<int> > ().swap(orderArray);
+        for(j=0; j<disOnBurgIDList[i].size(); j++){
+            oriVec[j] = burgOnPlaneID[disOnBurgIDList[i][j]].size();
         }
-#endif
 
-        dis = 0;
-        nBurg = 0;
-        for(j=0; j<setLists[i].size()-1; j++){
-            if(setLists[i][j] <= 0)continue;
-            localDisOnPlaneIDList.resize(orderArray.size());
-            localDisOnBurgIDList.resize(orderArray.size());
-            for(k=0; k<orderArray.size(); k++){
-                localDisOnPlaneIDList[k].resize(nDiss);
-                localDisOnBurgIDList[k].resize(nDiss);
+        IterFun2(oriVec, 0, orderList, orderArray);        
+
+        std::vector<std::vector<int> >().swap(disOnPlaneIDList);
+        disOnPlaneID.resize(disOnBurgIDList[i].size());
+        std::vector<std::vector<int> >().swap(recordArray);
+        for(k=0; k<orderArray.size(); k++){
+            for(m=0; m<recordList[0].size(); m++){
+                recordList[2][m] = 0;           
             }
+
+            for(j=0; j<disOnBurgIDList[i].size(); j++){
+                for(m=0; m<recordList[0].size(); m++){
+                    if(disOnBurgIDList[i][j] == recordList[0][m] &&
+                       orderArray[k][j] == recordList[1][m]){
+                        recordList[2][m]++;
+                    }
+                }
+                disOnPlaneID[j] = burgOnPlaneID[disOnBurgIDList[i][j]][orderArray[k][j]];
+            }
+
+
+            if(recordArray.size() == 0){
+                recordArray.push_back(recordList[2]);
+                disOnPlaneIDList.push_back(disOnPlaneID);
+            }else{
+                for(j=0; j<recordArray.size(); j++){
+                    for(m=0; m<recordList[0].size(); m++){
+                        if(recordList[2][m] != recordArray[j][m])break;
+                    }
+                    if(m == recordList[0].size())break;
+                }
+                if(j == recordArray.size()){
+                    recordArray.push_back(recordList[2]);
+                    disOnPlaneIDList.push_back(disOnPlaneID);
+                }
+            }
+        }
+        disOnPlaneIDArray.push_back(disOnPlaneIDList);
+    }
+
+    for(i=0; i<disOnPlaneIDArray.size(); i++){
+        for(j=0; j<disOnPlaneIDArray[i].size(); j++){
+            disList.resize(disOnPlaneIDArray[i][j].size());
+            for(k=0; k<disOnPlaneIDArray[i][j].size(); k++){
+                disList[k].burgID = disOnBurgIDList[i][k];
+                disList[k].planeID = disOnPlaneIDArray[i][j][k];
+                
+            }
+
+            sortList.resize(disList.size());
+            tempDisList.resize(disList.size());
+
+            std::vector<std::vector<Dislocation_t> >().swap(tempDisArray);
+
+            for(k=0; k<sortList.size(); k++)sortList[k] = k;
             
-            printf("nDissOnPlaneArray = (i,j)=(%d,%d) \n",i, j);
-            for(k=0; k<nDissOnPlaneArray.size(); k++){
-                for(m=0; m<nDissOnPlaneArray[k].size(); m++){
-                    for(n=0; n<nDissOnPlaneArray[k][m].size(); n++){
-                        printf("(%d,%d,%d)%d ",k, m, n,nDissOnPlaneArray[k][m][n]);
-                    }
-                    printf("\n");
+            tempDisArray.push_back(disList);
+
+            while(next_permutation(sortList.begin(), sortList.end())){
+                for(k=0; k<sortList.size(); k++){
+                    tempDisList[k] = disList[sortList[k]];
                 }
-                printf("\n");
+                
+                sort(tempDisList.begin(), tempDisList.end(), cmp2);
+                tempDisArray.push_back(tempDisList);
             }
 
-        }        
 
-        for(k=0; k<orderArray.size(); k++){
-            dis = 0;
-            for(m=0; m<orderArray[k].size(); m++){        
-                j = kBurgID[m];
-                for(n=0; n<nDissOnPlaneArray[m][orderArray[k][m]].size(); n++){
-                    nLocalDiss = 0;
-                    for(l=0; l<nDissOnPlaneArray[m][orderArray[k][m]][n]; l++){
+            CompressDislocationArray(tempDisArray);
 
-                        localDisOnPlaneIDList[k][dis+nLocalDiss+l]  = 
-                            burgOnPlaneID[j][orderArray[k][m]];
-                        localDisOnBurgIDList[k][dis+nLocalDiss+l] = j;
-                    
-                        nLocalDiss += nDissOnPlaneArray[m][orderArray[k][m]][n];
-                    }
-                }
-                dis += setLists[i][j];
+            for(k=0; k<tempDisArray.size(); k++){
+                disArray.push_back(tempDisArray[k]);
             }
         }
-
-        for(k=0; k<orderArray.size(); k++){
-            disOnPlaneIDList.push_back(localDisOnPlaneIDList[k]);
-            disOnBurgIDList.push_back(localDisOnBurgIDList[k]);
-        }
-
-
-
-        printf("Local :\n");
-        for(m=0; m<localDisOnPlaneIDList.size(); m++){
-            printf("i %3d: ",m);
-            for(n=0; n<localDisOnPlaneIDList[m].size(); n++){
-                printf("[%2d](%2d) ", localDisOnBurgIDList[m][n],
-                                    localDisOnPlaneIDList[m][n]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }/* for(i=0; i<setList.size(); i++) */
-
-#if 0
-    for(i=0; i<disOnPlaneIDList.size(); i++){
-        printf("i %3d: ",i);
-        for(j=0; j<disOnPlaneIDList[i].size(); j++){
-            printf("[%2d](%2d) ", disOnBurgIDList[i][j],
-                                disOnPlaneIDList[i][j]);
-        }
-        printf("\n");
     }
-#endif
 
-#endif
+
     return(1);
 }
 
