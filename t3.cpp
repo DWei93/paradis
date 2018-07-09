@@ -28,7 +28,7 @@ int main(){
     int i,j, n, sum;
     
 
-    n = 9;
+    n = 2;
     vector<int>         valueList(n);
     vector<vector<int> > valueLists;
 
@@ -46,7 +46,8 @@ int main(){
         }
     }
 
-   vector<vector<int> > vec;
+    vector<vector<int> > vec;
+    vector<vector<int> >().swap(vec);
 
     vector<int> a;
     a.push_back(1);
@@ -61,6 +62,17 @@ int main(){
 
     vec.push_back(a);
     vec.push_back(b); 
+    for(i=0; i<vec.size(); i++){
+        printf("i = %d: ", i);
+        for(j=0; j<vec[i].size(); j++){
+            printf("%d ",vec[i][j]);
+        }
+        printf("\n");
+    }
+    vector<vector<int> >().swap(vec);
+    vec.push_back(a);
+    vec.push_back(b); 
+    printf("ssss\n");
     for(i=0; i<vec.size(); i++){
         printf("i = %d: ", i);
         for(j=0; j<vec[i].size(); j++){
