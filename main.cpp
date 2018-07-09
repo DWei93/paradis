@@ -133,7 +133,8 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                            vector< vector<double> >&  burgList, 
                            vector<vector<int> >&      disOnBurgIDList,
                            vector<vector<Dislocation_t> >&    disArray,
-                           real8* plane = (real8*)NULL);
+                           real8* plane, bool crossSlip, 
+                           int maxDissPerBasicBurg = 2, int maxDiss = 4);
 
 void InitGrain(Home_t *home);
 
@@ -196,7 +197,7 @@ void InitGrain(Home_t *home){
     };
 
     real8 rotTwin[3][3] = 
-#if 1        
+#if 0        
         {{-0.816497, 0.408248, 
         0.408248}, {-0.57735, -0.57735, -0.57735}, {0., -0.707107, 
         0.707107}};
@@ -224,10 +225,12 @@ void InitGrain(Home_t *home){
     GenerateGBBurgInfo(home, gb); 
 
 #if 1
-    real8   burgCry[3] = {0.707107, -0.707107, 0.};
-    real8   lineCry[3] = {0.707107, -0.707107, 0.};
-//    real8   planeCry[3]= {0.57735, 0.57735, -0.57735}; 
-    real8   planeCry[3]= {0.57735, 0.57735, 0.57735}; 
+    bool     stat, crossSlip = 1;
+    real8   burgCry[3] = {0.707107, 0., 0.707107};    // AD
+ //   real8   burgCry[3] = {0.707107, -0.707107, 0.};     //AB
+    real8   lineCry[3] = {0.707107, -0.707107, 0.};     //AB
+    real8   planeCry[3]= {0.57735, 0.57735, -0.57735}; // ABD 
+ //   real8   planeCry[3]= {0.57735, 0.57735, 0.57735};   // ABC
     int     grainID = 0;
     real8   burg[3], line[3], plane[3];
 
@@ -239,11 +242,10 @@ void InitGrain(Home_t *home){
     Matrix33Vector3Multiply(grain->orientation, burgCry, burg);
     Matrix33Vector3Multiply(grain->orientation, lineCry, line);
     Matrix33Vector3Multiply(grain->orientation, planeCry,plane);
-    DisassembleDislocation(&(gb->burgData), burg, line,
-                           burgList, disOnBurgIDList,disArray);
-//                           burgList, disOnBurgIDList,disArray, plane);
+    stat = DisassembleDislocation(&(gb->burgData), burg, line,
+                           burgList, disOnBurgIDList,disArray, plane, crossSlip);
 
-    printf("A test burg:\n");
+    printf("Testing: cross-slip %d\nA test Burg in grain %d:\n", crossSlip, grainID);
     printf("crystal burg {%7.4f,%7.4f,%7.4f} to global burg {%7.4f,%7.4f,%7.4f}\n",
            burgCry[0],burgCry[1],burgCry[2], burg[0],burg[1],burg[2]);
     printf("crystal line {%7.4f,%7.4f,%7.4f} to global line {%7.4f,%7.4f,%7.4f}\n",
@@ -252,21 +254,36 @@ void InitGrain(Home_t *home){
            planeCry[0],planeCry[1],planeCry[2], plane[0],plane[1],plane[2]);
 
 
-    printf("\n Basic shockley burg\n");
-    for(i=0; i<burgList.size(); i++){
-        printf("%d: {%7.4f,%7.4f,%7.4f}\n",i, 
-                burgList[i][0], burgList[i][1],burgList[i][2]);
-    }
-
-    printf("Dislocation Arrray:\n");
-    for(i=0; i<disArray.size(); i++){
-        printf("%d: ",i);
-        for(j=0; j<disArray[i].size(); j++){
-            printf("(%d)[%d] ",disArray[i][j].planeID,disArray[i][j].burgID);
+    if(stat){
+        printf("\n Basic shockley burg\n");
+        for(i=0; i<burgList.size(); i++){
+            printf("%d: {%7.4f,%7.4f,%7.4f}\n",i, 
+                    burgList[i][0], burgList[i][1],burgList[i][2]);
         }
-        printf("\n");
-    }
 
+        printf("\nDislocation Arrray:\n");
+        for(i=0; i<disArray.size(); i++){
+            printf("%d: ",i);
+            for(j=0; j<disArray[i].size(); j++){
+#if 1
+                printf("(%d<%d>)[%d] ", disArray[i][j].planeID, 
+                        gb->burgData.planeInGrain[disArray[i][j].planeID], 
+                        disArray[i][j].burgID);
+#else
+                printf("(%5.3f,%5.3f,%5.3f)[%5.3f,%5.3f,%5.3f] ",
+                       gb->burgData.planeList[disArray[i][j].planeID][0],
+                       gb->burgData.planeList[disArray[i][j].planeID][1],
+                       gb->burgData.planeList[disArray[i][j].planeID][2],
+                       burgList[disArray[i][j].burgID][0],
+                       burgList[disArray[i][j].burgID][1],
+                       burgList[disArray[i][j].burgID][2]);
+#endif
+            }
+            printf("\n");
+        }
+    }else{
+        printf("zero results\n");
+    }
 #endif
 
 
@@ -685,16 +702,18 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
     memcpy(gbd->planeType, bd1->planeType, bd1->numPlanes*sizeof(int));
     memcpy(gbd->planeType+bd1->numPlanes, bd2->planeType, 
            bd2->numPlanes*sizeof(int));
-    for(i=0; i<numRows; i++){
-        cross(gbd->planeList[i], GB->n, crossProdt);
-        if(Normal(crossProdt) < 1.0E-2){
-            gbd->planeType[i] |= GB_PLANE;
-        }
-    }
 
     memcpy(gbd->planeInGrain, bd1->planeInGrain, bd1->numPlanes*sizeof(int));
     memcpy(gbd->planeInGrain+bd1->numPlanes, bd2->planeInGrain, 
            bd2->numPlanes*sizeof(int));
+
+    for(i=0; i<numRows; i++){
+        cross(gbd->planeList[i], GB->n, crossProdt);
+        if(Normal(crossProdt) < 1.0E-2){
+            gbd->planeType[i] |= GB_PLANE;
+            gbd->planeInGrain[i] = -1;
+        }
+    }
 
     memcpy(gbd->numBurgsPerPlane, bd1->numBurgsPerPlane, bd1->numPlanes*sizeof(int));
     memcpy(gbd->numBurgsPerPlane+bd1->numPlanes, bd2->numBurgsPerPlane, 
@@ -905,7 +924,7 @@ int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3])
         return(i);
 }
 
-#define DEBUG_DisassembleDislocation 1
+#define DEBUG_DisassembleDislocation 0
 bool cmp(vector<int >& p,vector<int >& q)
 {
     int sum1 = accumulate(p.begin(), p.end(), 0);
@@ -1072,11 +1091,12 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                            vector< vector<double> >&  burgList, 
                            vector<vector<int> >&      disOnBurgIDList,
                            vector<vector<Dislocation_t> >&    disArray,
-                           real8 *plane)
+                           real8 *plane, bool crossSlip, 
+                           int maxDissPerBasicBurg, int maxDiss)
 {
     int     i, j, k, m, nPlanes = 0, nBurgs = 0;
     int     nShockleyBurgs = 0;
-    int     sum, maxVals, onGBPlane;
+    int     sum, onGBPlane;
     int     nBurgSets;
     real8   vec[3];
     real8   crossProd[3], resiBurg[3];
@@ -1113,10 +1133,10 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir,
 #if DEBUG_DisassembleDislocation 
     printf("Burg Vector: {%7.4f,%7.4f,%7.4f}\n", burg[0],burg[1],burg[2]);
     printf("Line Vector: {%7.4f,%7.4f,%7.4f}\n", lDir[0],lDir[1],lDir[2]);
-    if(plane != (real8 *)NULL){
-        printf("Plane Normal constraint: {%7.4f,%7.4f,%7.4f}\n\n", plane[0],plane[1],plane[2]);
+    if(crossSlip){
+        printf("origin Plane Normal cross-slip: {%7.4f,%7.4f,%7.4f}\n\n", plane[0],plane[1],plane[2]);
     }else{
-        printf("Without plane constraint\n");
+        printf("origin Plane Normal decompose: {%7.4f,%7.4f,%7.4f}\n\n", plane[0],plane[1],plane[2]);
     }
     printf("Basic glide planes : \n");
 #endif
@@ -1125,32 +1145,33 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         planeID.push_back(nPlanes);
         if(bd->planeType[i] & GLIDE_PLANE == 0)continue;
         if(fabs(DotProduct(lDir,bd->planeList[i])) < 1.0E-2){
-            VECTOR_COPY(vector, bd->planeList[i]);
-            planeList.push_back(vector);
-            if(plane != (real8 *)NULL){
-                cross(bd->planeList[i], plane, crossProd);
-                if(Normal(crossProd) < 1.0E-2){
+            cross(bd->planeList[i], plane, crossProd);
+            if(crossSlip){
+                if(Normal(crossProd) > 1.0E-2){
+                    VECTOR_COPY(vector, bd->planeList[i]);
+                    planeList.push_back(vector);
                     planeIDList.push_back(i);
-#if DEBUG_DisassembleDislocation
-                    printf("%2d: {%7.4f,%7.4f,%7.4f} (%2d)\n",nPlanes,
-                        vector[0], vector[1], vector[2], i);
-#endif
                     nPlanes++;
                 }
             }else{
-                planeIDList.push_back(i);
-#if DEBUG_DisassembleDislocation
-                printf("%2d: {%7.4f,%7.4f,%7.4f} (%2d)\n",nPlanes,
-                       vector[0], vector[1], vector[2], i);
-#endif
-                nPlanes++;
+                if(Normal(crossProd) < 1.0E-2){
+                    VECTOR_COPY(vector, bd->planeList[i]);
+                    planeList.push_back(vector);
+                    planeIDList.push_back(i);
+                    nPlanes++;
+                }
             }
         }
     }
 
 #if DEBUG_DisassembleDislocation
-    printf("\n Shockley burgs: \n");
+    for(i=0; i<planeIDList.size(); i++){
+        printf("%d(%d): {%7.4f,%7.4f,%7.4f}\n",
+               i, planeIDList[i], planeList[i][0],
+               planeList[i][1], planeList[i][2]);
+    }
 #endif
+
     j = 0;
     nBurgs = 0;
     for(i=0; i<bd->numPlanes; i++){
@@ -1166,10 +1187,6 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                     vector[1] = -vector[1];
                     vector[2] = -vector[2];
                 }
-#if DEBUG_DisassembleDislocation
-                printf("%2d: {%7.4f,%7.4f,%7.4f} (%2d)\n",nBurgs,
-                       vector[0], vector[1], vector[2],i);
-#endif
                 burgList.push_back(vector);
                 nBurgs++;
             }
@@ -1192,12 +1209,13 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir,
     printf("\n");
 #endif
     
-    maxVals = 4;
     valueList.resize(nShockleyBurgs);
-    for(sum=0; sum < 8; sum++){
+    for(sum=0; sum < maxDiss+1; sum++){
         SumOfValuesIsConstant(nShockleyBurgs, sum, valueList, 
-                              nShockleyBurgs, setLists, maxVals);
+                              nShockleyBurgs, setLists, maxDissPerBasicBurg);
     }
+
+    if(setLists.size() == 0)return(0);
     
     for(i=0; i<setLists.size(); i++){
         resiBurg[0] = burg[0];
@@ -1243,24 +1261,24 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         } 
 #endif
 
-#if DEBUG_DisassembleDislocation
-//#if 1
-        printf("Set %2d: ", i);
-        for(j=0; j<setLists[i].size(); j++){
-            printf("%5d ", setLists[i][j]);
-        }
-        printf("\n");
-#endif
         nBurgSets++;
     }
-#if DEBUG_DisassembleDislocation
-    printf("\n");
-#endif
     for(iter = setLists.end(); iter != setLists.begin()+nBurgSets; iter--){
         setLists.erase(iter);
     }
 
     if(nBurgSets == 0)return(0);
+#if DEBUG_DisassembleDislocation
+    printf("SetLists: \n");
+    for(i=0; i<setLists.size(); i++){
+        printf("Set %2d: ", i);
+        for(j=0; j<setLists[i].size(); j++){
+            printf("%4d ", setLists[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+#endif
 
     burgOnPlaneID.resize(nShockleyBurgs);
     for(i=0; i<burgOnPlaneID.size(); i++){
@@ -1295,9 +1313,6 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir,
     }
     printf("\n");
 #endif
-
-
-    printf("Dis On Burg ID, burgList size %d\n", burgList.size());
     for(i=0; i<setLists.size(); i++){
         std::vector<int>().swap(disOnBurgID);
         for(j=0; j<burgList.size(); j++){
