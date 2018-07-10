@@ -8,6 +8,12 @@
 #include "Tag.h" 
 #include "ParadisProto.h"
 
+#include <vector>
+
+typedef struct {
+    int planeID;
+    int burgID;
+}Dislocation_t;
 /*
  * 	Mesh number used for output of plastic strain field.
  */
@@ -34,7 +40,6 @@
 #define LAST_PENETRATION	3
 
 #define MAX_PENE_SETS               3
-#define MAX_PENE_PLANES             2
 #define MAX_PENE_DISS               3
 
 /*	define some node types	*/
@@ -56,6 +61,10 @@
 #define JUNCTION_PLANE      0x0001
 #define GB_PLANE            0x0002
 #define UNKOWN_PLANE        0x0004
+
+#define SHOCKLEY_BURG_MAG_FCC   0.5773502691896258
+#define JUNCTION1_BURG_MAG_FCC  1.414213562373095
+#define JUNCTION2_BURG_MAG_FCC  1.732050807568877
 
 typedef	enum{
     ZERO_BURG,
@@ -90,30 +99,21 @@ struct _burgInfo {
         int     *numBurgsPerPlane;        /* Number of burgers associated with */
                                           /* each plane in the list  */
 
-        int     *burgFirstPlaneIndex;     /* Index (0 offset) of the first plane */
-                                          /* in <burgOnPlaneID> associated with each */
-                                          /* burgers vector                      */ 
-
-        int     *planeFirstBurgIndex;     /* Index (0 offset) of the first burg ID */
-                                          /* in <planeOnBurgID> associated with each */
-                                          /* plane                      */ 
-
-        int     *keyLineFirstPlaneIndex;  /* Index (0 offset) of the first plane ID */
-                                          /* in <keyLineOnPlaneID> associated with each */
-                                          /* key line                      */ 
-
         real8   (*burgList)[3];           /* Array of burgers vectors */
 
         real8   (*planeList)[3];          /* Array of planes */
         int     *planeType;               /* Array of type of planes*/
 
+        int     *planeInGrain;
+
         real8   (*keyLineList)[3];         /* Array of key line vectors */
 
-        int     *burgOnPlaneID;
+        int     **burgOnPlaneID;
 
-        int     *keyLineOnPlaneID;
+        int     **keyLineOnPlaneID;
         
-        int     *planeOnBurgID;
+        int     **planeOnBurgID;
+
 };
 
 typedef struct {
@@ -158,13 +158,9 @@ typedef struct {
     real8   powerDis;
     int     nDiss;          
 
-    int     nPlanes;        // num of out plane i
-    bool    *passGB;        // plane i whether pass GB
-    int     *inGrain;       // plane i in which grain
-    int     *nDissOnPlane;  // number of dislocations in the plane i
-    real8   (*normal)[3];   // plane i normal
-
-    real8   (*pos)[3];      // p[3]
+    int     *inGrain;       
+    real8   (*normal)[3];   
+    real8   (*pos)[3];     
     real8   (*burg)[3];    
 } Res_t;
 
@@ -216,7 +212,6 @@ real8 FGlidePerLength(Home_t *home,Node_t *node,Plane_t *GBPlane);
 real8 Distance(Home_t *home,real8 *p1,real8 *p2);
 int NodeOnLine(real8 *p, Line_t *line);
 void PrintTag(Node_t *node);
-void InitPenStr(Pene_t *pene);
 void FreePenStr(Pene_t *pene);
 int  GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb);
 
@@ -253,8 +248,13 @@ void ImageForce(Home_t *home, real8 armGrain, real8 x1, real8 y1, real8 z1,
                   real8 f1[3], real8 f2[3]);
 bool BeforeMergeArm(Home_t *home, Node_t *node1, Node_t *node2, real8 *vec1, real8 *vec2, int *type);
 bool IsOnGB(Node_t *node);
-void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3]);
+void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainID = -1);
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB);
 void FreeBurgInfoStr(BurgInfo_t *burgData);
+int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
+                       real8 *plane, bool crossSlip, 
+                       std::vector< std::vector<double> >&       burgList, 
+                       std::vector<std::vector<Dislocation_t> >& disArray,
+                       int maxDissPerBasicBurg = 2, int maxDiss = 4);
 int GeosTest();
 #endif

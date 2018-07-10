@@ -14,6 +14,10 @@
 #include "Grain.h"
 #include "Util.h" 
 
+#include <vector>
+#include <algorithm>
+#include <numeric>
+
 #define ENERGY_RULER 1
 
 
@@ -215,27 +219,19 @@ void FreePenStr(Pene_t *pene){
     if(pene->nSets > 0){
         int i, j;
         for(i=0; i<pene->nSets; i++){
-            if(pene->res[i].nPlanes > 0){
-                free(pene->res[i].nDissOnPlane);
-                free(pene->res[i].inGrain);
-                free(pene->res[i].passGB);
-                free(pene->res[i].normal);
-
-                pene->res[i].nDissOnPlane = NULL;
-                pene->res[i].inGrain = NULL;
-                pene->res[i].passGB = NULL;
-                pene->res[i].normal = NULL;
-            }
-
             if(pene->res[i].nDiss > 0){
                 free(pene->res[i].burg);
                 free(pene->res[i].pos);
+                free(pene->res[i].normal);
+                free(pene->res[i].inGrain);
+
 
                 pene->res[i].burg = NULL;
                 pene->res[i].pos = NULL;
+                pene->res[i].normal = NULL;
+                pene->res[i].inGrain = NULL;
             }
 
-            pene->res[i].nPlanes = 0;
             pene->res[i].nDiss = 0;
             pene->res[i].effective = 0;
             pene->res[i].powerDis = 0;
@@ -243,11 +239,11 @@ void FreePenStr(Pene_t *pene){
     }
 
     free(pene->res);
-    pene->res = NULL;
     pene->nSets = 0;
 
-    pene->gb = NULL;
-    pene->node = NULL;
+    pene->res = (Res_t *)NULL;
+    pene->gb = (GB_t *)NULL;
+    pene->node = (Node_t *)NULL;
 
     VECTOR_ZERO(pene->line1.direction);
     VECTOR_ZERO(pene->line2.direction);
@@ -256,64 +252,31 @@ void FreePenStr(Pene_t *pene){
     return;
 }
 
-void InitPenStr(Pene_t *pene)
-{
-    int i, j; 
-    pene->gb = NULL;
-    pene->node = NULL;
-
-    pene->nSets = MAX_PENE_SETS;
-
-    pene->res = (Res_t *)calloc(MAX_PENE_SETS, sizeof(Res_t));
-
-    for(i=0; i<pene->nSets; i++){
-        pene->res[i].nPlanes = MAX_PENE_PLANES;
-        pene->res[i].nDiss = MAX_PENE_DISS;
-        pene->res[i].passGB = (bool *)calloc(pene->res[i].nPlanes, sizeof(bool));
-        pene->res[i].nDissOnPlane = (int *)calloc(pene->res[i].nPlanes, sizeof(int));
-        pene->res[i].inGrain = (int *)calloc(pene->res[i].nPlanes, sizeof(int));
-        pene->res[i].normal = (real8 (*)[3])calloc(1,3*pene->res[i].nPlanes*sizeof(real8));
-
-        pene->res[i].pos  = (real8 (*)[3])calloc(1, 3*pene->res[i].nDiss*sizeof(real8));
-        pene->res[i].burg = (real8 (*)[3])calloc(1, 3*pene->res[i].nDiss*sizeof(real8));
-    }
-    
-	return;
-}
 
 
-void InitPeneRes(Res_t *res, int nPlanes, int nDiss){
-    if(res->nPlanes > 0){
-        free(res->passGB);        
-        free(res->inGrain);        
-        free(res->normal);        
-        free(res->nDissOnPlane);        
-        
-        res->passGB = NULL;
-        res->inGrain = NULL;
-        res->normal = NULL;
-        res->nDissOnPlane = NULL;
-    }
-    res->nPlanes = nPlanes;
+void InitPeneRes(Res_t *res, int nDiss){
 
     if(res->nDiss > 0){
         free(res->pos);
         free(res->burg);
+        free(res->inGrain);        
+        free(res->normal);        
         
         res->pos = NULL;
         res->burg = NULL;
+        res->inGrain = NULL;
+        res->normal = NULL;
     }
     res->nDiss = nDiss;
     
     res->effective = 1;
     res->powerDis = -1.0E50;
-    res->passGB = (bool *)calloc(1, nPlanes*sizeof(bool));
-    res->nDissOnPlane = (int *)calloc(1, nPlanes*sizeof(int));
-    res->inGrain = (int *)calloc(1, nPlanes*sizeof(int));
-    res->normal = (real8 (*)[3])calloc(1, nPlanes*sizeof(real8)*3);
 
-    res->pos = (real8 (*)[3])calloc(1, nDiss*sizeof(real8)*3);
-    res->burg = (real8 (*)[3])calloc(1, nDiss*sizeof(real8)*3);
+    res->inGrain = (int *)malloc(nDiss*sizeof(int));
+    res->normal = (real8 (*)[3])malloc(nDiss*sizeof(real8)*3);
+
+    res->pos = (real8 (*)[3])malloc(nDiss*sizeof(real8)*3);
+    res->burg = (real8 (*)[3])malloc(nDiss*sizeof(real8)*3);
     return;
 }
 
@@ -408,23 +371,25 @@ void FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
 
 int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb){
 	
-	real8		pos[3], burg[3], normal[3], crystalNormal[3], burg1[3], burg2[3];
-	real8		crystalBurg[3], dot, vec[3], outNormal[3];
-    real8       sb, TBBurgCryst[3], centorPos[3];
+	real8		pos[3], burg[3], normal[3], burg1[3];
+	real8		vec[3];
+    real8       centorPos[3];
     real8       vec1[3], vec2[3], eps = 0.1, dis;
-    int         currInGrain, currOnGB, TBID;
+    int         i;
+    int         currInGrain, currOnGB, nSets;
     Line_t      line;
-	int 		isScrew = 0, disID, i, j, k, normalID, type;
     Node_t      *node1, *node2;
-    Grain_t     *oldGrain;
     Plane_t     GBPlane;
-	
-    FreePenStr(pene);
+
+    BurgInfo_t  *gbd;
+    
+    std::vector<std::vector<double> >           burgList;
+    std::vector<std::vector< Dislocation_t> >   disArray; 
 
     pene->node = node;
     pene->gb = gb;
+    gbd = &(gb->burgData);
 
-    oldGrain  = home->grainKeys[node->inGrain];
 	node1 = GetNeighborNode(home,node,0);
 	node2 = GetNeighborNode(home,node,1);
     if(node1 == (Node_t *)NULL || node2 == (Node_t *)NULL){
@@ -457,7 +422,6 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb){
 	pos[2] = node->z;
 
     NodeLocation(home, pos[0], pos[1], pos[2],currInGrain, currOnGB);
-    TBID = gb->GBID;
 
     vec[0] = node->burgX[1] + node->burgX[0];
     vec[1] = node->burgY[1] + node->burgY[0];
@@ -474,7 +438,21 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb){
 	normal[0] = node->nx[1];
 	normal[1] = node->ny[1];
 	normal[2] = node->nz[1];
+
+    GeometricCriterion(gbd, burg, pene->line2.direction, normal, 1,
+                       burgList, disArray);
 	
+    pene->nSets = disArray.size();
+    pene->res = (Res_t *)malloc(pene->nSets*size(Res_t));
+
+
+
+
+
+
+
+
+
 	dot = DotProduct(burg, GBPlane->normal);
  	if(fabs(dot) <1.0e-2)isScrew = 1;
 	
@@ -510,7 +488,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb){
        
         if(pene->res[i].passGB[j]){ 
             type = PointPlaneIntersection(pos, GBPlane->normal, 
-                   GBPlane->point, vec2, &dis);
+                                          GBPlane->point, vec2, &dis);
             vec2[0] -= pos[0];
             vec2[1] -= pos[1];
             vec2[2] -= pos[2];
@@ -1354,7 +1332,6 @@ int PenetrationSurface(Home_t *home, Node_t *node, GB_t *gb)
         return(0);
     }
     
-
     FoldBox(home->param, newPos, newPos+1, newPos+2);
 	RepositionNode(home, newPos, &nbrNode->myTag, 1);
 	AssignConstraint(home, nbrNode, node->constraint);
@@ -1397,7 +1374,7 @@ void HandleGrainBoundary(Home_t *home)
 
 	param = home->param;
 	
-    InitPenStr(&pene);
+    pene.nSet = 0;
 	newNodeKeyPtr = home->newNodeKeyPtr;
 	for(i=0;i<newNodeKeyPtr;i++){
         
@@ -1442,6 +1419,8 @@ void HandleGrainBoundary(Home_t *home)
         if(!GetPublicGB(oldGrain, currGrain, &gb)){
             Fatal("in %s at %d", __FILE__, __LINE__);
         }
+        VECTOR(GBPlane.normal, gb->n);
+        VECTOR(GBPlane.point, gb->p);
 
 /*	
  *	    There are 4 scenarios: 

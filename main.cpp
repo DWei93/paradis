@@ -47,6 +47,7 @@ typedef	enum{
     JUNCTION2_BURG, 
     UNKNOWN_BURG 
 } BurgTypeFCC_t;
+
 typedef struct {
         int     numBurgVectors;           /* Total number of burgers vectors */
                                           /* in <burgList> below             */
@@ -129,12 +130,11 @@ real8 Normal(real8 a[3])
 void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainID = -1);
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB);
 void FreeBurgInfoStr(BurgInfo_t *burgData);
-int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir,
-                           vector< vector<double> >&  burgList, 
-                           vector<vector<int> >&      disOnBurgIDList,
-                           vector<vector<Dislocation_t> >&    disArray,
-                           real8* plane, bool crossSlip, 
-                           int maxDissPerBasicBurg = 2, int maxDiss = 4);
+int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
+                       real8 *plane, bool crossSlip, 
+                       vector< vector<double> >&  burgList, 
+                       vector<vector<Dislocation_t> >&    disArray,
+                       int maxDissPerBasicBurg = 2, int maxDiss = 4);
 
 void InitGrain(Home_t *home);
 
@@ -226,7 +226,7 @@ void InitGrain(Home_t *home){
 
 #if 1
     bool     stat, crossSlip = 1;
-    real8   burgCry[3] = {0.707107, 0., 0.707107};    // AD
+    real8   burgCry[3] = {0.707107, 0.0, 0.707107};    // AD
  //   real8   burgCry[3] = {0.707107, -0.707107, 0.};     //AB
     real8   lineCry[3] = {0.707107, -0.707107, 0.};     //AB
     real8   planeCry[3]= {0.57735, 0.57735, -0.57735}; // ABD 
@@ -235,15 +235,14 @@ void InitGrain(Home_t *home){
     real8   burg[3], line[3], plane[3];
 
     vector< vector<double> >                    burgList;
-    vector<vector<int> >                        disOnBurgIDList;
     std::vector<std::vector<Dislocation_t> >    disArray;
 
     grain = home->grainKeys[grainID];
     Matrix33Vector3Multiply(grain->orientation, burgCry, burg);
     Matrix33Vector3Multiply(grain->orientation, lineCry, line);
     Matrix33Vector3Multiply(grain->orientation, planeCry,plane);
-    stat = DisassembleDislocation(&(gb->burgData), burg, line,
-                           burgList, disOnBurgIDList,disArray, plane, crossSlip);
+    stat = GeometricCriterion(&(gb->burgData), burg, line, plane, crossSlip,
+                           burgList, disArray);
 
     printf("Testing: cross-slip %d\nA test Burg in grain %d:\n", crossSlip, grainID);
     printf("crystal burg {%7.4f,%7.4f,%7.4f} to global burg {%7.4f,%7.4f,%7.4f}\n",
@@ -605,7 +604,7 @@ void FreeBurgInfoStr(BurgInfo_t *burgData)
     return;
 }
 
-int CompressDirectionList(vector< vector<real8> >& dirList, int nRows)
+int CompressDirectionList(std::vector< std::vector<real8> >& dirList, int nRows)
 {
     int     i, j;
     real8   crossProdt[3], vec1[3], vec2[3];
@@ -628,48 +627,6 @@ int CompressDirectionList(vector< vector<real8> >& dirList, int nRows)
 
 }
 
-int CompressDirectionList(real8 (*dirList)[3], int *IDList, int nRows)
-{
-    int     i, j;
-    real8   crossProdt[3];
-    int     newNRows = 0;
-
-    for(i=0; i<nRows; i++){
-        IDList[i] = i;
-    }
-
-    for(i=0; i<nRows; i++){
-        for(j=0; j<newNRows; j++){
-            cross(dirList[i], dirList[j], crossProdt);
-            if(Normal(crossProdt) < 1.0E-2)break;
-
-        }
-
-        IDList[i] = j;
-
-        if(j == newNRows){
-            VECTOR_COPY(dirList[newNRows], dirList[i])
-            newNRows++;
-        }
-    }
-    return(newNRows);
-
-}
-
-void AddDirectionList(real8 (*list1)[3], int n1, real8 (*list2)[3], int n2, real8 (*list)[3])
-{
-    int     i;
-
-    for(i=0; i<n1+n2; i++){
-        if(i<n1){
-            VECTOR_COPY(list[i], list1[i]);
-        }else{
-            VECTOR_COPY(list[i], list2[i-n1]);
-        }
-    }
-
-    return;    
-}
 
 
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
@@ -927,9 +884,13 @@ int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3])
 #define DEBUG_DisassembleDislocation 0
 bool cmp(vector<int >& p,vector<int >& q)
 {
-    int sum1 = accumulate(p.begin(), p.end(), 0);
-    int sum2 = accumulate(q.begin(), q.end(), 0);
-    return(sum1 < sum2);
+    if(p.back() != q.back()){
+        return(p.back()<q.back());
+    }else{
+        int sum1 = accumulate(p.begin(), p.end()-1, 0);
+        int sum2 = accumulate(q.begin(), q.end()-1, 0);
+        return(sum1 < sum2);
+    }
 }
 
 bool cmp2(Dislocation_t& p, Dislocation_t& q)
@@ -1087,12 +1048,11 @@ void IterFun2(vector<int>& oriVec, int iLayer,
     return;
 }
 
-int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir,
-                           vector< vector<double> >&  burgList, 
-                           vector<vector<int> >&      disOnBurgIDList,
-                           vector<vector<Dislocation_t> >&    disArray,
-                           real8 *plane, bool crossSlip, 
-                           int maxDissPerBasicBurg, int maxDiss)
+int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
+                       real8 *plane, bool crossSlip, 
+                       vector< vector<double> >&  burgList, 
+                       vector<vector<Dislocation_t> >&    disArray,
+                       int maxDissPerBasicBurg, int maxDiss)
 {
     int     i, j, k, m, nPlanes = 0, nBurgs = 0;
     int     nShockleyBurgs = 0;
@@ -1118,6 +1078,7 @@ int DisassembleDislocation(BurgInfo_t *bd, real8 *burg, real8 *lDir,
     std::vector<int>                    oriVec;
     std::vector<int>                    orderList;
     std::vector<std::vector<int> >      disOnPlaneIDList;
+    std::vector<std::vector<int> >      disOnBurgIDList;
     std::vector<std::vector<int> >      orderArray;
 
     std::vector<std::vector<int> >      recordList(3);
