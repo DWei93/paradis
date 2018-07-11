@@ -847,10 +847,10 @@ real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB){
 	return(minDistance);
 }
 
-int GetGBIndexOfGrain(Grain_t *grain, int inGB){
+int GetGBIndexOfGrain(Grain_t *grain, int onGB){
     int i;
     for(i=0; i<grain->nBounds; i++){
-         if(grain->GB[i]->GBID == inGB)return(i);
+         if(grain->GB[i]->GBID == onGB)return(i);
     }
     return(-1);
 }

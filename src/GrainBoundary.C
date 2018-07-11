@@ -369,17 +369,19 @@ void FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
     return;
 }
 
-int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb){
+int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
+{
 	
-	real8		pos[3], burg[3], normal[3], burg1[3];
-	real8		vec[3];
+	real8		pos[3], burg[3], normal[3];
+	real8		vec[3], jth;
     real8       centorPos[3];
-    real8       vec1[3], vec2[3], eps = 0.1, dis;
-    int         i;
+    real8       vec1[3], vec2[3], eps, dis;
+    int         i, j, newPlaneID, localGBID;
     int         currInGrain, currOnGB, nSets;
     Line_t      line;
     Node_t      *node1, *node2;
     Plane_t     GBPlane;
+    Grain_t     *grain;
 
     BurgInfo_t  *gbd;
     
@@ -389,6 +391,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb){
     pene->node = node;
     pene->gb = gb;
     gbd = &(gb->burgData);
+    eps = home->param->rann;
 
 	node1 = GetNeighborNode(home,node,0);
 	node2 = GetNeighborNode(home,node,1);
@@ -415,6 +418,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb){
     if(type != LINE_INTERSECTION && fabs(dis) > 5){
         printf("Warning: type %d in file %s at line %d, dis %f \n", 
                 type, __FILE__, __LINE__, dis);
+        return(0);
     }
 
 	pos[0] = node->x;
@@ -445,289 +449,79 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb){
     pene->nSets = disArray.size();
     pene->res = (Res_t *)malloc(pene->nSets*size(Res_t));
 
+    for(i=0; i<disArray.size(); i++){
+        InitPeneRes(&(pene->res[i]), disArray[i].size());
+        newPlaneID = -1;
+        for(j=0; j<disArray[i].size(); j++){
+            VECTOR_COPY(pene->res[i].burg[j], burgList[disArray[i][j].burgID]);
+            VECTOR_COPY(pene->res[i].normal[j], 
+                        gbd->planeList[disArray[i][j].planeID]);
+            pene->res[i].inGrain[j] = gbd->planeInGrain[disArray[i][j]];
 
-
-
-
-
-
-
-
-	dot = DotProduct(burg, GBPlane->normal);
- 	if(fabs(dot) <1.0e-2)isScrew = 1;
-	
-	Matrix33Vector3Multiply(home->param->rotateNormal, normal, outNormal);
-    outNormal[0] = -outNormal[0];
-    outNormal[1] = -outNormal[1];
-    outNormal[2] = -outNormal[2];
-
-	Matrix33Vector3Multiply(oldGrain->orientationInv, burg, crystalBurg);
-
-	if(isScrew){
-		pene->nSets = 3;
-        pene->res = (Res_t *)calloc(pene->nSets, sizeof(Res_t));
-/*
- *      set 1, secrew dislocation cut through the CTB like cross-slip
- */ 
-        i = 0;
-        j = 0;
-        k = 0;
-        InitPeneRes(&(pene->res[i]), 1, 1);
-        pene->res[i].nDissOnPlane[j] = 1;
-
-        pene->res[i].passGB[j] = 1;
-        pene->res[i].inGrain[j] = currInGrain;
-		VECTOR_COPY(pene->res[i].normal[j],outNormal);
-		VECTOR_COPY(pene->res[i].burg[k],burg);
-
-        cross(pene->line2.direction, pene->res[i].normal[j], vec1);
-        if(Normal(vec1) < 1.0E-4){
-            Fatal("In file %s at line %d", __FILE__, __LINE__);
-        }
-        NormalizeVec(vec1);
-       
-        if(pene->res[i].passGB[j]){ 
-            type = PointPlaneIntersection(pos, GBPlane->normal, 
-                                          GBPlane->point, vec2, &dis);
-            vec2[0] -= pos[0];
-            vec2[1] -= pos[1];
-            vec2[2] -= pos[2];
-            if(Normal(vec2) < 1.0E-4){
-                printf("Warning in file %s at line %d", __FILE__, __LINE__);
+            if(disArray[i][j].planeID != newPlaneID){
+                newPlaneID = disArray[i][j].planeID;
+                jth = 1.0;
+            }else{
+                jth += 1.0; 
             }
-            NormalizeVec(vec2);
-            if(DotProduct(vec1, vec2) < 0){
-                vec1[0] = -vec1[0];
-                vec1[1] = -vec1[1];
-                vec1[2] = -vec1[2];
-            }
-        }
-
-        pene->res[i].pos[k][0] = centorPos[0] + vec1[0]*eps*((real8)k+1.0);
-        pene->res[i].pos[k][1] = centorPos[1] + vec1[1]*eps*((real8)k+1.0);
-        pene->res[i].pos[k][2] = centorPos[2] + vec1[2]*eps*((real8)k+1.0);
-        
-/*
- *      set 2 and 3, dislocation dissociate at the CTB
- */
-        i = 1;
-        j = 0;
-        for(i=1; i<3; i++){
-            disID = 0;
-            InitPeneRes(&(pene->res[i]), 1, 2);
-            for(j=0; j<pene->res[i].nPlanes; j++){
-                pene->res[i].nDissOnPlane[j] = 2;
-                pene->res[i].passGB[j] = 0;
-                pene->res[i].inGrain[j] = TBInGrain;
-		        VECTOR_COPY(pene->res[i].normal[j], GBPlane->normal);
-     
-                cross(pene->line2.direction, pene->res[i].normal[j], vec1);
-                if(Normal(vec1) < 1.0E-4){
-                    Fatal("In file %s at line %d", __FILE__, __LINE__);
-                }
-                NormalizeVec(vec1);
-             
-                if(pene->res[i].passGB[j]){ 
-                    type = PointPlaneIntersection(pos, GBPlane->normal, 
-                           GBPlane->point, vec2, &dis);
-                    vec2[0] -= pos[0];
-                    vec2[1] -= pos[1];
-                    vec2[2] -= pos[2];
-                    if(Normal(vec2) < 1.0E-4){
-                        printf("Warning in file %s at line %d", __FILE__, __LINE__);
-                    }
-                    NormalizeVec(vec2);
-                    if(DotProduct(vec1, vec2) < 0){
-                        vec1[0] = -vec1[0];
-                        vec1[1] = -vec1[1];
-                        vec1[2] = -vec1[2];
-                    }
-                }
-                for(k = disID; k<disID+pene->res[i].nDissOnPlane[j]; k++){
-                    pene->res[i].pos[k][0] = centorPos[0] 
-                                             + vec1[0]*eps*((real8)(k-disID)+1.0);
-                    pene->res[i].pos[k][1] = centorPos[1] 
-                                             + vec1[1]*eps*((real8)(k-disID)+1.0);
-                    pene->res[i].pos[k][2] = centorPos[2] 
-                                             + vec1[2]*eps*((real8)(k-disID)+1.0);
-                }
-                disID += pene->res[i].nDissOnPlane[j];
-            }
-        }
-
-
-/*
- *      Find the out burg
- * */
-		switch(BurgID_FCC(gb)){
-		    case 1 :
-		    burg1[0] = -1.0;
-		    burg1[1] =  2.0;
-		    burg1[2] = -1.0;
-		        break;
-		    case 3 :
-		    burg1[0] =  2.0;
-		    burg1[1] = -1.0;
-		    burg1[2] = -1.0;
-		        break;
-		    case 5 :
-		    burg1[0] = -1.0;
-		    burg1[1] =  2.0;
-		    burg1[2] = -1.0;
-		        break;
-		    default :
-			Fatal("GetPenRes: Wrong screw ID");
-		}
-
-		NormalizeVec(burg1);
-		burg1[0] /= sqrt(3.0);	
-		burg1[1] /= sqrt(3.0);	
-		burg1[2] /= sqrt(3.0);	
-		
-	    Matrix33Vector3Multiply(oldGrain->orientation, burg1, burg2);
-
-		if(DotProduct(burg2, burg) < 0.0){
-		    burg2[0] = -burg2[0];
-		    burg2[1] = -burg2[1];
-		    burg2[2] = -burg2[2];
-		}
-
-		burg1[0] = burg[0] - burg2[0];
-		burg1[1] = burg[1] - burg2[1];
-		burg1[2] = burg[2] - burg2[2];
-
-        VECTOR_COPY(pene->res[1].burg[0], burg1);
-        VECTOR_COPY(pene->res[1].burg[1], burg2);
-
-        VECTOR_COPY(pene->res[2].burg[0], burg2);
-        VECTOR_COPY(pene->res[2].burg[1], burg1);
-		return(1);
-	}
-
-        if(BurgID_FCC(crystalBurg) % 2 != 0){
-            FormatVector(crystalBurg,"crystalBurg");
-            FormatVector(burg,"burg");
-            FormatVector(normal,"normal");
-            FormatVector(outNormal,"outNormal");
-            FormatVector(GBPlane->normal,"GBPlane->normal");
-            printf("the burg is not a non-screw burg, dot %.15e\n",dot);
-	        return(0);
-        }
-        
-        if(crystalBurg[0] < 1.0e-6 &&
-           crystalBurg[1] < 1.0e-6 &&
-           crystalBurg[2] < 1.0e-6){
-           sb = -1.0;
-       }else sb = 1.0;
-
-	    Matrix33Vector3Multiply(oldGrain->orientationInv, normal, crystalNormal);
-        normalID = GlidePlaneID_FCC(crystalNormal);
-        GetTBBurg_FCC(normalID, TBBurgCryst);
-        TBBurgCryst[0] *= sb;
-        TBBurgCryst[1] *= sb;
-        TBBurgCryst[2] *= sb;
-	    Matrix33Vector3Multiply(oldGrain->orientation, TBBurgCryst, burg2);
-
-	    burg1[0] = burg[0] - burg2[0];
-	    burg1[1] = burg[1] - burg2[1];
-	    burg1[2] = burg[2] - burg2[2];
-	
-        real8 burg1Mag;
-        burg1Mag = Normal(burg1);
-        if(fabs(burg1Mag - 1.0) > 1.0e-3){
-#if 0
-            FormatVector(burg,"burg");
-            FormatVector(burg1,"burg1");
-            FormatVector(burg2,"burg2");
-            Fatal("GetPenResults: burg1Mag is %f",burg1Mag);
-#else
-	    return(0);
-#endif
-	    }
-
-        i = 0;
-	    pene->nSets = 1;
-        pene->res = (Res_t *)calloc(pene->nSets, sizeof(Res_t));
-
-        InitPeneRes(&(pene->res[i]), 2, 2);
-
-        pene->res[i].nDissOnPlane[0] = 1;
-        pene->res[i].nDissOnPlane[1] = 1;
-
-        pene->res[i].passGB[0] = 1;
-        pene->res[i].passGB[1] = 0;
-
-        pene->res[i].inGrain[0] = currInGrain;      
-        pene->res[i].inGrain[1] = TBInGrain;      
-
-        VECTOR_COPY(pene->res[i].normal[0],outNormal);
-        VECTOR_COPY(pene->res[i].normal[1],GBPlane->normal);
-
-	    VECTOR_COPY(pene->res[i].burg[0],burg1);
-	    VECTOR_COPY(pene->res[i].burg[1],burg2);
-    
-        disID = 0;
-        for(j=0; j<pene->res[i].nPlanes; j++){
-            cross(pene->line2.direction, pene->res[i].normal[j], vec1);
-            if(Normal(vec1) < 1.0E-4){
+            cross(pene->line2.direction, pene->res[i].normal[j], vec);
+            if(Normal(vec) < 1.0E-4){
                 Fatal("In file %s at line %d", __FILE__, __LINE__);
             }
-            NormalizeVec(vec1);
-             
-            if(pene->res[i].passGB[j]){ 
-                type = PointPlaneIntersection(pos, GBPlane->normal, 
-                       GBPlane->point, vec2, &dis);
-                vec2[0] -= pos[0];
-                vec2[1] -= pos[1];
-                vec2[2] -= pos[2];
-                if(Normal(vec2) < 1.0E-4){
-                    printf("Warning in file %s at line %d", __FILE__, __LINE__);
-                }
-                NormalizeVec(vec2);
-                if(DotProduct(vec1, vec2) < 0){
-                    vec1[0] = -vec1[0];
-                    vec1[1] = -vec1[1];
-                    vec1[2] = -vec1[2];
-                }
-            }
-            for(k = disID; k<disID+pene->res[i].nDissOnPlane[j]; k++){
-                pene->res[i].pos[k][0] = centorPos[0] 
-                                         + vec1[0]*eps*((real8)(k-disID)+1.0);
-                pene->res[i].pos[k][1] = centorPos[1] 
-                                         + vec1[1]*eps*((real8)(k-disID)+1.0);
-                pene->res[i].pos[k][2] = centorPos[2] 
-                                         + vec1[2]*eps*((real8)(k-disID)+1.0);
-            }
-            disID += pene->res[i].nDissOnPlane[j];
-        }
+            NormalizeVec(vec);
 
-	    return(1);
+            if(pene->res[i].inGrain[j] > -1){
+                grain = home->grainKeys[pene->res[i].inGrain[j]];
+                localGBID = GetGBIndexOfddGrain(grain, gb->GBID);
+                if(localGBID == -1){
+                    Fatal("In file %s at line %d", __FILE__, __LINE__)
+                }
+                vec1[0] = -grain->sign[localGBID]*gb->n[0];
+                vec1[1] = -grain->sign[localGBID]*gb->n[1];
+                vec1[2] = -grain->sign[localGBID]*gb->n[2];
+                
+                if(DotProduct(vec, vec1) < 0){
+                    vec[0] = -vec[0];
+                    vec[1] = -vec[1];
+                    vec[2] = -vec[2];
+                }
+            }else{
+                cross(gb->n, pene->res[i].normal[j], vec1);
+                if(Normal(vec1) > 1.0E-4){
+                    Fatal("In file %s at line %d", __FILE__, __LINE__);
+                }
+            }
+
+            pene->res[i].pos[j][0] = centorPos[0] + vec[0]*eps*jth;
+            pene->res[i].pos[j][1] = centorPos[1] + vec[1]*eps*jth;
+            pene->res[i].pos[j][2] = centorPos[2] + vec[2]*eps*jth;
+            
+        } /* for(j=0; j<disArray[i].size(); j++) */
+    }/* for(i=0; i<disArray.size(); i++) */
+
+	return(1);
 }
 
+int PenetrationFirst(Home_t *home, Pene_t *pene)
+{
 
-int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
-					 Grain_t *newGrain, Plane_t *GBPlane, Pene_t *pene){
+    int         myDomain, type, currInGrain, currOnGB, oldInGrain;
+    int         numBkup, i, j, globalOp, mobError;
+    bool        switchedArm;
+    real8       nodeVel[3], currPos[3], odlPos[3], posClosedGB[3];
+    real8       dis, dirGBNode[3], node1Pos[3], node2Pos[3];
+    real8       vec1[3], vec2[3], newVel[3];
+    Node_t      *node, *nbrNode1, *nbrNode2, *nbr, *node1, *node2;
+    Node_t      *localNode;
+    Node_t      *bkupNodeList, **newNodePtrList; 
+    GB_t        *gb;
 
-	real8		nDir1[3], nodeVel[3], currPos[3], oldPos[3], burg[3], bMag;
-	real8 		burgStore[3], normalStore[3],eps, sb, newVelocity, CurrNbrInGrain;
-	real8		velNormal, glideDir[3], burg1[3],burg2[3], newVel[3], oldVel[3],crystalNormal[3];
-	real8		newPos[3], vec[3], vecNormal, crossDistance, TBInGrain,currInGrain, oldInGrain;
-	real8		node1Pos[3],node2Pos[3], posClosedGB[3], dis;
-	real8		maxPowerDis = - 1.0e50, totVel[3], totForce[3], dirGBNode[3];
-	int			armID, switchNode=0, set, maxPowerSet=-1;
-	int			iScrew = 0, globalOp, mobError, forward, myDomian;
-	int		    numBkup, disID;
-    int         i, j, k, type, breakLoop;
-	Node_t 		*nbrNode1,*nbrNode2,*newNode,*globalNode, *nbr;
-	Node_t		*node1,*node2,*bkupNodeList, **newNodePtrList;
-	Node_t		*node4,*node5;
-	Param_t		*param;
-	Plane_t		oldGlidePlane, outPlane, plane;							//Basic plane
-	Line_t		pathLine, interLine, lineNodeOldNbr2, lineNbr1Node, estimatedPath;
+    Param_t     *param;
 	
 	myDomian = home->myDomain;
-	
 	param = home->param;
+    node = pene->node;
+    gb = pene->gb;
 
 	nodeVel[0] = node->vX;
 	nodeVel[1] = node->vY;
@@ -737,24 +531,28 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	currPos[1] = node->y;
 	currPos[2] = node->z;
 
-    type = PointPlaneIntersection(currPos, GBPlane->normal,
-           GBPlane->point, posClosedGB, &dis);
+    oldPos[0] = node->oldx;
+    oldPos[1] = node->oldy;
+    oldPos[2] = node->oldz;
+
+    type = PointPlaneIntersection(currPos, gb->n,
+                                  gb->p, posClosedGB, &dis);
     if(fabs(dis) < 1E-10)return(0);
+
+    vec1[0] = currPos[0] - oldPos[0];
+    vec1[0] = currPos[0] - oldPos[0];
+    vec1[0] = currPos[0] - oldPos[0];
+    ZImage(param, vec1, vec1+1, vec1+2);
+    if(DotProduct(vec1, nodeVec) <= 0)return(0);
     
     dirGBNode[0] = currPos[0] - posClosedGB[0];
     dirGBNode[1] = currPos[1] - posClosedGB[1];
     dirGBNode[2] = currPos[2] - posClosedGB[2];
     NormalizeVec(dirGBNode);
 
-    oldPos[0] = node->oldx;
-    oldPos[1] = node->oldy;
-    oldPos[2] = node->oldz;
-
-    currInGrain = InWhichGrain(home, currPos[0], currPos[1], currPos[2]); 
+    NodeLocation(home, currPos[0], currPos[1], currPos[2], currInGrain, currOnGB);
     oldInGrain = node->inGrain;
-/*	
- *	find the dislocation glide direction	
- */
+
 	if(Normal(nodeVel) < 1.0)return(0);
 
 	nbrNode1 = GetNeighborNode(home,node,0);
@@ -762,7 +560,7 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	
 	if(nbrNode1 == (Node_t *)NULL || nbrNode2 == (Node_t *)NULL)return(0);
 	
-    numBkup = 5 + nbrNode1->numNbrs +nbrNode2->numNbrs;
+    numBkup = 2 + nbrNode1->numNbrs +nbrNode2->numNbrs;
 	bkupNodeList = (Node_t *)calloc(numBkup, sizeof(Node_t));
 	BackupNode(home, nbrNode1, &bkupNodeList[0]);
 	BackupNode(home, node, &bkupNodeList[1]);
@@ -770,68 +568,57 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 
     for(i=0; i<nbrNode1->numNbrs; i++){
         nbr = GetNeighborNode(home,nbrNode1,i);
+        if(nbr == node)continue;
 	    BackupNode(home, nbr, &bkupNodeList[i+3]);
     }
 
     for(i=0; i<nbrNode2->numNbrs; i++){
         nbr = GetNeighborNode(home,nbrNode2,i);
-	    BackupNode(home, nbr, &bkupNodeList[i+3+nbrNode1->numNbrs]);
+        if(nbr == node)continue;
+	    BackupNode(home, nbr, &bkupNodeList[i+2+nbrNode1->numNbrs]);
     }
 
 	node1 = (Node_t *)NULL; 
 	node2 = (Node_t *)NULL; 
 	
-// node2 pos
-    VECTOR_COPY(node2Pos, pene->line2.point);
-    FoldBox(param, node2Pos, node2Pos+1, node2Pos+2);
-
 //node1pos
     VECTOR_COPY(node1Pos, pene->line1.point);
     FoldBox(param, node1Pos, node1Pos+1, node1Pos+2);
 
-    TBInGrain = NodeLocation(home, node1Pos[0], node1Pos[1], node1Pos[2]);
+// node2 pos
+    VECTOR_COPY(node2Pos, pene->line2.point);
+    FoldBox(param, node2Pos, node2Pos+1, node2Pos+2);
 
 /*	
  *	Insert a new native node and select two segements to deal with
  */
 	globalOp = 0;
     
-	vec[0] = nbrNode2->oldx - node->oldx;
-	vec[1] = nbrNode2->oldy - node->oldy;
-	vec[2] = nbrNode2->oldz - node->oldz;
-    ZImage(param, vec, vec+1, vec+2);
 
-    newPos[0] = node->oldx + 0.5*vec[0];
-    newPos[1] = node->oldy + 0.5*vec[1];
-    newPos[2] = node->oldz + 0.5*vec[2];
-    FoldBox(param, newPos, newPos+1, newPos+2);
-    
-	if((globalNode = InsertNode(home,node,nbrNode2,newPos,globalOp,OPCLASS_SEPARATION)) == (Node_t *)NULL) {
+	if((localNode = InsertNode(home,node,nbrNode2,oldPos,
+        globalOp,OPCLASS_SEPARATION)) == (Node_t *)NULL) {
 	    return(0);
 	}
 
-	switchNode = 0;
-	if(GetArmID(home, node, nbrNode1) == -1)switchNode=1;
+    switchedArm = (GetArmID(home, node, nbrNode1) == -1);
 	
-	if(switchNode){
-        node1 = globalNode;
+	if(switchedArm){
+        node1 = localNode;
         node2 = node;
 	}else{
 	    node1 = node;
-	    node2 = globalNode;
+	    node2 = localNode;
 	}
 	
 	RepositionNode(home, node2Pos, &node2->myTag, globalOp);
 	RepositionNode(home, node1Pos, &node1->myTag, globalOp);
-	BackupNode(home, node1, &bkupNodeList[numBkup-2]);
-	BackupNode(home, node2, &bkupNodeList[numBkup-1]);
+	BackupNode(home, localNode, &bkupNodeList[numBkup-1]);
 	
 /*
  *  Test all possible resultant configurations.
  */
     newNodePtrList = (Node_t **)NULL;
 
-    breakLoop = 0;
 	for(i=0; i < pene->nSets; i++){
         if(pene->res[i].effective == 0)continue;
 		pene->res[i].powerDis = 0.0;
@@ -842,31 +629,35 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	    ChangeArmBurg(home, node2, &node1->myTag, 0.0, 0.0, 0.0,
 				      0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
 
-        node1->inGrain = TBInGrain;
-        node2->inGrain = TBInGrain;
+        node1->inGrain = -1;
+        node2->inGrain = -1;
+        node1->onGB = gb->GBID;
+        node2->onGB = gb->GBID;
 
-        disID = 0;
-        for(j=0; j<pene->res[i].nPlanes; j++){
-            for(k=disID; k<disID+pene->res[i].nDissOnPlane[j]; k++){
-                newNodePtrList[k] = (Node_t *)NULL;
-                InsertConnection(home, node1, node2, globalOp, pene->res[i].inGrain[j],
-                                pene->res[i].pos[k], pene->res[i].burg[k],
-                                pene->res[i].normal[j], &(newNodePtrList[k]));
-            } // for k
-            disID += pene->res[i].nDissOnPlane[j];
-        } // for j
-        if(disID != pene->res[i].nDiss){
-            Fatal("in file %s at line %d", __FILE__, __LINE__);
+        for(j=0; j<pene->res[i].nDiss; j++){
+            InsertConnection(home, node1, node2, globalOp, pene->res[i].inGrain[j], 1,
+                             pene->res[i].pos[j], pene->res[i].burg[j],
+                             pene->res[i].normal[j], &(newNodePtrList[j]));
         }
+
 /*
  *      caculate the power dis
  */
-        breakLoop = 0;
-        disID = 0;
-        for(j=0; j<pene->res[i].nPlanes; j++){
-            if(breakLoop)break;
-            VECTOR_ZERO(totVel);
-            VECTOR_ZERO(totForce);
+        for(j=0; j<pene->res[i].nDiss; j++){
+            
+		    SetOneNodeForce(home, newNodePtrList[j]);
+		    mobError = EvaluateMobility(home, newNodePtrList[j]);
+
+            newVel[0] = newNodePtrList[j]->vX;
+            newVel[1] = newNodePtrList[j]->vY;
+            newVel[2] = newNodePtrList[j]->vZ;
+
+            if(DotProduct(nodeVel, newVel) < 0){
+                pene->res[i].effective = 0;
+                pene->res[i].powerDis = -1.0E50;
+                break;
+            }
+
             for(k=disID; k<disID+pene->res[i].nDissOnPlane[j]; k++){
 		        SetOneNodeForce(home,newNodePtrList[k]);
 		        mobError = EvaluateMobility(home,newNodePtrList[k]);
@@ -1016,7 +807,7 @@ int PenetrationFirst(Home_t *home, Node_t *node, Grain_t *oldGrain,
     i = maxPowerSet;
     for(j=0; j<pene->res[i].nPlanes; j++){
         for(k=disID; k<disID + pene->res[i].nDissOnPlane[j]; k++){
-            InsertConnection(home, node1, node2, globalOp, pene->res[i].inGrain[j],
+            InsertConnection(home, node1, node2, globalOp, pene->res[i].inGrain[j], -1,
                             pene->res[i].pos[k], pene->res[i].burg[k],
                             pene->res[i].normal[j], &(newNode));
 
@@ -1415,7 +1206,7 @@ void HandleGrainBoundary(Home_t *home)
         }		
 
         oldGrain  = home->grainKeys[oldInGrain];
-        currGrain = home->grainKeys[corInGrain];
+        currGrain = home->grainKeys[currInGrain];
         if(!GetPublicGB(oldGrain, currGrain, &gb)){
             Fatal("in %s at %d", __FILE__, __LINE__);
         }
@@ -1531,7 +1322,7 @@ void HandleGrainBoundary(Home_t *home)
  *		    determine the resultant slip plane.	
  */
                 if(ScrewEnergyRule(home,node,oldInGrain,
-			   corInGrain,&GBPlane)==0){
+			        corInGrain,&GBPlane)==0){
 	
                     PullBack(home,node, oldInGrain);
                     continue;

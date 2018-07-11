@@ -194,7 +194,7 @@ int GetBurgID_FCC(Home_t *home, Node_t *node, Node_t *nbr);
 int HasShortSeg(Home_t *home, Node_t *node, real8 shortSegLenSq);
 void AssignGrain (Home_t *home, Node_t *node, int inGrain, int onGB);
 void AssignConstraint(Home_t *home, Node_t *node, int constraint) ;
-int GetGBIndexOfGrain(Grain_t *grain, int inGB);
+int GetGBIndexOfGrain(Grain_t *grain, int onGB);
 bool GetPublicGB(Grain_t *grain1, Grain_t *grain2, GB_t **GB);
 void AddOpGB (Home_t *home, OpType_t type, int dom1, int idx1, int inGrain, int onGB);
 int NodeOnGB(Home_t *home, Node_t *node);

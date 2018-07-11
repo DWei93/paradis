@@ -2797,7 +2797,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 
 
 int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
-                     real8 inGrain, real8 pos[3], real8  burg[3], real8 normal[3],
+                     int inGrain, int onGB, real8 pos[3], real8  burg[3], real8 normal[3],
                      Node_t **newNodePtr)
 {
     int         thisDomain;
@@ -2856,11 +2856,12 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
               (*newNodePtr)->vY,            /* but node velocity is, so we*/
               (*newNodePtr)->vZ);           /* commandeer the AddOp normal*/
                                         /* arguments for velocity data*/
-	    AssignGrain(home, (*newNodePtr), inGrain);
+	    AssignGrain(home, (*newNodePtr), inGrain, onGB);
     }
 
 	AssignNodeToCell(home, (*newNodePtr));
     (*newNodePtr)->inGrain = inGrain;
+    (*newNodePtr)->inGrain = onGB;
     
     InsertArm(home, node1, &(*newNodePtr)->myTag,
              burg[0], burg[1], burg[2],

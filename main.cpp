@@ -226,8 +226,9 @@ void InitGrain(Home_t *home){
 
 #if 1
     bool     stat, crossSlip = 1;
-    real8   burgCry[3] = {0.707107, 0.0, 0.707107};    // AD
- //   real8   burgCry[3] = {0.707107, -0.707107, 0.};     //AB
+//    real8   burgCry[3] = {0.707107, 0.0, 0.707107};    // AD
+//    real8   burgCry[3] = {0.707107, -0.707107, 0.};     //AB
+    real8   burgCry[3] = {0.3, -0.7, 0.6};     //randon
     real8   lineCry[3] = {0.707107, -0.707107, 0.};     //AB
     real8   planeCry[3]= {0.57735, 0.57735, -0.57735}; // ABD 
  //   real8   planeCry[3]= {0.57735, 0.57735, 0.57735};   // ABC
