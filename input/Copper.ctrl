@@ -89,7 +89,8 @@ appliedStress = [
 #  Material and mobility parameters
 #  
 mobilityLaw =   "FCC_0"  
-shearModulus =   54.6e9  # Voight Average
+#shearModulus =   54.6e9  # Voight Average
+shearModulus =  46.554e9  # in jin paper
 pois =   0.324
 burgMag =   2.55600e-10  
 limitDisplacement = 0

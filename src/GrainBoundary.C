@@ -506,22 +506,41 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 {
 
     int         myDomain, type, currInGrain, currOnGB, oldInGrain;
-    int         numBkup, i, j, globalOp, mobError;
+    int         numBkup, i, j, globalOp, mobError, newPlaneID;
+    int         planeID, localPlaneID;
     bool        switchedArm;
     real8       nodeVel[3], currPos[3], odlPos[3], posClosedGB[3];
     real8       dis, dirGBNode[3], node1Pos[3], node2Pos[3];
-    real8       vec1[3], vec2[3], newVel[3];
+    real8       vec1[3], vec2[3], newVel[3], nForce[3];
+    real8       centorPos[3], lDir[3], peneLength;
     Node_t      *node, *nbrNode1, *nbrNode2, *nbr, *node1, *node2;
     Node_t      *localNode;
     Node_t      *bkupNodeList, **newNodePtrList; 
     GB_t        *gb;
+    BurgInfo_t  *bd;
+    
+    real8       gammaS, gammaT;
 
     Param_t     *param;
 	
 	myDomian = home->myDomain;
 	param = home->param;
+    
+    gammaS = 4.47E-2/param->burgMag;  /* units: Pa.b*/
+    gammaT = 0.5*gammaS;
+
     node = pene->node;
     gb = pene->gb;
+    bd = &(gb->burgData);
+
+    centorPos[0] = (pene->line1.point[0] + pene->line2.point[0])*0.5;
+    centorPos[1] = (pene->line1.point[1] + pene->line2.point[1])*0.5;
+    centorPos[2] = (pene->line1.point[2] + pene->line2.point[2])*0.5;
+
+    vec1[0] = (pene->line1.point[0] - pene->line2.point[0]);
+    vec1[1] = (pene->line1.point[1] - pene->line2.point[1]);
+    vec1[2] = (pene->line1.point[2] - pene->line2.point[2]);
+    peneLength = Normal(vec1);
 
 	nodeVel[0] = node->vX;
 	nodeVel[1] = node->vY;
@@ -643,11 +662,35 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 /*
  *      caculate the power dis
  */
+        newPlaneID = -1;
         for(j=0; j<pene->res[i].nDiss; j++){
             
 		    SetOneNodeForce(home, newNodePtrList[j]);
-		    mobError = EvaluateMobility(home, newNodePtrList[j]);
 
+            planeID = GlidePlaneID_FCC(bd, pene->res[i].normal[j]);
+            if(planeID != newPlaneID){
+                newPlaneID = planeID;
+                localPlaneID = 0;
+            }else{
+                localPlaneID++;
+                if(localPlaneID == 2)localPlaneID = 0;
+            }
+            
+            if(pene->res[i].inGrain[j] >-1 ){
+                vec1[0] = centorPos[0] - pene->res[i].pos[j][0];
+                vec1[1] = centorPos[1] - pene->res[i].pos[j][1];
+                vec1[2] = centorPos[2] - pene->res[i].pos[j][2];
+                if(localPlaneID == 1){
+                    vec1[0] = -vec1[0];
+                    vec1[1] = -vec1[1];
+                    vec1[2] = -vec1[2];
+                }
+                node->fX += (vec1[0]*peneLength*gammaS)
+                node->fY += (vec1[1]*peneLength*gammaS)
+                node->fZ += (vec1[2]*peneLength*gammaS)
+            }
+
+		    mobError = EvaluateMobility(home, newNodePtrList[j]);
             newVel[0] = newNodePtrList[j]->vX;
             newVel[1] = newNodePtrList[j]->vY;
             newVel[2] = newNodePtrList[j]->vZ;
@@ -658,33 +701,9 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
                 break;
             }
 
-            for(k=disID; k<disID+pene->res[i].nDissOnPlane[j]; k++){
-		        SetOneNodeForce(home,newNodePtrList[k]);
-		        mobError = EvaluateMobility(home,newNodePtrList[k]);
-		        totVel[0] += newNodePtrList[k]->vX; 
-		        totVel[1] += newNodePtrList[k]->vY; 
-		        totVel[2] += newNodePtrList[k]->vZ;
+            DoResistance(home, newNodePtrList[j], nForece);
 
-                totForce[0] += newNodePtrList[k]->fX;
-                totForce[1] += newNodePtrList[k]->fY;
-                totForce[2] += newNodePtrList[k]->fZ;
-
-                if(pene->res[i].passGB[j]){
-                    VECTOR_ZERO(newVel);
-                    newVel[0] = newNodePtrList[k]->vX;
-                    newVel[1] = newNodePtrList[k]->vY;
-                    newVel[2] = newNodePtrList[k]->vZ;
-                    NormalizeVec(newVel);
-
-                    if(DotProduct(newVel, dirGBNode) <= 0){
-                        pene->res[i].effective = 0;
-                        breakLoop = 1;
-                        break;
-                    }
-                } 
-            } // for k
-            disID += pene->res[i].nDissOnPlane[j];
-            pene->res[i].powerDis += DotProduct(totVel, totForce);
+            pene->res[i].powerDis += DotProduct(nForece, newVel);
         } // for j
         
 /*
