@@ -55,7 +55,7 @@ struct _node {
         
 	real8	oldx, oldy, oldz;	/* for strain increment, Moono.Rhee */
 	real8	oldvX, oldvY, oldvZ;	/* nodal velocity at previous step */
-        real8   currvX, currvY, currvZ; /* nodal velocity at beginning of the */
+    real8   currvX, currvY, currvZ; /* nodal velocity at beginning of the */
                                         /* current step.  Only used during    */
                                         /* timestep integration while vX, vY  */
                                         /* and vZ are being determined.       */

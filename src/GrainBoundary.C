@@ -372,12 +372,13 @@ void FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
 int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 {
 	
-	real8		pos[3], burg[3], normal[3];
+	real8		pos[3], burg[3], normal[3], resiBurg[3];
 	real8		vec[3], jth;
     real8       centorPos[3];
     real8       vec1[3], vec2[3], eps, dis;
-    int         i, j, newPlaneID, localGBID;
+    int         i, j, newPlaneID, localGBID, nDiss;
     int         currInGrain, currOnGB, nSets;
+    bool        residualDis;
     Line_t      line;
     Node_t      *node1, *node2;
     Plane_t     GBPlane;
@@ -450,7 +451,20 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
     pene->res = (Res_t *)malloc(pene->nSets*size(Res_t));
 
     for(i=0; i<disArray.size(); i++){
-        InitPeneRes(&(pene->res[i]), disArray[i].size());
+
+        VECTOR_COPY(resiBurg, burg);
+        for(j=0; j<disArray[i].size(); j++){
+            resiBurg[0] -= burgList[disArray[i][j].burgID][0];
+            resiBurg[1] -= burgList[disArray[i][j].burgID][1];
+            resiBurg[2] -= burgList[disArray[i][j].burgID][2];
+        }
+
+        nDiss = disArray[i].size();
+        if(Normal(resiBurg) > 1.0E-2)nDiss++;
+        residualDis = (nDiss == disArray[i].size()) ? 0 : 1;
+
+        InitPeneRes(&(pene->res[i]), nDiss);
+
         newPlaneID = -1;
         for(j=0; j<disArray[i].size(); j++){
             VECTOR_COPY(pene->res[i].burg[j], burgList[disArray[i][j].burgID]);
@@ -497,6 +511,18 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
             pene->res[i].pos[j][2] = centorPos[2] + vec[2]*eps*jth;
             
         } /* for(j=0; j<disArray[i].size(); j++) */
+
+        if(residualDis){
+            VECTOR_COPY(pene->res[i].pos[j], centorPos);
+            VECTOR_COPY(pene->res[i].burg[j], resiBurg);
+
+            cross(resiBurg, line2.direction, pene->res[i].normal[j]);
+            NormalizeVec(pene->res[i].normal[j]);
+        
+            pene->res[i].inGrain[j] = -1;
+
+        }
+
     }/* for(i=0; i<disArray.size(); i++) */
 
 	return(1);
@@ -507,14 +533,15 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 
     int         myDomain, type, currInGrain, currOnGB, oldInGrain;
     int         numBkup, i, j, globalOp, mobError, newPlaneID;
-    int         planeID, localPlaneID;
+    int         planeID, localPlaneID, maxPowerSet, onGB;
     bool        switchedArm;
     real8       nodeVel[3], currPos[3], odlPos[3], posClosedGB[3];
     real8       dis, dirGBNode[3], node1Pos[3], node2Pos[3];
     real8       vec1[3], vec2[3], newVel[3], nForce[3];
-    real8       centorPos[3], lDir[3], peneLength;
+    real8       centorPos[3], lDir[3], peneLength, planeBurg[3];
+    real8       maxPowerDis;
     Node_t      *node, *nbrNode1, *nbrNode2, *nbr, *node1, *node2;
-    Node_t      *localNode;
+    Node_t      *localNode, *newNode;
     Node_t      *bkupNodeList, **newNodePtrList; 
     GB_t        *gb;
     BurgInfo_t  *bd;
@@ -585,16 +612,23 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 	BackupNode(home, node, &bkupNodeList[1]);
 	BackupNode(home, nbrNode2, &bkupNodeList[2]);
 
+    j = 3;
     for(i=0; i<nbrNode1->numNbrs; i++){
         nbr = GetNeighborNode(home,nbrNode1,i);
         if(nbr == node)continue;
-	    BackupNode(home, nbr, &bkupNodeList[i+3]);
+	    BackupNode(home, nbr, &bkupNodeList[j]);
+        j++;
+    }
+
+    if(j != 3 + nbrNode1->numNbrs - 1){
+        Ftal("in %s at %d", __FILE__, __LINE__);
     }
 
     for(i=0; i<nbrNode2->numNbrs; i++){
         nbr = GetNeighborNode(home,nbrNode2,i);
         if(nbr == node)continue;
-	    BackupNode(home, nbr, &bkupNodeList[i+2+nbrNode1->numNbrs]);
+	    BackupNode(home, nbr, &bkupNodeList[j]);
+        j++;
     }
 
 	node1 = (Node_t *)NULL; 
@@ -612,7 +646,6 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
  *	Insert a new native node and select two segements to deal with
  */
 	globalOp = 0;
-    
 
 	if((localNode = InsertNode(home,node,nbrNode2,oldPos,
         globalOp,OPCLASS_SEPARATION)) == (Node_t *)NULL) {
@@ -641,7 +674,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 	for(i=0; i < pene->nSets; i++){
         if(pene->res[i].effective == 0)continue;
 		pene->res[i].powerDis = 0.0;
-        newNodePtrList = (Node_t **)calloc(pene->res[i].nDiss, sizeof(Node_t*));
+        newNodePtrList = (Node_t **)malloc(pene->res[i].nDiss * sizeof(Node_t*));
 
 	    ChangeArmBurg(home, node1, &node2->myTag, 0.0, 0.0, 0.0,
 				      0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
@@ -653,19 +686,11 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
         node1->onGB = gb->GBID;
         node2->onGB = gb->GBID;
 
-        for(j=0; j<pene->res[i].nDiss; j++){
-            InsertConnection(home, node1, node2, globalOp, pene->res[i].inGrain[j], 1,
-                             pene->res[i].pos[j], pene->res[i].burg[j],
-                             pene->res[i].normal[j], &(newNodePtrList[j]));
-        }
-
 /*
  *      caculate the power dis
  */
         newPlaneID = -1;
         for(j=0; j<pene->res[i].nDiss; j++){
-            
-		    SetOneNodeForce(home, newNodePtrList[j]);
 
             planeID = GlidePlaneID_FCC(bd, pene->res[i].normal[j]);
             if(planeID != newPlaneID){
@@ -675,6 +700,13 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
                 localPlaneID++;
                 if(localPlaneID == 2)localPlaneID = 0;
             }
+
+            onGB = (pene->res[i].inGrain[j] == -1) ? gb->GBID : -1;
+            InsertConnection(home, node1, node2, globalOp, pene->res[i].inGrain[j], onGB,
+                             pene->res[i].pos[j], pene->res[i].burg[j],
+                             pene->res[i].normal[j], &(newNodePtrList[j]));
+            
+		    SetOneNodeForce(home, newNodePtrList[j]);
             
             if(pene->res[i].inGrain[j] >-1 ){
                 vec1[0] = centorPos[0] - pene->res[i].pos[j][0];
@@ -685,9 +717,17 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
                     vec1[1] = -vec1[1];
                     vec1[2] = -vec1[2];
                 }
-                node->fX += (vec1[0]*peneLength*gammaS)
-                node->fY += (vec1[1]*peneLength*gammaS)
-                node->fZ += (vec1[2]*peneLength*gammaS)
+                newNodePtrList[j]->fX += (vec1[0]*peneLength*gammaS);
+                newNodePtrList[j]->fY += (vec1[1]*peneLength*gammaS);
+                newNodePtrList[j]->fZ += (vec1[2]*peneLength*gammaS);
+
+                newNodePtrList[j]->armfx[0] += 0.5*(vec1[0]*peneLength*gammaS);
+                newNodePtrList[j]->armfy[0] += 0.5*(vec1[1]*peneLength*gammaS);
+                newNodePtrList[j]->armfz[0] += 0.5*(vec1[2]*peneLength*gammaS);
+
+                newNodePtrList[j]->armfx[1] += 0.5*(vec1[0]*peneLength*gammaS);
+                newNodePtrList[j]->armfy[1] += 0.5*(vec1[1]*peneLength*gammaS);
+                newNodePtrList[j]->armfz[1] += 0.5*(vec1[2]*peneLength*gammaS);
             }
 
 		    mobError = EvaluateMobility(home, newNodePtrList[j]);
@@ -695,7 +735,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
             newVel[1] = newNodePtrList[j]->vY;
             newVel[2] = newNodePtrList[j]->vZ;
 
-            if(DotProduct(nodeVel, newVel) < 0){
+            if(DotProduct(nodeVel, newVel) < 0 && pene->res[i].inGrain[j] >-1){
                 pene->res[i].effective = 0;
                 pene->res[i].powerDis = -1.0E50;
                 break;
@@ -704,22 +744,33 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
             DoResistance(home, newNodePtrList[j], nForece);
 
             pene->res[i].powerDis += DotProduct(nForece, newVel);
+
+            ForceRemoveNode(home, newNodePtrList[j], globalOp);
+            newNodePtrList[j] = (Node_t *)NULL;
+            
+/*
+ *          Restore node1-node2 configuration
+ */
+	        RestoreNode(home, localNode, &bkupNodeList[numBkup-1]);
+	        RestoreNode(home, node, &bkupNodeList[1]);
+
+	        if(switchedArm){
+                node1 = localNode;
+                node2 = node;
+	        }else{
+	            node1 = node;
+	            node2 = localNode;
+	        }
+	        RepositionNode(home, node2Pos, &node2->myTag, globalOp);
+	        RepositionNode(home, node1Pos, &node1->myTag, globalOp);
+
         } // for j
         
 /*
  *      Remove the local new nodes
  */
-        for(k=0; k<pene->res[i].nDiss; k++){
-            ForceRemoveNode(home, newNodePtrList[k], globalOp);
-        }
         free(newNodePtrList);
         newNodePtrList = (Node_t **)NULL;
-
-/*
- *      Restore node1-node2 configuration
- */
-        RestoreNode(home, node1, &bkupNodeList[numBkup-2]);
-	    RestoreNode(home, node2, &bkupNodeList[numBkup-1]);
 
     } // for i
 
@@ -727,21 +778,26 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 /*
  *  Go back to original configuration
  */
-	ForceRemoveNode(home, globalNode, globalOp);
-    globalNode = (Node_t *)NULL;
-	node->inGrain = oldInGrain;
+	ForceRemoveNode(home, localNode, globalOp);
+    localNode = (Node_t *)NULL;
 
 	RestoreNode(home, nbrNode1, &bkupNodeList[0]);
 	RestoreNode(home, node, &bkupNodeList[1]);
 	RestoreNode(home, nbrNode2, &bkupNodeList[2]);
 
+    j = 3;
     for(i=0; i<nbrNode1->numNbrs; i++){
         nbr = GetNeighborNode(home,nbrNode1,i);
-	    RestoreNode(home, nbr, &bkupNodeList[i+3]);
+        if(nbr == node)continue;
+	    RestoreNode(home, nbr, &bkupNodeList[j]);
+        j++;
     }
+
     for(i=0; i<nbrNode2->numNbrs; i++){
         nbr = GetNeighborNode(home,nbrNode2,i);
-	    RestoreNode(home, nbr, &bkupNodeList[i+3+nbrNode1->numNbrs]);
+        if(nbr == node)continue;
+	    RestoreNode(home, nbr, &bkupNodeList[j]);
+        j++;
     }
 
 	for (i = 0; i < numBkup; i++) {
@@ -751,23 +807,16 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 	free(bkupNodeList);
 	bkupNodeList = (Node_t *)NULL;
 	
-	node->x = currPos[0];
-	node->y = currPos[1];
-	node->z = currPos[2];
-	node->oldx = oldPos[0];
-	node->oldy = oldPos[1];
-	node->oldz = oldPos[2];
-
 /*
  *  find maximal power dissipation
  */
 	maxPowerSet = -1;
     maxPowerDis = -1.0E50;
-	for(set=0; set < pene->nSets; set++){
-		if(pene->res[set].effective == 0)continue;
-        maxPowerDis = MAX(maxPowerDis,pene->res[set].powerDis);
-		if(maxPowerDis == pene->res[set].powerDis){
-	        maxPowerSet = set;
+	for(i=0; i < pene->nSets; i++){
+		if(pene->res[i].effective == 0)continue;
+        maxPowerDis = MAX(maxPowerDis,pene->res[i].powerDis);
+		if(maxPowerDis == pene->res[i].powerDis){
+	        maxPowerSet = i;
 		}
 	}
 	if(maxPowerDis < 0 || maxPowerSet < 0){
@@ -779,32 +828,22 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 /*
  *  create the two segements again with globalOp = 1
  */
-	globalOp = 1;
+    
+    globalOp = 1;
 	
-	vec[0] = nbrNode2->oldx - node->oldx;
-	vec[1] = nbrNode2->oldy - node->oldy;
-	vec[2] = nbrNode2->oldz - node->oldz;
-    ZImage(param, vec, vec+1, vec+2);
-
-    newPos[0] = node->oldx + 0.5*vec[0];
-    newPos[1] = node->oldy + 0.5*vec[1];
-    newPos[2] = node->oldz + 0.5*vec[2];
-    FoldBox(param, newPos, newPos+1, newPos+2);
-
-	if((globalNode = InsertNode(home,node,nbrNode2,newPos,globalOp,OPCLASS_SEPARATION)) == (Node_t *)NULL) {
-		Fatal("insert globalNode failed");
+	if((localNode = InsertNode(home,node,nbrNode2,oldPos,
+        globalOp,OPCLASS_SEPARATION)) == (Node_t *)NULL) {
+	    return(0);
 	}
+
+    switchedArm = (GetArmID(home, node, nbrNode1) == -1);
 	
-	switchNode = 0;
-	if(GetArmID(home, node, nbrNode1) == -1)switchNode=1;
-	
-	if(switchNode){
-		node1 = globalNode;
-		node2 = node;
-		
+	if(switchedArm){
+        node1 = localNode;
+        node2 = node;
 	}else{
-		node1 = node;
-		node2 = globalNode;
+	    node1 = node;
+	    node2 = localNode;
 	}
 	
 	RepositionNode(home, node1Pos, &node1->myTag, globalOp);
@@ -819,23 +858,43 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 	ChangeArmBurg(home, node2, &node1->myTag, 0.0, 0.0, 0.0,
 				  0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
 
-	AssignGrain(home, node1, TBInGrain);
-	AssignGrain(home, node2, TBInGrain);
+	AssignGrain(home, node1, -1, gb->GBID);
+	AssignGrain(home, node2, -1, gb->GBID);
 
-    disID = 0;
     i = maxPowerSet;
-    for(j=0; j<pene->res[i].nPlanes; j++){
-        for(k=disID; k<disID + pene->res[i].nDissOnPlane[j]; k++){
-            InsertConnection(home, node1, node2, globalOp, pene->res[i].inGrain[j], -1,
-                            pene->res[i].pos[k], pene->res[i].burg[k],
-                            pene->res[i].normal[j], &(newNode));
 
-	        MarkNodeForceObsolete(home, newNode);        
-	        MarkNodeNoCollisions(home, newNode);        
-	        MarkNodeNoMeshCoarsen(home, newNode);        
-        } // for k
-        disID += pene->res[i].nDissOnPlane[j];
-    } // for j
+    newPlaneID = -1;
+    for(j=0; j<pene->res[i].nDiss; j++){
+
+        planeID = GlidePlaneID_FCC(bd, pene->res[i].normal[j]);
+        if(planeID != newPlaneID){
+            newPlaneID = planeID;
+            localPlaneID = 0;
+        }else{
+            localPlaneID++;
+            if(localPlaneID == 2)localPlaneID = 0;
+        }
+
+        if(localPlaneID = 0){
+            VECTOR_COPY(planeBurg, pene->res[i].burg[j]);
+            if(j != pene->res[i].nDiss){
+                if(planeID == GlidePlaneID_FCC(bd, pene->res[i].normal[j+1])continue;
+            }
+        }else{
+            planeBurg[0] += pene->res[i].burg[j][0];
+            planeBurg[1] += pene->res[i].burg[j][1];
+            planeBurg[2] += pene->res[i].burg[j][2];
+        }
+
+        onGB = (pene->res[i].inGrain[j] == -1) ? gb->GBID : -1;
+        InsertConnection(home, node1, node2, globalOp, pene->res[i].inGrain[j], onGB,
+                         pene->res[i].pos[j], planeBurg,
+                         pene->res[i].normal[j], &newNode);
+
+        MarkNodeForceObsolete(home, newNode);        
+        MarkNodeNoCollisions(home, newNode);        
+        MarkNodeNoMeshCoarsen(home, newNode);        
+    }
 
 	MarkNodeForceObsolete(home, node1);        
 	MarkNodeNoCollisions(home, node1);        

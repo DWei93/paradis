@@ -4396,6 +4396,8 @@ void ApplyConstraintsToVelocity(int numGlideConstraints,
 void ForceRemoveNode(Home_t *home, Node_t *node, int globalOp)
 {
 
+    if(node == (Node_t *)NULL)return;
+
     int i;
 
     for(i=0; i<node->numNbrs; i++){
