@@ -4184,10 +4184,12 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                             int *numGlideConstraints,
                             real8 (*glideConstraints)[3])
 {
-        int     i,  surfaceConstraint = 0;
+        int     i,  surfaceConstraint = 0, planeType;
         int     numConstraints, junctionConstraint = 0;
 	    real8   n1[3], nCryst[3], nLab[3], lDir[3];
         real8   eps = 1.0e-06;
+        real8   glidePlane[3], gpNormal;
+        real8   temp, testVal, dpnnm;
         Node_t  *nbr;
 
         numConstraints = 0;
@@ -4203,8 +4205,6 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
  */
 	
 	    for (i = 0; i < node->numNbrs + 2; i++) {
-            real8   glidePlane[3], gpNormal;
-            real8   temp, testVal, dpnnm;
 
 /*
  *          For junction segement in FCC material
@@ -4217,18 +4217,9 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 
 	            nbr = GetNeighborNode(home, node, i);
                 if(nbr != (Node_t *)NULL){
-                    if (home->param->useLabFrame) {
-                        nLab[0] = node->nx[i];
-                        nLab[1] = node->ny[i];
-                        nLab[2] = node->nz[i];
-                        VectorLabToCrystal(home, node, nbr, nLab, nCryst);
-                    }else{
-                        nCryst[0] = node->nx[i];
-                        nCryst[1] = node->ny[i];
-                        nCryst[2] = node->nz[i];
-                    }
-
-                    if(fabs(nCryst[0]*nCryst[1]*nCryst[2]) < 1.0E-12){
+                    planeType = GetPlaneType(home, node, nbr);
+                    if(planeType & JUNCTION1_PLANE > 0 ||
+                       planeType & JUNCTION2_PLANE > 0){
                         junctionConstraint = 1;
                         lDir[0] = nbr->x - node->x;
                         lDir[1] = nbr->y - node->y;

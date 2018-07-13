@@ -24,7 +24,7 @@
 Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int globalOp, int opClass)
 {
 
-    int     armID, splitStatus;
+    int     armID, splitStatus, armIndex;
     real8   nodePos[3], nodeVel[3];
     Node_t	*splitNode1,*splitNode2,*newNode;
 
@@ -41,9 +41,11 @@ Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int glo
     nodeVel[1] = 0.5*(node1->vY + node2->vY);
     nodeVel[2] = 0.5*(node1->vZ + node2->vZ);
 
+    armIndex = GetArmID(home, node1, node2);
+
     splitStatus = SplitNode(home, opClass,
                      node1, nodePos, p,
-                     nodeVel, newVel,
+                     nodeVel, nodeVel,
                      1, &armIndex,
                      globalOp, &splitNode1,
                      &splitNode2, 0);
@@ -375,7 +377,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 	real8		pos[3], burg[3], normal[3], resiBurg[3];
 	real8		vec[3], jth;
     real8       centorPos[3];
-    real8       vec1[3], vec2[3], eps, dis;
+    real8       vec1[3], vec2[3], eps, dis, type;
     int         i, j, newPlaneID, localGBID, nDiss;
     int         currInGrain, currOnGB, nSets;
     bool        residualDis;
@@ -402,11 +404,11 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 
     VECTOR_COPY(GBPlane.normal, gb->n);
     VECTOR_COPY(GBPlane.point, gb->p);
-    FindIntersectionWithGB(home, node, node1, GBPlane, &line);
+    FindIntersectionWithGB(home, node, node1, &GBPlane, &line);
     VECTOR_COPY(pene->line1.direction, line.direction);
     VECTOR_COPY(pene->line1.point, line.point);
 
-    FindIntersectionWithGB(home, node, node2, GBPlane, &line);
+    FindIntersectionWithGB(home, node, node2, &GBPlane, &line);
     VECTOR_COPY(pene->line2.direction, line.direction);
     VECTOR_COPY(pene->line2.point, line.point);
 
@@ -448,7 +450,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
                        burgList, disArray);
 	
     pene->nSets = disArray.size();
-    pene->res = (Res_t *)malloc(pene->nSets*size(Res_t));
+    pene->res = (Res_t *)malloc(pene->nSets*sizeof(Res_t));
 
     for(i=0; i<disArray.size(); i++){
 
@@ -470,7 +472,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
             VECTOR_COPY(pene->res[i].burg[j], burgList[disArray[i][j].burgID]);
             VECTOR_COPY(pene->res[i].normal[j], 
                         gbd->planeList[disArray[i][j].planeID]);
-            pene->res[i].inGrain[j] = gbd->planeInGrain[disArray[i][j]];
+            pene->res[i].inGrain[j] = gbd->planeInGrain[disArray[i][j].planeID];
 
             if(disArray[i][j].planeID != newPlaneID){
                 newPlaneID = disArray[i][j].planeID;
@@ -486,9 +488,9 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 
             if(pene->res[i].inGrain[j] > -1){
                 grain = home->grainKeys[pene->res[i].inGrain[j]];
-                localGBID = GetGBIndexOfddGrain(grain, gb->GBID);
+                localGBID = GetGBIndexOfGrain(grain, gb->GBID);
                 if(localGBID == -1){
-                    Fatal("In file %s at line %d", __FILE__, __LINE__)
+                    Fatal("In file %s at line %d", __FILE__, __LINE__);
                 }
                 vec1[0] = -grain->sign[localGBID]*gb->n[0];
                 vec1[1] = -grain->sign[localGBID]*gb->n[1];
@@ -516,7 +518,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
             VECTOR_COPY(pene->res[i].pos[j], centorPos);
             VECTOR_COPY(pene->res[i].burg[j], resiBurg);
 
-            cross(resiBurg, line2.direction, pene->res[i].normal[j]);
+            cross(resiBurg, pene->line2.direction, pene->res[i].normal[j]);
             NormalizeVec(pene->res[i].normal[j]);
         
             pene->res[i].inGrain[j] = -1;
@@ -1010,10 +1012,14 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
 {
 
 	real8 		burg[3], vec[3], mergePos[3],TBInGrain;
+    real8       nodePos[3], oldPos[3], vec1[3], vec2[3];
+    real8       dis;
 	Node_t 		*nbrNode1, *nbrNode2, *mergedNode;
 	int			mergeStatus,i,j, globalOp,q,thisDomain;
-	int crossSlipNode = 0;
+	int         crossSlipNode = 0, type;
+    Param_t     *param;
 
+    param = home->param;
 	thisDomain = home->myDomain;
 	
 	burg[0] = node->burgX[0];
@@ -1024,74 +1030,58 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	nbrNode2 = GetNeighborNode(home,node,1);
 	if(nbrNode1==(Node_t *)NULL || nbrNode2==(Node_t *)NULL)
 		return(0);
+    if(nbrNode1->myTag.domainID != thisDomain || 
+       nbrNode2->myTag.domainID != thisDomain)return(0);
 	
-	if(SurfaceNode(nbrNode1) && (nbrNode1->inGrain - floor(nbrNode1->inGrain) == 0.5) ||
-	   SurfaceNode(nbrNode2) && (nbrNode2->inGrain - floor(nbrNode2->inGrain) == 0.5))return(0);
+	if(SurfaceNode(nbrNode1) && IsOnGB(nbrNode1) ||
+	   SurfaceNode(nbrNode2) && IsOnGB(nbrNode2)))return(0);
 	globalOp = 1;
-	
-	FoldBox(home->param, &nbrNode1->x, &nbrNode1->y, &nbrNode1->z);
-	FoldBox(home->param, &nbrNode2->x, &nbrNode2->y, &nbrNode2->z);
-	
-	TBInGrain = nbrNode1->inGrain;
 
-	node->flags |= NODE_RESET_FORCES;
-	MarkNodeForceObsolete(home, nbrNode1);
-	MarkNodeForceObsolete(home, nbrNode2);
-	
-	if(nbrNode1->numNbrs > 3 && nbrNode2->numNbrs > 3){
-	    printf("Warning PenetrationLast: two neighbor TB node can't mege\n");
-	    return(0);
-	}
+    nodePos[0] = node->x;
+    nodePos[1] = node->y;
+    nodePos[2] = node->z;
+    FoldBox(param, nodePos, nodePos+1, nodePos+2);
 
-	if(node->numNbrs == 2){       
-	    if(fabs(node->nx[0] * node->nx[1] +
-	       node->ny[0] * node->ny[1] +
-	       node->nz[0] * node->nz[1]) < 0.995){
-	        crossSlipNode = 1;
-	    }
-	}
+    oldPos[0] = node->oldx;
+    oldPos[1] = node->oldy;
+    oldPos[2] = node->oldz;
+    PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2], 
+                       oldPos, oldPos+1, oldPos+2);
+    
+    vec[0] = nodePos[0] - oldPos[0];
+    vec[1] = nodePos[1] - oldPos[1];
+    vec[2] = nodePos[2] - oldPos[2];
+    if(Normal(vec) < 1E-2)return(0);
 
-	if(crossSlipNode){
-	    vec[0] = node->x - node->oldx;
-	    vec[1] = node->y - node->oldy;
-	    vec[2] = node->z - node->oldz;
-	    ZImage(home->param, &vec[0], &vec[1], &vec[2]);
-	    if(Normal(vec) < 1e-6)return(0);
+    NormalizeVec(vec);
+    type = LinePlaneIntersection(vec, oldPos, GBPlane->normal, GBPlane->point, 
+                                 vec1, vec2);
+    
+    switch(type){
+        case POINT_INTERSECTION:
+            VECTOR_COPY(mergePos, vec2);
+            break;
+        case LINE_INTERSECTION:
+            vec[0] = 0.5*(nodePos[0] + oldPos[0]);
+            vec[1] = 0.5*(nodePos[1] + oldPos[1]);
+            vec[2] = 0.5*(nodePos[2] + oldPos[2]);
+            PointPlaneIntersection(vec, GBPlane->normal, GBPlane->point,
+                                   mergePos);
+            break;
+        default:
+            Fatal("PenetrationLast: wrong intersection type");
 
-	    NormalizeVec(vec);
-	    Line_t line;
-	    VECTOR_COPY(line.direction, vec);
-	    line.point[0] = node->oldx;
-	    line.point[1] = node->oldy;
-	    line.point[2] = node->oldz;
-	    
-	    if(!IntersectionOfLinePlane(&line, GBPlane, mergePos)){
-	        Fatal("PenetrationLast: intersect failed");
-	    }
-	}else{
-	    vec[0] = nbrNode1->x - nbrNode2->x;
-	    vec[1] = nbrNode1->y - nbrNode2->y;
-	    vec[2] = nbrNode1->z - nbrNode2->z;
-    	
-	    ZImage(home->param, &vec[0], &vec[1], &vec[2]);
-    	
-	    mergePos[0] = nbrNode2->x + vec[0] * 0.5;
-	    mergePos[1] = nbrNode2->y + vec[1] * 0.5;
-	    mergePos[2] = nbrNode2->z + vec[2] * 0.5;
-	}
+    }
+    
+    if(BeforeMergeNodes(nbrNode1, nbrNode2, mergePos, &dis){
+        if(fabs(dis) > 5.0){
+            printf("Warning in PenetrationLast, dis %f\n", dis);
+        }
+    }else{
+        return(0);
+    } 
 
-	if(nbrNode1->numNbrs > 3){
-	    mergePos[0] = nbrNode1->x;
-	    mergePos[1] = nbrNode1->y;
-	    mergePos[2] = nbrNode1->z;
-	}
-	if(nbrNode2->numNbrs > 3){
-	    mergePos[0] = nbrNode2->x;
-	    mergePos[1] = nbrNode2->y;
-	    mergePos[2] = nbrNode2->z;
-	}
-
-	PullBack(home,node, node->inGrain);
+	PullBack(home,node);
 	FoldBox(home->param,&mergePos[0],&mergePos[1],&mergePos[2]);
 
 	MergeNode(home, OPCLASS_SEPARATION, nbrNode1,nbrNode2,
@@ -1101,21 +1091,6 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	    return(0);
 	}
     
-    if(mergedNode != (Node_t *)NULL){
-        if(mergedNode->numNbrs == 2){
-	        nbrNode1 = GetNeighborNode(home,mergedNode,0);
-	        nbrNode2 = GetNeighborNode(home,mergedNode,1);
-            if(nbrNode1 == (Node_t *)NULL || nbrNode2 == (Node_t *)NULL){
-                Fatal("in file %s at line %d",__FILE__, __LINE__);
-            }
-
-            if(nbrNode1->inGrain == nbrNode2->inGrain && 
-               nbrNode1->inGrain - floor(nbrNode1->inGrain) == 0){
-	            AssignGrain(home, mergedNode, nbrNode1->inGrain);
-            }
-        }
-    }
-
 	return(1);
 }
 
@@ -1228,7 +1203,7 @@ void HandleGrainBoundary(Home_t *home)
         if(currInGrain == oldInGrain || currInGrain < 0)continue;
 
         if(!param->peneTB || node->numNbrs > 2){
-            PullBack(home, node, oldInGrain);
+            PullBack(home, node);
             continue;
         }
 		
@@ -1263,7 +1238,7 @@ void HandleGrainBoundary(Home_t *home)
 		
         if(SurfaceNode(node)){
             if(node->numNbrs != 1){
-                PullBack(home, node, oldInGrain);
+                PullBack(home, node);
                 continue;
             }
 			
@@ -1278,7 +1253,7 @@ void HandleGrainBoundary(Home_t *home)
 	        }
 
 	        if(!PenetrationSurface(home, node, gb)){
-	            PullBack(home, node, oldInGrain);
+	            PullBack(home, node);
 	        }
 	        continue;
 	    }
@@ -1288,12 +1263,12 @@ void HandleGrainBoundary(Home_t *home)
 			
 	    if(nbrNode1==(Node_t *)NULL || nbrNode2==(Node_t *)NULL){
 	        printf("warning: nbrNode1==(Node_t *)NULL || nbrNode2==(Node_t *)NULL\n");
-	        PullBack(home,node,oldInGrain);
+	        PullBack(home,node);
 	        continue;
 	    }		
 	    if(nbrNode1 == nbrNode2) {
 	        printf("warning: nbrNode1 == nbrNode2\n");
-	        PullBack(home,node,oldInGrain); 
+	        PullBack(home,node); 
 	        continue;
 	    }		
 
@@ -1307,7 +1282,7 @@ void HandleGrainBoundary(Home_t *home)
 
 	    if(nbr1OnGB > 0) {
 	        if(!(nbr1OnGB & TB_NODE) && nbrNode1->numNbrs == 3){
-	           PullBack(home, node, node->inGrain);
+	           PullBack(home, node);
 	           continue;
 	        } 
 	        numNbrOnGB++;	
@@ -1315,7 +1290,7 @@ void HandleGrainBoundary(Home_t *home)
 
 	    if(nbr2OnGB > 0) {
 	        if(!(nbr2OnGB & TB_NODE) && nbrNode2->numNbrs == 3){
-	           PullBack(home, node, node->inGrain);
+	           PullBack(home, node);
 	           continue;
 	        } 
 	        numNbrOnGB++;	
@@ -1325,13 +1300,13 @@ void HandleGrainBoundary(Home_t *home)
 /*
  *		CrossSlip node is only allowed to penetrationLast. 
  */
-            PullBack(home,node, oldInGrain);
+            PullBack(home,node);
             continue;
         }
             	
 	    if(numNbrOnGB == 0 && crossSlipNode != 1){
             if(!GetPenResults(home, node, &pene, gb)){
-		        PullBack(home,node, oldInGrain);
+		        PullBack(home,node);
 		        continue;
 		    }
         }
@@ -1343,7 +1318,7 @@ void HandleGrainBoundary(Home_t *home)
 
 #if ENERGY_RULER
 	        if(EnergyRule(home, node, &GBPlane, &pene) == 0){
-                PullBack(home,node, oldInGrain);
+                PullBack(home,node);
                 continue;
 	        }
 #endif
@@ -1364,24 +1339,24 @@ void HandleGrainBoundary(Home_t *home)
                 if(ScrewEnergyRule(home,node,oldInGrain,
 			        corInGrain,&GBPlane)==0){
 	
-                    PullBack(home,node, oldInGrain);
+                    PullBack(home,node);
                     continue;
                 }
             }
 
             if(numNbrOnGB == 0){
                 if(!PenetrationFirst(home, &pene)){
-                    PullBack(home,node, oldInGrain);
+                    PullBack(home,node);
                     continue;
                 }
             }else if(numNbrOnGB == 1){
                 if(!PenetrationSide(home, node, oldGrain, currGrain, &GBPlane)){
-                    PullBack(home,node, oldInGrain);
+                    PullBack(home,node);
                     continue;
 			
             }else if(numNbrOnGB == 2){
                 if(!PenetrationLast(home, node, oldGrain, currGrain, &GBPlane)){
-                    PullBack(home,node, oldInGrain);
+                    PullBack(home,node);
                     continue;
                 }
             }
@@ -1422,11 +1397,11 @@ void HandleGrainBoundary(Home_t *home)
 
         if(node->numNbrs < 2){
 		    if(node->numNbrs == 1 && SurfaceNode(node) && 
-		       node->inGrain -floor(node->inGrain) == 0.5){
+		       IsOnGB(node)){
 		        nbr1 = GetNeighborNode(home, node, 0);
 		        if(nbr1 != (Node_t *)NULL){
-			        if(nbr1->inGrain - floor(nbr1->inGrain) == 0){
-			            AssignGrain(home, node, nbr1->inGrain);
+			        if(!IsOnGB(nbr1)){
+			            AssignGrain(home, node, nbr1->inGrain, -1);
 			        }
 		        }
 		    }
@@ -1437,14 +1412,13 @@ void HandleGrainBoundary(Home_t *home)
             nbr1 = GetNeighborNode(home,node,0);
             nbr2 = GetNeighborNode(home,node,1);
             if(nbr1==(Node_t *)NULL||nbr2==(Node_t *)NULL) continue;
-            if(!(nbr1->inGrain - floor(nbr1->inGrain) == 0 &&
-               nbr2->inGrain == nbr1->inGrain)) continue;
+            if(!(!IsOnGB(nbr1) && !IsOnGB(nbr2))) continue;
         }
 			
         for(j=0;j<node->numNbrs;j++){
             nbr1 = GetNeighborNode(home,node,j);
             if(nbr1 == (Node_t *)NULL) continue;
-            if(nbr1->inGrain - floor(nbr1->inGrain) == 0.5)continue;
+            if(IsOnGB(nbr1))continue;
             if(nbr1->myTag.domainID != node->myTag.domainID) continue;
                 	
             for(k=j+1;k<node->numNbrs;k++){
@@ -1453,7 +1427,7 @@ void HandleGrainBoundary(Home_t *home)
 	
 		        if(nbr1->inGrain != nbr2->inGrain)continue;
                 if(nbr1 == nbr2) continue;
-                if(nbr2->inGrain - floor(nbr2->inGrain) == 0.5)continue;
+                if(IsOnGB(nbr2))continue;
                 if(nbr2->myTag.domainID != node->myTag.domainID) continue;
 					
                 nDir1[0] = node->nx[j];
@@ -1506,111 +1480,14 @@ void HandleGrainBoundary(Home_t *home)
 		if(node->numNbrs == 0) RemoveNode(home,node,globalOp);
 	}
 
-#if 0
-	for(i=0;i<home->newNodeKeyPtr;i++){
-        if((node = home->nodeKeys[i]) == (Node_t *) NULL)continue;
-	    if(node->numNbrs != 2)continue;
-	    if(node->inGrain - floor(node->inGrain) == 0)continue;
-	    if(SurfaceNode(node))continue;
-
-	    if(fabs(node->nx[0] * node->nx[1] +
-	       node->ny[0] * node->ny[1] +
-           node->nz[0] * node->nz[1]) > 0.995){
-            continue;
-	    }
-        nbr1 = GetNeighborNode(home,node,0);
-        nbr2 = GetNeighborNode(home,node,1);
-        if(nbr1==(Node_t *)NULL||nbr2==(Node_t *)NULL) continue;
-	    if(!SurfaceNode(nbr1) && !SurfaceNode(nbr2))continue;
-	    if(SurfaceNode(nbr1) && SurfaceNode(nbr2)){
-	        AssignConstraint(home, node, nbr1->constraint);
-	    }
-
-	    if(SurfaceNode(nbr1)){
-		    if(NodeDistance(home, node, nbr1) > param->minSeg)continue;
-	        vec[0] = nbr2->x; 
-	        vec[1] = nbr2->y; 
-	        vec[2] = nbr2->z; 
-	        newInGrain = nbr2->inGrain; 
-		    newConstraint = nbr1->constraint;
-	        norPlane.normal[0] = node->nx[1];
-	        norPlane.normal[1] = node->ny[1];
-	        norPlane.normal[2] = node->nz[1];
-		
-	        surPlane.point[0] = nbr1->x;
-	        surPlane.point[1] = nbr1->y;
-	        surPlane.point[2] = nbr1->z;
-	    }else{
-		    if(NodeDistance(home, node, nbr2) > param->minSeg)continue;
-	        vec[0] = nbr1->x; 
-	        vec[1] = nbr1->y; 
-	        vec[2] = nbr1->z; 
-	        newInGrain = nbr1->inGrain; 
-		    newConstraint = nbr2->constraint;
-	        norPlane.normal[0] = node->nx[0];
-	        norPlane.normal[1] = node->ny[0];
-	        norPlane.normal[2] = node->nz[0];
-	        surPlane.point[0] = nbr2->x;
-	        surPlane.point[1] = nbr2->y;
-	        surPlane.point[2] = nbr2->z;
-	    }
-	    VECTOR_ZERO(GBPlane.normal);
-	    distance =  ClosedGB(home, vec, &GBPlane);
-
-	    GBPlane.point[0] += (Sign(distance) * param->rann * GBPlane.normal[0]);
-	    GBPlane.point[1] += (Sign(distance) * param->rann * GBPlane.normal[1]);
-	    GBPlane.point[2] += (Sign(distance) * param->rann * GBPlane.normal[2]);
-
-	    norPlane.point[0] = node->x;
-	    norPlane.point[1] = node->y;
-	    norPlane.point[2] = node->z;
-
-        type = PlanePlaneIntersection(norPlane.normal, norPlane.point,
-               GBPlane.normal, GBPlane.point, vec1, vec2);
-
-	    VECTOR_ZERO(surPlane.normal);
-	    surPlane.normal[newConstraint - 1] = 1.0;
-
-        switch (type){
-            case LINE_INTERSECTION:
-                if(LinePlaneIntersection(vec1, vec2, surPlane.normal,
-                   surPlane.point, vec, newPos) != LINE_INTERSECTION){
-                    printf("HandleGrounBoundary: warning at Line %d \n", __LINE__);
-                    continue;
-                }
-                break;
-            case PLANE_INTERSECTION:
-                if(PlanePlaneIntersection(vec1, vec2, surPlane.normal,
-                   surPlane.point, vec, newPos) == NO_INTERSECTION){
-                    printf("HandleGrounBoundary: warning at Line %d \n", __LINE__);
-                    continue;
-                }
-                FormatVector(vec1, "vec1");
-                FormatVector(vec2, "vec2");
-                FormatVector(surPlane.normal, "surface normal");
-                FormatVector(surPlane.point, "surface point");
-                
-                printf("HandleGrounBoundary: warning at Line %d, type %d\n", __LINE__,type);
-                break;
-            defualt:
-                printf("HandleGrounBoundary: warning at Line %d, type %d\n", __LINE__,type);
-                break;
-        }
-
-        FoldBox(param, newPos, newPos+1, newPos+2);
-        
-	    RepositionNode(home,newPos,&node->myTag,1);
-	    AssignGrain(home, node, newInGrain);
-	    AssignConstraint(home, node, newConstraint);
-	}
-#endif
 	for(i=0;i<home->newNodeKeyPtr;i++){
             if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
-            if(node->inGrain - floor(node->inGrain) == 0.5)continue;
+            if(IsOnGB(node))continue;
 	        if(SurfaceNode(node))continue;
-            if(node->inGrain != InWhichGrain(home, node->x, node->y, node->z)){
+            NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
+            if(node->inGrain != inGrain){
                 PrintTag(node);
-	            PullBack(home,node, node->inGrain);
+	            PullBack(home,node);
                 printf("HandleGrainBoundary: a penetrated not coopered\n");
             }
         }

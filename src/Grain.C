@@ -948,7 +948,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
     
     VECTOR_COPY(vec, vec1);
     AdjustNodeDirection(home, node, vec);
-    if(Normal(vec) < 1E-12){
+    if(Normal(vec) < 1E-8){
         printf("Warning: in %s at %d", __FILE__, __LINE__);
         VECTOR_ZERO(newPos);
         return(0);
