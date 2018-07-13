@@ -100,15 +100,13 @@ void InitGrain(Home_t *home, Param_t *param){
 	lz = param->zBoundMax;
 	maxSeg = param->maxSeg;
 
-	if(param->polycrystal == 0)param->nGrain = 0;
-	nGrain = param->nGrain;
-
 	for(i=0; i<3; i++){
 	    VECTOR_COPY(home->rotMatrix[i], param->matrixOrientation[i]);
 	}
+	Matrix33Invert(home->rotMatrix, home->rotMatrixInverse);
+
     GenerateFCCBurgInfo(&(home->burgData), param->matrixOrientation, -1);
     GenerateFCCBurgInfo(&(home->crystBurgData), I, -1);
-	Matrix33Invert(home->rotMatrix, home->rotMatrixInverse);
 
 	if(fabs(home->rotMatrix[0][0]) > 0.9999999999 &&  
 	   fabs(home->rotMatrix[1][1]) > 0.9999999999 &&
@@ -144,6 +142,9 @@ void InitGrain(Home_t *home, Param_t *param){
 
         }
     }
+
+	if(param->polycrystal == 0)param->nGrain = 0;
+	nGrain = param->nGrain;
 
     if(type == 3)Fatal("Not supposed this type now");
 /*
@@ -487,6 +488,32 @@ void GetTBBurg_FCC(int nID, real8 burgTB[3]){
     burgTB[2] /= sqrt(3.0);
 }
 
+
+BurgInfo_t* GetBurgData(Home_t *home, Node_t *node1, Node_t *node2)
+{
+        if(home->param->polycrystal){
+            int     inGrain, onGB;
+            Grain_t *grain;
+            GB_t    *gb;
+
+            GetArmGrain(home, node1, node2, inGrain, onGB);
+            if(onGB > -1){
+                gb = home->GBKeys[onGB];
+                return(&(gb->burgData));
+            }else{
+                grain = home->grainKeys[inGrain];    
+                return(&(grain->burgData));
+            }
+        }else{
+            if(!home->param->useLabFrame){
+                return(&(home->burgData));               
+            }else{
+                return(&(home->crystBurgData));               
+            }
+        }
+        return((BurgInfo_t *)NULL);
+}
+
 void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2, 
                         real8 lab[3], real8 *cryst)
 {
@@ -554,7 +581,7 @@ int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3])
         return(i);
 }
 
-int GlidePlaneID_FCC(BurgInfo_t *burgData, real8 plane[3])
+int PlaneID_FCC(BurgInfo_t *burgData, real8 plane[3])
 {
         int     i;
         real8   crossProd[3];
@@ -612,11 +639,11 @@ int	BurgType_FCC(real8 burg[3]){
 }
 
 
-int GlidePlaneType_FCC(BurgInfo_t *burgData, real8 plane[3])
+int PlaneType_FCC(BurgInfo_t *burgData, real8 plane[3])
 {
     int planeID;
 
-    planeID = GlidePlaneID_FCC(burgData, plane);
+    planeID = PlaneID_FCC(burgData, plane);
 
     if(planeID >= NUM_PLANES_IN_FCC) return(UNKOWN_PLANE);
  
@@ -624,31 +651,49 @@ int GlidePlaneType_FCC(BurgInfo_t *burgData, real8 plane[3])
 }
 
 int GetBurgID_FCC(Home_t *home, Node_t *node, Node_t *nbr){
+       
+    int         armID;
+    real8       burg[3];
+    BurgInfo_t  *burgData;
+    burgData = GetBurgData(home, node, nbr);
 
-        int         inGrain, onGB, segID;
-        real8       burg[3];
-        BurgInfo_t  *burgData;
-
-        if(home->param->polycrystal){
-            GetArmGrain(home, node, node, inGrain, onGB);
-            if(onGB > -1){
-                burgData = &(home->GBKeys[onGB]->burgData);
-            }else{
-                burgData = &(home->grainKeys[inGrain]->burgData);
-            }
-        }else{
-            burgData = &(home->burgData);
-        }
+    armID = GetArmID(home, node, nbr);
+    burg[0] = node->burgX[armID];
+    burg[1] = node->burgY[armID];
+    burg[2] = node->burgZ[armID];
         
-	    segID  = GetArmID(home, node, nbr);
-        burg[0] = node->burgX[segID];
-        burg[1] = node->burgY[segID];
-        burg[2] = node->burgZ[segID];        
-    
-        return(BurgID_FCC(burgData, burg)); 
+    return(BurgID_FCC(burgData, burg)); 
 }
 
+int GetPlaneID_FCC(Home_t *home, Node_t *node, Node_t *nbr){
+       
+    int         armID;
+    real8       plane[3];
+    BurgInfo_t  *burgData;
+    burgData = GetBurgData(home, node, nbr);
 
+    armID = GetArmID(home, node, nbr);
+    plane[0] = node->nx[armID];
+    plane[1] = node->ny[armID];
+    plane[2] = node->nz[armID];
+        
+    return(PlaneID_FCC(burgData, plane)); 
+}
+
+int GetPlaneType_FCC(Home_t *home, Node_t *node, Node_t *nbr){
+       
+    int         armID;
+    real8       plane[3];
+    BurgInfo_t  *burgData;
+    burgData = GetBurgData(home, node, nbr);
+
+    armID = GetArmID(home, node, nbr);
+    plane[0] = node->nx[armID];
+    plane[1] = node->ny[armID];
+    plane[2] = node->nz[armID];
+        
+    return(PlaneType_FCC(burgData, plane)); 
+}
 /*-------------------------------------------------------------------------
  *
  *      Function:    HasShortSeg
@@ -786,7 +831,6 @@ int NodeOnGB(Home_t *home, Node_t *node){
 	if(node == (Node_t *)NULL){
 		Fatal("Task %d: %s, line %d -- Node = NULL",
 			   home->myDomain, __FILE__, __LINE__);
-
 	}
 
 	if(!IsOnGB(node))return(INGRAIN_NODE);
@@ -1316,9 +1360,7 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                            vec1, vec2); 
                     break;
                 case 2:
-                    cross(glideConstraintsNode2[0],glideConstraintsNode2[1],direction2); 
-                    NormalizeVec(direction2);
-                    type = LineLineIntersection(glideConstraintsNode1[2], p1, direction2, p2,
+                    type = LineLineIntersection(glideConstraintsNode1[2], p1, glideConstraintsNode2[2], p2,
                            vec1, vec2, &dis); 
                     break;
                 case 3:
@@ -1354,34 +1396,35 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
     return(type);
 }
 
-bool BeforeMergeArm(Home_t *home, Node_t *node1, Node_t *node2, real8 *vec1, real8 *vec2, int *type)
+bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, real8* dis)
 {
-    bool    inhibitMerge = 0;
-    real8   vec[3];
+    bool    canMerge = 1;
+    int     type;
+    real8   vec1[3], vec2[3];
+    real8   vec3[3];
 
-    *type = NodesIntersection(home, node1, node2, vec1, vec2); 
-    switch (*type) {
+    type = NodesIntersection(home, node1, node2, vec1, vec2); 
+    switch (type) {
         case NO_INTERSECTION:
-            inhibitMerge = 1;
+            canMerge = 0;
             break;
         case POINT_INTERSECTION:
+            PointPointIntersection(pos, vec2, vec3, dis);
+            VECTOR_COPY(pos, vec3);
             break;
         case LINE_INTERSECTION:
+            PointLineIntersection(pos, vec1, vec2, vec3, dis);
+            VECTOR_COPY(pos, vec3);
             break;
         case PLANE_INTERSECTION:
-            vec[0] = 0.5*(node2->x - node1->x);
-            vec[1] = 0.5*(node2->y - node1->y);
-            vec[2] = 0.5*(node2->z - node1->z);
-            ZImage(home->param, vec, vec+1, vec+2);
-            vec2[0] = node1->x + vec[0];
-            vec2[1] = node1->y + vec[1];
-            vec2[2] = node1->z + vec[2];
+            PointPlaneIntersection(pos, vec1, vec2, vec3, dis);
+            VECTOR_COPY(pos, vec3);
             break;
         default:
             Fatal("BeforeMergeArm: wrong type %d", __LINE__);
             break;
     }
-    return(inhibitMerge);
+    return(canMerge);
 }
 
 void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainID)
@@ -1477,8 +1520,8 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainI
             Matrix33Vector3Multiply(rotMatrix, planeList[i], burgData->planeList[i]);
         }
         int planeType[NUM_PLANES_IN_FCC] = { GLIDE_PLANE, GLIDE_PLANE, GLIDE_PLANE, GLIDE_PLANE,
-            JUNCTION_PLANE, JUNCTION_PLANE, JUNCTION_PLANE, JUNCTION_PLANE, 
-            JUNCTION_PLANE, JUNCTION_PLANE, JUNCTION_PLANE, JUNCTION_PLANE, JUNCTION_PLANE }; 
+            JUNCTION_PLANE1, JUNCTION_PLANE1, JUNCTION_PLANE1, JUNCTION_PLANE2, 
+            JUNCTION_PLANE2, JUNCTION_PLANE2, JUNCTION_PLANE2, JUNCTION_PLANE2, JUNCTION_PLANE2 }; 
 
         memcpy(burgData->planeType,planeType,NUM_PLANES_IN_FCC*sizeof(int));
 

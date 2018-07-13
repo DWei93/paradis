@@ -58,9 +58,10 @@ typedef struct {
 #define NUM_KEY_LINES_IN_FCC    6
 
 #define GLIDE_PLANE         0x0000
-#define JUNCTION_PLANE      0x0001
-#define GB_PLANE            0x0002
-#define UNKOWN_PLANE        0x0004
+#define JUNCTION_PLANE1     0x0001
+#define JUNCTION_PLANE2     0x0002
+#define GB_PLANE            0x0004
+#define UNKOWN_PLANE        0x0008
 
 #define SHOCKLEY_BURG_MAG_FCC   0.5773502691896258
 #define JUNCTION1_BURG_MAG_FCC  1.414213562373095
@@ -186,11 +187,14 @@ void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& on
 Node_t *GetinDataNodeFromTag(InData_t *inData, Tag_t tag);
 int JudgeNodeInCuboid(real8 *x1, real8 *y1, real8 *z1, real8 x2, real8 y2, real8 z2);
 void GetTBBurg_FCC(int nID, real8 burgTB[3]);
+BurgInfo_t* GetBurgData(Home_t *home, Node_t *node1, Node_t *node2);
 int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3]);
-int GlidePlaneID_FCC(BurgInfo_t *burgData, real8 plane[3]);
 int	BurgType_FCC(real8 *burg[3]);
+int GlidePlaneID_FCC(BurgInfo_t *burgData, real8 plane[3]);
 int GlidePlaneType_FCC(BurgInfo_t *burgData, int planeID);
 int GetBurgID_FCC(Home_t *home, Node_t *node, Node_t *nbr);
+int GetPlaneID_FCC(Home_t *home, Node_t *node, Node_t *nbr);
+int GetPlaneType_FCC(Home_t *home, Node_t *node, Node_t *nbr);
 int HasShortSeg(Home_t *home, Node_t *node, real8 shortSegLenSq);
 void AssignGrain (Home_t *home, Node_t *node, int inGrain, int onGB);
 void AssignConstraint(Home_t *home, Node_t *node, int constraint) ;
@@ -246,7 +250,7 @@ int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]);
 void ImageForce(Home_t *home, real8 armGrain, real8 x1, real8 y1, real8 z1,
                   real8 x2, real8 y2, real8 z2, real8 bx, real8 by, real8 bz,
                   real8 f1[3], real8 f2[3]);
-bool BeforeMergeArm(Home_t *home, Node_t *node1, Node_t *node2, real8 *vec1, real8 *vec2, int *type);
+bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, real8* dis);
 bool IsOnGB(Node_t *node);
 void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainID = -1);
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB);

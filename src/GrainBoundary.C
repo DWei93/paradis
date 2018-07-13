@@ -708,7 +708,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
             
 		    SetOneNodeForce(home, newNodePtrList[j]);
             
-            if(pene->res[i].inGrain[j] >-1 ){
+            if(pene->res[i].inGrain[j] > -1){
                 vec1[0] = centorPos[0] - pene->res[i].pos[j][0];
                 vec1[1] = centorPos[1] - pene->res[i].pos[j][1];
                 vec1[2] = centorPos[2] - pene->res[i].pos[j][2];
@@ -928,9 +928,10 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain, 
 					Grain_t *currGrain, Plane_t *GBPlane){
 	
-	int		    i;
-	real8		currNbrInGrain;
-	real8		currInGrain, newPos[3], currNbrPos[3], dis;
+	int		    i, nodeDeletable;
+	int         currInGrain, currOnGB;
+	int         currNbrInGrain, currNbrOnGB;
+	real8		newPos[3], currNbrPos[3], dis;
 	real8 		nDir1[3], burg[3], nodeVel[3], oldPos[3], currPos[3];
     real8       vec1[3], vec2[3], dir[3], vec[3], oldNbrPos[3];
 	Line_t		interLine;
@@ -946,7 +947,7 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	currPos[0] = node->x;
 	currPos[1] = node->y;
 	currPos[2] = node->z;
-	currInGrain = InWhichGrain(home, currPos[0], currPos[1], currPos[2]);
+    NodeLocation(currPos[0], currPos[1], currPos[2], currInGrain, currOnGB);
 	
 	nDir1[0] = node->nx[0];
 	nDir1[1] = node->ny[0];
@@ -961,7 +962,7 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	nbrNode2 = GetNeighborNode(home,node,1);
 	
 	if(nbrNode1==(Node_t *)NULL || nbrNode2==(Node_t *)NULL) return(0);
-	
+
 /*	nbrNode2 is always intersection node.	*/
 	if(NodeOnGB(home,nbrNode1)){
 		Node_t *nodeTemp;
@@ -970,83 +971,44 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
 		nbrNode2 = nodeTemp;
 	}
     if(SurfaceNode(nbrNode1))return(0);
-	
-    currNbrPos[0] = nbrNode1->x;
-    currNbrPos[1] = nbrNode1->y;
-    currNbrPos[2] = nbrNode1->z;
-    FoldBox(param, currNbrPos, currNbrPos+1, currNbrPos+2);
-	currNbrInGrain = InWhichGrain(home,currNbrPos[0],currNbrPos[1],currNbrPos[2]);
 
-    oldNbrPos[0] = nbrNode1->oldx;
-    oldNbrPos[1] = nbrNode1->oldy;
-    oldNbrPos[2] = nbrNode1->oldz;
-	
-	if(currNbrInGrain == nbrNode1->inGrain || currNbrInGrain == -1){
-	    vec[0] = currNbrPos[0] - currPos[0];
-	    vec[1] = currNbrPos[1] - currPos[1];
-	    vec[2] = currNbrPos[2] - currPos[2];
-	}else{
-	    vec[0] = oldNbrPos[0] - currPos[0];
-	    vec[1] = oldNbrPos[1] - currPos[1];
-	    vec[2] = oldNbrPos[2] - currPos[2];
+	nodeDeletable  = (node->myTag.domainID == home->myDomain); 
+	nodeDeletable &= (node->constraint == UNCONSTRAINED);	
+
+    nodeDeletable &= ((node->flags & NO_COLLISIONS) == 0);
+	nodeDeletable &= ((node->flags & NO_MESH_COARSEN) == 0);
+
+	for (i = 0; i < node->numNbrs; i++) {
+	    nodeDeletable &= DomainOwnsSeg(home, OPCLASS_SEPARATION, home->myDomain,
+			                    &node->nbrTag[i]);
 	}
-	
-    ZImage(param, &vec[0], &vec[1], &vec[2]);
-    VECTOR_COPY(dir, vec);
-    NormalizeVec(dir);
-    switch (LineLineIntersection(dir, currPos, 
-       interLine.direction, interLine.point, vec1, newPos, &dis)){
-        case NO_INTERSECTION:
-            printf("PenetrationSide: warning at %d\n",__LINE__);
-            return(0);
-            break;
-        case LINE_INTERSECTION:
-            newPos[0] = currPos[0] + 0.5*vec[0];
-            newPos[1] = currPos[1] + 0.5*vec[1];
-            newPos[2] = currPos[2] + 0.5*vec[2];
-            if(PointLineIntersection(newPos, interLine.direction, 
-               interLine.point, newPos, &dis) == NO_INTERSECTION){
-                printf("PenetrationSide: warning at %d\n",__LINE__);
-            }
-            break;
-        case POINT_INTERSECTION:
-            break;
-    }
+    if(nodeDeletable == 0 && nbrNode2->myTag.domainID != home->myDomain)return(0);
+
+    FindIntersectionWithGB(home, node, nbrNode1, GBPlane, &interLine);
+    VECTOR_COPY(newPos, interLine.point);
 	FoldBox(param,&newPos[0],&newPos[1],&newPos[2]);	
+    
+    if(BeforeMergeNodes(node, nbrNode2, newPos, &dis){
+        if(fabs(dis) > 5.0){
+            printf("Warning in PenetrationSide, dis %f\n", dis);
+        }
+    }else{
+        return(0);
+    } 
 
-    currNbrPos[0] = nbrNode2->x;
-    currNbrPos[1] = nbrNode2->y;
-    currNbrPos[2] = nbrNode2->z;
-    FoldBox(param, currNbrPos, currNbrPos+1, currNbrPos+2);
-
-    vec[0] = newPos[0] - currNbrPos[0]; 
-    vec[1] = newPos[1] - currNbrPos[1]; 
-    vec[2] = newPos[2] - currNbrPos[2]; 
-    ZImage(param, vec, vec+1, vec+2);
-
-    switch(AdjustNodeDirection(home, nbrNode2, vec)){
-        case 3:
-            VECTOR_COPY(newPos, currNbrPos);
-            break;
-        case 2:
-            newPos[0] = currNbrPos[0] + vec[0]; 
-            newPos[1] = currNbrPos[1] + vec[1]; 
-            newPos[2] = currNbrPos[2] + vec[2];
-            break;
-        default:
-            printf("PenetrationSide: warning at %d\n",__LINE__);
-    }
     FoldBox(param,newPos, newPos+1, newPos+2);
     MergeNode(home, OPCLASS_SEPARATION, node, nbrNode2, newPos,
               &mergedNode, &mergeStatus, 1);
     mergeDone = mergeStatus & MERGE_SUCCESS;
-	
+    if(mergeDone == 0)return(0);
+
 	return(1);
-	
 }
 
 int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain, 
-					Grain_t *newGrain, Plane_t *GBPlane){
+					Grain_t *newGrain, Plane_t *GBPlane)
+{
+
 	real8 		burg[3], vec[3], mergePos[3],TBInGrain;
 	Node_t 		*nbrNode1, *nbrNode2, *mergedNode;
 	int			mergeStatus,i,j, globalOp,q,thisDomain;
@@ -1408,17 +1370,14 @@ void HandleGrainBoundary(Home_t *home)
             }
 
             if(numNbrOnGB == 0){
-
-                if(!PenetrationFirst(home, node, oldGrain, currGrain, &GBPlane, &pene)){
+                if(!PenetrationFirst(home, &pene)){
                     PullBack(home,node, oldInGrain);
                     continue;
                 }
-
             }else if(numNbrOnGB == 1){
                 if(!PenetrationSide(home, node, oldGrain, currGrain, &GBPlane)){
                     PullBack(home,node, oldInGrain);
                     continue;
-                }
 			
             }else if(numNbrOnGB == 2){
                 if(!PenetrationLast(home, node, oldGrain, currGrain, &GBPlane)){

@@ -4184,7 +4184,7 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                             int *numGlideConstraints,
                             real8 (*glideConstraints)[3])
 {
-        int     i, TBConstraint = 0, surfaceConstraint = 0;
+        int     i,  surfaceConstraint = 0;
         int     numConstraints, junctionConstraint = 0;
 	    real8   n1[3], nCryst[3], nLab[3], lDir[3];
         real8   eps = 1.0e-06;
@@ -4192,10 +4192,6 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 
         numConstraints = 0;
 	
-	    if(node->inGrain - floor(node->inGrain) == 0.5){
-	        TBConstraint = 1;
-	    }
-
 	    if(node->constraint > 0 && node->constraint < 4){
 	        surfaceConstraint = 1;
 	        VECTOR_ZERO(n1);
@@ -4244,8 +4240,8 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                 }
 	        }else{
 		        if(i == node->numNbrs){
-		            if(TBConstraint == 0)continue;
-		            VECTOR_COPY(glidePlane, home->param->TBNormal);
+		            if(!IsGBNode(node))continue;
+		            VECTOR_COPY(glidePlane, home->GBKeys[node->onGB]->n);
 		        }else if(i == node->numNbrs + 1){
 		            if(surfaceConstraint == 0)continue;
 		            VECTOR_COPY(glidePlane, n1);
