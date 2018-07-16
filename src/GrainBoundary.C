@@ -1090,6 +1090,9 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	    return(0);
 	}
     
+    if(mergedNode != (Node_t *)NULL){
+        SplitIntersectNode(home, mergedNode, OPCLASS_SEPARATION, 1);
+    }
 	return(1);
 }
 
@@ -1372,6 +1375,10 @@ void HandleGrainBoundary(Home_t *home)
 	for(i=0;i<home->newNodeKeyPtr;i++){
         if((node = home->nodeKeys[i]) == (Node_t *) NULL)continue;
 		
+#if 1
+
+        SplitIntersectNode(home, node, OPCLASS_SEPARATION, 1);
+#else
 /*
  * 	   We'd better check double links here.
  */	
@@ -1468,6 +1475,7 @@ void HandleGrainBoundary(Home_t *home)
 		}
 		
 		if(node->numNbrs == 0) RemoveNode(home,node,globalOp);
+#endif
 	}
 
 	for(i=0;i<home->newNodeKeyPtr;i++){
@@ -1995,9 +2003,16 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
                                     armList, globalOp, &splitNode1,
                                     &splitNode2, 0);
 
-            if (splitStatus != SPLIT_SUCCESS)continue;
             free(armList);
+            if (splitStatus != SPLIT_SUCCESS)continue;
             
+            if(globalOp){
+                AssignGrain(home, splitNode2, nbrInGrain[i][0], -1);
+            }else{
+                splitNode2->inGrain = nbrInGrain[i][0];
+                splitNode2->onGB = -1;
+            }
+
             if(GetArmID(home, splitNode1, splitNode2) != -1){
                 PrintNode(splitNode1);
                 PrintNode(splitNode2);

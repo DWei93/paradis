@@ -109,7 +109,8 @@ static void MeshCoarsen(Home_t *home)
                                 __FILE__, __LINE__);
                     }
                     if(!IsOnGB(nbr1))continue;
-                    dis = NodeDistance(home, node, nbr);
+                    if(!DomainOwnsSeg(home, OPCLASS_REMESH, thisDomain, &nbr1->myTag))continue;
+                    dis = NodeDistance(home, node, nbr1);
                     if(fabs(dis) > 5)continue;
 
                     burg[0] = node->burgX[j];
@@ -127,110 +128,46 @@ static void MeshCoarsen(Home_t *home)
 
                     if(!(planeType & GLIDE_PLANE && (planeType & GB_PLANE) == 0))continue;
 
-                    mergedBasic = 0;
-
-                    if(!DomainOwnsSeg(home, OPCLASS_REMESH, thisDomain, &nbr1->myTag))continue;
-
-                    VECTOR_ZERO(newPos);
-	                inhibitMerge = BeforeMergeNodes(home, node, nbr1, vec1, vec2, &type);
-#if 1
-                    if(mergedBasic){
-                        FormatVector(vec1, "vec1");
-                        FormatVector(vec2, "vec2");
-                        printf("MergedBasic: %d type %d\n", inhibitMerge, type);
+                    globalOp = (nbr1->myTag.domainID != thisDomain);
+                    for (q = 0; q < nbr1->numNbrs; q++) {
+                        globalOp |= (nbr1->nbrTag[q].domainID != thisDomain);
                     }
-#endif
 
-#if 0
-                    snprintf(name,50,"MergeGBSeg.%d.1",home->cycle);
-			        Tecplot(home,(char*)name,0,0,0,0,0,1);
-#endif
-                    if(!inhibitMerge || mergedBasic){
-                        globalOp = (nbr1->myTag.domainID != thisDomain);
+                    for (q = 0; q < node->numNbrs; q++) {
+                        globalOp |= (node->nbrTag[q].domainID != thisDomain);
+                    }
 
-                        for (q = 0; q < nbr1->numNbrs; q++) {
-                            globalOp |= (nbr1->nbrTag[q].domainID != thisDomain);
+                    vec[0] = nbr1->x - node->x;
+                    vec[1] = nbr1->y - node->y;
+                    vec[2] = nbr1->z - node->z;
+                    ZImage(home->param, vec, vec+1, vec+2);
+
+                    newPos[0] = node->x + 0.5*vec[0];
+                    newPos[1] = node->y + 0.5*vec[1];
+                    newPos[2] = node->z + 0.5*vec[2];
+
+                    if(BeforeMergeNodes(home, node, nbr1, newPos, &dis)){
+                        if(fabs(dis) > 5.0){
+                            printf("Warning in %s at %d, dis %f\n", __FILE__, __LINE__, dis);
                         }
+                    }else{
+                        continue;
+                    }
 
-                        for (q = 0; q < node->numNbrs; q++) {
-                            globalOp |= (node->nbrTag[q].domainID != thisDomain);
-                        }
+                    FoldBox(home->param, newPos, newPos+1, newPos+2);
 
-                        VECTOR_COPY(newPos, vec2);
-                        if(type == LINE_INTERSECTION || mergedBasic){
-                            vec[0] = nbr1->x - node->x;
-                            vec[1] = nbr1->y - node->y;
-                            vec[2] = nbr1->z - node->z;
-                            ZImage(home->param, vec, vec+1, vec+2);
-
-                            newPos[0] = node->x + 0.5*vec[0];
-                            newPos[1] = node->y + 0.5*vec[1];
-                            newPos[2] = node->z + 0.5*vec[2];
-                        }
-#if 1
-                        if(mergedBasic){
-                            FormatVector(newPos, "newPos");
-                            printf("MergedBasic: %d type %d\n", inhibitMerge, type);
-                        }
-#endif
-                        FoldBox(home->param, newPos, newPos+1, newPos+2);
-                        MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
-                                  &mergedNode, &mergeStatus, globalOp);
+                    MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
+                              &mergedNode, &mergeStatus, globalOp);
             
-                        mergeDone = mergeStatus & MERGE_SUCCESS;
+                    mergeDone = mergeStatus & MERGE_SUCCESS;
 
-                        if(mergedNode != (Node_t *)NULL){
-                            if(mergedNode->myTag.domainID == home->myDomain){
-                                k = 0;
-                                for(q=0; q< mergedNode->numNbrs; q++){  
-                                    nbr2 = GetNeighborNode(home, mergedNode, q);
-                                    if(nbr2 == (Node_t*)NULL)continue;
-                                    if(nbr2->inGrain - floor(nbr2->inGrain) == 0){
-                                        if(k == 0){
-                                            k++;
-                                            mergedGrain = nbr2->inGrain;
-                                        }
-                                        if(mergedGrain != nbr2->inGrain){
-                                            k = -1;
-                                            break;
-                                        }
-                                    }else{
-                                        k = -1;
-                                        break;
-                                    }
-                                }
-                                if(k == 1){
-                                    if(normalID != 3){
-                                        PullToGB(home, mergedNode, mergedGrain);
-                                        AssignGrain(home, mergedNode, mergedGrain);
-                                    }
-                                }
-                            }
-                        }
-#if 0
-                        if(specil){
-                            snprintf(name,50,"Special.%d.2",home->cycle);
-			                Tecplot(home,(char*)name,0,0,0,0,0,1);
-
-                        }
-#endif
-
-#if 0
-			            if(mergeStatus == 5){
-			                if(mergedNode != (Node_t *)NULL){
-                                snprintf(name,50,"M5.%d.3",home->cycle);
-				                Tecplot(home,(char*)name,0,0,0,0,0,1);
-			                    PrintNode(mergedNode);
-			                }
-                            printf("Task %d: merge basic GB segement status %d\n", home->myDomain, mergeStatus);
-			            }
-#endif
-                        if(mergeStatus & MERGE_SUCCESS || mergeStatus & MERGE_NO_REPOSITION){
-                            i--;
-                        }
-                        breakLoop = 1;
-		                break;
+                    if(mergedNode != (Node_t *)NULL){
+                        SplitIntersectNode(home, mergedNode, OPCLASS_REMESH, globalOp);
+                        mergedNode->flags |= NO_MESH_COARSEN;
                     }
+
+                    breakLoop = 1;
+		            break;
                 }
 		    }
             
@@ -242,21 +179,17 @@ static void MeshCoarsen(Home_t *home)
 
             nbr1 = GetNeighborNode(home, node, 0);
             nbr2 = GetNeighborNode(home, node, 1);
-            if(nbr1 != (Node_t *)NULL && nbr2 != (Node_t *)NULL){
-                if(NodeOnGB(home, nbr1) == INTERSECT_NODE &&
-                   NodeOnGB(home, nbr2) == INTERSECT_NODE){
-                    continue;
-                }
-            }
-
-            inhibitMerge = 0;
-            nbr1 = GetNeighborNode(home, node, 0);
-            nbr2 = GetNeighborNode(home, node, 1);
-        
             if ((nbr1 == (Node_t *)NULL) || (nbr2 == (Node_t *)NULL)) {
                 printf("WARNING: Neighbor not found at %s line %d\n",
                        __FILE__, __LINE__);
                 continue;
+            }
+
+            if(nbr1 != (Node_t *)NULL && nbr2 != (Node_t *)NULL){
+                if(NodeOnGB(home, nbr1) & INTERSECT_NODE &&
+                   NodeOnGB(home, nbr2) & INTERSECT_NODE){
+                    continue;
+                }
             }
 
             if (node->flags & NO_MESH_COARSEN) {
@@ -334,9 +267,6 @@ static void MeshCoarsen(Home_t *home)
                     violateGlidePlanesOK = 1;
                 }
 
-                violateGlidePlanesOK &= ((node->inGrain == nbr1->inGrain) 
-                                        && (node->inGrain == nbr2->inGrain));
-
                 gp0[0] = node->nx[0];
                 gp0[1] = node->ny[0];
                 gp0[2] = node->nz[0];
@@ -411,15 +341,15 @@ static void MeshCoarsen(Home_t *home)
             if(SurfaceNode(nbr1) && SurfaceNode(node) ||
                SurfaceNode(nbr2) && SurfaceNode(node))continue;
 
-            if(node->inGrain - floor(node->inGrain) == 0.5){
+            if(IsOnGB(node)){
+                if(nbr1->onGB != nbr2->onGB)continue;
                 if(nbr1->inGrain != nbr2->inGrain)continue;
                 if((NodeOnGB(home, node) & INTERSECT_NODE) == 0){
                     if((NodeOnGB(home, nbr1) & INTERSECT_NODE) == 1 &&
                        (NodeOnGB(home, nbr2) & INTERSECT_NODE) == 1)continue;
                 }
             }else{
-                if(nbr1->inGrain - floor(nbr1->inGrain) == 0.5 &&
-                   nbr2->inGrain - floor(nbr2->inGrain) == 0.5)continue;
+                if(IsOnGB(nbr1) && IsOnGB(nbr2))continue;
             }
 /*
  *          If coarsening out a node would leave a segment longer
@@ -829,41 +759,26 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
             oldTag1 = node->myTag;
             oldTag2 = nbr->myTag;
 
+			if(home->param->polycrystal && IsOnGB(node) && IsOnGB(nbr)){
+                real8   dis, burg[3];
+                    dis = NodeDistance(home, node, nbr);
+                    if(fabs(dis) > 5)continue;
 
-			if(node->inGrain == nbr->inGrain){
-				newInGrain = node->inGrain;
-				if(node->inGrain - floor(node->inGrain) == 0.5){
-					real8 burg[3];
-					
-					burg[0] = node->burgX[armList[0]];
-					burg[1] = node->burgY[armList[0]];
-					burg[2] = node->burgZ[armList[0]];
-					
-					if(BurgType_FCC(home,burg) == BASIC_BURG){
-					    PrintTag(node);
-						printf("Warning: the arm %d is a basic arm\n",armList[0]);
-					}
-					
-					posInGrain = NodeLocation(home,newPos[0],newPos[1],newPos[2]);
+                    burg[0] = node->burgX[armID];
+                    burg[1] = node->burgY[armID];
+                    burg[2] = node->burgZ[armID];
 
-				}else{
-					posInGrain = InWhichGrain(home,newPos[0],newPos[1],newPos[2]);
-				}
-				if(newInGrain != posInGrain)return(0);
+                    if(BurgType_FCC(home,burg) != BASIC_BURG){
+                        continue;
+                    }
+
+                    normal[0] = node->nx[j];
+                    normal[1] = node->ny[j];
+                    normal[2] = node->nz[j];
+                    planeType = GetPlaneType_FCC(home, node, nbr);
+
+                    if(!(planeType & GLIDE_PLANE && (planeType & GB_PLANE) == 0))continue;
 				
-			}else{
-				if(node->inGrain - floor(node->inGrain) == 0 &&
-				   NodeOnGB(home, nbr) & INTERSECT_NODE){
-					newInGrain = node->inGrain;
-				}else if(nbr->inGrain - floor(nbr->inGrain) == 0 &&
-				         NodeOnGB(home, node) & INTERSECT_NODE){
-					newInGrain = nbr->inGrain;
-				}else{
-					PrintNode(node);
-					PrintNode(nbr);
-					Tecplot(home,(char*)"remesh.plt",0,0,0,0,0,1);
-					Fatal("Task %d, TrySegBisect: wrong inGrain",home->myDomain);
-				}
 			}
 			
             splitStatus = SplitNode(home, OPCLASS_REMESH,
@@ -961,7 +876,7 @@ static void MeshRefine(Home_t *home)
         real8   *vec, vec1[3], vec2[3], vec3[3];
         real8   nodePos[3], nodeVel[3], newVel[3], newPos[3];
         real8   f0seg1[3], f1seg1[3], f0seg2[3], f1seg2[3];
-	real8	 burg[3];
+	    real8	 burg[3];
         Tag_t   oldTag1, oldTag2;
         Node_t  *node, *nbr, *nbr1, *nbr2, *splitNode1, *splitNode2;
         Param_t *param;
@@ -990,7 +905,7 @@ static void MeshRefine(Home_t *home)
         
             node = home->nodeKeys[i];
             if (node == (Node_t *)NULL) continue;
-	    if (SurfaceNode(node))continue;
+	        if (SurfaceNode(node))continue;
         
 /*
  *          If the node has only two arms, use both arm lengths and
