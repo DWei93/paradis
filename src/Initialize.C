@@ -1708,7 +1708,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
         }
 
         for(i=0; i<totMeshNum; i++){
-           home->disDenEle[i] = (real8 *)calloc(4, sizeof(real8)); 
+           home->disDenEle[i] = (real8 *)calloc(6, sizeof(real8)); 
         }
         
 /*

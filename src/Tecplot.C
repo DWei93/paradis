@@ -53,6 +53,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         int      i, j, thisDomain, arm;
         int      newNodeKeyPtr, narm;
         int      burgID, normalID; 
+        int	     armInGrain, armOnGB;
         real8    x,y,z;
         real8    x2,y2,z2;
         real8    x2o,y2o,z2o;
@@ -60,8 +61,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         real8    vx,vy,vz;
         real8    bX, bY, bZ;
         real8    Lx, Ly, Lz;
-        real8     normal[3], normalCryst[3];
-        real8	 armInGrain;
+        real8    normal[3], normalCryst[3];
         real8	 minDistance, pos[3];
         real8	 velocity, displacement, vecOldNew[3];
         char     fileName[256];
@@ -164,12 +164,14 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                     printf(" +++ Writing Tecplot file(s) %s\n", baseFileName);
                 }
 #if CHECK_DOMAIN
-		fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,diplacement,numNbr,inGrain,burgID,normalID,constraint,planeErr,domain,native\n");	
-		VECTOR_ZERO(plane.point);
+		        fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,diplacement,numNbr"
+                        ",inGrain,onGB, burgID,normalID,constraint,planeErr,domain,native\n");	
+		        VECTOR_ZERO(plane.point);
 #else
 	        if(debug){
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,burgID,normalID,constraint,displace,domain,index\n");
-		    fprintf(fp, "zone T = \"%06d\" i = %d  F=POINT\n", home->cycle,numArms); 
+		        fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,"
+                        "onGB,burgID,normalID,constraint,displace,domain,index\n");
+		        fprintf(fp, "zone T = \"%06d\" i = %d  F=POINT\n", home->cycle,numArms); 
 	        }else{
 
 #if CHECK_GB_TOPO
@@ -180,10 +182,10 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 cycle = home->cycle;
                 num = 0;
             }
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,burgID,normalID,constraint,domain,index\n");
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,domain,index\n");
 		    fprintf(fp, "zone T = \"%10.5f%1d\" i = %d  F=POINT\n", param->timeNow*1.0E9,num, numArms); 
 #else
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,burgID,normalID,constraint\n");
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint\n");
 		    fprintf(fp, "zone T = \"%10.5f\" i = %d  F=POINT\n", param->timeNow*1.0E9,numArms); 
 	
 #endif
@@ -278,18 +280,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                     Fatal("The burgers ID of non-FCC material has not defined\n");
                 }
 				
-                normal[0] = node->nx[j];
-                normal[1] = node->ny[j];
-                normal[2] = node->nz[j];
-
-                if(home->param->useLabFrame){
-	                ChangeOrientation(home, node, nbrNode,3);
-                    Matrix33Vector3Multiply(home->rotMatrixInverse, normal, normalCryst);
-                }else{
-                    VECTOR_COPY(normalCryst, normal);
-                }
-
-                normalID = GlidePlaneID_FCC(normalCryst);
+                normalID = GetPlaneID_FCC(home, node, nbrNode);
 
                 x2o = nbrNode->x;
                 y2o = nbrNode->y;
@@ -318,34 +309,34 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 vx =  node->vX * param->burgMag;
                 vy =  node->vY * param->burgMag;
                 vz =  node->vZ * param->burgMag;
-	        velocity = sqrt(vx*vx + vy*vy + vz*vz);
+	            velocity = sqrt(vx*vx + vy*vy + vz*vz);
                   
                 narm = node->numNbrs;
 				
-                armInGrain = ChangeOrientation(home, node, nbrNode, 0);
+                GetArmGrain(home, node, nbrNode, armInGrain, armOnGB);
         
 /*
  *              This part is for output of junction investigation
  */
 				
 #if CHECK_DOMAIN
-                fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %7.4f %d %3.1f %d %d %d %d %e %d %d\n", 
-                        x,y,z,prx/2,pry/2,prz/2,velocity,displacement,narm,armInGrain,burgID,normalID,
+                fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %7.4f %d %d %d %d %d %d %d %e %d %d\n", 
+                        x,y,z,prx/2,pry/2,prz/2,velocity,displacement,narm,armInGrain,armOnGB,burgID,normalID,
                         node->constraint,minDistance,node->myTag.domainID,1);
 #else
-	        if(debug){
-                    fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %3.1f %d %d %d %7.4f %d %d\n", 
-                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,burgID,normalID,node->constraint,
+	            if(debug){
+                    fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %7.4f %d %d\n", 
+                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,node->constraint,
 	                    displacement,node->myTag.domainID,node->myTag.index);
-	        }else{
+	            }else{
 #if CHECK_GB_TOPO
 
-                    fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %3.1f %d %d %d %d %d\n", 
-                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,burgID,normalID,node->constraint,
+                    fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d\n", 
+                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,node->constraint,
                             node->myTag.domainID,node->myTag.index);
 #else
-                    fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %3.1f %d %d %d\n", 
-                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,burgID,normalID,node->constraint);
+                    fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d\n", 
+                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,node->constraint);
 #endif
 	        }
 #endif	
@@ -391,18 +382,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 	                continue;
 	            }
 				
-                    normal[0] = node->nx[arm];
-                    normal[1] = node->ny[arm];
-                    normal[2] = node->nz[arm];
-    
-                    if(home->param->useLabFrame){
-	                    ChangeOrientation(home, node, nbrNode,3);
-                        Matrix33Vector3Multiply(home->rotMatrixInverse, normal, normalCryst);
-                    }else{
-                        VECTOR_COPY(normalCryst, normal);
-                    }
-
-                    normalID = GlidePlaneID_FCC(normalCryst);
+                normalID = GetPlaneID_FCC(home, node, nbrNode);
 
 	            if(home->param->materialType == MAT_TYPE_FCC){
 	                burgID = GetBurgID_FCC(home, node, nbrNode);
@@ -441,10 +421,10 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 				
 	            narm = node->numNbrs;
 
-	            armInGrain = ChangeOrientation(home, node, nbrNode, 0);
+                GetArmGrain(home, node, nbrNode, armInGrain, armOnGB);
 
-                    fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %3.1f %d %d %d %7.4f %d %d\n", 
-                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,burgID,normalID,node->constraint,
+                fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %7.4f %d %d\n", 
+                        x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,node->constraint,
 	                    displacement,node->myTag.domainID,node->myTag.index);
 	        }
 			
@@ -537,12 +517,12 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
     totPlaStn = (real8 **)malloc(totEleNum*sizeof(real8*));        
     totDisDen = (real8 **)malloc(totEleNum*sizeof(real8*));        
 
-    locVals = (real8 *)calloc(totEleNum*10, sizeof(real8));
-    gloVals = (real8 *)calloc(totEleNum*10, sizeof(real8));
+    locVals = (real8 *)calloc(totEleNum*12, sizeof(real8));
+    gloVals = (real8 *)calloc(totEleNum*12, sizeof(real8));
     
     for(i=0; i<totEleNum; i++){
         totPlaStn[i] = (real8 *)calloc(6,sizeof(real8));
-        totDisDen[i] = (real8 *)calloc(4,sizeof(real8));
+        totDisDen[i] = (real8 *)calloc(6,sizeof(real8));
     }
 
 	eleLx = param->meshSizeX;
@@ -556,6 +536,8 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	    home->disDenEle[i][1] = 0.0;
 	    home->disDenEle[i][2] = 0.0;
 	    home->disDenEle[i][3] = 0.0;
+	    home->disDenEle[i][4] = 0.0;
+	    home->disDenEle[i][5] = 0.0;
 	}
 	
 	/*
@@ -622,7 +604,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 			burg[1] = bY;
 			burg[2] = bZ;
 			
-			iBurg = BurgType_FCC(home,burg);
+			iBurg = BurgType_FCC(burg);
 
 			home->disDenEle[eleNum][iBurg] += deltDen;
 			
@@ -648,9 +630,11 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
         locVals[i+(j++)] = home->disDenEle[i][1];
         locVals[i+(j++)] = home->disDenEle[i][2];
         locVals[i+(j++)] = home->disDenEle[i][3];
+        locVals[i+(j++)] = home->disDenEle[i][4];
+        locVals[i+(j++)] = home->disDenEle[i][5];
     }
 
-	MPI_Reduce(locVals, gloVals, 10*totEleNum, MPI_DOUBLE,
+	MPI_Reduce(locVals, gloVals, 12*totEleNum, MPI_DOUBLE,
 			   MPI_SUM, 0, MPI_COMM_WORLD);
 
     for(i=0; i<totEleNum; i++){
@@ -666,6 +650,8 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
         home->disDenEle[i][1] = gloVals[i+(j++)];
         home->disDenEle[i][2] = gloVals[i+(j++)];
         home->disDenEle[i][3] = gloVals[i+(j++)];
+        home->disDenEle[i][4] = gloVals[i+(j++)];
+        home->disDenEle[i][5] = gloVals[i+(j++)];
     }
 #endif
 
@@ -681,6 +667,8 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	    totDisDen[i][1] = home->disDenEle[i][1];
 	    totDisDen[i][2] = home->disDenEle[i][2];
 	    totDisDen[i][3] = home->disDenEle[i][3];
+	    totDisDen[i][4] = home->disDenEle[i][4];
+	    totDisDen[i][5] = home->disDenEle[i][5];
 	}
 
 
@@ -706,7 +694,8 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 							2*totPlaStn[i][5]*totPlaStn[i][5])*2/3);
 
 			currDisDen = totDisDen[i][0] + totDisDen[i][1] + 
-						 totDisDen[i][2] + totDisDen[i][3]; 
+						 totDisDen[i][2] + totDisDen[i][3] +
+						 totDisDen[i][4] + totDisDen[i][5]; 
 
 			NodeofEle(param, i,nodeEle);	
 			
@@ -801,6 +790,24 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	    fclose(fpEle);
 	}
 
+    for(i=0; i<totNodeNum; i++){
+        free(nodeContour[i]);
+    }
+    free(nodeContour);
+    nodeContour = NULL;
+
+    for(i=0; i<totEleNum; i++){
+        free(totPlaStn[i]);
+        free(totDisDen[i]);
+    }
+
+    free(totPlaStn);
+    free(totDisDen);
+    totPlaStn = NULL;
+    totDisDen = NULL;
+
+    free(locVals);
+    free(gloVals);
 
 	return;
 }

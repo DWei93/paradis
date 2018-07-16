@@ -192,6 +192,5 @@ void ApplyConstraintsToVelocity(int numGlideConstraints,
                                 real8 (*glideConstraints)[3],
                                 real8 velocity[3]);
 
-void ForceRemoveNode(Home_t *home, Node_t *node, int globalOp);
 
 #endif

@@ -81,4 +81,5 @@ void DebugMergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
                      int inGrain, int onGB, real8 pos[3], real8  burg[3], real8 normal[3],
                      Node_t **newNodePtr);
+void ForceRemoveNode(Home_t *home, Node_t *node, int globalOp);
 #endif /* _TOPOLOGY_H */

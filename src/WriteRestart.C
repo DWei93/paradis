@@ -223,7 +223,7 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
             }
 
             fprintf(fp,
-                    " %d,%d %lf %lf %lf %d %d %lf\n",
+                    " %d,%d %lf %lf %lf %d %d %d %d\n",
                     node->myTag.domainID, node->myTag.index,
                     node->x, node->y, node->z, node->numNbrs,
                     node->constraint, node->inGrain, node->onGB);

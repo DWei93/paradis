@@ -58,7 +58,6 @@ static void MeshCoarsen(Home_t *home)
         Plane_t GBPlane;
         bool    inhibitMerge,violateGlidePlanesOK = 0; 
         int     mergedBasic;
-        real8   normal[3]; 
         int     planeType;
 
         thisDomain = home->myDomain;
@@ -117,13 +116,10 @@ static void MeshCoarsen(Home_t *home)
                     burg[1] = node->burgY[j];
                     burg[2] = node->burgZ[j];
 
-                    if(BurgType_FCC(home,burg) != BASIC_BURG){
+                    if(BurgType_FCC(burg) != BASIC_BURG){
                         continue;
                     }
 
-                    normal[0] = node->nx[j];
-                    normal[1] = node->ny[j];
-                    normal[2] = node->nz[j];
                     planeType = GetPlaneType_FCC(home, node, nbr);
 
                     if(!(planeType & GLIDE_PLANE && (planeType & GB_PLANE) == 0))continue;
@@ -759,27 +755,6 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
             oldTag1 = node->myTag;
             oldTag2 = nbr->myTag;
 
-			if(home->param->polycrystal && IsOnGB(node) && IsOnGB(nbr)){
-                real8   dis, burg[3];
-                    dis = NodeDistance(home, node, nbr);
-                    if(fabs(dis) > 5)continue;
-
-                    burg[0] = node->burgX[armID];
-                    burg[1] = node->burgY[armID];
-                    burg[2] = node->burgZ[armID];
-
-                    if(BurgType_FCC(home,burg) != BASIC_BURG){
-                        continue;
-                    }
-
-                    normal[0] = node->nx[j];
-                    normal[1] = node->ny[j];
-                    normal[2] = node->nz[j];
-                    planeType = GetPlaneType_FCC(home, node, nbr);
-
-                    if(!(planeType & GLIDE_PLANE && (planeType & GB_PLANE) == 0))continue;
-				
-			}
 			
             splitStatus = SplitNode(home, OPCLASS_REMESH,
                                     node, nodePos, newPos,
@@ -876,7 +851,8 @@ static void MeshRefine(Home_t *home)
         real8   *vec, vec1[3], vec2[3], vec3[3];
         real8   nodePos[3], nodeVel[3], newVel[3], newPos[3];
         real8   f0seg1[3], f1seg1[3], f0seg2[3], f1seg2[3];
-	    real8	 burg[3];
+        real8   dis, burg[3];
+        int     planeType;
         Tag_t   oldTag1, oldTag2;
         Node_t  *node, *nbr, *nbr1, *nbr2, *splitNode1, *splitNode2;
         Param_t *param;
@@ -1044,6 +1020,21 @@ static void MeshRefine(Home_t *home)
 
                     armID = GetArmID(home, node, nbr);
 
+			        if(home->param->polycrystal && IsOnGB(node) && IsOnGB(nbr)){
+
+                        dis = NodeDistance(home, node, nbr);
+
+                        burg[0] = node->burgX[armID];
+                        burg[1] = node->burgY[armID];
+                        burg[2] = node->burgZ[armID];
+
+                        planeType = GetPlaneType_FCC(home, node, nbr);
+
+                        if(planeType & GLIDE_PLANE && (planeType & GB_PLANE) == 0 &&
+                           fabs(dis) < 5 && BurgType_FCC(burg) == BASIC_BURG)continue;
+				
+			        }
+
                     didBisect = TrySegBisect(home, &node, nbr, armID, segLen,
                                              vec, area2, areaMax2, darea2dt,
                                              splitIsOK, didBisect);
@@ -1129,46 +1120,24 @@ static void MeshRefine(Home_t *home)
                         oldTag1 = node->myTag;
                         oldTag2 = nbr1->myTag;
 						
-#if 0
-			printf("remesh:\n");
-			PrintNode(node);
-			PrintNode(nbr1);
-#endif			
-			if(node->inGrain == nbr1->inGrain){
-                            newInGrain = node->inGrain;
-                            if(node->inGrain - floor(node->inGrain) == 0.5){
-                                posInGrain = NodeLocation(home,newPos[0],newPos[1],newPos[2]);
-                                burg[0] = node->burgX[armList[0]];
-                                burg[1] = node->burgY[armList[0]];
-                                burg[2] = node->burgZ[armList[0]];
-                                if(BurgType_FCC(home,burg) == BASIC_BURG){
-                                    PrintTag(node);
-                                    printf("Warning: a arm  is a basic arm.\n");
-                                    armIndex++;
-                                    continue;
-                                }
-                            }else{
-                                posInGrain = InWhichGrain(home,newPos[0],newPos[1],newPos[2]);
+			            if(home->param->polycrystal && IsOnGB(node) && IsOnGB(nbr1)){
+
+                            dis = NodeDistance(home, node, nbr1);
+
+                            burg[0] = node->burgX[armIndex];
+                            burg[1] = node->burgY[armIndex];
+                            burg[2] = node->burgZ[armIndex];
+
+                            planeType = GetPlaneType_FCC(home, node, nbr1);
+
+                            if(planeType & GLIDE_PLANE && (planeType & GB_PLANE) == 0 &&
+                               fabs(dis) < 5 && BurgType_FCC(burg) == BASIC_BURG){
+                                armIndex++;
+                                continue;
                             }
-                            if(newInGrain != posInGrain){
-                               armIndex++;
-                               continue;
-                            }
-			}else{
-                            if(node->inGrain - floor(node->inGrain) == 0 &&
-                                NodeOnGB(home, nbr1) & INTERSECT_NODE){
-                                newInGrain = node->inGrain;
-                            }else if(nbr1->inGrain - floor(nbr1->inGrain) == 0 &&
-                                NodeOnGB(home, node) & INTERSECT_NODE){
-                                newInGrain = nbr1->inGrain;
-                            }else{
-                                PrintNode(node);
-                                PrintNode(nbr1);
-                                Tecplot(home,(char*)"remesh.plt",0,0,0,0,0,1);
-                                Fatal("RemeshRule2: wrong inGrain");
-                            }
-			}
-							
+				
+			            }
+
                         splitStatus = SplitNode(home, OPCLASS_REMESH,
                                                 node, nodePos, newPos,
                                                 nodeVel, newVel,

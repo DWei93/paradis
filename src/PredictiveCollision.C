@@ -1740,11 +1740,11 @@ void PredictiveCollisions(Home_t *home)
                     node4 = GetNodeFromTag(home, node1->nbrTag[k]);
 
                     if(home->param->polycrystal){
-                           GetArmGrain(home, node1, node3, inGrain1, onGB1);
-                           GetArmGrain(home, node1, node4, inGrain2, onGB2);
+                        GetArmGrain(home, node1, node3, inGrain1, onGB1);
+                        GetArmGrain(home, node1, node4, inGrain2, onGB2);
                                 
-                           if(onGB1 != onGB2)continue;
-                           if(onGB1 == -1 && inGrain1 != inGrain2)continue;
+                        if(onGB1 != onGB2)continue;
+                        if(onGB1 == -1 && inGrain1 != inGrain2)continue;
                     }
 
                     x1 = node1->x; y1 = node1->y; z1 = node1->z;

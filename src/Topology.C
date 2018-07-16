@@ -1067,10 +1067,10 @@ bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8
             Fatal("a GB splited node has wrong position");
         }
     }else{
-        if(currInGrain != node->inGrain || onGB > -1){
+        if(currInGrain != node->inGrain || currOnGB > -1){
             if(currOnGB == -1){
                 if(GetPublicGB(home->grainKeys[node->inGrain],
-                               home->grainKeys[currInGrain], &GB){
+                               home->grainKeys[currInGrain], &GB)){
                     currOnGB = GB->GBID;
                 }else{
                     Fatal("in %s at %d", __FILE__, __LINE__);
@@ -2669,7 +2669,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	*mergedNode = targetNode;
 	*status = MERGE_SUCCESS;
    
-    if(IsonGB(deadNode->inGrain)){
+    if(IsOnGB(deadNode)){
         targetNode->inGrain = deadNode->inGrain;
         targetNode->onGB = deadNode->onGB;
     }
@@ -2896,6 +2896,24 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
 }
 
 
+void ForceRemoveNode(Home_t *home, Node_t *node, int globalOp)
+{
+
+    if(node == (Node_t *)NULL)return;
+
+    int i;
+
+    for(i=0; i<node->numNbrs; i++){
+        node->nbrTag[i].domainID = -1;
+        node->nbrTag[i].index = -1;
+    }
+
+    CompressArmLists(node);
+
+	RemoveNode(home, node, globalOp);
+
+    return;
+}
 
 
 
