@@ -190,23 +190,26 @@ void InitGrain(Home_t *home){
     VECTOR_ZERO(gb->p);
     gb->n[1] = 1.0;
 
-    real8 rotMatrix[3][3] = {
+    real8 rotMatrix[3][3] = 
+
+#if 0
+    {{-0.788675, 0.57735, 
+  0.211325}, {-0.57735, -0.57735, -0.57735}, {-0.211325, -0.57735, 
+  0.788675}};
+#else
+    {
         {7.071067811865475e-01,-7.071067811865475e-01,0.000000000000000e+00},
         {5.773502691896258e-01,5.773502691896258e-01,5.773502691896258e-01},
         {-4.082482904638631e-01,-4.082482904638631e-01,8.164965809277261e-01}
     };
-
+#endif
     real8 rotTwin[3][3] = 
-#if 0        
-        {{-0.816497, 0.408248, 
-        0.408248}, {-0.57735, -0.57735, -0.57735}, {0., -0.707107, 
-        0.707107}};
+#if 1        
+        {{-0.408248, 
+  0.816497, -0.408248}, {-0.57735, -0.57735, -0.57735}, {-0.707107, 0.0, 0.707107}};
 #else
-    {
-        {-7.071067811865476e-01,7.071067811865474e-01,-7.070501591499380e-17},
-        {-5.773502691896257e-01,-5.773502691896260e-01,-5.773502691896258e-01},
-        {-4.082482904638631e-01,-4.082482904638631e-01,8.164965809277261e-01}
-    };
+    {{0., 0.707107, -0.707107}, {-0.57735, -0.57735, -0.57735}, 
+{-0.816497, 0.408248, 0.408248}};
 #endif
     for(i=0; i<2; i++){
         grain = home->grainKeys[i];
@@ -226,9 +229,9 @@ void InitGrain(Home_t *home){
 
 #if 1
     bool     stat, crossSlip = 1;
-//    real8   burgCry[3] = {0.707107, 0.0, 0.707107};    // AD
-//    real8   burgCry[3] = {0.707107, -0.707107, 0.};     //AB
-    real8   burgCry[3] = {0.3, -0.7, 0.6};     //randon
+ //   real8   burgCry[3] = {0.707107, 0.0, 0.707107};    // AD
+   real8   burgCry[3] = {0.707107, -0.707107, 0.};     //AB
+//    real8   burgCry[3] = {0.3, -0.7, 0.6};     //randon
     real8   lineCry[3] = {0.707107, -0.707107, 0.};     //AB
     real8   planeCry[3]= {0.57735, 0.57735, -0.57735}; // ABD 
  //   real8   planeCry[3]= {0.57735, 0.57735, 0.57735};   // ABC
@@ -1215,7 +1218,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
            (int)(SHOCKLEY_BURG_MAG_FCC * 100 + 1.0)){
             break;
         }
-#if 1
+#if 0
         if(setLists[0][setLists[i].size()-1] == 0){
             if(setLists[i][setLists[i].size()-1] > 0){
                 break;
@@ -1230,7 +1233,8 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
     }
 
     if(nBurgSets == 0)return(0);
-#if DEBUG_DisassembleDislocation
+//#if DEBUG_DisassembleDislocation
+#if 1
     printf("SetLists: \n");
     for(i=0; i<setLists.size(); i++){
         printf("Set %2d: ", i);
@@ -1258,7 +1262,8 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         }
     }
 
-#if DEBUG_DisassembleDislocation
+//#if DEBUG_DisassembleDislocation
+#if 1
 //    burgOnPlaneID[3].push_back(15);
 //    burgOnPlaneID[7].push_back(3);
 //    printf("burgOnPlaneID[2].size() %d\n", burgOnPlaneID[2].size());

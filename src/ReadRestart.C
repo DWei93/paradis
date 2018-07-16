@@ -761,10 +761,10 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
  */
                     node = &inData->node[readCount++];
 
-                    sscanf(inLine, "%d,%d %lf %lf %lf %d %d %lf",
+                    sscanf(inLine, "%d,%d %lf %lf %lf %d %d %d %d",
                            &node->myTag.domainID, &node->myTag.index,
                            &node->x, &node->y, &node->z,
-                           &numNbrs, &node->constraint, &node->inGrain);
+                           &numNbrs, &node->constraint, &node->inGrain, &node->onGB);
 
                     AllocNodeArms(node, numNbrs); 
 /*

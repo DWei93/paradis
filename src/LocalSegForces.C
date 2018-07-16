@@ -2892,7 +2892,8 @@ void LocalSegForces(Home_t *home, int reqType)
  *          add the image force in now.
  */
             if(param->polycrystal){
-                armGrain = GetArmInGrain(node1->inGrain, node2->inGrain);
+                int inGrain, onGB;
+                GetArmGrain(home,node1, node2, inGrain, onGB);
                 ImageForce(home, armGrain, x1, y1, z1, x2, y2, z2, 
                            bx1, by1, bz1, f1, f2);
 

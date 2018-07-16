@@ -1553,7 +1553,7 @@ void PrintNode(Node_t *node)
 	}
 
 #if 1
-        printf("  node(%d,%d,%3.1f) arms %d,",
+        printf("  node(%d,%d,%d) arms %d,",
                node->myTag.domainID, node->myTag.index, node->inGrain, 
                node->numNbrs);
 #if 1
@@ -3090,7 +3090,8 @@ void AddOp (Home_t *home,
         op->nx = nx;
         op->ny = ny;
         op->nz = nz;
-		op->inGrain = 0.0;
+		op->inGrain = -1;
+		op->onGB = -1;
 		
         home->OpCount++;
 
@@ -4217,9 +4218,9 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 
 	            nbr = GetNeighborNode(home, node, i);
                 if(nbr != (Node_t *)NULL){
-                    planeType = GetPlaneType(home, node, nbr);
-                    if(planeType & JUNCTION1_PLANE > 0 ||
-                       planeType & JUNCTION2_PLANE > 0){
+                    planeType = GetPlaneType_FCC(home, node, nbr);
+                    if(planeType & JUNCTION_PLANE1 > 0 ||
+                       planeType & JUNCTION_PLANE2 > 0){
                         junctionConstraint = 1;
                         lDir[0] = nbr->x - node->x;
                         lDir[1] = nbr->y - node->y;
@@ -4231,7 +4232,7 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                 }
 	        }else{
 		        if(i == node->numNbrs){
-		            if(!IsGBNode(node))continue;
+		            if(!IsOnGB(node))continue;
 		            VECTOR_COPY(glidePlane, home->GBKeys[node->onGB]->n);
 		        }else if(i == node->numNbrs + 1){
 		            if(surfaceConstraint == 0)continue;

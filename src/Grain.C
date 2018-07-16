@@ -465,30 +465,6 @@ int JudgeNodeInCuboid(real8 *x1, real8 *y1, real8 *z1, real8 x2, real8 y2, real8
 	return(fabs(*x1) <= x2 && fabs(*y1) <= y2 && fabs(*z1) <= z2);
 }
 
-void GetTBBurg_FCC(int nID, real8 burgTB[3]){
-    if(nID == 0){
-        /* Adelta*/
-        burgTB[0] = -1;
-        burgTB[1] =  2;
-        burgTB[2] = -1;
-    }else if(nID == 1){
-        /* Bdelta*/
-        burgTB[0] =  2;
-        burgTB[1] = -1;
-        burgTB[2] = -1;
-    }else if (nID == 2){
-        /* Cdelta*/
-        burgTB[0] = -1;
-        burgTB[1] = -1;
-        burgTB[2] =  2;
-    }else Fatal("GetTBBurg_FCC: normal ID is %d\n", nID);
-    NormalizeVec(burgTB);
-    burgTB[0] /= sqrt(3.0);
-    burgTB[1] /= sqrt(3.0);
-    burgTB[2] /= sqrt(3.0);
-}
-
-
 BurgInfo_t* GetBurgData(Home_t *home, Node_t *node1, Node_t *node2)
 {
         if(home->param->polycrystal){

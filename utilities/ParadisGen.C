@@ -853,16 +853,17 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
  *-------------------------------------------------------------------------*/
 void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
 {
-        int         i, iArm, numSeg = 0;
-        Node_t      *node;
-        Param_t     *param;
-        static int  totalNodeCount = 0;
-        static FILE *fp = (FILE *)NULL;
-	static FILE *fpTecplot = (FILE *)NULL;
-	Node_t	    *nbr;
-	Tag_t	    nbrTag;
-	real8	    v1, v2, v3;
-	int	    burgID;
+        int             i, iArm, numSeg = 0;
+        Node_t          *node;
+        Param_t         *param;
+        static int      totalNodeCount = 0;
+        static FILE     *fp = (FILE *)NULL;
+	    static FILE     *fpTecplot = (FILE *)NULL;
+    	Node_t	        *nbr;
+	    Tag_t	        nbrTag;
+	    real8	        v1, v2, v3;
+	    int	            burgID, planeID;
+        BurgInfo_t      *burgData;
 
 
         param = inData->param;
@@ -922,14 +923,14 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
 			
             fprintf(fp, "nodalData = \n");
             fprintf(fp, "#  Primary lines: node_tag, x, y, z, "
-                    "num_arms, constraint, inGrain\n");
+                    "num_arms, constraint, inGrain, onGB\n");
             fprintf(fp, "#  Secondary lines: arm_tag, burgx, burgy, "
                     "burgz, nx, ny, nz\n");
         }
 		
 		if(fpTecplot == (FILE *)NULL){
 			fpTecplot = fopen("DDInitial.plt","w");
-			fprintf(fpTecplot,"variables = X,Y,Z,V1,V2,V3,b1,b2,b3,n1,n2,n3,inGrain,burgID,constraint,numNbrs\n");
+			fprintf(fpTecplot,"variables = X,Y,Z,V1,V2,V3,inGrain,onGB,burgID,planeID,constraint,numNbrs\n");
 			
 		}
 
@@ -951,21 +952,37 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
             node = &inData->node[i];
 
             fprintf(fp,
-                    " %d,%d %.4f %.4f %.4f %d %d %f\n",
+                    " %d,%d %.4f %.4f %.4f %d %d %d %d\n",
                     node->myTag.domainID, node->myTag.index, 
                     node->x, node->y, node->z, node->numNbrs,
-                    node->constraint,node->inGrain);
+                    node->constraint,node->inGrain, node->onGB);
 
             for (iArm = 0; iArm < node->numNbrs; iArm++) {
-	        if(home->param->materialType == MAT_TYPE_FCC){
-	            burgID = GetBurgID_FCCFromArm(home, node, iArm);
-	        }else{
-	            Fatal("The burgers ID of non-FCC material has not defined\n");
-	        }
-				
-				
+	            if(home->param->materialType == MAT_TYPE_FCC){
+                    real8 burg[3], plane[3];
+                
+                    if(home->param->polycrystal){
+                        burgData = &(home->grainKeys[node->inGrain]->burgData);
+                    }else{
+                        burgData = &(home->burgData);
+                    }
+
+                    burg[0] = node->burgX[iArm];          
+                    burg[1] = node->burgY[iArm];          
+                    burg[2] = node->burgZ[iArm];          
+
+                    plane[0] = node->nx[iArm];
+                    plane[1] = node->ny[iArm];
+                    plane[2] = node->nz[iArm];
+
+                    burgID = BurgID_FCC(burgData, burg);
+                    planeID = PlaneID_FCC(burgData, plane);
+	            }else{
+	                Fatal("The burgers ID of non-FCC material has not defined\n");
+	            }
+
                 fprintf(fp, "%d,%d %.15e %.15e %.15e\n"
-			    "%.15e %.15e %.15e\n",
+			                "%.15e %.15e %.15e\n",
                         node->nbrTag[iArm].domainID,
                         node->nbrTag[iArm].index,
                         node->burgX[iArm], node->burgY[iArm],
@@ -980,13 +997,11 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
 				v1 = 0.5 * (nbr->x - node->x);
 				v2 = 0.5 * (nbr->y - node->y);	
 				v3 = 0.5 * (nbr->z - node->z);	
-				fprintf(fpTecplot, "%16.10e %16.10e %16.10e %16.10e "
-								   "%16.10e %16.10e %16.10e %16.10e "
-						           "%16.10e %16.10e %16.10e %16.10e %f %d %d %d\n",
+				fprintf(fpTecplot, "%16.10e %16.10e %16.10e "
+								   "%16.10e %16.10e %16.10e "
+						           "%d %d %d %d %d %d\n",
 						node->x, node->y, node->z, v1, v2, v3,
-						node->burgX[iArm], node->burgY[iArm],
-                        node->burgZ[iArm], node->nx[iArm],
-                        node->ny[iArm], node->nz[iArm],node->inGrain,burgID,
+						node->inGrain,node->onGB,burgID, planeID,
 					    node->constraint, node->numNbrs); 		
             }
         }
@@ -1253,103 +1268,3 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
 }
 
 
-int GetBurgID_FCCFromArm(Home_t *home, Node_t *node, int segID){
-
-	int          burgIndex, burgID;
-	real8        bCryst[3], crossProd[3];
-	Grain_t		 *grain;
-	static int   numBurgs = 21;
-	int			 intGID;
-	/*
-	 *      Define the IDs for each type (or grouping) of burgers vector
-	 *      we're interested in (plus a value with which to associate any
-	 *      burgers vector for which we don't explicitly look.
-	 */
-	static int   burg2IDMap[22] =
-	{ 0,                		/* [ 1  1  0] */
-		1,                		/* [ 1 -1  0] */
-		2,                		/* [ 1  0  1] */
-		3,                		/* [ 1  0 -1] */
-		4,                		/* [ 0  1  1] */
-		5,               			/* [ 0  1 -1] */
-		6,   7,  8,  9, 10, 11, 	/* all 12 [2 1 1] types */
-		12, 13, 14, 15, 16, 17, 
-		18, 19, 20,
-		21 };             		/* all other burgers vectors */
-	/*
-	 *      Define the list of burgers vectors for which we are explicitly
-	 *      looking.
-	 */
-	static real8 burgList[21][3] = {
-		/* glide burgers vectors */
-		{ 1.0,  1.0,  0.0},
-		{ 1.0, -1.0,  0.0},
-		{ 1.0,  0.0,  1.0},
-		{ 1.0,  0.0, -1.0},
-		{ 0.0,  1.0,  1.0},
-		{ 0.0,  1.0, -1.0},
-		/* junction burgers vectors */
-		{ 2.0,  1.0,  1.0},		// Dbeta	6
-		{-2.0,  1.0,  1.0},		// deltaB	7
-		{ 2.0, -1.0,  1.0},		// gamaA	8
-		{ 2.0,  1.0, -1.0},		// alphaC	9
-		{ 1.0,  2.0,  1.0},		// Dalpha	10	
-		{-1.0,  2.0,  1.0},		// gamaB	11
-		{ 1.0, -2.0,  1.0},		// deltaA	12
-		{ 1.0,  2.0, -1.0},		// betaC	13
-		{ 1.0,  1.0,  2.0},		// Dgama	14
-		{-1.0,  1.0,  2.0},		// alphaB	15
-		{ 1.0, -1.0,  2.0},		// betaA	16
-		{ 1.0,  1.0, -2.0},		// deltaC	17
-		{ 1.0,  0.0,  0.0},		//			18
-		{ 0.0,  1.0,  0.0},		//			19
-		{ 0.0,  0.0,  1.0}		//			20
-	};	
-
-	/*
-	 *      If needed, rotate the provided burgers vector from the lab frame
-	 *      into the crystal frame.
-	 */
-	
-	if (home->param->useLabFrame) {
-
-	    ChangeOrientation(home, node, node,3);
-
-	    real8 bLab[3];
-	    bLab[0] = node->burgX[segID];
-	    bLab[1] = node->burgY[segID];
-	    bLab[2] = node->burgZ[segID];
-            Matrix33Vector3Multiply(home->rotMatrixInverse, bLab, bCryst);
-	} else {
-	    bCryst[0] = node->burgX[segID];
-	    bCryst[1] = node->burgY[segID];
-	    bCryst[2] = node->burgZ[segID];
-	}
-	
-	
-	/*
-	 *      Look through the list of reference burgers vectors for one
-	 *      that matches the segment burgers vector.  If we find a match
-	 *      return the ID associated with that burgers vector.  If no
-	 *      match is found, the ID defaults to the final one in the list
-	 *      to indicate it was some *other* burgers vector type.
-	 */
-	burgID = burg2IDMap[numBurgs];
-
-	for (burgIndex = 0; burgIndex < numBurgs; burgIndex++) {
-		cross(bCryst, burgList[burgIndex], crossProd);
-		if (fabs(DotProduct(crossProd, crossProd)) < 1.0e-3) {
-			burgID = burg2IDMap[burgIndex];
-			break;
-		}
-	}
-	
-	if(burgID >= 6 && burgID <= 17){
-		real8	 bCrystMag, bEr;
-		bCrystMag = Normal(bCryst);
-		bEr = fabs(bCrystMag - 1.0 / sqrt(3.0));
-		if(bEr > 1.0e-3) burgID = 21;
-	}
-	
-	return(burgID);
-}

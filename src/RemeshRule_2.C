@@ -46,6 +46,7 @@ static void MeshCoarsen(Home_t *home)
         real8   newPos[3], f0seg1[3], f1seg1[3];
         real8   gp0[3], gp1[3], tmp3[3];
         real8   burg[3],vec[3],vecStored;
+        real8   dis;
 	    real8	mergedGrain;
 	    int	    riskySeg1, riskySeg2, armID;    
         int     armInGrain1, armInGrain2, armOnGB1, armOnGB2;   
@@ -57,6 +58,8 @@ static void MeshCoarsen(Home_t *home)
         Plane_t GBPlane;
         bool    inhibitMerge,violateGlidePlanesOK = 0; 
         int     mergedBasic;
+        real8   normal[3]; 
+        int     planeType;
 
         thisDomain = home->myDomain;
         param      = home->param;
@@ -96,7 +99,7 @@ static void MeshCoarsen(Home_t *home)
             if (node->numNbrs < 2 || node->numNbrs > 3) continue;
 
             breakLoop = 0;
-		    if(param->polycrystal && (node->inGrain - floor(node->inGrain) == 0.5)){
+		    if(param->polycrystal && IsOnGB(node)){
                 
                 for(j=0; breakLoop == 0 && j<node->numNbrs; j++){
                     inhibitMerge = 0;
@@ -105,7 +108,10 @@ static void MeshCoarsen(Home_t *home)
                         printf("Warnig: neighbor not found. (at %s, L%d)\n",
                                 __FILE__, __LINE__);
                     }
-                    if(nbr1->inGrain - floor(nbr1->inGrain) == 0)continue;
+                    if(!IsOnGB(nbr1))continue;
+                    dis = NodeDistance(home, node, nbr);
+                    if(fabs(dis) > 5)continue;
+
                     burg[0] = node->burgX[j];
                     burg[1] = node->burgY[j];
                     burg[2] = node->burgZ[j];
@@ -113,47 +119,20 @@ static void MeshCoarsen(Home_t *home)
                     if(BurgType_FCC(home,burg) != BASIC_BURG){
                         continue;
                     }
-#if 1
-                    real8   normal[3], normalCryst[3]; 
-                    int     normalID;
 
-                    mergedBasic = 0;
                     normal[0] = node->nx[j];
                     normal[1] = node->ny[j];
                     normal[2] = node->nz[j];
-                    if(home->param->useLabFrame){
-	                    ChangeOrientation(home, node, nbr1, 3);
-                        Matrix33Vector3Multiply(home->rotMatrixInverse, normal, normalCryst);
-                    }else{
-                        VECTOR_COPY(normalCryst, normal);
-                    }
+                    planeType = GetPlaneType_FCC(home, node, nbr);
 
-                    normalID = GlidePlaneID_FCC(normalCryst);
-                    if(normalID == 3){
-                        printf("Mergedbasic arm on tb: ");
-                        PrintTag(node);
-                        PrintTag(nbr1);
-                        mergedBasic = 1;
-                        printf("\n");
-                    }
-#endif
+                    if(!(planeType & GLIDE_PLANE && (planeType & GB_PLANE) == 0))continue;
+
+                    mergedBasic = 0;
 
                     if(!DomainOwnsSeg(home, OPCLASS_REMESH, thisDomain, &nbr1->myTag))continue;
 
-#if 0
-                    int specil = 0;
-                    if((NodeOnGB(home,node) & INTERSECT_NODE) == 0 ||
-                       (NodeOnGB(home,nbr1) & INTERSECT_NODE) == 0 ){
-                        snprintf(name,50,"Special.%d.1",home->cycle);
-			            Tecplot(home,(char*)name,0,0,0,0,0,1);
-                        PrintNode(node);
-                        PrintNode(nbr1);
-                        printf("Warning: Merge specil segement\n");
-                        specil = 1;
-                    }
-#endif
                     VECTOR_ZERO(newPos);
-	                inhibitMerge = BeforeMergeArm(home, node, nbr1, vec1, vec2, &type);
+	                inhibitMerge = BeforeMergeNodes(home, node, nbr1, vec1, vec2, &type);
 #if 1
                     if(mergedBasic){
                         FormatVector(vec1, "vec1");

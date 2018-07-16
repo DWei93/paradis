@@ -210,8 +210,7 @@ int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane, Pene_t *pene){
 }
 
 
-int ScrewEnergyRule(Home_t *home, Node_t *node, real8 oldInGrain, 
-					real8 corInGrain, Plane_t *GBPlane){
+int ScrewEnergyRule(Home_t *home, Node_t *node, GB_t *gb){
 
 	return(1);
 }
@@ -377,9 +376,9 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 	real8		pos[3], burg[3], normal[3], resiBurg[3];
 	real8		vec[3], jth;
     real8       centorPos[3];
-    real8       vec1[3], vec2[3], eps, dis, type;
+    real8       vec1[3], vec2[3], eps, dis;
     int         i, j, newPlaneID, localGBID, nDiss;
-    int         currInGrain, currOnGB, nSets;
+    int         currInGrain, currOnGB, nSets, type;
     bool        residualDis;
     Line_t      line;
     Node_t      *node1, *node2;
@@ -419,7 +418,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
     type = LineLineIntersection(pene->line1.direction, pene->line1.point,
            pene->line2.direction, pene->line2.point, vec1, vec2, &dis);
     if(type != LINE_INTERSECTION && fabs(dis) > 5){
-        printf("Warning: type %d in file %s at line %d, dis %f \n", 
+        printf("Warning: type %d in file %s at line %d, dis is %f \n", 
                 type, __FILE__, __LINE__, dis);
         return(0);
     }
@@ -537,7 +536,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
     int         numBkup, i, j, globalOp, mobError, newPlaneID;
     int         planeID, localPlaneID, maxPowerSet, onGB;
     bool        switchedArm;
-    real8       nodeVel[3], currPos[3], odlPos[3], posClosedGB[3];
+    real8       nodeVel[3], currPos[3], oldPos[3], posClosedGB[3];
     real8       dis, dirGBNode[3], node1Pos[3], node2Pos[3];
     real8       vec1[3], vec2[3], newVel[3], nForce[3];
     real8       centorPos[3], lDir[3], peneLength, planeBurg[3];
@@ -552,7 +551,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 
     Param_t     *param;
 	
-	myDomian = home->myDomain;
+	myDomain = home->myDomain;
 	param = home->param;
     
     gammaS = 4.47E-2/param->burgMag;  /* units: Pa.b*/
@@ -591,7 +590,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
     vec1[0] = currPos[0] - oldPos[0];
     vec1[0] = currPos[0] - oldPos[0];
     ZImage(param, vec1, vec1+1, vec1+2);
-    if(DotProduct(vec1, nodeVec) <= 0)return(0);
+    if(DotProduct(vec1, nodeVel) <= 0)return(0);
     
     dirGBNode[0] = currPos[0] - posClosedGB[0];
     dirGBNode[1] = currPos[1] - posClosedGB[1];
@@ -623,7 +622,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
     }
 
     if(j != 3 + nbrNode1->numNbrs - 1){
-        Ftal("in %s at %d", __FILE__, __LINE__);
+        Fatal("in %s at %d", __FILE__, __LINE__);
     }
 
     for(i=0; i<nbrNode2->numNbrs; i++){
@@ -694,7 +693,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
         newPlaneID = -1;
         for(j=0; j<pene->res[i].nDiss; j++){
 
-            planeID = GlidePlaneID_FCC(bd, pene->res[i].normal[j]);
+            planeID = PlaneID_FCC(bd, pene->res[i].normal[j]);
             if(planeID != newPlaneID){
                 newPlaneID = planeID;
                 localPlaneID = 0;
@@ -743,9 +742,9 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
                 break;
             }
 
-            DoResistance(home, newNodePtrList[j], nForece);
+            DoResistance(home, newNodePtrList[j], nForce);
 
-            pene->res[i].powerDis += DotProduct(nForece, newVel);
+            pene->res[i].powerDis += DotProduct(nForce, newVel);
 
             ForceRemoveNode(home, newNodePtrList[j], globalOp);
             newNodePtrList[j] = (Node_t *)NULL;
@@ -868,7 +867,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
     newPlaneID = -1;
     for(j=0; j<pene->res[i].nDiss; j++){
 
-        planeID = GlidePlaneID_FCC(bd, pene->res[i].normal[j]);
+        planeID = PlaneID_FCC(bd, pene->res[i].normal[j]);
         if(planeID != newPlaneID){
             newPlaneID = planeID;
             localPlaneID = 0;
@@ -880,7 +879,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
         if(localPlaneID = 0){
             VECTOR_COPY(planeBurg, pene->res[i].burg[j]);
             if(j != pene->res[i].nDiss){
-                if(planeID == GlidePlaneID_FCC(bd, pene->res[i].normal[j+1])continue;
+                if(planeID == PlaneID_FCC(bd, pene->res[i].normal[j+1]))continue;
             }
         }else{
             planeBurg[0] += pene->res[i].burg[j][0];
@@ -949,7 +948,7 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	currPos[0] = node->x;
 	currPos[1] = node->y;
 	currPos[2] = node->z;
-    NodeLocation(currPos[0], currPos[1], currPos[2], currInGrain, currOnGB);
+    NodeLocation(home, currPos[0], currPos[1], currPos[2], currInGrain, currOnGB);
 	
 	nDir1[0] = node->nx[0];
 	nDir1[1] = node->ny[0];
@@ -990,7 +989,7 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
     VECTOR_COPY(newPos, interLine.point);
 	FoldBox(param,&newPos[0],&newPos[1],&newPos[2]);	
     
-    if(BeforeMergeNodes(node, nbrNode2, newPos, &dis){
+    if(BeforeMergeNodes(home, node, nbrNode2, newPos, &dis)){
         if(fabs(dis) > 5.0){
             printf("Warning in PenetrationSide, dis %f\n", dis);
         }
@@ -1034,7 +1033,7 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
        nbrNode2->myTag.domainID != thisDomain)return(0);
 	
 	if(SurfaceNode(nbrNode1) && IsOnGB(nbrNode1) ||
-	   SurfaceNode(nbrNode2) && IsOnGB(nbrNode2)))return(0);
+	   SurfaceNode(nbrNode2) && IsOnGB(nbrNode2))return(0);
 	globalOp = 1;
 
     nodePos[0] = node->x;
@@ -1066,14 +1065,14 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
             vec[1] = 0.5*(nodePos[1] + oldPos[1]);
             vec[2] = 0.5*(nodePos[2] + oldPos[2]);
             PointPlaneIntersection(vec, GBPlane->normal, GBPlane->point,
-                                   mergePos);
+                                   mergePos, &dis);
             break;
         default:
             Fatal("PenetrationLast: wrong intersection type");
 
     }
     
-    if(BeforeMergeNodes(nbrNode1, nbrNode2, mergePos, &dis){
+    if(BeforeMergeNodes(home, nbrNode1, nbrNode2, mergePos, &dis)){
         if(fabs(dis) > 5.0){
             printf("Warning in PenetrationLast, dis %f\n", dis);
         }
@@ -1097,7 +1096,7 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
 int PenetrationSurface(Home_t *home, Node_t *node, GB_t *gb)
 {
     int         type;
-    real8       n1[3], p1[3], n2[3], p2[3], n3[3], p[3];
+    real8       n1[3], p1[3], n2[3], p2[3], n3[3], p3[3];
     real8       lDir[3], lPos[3], vec[3], newPos[3];
     Node_t      *nbrNode;
 	Param_t 	*param;
@@ -1109,7 +1108,7 @@ int PenetrationSurface(Home_t *home, Node_t *node, GB_t *gb)
 	nbrNode = GetNeighborNode(home, node, 0);
     if(nbrNode == (Node_t *)NULL)Fatal("in %s at %d", __FILE__, __LINE__);
     if(nbrNode->myTag.domainID != home->myDomain || !IsOnGB(nbrNode))return(0);
-    if(!Surface(node))Fatal("in %s at %d", __FILE__, __LINE__);
+    if(!SurfaceNode(node))Fatal("in %s at %d", __FILE__, __LINE__);
 
     VECTOR_ZERO(n1);
     n1[node->constraint - 1] = 1.0;
@@ -1180,7 +1179,7 @@ void HandleGrainBoundary(Home_t *home)
 
 	param = home->param;
 	
-    pene.nSet = 0;
+    pene.nSets = 0;
 	newNodeKeyPtr = home->newNodeKeyPtr;
 	for(i=0;i<newNodeKeyPtr;i++){
         
@@ -1199,7 +1198,7 @@ void HandleGrainBoundary(Home_t *home)
             continue;
         }
 		
-        if(node->numNbrs < 1 node->constraint == PINNED_NODE)continue;
+        if(node->numNbrs == 1 && node->constraint == PINNED_NODE)continue;
         if(currInGrain == oldInGrain || currInGrain < 0)continue;
 
         if(!param->peneTB || node->numNbrs > 2){
@@ -1225,8 +1224,8 @@ void HandleGrainBoundary(Home_t *home)
         if(!GetPublicGB(oldGrain, currGrain, &gb)){
             Fatal("in %s at %d", __FILE__, __LINE__);
         }
-        VECTOR(GBPlane.normal, gb->n);
-        VECTOR(GBPlane.point, gb->p);
+        VECTOR_COPY(GBPlane.normal, gb->n);
+        VECTOR_COPY(GBPlane.point, gb->p);
 
 /*	
  *	    There are 4 scenarios: 
@@ -1311,56 +1310,54 @@ void HandleGrainBoundary(Home_t *home)
 		    }
         }
 /*		
- *	        Node: this energy rule is used for nonscrew dislocation, 
- *	        since we donot know the resultant slip plane for nonscrew 
- *	        dislocation at this time. 
+ *	    Node: this energy rule is used for nonscrew dislocation, 
+ *	    since we donot know the resultant slip plane for nonscrew 
+ *	    dislocation at this time. 
  */
 
 #if ENERGY_RULER
-	        if(EnergyRule(home, node, &GBPlane, &pene) == 0){
-                PullBack(home,node);
-                continue;
-	        }
+	    if(EnergyRule(home, node, &GBPlane, &pene) == 0){
+            PullBack(home,node);
+            continue;
+	    }
 #endif
 
-            burg[0] = node->burgX[0];
-            burg[1] = node->burgY[0];
-            burg[2] = node->burgZ[0];
-            normal[0] = GBPlane.normal[0];
-            normal[1] = GBPlane.normal[1];
-            normal[2] = GBPlane.normal[2];
+        burg[0] = node->burgX[0];
+        burg[1] = node->burgY[0];
+        burg[2] = node->burgZ[0];
+        normal[0] = GBPlane.normal[0];
+        normal[1] = GBPlane.normal[1];
+        normal[2] = GBPlane.normal[2];
 		
-            if((fabs(DotProduct(burg,normal))<0.001) &&
-				(numNbrOnGB > 0)){
+        if((fabs(DotProduct(burg,normal))<0.001) &&
+			(numNbrOnGB > 0)){
 /*		
- *	        Energy rule for screw dislocation with at least a nbr on GB, so we can
- *		    determine the resultant slip plane.	
+ *	    Energy rule for screw dislocation with at least a nbr on GB, so we can
+ *		determine the resultant slip plane.	
  */
-                if(ScrewEnergyRule(home,node,oldInGrain,
-			        corInGrain,&GBPlane)==0){
+            if(ScrewEnergyRule(home, node, gb)==0){
 	
-                    PullBack(home,node);
-                    continue;
-                }
+                PullBack(home,node);
+                continue;
             }
+        }
 
-            if(numNbrOnGB == 0){
-                if(!PenetrationFirst(home, &pene)){
-                    PullBack(home,node);
-                    continue;
-                }
-            }else if(numNbrOnGB == 1){
-                if(!PenetrationSide(home, node, oldGrain, currGrain, &GBPlane)){
-                    PullBack(home,node);
-                    continue;
-			
-            }else if(numNbrOnGB == 2){
-                if(!PenetrationLast(home, node, oldGrain, currGrain, &GBPlane)){
-                    PullBack(home,node);
-                    continue;
-                }
+        if(numNbrOnGB == 0){
+            if(!PenetrationFirst(home, &pene)){
+                PullBack(home,node);
+                continue;
             }
-
+        }else if(numNbrOnGB == 1){
+            if(!PenetrationSide(home, node, oldGrain, currGrain, &GBPlane)){
+                PullBack(home,node);
+                continue;
+		    }
+        }else if(numNbrOnGB == 2){
+            if(!PenetrationLast(home, node, oldGrain, currGrain, &GBPlane)){
+                PullBack(home,node);
+                continue;
+            }
+        }
 
 	}/*	end of for(i=0;i<home->newNodeKeyPtr ...*/
 	
@@ -1387,13 +1384,6 @@ void HandleGrainBoundary(Home_t *home)
         node->flags &= ~NODE_CHK_DBL_LINK; 
 	   
         if((NodeOnGB(home, node) & INTERSECT_NODE) == 0)continue;
-
-	    vec[0] = node->x;
-	    vec[1] = node->y;
-	    vec[2] = node->z;
-
-	    VECTOR_ZERO(GBPlane.normal);
-	    distance =  ClosedGB(home, vec, &GBPlane);
 
         if(node->numNbrs < 2){
 		    if(node->numNbrs == 1 && SurfaceNode(node) && 
@@ -1481,21 +1471,22 @@ void HandleGrainBoundary(Home_t *home)
 	}
 
 	for(i=0;i<home->newNodeKeyPtr;i++){
-            if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
-            if(IsOnGB(node))continue;
-	        if(SurfaceNode(node))continue;
-            NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
-            if(node->inGrain != inGrain){
-                PrintTag(node);
-	            PullBack(home,node);
-                printf("HandleGrainBoundary: a penetrated not coopered\n");
-            }
+        if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
+        if(IsOnGB(node))continue;
+	    if(SurfaceNode(node))continue;
+        NodeLocation(home, node->x, node->y, node->z, currInGrain, currOnGB);
+        if(node->inGrain != currInGrain){
+            PrintTag(node);
+	        PullBack(home,node);
+            printf("HandleGrainBoundary: a penetrated not coopered\n");
         }
+    }
 	return;
 
 }
 
-void DoResistance(Home_t *home, Node_t *node, real8 *nForce){
+void DoResistance(Home_t *home, Node_t *node, real8 *nForce)
+{
 	real8 	distance, pos[3],dir[3], factor, burgMag;
 	real8	GBForceMag, lDir[3], nDir[3], gDir[3], length;
 	real8 	burg[3], fricMag, dot, armGBForce[3];
@@ -1750,7 +1741,7 @@ void AdjustSurfaceNode(Home_t *home)
 	    ApplyPosConstraint(param, node);
 
 	    if(SurfaceNode(node) && node->numNbrs > 1){
-            NodeLocation(node, nodePos[0], nodePos[1], nodePos[2], inGrain, onGB);
+            NodeLocation(home, nodePos[0], nodePos[1], nodePos[2], inGrain, onGB);
 	        if(inGrain != node->inGrain && !IsOnGB(node)){
 		        node->x = node->oldx;
 		        node->y = node->oldy;
@@ -1788,7 +1779,7 @@ void AdjustSurfaceNode(Home_t *home)
 	    ApplyPosConstraint(param, node);
 
 	    if(SurfaceNode(node) && node->numNbrs > 1){
-            NodeLocation(node, nodePos[0], nodePos[1], nodePos[2], inGrain, onGB);
+            NodeLocation(home, nodePos[0], nodePos[1], nodePos[2], inGrain, onGB);
 	        if(inGrain != node->inGrain && !IsOnGB(node)){
 		        node->x = node->oldx;
 		        node->y = node->oldy;
@@ -1871,7 +1862,7 @@ void AdjustSurfaceNode(Home_t *home)
 		        interPos[2] = 0.99999 * nbrPos[2] + 0.00001 * nodePos[2]; 
 		    }
 
-            NodeLocation(node, interPos[0], interPos[1], interPos[2], inGrain, onGB);
+            NodeLocation(home, interPos[0], interPos[1], interPos[2], inGrain, onGB);
             if(inGrain != node->inGrain && !IsOnGB(node) ||
                onGB != node->inGrain && IsOnGB(node)){
 		        VECTOR_COPY(interPos, nbrPos);
@@ -1909,3 +1900,58 @@ void AdjustSurfaceNode(Home_t *home)
 	return;
 }
 
+
+void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
+
+    int         i, j;    
+    Node_t      *nbr;
+    real8       normal[3], crossProd[3];
+    GB_t        *gb;
+
+    std::vector<int>    vec(2);
+    std::vector<std::vector<int> >   nbrInGrain;
+
+    if(home->myDomain != node->myTag.domainID)return;
+    if(!IsOnGB(node))return;
+
+    gb = home->GBKeys[node->onGB];
+
+    for(i=0; i<node->numNbrs; i++){
+	    nbr = GetNeighborNode(home, node, i);
+        if(nbr == (Node_t *)NULL)continue;
+        if(IsOnGB(nbr))continue;
+
+        normal[0] = node->nx[i];
+        normal[1] = node->ny[i];
+        normal[2] = node->nz[i];
+        cross(normal, gb->n, crossProd);
+        
+        if(Normal(crossProd) < 1.0E-4){
+            printf("Warning: in SplitIntersectNode at %d", __LINE__);
+            return;
+        }
+        
+        for(j=0; j<nbrInGrain.size(); j++){
+            if(nbr->inGrain == nbrInGrain[j][0])break;
+        }
+        if(j<nbrInGrain.size()){
+            nbrInGrain[j].push_back(i);
+        }else{
+            vec[0] = nbr->inGrain;
+            vec[1] = i;
+            nbrInGrain.push_back(vec);
+        }
+    }
+    if(nbrInGrain.size() == 0)return;
+    
+    for(i=0; i<nbrInGrain.size(); i++){
+        if(nbrInGrain[i].size()<3){
+            nbrInGrain.erase(nbrInGrain.begin()+i);
+        }
+    }
+    if(nbrInGrain.size() == 0)return;
+
+    if(nbrInGrain.size() == 1)
+    
+    return;
+}

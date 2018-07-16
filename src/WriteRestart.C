@@ -226,7 +226,7 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
                     " %d,%d %lf %lf %lf %d %d %lf\n",
                     node->myTag.domainID, node->myTag.index,
                     node->x, node->y, node->z, node->numNbrs,
-                    node->constraint, node->inGrain);
+                    node->constraint, node->inGrain, node->onGB);
         
 /*
  *          Write the segment specific data

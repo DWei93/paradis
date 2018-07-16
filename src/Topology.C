@@ -2539,23 +2539,23 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	}
 
 
-	/*
-	 *      Check if we are permitted to delete node1.  In order
-	 *      for a node to be deletable, it must satisfy the following:
-	 *
-	 *      1) Node may not be a 'pinned' node 
-	 *      2) Node must be owned by the current domain
-	 *      3) All arms of the node must be owned by the current domain
-	 *      4) Node may not be exempt from (additional) collisions this cycle
-	 *      5) Node may not be exempt from (additional) remeshes this cycle
-	 *      6) If node is a surface node, *both* nodes must be on the surface
-	 *         for it to be deletable.  (May need to add restrictions
-	 *         that surface nodes be on the same surface)
-	 *		7) The intersection node between GB and grain nodes cannot be deleted.
-	 *
-	 *      NOTE: For now, a node that is pinned in ANY dimension is treated
-	 *            here as if it is pinned in ALL dimensions.
-	 */
+/*
+ *  Check if we are permitted to delete node1.  In order
+ *  for a node to be deletable, it must satisfy the following:
+ *
+ *  1) Node may not be a 'pinned' node 
+ *  2) Node must be owned by the current domain
+ *  3) All arms of the node must be owned by the current domain
+ *  4) Node may not be exempt from (additional) collisions this cycle
+ *  5) Node may not be exempt from (additional) remeshes this cycle
+ *  6) If node is a surface node, *both* nodes must be on the surface
+ *     for it to be deletable.  (May need to add restrictions
+ *     that surface nodes be on the same surface)
+ *	7) The intersection node between GB and grain nodes cannot be deleted.
+ *
+ *  NOTE: For now, a node that is pinned in ANY dimension is treated
+ *         here as if it is pinned in ALL dimensions.
+ */
 
 	node1Deletable  = (node1->myTag.domainID == thisDomain); 
 	node1Deletable &= (node1->constraint == UNCONSTRAINED);	
@@ -2568,11 +2568,11 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 			                    &node1->nbrTag[armID]);
 	}
 
-	/*
-	 *      If we can delete node1, use node2 as the target, but if node1
-	 *      cannot be removed, use node2 if we can. If node2 cannot
-	 *      be deleted either, return a failure to the caller.
-	 */
+/*
+ *  If we can delete node1, use node2 as the target, but if node1
+ *  cannot be removed, use node2 if we can. If node2 cannot
+ *  be deleted either, return a failure to the caller.
+ */
 	if (node1Deletable) {
 		targetNode = node2;
 		deadNode = node1;
@@ -2598,10 +2598,10 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	}
 
 /*
- *      Coarsening a node out *may* leave a double connection.  That
- *      is only permitted if the current domain would own both 
- *      links in the resulting double link and hence be able to 
- *      collapse/annihilate the links.
+ *  Coarsening a node out *may* leave a double connection.  That
+ *  is only permitted if the current domain would own both 
+ *  links in the resulting double link and hence be able to 
+ *  collapse/annihilate the links.
  */
 	targetIsLocal = (targetNode->myTag.domainID == thisDomain);
 
@@ -2609,104 +2609,118 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	    nbr1Tag = &targetNode->nbrTag[armID1];
 	    nbrIsLocal = (nbr1Tag->domainID == thisDomain);
 	    for (armID2 = 0; armID2 < deadNode->numNbrs; armID2++) {
-		nbr2Tag = &deadNode->nbrTag[armID2];
+		    nbr2Tag = &deadNode->nbrTag[armID2];
 
 /*
- *              If the target node and dead node both have links to a
- *              3rd node, check the ownership of the link between the
- *              target node and the 3rd node...
+ *          If the target node and dead node both have links to a
+ *          3rd node, check the ownership of the link between the
+ *          target node and the 3rd node...
  */
-		if ((nbr1Tag->domainID == nbr2Tag->domainID) &&
-                    (nbr1Tag->index    == nbr2Tag->index   )) {
+	        if ((nbr1Tag->domainID == nbr2Tag->domainID) &&
+                (nbr1Tag->index    == nbr2Tag->index   )) {
 
-		    if (targetIsLocal && nbrIsLocal) {
-			continue;
-		    }
+	            if (targetIsLocal && nbrIsLocal) {
+		            continue;
+	            }
 
-		    targetOwnsSeg = DomainOwnsSeg(home, opClass,
-				                  targetNode->myTag.domainID,
-						  nbr1Tag);
+	            targetOwnsSeg = DomainOwnsSeg(home, opClass,
+			                                  targetNode->myTag.domainID,
+					                          nbr1Tag);
 
-		    if ((targetIsLocal && targetOwnsSeg) ||
-                        (nbrIsLocal && !targetOwnsSeg)) {
-			continue;
-		    }
+	            if ((targetIsLocal && targetOwnsSeg) ||
+                    (nbrIsLocal && !targetOwnsSeg)) {
+		            continue;
+	            }
 /*
- *                  In the case of a simple triange with a node in
- *                  each domain, in theory we'd be safe coarsening out
- *                  the node during remesh since no other operations
- *                  would affect the remaining link... we might want
- *                  to add in the following exception.
+ *              In the case of a simple triange with a node in
+ *              each domain, in theory we'd be safe coarsening out
+ *              the node during remesh since no other operations
+ *              would affect the remaining link... we might want
+ *              to add in the following exception.
  */
 #if 0
-		    if ((opClass == OPCLASS_REMESH) &&
-                        (targeNode->numNbrs == 2)   &&
-                        (nbrNode->numNbrs == 2)) {
-					continue;
-		    }
+		        if ((opClass == OPCLASS_REMESH) &&
+                    (targeNode->numNbrs == 2)   &&
+                    (nbrNode->numNbrs == 2)) {
+				    continue;
+		        }
 #endif
 
 /*
- *                  Link is remotely owned, so we cannot risk creating
- *                  a double link here...
+ *              Link is remotely owned, so we cannot risk creating
+ *              a double link here...
  */
-		    *mergedNode = (Node_t *)NULL;
-		    *status = MERGE_DOUBLE_LINK;
-		    return;
-		    }
+		        *mergedNode = (Node_t *)NULL;
+		        *status = MERGE_DOUBLE_LINK;
+		        return;
+	    	}
 		}
 	}
 
 /*
- *      We've made it past all the checks that would have prevented the
- *      merge operation from being performed.  The target and dead nodes
- *      have been selected, so if the target node is local to this
- *      domain, go ahead and reposition it.  If we can't reposition the
- *      node, the merge will still be done, but be sure to set the
- *      status flag for the caller indicating the node has not been
- *      repositioned.
+ *  We've made it past all the checks that would have prevented the
+ *  merge operation from being performed.  The target and dead nodes
+ *  have been selected, so if the target node is local to this
+ *  domain, go ahead and reposition it.  If we can't reposition the
+ *  node, the merge will still be done, but be sure to set the
+ *  status flag for the caller indicating the node has not been
+ *  repositioned.
  */
 	*mergedNode = targetNode;
 	*status = MERGE_SUCCESS;
    
-    if(deadNode->inGrain - floor(deadNode->inGrain) == 0.5){
+    if(IsonGB(deadNode->inGrain)){
         targetNode->inGrain = deadNode->inGrain;
+        targetNode->onGB = deadNode->onGB;
     }
 	
 	if ((targetNode->myTag.domainID == thisDomain)) {
-	
 	    if(targetNode->constraint == UNCONSTRAINED){
-		    targetNode->x = position[0];
-		    targetNode->y = position[1];
-		    targetNode->z = position[2];
-	    
+	        targetNode->x = position[0];
+	        targetNode->y = position[1];
+	        targetNode->z = position[2];
+	
+	    }else if(SurfaceNode(targetNode)){
+            int     type;
+            real8   vec1[3], vec2[3], vec3[3], dis;
+
+            VECTOR_ZERO(vec1);
+            vec1[targetNode->constraint-1] = 1.0;
+
+            vec2[0] = targetNode->x;
+            vec2[1] = targetNode->y;
+            vec2[2] = targetNode->z;
+
+            type = PointPlaneIntersection(position, vec1, vec2, vec3, &dis);
+
+            VECTOR_COPY(position, vec3);    
+        }
 /*
- *          If we're updating the location of the target node, we may
- *          have to communicate the new position to remote domains.
+ *      If we're updating the location of the target node, we may
+ *      have to communicate the new position to remote domains.
  */
-	        if (globalOp) {
-		        AddOp(home, RESET_COORD,
-		              targetNode->myTag.domainID,
-		              targetNode->myTag.index,
-		              -1, -1,                 /* 2nd tag unneeded */
-		              -1, -1,                 /* 3rd node tag unneeded */
-		              0.0, 0.0, 0.0,          /* burgers vector unneeded */
-		              targetNode->x, targetNode->y, targetNode->z,
-		              0.0, 0.0, 0.0);         /* plane normal not needed */
-                AssignGrain(home, targetNode, targetNode->inGrain);
-	        }
+	    if (globalOp) {
+	        AddOp(home, RESET_COORD,
+	              targetNode->myTag.domainID,
+	              targetNode->myTag.index,
+	              -1, -1,                 /* 2nd tag unneeded */
+	              -1, -1,                 /* 3rd node tag unneeded */
+	              0.0, 0.0, 0.0,          /* burgers vector unneeded */
+	              targetNode->x, targetNode->y, targetNode->z,
+	              0.0, 0.0, 0.0);         /* plane normal not needed */
+            AssignGrain(home, targetNode, targetNode->inGrain, targetNode->onGB);
 	    }
 	}else{
-		*status |= MERGE_NO_REPOSITION;
+	    *status |= MERGE_NO_REPOSITION;
     }
 
 
 /*
- *      If there are any connections from the target/destination node
- *      to the dead node, use ChangeArmBurg() to get rid of those
- *      connections, then move all connections from the dead node to
- *      the target node, and add a new connection from the target node
- *      to each of the dead node's neighbors.
+ *  If there are any connections from the target/destination node
+ *  to the dead node, use ChangeArmBurg() to get rid of those
+ *  connections, then move all connections from the dead node to
+ *  the target node, and add a new connection from the target node
+ *  to each of the dead node's neighbors.
  */
 	ChangeArmBurg(home, targetNode, &deadNode->myTag, 0.0, 0.0, 0.0,
 				  0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
@@ -2714,9 +2728,9 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 				  0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
 
 /*
- *      Move all connections from the dead node to the target node
- *      and add a new connection from the target node to each of the
- *      dead node's neighbors.
+ *  Move all connections from the dead node to the target node
+ *  and add a new connection from the target node to each of the
+ *  dead node's neighbors.
  */
 	for (i = (deadNode->numNbrs - 1); i >= 0; i--) {
 		
@@ -2755,8 +2769,8 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	}
 
 /*
- *      The <deadNode> should have no more arms, so we can safely
- *      remove it now.
+ *  The <deadNode> should have no more arms, so we can safely
+ *  remove it now.
  */
 	if(deadNode->numNbrs != 0){
 	    PrintNode(targetNode);
@@ -2768,10 +2782,10 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 
 
 /*
- *      Check for multiple links between the target node and any other
- *      single node.  If found, the burgers vectors for the multiple links
- *      will either cancel each other out in which case both links are
- *      removed, or the links get combined into a single link.
+ *  Check for multiple links between the target node and any other
+ *  single node.  If found, the burgers vectors for the multiple links
+ *  will either cancel each other out in which case both links are
+ *  removed, or the links get combined into a single link.
  */
 	if (RemoveDoubleLinks(home, targetNode, globalOp) == 1) {
 	    *status |= MERGE_NODE_ORPHANED;

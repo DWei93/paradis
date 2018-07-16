@@ -142,7 +142,7 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
             real8 bTmp[3] = {bx, by, bz};
             real8 bRot[3];
 
-		    if(BurgType_FCC(home, bTmp) & SHOCKLEY_BURG)TBBurg = 1;
+		    if(BurgType_FCC(bTmp) & SHOCKLEY_BURG)TBBurg = 1;
             VectorLabToCrystal(home, node, nbr, bTmp, bRot);
             bx = bRot[0]; by = bRot[1]; bz = bRot[2];
         }       

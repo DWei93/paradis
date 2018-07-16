@@ -2249,11 +2249,12 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         real8    srcLen, thickness;
         real8    p0[3], p1[3], p2[3], randomLine[3],k0[3];
         real8	 randomAngle;
-        int	 cubeLength, numSources, srcLenMin, srcLenMax, seed, dislocType;
-        int	 polycrystal, nGrain, finish;
+        int	     cubeLength, numSources, srcLenMin, srcLenMax, seed, dislocType;
+        int	     polycrystal, nGrain, finish;
         int      firstBurgIndex, srcLenType;
+        int      inGrain1, onGB1, inGrain2, onGB2, inGrain0, onGB0;
         real8	 twinRatio, maxSeg, maxDensity, burgMag = 2.556E-10;
-        real8	 GrainID0 = 0, GrainID1 = 0, GrainID2 = 0, volume;
+        real8	 volume;
         real8	 tnx[4], tny[4], tnz[4], burg[12][3], cubeSize,heightSize;
         real8	 n0[3], b[3], n1[3];	/* plane normal vector, burgers, normal vector*/
         Node_t   *node;
@@ -2275,7 +2276,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         home->param->materialType = MAT_TYPE_FCC;
         	
         cubeLength  = inArgs->cubeLength;
-	srcLenType  = inArgs->srcLenType;
+	    srcLenType  = inArgs->srcLenType;
         nLayers = inArgs->nLayers;
        	maxDensity  = inArgs->maxDensity;
         numSources  = inArgs->numFRSrcs;
@@ -2298,7 +2299,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         n1[0] = 0.0;	n1[1] = 0.0;	n1[2] = 0.0;
 
 		
-	printf("the max density is %e \n", maxDensity);
+	    printf("the max density is %e \n", maxDensity);
 /*
  *      Set up an array of dislocation line directions that
  *      are used to create the new dislocations.  There are
@@ -2382,309 +2383,313 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
             	
             for(chain = 0; chain < xn; ){
 
-            ranNum = chain;
-            ranNum = (int)(randm(&seed) * 1000);
-
-            numPoints = 3;
-            lineIndex = ranNum % 12;
-            burgIndex = lineIndex;
-            gpBurgIndex = lineIndex;
-            gpIndex = lineIndex / 3; /* plane Index */
-            isScrew	=	0;
-
-
-/*
- *          Length of the frank read source should be a random length
- *          between srcLenMin and srcLenMax.
- */
-	    switch(srcLenType){
-		case 0:
-                if (lenRange > 0) {
-                    srcLen = (srcLenMin + (randm(&seed) * lenRange));
-                    if(srcLen > srcLenMax){
-                        srcLen = srcLenMax;
-                    }
-                } else {
-                    srcLen = srcLenMin;
+                ranNum = chain;
+                ranNum = (int)(randm(&seed) * 1000);
+             
+                numPoints = 3;
+                lineIndex = ranNum % 12;
+                burgIndex = lineIndex;
+                gpBurgIndex = lineIndex;
+                gpIndex = lineIndex / 3; /* plane Index */
+                isScrew	=	0;
+             
+             
+/*           
+ *              Length of the frank read source should be a random length
+ *              between srcLenMin and srcLenMax.
+ */          
+	            switch(srcLenType){
+	                case 0:
+                        if (lenRange > 0) {
+                            srcLen = (srcLenMin + (randm(&seed) * lenRange));
+                            if(srcLen > srcLenMax){
+                                srcLen = srcLenMax;
+                            }
+                        } else {
+                            srcLen = srcLenMin;
+                        }
+	 	                break;
+          
+	 	            case 1:
+	 	                srcLen = -log(randm(&seed))/sqrt(maxDensity)/burgMag;
+	 	                break;
+             
+                    default:
+                        break;
+	            }
+             
+/*           
+	            random a line
+*/	 	       
+                randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
+                if(randomAngle < pi * 5.0 /1.8e2){  /* 5 degree */
+                    isScrew = 1;
+                    randomAngle = 0;
                 }
-		    break;
-
-		case 1:
-		    srcLen = -log(randm(&seed))/sqrt(maxDensity)/burgMag;
-		    break;
-	    }
-
-/*
-	    random a line
-*/		
-            randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
-            if(randomAngle < pi * 5.0 /1.8e2){  /* 5 degree */
-                isScrew = 1;
-                randomAngle = 0;
-            }
-            if(randomAngle > pi *1.75/1.8){		/* 175 degree */
-                isScrew = 1;
-                randomAngle = pi;
-            }
-           	
+                if(randomAngle > pi *1.75/1.8){		/* 175 degree */
+                    isScrew = 1;
+                    randomAngle = pi;
+                }
+            	  	
 #if INTERACTION_TEST
-            if(gpIndex != 2 ){
-                inData->nodeCount -=numPoints;
-            }
-#endif
-            n0[0] = tnx[gpIndex];	
-            n0[1] = tny[gpIndex];	
-            n0[2] = tnz[gpIndex];
-            	
-            b[0] = burg[burgIndex][0];
-            b[1] = burg[burgIndex][1];
-            b[2] = burg[burgIndex][2];
-
-//            randomAngle = 0;
-            
-//            if(gpIndex == 3)continue;
-//            if(fabs(b[0]+b[1]+b[2]) > 1.0E-1)continue;
-/*
- *          Reallocate the node array with sufficient size to add
- *          all the new nodes defining this chain.
- */
-            newNodeIndex = inData->nodeCount;
-            inData->nodeCount += numPoints;
-            inData->node = (Node_t *)realloc(inData->node, inData->nodeCount
-                                               * sizeof(Node_t));
-            memset(&inData->node[newNodeIndex], 0, sizeof(Node_t) * numPoints);
-#if 0
-            NormalizeVec(normalABC);
-            if (fabs(DotProduct(b,normalABC)) > 1e-3 ){
-                inData->nodeCount -=numPoints;
+                if(gpIndex != 2 ){
+                    inData->nodeCount -=numPoints;
+                }
+#endif       
+                n0[0] = tnx[gpIndex];	
+                n0[1] = tny[gpIndex];	
+                n0[2] = tnz[gpIndex];
+                	
+                b[0] = burg[burgIndex][0];
+                b[1] = burg[burgIndex][1];
+                b[2] = burg[burgIndex][2];
+             
+//                randomAngle = 0;
+                
+//                if(gpIndex == 3)continue;
+//                if(fabs(b[0]+b[1]+b[2]) > 1.0E-1)continue;
+/*           
+ *              Reallocate the node array with sufficient size to add
+ *              all the new nodes defining this chain.
+ */          
                 newNodeIndex = inData->nodeCount;
-                continue;
-            }
-   
-            if(chain == 0){
-                firstBurgIndex = burgIndex;
-            }else{
-                if(burgIndex == firstBurgIndex){
+                inData->nodeCount += numPoints;
+                inData->node = (Node_t *)realloc(inData->node, inData->nodeCount
+                                                   * sizeof(Node_t));
+                memset(&inData->node[newNodeIndex], 0, sizeof(Node_t) * numPoints);
+#if 0        
+                NormalizeVec(normalABC);
+                if (fabs(DotProduct(b,normalABC)) > 1e-3 ){
                     inData->nodeCount -=numPoints;
                     newNodeIndex = inData->nodeCount;
                     continue;
                 }
-            }
-#endif
-            cross(n0, b, n1);
-            NormalizeVec(n1);
-            	
-            for(i = 0; i < 3; i++){
-                randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
-            }
-            NormalizeVec(randomLine);
-			
-            if(!polycrystal){
-                p0[0] = (randm(&seed)-0.5) * cubeSize;
-                p0[1] = (randm(&seed)-0.5) * cubeSize;			
-                p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
-
-	        if(param->useLabFrame){
-                    Matrix33Vector3Multiply(home->rotMatrix, randomLine, rotLine);
-                    Matrix33Vector3Multiply(home->rotMatrix, b, rotBurg);
-                    Matrix33Vector3Multiply(home->rotMatrix, n0, rotPlane);
-
-	            VECTOR_COPY(randomLine, rotLine);
-	            VECTOR_COPY(b, rotBurg);
-	            VECTOR_COPY(n0, rotPlane);
-	        }
-
-                for (i = 0; i < 3; i++) {
-                    p1[i] = p0[i] - (srcLen * randomLine[i])/2.0;
-                    p2[i] = p0[i] + (srcLen * randomLine[i])/2.0;
-                } 
-            }
-
-            if(polycrystal){
-
-                p0[0] = (randm(&seed)-0.5) * cubeSize;
-                p0[1] = (randm(&seed)-0.5) * cubeSize;			
-                p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
-				
-                    GrainID0 = GetInGrainFromPos(home, p0[0],  p0[1], p0[2]);
-                    	
-                    intID = (int)GrainID0;
-                    CopyMatrix33(home->grainKeys[intID]->orientation,rotMatrix);
+             
+                if(chain == 0){
+                    firstBurgIndex = burgIndex;
+                }else{
+                    if(burgIndex == firstBurgIndex){
+                        inData->nodeCount -=numPoints;
+                        newNodeIndex = inData->nodeCount;
+                        continue;
+                    }
+                }
+#endif       
+                cross(n0, b, n1);
+                NormalizeVec(n1);
+                	
+                for(i = 0; i < 3; i++){
+                    randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
+                }
+                NormalizeVec(randomLine);
+		 	   
+                if(!polycrystal){
+                    p0[0] = (randm(&seed)-0.5) * cubeSize;
+                    p0[1] = (randm(&seed)-0.5) * cubeSize;			
+                    p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
+             
+	                if(param->useLabFrame){
+                        Matrix33Vector3Multiply(home->rotMatrix, randomLine, rotLine);
+                        Matrix33Vector3Multiply(home->rotMatrix, b, rotBurg);
+                        Matrix33Vector3Multiply(home->rotMatrix, n0, rotPlane);
+                
+	                    VECTOR_COPY(randomLine, rotLine);
+	                    VECTOR_COPY(b, rotBurg);
+	                    VECTOR_COPY(n0, rotPlane);
+	                }
+                
+                    for (i = 0; i < 3; i++) {
+                        p1[i] = p0[i] - (srcLen * randomLine[i])/2.0;
+                        p2[i] = p0[i] + (srcLen * randomLine[i])/2.0;
+                    } 
+                    NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
+                    NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1);
+                    NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2);
+                }
+             
+                if(polycrystal){
+             
+                    p0[0] = (randm(&seed)-0.5) * cubeSize;
+                    p0[1] = (randm(&seed)-0.5) * cubeSize;			
+                    p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
+		 	   	
+                    NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
+                        	
+                    memcpy(rotMatrix, home->grainKeys[inGrain0]->orientation, sizeof(real8 [3][3]));
                     Matrix33Vector3Multiply(rotMatrix, randomLine, rotLine);
-                    
+                        
                     Matrix33Vector3Multiply(rotMatrix, b, rotBurg);
                     b[0] = rotBurg[0]; b[1] = rotBurg[1]; b[2] = rotBurg[2];
                     Matrix33Vector3Multiply(rotMatrix, n0, rotPlane);
                     n0[0] = rotPlane[0]; n0[1] = rotPlane[1]; n0[2] = rotPlane[2];
                     for (i = 0; i < 3; i++) {
-					
                         p1[i] = p0[i] - (srcLen * rotLine[i])/2.0;
                         p2[i] = p0[i] + (srcLen * rotLine[i])/2.0;
                     }
-
-                    GrainID1 = GetInGrainFromPos(home, p1[0],  p1[1], p1[2]);
-                    GrainID2 = GetInGrainFromPos(home, p2[0],  p2[1], p2[2]);
-                    if(GrainID0 - floor(GrainID0) != 0 || GrainID1 - floor(GrainID1) != 0 || GrainID2 - floor(GrainID2) != 0 || 
-						GrainID0 != GrainID1 || GrainID2 != GrainID1 || GrainID0 != GrainID2){
+             
+                    NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1);
+                    NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2);
+             
+                    if(onGB0 > -1 || onGB1 > -1 || onGB2 > -1 || inGrain0 != inGrain1 || 
+                       inGrain1 != inGrain2){
                         inData->nodeCount -=numPoints;
                         newNodeIndex = inData->nodeCount;
                         continue;
                     }
-#if 0
+#if 0        
                     if(gpIndex == 0 && burgIndex == 1 && 
-	                GrainID1 == 1 || 
-			gpIndex == 1 && burgIndex == 3 && GrainID1 ==1){
-	                printf("gpIndex = %d, burgIndex = %d, GrainID = %3.1f\n",gpIndex, burgIndex, GrainID0);
-	            }else{
+	                   GrainID1 == 1 || 
+		 	          gpIndex == 1 && burgIndex == 3 && GrainID1 ==1){
+	                   printf("gpIndex = %d, burgIndex = %d, GrainID = %3.1f\n",gpIndex, burgIndex, GrainID0);
+	                }else{
                        inData->nodeCount -=numPoints;
                        newNodeIndex = inData->nodeCount;
                        continue;
                     }
-#endif
-				
-            }
-			
-	    if(srcLenType == 0){
-                if(JudgeNodeInCuboid(&p0[1], p0+1, p0+2, 0.5 * cubeSize ,0.5 * cubeSize, param->zBoundMax) == 0 ||
-                   JudgeNodeInCuboid(p1, p1+1, p1+2, 0.5 * cubeSize ,0.5 * cubeSize, param->zBoundMax) == 0 ||
-                   JudgeNodeInCuboid(p2, p2+1, p2+2, 0.5 * cubeSize ,0.5 * cubeSize, param->zBoundMax) == 0){
-                    inData->nodeCount -=numPoints;
-                    newNodeIndex = inData->nodeCount;
-                    continue;
+#endif       
+		 	   	
                 }
-	    }
-			
-	    totSrcLen += srcLen;				
-/*
- *          Set up the 3 nodes we're using to define the dislocation line.
- *          First do point p0.
- */
-            node = &inData->node[baseNodeID];
+		 	   
+	            if(srcLenType == 0){
+                    if(JudgeNodeInCuboid(&p0[1], p0+1, p0+2, 0.5 * cubeSize ,0.5 * cubeSize, param->zBoundMax) == 0 ||
+                       JudgeNodeInCuboid(p1, p1+1, p1+2, 0.5 * cubeSize ,0.5 * cubeSize, param->zBoundMax) == 0 ||
+                       JudgeNodeInCuboid(p2, p2+1, p2+2, 0.5 * cubeSize ,0.5 * cubeSize, param->zBoundMax) == 0){
+                       inData->nodeCount -=numPoints;
+                       newNodeIndex = inData->nodeCount;
+                       continue;
+                    }
+	            }
+		 	   
+	            totSrcLen += srcLen;				
+/*           
+ *              Set up the 3 nodes we're using to define the dislocation line.
+ *              First do point p0.
+ */          
+                node = &inData->node[baseNodeID];
+             
+                node->myTag.domainID = dislocType;
+                node->myTag.index    = baseNodeID;
+                node->x = p0[0];
+                node->y = p0[1];
+                node->z = p0[2];
+		 	   
+                node->constraint = UNCONSTRAINED;
+                node->inGrain = inGrain0;
+                node->onGB = onGB0;
+             
+                AllocNodeArms(node, 2);
+		 	   
+                node->nbrTag[0].domainID = dislocType;
+                node->nbrTag[0].index    = baseNodeID + 1;
+                node->nbrTag[1].domainID = dislocType;
+                node->nbrTag[1].index    = baseNodeID + 2;
+             
+                node->burgX[0] = b[0];
+                node->burgY[0] = b[1];
+                node->burgZ[0] = b[2];
+             
+                node->burgX[1] = -b[0];
+                node->burgY[1] = -b[1];
+                node->burgZ[1] = -b[2];
+             
+/*           
+ *              For screw dislocations, use the glide plane from the table.
+ *              For edge dislocations, glide plane is the cross product
+ *              of the burgers vector and line direction.
+ */          
+             
+                node->nx[0] = n0[0];
+                node->ny[0] = n0[1];
+                node->nz[0] = n0[2];
+                	
+                node->nx[1] = n0[0];
+                node->ny[1] = n0[1];
+                node->nz[1] = n0[2];
+             
+/*           
+ *              Now point p1...
+ */          
+                node = &inData->node[baseNodeID+1];
+             
+                node->myTag.domainID = dislocType;
+                node->myTag.index    = baseNodeID+1;
+             
+                node->x = p1[0];
+                node->y = p1[1];
+                node->z = p1[2];
+             
+                node->constraint = PINNED_NODE;
+                node->inGrain = inGrain1;
+                node->onGB = onGB1;
+                AllocNodeArms(node, 1);
+             
+                node->nbrTag[0].domainID = dislocType;
+                node->nbrTag[0].index    = baseNodeID;
+             
+                node->burgX[0] = -b[0];
+                node->burgY[0] = -b[1];
+                node->burgZ[0] = -b[2];
+                node->nx[0] = n0[0];
+                node->ny[0] = n0[1];
+                node->nz[0] = n0[2];
+             
+/*           
+ *              Now point p2...
+ */          
+                node = &inData->node[baseNodeID+2];
+             
+                node->myTag.domainID = dislocType;
+                node->myTag.index    = baseNodeID+2;
+             
+                node->x = p2[0];
+                node->y = p2[1];
+                node->z = p2[2];
+             
+                node->constraint = PINNED_NODE;
+                node->inGrain = inGrain2;
+                node->onGB = onGB2;
+                AllocNodeArms(node, 1);
+             
+                node->nbrTag[0].domainID = dislocType;
+                node->nbrTag[0].index    = baseNodeID;
+             
+                node->burgX[0] = b[0];
+                node->burgY[0] = b[1];
+                node->burgZ[0] = b[2];
+                node->nx[0] = n0[0];
+                node->ny[0] = n0[1];
+                node->nz[0] = n0[2];
+/*           
+ *              The initial segments created are not necessarily limited to
+ *              param->maxSegLen, so a call to InitRemesh() is needed to
+ *              chop any excessively long segments into proper lengths.
+ *              When we've generated the nodal data for the final chain,
+ *              write the block of nodal data to the file.
+ */	         
+                InitRemesh(inData, dislocType, startRemeshIndex);
+//                lastBlock = (chain == (numSources - 1));
+             
+               
+	            if(totSrcLen > maxDensity*volume*burgMag*burgMag){
+		            finish = 1;
+		            break;
+	            }else{
+		            finish = 0;
+	            }
+                chain++;
+                baseNodeID = inData->nodeCount;
+                startRemeshIndex = baseNodeID;
 
-            node->myTag.domainID = dislocType;
-            node->myTag.index    = baseNodeID;
-            node->x = p0[0];
-            node->y = p0[1];
-            node->z = p0[2];
-			
-            node->constraint = UNCONSTRAINED;
-            node->inGrain = GrainID0;
-
-            AllocNodeArms(node, 2);
-			
-			
-            node->nbrTag[0].domainID = dislocType;
-            node->nbrTag[0].index    = baseNodeID + 1;
-            node->nbrTag[1].domainID = dislocType;
-            node->nbrTag[1].index    = baseNodeID + 2;
-
-            node->burgX[0] = b[0];
-            node->burgY[0] = b[1];
-            node->burgZ[0] = b[2];
-
-            node->burgX[1] = -b[0];
-            node->burgY[1] = -b[1];
-            node->burgZ[1] = -b[2];
-
-/*
- *          For screw dislocations, use the glide plane from the table.
- *          For edge dislocations, glide plane is the cross product
- *          of the burgers vector and line direction.
- */
-
-            node->nx[0] = n0[0];
-            node->ny[0] = n0[1];
-            node->nz[0] = n0[2];
-            	
-            node->nx[1] = n0[0];
-            node->ny[1] = n0[1];
-            node->nz[1] = n0[2];
-
-/*
- *          Now point p1...
- */
-            node = &inData->node[baseNodeID+1];
-
-            node->myTag.domainID = dislocType;
-            node->myTag.index    = baseNodeID+1;
-
-            node->x = p1[0];
-            node->y = p1[1];
-            node->z = p1[2];
-
-            node->constraint = PINNED_NODE;
-            node->inGrain = GrainID1;
-            AllocNodeArms(node, 1);
-
-            node->nbrTag[0].domainID = dislocType;
-            node->nbrTag[0].index    = baseNodeID;
-
-            node->burgX[0] = -b[0];
-            node->burgY[0] = -b[1];
-            node->burgZ[0] = -b[2];
-            node->nx[0] = n0[0];
-            node->ny[0] = n0[1];
-            node->nz[0] = n0[2];
-
-/*
- *          Now point p2...
- */
-            node = &inData->node[baseNodeID+2];
-
-            node->myTag.domainID = dislocType;
-            node->myTag.index    = baseNodeID+2;
-
-            node->x = p2[0];
-            node->y = p2[1];
-            node->z = p2[2];
-
-            node->constraint = PINNED_NODE;
-            node->inGrain = GrainID2;
-            AllocNodeArms(node, 1);
-
-            node->nbrTag[0].domainID = dislocType;
-            node->nbrTag[0].index    = baseNodeID;
-
-            node->burgX[0] = b[0];
-            node->burgY[0] = b[1];
-            node->burgZ[0] = b[2];
-            node->nx[0] = n0[0];
-            node->ny[0] = n0[1];
-            node->nz[0] = n0[2];
-			
-
-/*
- *          The initial segments created are not necessarily limited to
- *          param->maxSegLen, so a call to InitRemesh() is needed to
- *          chop any excessively long segments into proper lengths.
- *          When we've generated the nodal data for the final chain,
- *          write the block of nodal data to the file.
- */	
-            InitRemesh(inData, dislocType, startRemeshIndex);
-//            lastBlock = (chain == (numSources - 1));
-
-           
-	    if(totSrcLen > maxDensity*volume*burgMag*burgMag){
-		finish = 1;
-		break;
-	    }else{
-		finish = 0;
-	    }
-            chain++;
-            baseNodeID = inData->nodeCount;
-            startRemeshIndex = baseNodeID;
-
-        }  /* for (chain = 0; chain < numChains; ) */
+            }  /* for (chain = 0; chain < numChains; ) */
 		
-	}/* for(layer=0; layer<nLayers;...)*/
+	    }/* for(layer=0; layer<nLayers;...)*/
 	
-	IncDislocationDensity(inData, totDislocLen);
-	param->nodeCount = inData->nodeCount;
-	WriteInitialNodeData(home, inData, 1);
-	FreeInNodeArray(inData, inData->nodeCount);
-	inData->nodeCount = 0;
+	    IncDislocationDensity(inData, totDislocLen);
+	    param->nodeCount = inData->nodeCount;
+	    WriteInitialNodeData(home, inData, 1);
+	    FreeInNodeArray(inData, inData->nodeCount);
+	    inData->nodeCount = 0;
 	
-
         return;
 }
 

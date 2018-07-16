@@ -191,6 +191,7 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 					newNode->z = za + inew*frac*dz;
 					newNode->constraint = UNCONSTRAINED;
 					newNode->inGrain = nodeA->inGrain;
+					newNode->onGB = nodeA->onGB;
 
 					AllocNodeArms(newNode, 2);
 	

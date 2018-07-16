@@ -229,30 +229,6 @@ void ReleaseMemory(Home_t *home)
             free(home->dataParamList);
         }
 
-/*
- *      Remove the burgers vector list and associated plane list
- *      if they were allocated.
- */
-        if (home->burgData.burgList != (real8 (*)[3])NULL) {
-            free(home->burgData.burgList);
-            home->burgData.burgList = (real8 (*)[3])NULL;
-        }
-
-        if (home->burgData.planeList != (real8 (*)[3])NULL) {
-            free(home->burgData.planeList);
-            home->burgData.planeList = (real8 (*)[3])NULL;
-        }
-
-        if (home->burgData.numPlanesPerBurg != (int *)NULL) {
-            free(home->burgData.numPlanesPerBurg);
-            home->burgData.numPlanesPerBurg = (int *)NULL;
-        }
-
-        if (home->burgData.burgFirstPlaneIndex != (int *)NULL) {
-            free(home->burgData.burgFirstPlaneIndex);
-            home->burgData.burgFirstPlaneIndex = (int *)NULL;
-        }
-
         free(home->param);
         home->param = NULL;
 
