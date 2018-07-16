@@ -1903,9 +1903,10 @@ void AdjustSurfaceNode(Home_t *home)
 
 void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
 
-    int         i, j;    
+    int         i, j, BakOnGB;    
     Node_t      *nbr;
     real8       normal[3], crossProd[3];
+    real8       newPos[3];
     GB_t        *gb;
 
     std::vector<int>    vec(2);
@@ -1943,15 +1944,69 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
         }
     }
     if(nbrInGrain.size() == 0)return;
-    
+
     for(i=0; i<nbrInGrain.size(); i++){
-        if(nbrInGrain[i].size()<3){
-            nbrInGrain.erase(nbrInGrain.begin()+i);
+        if(nbrInGrain[i].size()-1 == node->numNbrs){
+            if(!NewPosToGB(home, node, nbrInGrain[i][0], node->onGB, newPos)){
+                printf("Warning in SplitIntersectNode at %d", __LINE__);
+            }
+
+            if(globalOp){
+                AssignGrain(home, node, nbrInGrain[i][0], -1);
+            }else{
+                node->inGrain = nbrInGrain[i][0];
+                node->onGB = -1;
+            }
+
+	        RepositionNode(home, newPos, &node->myTag, globalOp);
+            return;
+        }
+
+        if(nbrInGrain[i].size() <= 2)continue;
+
+        if(nbrInGrain[i].size()-1 < node->numNbrs){
+            real8   nodePos[3], nodeVel[3], newVel[3];
+            Node_t  *splitNode1, *splitNode2;
+            int     splitStatus, nArms, *armList;
+
+            nArms = nbrInGrain[i].size()-1;
+            armList = (int *)malloc(nArms*sizeof(int));
+            for(j=0; j<nArms; j++){
+                armList[j] = nbrInGrain[i][1+j];
+            }
+    
+            nodePos[0] = node->x;
+            nodePos[1] = node->y;
+            nodePos[2] = node->z;
+
+            nodeVel[0] = node->vX;
+            nodeVel[1] = node->vY;
+            nodeVel[2] = node->vZ;
+            VECTOR_ZERO(newVel);
+            
+            if(!NewPosToGB(home, node, nbrInGrain[i][0], node->onGB, newPos)){
+                printf("Warning in SplitIntersectNode at %d", __LINE__);
+            }
+            
+            splitStatus = SplitNode(home, opClass,
+                                    node, nodePos, newPos,
+                                    nodeVel, newVel,
+                                    nArms,
+                                    armList, globalOp, &splitNode1,
+                                    &splitNode2, 0);
+
+            if (splitStatus != SPLIT_SUCCESS)continue;
+            free(armList);
+            
+            if(GetArmID(home, splitNode1, splitNode2) != -1){
+                PrintNode(splitNode1);
+                PrintNode(splitNode2);
+                printf("Warning in SplitIntersectNode at %d", __LINE__);
+            }
+
+            if(node != splitNode1)return;
         }
     }
-    if(nbrInGrain.size() == 0)return;
-
-    if(nbrInGrain.size() == 1)
     
     return;
 }
