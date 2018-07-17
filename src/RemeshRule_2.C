@@ -101,7 +101,6 @@ static void MeshCoarsen(Home_t *home)
 		    if(param->polycrystal && IsOnGB(node)){
                 
                 for(j=0; breakLoop == 0 && j<node->numNbrs; j++){
-                    inhibitMerge = 0;
                     nbr1 = GetNeighborNode(home, node, j);
                     if(nbr1 == (Node_t *)NULL){
                         printf("Warnig: neighbor not found. (at %s, L%d)\n",
@@ -120,9 +119,9 @@ static void MeshCoarsen(Home_t *home)
                         continue;
                     }
 
-                    planeType = GetPlaneType_FCC(home, node, nbr);
+                    planeType = GetPlaneType_FCC(home, node, nbr1);
 
-                    if(!(planeType & GLIDE_PLANE && (planeType & GB_PLANE) == 0))continue;
+                    if(!((planeType & GLIDE_PLANE) > 0 && (planeType & GB_PLANE) == 0))continue;
 
                     globalOp = (nbr1->myTag.domainID != thisDomain);
                     for (q = 0; q < nbr1->numNbrs; q++) {
@@ -1030,7 +1029,7 @@ static void MeshRefine(Home_t *home)
 
                         planeType = GetPlaneType_FCC(home, node, nbr);
 
-                        if(planeType & GLIDE_PLANE && (planeType & GB_PLANE) == 0 &&
+                        if((planeType & GLIDE_PLANE) > 0 && (planeType & GB_PLANE) == 0 &&
                            fabs(dis) < 5 && BurgType_FCC(burg) == BASIC_BURG)continue;
 				
 			        }
@@ -1130,7 +1129,7 @@ static void MeshRefine(Home_t *home)
 
                             planeType = GetPlaneType_FCC(home, node, nbr1);
 
-                            if(planeType & GLIDE_PLANE && (planeType & GB_PLANE) == 0 &&
+                            if((planeType & GLIDE_PLANE) > 0 && (planeType & GB_PLANE) == 0 &&
                                fabs(dis) < 5 && BurgType_FCC(burg) == BASIC_BURG){
                                 armIndex++;
                                 continue;

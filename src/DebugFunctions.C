@@ -473,7 +473,6 @@ void CheckNodeNANS(Node_t *node){
 
 
 void DebugGB(Home_t *home, int flag){
-    return;
 	int 	i,j,k,l, crossSlipNode, sameNode;
 	int	normalID;
 	real8   dot,resiBurg[3], resiVec[3];
@@ -491,4 +490,23 @@ void DebugGB(Home_t *home, int flag){
 
 	printf("%d %d\n",home->myDomain, flag);
 
+	for(i=0; i<home->newNodeKeyPtr; i++){
+		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
+        if(node->inGrain == -1 && node->onGB == -1){
+            PrintNode(node);
+            Fatal("DebugGB %d %d", home->myDomain, flag);
+        }
+    }
+
+	node = home->ghostNodeQ;
+
+    while (node) {
+        if(node->inGrain == -1 && node->onGB == -1){
+            PrintNode(node);
+            Fatal("DebugGB %d %d", home->myDomain, flag);
+        }
+    
+        node = node->next;
+    }
 }
+

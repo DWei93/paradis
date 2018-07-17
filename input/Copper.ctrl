@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res."
+dirname = "res.T1"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -79,8 +79,8 @@ appliedStress = [
 	0.0e0
 	0.0e0
 	0.0e0
-	0.0e0
-	0.0e0
+	-2.0e8
+	-2.0e8
 	0.0e0
 ]
 
@@ -108,7 +108,7 @@ rc =  10.0
 #  
 #
 tecplot = 1
-tecplotfreq = 200
+tecplotfreq = 1 
 saveprop = 1
 savepropfreq = 50
 tecmesh = 1

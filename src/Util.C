@@ -1553,8 +1553,8 @@ void PrintNode(Node_t *node)
 	}
 
 #if 1
-        printf("  node(%d,%d,%d) arms %d,",
-               node->myTag.domainID, node->myTag.index, node->inGrain, 
+        printf("  node(%d,%d,%d,%d) arms %d,",
+               node->myTag.domainID, node->myTag.index, node->inGrain, node->onGB,
                node->numNbrs);
 #if 1
         for (i = 0; i < node->numNbrs; i++) {
@@ -4219,8 +4219,8 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 	            nbr = GetNeighborNode(home, node, i);
                 if(nbr != (Node_t *)NULL){
                     planeType = GetPlaneType_FCC(home, node, nbr);
-                    if(planeType & JUNCTION_PLANE1 > 0 ||
-                       planeType & JUNCTION_PLANE2 > 0){
+                    if((planeType & JUNCTION_PLANE1) > 0 ||
+                       (planeType & JUNCTION_PLANE2) > 0){
                         junctionConstraint = 1;
                         lDir[0] = nbr->x - node->x;
                         lDir[1] = nbr->y - node->y;

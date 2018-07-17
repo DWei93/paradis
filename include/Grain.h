@@ -43,10 +43,10 @@ typedef struct {
 #define MAX_PENE_DISS               3
 
 /*	define some node types	*/
-#define INGRAIN_NODE	    0x0000	
-#define INTERSECT_NODE	    0x0001	
-#define TB_NODE		        0x0002	
-#define	JUNCTION_NODE	    0x0004
+#define INGRAIN_NODE	    0x0001	
+#define INTERSECT_NODE	    0x0002	
+#define TB_NODE		        0x0004	
+#define	JUNCTION_NODE	    0x0008
 
 #define INBOX   0x0000
 #define EXCEEDX 0x0001
@@ -57,11 +57,11 @@ typedef struct {
 #define NUM_PLANES_IN_FCC       13
 #define NUM_KEY_LINES_IN_FCC    6
 
-#define GLIDE_PLANE         0x0000
-#define JUNCTION_PLANE1     0x0001
-#define JUNCTION_PLANE2     0x0002
-#define GB_PLANE            0x0004
-#define UNKOWN_PLANE        0x0008
+#define GLIDE_PLANE         0x0001
+#define JUNCTION_PLANE1     0x0002
+#define JUNCTION_PLANE2     0x0004
+#define GB_PLANE            0x0008
+#define UNKOWN_PLANE        0x0010
 
 #define SHOCKLEY_BURG_MAG_FCC   0.5773502691896258
 #define JUNCTION1_BURG_MAG_FCC  1.414213562373095

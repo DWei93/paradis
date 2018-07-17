@@ -237,9 +237,9 @@ void FreePenStr(Pene_t *pene){
             pene->res[i].effective = 0;
             pene->res[i].powerDis = 0;
         }
+        free(pene->res);
     }
 
-    free(pene->res);
     pene->nSets = 0;
 
     pene->res = (Res_t *)NULL;
@@ -560,6 +560,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
     node = pene->node;
     gb = pene->gb;
     bd = &(gb->burgData);
+    printf("PF: %d 1\n", home->myDomain);
 
     centorPos[0] = (pene->line1.point[0] + pene->line2.point[0])*0.5;
     centorPos[1] = (pene->line1.point[1] + pene->line2.point[1])*0.5;
@@ -667,6 +668,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 	RepositionNode(home, node1Pos, &node1->myTag, globalOp);
 	BackupNode(home, localNode, &bkupNodeList[numBkup-1]);
 	
+    printf("PF: %d 2\n", home->myDomain);
 /*
  *  Test all possible resultant configurations.
  */
@@ -774,6 +776,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
         newNodePtrList = (Node_t **)NULL;
 
     } // for i
+    printf("PF: %d 3\n", home->myDomain);
 
 
 /*
@@ -921,6 +924,13 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 	node2->vY = 0.0;
 	node2->vZ = 0.0;
     
+#if 1
+    printf("PenetrationFirst: \n");
+    PrintNode(node);
+    PrintNode(node1);
+    PrintNode(node2);
+#endif
+
 	return(1);
 }
 
@@ -1184,6 +1194,7 @@ void HandleGrainBoundary(Home_t *home)
 	
     pene.nSets = 0;
 	newNodeKeyPtr = home->newNodeKeyPtr;
+    printf("HGB: %d 1\n", home->myDomain);
 	for(i=0;i<newNodeKeyPtr;i++){
         
         if((node = home->nodeKeys[i]) == (Node_t *) NULL)continue;
@@ -1363,8 +1374,10 @@ void HandleGrainBoundary(Home_t *home)
         }
 
 	}/*	end of for(i=0;i<home->newNodeKeyPtr ...*/
+    printf("HGB: %d 2\n", home->myDomain);
 	
     FreePenStr(&pene);
+    printf("HGB: %d 3\n", home->myDomain);
 	if(param->peneTB == 0) return;
 
 /*	

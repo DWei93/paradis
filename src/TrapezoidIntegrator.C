@@ -230,8 +230,8 @@ void DumpPerNodeTimestep(Home_t *home, double newDT)
 
             if (nodalMaxDT < minDT) minDT = nodalMaxDT;
 
-            fprintf(fp, "%14e  %14e   # (%d,%d,%3.1f)\n", nodalMaxDT,
-                    nodalMaxErr, node->myTag.domainID, node->myTag.index,node->inGrain);
+            fprintf(fp, "%14e  %14e   # (%d,%d,%d,%d)\n", nodalMaxDT,
+                    nodalMaxErr, node->myTag.domainID, node->myTag.index,node->inGrain,node->onGB);
         }
 
 #if 0
@@ -258,8 +258,8 @@ static void DumpNode(Node_t *node)
         if (node == (Node_t *)NULL) return;
 
 #if 1
-        printf("  node(%d,%d,%3.1f) arms %d,  ",
-               node->myTag.domainID, node->myTag.index,node->inGrain, node->numNbrs);
+        printf("  node(%d,%d,%d,%d) arms %d,  ",
+               node->myTag.domainID, node->myTag.index,node->inGrain, node->onGB,node->numNbrs);
         for (i = 0; i < node->numNbrs; i++) {
             printf(" (%d,%d)", node->nbrTag[i].domainID, node->nbrTag[i].index);
         }

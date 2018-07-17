@@ -227,7 +227,7 @@ void InitGrain(Home_t *home, Param_t *param){
 	        grain = home->grainKeys[i];
 	        InitGrainStructure(grain, 2);
     
-	        grain->type = (i==0) ? FOLDED_GRAIN : ODINARY_GRAIN;
+	        grain->type = ODINARY_GRAIN;
 	        grain->cy = -ly + (2 * ((real8)i) - 1) * (HalfMatrixThick + halfTwinThick);
             grain->cx = 0.0;
             grain->cz = 0.0;
@@ -240,7 +240,7 @@ void InitGrain(Home_t *home, Param_t *param){
             grain->GB[1] = home->GBKeys[i];
             grain->sign[1] =  1.0;
 
-            if(grain->type == ODINARY_GRAIN || i%2 == 0){
+            if(i != 0){
                 memcpy(grain->orientation, TwinOrientation, sizeof(real8 [3][3]));
             }else{
                 memcpy(grain->orientation, param->matrixOrientation, sizeof(real8 [3][3]));
@@ -361,6 +361,9 @@ void InitGrain(Home_t *home, Param_t *param){
 	    if(!invFlag){
 	        Fatal("Invert twin orientation faild!\n");
 	    }
+        for(i=0; i<home->nGBs; i++){
+            GenerateGBBurgInfo(home, home->GBKeys[i]);    
+        }
 
 	    if(home->myDomain == 0){
 	        FormatMatrix(param->matrixOrientation,"basis orientation");
@@ -371,6 +374,7 @@ void InitGrain(Home_t *home, Param_t *param){
 	        printf("\n");
 	        FormatVector(CDelta, "CDelta (use the axis to rotate basis to twin)");
 	    }
+
 	}else{
 	    Fatal("Not suppose free surface polycrystal problem");
 	}
@@ -969,16 +973,21 @@ void PullBack(Home_t *home, Node_t *node){
     if(IsOnGB(node)){
         if(node->onGB != currOnGB){
             if(!NewPosToGB(home, node, -1, node->onGB, newPos)){
+                PrintNode(node);
                 Fatal("in %s at %d", __FILE__, __LINE__);
             }
         }
     }else{
         if(currOnGB == -1){
             if(node->inGrain != currInGrain){
+                printf("newPos--{%f,%f,%f}--(%d,%d)", newPos[0],
+                       newPos[1],newPos[2], currInGrain, currOnGB);
+                PrintNode(node);
                 Fatal("in %s at %d", __FILE__, __LINE__);
             }
         }else{
             if(!NewPosToGB(home, node, node->inGrain, currOnGB, newPos)){
+                PrintNode(node);
                 Fatal("in %s at %d", __FILE__, __LINE__);
             }
         }
@@ -1120,7 +1129,9 @@ void GetArmGrain(Home_t *home, Node_t *node1, Node_t *node2, int &inGrain, int &
     }else {
         inGrain = node1->inGrain;
         if(!IsOnGB(node2) && node1->inGrain != node2->inGrain){
-            printf("Warning in GetArmGrain: node1 in %d grain, but node2 in %d grain",
+            PrintNode(node1);
+            PrintNode(node2);
+            Fatal("Warning in GetArmGrain: node1 in %d grain, but node2 in %d grain\n",
                    node1->inGrain, node2->inGrain);
         }
     }
@@ -1903,7 +1914,7 @@ void Iter(std::vector<int>& disLocalBurgID,
         }
         planeIDLists.push_back(planeIDList);
         if(j == burgOnPlaneID[disLocalBurgID[i]].size() -1){
-#if 1
+#if DEBUG_DisassembleDislocation
             printf("Iter:\n");
             for(m=0; m<planeIDLists.size(); m++){
                 for(n=0; n<planeIDLists[m].size(); n++){
@@ -2089,7 +2100,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
 
     for(i=0; i<bd->numPlanes; i++){
         planeID.push_back(nPlanes);
-        if(bd->planeType[i] & GLIDE_PLANE == 0)continue;
+        if((bd->planeType[i] & GLIDE_PLANE) == 0)continue;
         if(fabs(DotProduct(lDir,bd->planeList[i])) < 1.0E-2){
             cross(bd->planeList[i], plane, crossProd);
             if(crossSlip){
@@ -2236,7 +2247,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                     onGBPlane ++;
                     if(onGBPlane == 2)continue;
                 }
-                if(bd->planeType[planeIDList[j]] & GLIDE_PLANE == 0)continue;
+                if((bd->planeType[planeIDList[j]] & GLIDE_PLANE) == 0)continue;
                 burgOnPlaneID[i].push_back(planeIDList[j]);
             }
         }

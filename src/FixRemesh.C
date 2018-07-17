@@ -331,7 +331,7 @@ void FixRemesh(Home_t *home, const char flag[256])
 					printf("Task %d, Warning , the native node change inGrain\n",home->myDomain);
 				}
 				node1->inGrain = op->inGrain;
-				node1->inGrain = op->onGB;
+				node1->onGB = op->onGB;
 				break;
 				
 			case(UPDATE_CONSTRAINT):

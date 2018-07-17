@@ -22,10 +22,10 @@
 #define NUM_PLANES_IN_FCC       13
 #define NUM_KEY_LINES_IN_FCC    6
 
-#define GLIDE_PLANE         0x0000
-#define JUNCTION_PLANE      0x0001
-#define GB_PLANE            0x0002
-#define UNKOWN_PLANE        0x0004
+#define GLIDE_PLANE         0x0001
+#define JUNCTION_PLANE      0x0002
+#define GB_PLANE            0x0004
+#define UNKOWN_PLANE        0x0008
 
 #define SHOCKLEY_BURG_MAG_FCC   0.5773502691896258
 #define JUNCTION1_BURG_MAG_FCC  1.414213562373095
@@ -1108,7 +1108,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
 
     for(i=0; i<bd->numPlanes; i++){
         planeID.push_back(nPlanes);
-        if(bd->planeType[i] & GLIDE_PLANE == 0)continue;
+        if((bd->planeType[i] & GLIDE_PLANE) == 0)continue;
         if(fabs(DotProduct(lDir,bd->planeList[i])) < 1.0E-2){
             cross(bd->planeList[i], plane, crossProd);
             if(crossSlip){
@@ -1256,7 +1256,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                     onGBPlane ++;
                     if(onGBPlane == 2)continue;
                 }
-                if(bd->planeType[planeIDList[j]] & GLIDE_PLANE == 0)continue;
+                if((bd->planeType[planeIDList[j]] & GLIDE_PLANE) == 0)continue;
                 burgOnPlaneID[i].push_back(planeIDList[j]);
             }
         }
