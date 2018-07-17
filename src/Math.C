@@ -399,9 +399,9 @@ int PointPlaneIntersection(double *p1, double *n, double *p2, double *vec, doubl
              ny*nz*(-p1y + p2y) + SQUARE(nz)*p2z)/
              (SQUARE(nx) + SQUARE(ny) + SQUARE(nz));
 
-    temVec[0] = vec[0] - p1[0];
-    temVec[1] = vec[1] - p1[1];
-    temVec[2] = vec[2] - p1[2];
+    temVec[0] = p1[0] - vec[0];
+    temVec[1] = p1[1] - vec[1];
+    temVec[2] = p1[2] - vec[2];
     NormalizeVec(temVec);
     if(DotProduct(temVec, n) < 0){
         *dis *= -1.0;

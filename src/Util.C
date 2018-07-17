@@ -1553,9 +1553,9 @@ void PrintNode(Node_t *node)
 	}
 
 #if 1
-        printf("  node(%d,%d,%d,%d) arms %d,",
+        printf("  node(%d,%d) location (%d,%d) constraint %d arms %d,",
                node->myTag.domainID, node->myTag.index, node->inGrain, node->onGB,
-               node->numNbrs);
+               node->constraint, node->numNbrs);
 #if 1
         for (i = 0; i < node->numNbrs; i++) {
             printf("(%d,%d) ", node->nbrTag[i].domainID,
@@ -1570,8 +1570,9 @@ void PrintNode(Node_t *node)
 /*
  *      Print the nodal position
  */
-		printf("  old position = {%16.10f,%16.10f,%16.10f}, constraint is %d\n",
-			   node->oldx,node->oldy,node->oldz,node->constraint);
+		printf("  node(%d,%d) oldPos   = {%16.10f,%16.10f,%16.10f}\n",
+               node->myTag.domainID, node->myTag.index,
+			   node->oldx,node->oldy,node->oldz);
 		
         printf("  node(%d,%d) position = {%16.10f,%16.10f,%16.10f}\n",
                node->myTag.domainID, node->myTag.index, 

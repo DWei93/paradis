@@ -18,7 +18,7 @@
 #include <algorithm>
 #include <numeric>
 
-#define ENERGY_RULER 1
+#define ENERGY_RULER 0
 
 
 Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int globalOp, int opClass)
@@ -342,9 +342,9 @@ void FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
     sign1 = Sign(dis1);
     sign2 = Sign(dis2);
     if(sign1*sign2 > 0){
-        vec1[0] = (n1Pos[0] +  n2Pos[0] - n1OldPos[0] - n2OldPos[0]);
-        vec1[1] = (n1Pos[1] +  n2Pos[1] - n1OldPos[1] - n2OldPos[1]);
-        vec1[2] = (n1Pos[2] +  n2Pos[2] - n1OldPos[2] - n2OldPos[2]);
+        vec1[0] = (n1Pos[0] + n2Pos[0] - n1OldPos[0] - n2OldPos[0]);
+        vec1[1] = (n1Pos[1] + n2Pos[1] - n1OldPos[1] - n2OldPos[1]);
+        vec1[2] = (n1Pos[2] + n2Pos[2] - n1OldPos[2] - n2OldPos[2]);
         VECTOR_COPY(vec2, centor);
     }else{
         vec1[0] = n1Pos[0] - n2Pos[0];
@@ -355,7 +355,11 @@ void FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
         vec2[1] = (n1Pos[1] + n2Pos[1])*0.5;
         vec2[2] = (n1Pos[2] + n2Pos[2])*0.5;
     }
-    if(Normal(vec1) < 1.0E-4)Fatal("In file %s at line %d", __FILE__, __LINE__);
+    if(Normal(vec1) < 1.0E-4){
+        PrintNode(node1);
+        PrintNode(node2);
+        Fatal("In file %s at line %d", __FILE__, __LINE__);
+    }
     NormalizeVec(vec1);
 
     type = LineLineIntersection(vec1, vec2, line->direction, line->point, vec3, vec4, &dis);
@@ -449,7 +453,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
                        burgList, disArray);
 	
     pene->nSets = disArray.size();
-    pene->res = (Res_t *)malloc(pene->nSets*sizeof(Res_t));
+    pene->res = (Res_t *)calloc(pene->nSets, sizeof(Res_t));
 
     for(i=0; i<disArray.size(); i++){
 
@@ -560,7 +564,6 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
     node = pene->node;
     gb = pene->gb;
     bd = &(gb->burgData);
-    printf("PF: %d 1\n", home->myDomain);
 
     centorPos[0] = (pene->line1.point[0] + pene->line2.point[0])*0.5;
     centorPos[1] = (pene->line1.point[1] + pene->line2.point[1])*0.5;
@@ -668,7 +671,6 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 	RepositionNode(home, node1Pos, &node1->myTag, globalOp);
 	BackupNode(home, localNode, &bkupNodeList[numBkup-1]);
 	
-    printf("PF: %d 2\n", home->myDomain);
 /*
  *  Test all possible resultant configurations.
  */
@@ -741,6 +743,8 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
             if(DotProduct(nodeVel, newVel) < 0 && pene->res[i].inGrain[j] >-1){
                 pene->res[i].effective = 0;
                 pene->res[i].powerDis = -1.0E50;
+                ForceRemoveNode(home, newNodePtrList[j], globalOp);
+                newNodePtrList[j] = (Node_t *)NULL;
                 break;
             }
 
@@ -764,6 +768,12 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 	            node1 = node;
 	            node2 = localNode;
 	        }
+
+            node1->inGrain = -1;
+            node2->inGrain = -1;
+            node1->onGB = gb->GBID;
+            node2->onGB = gb->GBID;
+
 	        RepositionNode(home, node2Pos, &node2->myTag, globalOp);
 	        RepositionNode(home, node1Pos, &node1->myTag, globalOp);
 
@@ -776,7 +786,6 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
         newNodePtrList = (Node_t **)NULL;
 
     } // for i
-    printf("PF: %d 3\n", home->myDomain);
 
 
 /*
@@ -975,7 +984,7 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	if(nbrNode1==(Node_t *)NULL || nbrNode2==(Node_t *)NULL) return(0);
 
 /*	nbrNode2 is always intersection node.	*/
-	if(NodeOnGB(home,nbrNode1)){
+	if(NodeOnGB(home,nbrNode1) & INTERSECT_NODE){
 		Node_t *nodeTemp;
 		nodeTemp = nbrNode1;
 		nbrNode1 = nbrNode2;
@@ -1194,7 +1203,6 @@ void HandleGrainBoundary(Home_t *home)
 	
     pene.nSets = 0;
 	newNodeKeyPtr = home->newNodeKeyPtr;
-    printf("HGB: %d 1\n", home->myDomain);
 	for(i=0;i<newNodeKeyPtr;i++){
         
         if((node = home->nodeKeys[i]) == (Node_t *) NULL)continue;
@@ -1293,16 +1301,16 @@ void HandleGrainBoundary(Home_t *home)
         nbr1OnGB = NodeOnGB(home, nbrNode1);
         nbr2OnGB = NodeOnGB(home, nbrNode2);
 
-	    if(nbr1OnGB > 0) {
-	        if(!(nbr1OnGB & TB_NODE) && nbrNode1->numNbrs == 3){
+	    if(IsOnGB(nbrNode1)) {
+	        if((nbr1OnGB & TB_NODE) == 0 && nbrNode1->numNbrs == 3){
 	           PullBack(home, node);
 	           continue;
 	        } 
 	        numNbrOnGB++;	
 	    }
 
-	    if(nbr2OnGB > 0) {
-	        if(!(nbr2OnGB & TB_NODE) && nbrNode2->numNbrs == 3){
+	    if(IsOnGB(nbrNode2)) {
+	        if((nbr2OnGB & TB_NODE) == 0 && nbrNode2->numNbrs == 3){
 	           PullBack(home, node);
 	           continue;
 	        } 
@@ -1374,10 +1382,8 @@ void HandleGrainBoundary(Home_t *home)
         }
 
 	}/*	end of for(i=0;i<home->newNodeKeyPtr ...*/
-    printf("HGB: %d 2\n", home->myDomain);
 	
     FreePenStr(&pene);
-    printf("HGB: %d 3\n", home->myDomain);
 	if(param->peneTB == 0) return;
 
 /*	
@@ -1969,7 +1975,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
     for(i=0; i<nbrInGrain.size(); i++){
         if(nbrInGrain[i].size()-1 == node->numNbrs){
             if(!NewPosToGB(home, node, nbrInGrain[i][0], node->onGB, newPos)){
-                printf("Warning in SplitIntersectNode at %d", __LINE__);
+                printf("Warning in SplitIntersectNode at %d\n", __LINE__);
             }
 
             if(globalOp){
@@ -2005,12 +2011,8 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             nodeVel[2] = node->vZ;
             VECTOR_ZERO(newVel);
             
-            if(!NewPosToGB(home, node, nbrInGrain[i][0], node->onGB, newPos)){
-                printf("Warning in SplitIntersectNode at %d", __LINE__);
-            }
-            
             splitStatus = SplitNode(home, opClass,
-                                    node, nodePos, newPos,
+                                    node, nodePos, nodePos,
                                     nodeVel, newVel,
                                     nArms,
                                     armList, globalOp, &splitNode1,
@@ -2018,6 +2020,11 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
 
             free(armList);
             if (splitStatus != SPLIT_SUCCESS)continue;
+
+            if(!NewPosToGB(home, splitNode2, nbrInGrain[i][0], node->onGB, newPos)){
+                printf("Warning in SplitIntersectNode at %d\n", __LINE__);
+            }
+	        RepositionNode(home, newPos, &splitNode2->myTag, globalOp);
             
             if(globalOp){
                 AssignGrain(home, splitNode2, nbrInGrain[i][0], -1);

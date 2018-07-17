@@ -897,6 +897,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
     real8       dis, vec[3], vec1[3], vec2[3];
     real8       pos[3], interPos[3], vec3[3]; 
     int         currInGrain, currOnGB, type, index;
+    int         bakOnGB, bakInGrain, nbrInGrain;
     Param_t     *param;
     GB_t        *GB;
     Grain_t     *grain;
@@ -926,18 +927,50 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
         vec2[2] -= (grain->sign[index] * param->rann * GB->n[2]);
     }
     
+/*
+ *  If the node is on grain boundary
+ *  Only allow the neighbors of the node in the same grain
+ */
+    if(IsOnGB(node)){
+        int     i;
+        Node_t  *nbr;
+  
+        nbrInGrain = -1;
+        for(i=0; i<node->numNbrs; i++){
+            nbr = GetNeighborNode(home, node, i);
+            if(nbr == (Node_t *)NULL)break;
+            if(IsOnGB(nbr))break;
+            if(nbrInGrain == -1){
+                nbrInGrain = nbr->inGrain;
+            }else{
+                if(nbr->inGrain != nbrInGrain)break;
+            }
+        }
+        if(i != node->numNbrs || nbrInGrain == -1)return(0);
+
+        bakOnGB = node->onGB;
+        bakInGrain = node->inGrain;
+
+        node->onGB = -1;
+        node->inGrain = nbrInGrain;
+    }
+
     VECTOR_COPY(vec, vec1);
     AdjustNodeDirection(home, node, vec);
     if(Normal(vec) < 1E-8){
-        printf("Warning: in %s at %d", __FILE__, __LINE__);
+        printf("Warning: in %s at %d\n", __FILE__, __LINE__);
         VECTOR_ZERO(newPos);
         return(0);
     }
     NormalizeVec(vec);
-    
+    if(IsOnGB(node)){
+        node->inGrain = bakInGrain;
+        node->onGB = bakOnGB;
+    }
+
     type = LinePlaneIntersection(vec, pos, vec1, vec2, vec3, newPos); 
     if(type != POINT_INTERSECTION){
-        printf("Warning: in %s at %d", __FILE__, __LINE__);
+        printf("Warning: in %s at %d\n", __FILE__, __LINE__);
         VECTOR_ZERO(newPos);
         return(0);
     }
@@ -972,18 +1005,32 @@ void PullBack(Home_t *home, Node_t *node){
 
     if(IsOnGB(node)){
         if(node->onGB != currOnGB){
-            if(!NewPosToGB(home, node, -1, node->onGB, newPos)){
-                PrintNode(node);
-                Fatal("in %s at %d", __FILE__, __LINE__);
+            int     type;
+            GB_t    *gb;
+            real8   nodePos[3], dis;
+            
+            nodePos[0] = node->x;
+            nodePos[1] = node->y;
+            nodePos[2] = node->z;
+            gb = home->GBKeys[node->onGB];
+
+            type = PointPlaneIntersection(nodePos, gb->n, gb->p, newPos, &dis);
+            if(fabs(dis) > 5){
+                printf("Warning in PullBack, error is %f", dis);
             }
         }
     }else{
         if(currOnGB == -1){
             if(node->inGrain != currInGrain){
-                printf("newPos--{%f,%f,%f}--(%d,%d)", newPos[0],
+                printf("newPos--{%f,%f,%f}--(%d,%d)\n", newPos[0],
                        newPos[1],newPos[2], currInGrain, currOnGB);
                 PrintNode(node);
-                Fatal("in %s at %d", __FILE__, __LINE__);
+                printf("Warning in %s at %d", __FILE__, __LINE__);
+
+                if(!NewPosToGB(home, node, node->inGrain, currOnGB, newPos)){
+                    PrintNode(node);
+                    Fatal("in %s at %d", __FILE__, __LINE__);
+                }
             }
         }else{
             if(!NewPosToGB(home, node, node->inGrain, currOnGB, newPos)){

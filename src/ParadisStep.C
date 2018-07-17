@@ -359,7 +359,6 @@ void ParadisStep(Home_t *home)
  */
         ResetGlidePlanes(home);
         DebugGB(home,24);
-		
 
 /*
  *      Increment the per-burgers vector density gain/loss with
@@ -369,8 +368,8 @@ void ParadisStep(Home_t *home)
  *      Note: This is currently only applicable to BCC simulations.
  */
         GetDensityDelta(home);
-
         DebugGB(home,25);
+
 /*
  *      Calculate the new plastic strain.
  */
@@ -384,6 +383,7 @@ void ParadisStep(Home_t *home)
  */
         GenerateOutput(home, STAGE_CYCLE,"-1cycle");
         DebugGB(home,1);
+
 /*
  *      Now do all the topological changes from segment interactions
  *      (collisions, multinode splitting)...  Clear the list of local

@@ -2875,7 +2875,7 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
 
 	AssignNodeToCell(home, (*newNodePtr));
     (*newNodePtr)->inGrain = inGrain;
-    (*newNodePtr)->inGrain = onGB;
+    (*newNodePtr)->onGB = onGB;
     
     InsertArm(home, node1, &(*newNodePtr)->myTag,
              burg[0], burg[1], burg[2],

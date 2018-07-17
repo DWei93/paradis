@@ -78,13 +78,12 @@ edotdir = [
 appliedStress = [
 	0.0e0
 	0.0e0
+	-3.0e8
 	0.0e0
-	-2.0e8
-	-2.0e8
+	0.0e0
 	0.0e0
 ]
 
-#	-3.0e8
 #
 #  Material and mobility parameters
 #  
@@ -94,7 +93,7 @@ shearModulus =  46.554e9  # in jin paper
 pois =   0.324
 burgMag =   2.55600e-10  
 limitDisplacement = 0
-GBStrength = 5.0e8
+GBStrength = 0.0e0
 fricStress = 0.0e0
 
 #fricStress = 3.46e7
@@ -108,7 +107,7 @@ rc =  10.0
 #  
 #
 tecplot = 1
-tecplotfreq = 1 
+tecplotfreq = 200 
 saveprop = 1
 savepropfreq = 50
 tecmesh = 1

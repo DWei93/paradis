@@ -258,7 +258,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                        real8 *plane, bool crossSlip, 
                        std::vector< std::vector<double> >&       burgList, 
                        std::vector<std::vector<Dislocation_t> >& disArray,
-                       int maxDissPerBasicBurg = 2, int maxDiss = 4);
+                       int maxDissPerBasicBurg = 1, int maxDiss = 4);
 void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp);
 int GeosTest();
 #endif
