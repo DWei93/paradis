@@ -18,7 +18,7 @@
 #include <algorithm>
 #include <numeric>
 
-#define ENERGY_RULER 0
+#define ENERGY_RULER 1
 
 
 Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int globalOp, int opClass)
@@ -539,10 +539,11 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
     int         myDomain, type, currInGrain, currOnGB, oldInGrain;
     int         numBkup, i, j, globalOp, mobError, newPlaneID;
     int         planeID, localPlaneID, maxPowerSet, onGB;
-    bool        switchedArm;
+    int         newInGrain, newOnGB;
+    bool        switchedArm, passGB;
     real8       nodeVel[3], currPos[3], oldPos[3], posClosedGB[3];
     real8       dis, dirGBNode[3], node1Pos[3], node2Pos[3];
-    real8       vec1[3], vec2[3], newVel[3], nForce[3];
+    real8       vec1[3], vec2[3], newVel[3], nForce[3], norm;
     real8       centorPos[3], lDir[3], peneLength, planeBurg[3];
     real8       maxPowerDis;
     Node_t      *node, *nbrNode1, *nbrNode2, *nbr, *node1, *node2;
@@ -713,6 +714,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
             
 		    SetOneNodeForce(home, newNodePtrList[j]);
             
+#if 0
             if(pene->res[i].inGrain[j] > -1){
                 vec1[0] = centorPos[0] - pene->res[i].pos[j][0];
                 vec1[1] = centorPos[1] - pene->res[i].pos[j][1];
@@ -734,18 +736,38 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
                 newNodePtrList[j]->armfy[1] += 0.5*(vec1[1]*peneLength*gammaS);
                 newNodePtrList[j]->armfz[1] += 0.5*(vec1[2]*peneLength*gammaS);
             }
+#endif
 
 		    mobError = EvaluateMobility(home, newNodePtrList[j]);
             newVel[0] = newNodePtrList[j]->vX;
             newVel[1] = newNodePtrList[j]->vY;
             newVel[2] = newNodePtrList[j]->vZ;
 
-            if(DotProduct(nodeVel, newVel) < 0 && pene->res[i].inGrain[j] >-1){
-                pene->res[i].effective = 0;
-                pene->res[i].powerDis = -1.0E50;
-                ForceRemoveNode(home, newNodePtrList[j], globalOp);
-                newNodePtrList[j] = (Node_t *)NULL;
-                break;
+            if(pene->res[i].inGrain[j] > -1){
+                VECTOR_COPY(vec2, newVel);
+                norm = Normal(vec2);
+
+                passGB = (norm <= 1.0E-2) ? 0 : 1; 
+                if(norm > 1.0E-2){
+                    vec2[0] /= norm;
+                    vec2[1] /= norm;
+                    vec2[2] /= norm;
+                
+                    vec1[0] = centorPos[0] + vec2[0];
+                    vec1[1] = centorPos[1] + vec2[1];
+                    vec1[2] = centorPos[2] + vec2[2];
+                    NodeLocation(home, vec1[0], vec1[1], vec1[2], newInGrain, newOnGB); 
+                
+                    if(newOnGB > -1 || newInGrain != pene->res[i].inGrain[j])passGB = 0;
+                }
+
+                if(!passGB){
+                    pene->res[i].effective = 0;
+                    pene->res[i].powerDis = -1.0E50;
+                    ForceRemoveNode(home, newNodePtrList[j], globalOp);
+                    newNodePtrList[j] = (Node_t *)NULL;
+                    break;
+                }
             }
 
             DoResistance(home, newNodePtrList[j], nForce);
@@ -833,8 +855,8 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 		}
 	}
 	if(maxPowerDis < 0 || maxPowerSet < 0){
-		printf("Penetrationfirst(%d,%d) failed. numSet %d: maxPowerDis is %e\n",node->myTag.domainID, 
-               node->myTag.index, pene->nSets, maxPowerDis);
+//		printf("Penetrationfirst(%d,%d) failed. numSet %d: maxPowerDis is %e\n",node->myTag.domainID, 
+//               node->myTag.index, pene->nSets, maxPowerDis);
 		return(0);
 	}
 	
@@ -888,15 +910,19 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
             if(localPlaneID == 2)localPlaneID = 0;
         }
 
-        if(localPlaneID = 0){
-            VECTOR_COPY(planeBurg, pene->res[i].burg[j]);
-            if(j != pene->res[i].nDiss){
-                if(planeID == PlaneID_FCC(bd, pene->res[i].normal[j+1]))continue;
+        if(pene->res[i].inGrain[j] > -1){
+            if(localPlaneID == 0){
+                VECTOR_COPY(planeBurg, pene->res[i].burg[j]);
+                if(j != pene->res[i].nDiss-1){
+                    if(planeID == PlaneID_FCC(bd, pene->res[i].normal[j+1]))continue;
+                }
+            }else{
+                planeBurg[0] += pene->res[i].burg[j][0];
+                planeBurg[1] += pene->res[i].burg[j][1];
+                planeBurg[2] += pene->res[i].burg[j][2];
             }
         }else{
-            planeBurg[0] += pene->res[i].burg[j][0];
-            planeBurg[1] += pene->res[i].burg[j][1];
-            planeBurg[2] += pene->res[i].burg[j][2];
+            VECTOR_COPY(planeBurg, pene->res[i].burg[j]);
         }
 
         onGB = (pene->res[i].inGrain[j] == -1) ? gb->GBID : -1;
@@ -933,7 +959,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 	node2->vY = 0.0;
 	node2->vZ = 0.0;
     
-#if 1
+#if 0
     printf("PenetrationFirst: \n");
     PrintNode(node);
     PrintNode(node1);
@@ -2022,6 +2048,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             if (splitStatus != SPLIT_SUCCESS)continue;
 
             if(!NewPosToGB(home, splitNode2, nbrInGrain[i][0], node->onGB, newPos)){
+                PrintNode(splitNode2);
                 printf("Warning in SplitIntersectNode at %d\n", __LINE__);
             }
 	        RepositionNode(home, newPos, &splitNode2->myTag, globalOp);

@@ -26,7 +26,7 @@
 frlen=1800
 cubel=4000
 maxSeg=200
-nfrs=5
+nfrs=12
 maxDensity=1E13
 seed=""
 type=5
@@ -88,7 +88,7 @@ case $type in
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity \
-    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
+    -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 ;;
  #   -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
 
     *)

@@ -1927,7 +1927,6 @@ void SumOfValuesIsConstant(int n, int sum, std::vector<int>& valueList, int tot,
 }
 
 
-#define DEBUG_DisassembleDislocation 1
 bool cmp(std::vector<int >& p, std::vector<int >& q)
 {
     if(p.back() != q.back()){

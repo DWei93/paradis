@@ -67,6 +67,7 @@ typedef struct {
 #define JUNCTION1_BURG_MAG_FCC  1.414213562373095
 #define JUNCTION2_BURG_MAG_FCC  1.732050807568877
 
+
 typedef	enum{
     ZERO_BURG,
     BASIC_BURG,
