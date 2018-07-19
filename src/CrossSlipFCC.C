@@ -42,6 +42,7 @@ void CrossSlipFCC(Home_t *home)
         int    resetNodePos, resetNbr1Pos, resetNbr2Pos;
         int    nbr1ArmID, nbr2ArmID;
         int    seg1_is_screw, seg2_is_screw, bothseg_are_screw;
+        int     burgID;
         real8  tmp, eps, thetacrit, sthetacrit, s2thetacrit, areamin;
         real8  test1, test2, test3, testmax1, testmax2, testmax3;
         real8  vec1dotb, vec2dotb, vec3dotb, fdotglide;
@@ -62,6 +63,7 @@ void CrossSlipFCC(Home_t *home)
         Node_t *node, *nbr1, *nbr2;
         Param_t *param;
         real8   rotMatrix[3][3], rotMatrixInverse[3][3];
+        BurgInfo_t  *burgData;
 
 #ifdef DEBUG_CROSSSLIP_DOMAIN
         dbgDom = DEBUG_CROSSSLIP_DOMAIN;
@@ -111,10 +113,20 @@ void CrossSlipFCC(Home_t *home)
                 continue;
             }
 
+            nbr1 = GetNeighborNode(home, node, 0);
+            nbr2 = GetNeighborNode(home, node, 1);
+
+            if ((nbr1 == (Node_t *)NULL) ||
+                (nbr2 == (Node_t *)NULL)) {
+                printf("WARNING: Neighbor not found at %s line %d\n",
+                       __FILE__, __LINE__);
+                continue;
+            }
+
+
             burgLab[0] = node->burgX[0];
             burgLab[1] = node->burgY[0];
             burgLab[2] = node->burgZ[0];
-
             VECTOR_COPY(burgCrystal, burgLab);
 
 /*
@@ -123,31 +135,13 @@ void CrossSlipFCC(Home_t *home)
  *          are identical.
  */
             if (param->useLabFrame) {
-                VectorLabToCrystal(home, node, node, burgLab, burgCrystal);
+                VectorLabToCrystal(home, node, nbr1, burgLab, burgCrystal);
             }
 
             burgSize = sqrt(DotProduct(burgLab, burgLab));
 
             NormalizeVec(burgLab);
             NormalizeVec(burgCrystal);
-
-/*
- *          Only consider glide dislocations.  If burgers vector is not
- *          a [1 1 0] type, ignore it.
- */
-            if (!((fabs(fabs(burgCrystal[0])-fabs(burgCrystal[1])) < eps ) &&
-                  (fabs(burgCrystal[2]) < eps )) &&
-                !((fabs(fabs(burgCrystal[1])-fabs(burgCrystal[2])) < eps ) &&
-                  (fabs(burgCrystal[0]) < eps )) &&
-                !((fabs(fabs(burgCrystal[2])-fabs(burgCrystal[0])) < eps ) &&
-                  (fabs(burgCrystal[1]) < eps ))) {
-                 continue;
-            }
-
-            if ((fabs(burgCrystal[0]) < eps) && (fabs(burgCrystal[1]) < eps) &&
-                (fabs(burgCrystal[2]) < eps )) {
-                 continue;
-            }
 
 /*
  *          We must not change the glide plane for any segment
@@ -160,21 +154,18 @@ void CrossSlipFCC(Home_t *home)
                 continue;
             }
 
-            nbr1 = GetNeighborNode(home, node, 0);
-            nbr2 = GetNeighborNode(home, node, 1);
-
-            if ((nbr1 == (Node_t *)NULL) ||
-                (nbr2 == (Node_t *)NULL)) {
-                printf("WARNING: Neighbor not found at %s line %d\n",
-                       __FILE__, __LINE__);
-                continue;
-            }
-			
 /*
- *			Boundary node is not allowed to	cross slip.	
+ *          Only consider glide dislocations.  If burgers vector is not
+ *          a [1 1 0] type, ignore it.
  */
-            if(IsOnGB(nbr1) || IsOnGB(nbr2) || IsOnGB(node))continue;
+            burgData = GetBurgData(home, node, nbr1);
+            burgID = BurgID_FCC(burgData, burgLab);
+            if(burgID >= burgData->numBurgVectors)continue;
 
+            if(burgData->burgType[burgID] != EDGE_BURG)continue;
+
+            if(node->onGB != nbr1->onGB && node->onGB != nbr2->onGB ||
+               node->inGrain != nbr1->inGrain && node->inGrain != nbr->inGrain)continue;
 /*
  *          Before we commit to doing a cross-slip event, we may shift
  *          nodes and recalculate some forces to determine if it is

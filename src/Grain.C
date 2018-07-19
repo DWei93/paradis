@@ -674,6 +674,7 @@ int GetPlaneType_FCC(Home_t *home, Node_t *node, Node_t *nbr){
         
     return(PlaneType_FCC(burgData, plane)); 
 }
+
 /*-------------------------------------------------------------------------
  *
  *      Function:    HasShortSeg
@@ -1470,6 +1471,7 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainI
         burgData->numKeyLines = NUM_KEY_LINES_IN_FCC;
 
         burgData->burgList = (real8 (*)[3])calloc(3*burgData->numBurgVectors, sizeof(real8));
+        burgData->burgType = (int *)calloc(burgData->numBurgVectors, sizeof(int));
         burgData->planeList = (real8 (*)[3])calloc(3*burgData->numPlanes, sizeof(real8));
         burgData->planeType = (int *)calloc(burgData->numPlanes, sizeof(int));
         burgData->planeInGrain = (int *)calloc(burgData->numPlanes, sizeof(int));
@@ -1520,6 +1522,12 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainI
             Matrix33Vector3Multiply(rotMatrix, burgList[i], burgData->burgList[i]);
         }
 
+        int burgType[NUM_BURGS_IN_FCC] = {EDGE_BURG, EDGE_BURG, EDGE_BURG, EDGE_BURG, EDGE_BURG, EDGE_BURG,
+                PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, 
+                PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG,
+                JUNCTION_BURG, JUNCTION_BURG, JUNCTION_BURG};
+        memcpy(burgData->burgType, burgType, sizeof(int [NUM_BURGS_IN_FCC]));
+
 
         int numPlanesPerBurg[NUM_BURGS_IN_FCC] = { 3, 3, 3, 3, 3, 3, 
                                                    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
@@ -1553,6 +1561,7 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainI
         for(i=0; i<NUM_PLANES_IN_FCC; i++){
             Matrix33Vector3Multiply(rotMatrix, planeList[i], burgData->planeList[i]);
         }
+        
         int planeType[NUM_PLANES_IN_FCC] = { GLIDE_PLANE, GLIDE_PLANE, GLIDE_PLANE, GLIDE_PLANE,
             JUNCTION_PLANE1, JUNCTION_PLANE1, JUNCTION_PLANE1, JUNCTION_PLANE2, 
             JUNCTION_PLANE2, JUNCTION_PLANE2, JUNCTION_PLANE2, JUNCTION_PLANE2, JUNCTION_PLANE2 }; 
@@ -1671,6 +1680,7 @@ void FreeBurgInfoStr(BurgInfo_t *burgData)
     free(burgData->burgList); 
     free(burgData->planeList); 
     free(burgData->planeType); 
+    free(burgData->burgType); 
     free(burgData->planeInGrain); 
     free(burgData->keyLineList);
 
@@ -1693,6 +1703,7 @@ void FreeBurgInfoStr(BurgInfo_t *burgData)
     burgData->burgList = NULL;
     burgData->planeList = NULL;
     burgData->planeType = NULL;
+    burgData->burgType = NULL;
     burgData->planeInGrain = NULL;
     burgData->keyLineList = NULL;
 
@@ -1803,6 +1814,7 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
     gbd->numBurgVectors = numRows;
     gbd->burgList = (real8 (*)[3])malloc(3*numRows*sizeof(real8));
     gbd->numPlanesPerBurg = (int *)malloc(numRows*sizeof(int));
+    gbd->burgType = (int *)malloc(numRows*sizeof(int));
 
     memcpy(gbd->burgList, bd1->burgList, bd1->numBurgVectors*sizeof(real8 [3]));
     memcpy(gbd->burgList+bd1->numBurgVectors, bd2->burgList, 
@@ -1811,6 +1823,9 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
     memcpy(gbd->numPlanesPerBurg, bd1->numPlanesPerBurg, bd1->numBurgVectors*sizeof(int));
     memcpy(gbd->numPlanesPerBurg+bd1->numBurgVectors, bd2->numPlanesPerBurg, 
            bd2->numBurgVectors*sizeof(int));
+
+    memcpy(gbd->burgType, bd1->burgType, bd1->numBurgVectors*sizeof(int)); 
+    memcpy(gbd->burgType+bd1->numBurgVectors, bd2->burgType, bd2->numBurgVectors*sizeof(int));
 
     int **bd2PlaneOnBurgID = (int **)malloc(bd2->numPlanes*sizeof(int *));
     for(i=0; i<bd2->numPlanes; i++){

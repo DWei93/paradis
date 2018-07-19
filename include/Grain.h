@@ -67,6 +67,9 @@ typedef struct {
 #define JUNCTION1_BURG_MAG_FCC  1.414213562373095
 #define JUNCTION2_BURG_MAG_FCC  1.732050807568877
 
+#define EDGE_BURG       0
+#define PARTIAL_BURG    1
+#define JUNCTION_BURG   2
 
 typedef	enum{
     ZERO_BURG,
@@ -102,6 +105,7 @@ struct _burgInfo {
                                           /* each plane in the list  */
 
         real8   (*burgList)[3];           /* Array of burgers vectors */
+        int     *burgType;
 
         real8   (*planeList)[3];          /* Array of planes */
         int     *planeType;               /* Array of type of planes*/
