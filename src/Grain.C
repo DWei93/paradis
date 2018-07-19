@@ -2117,7 +2117,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
     int     i, j, k, m, nPlanes = 0, nBurgs = 0;
     int     nShockleyBurgs = 0;
     int     sum, onGBPlane;
-    int     nBurgSets;
+    int     nBurgSets, burgType;
     real8   vec[3];
     real8   crossProd[3], resiBurg[3];
     real8   resiBurgMag;
@@ -2197,8 +2197,8 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         if(i == planeIDList[j]){
             j++;
             for(k=0; k<bd->numBurgsPerPlane[i]; k++){
-                if(BurgType_FCC(bd->burgList[bd->planeOnBurgID[i][k]]) 
-                    != SHOCKLEY_BURG)continue;
+                burgType = BurgType_FCC(bd->burgList[bd->planeOnBurgID[i][k]]);
+                if(!(burgType != SHOCKLEY_BURG || burgType != BASIC_BURG))continue;
                 VECTOR_COPY(vector, bd->burgList[bd->planeOnBurgID[i][k]]);
                 if(DotProduct(vector, burg) < 0){
                     vector[0] = -vector[0];

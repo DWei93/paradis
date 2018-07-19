@@ -127,6 +127,7 @@ real8 Normal(real8 a[3])
         return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]) );
 }
 
+int	BurgType_FCC(real8 burg[3]);
 void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainID = -1);
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB);
 void FreeBurgInfoStr(BurgInfo_t *burgData);
@@ -237,10 +238,15 @@ void InitGrain(Home_t *home){
  //   real8   planeCry[3]= {0.57735, 0.57735, -0.57735}; // ABD 
  //   real8   planeCry[3]= {0.57735, 0.57735, 0.57735};   // ABC
     int     grainID = 0;
-    real8   burg[3], line[3], plane[3];
+    real8   burg[3], line[3], plane[3], vec[3], crossProd[3];
 
     vector< vector<double> >                    burgList;
     std::vector<std::vector<Dislocation_t> >    disArray;
+    std::vector< std::vector<Dislocation_t> >::iterator     itDisList;
+    std::vector<Dislocation_t>::iterator                    itDis;
+    BurgInfo_t  *gbd;
+
+    gbd = &(gb->burgData);
 
     grain = home->grainKeys[grainID];
     Matrix33Vector3Multiply(grain->orientation, burgCry, burg);
@@ -263,6 +269,43 @@ void InitGrain(Home_t *home){
         for(i=0; i<burgList.size(); i++){
             printf("%d: {%7.4f,%7.4f,%7.4f}\n",i, 
                     burgList[i][0], burgList[i][1],burgList[i][2]);
+        }
+
+
+        printf("\nDislocation Arrray:\n");
+        for(i=0; i<disArray.size(); i++){
+            printf("%d: ",i);
+            for(j=0; j<disArray[i].size(); j++){
+#if 1
+                printf("(%d<%d>)[%d] ", disArray[i][j].planeID, 
+                        gb->burgData.planeInGrain[disArray[i][j].planeID], 
+                        disArray[i][j].burgID);
+#else
+                printf("(%5.3f,%5.3f,%5.3f)[%5.3f,%5.3f,%5.3f] ",
+                       gb->burgData.planeList[disArray[i][j].planeID][0],
+                       gb->burgData.planeList[disArray[i][j].planeID][1],
+                       gb->burgData.planeList[disArray[i][j].planeID][2],
+                       burgList[disArray[i][j].burgID][0],
+                       burgList[disArray[i][j].burgID][1],
+                       burgList[disArray[i][j].burgID][2]);
+#endif
+            }
+            printf("\n");
+        }
+
+        for(i=0; i<disArray.size(); ){
+            for(j=0; j<disArray[i].size(); j++){
+                cross(gb->n, gbd->planeList[disArray[i][j].planeID], crossProd);
+                VECTOR_COPY(vec, burgList[disArray[i][j].burgID]);
+                if(BurgType_FCC(vec) == BASIC_BURG && Normal(crossProd) < 1.0E-2)break;
+            }
+            if(j != disArray[i].size()){
+                itDisList = disArray.begin() + i;
+                disArray.erase(itDisList);
+            }else{
+                i++;
+            }
+
         }
 
         printf("\nDislocation Arrray:\n");
@@ -1066,6 +1109,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
     real8   vec[3];
     real8   crossProd[3], resiBurg[3];
     real8   resiBurgMag;
+    int     burgType;
 
     vector< vector<double> >            planeList;
     vector<int>                         planeIDList;
@@ -1145,9 +1189,8 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         if(i == planeIDList[j]){
             j++;
             for(k=0; k<bd->numBurgsPerPlane[i]; k++){
-                if(!(BurgType_FCC(bd->burgList[bd->planeOnBurgID[i][k]]) 
-                    != SHOCKLEY_BURG || BurgType_FCC(bd->burgList[bd->planeOnBurgID[i][k]])
-                     != BASIC_BURG))continue;
+                burgType = BurgType_FCC(bd->burgList[bd->planeOnBurgID[i][k]]);
+                if(!(burgType != SHOCKLEY_BURG || burgType != BASIC_BURG))continue;
                 VECTOR_COPY(vector, bd->burgList[bd->planeOnBurgID[i][k]]);
                 if(DotProduct(vector, burg) < 0){
                     vector[0] = -vector[0];

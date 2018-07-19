@@ -378,7 +378,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 {
 	
 	real8		pos[3], burg[3], normal[3], resiBurg[3];
-	real8		vec[3], jth;
+	real8		vec[3], crossProd[3], jth;
     real8       centorPos[3];
     real8       vec1[3], vec2[3], eps, dis;
     int         i, j, newPlaneID, localGBID, nDiss;
@@ -391,8 +391,9 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 
     BurgInfo_t  *gbd;
     
-    std::vector<std::vector<double> >           burgList;
-    std::vector<std::vector< Dislocation_t> >   disArray; 
+    std::vector<std::vector<double> >                       burgList;
+    std::vector<std::vector< Dislocation_t> >               disArray; 
+    std::vector< std::vector<Dislocation_t> >::iterator     itDisList;
 
     pene->node = node;
     pene->gb = gb;
@@ -449,9 +450,24 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 	normal[1] = node->ny[1];
 	normal[2] = node->nz[1];
 
-    GeometricCriterion(gbd, burg, pene->line2.direction, normal, 1,
-                       burgList, disArray);
+    if(!GeometricCriterion(gbd, burg, pene->line2.direction, normal, 1,
+                       burgList, disArray))return(0);
 	
+    for(i=0; i<disArray.size(); ){
+        for(j=0; j<disArray[i].size(); j++){
+            cross(gb->n, gbd->planeList[disArray[i][j].planeID], crossProd);
+            VECTOR_COPY(vec, burgList[disArray[i][j].burgID]);
+            if(BurgType_FCC(vec) == BASIC_BURG && Normal(crossProd) < 1.0E-2)break;
+        }
+        if(j != disArray[i].size()){
+            itDisList = disArray.begin() + i;
+            disArray.erase(itDisList);
+        }else{
+            i++;
+        }
+    }
+    if(disArray.size() == 0)return(0);
+
     pene->nSets = disArray.size();
     pene->res = (Res_t *)calloc(pene->nSets, sizeof(Res_t));
 
