@@ -134,7 +134,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                        real8 *plane, bool crossSlip, 
                        vector< vector<double> >&  burgList, 
                        vector<vector<Dislocation_t> >&    disArray,
-                       int maxDissPerBasicBurg = 2, int maxDiss = 4);
+                       int maxDissPerBasicBurg = 1, int maxDiss = 4);
 
 void InitGrain(Home_t *home);
 
@@ -205,8 +205,8 @@ void InitGrain(Home_t *home){
 #endif
     real8 rotTwin[3][3] = 
 #if 1        
-        {{-0.408248, 
-  0.816497, -0.408248}, {-0.57735, -0.57735, -0.57735}, {-0.707107, 0.0, 0.707107}};
+        {{-0.707107, 0.707107, 0.}, {0.57735, 0.57735, 0.57735}, {0.408248, 
+  0.408248, -0.816497}};
 #else
     {{0., 0.707107, -0.707107}, {-0.57735, -0.57735, -0.57735}, 
 {-0.816497, 0.408248, 0.408248}};
@@ -233,7 +233,8 @@ void InitGrain(Home_t *home){
    real8   burgCry[3] = {0.707107, -0.707107, 0.};     //AB
 //    real8   burgCry[3] = {0.3, -0.7, 0.6};     //randon
     real8   lineCry[3] = {0.707107, -0.707107, 0.};     //AB
-    real8   planeCry[3]= {0.57735, 0.57735, -0.57735}; // ABD 
+    real8   planeCry[3]= {0.57735, 0.57735, 0.57735}; // ABC 
+ //   real8   planeCry[3]= {0.57735, 0.57735, -0.57735}; // ABD 
  //   real8   planeCry[3]= {0.57735, 0.57735, 0.57735};   // ABC
     int     grainID = 0;
     real8   burg[3], line[3], plane[3];
@@ -885,7 +886,7 @@ int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3])
         return(i);
 }
 
-#define DEBUG_DisassembleDislocation 0
+#define DEBUG_DisassembleDislocation 1
 bool cmp(vector<int >& p,vector<int >& q)
 {
     if(p.back() != q.back()){
@@ -1144,8 +1145,9 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         if(i == planeIDList[j]){
             j++;
             for(k=0; k<bd->numBurgsPerPlane[i]; k++){
-                if(BurgType_FCC(bd->burgList[bd->planeOnBurgID[i][k]]) 
-                    != SHOCKLEY_BURG)continue;
+                if(!(BurgType_FCC(bd->burgList[bd->planeOnBurgID[i][k]]) 
+                    != SHOCKLEY_BURG || BurgType_FCC(bd->burgList[bd->planeOnBurgID[i][k]])
+                     != BASIC_BURG))continue;
                 VECTOR_COPY(vector, bd->burgList[bd->planeOnBurgID[i][k]]);
                 if(DotProduct(vector, burg) < 0){
                     vector[0] = -vector[0];
@@ -1262,8 +1264,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         }
     }
 
-//#if DEBUG_DisassembleDislocation
-#if 1
+#if DEBUG_DisassembleDislocation
 //    burgOnPlaneID[3].push_back(15);
 //    burgOnPlaneID[7].push_back(3);
 //    printf("burgOnPlaneID[2].size() %d\n", burgOnPlaneID[2].size());
