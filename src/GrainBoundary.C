@@ -2118,7 +2118,7 @@ void GBCrossSlip(Home_t *home)
         real8  noiseFactor, weightFactor, fnodeThreshold;
         real8  L1, L2, shearModulus, burgSize;
         real8  zipperThreshold;
-        Node_t *node, *nbr1, *nbr2, *nbr;
+        Node_t *node, *nbr1, *nbr2, *nbr, *gbNbr;
         Param_t *param;
         real8   rotMatrix[3][3], rotMatrixInverse[3][3];
 
@@ -2163,6 +2163,7 @@ void GBCrossSlip(Home_t *home)
                 continue;
             }
 
+            if(node->numNbrs < 2)continue;
             if(!IsOnGB(node))continue;
 
             nBurgsSplit = 0;
@@ -2175,17 +2176,91 @@ void GBCrossSlip(Home_t *home)
                     continue;
                 }
 
-                if(IsOnGB(nbr))nNbrsOnGB++;
+                if(IsOnGB(nbr)){
+                    nNbrsOnGB++;
+                    gbNbr = nbr;
+                }
+
                 if(sqrt(node->burgX[j]*node->burgX[j]+
                    node->burgY[j]*node->burgY[j]+
                    node->burgZ[j]*node->burgZ[j]) > 
                    SHOCKLEY_BURG_MAG_FCC+1.0E-2) nBurgsSplit++;
+
             }
+
             if(nBurgsSplit == 0 || nBurgsSplit > 2 || nNbrsOnGB == 0)continue;
+
+            firstCrossSlipNode = (node->numNbrs == 2 && nNbrsOnGB == 2 && nBurgsSplit == 2);
+            sideCrossSlipNode = (nNbrsOnGB == 1 && nBurgsSplit == 1);
+            if(!(fistCrossSlipNode || sideCrossSlipNode))continue;
+            
+            nodePos[0] = node->x;   nodePos[1] = node->y;   nodePos[2] = node->z;
+            
+            if(firstCrossSlipNode){
+                nbr1 = GetNeighborNode(home, node, 0);
+                nbr2 = GetNeighborNode(home, node, 1);
+                
+                nbr1Pos[0] = nbr1->x;   nbr1Pos[1] = nbr1->y;   nbr1Pos[2] = nbr1->z;
+                nbr2Pos[0] = nbr2->x;   nbr2Pos[1] = nbr2->y;   nbr1Pos[2] = nbr2->z;
+
+                PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2],
+                            nbr1Pos, nbr1Pos+1, nbr1Pos+2);
+                PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2],
+                            nbr2Pos, nbr2Pos+1, nbr2Pos+2);
+
+                vec1[0] = nbr1Pos[0] - nodePos[0];
+                vec1[1] = nbr1Pos[1] - nodePos[1];
+                vec1[2] = nbr1Pos[2] - nodePos[2];
+
+                vec2[0] = nbr2Pos[0] - nodePos[0];
+                vec2[1] = nbr2Pos[1] - nodePos[1];
+                vec2[2] = nbr2Pos[2] - nodePos[2];
+
+                vec3[0] = nbr2Pos[0] - nbr1Pos[0];
+                vec3[1] = nbr2Pos[1] - nbr1Pos[1];
+                vec3[2] = nbr2Pos[2] - nbr1Pos[2];
+                
+                test1Max = DotProduct(vec1,vec1);
+                test2Max = DotProduct(vec2,vec2);
+                test3Max = DotProduct(vec3,vec3);
+            
+                for(j=0; j<bd->numKeyLines; j++){
+                    test3 = DotProduct(vec3, gb->keyLineList[j]);
+                    test3 = test3 * test3;
+                    if(test3Max - test3 > test3Max * s2thetacrit)continue;
+
+                    test1 = DotProduct(vec1, gb->keyLineList[j]);    
+                    test1 = test1 * test1;
+                    if(tes1Max - test1 > 4.0 * test1Max * s2thetacrit)continue;
+
+                    test2 = DotProduct(vec2, gb->keyLineList[j]);    
+                    test2 = test2 * test2;
+                    if(tes2Max - test2 > 4.0 * test2Max * s2thetacrit)continue;
+
+                    break;
+                }
+                if(j == bd->numKeyLines)continue;
+
+            }else if(sideCrossSlipNode){
+                gbNbrPos[0] = n
+                
+            }
+
             
 
-            nbr1 = GetNeighborNode(home, node, 0);
-            nbr2 = GetNeighborNode(home, node, 1);
+            nodep[0] = node->x; nodep[1] = node->y; nodep[2] = node->z;
+            nbrGBNodep[0] = nbrGBNode->x; nbrGBNodep[1] = nbrGBNode->y; nbrGBNodep[2] = nbrGBNode->z;
+            PBCPOSITION(param, nodep[0], nodep[1], nodep[2],
+                        &nbrGBNodep[0], &nbrGBNodep[1], &nbrGBNodep[2]);
+
+            vec[0] = nbrGBNodep[0] - nodep[0];
+            vec[1] = nbrGBNodep[1] - nodep[1];
+            vec[2] = nbrGBNodep[2] - nodep[2];
+            testMax = DotProduct(vec, vec);
+            
+            for(j=0; j<bd->numKeyLines; j++){
+            }
+
 
             if ((nbr1 == (Node_t *)NULL) ||
                 (nbr2 == (Node_t *)NULL)) {
