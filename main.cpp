@@ -148,6 +148,22 @@ void Matrix33Vector3Multiply(real8 A[3][3], real8 x[3], real8 y[3])
         return;
 }
 
+void NormalizeVec(real8 vec[3])
+{
+        real8 a2, a;
+
+        a2 = (vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
+
+        if (a2 > 0.0) {
+            a = sqrt(a2);
+            vec[0] /= a;
+            vec[1] /= a;
+            vec[2] /= a;
+        }
+
+        return;
+}
+
 void InitGrainStructure(Grain_t *grain, int numBounds){
 	grain->nBounds = numBounds;
     grain->GB = (GB_t **)malloc(numBounds*sizeof(GB_t *));	
@@ -652,12 +668,15 @@ void FreeBurgInfoStr(BurgInfo_t *burgData)
     return;
 }
 
-int CompressDirectionList(std::vector< std::vector<real8> >& dirList, int nRows)
+
+void CompressDirectionList(std::vector< std::vector<real8> >& dirList)
 {
-    int     i, j;
+    int     i, j, nRows;
     real8   crossProdt[3], vec1[3], vec2[3];
     int     newNRows = 0;
+    vector< vector<real8> >::iterator  it;
 
+    nRows = dirList.size();
     for(i=0; i<nRows; i++){
         for(j=0; j<newNRows; j++){
             VECTOR_COPY(vec1, dirList[i]);
@@ -671,10 +690,12 @@ int CompressDirectionList(std::vector< std::vector<real8> >& dirList, int nRows)
             newNRows++;
         }
     }
-    return(newNRows);
-
+    
+    for(it = dirList.end(); it != dirList.begin()+newNRows; it--){
+        dirList.erase(it);
+    }
+    return;
 }
-
 
 
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
@@ -684,7 +705,7 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
     real8       crossProdt[3];
     Grain_t     *grain1, *grain2;
     BurgInfo_t  *bd1, *bd2, *gbd;
-    
+   
     grain1 = home->grainKeys[GB->nbrGrain[0]];
     grain2 = home->grainKeys[GB->nbrGrain[1]];
 
@@ -735,16 +756,6 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
         }
     }
 
-    int **bd2KeyLineOnPlaneID = (int **)malloc(bd2->numKeyLines*sizeof(int *));
-    for(i=0; i<bd2->numKeyLines; i++){
-        bd2KeyLineOnPlaneID[i] = (int *)malloc(bd2->numPlanesPerKeyLine[i]*sizeof(int));
-    }
-    for(i=0; i<bd2->numKeyLines; i++){
-        for(j=0; j<bd2->numPlanesPerKeyLine[i]; j++){
-            bd2KeyLineOnPlaneID[i][j] = bd2->keyLineOnPlaneID[i][j]+bd1->numPlanes;
-        }
-    }
-
     numRows = bd1->numBurgVectors + bd2->numBurgVectors;
     gbd->numBurgVectors = numRows;
     gbd->burgList = (real8 (*)[3])malloc(3*numRows*sizeof(real8));
@@ -768,21 +779,6 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
         }
     }
 
-
-    numRows = bd1->numKeyLines + bd2->numKeyLines;
-    gbd->numKeyLines = numRows;
-    gbd->keyLineList = (real8 (*)[3])malloc(3*numRows*sizeof(real8));
-    gbd->numPlanesPerKeyLine = (int *)malloc(numRows*sizeof(int));
-
-    memcpy(gbd->keyLineList, bd1->keyLineList, bd1->numKeyLines*sizeof(real8 [3]));
-    memcpy(gbd->keyLineList+bd1->numKeyLines, bd2->keyLineList, 
-           bd2->numKeyLines*sizeof(real8 [3]));
-
-    memcpy(gbd->numPlanesPerKeyLine, bd1->numPlanesPerKeyLine, bd1->numKeyLines*sizeof(int));
-    memcpy(gbd->numPlanesPerKeyLine+bd1->numKeyLines, bd2->numPlanesPerKeyLine, 
-           bd2->numKeyLines*sizeof(int));
-
-
     gbd->burgOnPlaneID = (int **)malloc(gbd->numBurgVectors*sizeof(int *));
     for(i=0; i<gbd->numBurgVectors; i++){
         gbd->burgOnPlaneID[i] = (int *)malloc(gbd->numPlanesPerBurg[i]*sizeof(int));
@@ -796,16 +792,6 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
     }
     
 
-    gbd->keyLineOnPlaneID = (int **)malloc(gbd->numKeyLines*sizeof(int *));
-    for(i=0; i<gbd->numKeyLines; i++){
-        gbd->keyLineOnPlaneID[i] = (int *)malloc(gbd->numPlanesPerKeyLine[i]*sizeof(int));
-        if(i<bd1->numKeyLines){
-            memcpy(gbd->keyLineOnPlaneID[i], bd1->keyLineOnPlaneID[i], 
-                   gbd->numPlanesPerKeyLine[i]*sizeof(int));
-        }else{
-            memcpy(gbd->keyLineOnPlaneID[i], bd2KeyLineOnPlaneID[i-bd1->numKeyLines],
-                   gbd->numPlanesPerKeyLine[i]*sizeof(int));
-        }
 #if 0
         printf("%-2d: ", i);
         for(j=0; j<gbd->numPlanesPerKeyLine[i]; j++){
@@ -813,9 +799,6 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
         }
         printf("\n");
 #endif
-    }
-    
-
     gbd->planeOnBurgID = (int **)malloc(gbd->numPlanes*sizeof(int *));
     for(i=0; i<gbd->numPlanes; i++){
         gbd->planeOnBurgID[i] = (int *)malloc(gbd->numBurgsPerPlane[i]*sizeof(int));
@@ -844,8 +827,25 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
         free(*(bd2PlaneOnBurgID+i));
     }
 
-    for(i=0; i<bd2->numKeyLines; i++){
-        free(*(bd2KeyLineOnPlaneID+i));
+    std::vector<std::vector<double> >   keyLineList;
+    std::vector<double>                 vecSTL(3);
+
+    for(i=0; i<gbd->numPlanes; i++){
+        cross(gbd->planeList[i], GB->n, crossProdt);
+        if(Normal(crossProdt) < 1E-2)continue;
+        if((gbd->planeType[i] & GLIDE_PLANE) == 0)continue;
+        NormalizeVec(crossProdt);
+        VECTOR_COPY(vecSTL, crossProdt);
+        keyLineList.push_back(vecSTL);
+    }
+
+    CompressDirectionList(keyLineList);
+
+    gbd->numKeyLines = keyLineList.size();
+    gbd->keyLineList = (real8 (*)[3])malloc(3*gbd->numKeyLines*sizeof(real8));
+
+    for(i=0; i<keyLineList.size(); i++){
+        VECTOR_COPY(gbd->keyLineList[i], keyLineList[i]);
     }
 
     return;
@@ -1103,42 +1103,36 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                        int maxDissPerBasicBurg, int maxDiss)
 {
     int     i, j, k, m, nPlanes = 0, nBurgs = 0;
-    int     nShockleyBurgs = 0;
     int     sum, onGBPlane;
-    int     nBurgSets;
+    int     nBurgSets, burgType;
     real8   vec[3];
     real8   crossProd[3], resiBurg[3];
     real8   resiBurgMag;
-    int     burgType;
+    std::vector< std::vector<double> >              planeList;
+    std::vector<int>                                planeIDList;
+    std::vector< std::vector<int> >                 burgOnPlaneID;
+    std::vector< std::vector<int> >                 setLists;
+    std::vector<int>                                valueList;
+    std::vector< std::vector<int> >::iterator       iter;
+    std::vector<int>                                planeID;
+    std::vector<double>                             vector(3);
+    std::vector<int>                                disOnBurgID;
+    std::vector<int>                                disOnPlaneID;
+    std::vector<int>                                oriVec;
+    std::vector<int>                                orderList;
+    std::vector<std::vector<int> >                  disOnPlaneIDList;
+    std::vector<std::vector<int> >                  disOnBurgIDList;
+    std::vector<std::vector<int> >                  orderArray;
 
-    vector< vector<double> >            planeList;
-    vector<int>                         planeIDList;
-    vector< vector<int> >               burgOnPlaneID;
-    vector< vector<int> >               setLists;
-
-    vector<int>                         valueList;
-    vector< vector<double> >::iterator  it;
-    vector< vector<int> >::iterator     iter;
-    vector<int>                         planeID;
-    vector<double>                      vector(3);
-
-    std::vector<int>                    disOnBurgID;
-    std::vector<int>                    disOnPlaneID;
-    std::vector<int>                    oriVec;
-    std::vector<int>                    orderList;
-    std::vector<std::vector<int> >      disOnPlaneIDList;
-    std::vector<std::vector<int> >      disOnBurgIDList;
-    std::vector<std::vector<int> >      orderArray;
-
-    std::vector<std::vector<int> >      recordList(3);
-    std::vector<std::vector<int> >      recordArray;
+    std::vector<std::vector<int> >                  recordList(3);
+    std::vector<std::vector<int> >                  recordArray;
     
-    std::vector<int>                            sortList;
-    std::vector<Dislocation_t>                  disList;
-    std::vector<Dislocation_t>                  tempDisList;
-    std::vector<std::vector<Dislocation_t> >    tempDisArray;
+    std::vector<int>                                sortList;
+    std::vector<Dislocation_t>                      disList;
+    std::vector<Dislocation_t>                      tempDisList;
+    std::vector<std::vector<Dislocation_t> >        tempDisArray;
     
-    std::vector<std::vector<std::vector<int> > >       disOnPlaneIDArray;
+    std::vector<std::vector<std::vector<int> > >    disOnPlaneIDArray;
 
 #if DEBUG_DisassembleDislocation 
     printf("Burg Vector: {%7.4f,%7.4f,%7.4f}\n", burg[0],burg[1],burg[2]);
@@ -1203,15 +1197,13 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         }
     }
     
-    nShockleyBurgs = CompressDirectionList(burgList, nBurgs);
-    for(it = burgList.end(); it != burgList.begin()+nShockleyBurgs; it--){
-        burgList.erase(it);
-    }
-    if(nShockleyBurgs == 0)return(0); 
+    CompressDirectionList(burgList);
+
+    if(burgList.size() == 0)return(0); 
 
 #if DEBUG_DisassembleDislocation
     printf("\nBasic Shockley burgs: \n");
-    for(i=0; i<nShockleyBurgs; i++){
+    for(i=0; i<burgList.size(); i++){
         printf("%2d: {%7.4f,%7.4f,%7.4f}\n",
                i, burgList[i][0], burgList[i][1],
                burgList[i][2]);
@@ -1219,10 +1211,10 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
     printf("\n");
 #endif
     
-    valueList.resize(nShockleyBurgs);
+    valueList.resize(burgList.size());
     for(sum=0; sum < maxDiss+1; sum++){
-        SumOfValuesIsConstant(nShockleyBurgs, sum, valueList, 
-                              nShockleyBurgs, setLists, maxDissPerBasicBurg);
+        SumOfValuesIsConstant(burgList.size(), sum, valueList, 
+                              burgList.size(), setLists, maxDissPerBasicBurg);
     }
 
     if(setLists.size() == 0)return(0);
@@ -1263,7 +1255,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
            (int)(SHOCKLEY_BURG_MAG_FCC * 100 + 1.0)){
             break;
         }
-#if 0
+#if 1
         if(setLists[0][setLists[i].size()-1] == 0){
             if(setLists[i][setLists[i].size()-1] > 0){
                 break;
@@ -1278,8 +1270,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
     }
 
     if(nBurgSets == 0)return(0);
-//#if DEBUG_DisassembleDislocation
-#if 1
+#if DEBUG_DisassembleDislocation
     printf("SetLists: \n");
     for(i=0; i<setLists.size(); i++){
         printf("Set %2d: ", i);
@@ -1291,7 +1282,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
     printf("\n");
 #endif
 
-    burgOnPlaneID.resize(nShockleyBurgs);
+    burgOnPlaneID.resize(burgList.size());
     for(i=0; i<burgOnPlaneID.size(); i++){
         onGBPlane = 0;
         for(j=0; j<nPlanes; j++){

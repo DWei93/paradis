@@ -164,8 +164,9 @@ void CrossSlipFCC(Home_t *home)
 
             if(burgData->burgType[burgID] != EDGE_BURG)continue;
 
-            if(node->onGB != nbr1->onGB && node->onGB != nbr2->onGB ||
-               node->inGrain != nbr1->inGrain && node->inGrain != nbr->inGrain)continue;
+            if(IsOnGB(nbr1) || IsOnGB(nbr2) || IsOnGB(node))continue;
+//            if(node->onGB != nbr1->onGB && node->onGB != nbr2->onGB ||
+//               node->inGrain != nbr1->inGrain && node->inGrain != nbr->inGrain)continue;
 /*
  *          Before we commit to doing a cross-slip event, we may shift
  *          nodes and recalculate some forces to determine if it is
