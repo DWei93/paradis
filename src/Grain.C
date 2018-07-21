@@ -1807,11 +1807,16 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
     numRows = bd1->numBurgVectors + bd2->numBurgVectors;
     gbd->numBurgVectors = numRows;
     gbd->burgList = (real8 (*)[3])malloc(3*numRows*sizeof(real8));
+    gbd->burgType = (int *)malloc(numRows*sizeof(int));
     gbd->numPlanesPerBurg = (int *)malloc(numRows*sizeof(int));
 
     memcpy(gbd->burgList, bd1->burgList, bd1->numBurgVectors*sizeof(real8 [3]));
     memcpy(gbd->burgList+bd1->numBurgVectors, bd2->burgList, 
            bd2->numBurgVectors*sizeof(real8 [3]));
+
+    memcpy(gbd->burgType, bd1->burgType, bd1->numBurgVectors*sizeof(int));
+    memcpy(gbd->burgType+bd1->numBurgVectors, bd2->burgType, 
+           bd2->numBurgVectors*sizeof(int));
 
     memcpy(gbd->numPlanesPerBurg, bd1->numPlanesPerBurg, bd1->numBurgVectors*sizeof(int));
     memcpy(gbd->numPlanesPerBurg+bd1->numBurgVectors, bd2->numPlanesPerBurg, 

@@ -17,8 +17,8 @@
 #
 #  Domain geometry
 #
-numXdoms = 1
-numYdoms = 1
+numXdoms = 2
+numYdoms = 2
 numZdoms = 1
 #
 #  Cell geometry
@@ -80,8 +80,8 @@ appliedStress = [
 	0.0e0
 	-2.0e8
 	0.0e0
-	-2.0e8
-	-2.0e8
+	0.0e0
+	0.0e0
 ]
 
 #
@@ -93,7 +93,7 @@ shearModulus =  46.554e9  # in jin paper
 pois =   0.324
 burgMag =   2.55600e-10  
 limitDisplacement = 0
-GBStrength = 5.0e8
+GBStrength = 0.0e8
 fricStress = 0.0e0
 
 #fricStress = 3.46e7
@@ -107,7 +107,7 @@ rc =  10.0
 #  
 #
 tecplot = 1
-tecplotfreq = 200 
+tecplotfreq = 200
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1

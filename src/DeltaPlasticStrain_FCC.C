@@ -471,7 +471,6 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 	        thread_dyad[2][0] = nz*bx;
 	        thread_dyad[2][1] = nz*by;
 	        thread_dyad[2][2] = nz*bz;
-	         
                for (k = 0; k < 3; k++){
                   for (l = 0; l < 3; l++){
                       real8 tmpDstn;

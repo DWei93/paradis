@@ -493,7 +493,7 @@ void DebugGB(Home_t *home, int flag){
 
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
-        if(node->inGrain == -1 && node->onGB == -1){
+        if(node->inGrain == -1 && node->onGB == -1 || isnan(node->x)){
             PrintNode(node);
             Fatal("DebugGB %d %d", home->myDomain, flag);
         }

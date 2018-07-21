@@ -18,7 +18,7 @@
 #include <algorithm>
 #include <numeric>
 
-#define ENERGY_RULER 1
+#define ENERGY_RULER 0
 
 
 Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int globalOp, int opClass)
@@ -2408,7 +2408,7 @@ void GBCrossSlip(Home_t *home)
     int     opClass, thisDomain;
     int     inGrain, onGB, globalOp;
     int     type, armID, normalID;
-    int     maxPowerDis, maxPowerSet;
+    int     maxPowerSet;
     int     mergeStatus;
     bool    firstCrossSlipNode, sideCrossSlipNode;
     bool    breakLoop;
@@ -2420,7 +2420,7 @@ void GBCrossSlip(Home_t *home)
     real8   dis, burg[3], normal[3];
     real8   newNodePos[3], newNbr1Pos[3], newNbr2Pos[3], newGBNbrPos[3];
     real8   barrierFactor, oriDis, newVel[3];
-    real8   newPos[3];
+    real8   newPos[3],maxPowerDis ;
     real8  segForceOrig[4][3];
     Line_t  interLine;
     Node_t  *node, *nbr1, *nbr2, *nbr, *gbNbr, *newNode;
@@ -2521,7 +2521,7 @@ void GBCrossSlip(Home_t *home)
                nbr2->myTag.domainID != thisDomain)continue;
             
             nbr1Pos[0] = nbr1->x;   nbr1Pos[1] = nbr1->y;   nbr1Pos[2] = nbr1->z;
-            nbr2Pos[0] = nbr2->x;   nbr2Pos[1] = nbr2->y;   nbr1Pos[2] = nbr2->z;
+            nbr2Pos[0] = nbr2->x;   nbr2Pos[1] = nbr2->y;   nbr2Pos[2] = nbr2->z;
 
             PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2],
                         nbr1Pos, nbr1Pos+1, nbr1Pos+2);
@@ -2593,6 +2593,7 @@ void GBCrossSlip(Home_t *home)
         normal[1] = node->ny[armID];
         normal[2] = node->nz[armID];
 
+        NormalizeVec(vec1);
         VECTOR_COPY(interLine.direction,gbd->keyLineList[j]);
         type = PointPlaneIntersection(nodePos, gb->n, gb->p, interLine.point, &dis);
         if(fabs(dis) > 2)printf("Warning in %s at %d\n", __FILE__, __LINE__);
@@ -2653,7 +2654,7 @@ void GBCrossSlip(Home_t *home)
                 powerDis[j] = -oriDis;
                 disPosArray[j].resize(disArray[j].size());
                 for(k=0; k<disArray[j].size(); k++){
-                    disPosArray[j].resize(3);
+                    disPosArray[j][k].resize(3);
 	                ChangeArmBurg(home, nbr1, &node->myTag, 
                                   burgList[disArray[j][k].burgID][0],
                                   burgList[disArray[j][k].burgID][1],
@@ -2736,7 +2737,7 @@ void GBCrossSlip(Home_t *home)
                                       1, segForceOrig);
 	            RepositionNode(home, nodePos, &node->myTag, 0);
 	            RepositionNode(home, nbr1Pos, &nbr1->myTag, 0);
-	            RepositionNode(home, nbr2Pos, &nbr1->myTag, 0);
+	            RepositionNode(home, nbr2Pos, &nbr2->myTag, 0);
 
 	            ChangeArmBurg(home, nbr1, &node->myTag, 
                               burg[0],burg[1],burg[2],normal[0],normal[1],normal[2],
@@ -2759,11 +2760,12 @@ void GBCrossSlip(Home_t *home)
 	            FoldBox(param,newNbr1Pos,newNbr1Pos+1,newNbr1Pos+2);
 	            FoldBox(param,newNbr2Pos,newNbr2Pos+1,newNbr2Pos+2);
 	            RepositionNode(home, newNbr1Pos, &nbr1->myTag, 1);
-	            RepositionNode(home, newNbr2Pos, &nbr1->myTag, 1);
+	            RepositionNode(home, newNbr2Pos, &nbr2->myTag, 1);
             }
 
             j = maxPowerSet;
             globalOp = 1;
+
             for(k=0; k<disArray[j].size(); k++){
                 if(k==0){
 	                ChangeArmBurg(home, nbr1, &node->myTag, 

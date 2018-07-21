@@ -203,6 +203,11 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2,
     if(fabs(1-fabs(n1z)) < EPS1)vec2[2] = p1z;
     if(fabs(1-fabs(n2z)) < EPS1)vec2[2] = p2z;
 
+
+    if(isnan(vec2[0]))vec2[0] = 0.0;
+    if(isnan(vec2[1]))vec2[1] = 0.0;
+    if(isnan(vec2[2]))vec2[2] = 0.0;
+
     return(LINE_INTERSECTION);
 } 
 
@@ -232,6 +237,10 @@ int LinePlaneIntersection(double *d, double *p1, double *n, double *p2,
     vec2[0] = p1x + t*dx;    
     vec2[1] = p1y + t*dy;    
     vec2[2] = p1z + t*dz;
+
+    if(isnan(vec2[0]))vec2[0] = 0.0;
+    if(isnan(vec2[1]))vec2[1] = 0.0;
+    if(isnan(vec2[2]))vec2[2] = 0.0;
     
     return(POINT_INTERSECTION);    
 }
