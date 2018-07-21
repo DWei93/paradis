@@ -1680,7 +1680,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
                 fseg1node2[1] = fy2;
                 fseg1node2[2] = fz2;
 
-#ifdef _FEM
+#if 1
 /*
  *              Also, if segment 3/4 has any surface nodes, we need to add in
  *              any force on the finite portion of segment 1/2 from the
@@ -1691,7 +1691,8 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
  *              from the semi-infinite segment node3-->infinity on the finite
  *              segment node1-->node2
  */
-                if (node3->constraint > 0 && node3->constrain < 4 ) {
+                real8   xInf, yInf, zInf;
+                if (node3->constraint > 0 && node3->constraint < 4 ) {
 
                     xInf = x3 + (x3 - x4);
                     yInf = y3 + (y3 - y4);
@@ -1722,7 +1723,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
  *              the semi-infinite segment node4-->infinity on the finite
  *              segment node1-->node2
  */
-                if (node4->constraint > 0 && node4->constrain < 4) {
+                if (node4->constraint > 0 && node4->constraint < 4) {
 
                     xInf = x4 + (x4 - x3);
                     yInf = y4 + (y4 - y3);

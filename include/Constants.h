@@ -124,5 +124,6 @@
 #define CHECK_FIXREMESH 0
 #define CHECK_GB_TOPO 0
 #define SEG_FAULT_CHECK 0
+#define CROSS_SLIP_GB_MODEL 1
 
 #endif  /* _CONSTANTS_H */

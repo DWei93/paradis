@@ -17,9 +17,9 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
-numYdoms = 2
-numZdoms = 4
+numXdoms = 1
+numYdoms = 1
+numZdoms = 1
 #
 #  Cell geometry
 #
@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res."
+dirname = "res.T1"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -80,8 +80,8 @@ appliedStress = [
 	0.0e0
 	-2.0e8
 	0.0e0
-	0.0e0
-	0.0e0
+	-2.0e8
+	-2.0e8
 ]
 
 #

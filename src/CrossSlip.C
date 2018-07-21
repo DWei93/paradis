@@ -340,6 +340,9 @@ void CrossSlip(Home_t *home)
 
         enabled = home->param->enableCrossSlip;
         matType = home->param->materialType;
+#if CROSS_SLIP_GB_MODEL
+        GBCrossSlip(home);
+#endif
         if (enabled) {
 
             switch(matType) {

@@ -2087,8 +2087,9 @@ void IterFun2(std::vector<int>& oriVec, int iLayer,
     return;
 }
 
+
 int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
-                       real8 *plane, bool crossSlip, 
+                       real8 *plane, int flag, 
                        std::vector< std::vector<double> >&       burgList, 
                        std::vector<std::vector<Dislocation_t> >& disArray,
                        int maxDissPerBasicBurg, int maxDiss) 
@@ -2128,9 +2129,9 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
 #if DEBUG_DisassembleDislocation 
     printf("Burg Vector: {%7.4f,%7.4f,%7.4f}\n", burg[0],burg[1],burg[2]);
     printf("Line Vector: {%7.4f,%7.4f,%7.4f}\n", lDir[0],lDir[1],lDir[2]);
-    if(crossSlip){
+    if(flag == 1){
         printf("origin Plane Normal cross-slip: {%7.4f,%7.4f,%7.4f}\n\n", plane[0],plane[1],plane[2]);
-    }else{
+    }else if(flag == 2){
         printf("origin Plane Normal decompose: {%7.4f,%7.4f,%7.4f}\n\n", plane[0],plane[1],plane[2]);
     }
     printf("Basic glide planes : \n");
@@ -2141,20 +2142,31 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         if((bd->planeType[i] & GLIDE_PLANE) == 0)continue;
         if(fabs(DotProduct(lDir,bd->planeList[i])) < 1.0E-2){
             cross(bd->planeList[i], plane, crossProd);
-            if(crossSlip){
-                if(Normal(crossProd) > 1.0E-2){
+            switch(flag){
+                case 0:
                     VECTOR_COPY(vector, bd->planeList[i]);
                     planeList.push_back(vector);
                     planeIDList.push_back(i);
                     nPlanes++;
-                }
-            }else{
-                if(Normal(crossProd) < 1.0E-2){
-                    VECTOR_COPY(vector, bd->planeList[i]);
-                    planeList.push_back(vector);
-                    planeIDList.push_back(i);
-                    nPlanes++;
-                }
+                    break;
+                case 1:
+                    if(Normal(crossProd) > 1.0E-2){
+                        VECTOR_COPY(vector, bd->planeList[i]);
+                        planeList.push_back(vector);
+                        planeIDList.push_back(i);
+                        nPlanes++;
+                    }
+                    break;
+                case 2:
+                    if(Normal(crossProd) < 1.0E-2){
+                        VECTOR_COPY(vector, bd->planeList[i]);
+                        planeList.push_back(vector);
+                        planeIDList.push_back(i);
+                        nPlanes++;
+                    }
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -2379,7 +2391,10 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
             for(k=0; k<disOnPlaneIDArray[i][j].size(); k++){
                 disList[k].burgID = disOnBurgIDList[i][k];
                 disList[k].planeID = disOnPlaneIDArray[i][j][k];
-                
+                VECTOR_COPY(vec, burgList[disList[k].burgID]);
+                disList[k].energyFactor = Normal(vec)/Normal(burg);
+                disList[k].energyFactor = disList[k].energyFactor*
+                                            disList[k].energyFactor;
             }
 
             sortList.resize(disList.size());
@@ -2390,7 +2405,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
             for(k=0; k<sortList.size(); k++)sortList[k] = k;
             
             tempDisArray.push_back(disList);
-
+#if 0
             while(next_permutation(sortList.begin(), sortList.end())){
                 for(k=0; k<sortList.size(); k++){
                     tempDisList[k] = disList[sortList[k]];
@@ -2402,7 +2417,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
 
 
             CompressDislocationArray(tempDisArray);
-
+#endif
             for(k=0; k<tempDisArray.size(); k++){
                 disArray.push_back(tempDisArray[k]);
             }

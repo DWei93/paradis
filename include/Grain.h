@@ -11,8 +11,10 @@
 #include <vector>
 
 typedef struct {
-    int planeID;
-    int burgID;
+    int     planeID;
+    int     burgID;
+    
+    real8   energyFactor;
 }Dislocation_t;
 /*
  * 	Mesh number used for output of plastic strain field.
@@ -260,10 +262,11 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainI
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB);
 void FreeBurgInfoStr(BurgInfo_t *burgData);
 int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
-                       real8 *plane, bool crossSlip, 
+                       real8 *plane, int flag, 
                        std::vector< std::vector<double> >&       burgList, 
                        std::vector<std::vector<Dislocation_t> >& disArray,
                        int maxDissPerBasicBurg = 1, int maxDiss = 4);
 void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp);
+void GBCrossSlip(Home_t *home);
 int GeosTest();
 #endif

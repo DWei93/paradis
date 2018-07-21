@@ -37,10 +37,10 @@ if [ $PBS_JOBID = $1 ]
 then
     lineNumber=`grep  -n "numZdoms" $ctrlFile | cut -d : -f 1`
     sed -i "${lineNumber}d" $ctrlFile
-    sed -i "${lineNumber}inumZdoms = 4" $ctrlFile
+    sed -i "${lineNumber}inumZdoms = 1" $ctrlFile
 #   make clean  > /dev/null 2>&1
 #   make  > /dev/null 2>&1
-    mpirun -n 16 ./bin/paradis ./${ctrlFile} | tee out.${jobID}
+    mpirun -n 1 ./bin/paradis ./${ctrlFile} | tee out.${jobID}
 else
 	make clean  > /dev/null 2>&1
     	make  > /dev/null 2>&1

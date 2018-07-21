@@ -381,7 +381,8 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 	real8		vec[3], crossProd[3], jth;
     real8       centorPos[3];
     real8       vec1[3], vec2[3], eps, dis;
-    int         i, j, newPlaneID, localGBID, nDiss;
+    real8       barrierFactor;
+    int         i, j, k, newPlaneID, localGBID, nDiss;
     int         currInGrain, currOnGB, nSets, type;
     bool        residualDis;
     Line_t      line;
@@ -450,20 +451,29 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 	normal[1] = node->ny[1];
 	normal[2] = node->nz[1];
 
+    
     if(!GeometricCriterion(gbd, burg, pene->line2.direction, normal, 1,
                        burgList, disArray))return(0);
 	
-    for(i=0; i<disArray.size(); ){
-        for(j=0; j<disArray[i].size(); j++){
-            cross(gb->n, gbd->planeList[disArray[i][j].planeID], crossProd);
-            VECTOR_COPY(vec, burgList[disArray[i][j].burgID]);
-            if(BurgType_FCC(vec) == BASIC_BURG && Normal(crossProd) < 1.0E-2)break;
+    for(j=0; j<disArray.size(); ){
+        barrierFactor = -1.0;
+        for(k=0; k<disArray[j].size(); k++){
+            barrierFactor += disArray[j][k].energyFactor;
+            cross(gb->n, gbd->planeList[disArray[j][k].planeID], crossProd);
+            VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
+            if(Normal(crossProd) < 1.0E-2){
+                if(BurgType_FCC(vec) == BASIC_BURG)break;
+            }else{
+                if(BurgType_FCC(vec) != BASIC_BURG)break;
+            }
         }
-        if(j != disArray[i].size()){
-            itDisList = disArray.begin() + i;
+
+        if(k != disArray[j].size() || j > 0 && 
+           barrierFactor > 0){
+            itDisList = disArray.begin() + j;
             disArray.erase(itDisList);
         }else{
-            i++;
+            j++;
         }
     }
     if(disArray.size() == 0)return(0);
@@ -550,6 +560,119 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 }
 
 int PenetrationFirst(Home_t *home, Pene_t *pene)
+#if CROSS_SLIP_GB_MODEL
+{
+
+    int         myDomain, type, currInGrain, currOnGB, oldInGrain;
+    int         numBkup, i, j, globalOp, mobError, newPlaneID;
+    int         planeID, localPlaneID, maxPowerSet, onGB;
+    int         newInGrain, newOnGB;
+    bool        switchedArm, passGB;
+    real8       nodeVel[3], currPos[3], oldPos[3], posClosedGB[3];
+    real8       dis, dirGBNode[3], node1Pos[3], node2Pos[3];
+    real8       vec1[3], vec2[3], newVel[3], nForce[3], norm;
+    real8       centorPos[3], lDir[3], peneLength, planeBurg[3];
+    real8       maxPowerDis;
+    Node_t      *node, *nbrNode1, *nbrNode2, *nbr, *node1, *node2;
+    Node_t      *localNode, *newNode;
+    Node_t      *bkupNodeList, **newNodePtrList; 
+    GB_t        *gb;
+    BurgInfo_t  *bd;
+    
+    real8       gammaS, gammaT;
+
+    Param_t     *param;
+	
+	myDomain = home->myDomain;
+	param = home->param;
+    
+    gammaS = 4.47E-2/param->burgMag;  /* units: Pa.b*/
+    gammaT = 0.5*gammaS;
+
+    node = pene->node;
+    gb = pene->gb;
+    bd = &(gb->burgData);
+
+    centorPos[0] = (pene->line1.point[0] + pene->line2.point[0])*0.5;
+    centorPos[1] = (pene->line1.point[1] + pene->line2.point[1])*0.5;
+    centorPos[2] = (pene->line1.point[2] + pene->line2.point[2])*0.5;
+
+    vec1[0] = (pene->line1.point[0] - pene->line2.point[0]);
+    vec1[1] = (pene->line1.point[1] - pene->line2.point[1]);
+    vec1[2] = (pene->line1.point[2] - pene->line2.point[2]);
+    peneLength = Normal(vec1);
+
+	nodeVel[0] = node->vX;
+	nodeVel[1] = node->vY;
+	nodeVel[2] = node->vZ;
+	
+	currPos[0] = node->x;
+	currPos[1] = node->y;
+	currPos[2] = node->z;
+
+    oldPos[0] = node->oldx;
+    oldPos[1] = node->oldy;
+    oldPos[2] = node->oldz;
+
+    type = PointPlaneIntersection(currPos, gb->n,
+                                  gb->p, posClosedGB, &dis);
+    if(fabs(dis) < 1E-10)return(0);
+
+    vec1[0] = currPos[0] - oldPos[0];
+    vec1[0] = currPos[0] - oldPos[0];
+    vec1[0] = currPos[0] - oldPos[0];
+    ZImage(param, vec1, vec1+1, vec1+2);
+    if(DotProduct(vec1, nodeVel) <= 0)return(0);
+
+    NodeLocation(home, currPos[0], currPos[1], currPos[2], currInGrain, currOnGB);
+    oldInGrain = node->inGrain;
+
+	if(Normal(nodeVel) < 1.0)return(0);
+
+	nbrNode1 = GetNeighborNode(home,node,0);
+	nbrNode2 = GetNeighborNode(home,node,1);
+	
+	if(nbrNode1 == (Node_t *)NULL || nbrNode2 == (Node_t *)NULL)return(0);
+	
+	node1 = (Node_t *)NULL; 
+	node2 = (Node_t *)NULL; 
+	
+//node1pos
+    VECTOR_COPY(node1Pos, pene->line1.point);
+    FoldBox(param, node1Pos, node1Pos+1, node1Pos+2);
+
+// node2 pos
+    VECTOR_COPY(node2Pos, pene->line2.point);
+    FoldBox(param, node2Pos, node2Pos+1, node2Pos+2);
+
+/*	
+ *	Insert a new native node and select two segements to deal with
+ */
+	globalOp = 1;
+
+	if((localNode = InsertNode(home,node,nbrNode2,oldPos,
+        globalOp,OPCLASS_SEPARATION)) == (Node_t *)NULL) {
+	    return(0);
+	}
+
+    switchedArm = (GetArmID(home, node, nbrNode1) == -1);
+	
+	if(switchedArm){
+        node1 = localNode;
+        node2 = node;
+	}else{
+	    node1 = node;
+	    node2 = localNode;
+	}
+	
+	RepositionNode(home, node2Pos, &node2->myTag, globalOp);
+	RepositionNode(home, node1Pos, &node1->myTag, globalOp);
+
+    AssignGrain(home, node1, -1, gb->GBID);
+    AssignGrain(home, node2, -1, gb->GBID);
+    return(1);
+}
+#else
 {
 
     int         myDomain, type, currInGrain, currOnGB, oldInGrain;
@@ -984,11 +1107,70 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 
 	return(1);
 }
+#endif
 
 
 
 int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain, 
-					Grain_t *currGrain, Plane_t *GBPlane){
+					Grain_t *currGrain, Plane_t *GBPlane)
+#if CROSS_SLIP_GB_MODEL
+
+{
+	
+	int		    i, nodeDeletable;
+	int         currInGrain, currOnGB;
+	int         currNbrInGrain, currNbrOnGB;
+	real8		newPos[3], currNbrPos[3], dis;
+	real8 		nDir1[3], burg[3], nodeVel[3], oldPos[3], currPos[3];
+    real8       vec1[3], vec2[3], dir[3], vec[3], oldNbrPos[3];
+	Line_t		interLine;
+    int         mergeStatus, mergeDone;
+
+	Node_t		*nbrNode1, *nbrNode2, *mergedNode;
+    Param_t     *param;
+
+	Plane_t		oldGlidePlane, plane;
+
+    param = home->param;
+		
+	currPos[0] = node->x;
+	currPos[1] = node->y;
+	currPos[2] = node->z;
+    NodeLocation(home, currPos[0], currPos[1], currPos[2], currInGrain, currOnGB);
+	
+	nDir1[0] = node->nx[0];
+	nDir1[1] = node->ny[0];
+	nDir1[2] = node->nz[0];
+	
+    if(PlanePlaneIntersection(nDir1, currPos, GBPlane->normal, 
+       GBPlane->point, vec1, vec2) != LINE_INTERSECTION)return(0);
+    VECTOR_COPY(interLine.direction, vec1);
+    VECTOR_COPY(interLine.point, vec2);
+
+	nbrNode1 = GetNeighborNode(home,node,0);
+	nbrNode2 = GetNeighborNode(home,node,1);
+	
+	if(nbrNode1==(Node_t *)NULL || nbrNode2==(Node_t *)NULL) return(0);
+
+/*	nbrNode2 is always intersection node.	*/
+	if(NodeOnGB(home,nbrNode1) & INTERSECT_NODE){
+		Node_t *nodeTemp;
+		nodeTemp = nbrNode1;
+		nbrNode1 = nbrNode2;
+		nbrNode2 = nodeTemp;
+	}
+
+    FindIntersectionWithGB(home, node, nbrNode1, GBPlane, &interLine);
+    VECTOR_COPY(newPos, interLine.point);
+
+    FoldBox(param, newPos, newPos+1, newPos+2);
+	RepositionNode(home, newPos, &node->myTag, 1);
+
+    AssignGrain(home, node, -1, nbrNode2->onGB);
+    return(1);
+}
+#else
+{
 	
 	int		    i, nodeDeletable;
 	int         currInGrain, currOnGB;
@@ -1067,8 +1249,83 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	return(1);
 }
 
+#endif
+
 int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain, 
 					Grain_t *newGrain, Plane_t *GBPlane)
+#if CROSS_SLIP_GB_MODEL
+
+{
+
+	real8 		burg[3], vec[3], mergePos[3],TBInGrain;
+    real8       nodePos[3], oldPos[3], vec1[3], vec2[3];
+    real8       dis;
+	Node_t 		*nbrNode1, *nbrNode2, *mergedNode;
+	int			mergeStatus,i,j, globalOp,q,thisDomain;
+	int         crossSlipNode = 0, type;
+    Param_t     *param;
+
+    param = home->param;
+	thisDomain = home->myDomain;
+	
+	burg[0] = node->burgX[0];
+	burg[1] = node->burgY[0];
+	burg[2] = node->burgZ[0];
+	
+	nbrNode1 = GetNeighborNode(home,node,0);
+	nbrNode2 = GetNeighborNode(home,node,1);
+	if(nbrNode1==(Node_t *)NULL || nbrNode2==(Node_t *)NULL)
+		return(0);
+    if(nbrNode1->myTag.domainID != thisDomain || 
+       nbrNode2->myTag.domainID != thisDomain)return(0);
+	
+	if(SurfaceNode(nbrNode1) && IsOnGB(nbrNode1) ||
+	   SurfaceNode(nbrNode2) && IsOnGB(nbrNode2))return(0);
+	globalOp = 1;
+
+    nodePos[0] = node->x;
+    nodePos[1] = node->y;
+    nodePos[2] = node->z;
+    FoldBox(param, nodePos, nodePos+1, nodePos+2);
+
+    oldPos[0] = node->oldx;
+    oldPos[1] = node->oldy;
+    oldPos[2] = node->oldz;
+    PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2], 
+                       oldPos, oldPos+1, oldPos+2);
+    
+    vec[0] = nodePos[0] - oldPos[0];
+    vec[1] = nodePos[1] - oldPos[1];
+    vec[2] = nodePos[2] - oldPos[2];
+    if(Normal(vec) < 1E-2)return(0);
+
+    NormalizeVec(vec);
+    type = LinePlaneIntersection(vec, oldPos, GBPlane->normal, GBPlane->point, 
+                                 vec1, vec2);
+    
+    switch(type){
+        case POINT_INTERSECTION:
+            VECTOR_COPY(mergePos, vec2);
+            break;
+        case LINE_INTERSECTION:
+            vec[0] = 0.5*(nodePos[0] + oldPos[0]);
+            vec[1] = 0.5*(nodePos[1] + oldPos[1]);
+            vec[2] = 0.5*(nodePos[2] + oldPos[2]);
+            PointPlaneIntersection(vec, GBPlane->normal, GBPlane->point,
+                                   mergePos, &dis);
+            break;
+        default:
+            Fatal("PenetrationLast: wrong intersection type");
+
+    }
+    FoldBox(param, mergePos, mergePos+1, mergePos+2);
+	RepositionNode(home, mergePos, &node->myTag, 1);
+
+    AssignGrain(home, node, -1, nbrNode2->onGB);
+
+    return(1);
+}
+#else
 {
 
 	real8 		burg[3], vec[3], mergePos[3],TBInGrain;
@@ -1156,8 +1413,61 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
     }
 	return(1);
 }
+#endif
 
 int PenetrationSurface(Home_t *home, Node_t *node, GB_t *gb)
+#if CROSS_SLIP_GB_MODEL
+{
+    int         type;
+    real8       n1[3], p1[3], n2[3], p2[3], n3[3], p3[3];
+    real8       lDir[3], lPos[3], vec[3], newPos[3];
+    Node_t      *nbrNode;
+	Param_t 	*param;
+
+	param = home->param;
+
+    if(!SurfaceNode(node))Fatal("in %s at %d", __FILE__, __LINE__);
+
+	nbrNode = GetNeighborNode(home, node, 0);
+    if(nbrNode == (Node_t *)NULL)Fatal("in %s at %d", __FILE__, __LINE__);
+    if(nbrNode->myTag.domainID != home->myDomain || !IsOnGB(nbrNode))return(0);
+    if(!SurfaceNode(node))Fatal("in %s at %d", __FILE__, __LINE__);
+
+    VECTOR_ZERO(n1);
+    n1[node->constraint - 1] = 1.0;
+    p1[0] = node->x;
+    p1[1] = node->y;
+    p1[2] = node->z;
+
+    VECTOR_COPY(n2, gb->n);
+    p2[0] = nbrNode->x;
+    p2[1] = nbrNode->y;
+    p2[2] = nbrNode->z;
+
+    type = PlanePlaneIntersection(n2, p2, n1, p1, lDir, lPos);
+    if(type != LINE_INTERSECTION){
+        printf("Warning in PenetrationSurface: in %s at %d", __FILE__, __LINE__);
+        return(0);
+    }
+
+    n3[0] = node->nx[0];
+    n3[1] = node->ny[0];
+    n3[2] = node->nz[0];
+    VECTOR_COPY(p3, p2);
+    type = LinePlaneIntersection(lDir, lPos, n3, p3, vec, newPos);
+    if(type != POINT_INTERSECTION){
+        printf("Warning in PenetrationSurface: in %s at %d", __FILE__, __LINE__);
+        return(0);
+    }
+    
+    FoldBox(home->param, newPos, newPos+1, newPos+2);
+	RepositionNode(home, newPos, &node->myTag, 1);
+    AssignGrain(home, node, -1, nbrNode->onGB);
+
+    return(1);
+}
+
+#else
 {
     int         type;
     real8       n1[3], p1[3], n2[3], p2[3], n3[3], p3[3];
@@ -1219,6 +1529,7 @@ int PenetrationSurface(Home_t *home, Node_t *node, GB_t *gb)
 
     return(1);
 }
+#endif
 
 
 void HandleGrainBoundary(Home_t *home)
@@ -2093,741 +2404,481 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
 
 void GBCrossSlip(Home_t *home)
 {
-        int    i, j, n;
-        int    plane1, plane2, fplane;
-        int    pinned1, pinned2;
-        int    opClass, thisDom;
-        int    resetNodePos, resetNbr1Pos, resetNbr2Pos;
-        int    nbr1ArmID, nbr2ArmID;
-        int    seg1_is_screw, seg2_is_screw, bothseg_are_screw;
-        int     burgID;
-        real8  tmp, eps, thetacrit, sthetacrit, s2thetacrit, areamin;
-        real8  test1, test2, test3, testmax1, testmax2, testmax3;
-        real8  vec1dotb, vec2dotb, vec3dotb, fdotglide;
-        real8  f1dotplane1, f1dotplane2, f1dotplanef, newfdotglide;
-        real8  nodep[3], nbr1p[3], nbr2p[3];
-        real8  vec1[3], vec2[3], vec3[3];
-        real8  segplane1[3], segplane2[3], newplane[3];
-        real8  tmp3[3], tmp3B[3], tmp3C[3];
-        real8  glideDirLab[3][3], glideDirCrystal[3][3];
-        real8  fLab[3], fCrystal[3];
-        real8  burgLab[3], burgCrystal[3];
-        real8  nodePosOrig[3], nbr1PosOrig[3], nbr2PosOrig[3];
-        real8  newForce[3], newSegForce[3];
-        real8  segForceOrig[4][3];
-        real8  noiseFactor, weightFactor, fnodeThreshold;
-        real8  L1, L2, shearModulus, burgSize;
-        real8  zipperThreshold;
-        Node_t *node, *nbr1, *nbr2, *nbr, *gbNbr;
-        Param_t *param;
-        real8   rotMatrix[3][3], rotMatrixInverse[3][3];
+    int     i, j, k, nBurgsSplit, nNbrsOnGB;
+    int     opClass, thisDomain;
+    int     inGrain, onGB, globalOp;
+    int     type, armID, normalID;
+    int     maxPowerDis, maxPowerSet;
+    int     mergeStatus;
+    bool    firstCrossSlipNode, sideCrossSlipNode;
+    bool    breakLoop;
+    real8   test1, test2, test3, test1Max, test2Max, test3Max;
+    real8   nodePos[3], nbr1Pos[3], nbr2Pos[3], gbNbrPos[3];
+    real8   vec1[3], vec2[3], vec3[3], vec[3], crossProd[3];
+    real8   noiseFactor, weightFactor, fnodeThreshold;
+    real8   eps, thetacrit, sthetacrit, s2thetacrit, areamin;
+    real8   dis, burg[3], normal[3];
+    real8   newNodePos[3], newNbr1Pos[3], newNbr2Pos[3], newGBNbrPos[3];
+    real8   barrierFactor, oriDis, newVel[3];
+    real8   newPos[3];
+    real8  segForceOrig[4][3];
+    Line_t  interLine;
+    Node_t  *node, *nbr1, *nbr2, *nbr, *gbNbr, *newNode;
+    Node_t  *mergedNode;
+    Param_t *param;
 
-        BurgInfo_t  *bd;
-        GB_t        *gb;
+    std::vector<real8>                                      powerDis;
+    std::vector<std::vector<double> >                       burgList;
+    std::vector<std::vector< Dislocation_t> >               disArray; 
+    std::vector<std::vector<Dislocation_t> >::iterator      itDisList;
+    std::vector<std::vector<std::vector<real8> > >          disPosArray;
 
-        param = home->param;
-        thisDom = home->myDomain;
+    BurgInfo_t  *gbd;
+    GB_t        *gb;
 
-        eps = 1.0e-06;
-        thetacrit = 2.0 / 180.0 * M_PI;
-        sthetacrit = sin(thetacrit);
-        s2thetacrit = sthetacrit * sthetacrit;
-        areamin = param->remeshAreaMin;
+    param = home->param;
+    thisDomain = home->myDomain;
 
-/*
- *      In order to cross-slip a node, the force on the cross-slip
- *      plane must exceed a value based on the force on the current
- *      plane plus an amount that should guarantee the force on
- *      the cross-slip plane is not just in the noise.  The next
- *      two values are used in calculating that needed force.
- */
-        noiseFactor=1e-05;
-        weightFactor=1.0;
+    eps = 1.0e-06;
+    thetacrit = 2.0 / 180.0 * M_PI;
+    sthetacrit = sin(thetacrit);
+    s2thetacrit = sthetacrit * sthetacrit;
+    areamin = param->remeshAreaMin;
 
 /*
- *      For purposes of determining segment ownership, we need to treat
- *      cross slip operations the same as we do during collision handling.
+ *  In order to cross-slip a node, the force on the cross-slip
+ *  plane must exceed a value based on the force on the current
+ *  plane plus an amount that should guarantee the force on
+ *  the cross-slip plane is not just in the noise.  The next
+ *  two values are used in calculating that needed force.
  */
-        opClass = OPCLASS_COLLISION;
+    noiseFactor=1e-05;
+    weightFactor=1.0;
 
 /*
- *      Loop through all 2-nodes native to this domain
+ *  For purposes of determining segment ownership, we need to treat
+ *  cross slip operations the same as we do during collision handling.
  */
-        for (i = 0; i < home->newNodeKeyPtr; i++) {
+    opClass = OPCLASS_COLLISION;
 
-            if ((node = home->nodeKeys[i]) == (Node_t *)NULL) {
-                continue;
+/*
+ *  Loop through all 2-nodes native to this domain
+ */
+    for (i = 0; i < home->newNodeKeyPtr; i++) {
+
+        if ((node = home->nodeKeys[i]) == (Node_t *)NULL) {
+            continue;
+        }
+
+        if (node->constraint != UNCONSTRAINED) {
+            continue;
+        }
+
+        if(node->numNbrs < 2)continue;
+        if(!IsOnGB(node))continue;
+
+        nBurgsSplit = 0;
+        nNbrsOnGB = 0;
+        for(j=0; j<node->numNbrs; j++){
+            nbr = GetNeighborNode(home, node, j);
+            if(nbr == (Node_t *)NULL){
+                printf("WARNING: Neighbor not found at %s line %d\n",
+                        __FILE__, __LINE__);
+                break;
+            }
+            if(!DomainOwnsSeg(home, opClass, thisDomain, &node->nbrTag[j])){
+                break;
             }
 
-            if (node->constraint != UNCONSTRAINED) {
-                continue;
+            if(IsOnGB(nbr)){
+                nNbrsOnGB++;
+                gbNbr = nbr;
             }
 
-            if(node->numNbrs < 2)continue;
-            if(!IsOnGB(node))continue;
+            if(sqrt(node->burgX[j]*node->burgX[j]+
+               node->burgY[j]*node->burgY[j]+
+               node->burgZ[j]*node->burgZ[j]) > 
+               SHOCKLEY_BURG_MAG_FCC+1.0E-2) nBurgsSplit++;
 
-            nBurgsSplit = 0;
-            nNbrsOnGB = 0;
-            for(j=0; j<node->numNbrs; j++){
-                nbr = GetNeighborNode(home, node, j);
-                if(nbr == (Node_t *)NULL){
-                    printf("WARNING: Neighbor not found at %s line %d\n",
-                            __FILE__, __LINE__);
-                    continue;
-                }
+        }
+        if(j != node->numNbrs)continue;
 
-                if(IsOnGB(nbr)){
-                    nNbrsOnGB++;
-                    gbNbr = nbr;
-                }
+        if(nBurgsSplit == 0 || nBurgsSplit > 2 || nNbrsOnGB == 0)continue;
 
-                if(sqrt(node->burgX[j]*node->burgX[j]+
-                   node->burgY[j]*node->burgY[j]+
-                   node->burgZ[j]*node->burgZ[j]) > 
-                   SHOCKLEY_BURG_MAG_FCC+1.0E-2) nBurgsSplit++;
+        firstCrossSlipNode = (node->numNbrs == 2 && nNbrsOnGB == 2 && nBurgsSplit == 2);
+        sideCrossSlipNode = (nNbrsOnGB == 1 && nBurgsSplit == 1);
+        if(!(firstCrossSlipNode || sideCrossSlipNode))continue;
+        
+        nodePos[0] = node->x;   nodePos[1] = node->y;   nodePos[2] = node->z;
+        
+        gb = home->GBKeys[node->onGB];
+        gbd = &(gb->burgData);
 
-            }
-
-            if(nBurgsSplit == 0 || nBurgsSplit > 2 || nNbrsOnGB == 0)continue;
-
-            firstCrossSlipNode = (node->numNbrs == 2 && nNbrsOnGB == 2 && nBurgsSplit == 2);
-            sideCrossSlipNode = (nNbrsOnGB == 1 && nBurgsSplit == 1);
-            if(!(fistCrossSlipNode || sideCrossSlipNode))continue;
+        if(firstCrossSlipNode){
+            nbr1 = GetNeighborNode(home, node, 0);
+            nbr2 = GetNeighborNode(home, node, 1);
+            if(nbr1->myTag.domainID != thisDomain ||
+               nbr2->myTag.domainID != thisDomain)continue;
             
-            nodePos[0] = node->x;   nodePos[1] = node->y;   nodePos[2] = node->z;
+            nbr1Pos[0] = nbr1->x;   nbr1Pos[1] = nbr1->y;   nbr1Pos[2] = nbr1->z;
+            nbr2Pos[0] = nbr2->x;   nbr2Pos[1] = nbr2->y;   nbr1Pos[2] = nbr2->z;
+
+            PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2],
+                        nbr1Pos, nbr1Pos+1, nbr1Pos+2);
+            PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2],
+                        nbr2Pos, nbr2Pos+1, nbr2Pos+2);
+
+            if(GetPlaneID_FCC(home, node, nbr1) != GetPlaneID_FCC(home, node, nbr2))continue;
+
+            vec1[0] = nbr1Pos[0] - nodePos[0];
+            vec1[1] = nbr1Pos[1] - nodePos[1];
+            vec1[2] = nbr1Pos[2] - nodePos[2];
+
+            vec2[0] = nbr2Pos[0] - nodePos[0];
+            vec2[1] = nbr2Pos[1] - nodePos[1];
+            vec2[2] = nbr2Pos[2] - nodePos[2];
+
+            vec3[0] = nbr2Pos[0] - nbr1Pos[0];
+            vec3[1] = nbr2Pos[1] - nbr1Pos[1];
+            vec3[2] = nbr2Pos[2] - nbr1Pos[2];
             
-            if(firstCrossSlipNode){
-                nbr1 = GetNeighborNode(home, node, 0);
-                nbr2 = GetNeighborNode(home, node, 1);
-                
-                nbr1Pos[0] = nbr1->x;   nbr1Pos[1] = nbr1->y;   nbr1Pos[2] = nbr1->z;
-                nbr2Pos[0] = nbr2->x;   nbr2Pos[1] = nbr2->y;   nbr1Pos[2] = nbr2->z;
+            test1Max = DotProduct(vec1,vec1);
+            test2Max = DotProduct(vec2,vec2);
+            test3Max = DotProduct(vec3,vec3);
+        
+            for(j=0; j<gbd->numKeyLines; j++){
+                test3 = DotProduct(vec3, gbd->keyLineList[j]);
+                test3 = test3 * test3;
+                if(test3Max - test3 > test3Max * s2thetacrit)continue;
 
-                PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2],
-                            nbr1Pos, nbr1Pos+1, nbr1Pos+2);
-                PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2],
-                            nbr2Pos, nbr2Pos+1, nbr2Pos+2);
+                test1 = DotProduct(vec1, gbd->keyLineList[j]);    
+                test1 = test1 * test1;
+                if(test1Max - test1 > 4.0 * test1Max * s2thetacrit)continue;
 
-                vec1[0] = nbr1Pos[0] - nodePos[0];
-                vec1[1] = nbr1Pos[1] - nodePos[1];
-                vec1[2] = nbr1Pos[2] - nodePos[2];
+                test2 = DotProduct(vec2, gbd->keyLineList[j]);    
+                test2 = test2 * test2;
+                if(test2Max - test2 > 4.0 * test2Max * s2thetacrit)continue;
 
-                vec2[0] = nbr2Pos[0] - nodePos[0];
-                vec2[1] = nbr2Pos[1] - nodePos[1];
-                vec2[2] = nbr2Pos[2] - nodePos[2];
+                break;
+            }
+            if(j == gbd->numKeyLines)continue;
 
-                vec3[0] = nbr2Pos[0] - nbr1Pos[0];
-                vec3[1] = nbr2Pos[1] - nbr1Pos[1];
-                vec3[2] = nbr2Pos[2] - nbr1Pos[2];
-                
-                test1Max = DotProduct(vec1,vec1);
-                test2Max = DotProduct(vec2,vec2);
-                test3Max = DotProduct(vec3,vec3);
+        }else if(sideCrossSlipNode){
+            gbNbrPos[0] = gbNbr->x;     gbNbrPos[1] = gbNbr->y;     gbNbrPos[2] = gbNbr->z;
+            PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2],
+                        gbNbrPos, gbNbrPos+1, gbNbrPos+2);
             
-                for(j=0; j<bd->numKeyLines; j++){
-                    test3 = DotProduct(vec3, gb->keyLineList[j]);
-                    test3 = test3 * test3;
-                    if(test3Max - test3 > test3Max * s2thetacrit)continue;
-
-                    test1 = DotProduct(vec1, gb->keyLineList[j]);    
-                    test1 = test1 * test1;
-                    if(tes1Max - test1 > 4.0 * test1Max * s2thetacrit)continue;
-
-                    test2 = DotProduct(vec2, gb->keyLineList[j]);    
-                    test2 = test2 * test2;
-                    if(tes2Max - test2 > 4.0 * test2Max * s2thetacrit)continue;
-
-                    break;
-                }
-                if(j == bd->numKeyLines)continue;
-
-            }else if(sideCrossSlipNode){
-                gbNbrPos[0] = n
-                
+            vec1[0] = gbNbrPos[0] - nodePos[0];
+            vec1[1] = gbNbrPos[1] - nodePos[1];
+            vec1[2] = gbNbrPos[2] - nodePos[2];
+            test1Max = DotProduct(vec1, vec1);
+    
+            for(j=0; j<gbd->numKeyLines; j++){
+                test1 = DotProduct(vec1, gbd->keyLineList[j]);
+                test1 = test1 * test1;
+                if(test1Max - test1 > test1Max * s2thetacrit)continue;
+                break;
             }
+            if(j == gbd->numKeyLines)continue;
+        }else{
+            continue;
+        }
 
-            
+        
+        armID = GetArmID(home, node, gbNbr);
+        burg[0] = node->burgX[armID];
+        burg[1] = node->burgY[armID];
+        burg[2] = node->burgZ[armID];
+        normal[0] = node->nx[armID];
+        normal[1] = node->ny[armID];
+        normal[2] = node->nz[armID];
 
-            nodep[0] = node->x; nodep[1] = node->y; nodep[2] = node->z;
-            nbrGBNodep[0] = nbrGBNode->x; nbrGBNodep[1] = nbrGBNode->y; nbrGBNodep[2] = nbrGBNode->z;
-            PBCPOSITION(param, nodep[0], nodep[1], nodep[2],
-                        &nbrGBNodep[0], &nbrGBNodep[1], &nbrGBNodep[2]);
+        VECTOR_COPY(interLine.direction,gbd->keyLineList[j]);
+        type = PointPlaneIntersection(nodePos, gb->n, gb->p, interLine.point, &dis);
+        if(fabs(dis) > 2)printf("Warning in %s at %d\n", __FILE__, __LINE__);
 
-            vec[0] = nbrGBNodep[0] - nodep[0];
-            vec[1] = nbrGBNodep[1] - nodep[1];
-            vec[2] = nbrGBNodep[2] - nodep[2];
-            testMax = DotProduct(vec, vec);
-            
-            for(j=0; j<bd->numKeyLines; j++){
-            }
+        if(firstCrossSlipNode){
+            std::vector<std::vector< Dislocation_t> >().swap(disArray);
+            std::vector<std::vector<double> >().swap(burgList);
 
+            if(!GeometricCriterion(gbd, burg, interLine.direction, normal, 1,
+                   burgList, disArray))continue;
 
-            if ((nbr1 == (Node_t *)NULL) ||
-                (nbr2 == (Node_t *)NULL)) {
-            }
-            if()
-
-            burgLab[0] = node->burgX[0];
-            burgLab[1] = node->burgY[0];
-            burgLab[2] = node->burgZ[0];
-            if(Normal(burgLab) < SHOCKLEY_BURG_MAG_FCC+1.0E-2)continue;
-
-/*
- *          We must not change the glide plane for any segment
- *          that is not 'owned' by the node in the current domain.
- *          Otherwise, neighboring domains *could* change the
- *          glide plane for the same segment... this would be bad.
- */
-            if ((!DomainOwnsSeg(home, opClass, thisDom, &node->nbrTag[0])) ||
-                (!DomainOwnsSeg(home, opClass, thisDom, &node->nbrTag[1]))) {
-                continue;
-            }
-
-            gb = home->GBKeys[node->onGB];
-            bd = &(gb->burgData);
-
-            VECTOR_COPY(burgCrystal, burgLab);
-
-/*
- *          If needed, rotate a copy of the burgers vector from the lab
- *          frame to the crystal frame.  Otherwise, lab and crystal frames
- *          are identical.
- */
-            if (param->useLabFrame) {
-                VectorLabToCrystal(home, node, nbr1, burgLab, burgCrystal);
-            }
-
-            burgSize = sqrt(DotProduct(burgLab, burgLab));
-
-            NormalizeVec(burgLab);
-            NormalizeVec(burgCrystal);
-
-/*
- *          Only consider glide dislocations.  If burgers vector is not
- *          a [1 1 0] type, ignore it.
- */
-            burgData = GetBurgData(home, node, nbr1);
-            burgID = BurgID_FCC(burgData, burgLab);
-            if(burgID >= burgData->numBurgVectors)continue;
-
-            if(burgData->burgType[burgID] != EDGE_BURG)continue;
-
-            if(IsOnGB(nbr1) || IsOnGB(nbr2) || IsOnGB(node))continue;
-//            if(node->onGB != nbr1->onGB && node->onGB != nbr2->onGB ||
-//               node->inGrain != nbr1->inGrain && node->inGrain != nbr->inGrain)continue;
-/*
- *          Before we commit to doing a cross-slip event, we may shift
- *          nodes and recalculate some forces to determine if it is
- *          better to cross-slip the node or leave it where it is.
- *          in order to do that, we need to save some of the nodal info
- *          so we can restore the original state if it is determined
- *          that the cross-slip is not wise.
- */
-            nbr1ArmID = GetArmID(home, nbr1, node);
-            nbr2ArmID = GetArmID(home, nbr2, node);
-
-            SaveCrossSlipInfo(node, nbr1, nbr2, nbr1ArmID, nbr2ArmID,
-                              segForceOrig, nodePosOrig, nbr1PosOrig,
-                              nbr2PosOrig);
-
-/*
- *          Get the positions of all three nodes and convert the neighbor
- *          node positions to the PBC coordinates relative to the main
- *          node.  These adjusted positions will be used during the
- *          cross slip algorithm, and if updated during the process, will
- *          be copied back into the respective nodal data structures and
- *          shifted back into the primary image space.
- */
-            nodep[0] = node->x; nodep[1] = node->y; nodep[2] = node->z;
-            nbr1p[0] = nbr1->x; nbr1p[1] = nbr1->y; nbr1p[2] = nbr1->z;
-            nbr2p[0] = nbr2->x; nbr2p[1] = nbr2->y; nbr2p[2] = nbr2->z;
-
-            PBCPOSITION(param, nodep[0], nodep[1], nodep[2],
-                        &nbr1p[0], &nbr1p[1], &nbr1p[2]);
-            PBCPOSITION(param, nodep[0], nodep[1], nodep[2],
-                        &nbr2p[0], &nbr2p[1], &nbr2p[2]);
-
-            resetNodePos = 0;
-            resetNbr1Pos = 0;
-            resetNbr2Pos = 0;
-
-/*
- *          If the node is a point on a long screw then we can consider
- *          it for possible cross slip.
- */
-            vec1[0] = nbr1p[0] - nbr2p[0];
-            vec1[1] = nbr1p[1] - nbr2p[1];
-            vec1[2] = nbr1p[2] - nbr2p[2];
-
-            vec2[0] = nodep[0] - nbr1p[0];
-            vec2[1] = nodep[1] - nbr1p[1];
-            vec2[2] = nodep[2] - nbr1p[2];
-
-            vec3[0] = nodep[0] - nbr2p[0];
-            vec3[1] = nodep[1] - nbr2p[1];
-            vec3[2] = nodep[2] - nbr2p[2];
-
-/*
- *          Force vector (initially in laboratory frame)
- */
-            fLab[0] = node->fX;
-            fLab[1] = node->fY;
-            fLab[2] = node->fZ;
-
-/*
- *          Calculate some test conditions
- */
-            test1 = DotProduct(vec1, burgLab);
-            test2 = DotProduct(vec2, burgLab);
-            test3 = DotProduct(vec3, burgLab);
-
-            test1 = test1 * test1;
-            test2 = test2 * test2;
-            test3 = test3 * test3;
-
-            testmax1 = DotProduct(vec1, vec1);
-            testmax2 = DotProduct(vec2, vec2);
-            testmax3 = DotProduct(vec3, vec3);
-
-/*
- *          Set up the tests to see if this dislocation is close enough to
- *          screw to be considered for cross slip.  For a segment to be close
- *          to screw it must be within 2*thetacrit defined above
- */
-            seg1_is_screw = ((testmax2 - test2) < (testmax2 * s2thetacrit));
-            seg2_is_screw = ((testmax3 - test3) < (testmax3 * s2thetacrit));
-            bothseg_are_screw =
-                    (((testmax2 - test2) < (4.0 * testmax2 * s2thetacrit)) &&
-                     ((testmax3 - test3) < (4.0 * testmax3 * s2thetacrit)) &&
-                     ((testmax1 - test1) < (testmax1 * s2thetacrit)));
-
-            if (seg1_is_screw || seg2_is_screw || bothseg_are_screw) {
-/*
- *              Set the force threshold for noise level within the code
- */
-                L1 = sqrt(testmax2);
-                L2 = sqrt(testmax3);
-                fnodeThreshold = noiseFactor * shearModulus * burgSize *
-                                 0.5 * (L1 + L2);
-
-/*
- *              Find which glide planes the segments are on
- *              e.g. for burg = [ 1  1  0 ], the two glide directions are
- *                              [ 1 -1  2 ] and
- *                              [ 1 -1 -2 ] 
- *
- *              Use burgers vectors in crystal frame to generate initial glide
- *              planes in crystal frame.
- */
-                tmp = 1.0; 
-
-                for (n = 0; n < 3; n++) {
-                   if ( fabs(burgCrystal[n]) > eps ) {
-                      glideDirCrystal[0][n] =
-                              (burgCrystal[n]*tmp > 0) ? 1.0 : -1.0;
-                      glideDirCrystal[1][n] =
-                              (burgCrystal[n]*tmp > 0) ? 1.0 : -1.0;
-                      tmp = -1.0;
-                   } 
-                   else {
-                      glideDirCrystal[0][n] =  2.0;
-                      glideDirCrystal[1][n] = -2.0;
-                   }
-                }
-
-/*
- *              For FCC there are only two slip planes for screw dislocation
- */
-                VECTOR_ZERO(glideDirCrystal[2]);
-
-/*
- *              Normalization
- */
-                for (n = 0; n < 3; n++) {
-                    glideDirCrystal[0][n] *= sqrt(1.0/6.0);
-                    glideDirCrystal[1][n] *= sqrt(1.0/6.0);
-                }
-
-                segplane1[0] = node->nx[0];
-                segplane1[1] = node->ny[0];
-                segplane1[2] = node->nz[0];
-
-                segplane2[0] = node->nx[1];
-                segplane2[1] = node->ny[1];
-                segplane2[2] = node->nz[1];
-
-/*
- *              Need copies of the glideDir matrix and the force vector
- *              in both the lab frame and the crystal frame for later use.
- *              Also need to rotate the segment planes into the crystal frame.
- */
-                if (param->useLabFrame) {
-                    int     row;
-                    real8   tmpPlane[3];
-
-                    if(home->param->polycrystal){
-                        Grain_t *grain;
-                        grain = home->grainKeys[node->inGrain];
-                        memcpy(rotMatrix, grain->orientation, sizeof(real8 [3][3]));
-                        memcpy(rotMatrixInverse, grain->orientationInv, sizeof(real8 [3][3]));
+            for(j=0; j<disArray.size(); ){
+                barrierFactor = -1.0;
+                for(k=0; k<disArray[j].size(); k++){
+                    barrierFactor += disArray[j][k].energyFactor;
+                    cross(gb->n, gbd->planeList[disArray[j][k].planeID], crossProd);
+                    VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
+                    if(Normal(crossProd) < 1.0E-2){
+                        if(BurgType_FCC(vec) == BASIC_BURG)break;
                     }else{
-                        memcpy(rotMatrix, home->rotMatrix, sizeof(real8 [3][3]));
-                        memcpy(rotMatrixInverse, home->rotMatrixInverse, sizeof(real8 [3][3]));
-                    }   
-/*
- *                  Rotate initial glide dir from crystal to lab frame
- */
-                    for (row = 0; row < 3; row++) {
-                        Matrix33Vector3Multiply(rotMatrix,
-                                                glideDirCrystal[row],
-                                                glideDirLab[row]);
-                    }
-/*
- *                  Rotate segment planes to crystal frame
- */
-                    Matrix33Vector3Multiply(rotMatrixInverse, segplane1,
-                                            tmpPlane);
-                    VECTOR_COPY(segplane1, tmpPlane);
-
-                    Matrix33Vector3Multiply(rotMatrixInverse, segplane2,
-                                            tmpPlane);
-                    VECTOR_COPY(segplane2, tmpPlane);
-
-/*
- *                  Rotate force vector to crystal frame
- */
-                    Matrix33Vector3Multiply(rotMatrixInverse, fLab,
-                                            fCrystal);
-                } else {
-/*
- *                  Lab and crystal frames are identical, so just copy
- *                  the vectors
- */
-                    VECTOR_COPY(glideDirLab[0], glideDirCrystal[0]);
-                    VECTOR_COPY(glideDirLab[1], glideDirCrystal[1]);
-                    VECTOR_COPY(glideDirLab[2], glideDirCrystal[2]);
-                    VECTOR_COPY(fCrystal, fLab);
-                }
-
-                Matrix33Vector3Multiply(glideDirCrystal, segplane1, tmp3);
-                Matrix33Vector3Multiply(glideDirCrystal, segplane2, tmp3B);
-                Matrix33Vector3Multiply(glideDirCrystal, fCrystal, tmp3C);
-
-                plane1 = 0;
-                plane2 = 0;
-                fplane = 0;
-
-/*
- *              For FCC there are only two slip planes for screw dislocation
- */
-                for (j = 1; j < 2; j++) {
-                    plane1 = (fabs(tmp3[j])  < fabs(tmp3[plane1]) ) ? j:plane1;
-                    plane2 = (fabs(tmp3B[j]) < fabs(tmp3B[plane2])) ? j:plane2;
-                    fplane = (fabs(tmp3C[j]) > fabs(tmp3C[fplane])) ? j:fplane;
-                }
-
-/*
- *              Calculate the new plane in the lab frame since it will only be
- *              used from here on out to update the existing nodal data which
- *              is in the lab frame.
- */
-                NormalizedCrossVector(burgLab, glideDirLab[fplane], newplane);
-
-                if ((bothseg_are_screw) && (plane1 == plane2) &&
-                    (plane1 != fplane) &&
-                    (fabs(tmp3C[fplane]) >
-                     (weightFactor*fabs(tmp3C[plane1])+fnodeThreshold))) {
-/*
- *                  Both segments are close to screw and the average direction
- *                  is close to screw.
- *
- *                  Determine if the neighbor nodes should be considered
- *                  immobile.
- */
-                    pinned1 = NodePinned(home, nbr1, plane1, glideDirLab);
-                    pinned2 = NodePinned(home, nbr2, plane2, glideDirLab);
-
-                if (pinned1) {
-                    if ((!pinned2) ||
-                        ((testmax1-test1) < (eps*eps*burgSize*burgSize))) {
-
-                        vec1dotb = DotProduct(vec1, burgLab);
-                        vec2dotb = DotProduct(vec2, burgLab);
-
-                        if (!pinned2) {
-/*
- *                          Neighbor 2 can be moved, so proceed with the
- *                          cross-slip operation.
- */
-                            nbr2p[0] = nbr1p[0] - (vec1dotb * burgLab[0]);
-                            nbr2p[1] = nbr1p[1] - (vec1dotb * burgLab[1]);
-                            nbr2p[2] = nbr1p[2] - (vec1dotb * burgLab[2]);
-                        }
-
-/*
- *                      If neighbor2 is pinned, it is already perfectly
- *                      aligned with neighbor1 in the screw direction
- *                      so there is no need to move it.
- */
-                        nodep[0] = nbr1p[0] + (vec2dotb * burgLab[0]);
-                        nodep[1] = nbr1p[1] + (vec2dotb * burgLab[1]);
-                        nodep[2] = nbr1p[2] + (vec2dotb * burgLab[2]);
-
-                        fdotglide = DotProduct(fLab, glideDirLab[fplane]);
-                        tmp = areamin / fabs(vec1dotb) * 2.0 *
-                               (1.0 + eps) * Sign(fdotglide);
-
-                        nodep[0] += tmp * glideDirLab[fplane][0];
-                        nodep[1] += tmp * glideDirLab[fplane][1];
-                        nodep[2] += tmp * glideDirLab[fplane][2];
-
-/*
- *                      It looks like we should do the cross-slip, but to
- *                      be sure, we need to move the nodes and evaluate
- *                      the force on node in the new configuration.  If
- *                      it appears the node will not continue to move out
- *                      on the new plane, skip the cross-slip event and
- *                      restore the old configuration.
- */
-                        ResetPosition(param, node, nodep);
-                        ResetPosition(param, nbr2, nbr2p);
-
-                        SetOneNodeForce(home, node);
-
-                        newForce[0] = node->fX;
-                        newForce[1] = node->fY;
-                        newForce[2] = node->fZ;
-
-                        newfdotglide = DotProduct(newForce,glideDirLab[fplane]);
-
-                        if ((Sign(newfdotglide) * Sign(fdotglide)) < 0.0) {
-                            ResetPosition(param, node, nodePosOrig);
-                            ResetPosition(param, nbr2, nbr2PosOrig);
-                            RestoreCrossSlipForce(node, nbr1, nbr2, nbr1ArmID,
-                                                  nbr2ArmID, segForceOrig);
-                            continue;
-                        }
-
-                        resetNbr2Pos = 1;
-                        resetNodePos = 1;
-
-#ifdef DEBUG_CROSSSLIP_EVENTS
-                        if ((dbgDom < 0) || (dbgDom == home->myDomain)) {
-                            DumpCrossSlipEvent(node, newplane,
-                                    "2nd neighbor is movable");
-                        }
-#endif
-/*
- *                      Now reset the glide plane for both segments
- */
-                        ResetGlidePlane(home, newplane, &node->myTag,
-                                        &nbr1->myTag, 1);
-                        ResetGlidePlane(home, newplane, &node->myTag,
-                                        &nbr2->myTag, 1);
-                    }
-                } else {
-/*
- *                  Neighbor 1 can be moved, so proceed with the cross-slip
- *                  operation.
- */
-                        vec1dotb = DotProduct(vec1, burgLab);
-
-                        nbr1p[0] = nbr2p[0] + (vec1dotb * burgLab[0]);
-                        nbr1p[1] = nbr2p[1] + (vec1dotb * burgLab[1]);
-                        nbr1p[2] = nbr2p[2] + (vec1dotb * burgLab[2]);
-
-                        vec3dotb = DotProduct(vec3, burgLab);
-
-                        nodep[0] = nbr2p[0] + (vec3dotb * burgLab[0]);
-                        nodep[1] = nbr2p[1] + (vec3dotb * burgLab[1]);
-                        nodep[2] = nbr2p[2] + (vec3dotb * burgLab[2]);
-
-                        fdotglide = DotProduct(fLab, glideDirLab[fplane]);
-                        tmp = areamin / fabs(vec1dotb) * 2.0 *
-                               (1.0 + eps) * Sign(fdotglide);
-
-                        nodep[0] += tmp * glideDirLab[fplane][0];
-                        nodep[1] += tmp * glideDirLab[fplane][1];
-                        nodep[2] += tmp * glideDirLab[fplane][2];
-
-/*
- *                      It looks like we should do the cross-slip, but to
- *                      be sure, we need to move the nodes and evaluate
- *                      the force on node in the new configuration.  If
- *                      it appears the node will not continue to move out
- *                      on the new plane, skip the cross-slip event and
- *                      restore the old configuration.
- */
-                        ResetPosition(param, node, nodep);
-                        ResetPosition(param, nbr1, nbr1p);
-
-                        SetOneNodeForce(home, node);
-
-                        newForce[0] = node->fX;
-                        newForce[1] = node->fY;
-                        newForce[2] = node->fZ;
-
-                        newfdotglide = DotProduct(newForce,glideDirLab[fplane]);
-
-                        if ((Sign(newfdotglide) * Sign(fdotglide)) < 0.0) {
-                            ResetPosition(param, node, nodePosOrig);
-                            ResetPosition(param, nbr1, nbr1PosOrig);
-                            RestoreCrossSlipForce(node, nbr1, nbr2, nbr1ArmID,
-                                                  nbr2ArmID, segForceOrig);
-                            continue;
-                        }
-
-                        resetNbr1Pos = 1;
-                        resetNodePos = 1;
-
-#ifdef DEBUG_CROSSSLIP_EVENTS
-                        if ((dbgDom < 0) || (dbgDom == home->myDomain)) {
-                            DumpCrossSlipEvent(node, newplane,
-                                    "1st neighbor is movable");
-                        }
-#endif
-/*
- *                      Now reset the glide plane for both segments
- */
-                        ResetGlidePlane(home, newplane, &node->myTag,
-                                        &nbr1->myTag, 1);
-                        ResetGlidePlane(home, newplane, &node->myTag,
-                                        &nbr2->myTag, 1);
-                }
-
-                } else if ((seg1_is_screw) &&
-                           (plane1 != plane2) &&
-                           (plane2 == fplane) &&
-                           (fabs(tmp3C[fplane]) >
-                            (weightFactor*fabs(tmp3C[plane1])+fnodeThreshold))){
-
-/*
- *                  Zipper condition met for first segment.  If the first
- *                  neighbor is either not pinned or pinned but already
- *                  sufficiently aligned, proceed with the cross-slip event
- */
-                    pinned1 = NodePinned(home, nbr1, plane1, glideDirLab);
-
-                    if ((!pinned1) ||
-                        ((testmax2-test2) < (eps*eps*burgSize*burgSize))) {
-/*
- *                      Before 'zippering' a segment, try a quick sanity check
- *                      to see if it makes sense.  If the force on the segment
- *                      to be 'zippered' is less than 5% larger on the new
- *                      plane than the old plane, leave the segment alone.
- */
-                        newSegForce[0] = node->armfx[0]+nbr1->armfx[nbr1ArmID];
-                        newSegForce[1] = node->armfy[0]+nbr1->armfy[nbr1ArmID];
-                        newSegForce[2] = node->armfz[0]+nbr1->armfz[nbr1ArmID];
-
-                        zipperThreshold = noiseFactor * shearModulus *
-                                          burgSize *  L1;
-
-                        f1dotplane1 = fabs(DotProduct(newSegForce,
-                                                      glideDirLab[plane1]));
-                        f1dotplanef = fabs(DotProduct(newSegForce, newplane));
-
-                        if (f1dotplanef < zipperThreshold + f1dotplane1) {
-                            continue;
-                        }
-
-                        if (!pinned1) {
-                            vec2dotb = DotProduct(vec2, burgLab);
-
-                            nbr1p[0] = nodep[0] - (vec2dotb * burgLab[0]);
-                            nbr1p[1] = nodep[1] - (vec2dotb * burgLab[1]);
-                            nbr1p[2] = nodep[2] - (vec2dotb * burgLab[2]);
-
-                            resetNbr1Pos = 1;
-                        }
-
-#ifdef DEBUG_CROSSSLIP_EVENTS
-                        if ((dbgDom < 0) || (dbgDom == home->myDomain)) {
-                            DumpCrossSlipEvent(node, newplane,
-                                    "zipper conditions met for 1st neighbor");
-                        }
-#endif
-                        ResetGlidePlane(home, newplane, &node->myTag,
-                                        &nbr1->myTag, 1);
-                    }
-
-                } else if ((seg2_is_screw) &&
-                           (plane1 != plane2) &&
-                           (plane1 == fplane) &&
-                           (fabs(tmp3C[fplane]) >
-                            (weightFactor*fabs(tmp3C[plane2])+fnodeThreshold))){
-/*
- *                  Zipper condition met for second segment
- */
-                    pinned2 = NodePinned(home, nbr2, plane2, glideDirLab);
-
-                    if ((!pinned2) ||
-                        ((testmax2-test2) < (eps*eps*burgSize*burgSize))) {
-/*
- *                      Before 'zippering' a segment, try a quick sanity check
- *                      to see if it makes sense.  If the force on the segment
- *                      to be 'zippered' is less than 5% larger on the new
- *                      plane than the old plane, leave the segment alone.
- */
-                        newSegForce[0] = node->armfx[1]+nbr2->armfx[nbr2ArmID];
-                        newSegForce[1] = node->armfy[1]+nbr2->armfy[nbr2ArmID];
-                        newSegForce[2] = node->armfz[1]+nbr2->armfz[nbr2ArmID];
-
-                        zipperThreshold = noiseFactor * shearModulus *
-                                          burgSize *  L2;
-
-                        f1dotplane2 = fabs(DotProduct(newSegForce,
-                                                      glideDirLab[plane2]));
-                        f1dotplanef = fabs(DotProduct(newSegForce, newplane));
-
-                        if (f1dotplanef < zipperThreshold + f1dotplane2) {
-                            continue;
-                        }
-
-                        if (!pinned2) {
-                            vec3dotb = DotProduct(vec3, burgLab);
-
-                            nbr2p[0] = nodep[0] - (vec3dotb * burgLab[0]);
-                            nbr2p[1] = nodep[1] - (vec3dotb * burgLab[1]);
-                            nbr2p[2] = nodep[2] - (vec3dotb * burgLab[2]);
-
-                            resetNbr2Pos = 1;
-                        }
-
-#ifdef DEBUG_CROSSSLIP_EVENTS
-                        if ((dbgDom < 0) || (dbgDom == home->myDomain)) {
-                            DumpCrossSlipEvent(node, newplane,
-                                    "zipper conditions met for 2nd neighbor");
-                        }
-#endif
-                        ResetGlidePlane(home, newplane, &node->myTag,
-                                        &nbr2->myTag, 1);
+                        if(BurgType_FCC(vec) != BASIC_BURG)break;
                     }
                 }
-/*
- *              If any of the nodes were repositioned, shift the new coordinates
- *              back into the primary image space and update the corresponding
- *              node structures.  The operation will also be sent to the
- *              remote domains for processing.
- */
-                if (resetNodePos) {
-                    FoldBox(param, &nodep[0], &nodep[1], &nodep[2]);
-                    RepositionNode(home, nodep, &node->myTag, 1);
+  
+                if(k != disArray[j].size() || j > 0 && 
+                   barrierFactor > 0){
+                    itDisList = disArray.begin() + j;
+                    disArray.erase(itDisList);
+                }else{
+                    j++;
                 }
+            }
+            if(disArray.size() == 0)continue;
+                      
+            VECTOR_COPY(newNodePos, interLine.point);
+            PointLineIntersection(nbr1Pos, interLine.direction, interLine.point,
+                                 newNbr1Pos, &dis);
+            PointLineIntersection(nbr2Pos, interLine.direction, interLine.point,
+                                 newNbr2Pos, &dis);
 
-                if (resetNbr1Pos) {
-                    FoldBox(param, &nbr1p[0], &nbr1p[1], &nbr1p[2]);
-                    RepositionNode(home, nbr1p, &nbr1->myTag, 1);
+            SaveCrossSlipInfo(node, nbr1, nbr2, 0, 1,
+                              segForceOrig, nodePos, nbr1Pos,
+                              nbr2Pos);
+
+            oriDis = node->fX * node->vX + 
+                     node->fY * node->vY + 
+                     node->fZ * node->vZ;  
+
+            oriDis *= (1.0+noiseFactor);
+
+	        RepositionNode(home, newNodePos, &node->myTag, 0);
+	        RepositionNode(home, newNbr1Pos, &nbr1->myTag, 0);
+	        RepositionNode(home, newNbr2Pos, &nbr2->myTag, 0);
+
+            powerDis.resize(disArray.size());
+            disPosArray.resize(disArray.size());
+            for(j=0; j<disArray.size(); j++){
+                powerDis[j] = -oriDis;
+                disPosArray[j].resize(disArray[j].size());
+                for(k=0; k<disArray[j].size(); k++){
+                    disPosArray[j].resize(3);
+	                ChangeArmBurg(home, nbr1, &node->myTag, 
+                                  burgList[disArray[j][k].burgID][0],
+                                  burgList[disArray[j][k].burgID][1],
+                                  burgList[disArray[j][k].burgID][2],
+                                  gbd->planeList[disArray[j][k].planeID][0],
+                                  gbd->planeList[disArray[j][k].planeID][1],
+                                  gbd->planeList[disArray[j][k].planeID][2],
+				                  0, DEL_SEG_NONE);
+                    
+	                ChangeArmBurg(home, node, &nbr2->myTag, 
+                                  burgList[disArray[j][k].burgID][0],
+                                  burgList[disArray[j][k].burgID][1],
+                                  burgList[disArray[j][k].burgID][2],
+                                  gbd->planeList[disArray[j][k].planeID][0],
+                                  gbd->planeList[disArray[j][k].planeID][1],
+                                  gbd->planeList[disArray[j][k].planeID][2],
+				                  0, DEL_SEG_NONE);
+
+	                ChangeArmBurg(home, nbr2, &node->myTag, 
+                                  -burgList[disArray[j][k].burgID][0],
+                                  -burgList[disArray[j][k].burgID][1],
+                                  -burgList[disArray[j][k].burgID][2],
+                                  gbd->planeList[disArray[j][k].planeID][0],
+                                  gbd->planeList[disArray[j][k].planeID][1],
+                                  gbd->planeList[disArray[j][k].planeID][2],
+				                  0, DEL_SEG_NONE);
+                    
+	                ChangeArmBurg(home, node, &nbr1->myTag, 
+                                  -burgList[disArray[j][k].burgID][0],
+                                  -burgList[disArray[j][k].burgID][1],
+                                  -burgList[disArray[j][k].burgID][2],
+                                  gbd->planeList[disArray[j][k].planeID][0],
+                                  gbd->planeList[disArray[j][k].planeID][1],
+                                  gbd->planeList[disArray[j][k].planeID][2],
+				                  0, DEL_SEG_NONE);
+
+                    node->inGrain = gbd->planeInGrain[disArray[j][k].planeID];
+                    node->onGB = (node->inGrain == -1) ? gb->GBID : -1; 
+
+		            SetOneNodeForce(home, node);
+                    EvaluateMobility(home, node);
+                    vec[0] = node->vX;
+                    vec[1] = node->vY;
+                    vec[2] = node->vZ;
+
+                    vec[0] *= (param->nextDT/10.0);
+                    vec[1] *= (param->nextDT/10.0);
+                    vec[2] *= (param->nextDT/10.0);
+
+                    vec[0] += newNodePos[0];
+                    vec[1] += newNodePos[1];
+                    vec[2] += newNodePos[2];
+
+                    VECTOR_COPY(disPosArray[j][k], vec);
+
+                    if(!IsOnGB(node)){
+                        NodeLocation(home, vec[0], vec[1], vec[2], inGrain, onGB);
+                        if(onGB > -1 || inGrain != node->inGrain)break;
+                    }
+
+                    powerDis[j] += (node->fX * node->vX +
+                                    node->fY * node->vY +
+                                    node->fZ * node->vZ);
+    
                 }
+                if(k<disArray[j].size())powerDis[j] = -oriDis;
+            }
 
-                if (resetNbr2Pos) {
-                    FoldBox(param, &nbr2p[0], &nbr2p[1], &nbr2p[2]);
-                    RepositionNode(home, nbr2p, &nbr2->myTag, 1);
+            maxPowerDis = -oriDis;
+            maxPowerSet = -1;
+            for(j=0; j<disArray.size(); j++){
+               if(powerDis[j] > maxPowerDis){
+                    maxPowerSet = j;
+                    maxPowerDis = powerDis[j];
                 }
+            }
 
-            }  /* end of screw check */
+            if(maxPowerSet == -1 || maxPowerDis < 0){
+                RestoreCrossSlipForce(node, nbr1, nbr2, 0,
+                                      1, segForceOrig);
+	            RepositionNode(home, nodePos, &node->myTag, 0);
+	            RepositionNode(home, nbr1Pos, &nbr1->myTag, 0);
+	            RepositionNode(home, nbr2Pos, &nbr1->myTag, 0);
 
-        }  /* end loop over all nodes */
+	            ChangeArmBurg(home, nbr1, &node->myTag, 
+                              burg[0],burg[1],burg[2],normal[0],normal[1],normal[2],
+			                  0, DEL_SEG_NONE);
+	            ChangeArmBurg(home, node, &nbr2->myTag, 
+                              burg[0],burg[1],burg[2],normal[0],normal[1],normal[2],
+			                  0, DEL_SEG_NONE);
 
-        return;
+	            ChangeArmBurg(home, nbr2, &node->myTag, 
+                              -burg[0],-burg[1],-burg[2],normal[0],normal[1],normal[2],
+			                  0, DEL_SEG_NONE);
+	            ChangeArmBurg(home, node, &nbr1->myTag, 
+                              -burg[0],-burg[1],-burg[2],normal[0],normal[1],normal[2],
+			                  0, DEL_SEG_NONE);
+
+                node->inGrain = -1;
+                node->onGB = gb->GBID;
+                continue;
+            }else{
+	            FoldBox(param,newNbr1Pos,newNbr1Pos+1,newNbr1Pos+2);
+	            FoldBox(param,newNbr2Pos,newNbr2Pos+1,newNbr2Pos+2);
+	            RepositionNode(home, newNbr1Pos, &nbr1->myTag, 1);
+	            RepositionNode(home, newNbr2Pos, &nbr1->myTag, 1);
+            }
+
+            j = maxPowerSet;
+            globalOp = 1;
+            for(k=0; k<disArray[j].size(); k++){
+                if(k==0){
+	                ChangeArmBurg(home, nbr1, &node->myTag, 
+                                  burgList[disArray[j][k].burgID][0],
+                                  burgList[disArray[j][k].burgID][1],
+                                  burgList[disArray[j][k].burgID][2],
+                                  gbd->planeList[disArray[j][k].planeID][0],
+                                  gbd->planeList[disArray[j][k].planeID][1],
+                                  gbd->planeList[disArray[j][k].planeID][2],
+				                  globalOp, DEL_SEG_NONE);
+                    
+	                ChangeArmBurg(home, node, &nbr2->myTag, 
+                                  burgList[disArray[j][k].burgID][0],
+                                  burgList[disArray[j][k].burgID][1],
+                                  burgList[disArray[j][k].burgID][2],
+                                  gbd->planeList[disArray[j][k].planeID][0],
+                                  gbd->planeList[disArray[j][k].planeID][1],
+                                  gbd->planeList[disArray[j][k].planeID][2],
+				                  globalOp, DEL_SEG_NONE);
+
+	                ChangeArmBurg(home, nbr2, &node->myTag, 
+                                  -burgList[disArray[j][k].burgID][0],
+                                  -burgList[disArray[j][k].burgID][1],
+                                  -burgList[disArray[j][k].burgID][2],
+                                  gbd->planeList[disArray[j][k].planeID][0],
+                                  gbd->planeList[disArray[j][k].planeID][1],
+                                  gbd->planeList[disArray[j][k].planeID][2],
+				                  globalOp, DEL_SEG_NONE);
+                    
+	                ChangeArmBurg(home, node, &nbr1->myTag, 
+                                  -burgList[disArray[j][k].burgID][0],
+                                  -burgList[disArray[j][k].burgID][1],
+                                  -burgList[disArray[j][k].burgID][2],
+                                  gbd->planeList[disArray[j][k].planeID][0],
+                                  gbd->planeList[disArray[j][k].planeID][1],
+                                  gbd->planeList[disArray[j][k].planeID][2],
+				                  globalOp, DEL_SEG_NONE);
+
+                    node->inGrain = gbd->planeInGrain[disArray[j][k].planeID];
+                    node->onGB = (node->inGrain == -1) ? gb->GBID : -1; 
+
+                    VECTOR_COPY(newNodePos, disPosArray[j][k]);
+	                FoldBox(param,newNodePos,newNodePos+1,newNodePos+2);
+	                RepositionNode(home, newNodePos, &node->myTag, globalOp);
+                    AssignGrain(home, node, node->inGrain, node->onGB);
+                    MarkNodeForceObsolete(home, node);        
+                    MarkNodeNoCollisions(home, node);        
+                    MarkNodeNoMeshCoarsen(home, node);        
+                }else{
+                    VECTOR_COPY(vec1, burgList[disArray[j][k].burgID]);
+                    VECTOR_COPY(vec2, gbd->planeList[disArray[j][k].planeID]);
+                   
+                    inGrain = gbd->planeInGrain[disArray[j][k].planeID];
+                    onGB = (inGrain == -1) ? gb->GBID : -1; 
+
+                    VECTOR_COPY(newPos, disPosArray[j][k]);
+	                FoldBox(param,newPos,newPos+1,newPos+2);
+                    InsertConnection(home, nbr1, nbr2, globalOp, inGrain, onGB,
+                         newPos, vec1, vec2, &newNode);
+                    MarkNodeForceObsolete(home, newNode);        
+                    MarkNodeNoCollisions(home, newNode);        
+                    MarkNodeNoMeshCoarsen(home, newNode);        
+
+                } 
+            }
+            
+	        MarkNodeForceObsolete(home, nbr1);        
+	        MarkNodeNoCollisions(home, nbr1);        
+	        MarkNodeNoMeshCoarsen(home, nbr1);        
+        
+	        MarkNodeForceObsolete(home, nbr2);        
+	        MarkNodeNoCollisions(home, nbr2);        
+	        MarkNodeNoMeshCoarsen(home, nbr2);        
+        
+	        nbr1->oldvX = 0.0;
+	        nbr1->oldvY = 0.0;
+	        nbr1->oldvZ = 0.0;
+	    
+	        nbr2->oldvX = 0.0;
+	        nbr2->oldvY = 0.0;
+	        nbr2->oldvZ = 0.0;
+	    
+	        nbr1->vX = 0.0;
+	        nbr1->vY = 0.0;
+	        nbr1->vZ = 0.0;
+	
+	        nbr2->vX = 0.0;
+	        nbr2->vY = 0.0;
+	        nbr2->vZ = 0.0;
+            
+        }else if(sideCrossSlipNode){
+            PointLineIntersection(gbNbrPos, interLine.direction, interLine.point,
+                                  newPos, &dis);
+
+            FoldBox(param,newPos, newPos+1, newPos+2);
+            if(BeforeMergeNodes(home, node, gbNbr, newPos, &dis)){
+                if(fabs(dis) > 5.0){
+                printf("Warning in PenetrationSide, dis %f\n", dis);
+                }
+            }else{
+                continue;
+            } 
+            FoldBox(param,newPos, newPos+1, newPos+2);
+            MergeNode(home, OPCLASS_SEPARATION, node, gbNbr, newPos,
+                      &mergedNode, &mergeStatus, globalOp);
+
+	        if((mergeStatus & MERGE_SUCCESS) ==0)continue;
+    
+            if(mergedNode != (Node_t *)NULL){
+                SplitIntersectNode(home, mergedNode, opClass, globalOp);
+            }
+        }
+
+        
+    }  /* end loop over all nodes */
+
+    return;
 }
