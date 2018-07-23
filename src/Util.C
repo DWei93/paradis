@@ -3009,12 +3009,13 @@ void RepositionNode(Home_t *home, real8 newPos[3], Tag_t *tag, int globalOp)
 	        nSurf[0] = (node->constraint==1);
 	        nSurf[1] = (node->constraint==2);
 	        nSurf[2] = (node->constraint==3);
+#if 0
 	        if(fabs(DotProduct(vec,nSurf)) > 1e-5){
 	            PrintNode(node);
 	            FormatVector(newPos,"newPos");
 	            printf("Warning: the surface ndoe move to inner\n");
 	        }
-
+#endif
 
 	    }
 

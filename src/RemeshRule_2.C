@@ -118,6 +118,7 @@ static void MeshCoarsen(Home_t *home)
                     if(BurgType_FCC(burg) != BASIC_BURG){
                         continue;
                     }
+                    if(SurfaceNode(node) && SurfaceNode(nbr1))continue;
 
                     planeType = GetPlaneType_FCC(home, node, nbr1);
 
@@ -143,7 +144,9 @@ static void MeshCoarsen(Home_t *home)
 
                     if(BeforeMergeNodes(home, node, nbr1, newPos, &dis)){
                         if(fabs(dis) > 5.0){
-                            printf("Warning in %s at %d, dis %f\n", __FILE__, __LINE__, dis);
+                            PrintNode(node);
+                            PrintNode(nbr1);
+                            Fatal("Warning in %s at %d, dis %f\n", __FILE__, __LINE__, dis);
                         }
                     }else{
                         continue;

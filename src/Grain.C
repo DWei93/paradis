@@ -1017,6 +1017,8 @@ void PullBack(Home_t *home, Node_t *node){
 
             type = PointPlaneIntersection(nodePos, gb->n, gb->p, newPos, &dis);
             if(fabs(dis) > 5){
+                PrintNode(node);
+                FormatVector(newPos, "newPos");
                 printf("Warning in PullBack, error is %f", dis);
             }
         }

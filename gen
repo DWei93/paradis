@@ -26,7 +26,7 @@
 frlen=1800
 cubel=4000
 maxSeg=200
-nfrs=3
+nfrs=8
 maxDensity=1E13
 seed=""
 type=5
