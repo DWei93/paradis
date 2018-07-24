@@ -731,7 +731,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 			 */
 			if((nx==0||nx==meshNodeNumX)&&param->xBoundType == Periodic){
 				
-				imageNode[1] = i+ (nx==0?1:-1)*meshNodeNumX;
+				imageNode[1] = i+ (nx==0?1:-1)*(meshNodeNumX-1);
 				imageNum *= 2;
 			}
 
@@ -739,7 +739,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 				
 				for(j=0;j<imageNum;j++){
 					imageNode[imageNum+j] = imageNode[j] + (ny==0?1:-1)*
-											meshNodeNumX*meshNodeNumZ;
+											meshNodeNumX*(meshNodeNumZ-1);
 				}
 				imageNum *= 2;
 			}
@@ -748,7 +748,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 				
 				for(j=0;j<imageNum;j++){
 					imageNode[imageNum+j] = imageNode[j] + (nz==0?1:-1)*
-											meshNodeNumX*meshNodeNumY*meshNodeNumZ;
+											meshNodeNumX*meshNodeNumY*(meshNodeNumZ-1);
 				}
 				imageNum *= 2;
 			}
