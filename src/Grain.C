@@ -906,6 +906,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
 
     param = home->param;
 
+    if(onGB < 0)Fatal("in %s at %d", __FILE__, __LINE__);
 	if(node == (Node_t *)NULL){
         Fatal("Task %d: %s, line %d -- Node = NULL",
                home->myDomain, __FILE__, __LINE__);
@@ -914,7 +915,6 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
 	pos[0] = node->x; pos[1] = node->y; pos[2] = node->z;
 	FoldBox(param, pos, pos+1, pos+2);
 
-    if(onGB < 0)Fatal("in %s at %d", __FILE__, __LINE__);
     GB = home->GBKeys[onGB];
 
     VECTOR_COPY(vec1, GB->n);
@@ -926,36 +926,41 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
         vec2[0] -= (grain->sign[index] * param->rann * GB->n[0]);
         vec2[1] -= (grain->sign[index] * param->rann * GB->n[1]);
         vec2[2] -= (grain->sign[index] * param->rann * GB->n[2]);
+/*
+ *      If the node is on grain boundary
+ *      Only allow the neighbors of the node in the same grain
+ */
+        if(IsOnGB(node)){
+            int     i;
+            Node_t  *nbr;
+  
+            nbrInGrain = -1;
+            for(i=0; i<node->numNbrs; i++){
+                nbr = GetNeighborNode(home, node, i);
+                if(nbr == (Node_t *)NULL)break;
+                if(IsOnGB(nbr))break;
+                if(nbrInGrain == -1){
+                    nbrInGrain = nbr->inGrain;
+                }else{
+                    if(nbr->inGrain != nbrInGrain)break;
+                }
+            }
+            if(i != node->numNbrs || nbrInGrain == -1)return(0);
+
+            bakOnGB = node->onGB;
+            bakInGrain = node->inGrain;
+
+            node->onGB = -1;
+            node->inGrain = nbrInGrain;
+        }
+    }else{
+        if(IsOnGB(node)){
+            PointPlaneIntersection(pos, vec1, vec2, newPos, &dis);
+            if(onGB != node->onGB)Fatal("in %s at %d", __FILE__, __LINE__);
+            return(1);
+        }
     }
     
-/*
- *  If the node is on grain boundary
- *  Only allow the neighbors of the node in the same grain
- */
-    if(IsOnGB(node)){
-        int     i;
-        Node_t  *nbr;
-  
-        nbrInGrain = -1;
-        for(i=0; i<node->numNbrs; i++){
-            nbr = GetNeighborNode(home, node, i);
-            if(nbr == (Node_t *)NULL)break;
-            if(IsOnGB(nbr))break;
-            if(nbrInGrain == -1){
-                nbrInGrain = nbr->inGrain;
-            }else{
-                if(nbr->inGrain != nbrInGrain)break;
-            }
-        }
-        if(i != node->numNbrs || nbrInGrain == -1)return(0);
-
-        bakOnGB = node->onGB;
-        bakInGrain = node->inGrain;
-
-        node->onGB = -1;
-        node->inGrain = nbrInGrain;
-    }
-
     VECTOR_COPY(vec, vec1);
     AdjustNodeDirection(home, node, vec);
     if(Normal(vec) < 1E-8){

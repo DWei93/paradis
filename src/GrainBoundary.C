@@ -107,6 +107,41 @@ real8 FGlidePerLength(Home_t *home, Node_t *node, Plane_t *GBPlane){
     return(fabs(fGlide)/disLength);
 }
 
+real8 FGlidePerLength(Home_t *home, Node_t *node){
+
+    int	    i;
+    real8	disLength;
+    real8   vec[3];
+    real8	fGlide;
+    Node_t  *nbr;
+    
+    if(node == (Node_t *)NULL){
+        printf("Task %d: %s, line %d -- Node = NULL",
+               home->myDomain, __FILE__, __LINE__);
+        return(0);
+    }
+
+    disLength = 0;
+
+    for(i=0;i<node->numNbrs;i++){
+       nbr = GetNeighborNode(home,node,i);
+       if(nbr==(Node_t *)NULL) continue;
+       disLength += NodeDistance(home,node,nbr)/2;
+    }
+
+    vec[0] = node->vX;
+    vec[1] = node->vY;
+    vec[2] = node->vZ;
+
+    if(Normal(vec)<1E-2)return(0.0);
+    NormalizeVec(vec);
+
+    fGlide = node->fX*vec[0]+
+         node->fY*vec[1]+
+         node->fZ*vec[2];
+
+    return(fabs(fGlide)/disLength);
+}
 
 real8 SegementEnergy(Param_t *param, real8 cosTheta, real8 bMag){
 	static real8 pi = 3.1415926535897932385;
@@ -1572,14 +1607,44 @@ void HandleGrainBoundary(Home_t *home)
             }
             continue;
         }
-		
+
         if(node->numNbrs == 1 && node->constraint == PINNED_NODE)continue;
         if(currInGrain == oldInGrain || currInGrain < 0)continue;
 
-        if(!param->peneTB || node->numNbrs > 2){
+        if(!param->peneTB){
             PullBack(home, node);
             continue;
         }
+
+        if(node->numNbrs > 2){
+            if(FGlidePerLength(home, node) > param->GBStrength){
+                vec1[0] = node->vX;
+                vec1[1] = node->vY;
+                vec1[2] = node->vZ;
+                vec2[0] = node->oldx;
+                vec2[1] = node->oldy;
+                vec2[2] = node->oldz;
+                NormalizeVec(vec1);
+                oldGrain  = home->grainKeys[oldInGrain];
+                currGrain = home->grainKeys[currInGrain];
+                if(!GetPublicGB(oldGrain, currGrain, &gb)){
+                    Fatal("in %s at %d", __FILE__, __LINE__);
+                }
+                if(LinePlaneIntersection(vec1, vec2, gb->n, gb->p, vec, newPos)
+                   == POINT_INTERSECTION){
+                    FoldBox(param, newPos, newPos+1, newPos+2);
+	                RepositionNode(home, newPos, &node->myTag, 1);
+                    AssignGrain(home, node, -1, gb->GBID);
+                }else{
+                    PullBack(home, node);
+                }
+    
+            }else{
+                PullBack(home, node);
+            }
+            continue;
+        }
+		
 		
 /*	
  *	    Due to different slip planes of two segments of crossSlip node,
@@ -1655,18 +1720,25 @@ void HandleGrainBoundary(Home_t *home)
         nbr2OnGB = NodeOnGB(home, nbrNode2);
 
 	    if(IsOnGB(nbrNode1)) {
+
+#if CROSS_SLIP_GB_MODEL
+#else
 	        if((nbr1OnGB & TB_NODE) == 0 && nbrNode1->numNbrs == 3){
 	           PullBack(home, node);
 	           continue;
 	        } 
+#endif
 	        numNbrOnGB++;	
 	    }
 
 	    if(IsOnGB(nbrNode2)) {
+#if CROSS_SLIP_GB_MODEL
+#else
 	        if((nbr2OnGB & TB_NODE) == 0 && nbrNode2->numNbrs == 3){
 	           PullBack(home, node);
 	           continue;
 	        } 
+#endif
 	        numNbrOnGB++;	
 	    }
 			
@@ -2328,6 +2400,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
     for(i=0; i<nbrInGrain.size(); i++){
         if(nbrInGrain[i].size()-1 == node->numNbrs){
             if(!NewPosToGB(home, node, nbrInGrain[i][0], node->onGB, newPos)){
+                PrintNode(node);
                 printf("Warning in SplitIntersectNode at %d\n", __LINE__);
             }
 
@@ -2348,12 +2421,19 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             real8   nodePos[3], nodeVel[3], newVel[3];
             Node_t  *splitNode1, *splitNode2;
             int     splitStatus, nArms, *armList;
+            real8   resBurg[3];
 
             nArms = nbrInGrain[i].size()-1;
             armList = (int *)malloc(nArms*sizeof(int));
+            
+            VECTOR_ZERO(resBurg);
             for(j=0; j<nArms; j++){
                 armList[j] = nbrInGrain[i][1+j];
+                resBurg[0] += node->burgX[armList[j]];
+                resBurg[1] += node->burgY[armList[j]];
+                resBurg[2] += node->burgZ[armList[j]];
             }
+            if(Normal(resBurg) > 1.0E-2)continue;
     
             nodePos[0] = node->x;
             nodePos[1] = node->y;
@@ -2376,7 +2456,9 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
 
             if(!NewPosToGB(home, splitNode2, nbrInGrain[i][0], node->onGB, newPos)){
                 PrintNode(splitNode2);
-                printf("Warning in SplitIntersectNode at %d\n", __LINE__);
+                Tecplot(home, (char*)"NewPosToGB", 0, 0, 0 ,0, 0, 1);
+                Fatal("Warning in SplitIntersectNode at %d\n", __LINE__);
+                return;
             }
 	        RepositionNode(home, newPos, &splitNode2->myTag, globalOp);
             

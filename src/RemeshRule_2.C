@@ -95,6 +95,9 @@ static void MeshCoarsen(Home_t *home)
  *          5) If the node's arms are on different glide planes we might
  *             not allow the node to be removed.
  */
+#if 1
+
+#else
             if (node->numNbrs < 2 || node->numNbrs > 3) continue;
 
             breakLoop = 0;
@@ -171,6 +174,7 @@ static void MeshCoarsen(Home_t *home)
             
             if(breakLoop)continue;
 	        if(node ==(Node_t *)NULL)continue;
+#endif
 	        if(node->numNbrs != 2 )continue;
 
             if (node->constraint == PINNED_NODE) continue;
@@ -183,13 +187,15 @@ static void MeshCoarsen(Home_t *home)
                 continue;
             }
 
+#if CROSS_SLIP_GB_MODEL
+#else
             if(nbr1 != (Node_t *)NULL && nbr2 != (Node_t *)NULL){
                 if(NodeOnGB(home, nbr1) & INTERSECT_NODE &&
                    NodeOnGB(home, nbr2) & INTERSECT_NODE){
                     continue;
                 }
             }
-
+#endif
             if (node->flags & NO_MESH_COARSEN) {
                 continue;
             }
