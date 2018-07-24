@@ -486,9 +486,9 @@ BurgInfo_t* GetBurgData(Home_t *home, Node_t *node1, Node_t *node2)
             }
         }else{
             if(!home->param->useLabFrame){
-                return(&(home->burgData));               
-            }else{
                 return(&(home->crystBurgData));               
+            }else{
+                return(&(home->burgData));               
             }
         }
         return((BurgInfo_t *)NULL);
