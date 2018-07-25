@@ -2446,7 +2446,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
              
 //                randomAngle = 0;
                 
-                if(gpIndex == 3)continue;
+//                if(gpIndex == 3)continue;
 //                if(fabs(b[0]+b[1]+b[2]) < 1.0E-1)continue;
 /*           
  *              Reallocate the node array with sufficient size to add

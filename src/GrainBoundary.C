@@ -18,7 +18,7 @@
 #include <algorithm>
 #include <numeric>
 
-#define ENERGY_RULER 0
+#define ENERGY_RULER 1
 
 
 Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int globalOp, int opClass)
