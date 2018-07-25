@@ -1179,6 +1179,7 @@ static void InitNodeArm(Node_t *node, int armID)
         node->armfx[armID] = 0.0;
         node->armfy[armID] = 0.0;
         node->armfz[armID] = 0.0;
+        node->signSF[armID] = 0.0;
         node->nx[armID] = 0.0;
         node->ny[armID] = 0.0;
         node->nz[armID] = 0.0;
@@ -1224,6 +1225,7 @@ void AllocNodeArms(Node_t *node, int n)
                 free(node->armfx);
                 free(node->armfy);
                 free(node->armfz);
+                free(node->signSF);
                 free(node->nx);
                 free(node->ny);
                 free(node->nz);
@@ -1240,6 +1242,7 @@ void AllocNodeArms(Node_t *node, int n)
             node->armfx = (real8 *)malloc(n*sizeof(real8));
             node->armfy = (real8 *)malloc(n*sizeof(real8));
             node->armfz = (real8 *)malloc(n*sizeof(real8));
+            node->signSF = (real8 *)malloc(n*sizeof(real8));
             node->nx = (real8 *)malloc(n*sizeof(real8));
             node->ny = (real8 *)malloc(n*sizeof(real8));
             node->nz = (real8 *)malloc(n*sizeof(real8));
@@ -1314,6 +1317,7 @@ void FreeNodeArms(Node_t *node)
         free(node->armfx);       node->armfx = (real8 *)NULL;
         free(node->armfy);       node->armfy = (real8 *)NULL;
         free(node->armfz);       node->armfz = (real8 *)NULL;
+        free(node->signSF);      node->signSF = (real8 *)NULL;
         free(node->nx);          node->nx = (real8 *)NULL;
         free(node->ny);          node->ny = (real8 *)NULL;
         free(node->nz);          node->nz = (real8 *)NULL;
@@ -1674,6 +1678,7 @@ void ReallocNodeArms(Node_t *node, int n)
         node->nx = (real8 *) realloc(node->nx, sizeof(real8  )*n);
         node->ny = (real8 *) realloc(node->ny, sizeof(real8  )*n);
         node->nz = (real8 *) realloc(node->nz, sizeof(real8  )*n);
+        node->signSF = (real8 *) realloc(node->signSF, sizeof(real8  )*n);
         node->sigbLoc  = (real8 *) realloc(node->sigbLoc, n*3*sizeof(real8));
         node->sigbRem  = (real8 *) realloc(node->sigbRem, n*3*sizeof(real8));
 
@@ -2278,6 +2283,7 @@ void CompressArmLists (Node_t *node)
                         node->armfx[i] = node->armfx[j];
                         node->armfy[i] = node->armfy[j];
                         node->armfz[i] = node->armfz[j];
+                        node->signSF[i] = node->signSF[j];
                         node->sigbLoc[3*i]  =node->sigbLoc[3*j];
                         node->sigbLoc[3*i+1]=node->sigbLoc[3*j+1];
                         node->sigbLoc[3*i+2]=node->sigbLoc[3*j+2];
