@@ -20,6 +20,76 @@
 
 #define ENERGY_RULER 1
 
+/****************************************************************************  
+*
+*	In order to avoid numerical error, we must ensure the node is pulled 
+*	back into its grain.
+*
+*****************************************************************************/
+void PullBack(Home_t *home, Node_t *node){
+
+    int     currInGrain, currOnGB;
+	real8	newPos[3];
+	
+	if(node == (Node_t *)NULL){
+        printf("Task %d: %s, line %d -- Node = NULL",
+		       home->myDomain, __FILE__, __LINE__);
+        return;
+	}
+
+	newPos[0] = node->oldx;
+	newPos[1] = node->oldy;
+	newPos[2] = node->oldz;
+	
+	NodeLocation(home,newPos[0],newPos[1],newPos[2], currInGrain, currOnGB);
+
+    if(IsOnGB(node)){
+        if(node->onGB != currOnGB){
+            int     type;
+            GB_t    *gb;
+            real8   nodePos[3], dis;
+            
+            nodePos[0] = node->x;
+            nodePos[1] = node->y;
+            nodePos[2] = node->z;
+            gb = home->GBKeys[node->onGB];
+
+            type = PointPlaneIntersection(nodePos, gb->n, gb->p, newPos, &dis);
+            if(fabs(dis) > 5){
+                PrintNode(node);
+                FormatVector(newPos, "newPos");
+                printf("Warning in PullBack, error is %f", dis);
+            }
+        }
+    }else{
+        if(currOnGB == -1){
+            if(node->inGrain != currInGrain){
+                printf("newPos--{%f,%f,%f}--(%d,%d)\n", newPos[0],
+                       newPos[1],newPos[2], currInGrain, currOnGB);
+                PrintNode(node);
+                printf("Warning in %s at %d", __FILE__, __LINE__);
+
+                if(!NewPosToGB(home, node, node->inGrain, currOnGB, newPos)){
+                    PrintNode(node);
+                    Fatal("in %s at %d", __FILE__, __LINE__);
+                }
+            }
+        }else{
+            if(!NewPosToGB(home, node, node->inGrain, currOnGB, newPos)){
+                PrintNode(node);
+                Fatal("in %s at %d", __FILE__, __LINE__);
+            }
+        }
+    }
+
+	FoldBox(home->param, newPos, newPos+1, newPos+2);
+    RepositionNode(home,newPos,&node->myTag,1);
+
+    MarkNodeForceObsolete(home, node);        
+
+	return;
+}
+
 
 Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int globalOp, int opClass)
 {

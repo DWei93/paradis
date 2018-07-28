@@ -897,6 +897,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
     
     real8       dis, vec[3], vec1[3], vec2[3];
     real8       pos[3], interPos[3], vec3[3]; 
+    real8       eps;
     int         currInGrain, currOnGB, type, index;
     int         bakOnGB, bakInGrain, nbrInGrain;
     Param_t     *param;
@@ -906,6 +907,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
 
     param = home->param;
 
+    eps = param->rann/5.0;
     if(onGB < 0)Fatal("in %s at %d", __FILE__, __LINE__);
 	if(node == (Node_t *)NULL){
         Fatal("Task %d: %s, line %d -- Node = NULL",
@@ -923,9 +925,9 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
         grain = home->grainKeys[inGrain];
         index = GetGBIndexOfGrain(grain, onGB);
         if(index < 0)Fatal("in %s at %d", __FILE__, __LINE__);
-        vec2[0] -= (grain->sign[index] * param->rann * GB->n[0]);
-        vec2[1] -= (grain->sign[index] * param->rann * GB->n[1]);
-        vec2[2] -= (grain->sign[index] * param->rann * GB->n[2]);
+        vec2[0] -= (grain->sign[index] * eps * GB->n[0]);
+        vec2[1] -= (grain->sign[index] * eps * GB->n[1]);
+        vec2[2] -= (grain->sign[index] * eps * GB->n[2]);
 /*
  *      If the node is on grain boundary
  *      Only allow the neighbors of the node in the same grain
@@ -985,74 +987,6 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
     return(1);
 }
 
-
-/****************************************************************************  
-*
-*	In order to avoid numerical error, we must ensure the node is pulled 
-*	back into its grain.
-*
-*****************************************************************************/
-void PullBack(Home_t *home, Node_t *node){
-
-    int     currInGrain, currOnGB;
-	real8	newPos[3];
-	
-	if(node == (Node_t *)NULL){
-        printf("Task %d: %s, line %d -- Node = NULL",
-		       home->myDomain, __FILE__, __LINE__);
-        return;
-	}
-
-	newPos[0] = node->oldx;
-	newPos[1] = node->oldy;
-	newPos[2] = node->oldz;
-	
-	NodeLocation(home,newPos[0],newPos[1],newPos[2], currInGrain, currOnGB);
-
-    if(IsOnGB(node)){
-        if(node->onGB != currOnGB){
-            int     type;
-            GB_t    *gb;
-            real8   nodePos[3], dis;
-            
-            nodePos[0] = node->x;
-            nodePos[1] = node->y;
-            nodePos[2] = node->z;
-            gb = home->GBKeys[node->onGB];
-
-            type = PointPlaneIntersection(nodePos, gb->n, gb->p, newPos, &dis);
-            if(fabs(dis) > 5){
-                PrintNode(node);
-                FormatVector(newPos, "newPos");
-                printf("Warning in PullBack, error is %f", dis);
-            }
-        }
-    }else{
-        if(currOnGB == -1){
-            if(node->inGrain != currInGrain){
-                printf("newPos--{%f,%f,%f}--(%d,%d)\n", newPos[0],
-                       newPos[1],newPos[2], currInGrain, currOnGB);
-                PrintNode(node);
-                printf("Warning in %s at %d", __FILE__, __LINE__);
-
-                if(!NewPosToGB(home, node, node->inGrain, currOnGB, newPos)){
-                    PrintNode(node);
-                    Fatal("in %s at %d", __FILE__, __LINE__);
-                }
-            }
-        }else{
-            if(!NewPosToGB(home, node, node->inGrain, currOnGB, newPos)){
-                PrintNode(node);
-                Fatal("in %s at %d", __FILE__, __LINE__);
-            }
-        }
-    }
-
-	FoldBox(home->param, newPos, newPos+1, newPos+2);
-    RepositionNode(home,newPos,&node->myTag,1);
-
-	return;
-}
 
 int SameTag(Tag_t *tag1, Tag_t *tag2){
 
