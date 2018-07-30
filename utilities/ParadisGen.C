@@ -119,8 +119,8 @@ FuncData_t funcData[FTYPE_MAX] = {
  */
 Option_t optList[OPT_MAX] = {
         {OPT_CUBEL,     "cubel",    	3, 1},
-	{OPT_HEIGHTRATIO,"heightRatio",	3, 1},
-	{OPT_DELTA_NUMS,"deltaNums",	3, 1},
+	    {OPT_HEIGHTRATIO,"heightRatio",	3, 1},
+	    {OPT_DELTA_NUMS,"deltaNums",	3, 1},
         {OPT_FRLEN,     "frlen",    	3, 1},
         {OPT_HELP,      "help",     	3, 0},
         {OPT_HEXSIZE,   "hexsize",  	3, 1},
@@ -138,16 +138,17 @@ Option_t optList[OPT_MAX] = {
         {OPT_XSURF,     "xsurf",    	3, 1},
         {OPT_YSURF,     "ysurf",    	3, 1},
         {OPT_ZSURF,     "zsurf",    	3, 1},
-	{OPT_POLY,	"polycrystal",	3, 1},
-	{OPT_NGRAIN,	"nGrain",	3, 1},
-	{OPT_TWIN_RATIO,"twinRatio",	3, 1},
-	{OPT_NLAYERS,   "nLayers",	3, 1},
-	{OPT_XMATDIR,   "xMatDir",	3, 1},
-	{OPT_YMATDIR,   "yMatDir",	3, 1},
-	{OPT_ZMATDIR,   "zMatDir",	3, 1},
-	{OPT_TBANGLE,   "TBAngle",	3, 1},
-	{OPT_SRCLENTYPE,"srcLenType",	3, 1},
-	{OPT_MAXDENSITY,"maxDensity",	4, 1}
+	    {OPT_POLY,	"polycrystal",	3, 1},
+	    {OPT_NGRAIN,	"nGrain",	3, 1},
+	    {OPT_TWIN_RATIO,"twinRatio",	3, 1},
+	    {OPT_NLAYERS,   "nLayers",	3, 1},
+	    {OPT_XMATDIR,   "xMatDir",	3, 1},
+	    {OPT_YMATDIR,   "yMatDir",	3, 1},
+	    {OPT_ZMATDIR,   "zMatDir",	3, 1},
+	    {OPT_TBANGLE,   "TBAngle",	3, 1},
+	    {OPT_SRCLENTYPE,"srcLenType",	3, 1},
+	    {OPT_MAXDENSITY,"maxDensity",	4, 1},
+        {OPT_EXTENDED,  "extended", 3, 1}
 
 };
 
@@ -204,9 +205,9 @@ static void Usage(char *program)
         printf("               [-frlen minsize[,maxsize]] [-help] \n");
         printf("               [-maxseg <maxseglen] [-nfrsrcs <numsrcs>]\n");
         printf("               [-seed <seedval] [-type <configtype>]\n");
-	printf("			   [-polycrystal <1 = ploy>]  [-nGrain <num grains>]\n");
-	printf("			   [-twinRatio <twinRatio>] \n");
-	printf("			   [-heightRatio <heightRatio>]  [-deltaNums <deltaNums of FR>]\n");
+    	printf("			   [-polycrystal <1 = ploy>]  [-nGrain <num grains>]\n");
+	    printf("			   [-twinRatio <twinRatio>] \n");
+	    printf("			   [-heightRatio <heightRatio>]  [-deltaNums <deltaNums of FR>]\n");
         printf("\n");
         printf("    For <type> 'fcc-irrad'\n");
         printf("\n");
@@ -349,6 +350,7 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->polycrystal = 1;
         inArgs->nGrain		= 2;
         inArgs->twinRatio	= 0.5;
+        inArgs->extended     = 0;
         	
         inArgs->deltaNums	= 0;
         inArgs->nLayers		= 1;
@@ -479,6 +481,14 @@ static void PrintArgs(InArgs_t *inArgs)
                 break;
 
             case FTYPE_FRANK_READ:
+                if(inArgs->polycrystal){
+                    printf("Polycrystal: ");    
+                }else{
+                    printf("Single crystal: ");
+                }
+                if(inArgs->extended)printf("generate extended dislocation");
+                printf("\n");
+
                 printf("Source length distribution type:        %d\n", inArgs->srcLenType);
                 printf("Number of sources:        %d\n", inArgs->numFRSrcs);
                 if (inArgs->frLenMax > inArgs->frLenMin) {
@@ -770,6 +780,9 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	        case OPT_MAXDENSITY:
 	            inArgs->maxDensity = atof(argValue);
 	                break;
+            case OPT_EXTENDED:
+                inArgs->extended = atoi(argValue);
+                    break;
             }
         }
 
@@ -925,12 +938,12 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
             fprintf(fp, "#  Primary lines: node_tag, x, y, z, "
                     "num_arms, constraint, inGrain, onGB\n");
             fprintf(fp, "#  Secondary lines: arm_tag, burgx, burgy, "
-                    "burgz, nx, ny, nz\n");
+                    "burgz, nx, ny, nz signSF\n");
         }
 		
 		if(fpTecplot == (FILE *)NULL){
 			fpTecplot = fopen("DDInitial.plt","w");
-			fprintf(fpTecplot,"variables = X,Y,Z,V1,V2,V3,inGrain,onGB,burgID,planeID,constraint,numNbrs\n");
+			fprintf(fpTecplot,"variables = X,Y,Z,V1,V2,V3,inGrain,onGB,burgID,planeID,constraint,numNbrs,signSF\n");
 			
 		}
 
@@ -982,12 +995,12 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
 	            }
 
                 fprintf(fp, "%d,%d %.15e %.15e %.15e\n"
-			                "%.15e %.15e %.15e\n",
+			                "%.15e %.15e %.15e %2.0f\n",
                         node->nbrTag[iArm].domainID,
                         node->nbrTag[iArm].index,
                         node->burgX[iArm], node->burgY[iArm],
                         node->burgZ[iArm], node->nx[iArm],
-                        node->ny[iArm], node->nz[iArm]);
+                        node->ny[iArm], node->nz[iArm], node->signSF[iArm]);
 				
 				nbrTag.domainID = node->nbrTag[iArm].domainID;
 				nbrTag.index	= node->nbrTag[iArm].index;
@@ -999,10 +1012,10 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
 				v3 = 0.5 * (nbr->z - node->z);	
 				fprintf(fpTecplot, "%16.10e %16.10e %16.10e "
 								   "%16.10e %16.10e %16.10e "
-						           "%d %d %d %d %d %d\n",
+						           "%d %d %d %d %d %d %2.0f\n",
 						node->x, node->y, node->z, v1, v2, v3,
 						node->inGrain,node->onGB,burgID, planeID,
-					    node->constraint, node->numNbrs); 		
+					    node->constraint, node->numNbrs, node->signSF[iArm]); 		
             }
         }
 
@@ -1078,13 +1091,13 @@ main(int argc, char *argv[])
         param->maxSideY = maxSide;
         param->maxSideZ = maxHigh;
 		
-	param->xBoundMin = minSide;
-	param->yBoundMin = minSide;
-	param->zBoundMin = minHigh;
+	    param->xBoundMin = minSide;
+	    param->yBoundMin = minSide;
+	    param->zBoundMin = minHigh;
 		
-	param->xBoundMax = maxSide;
-	param->yBoundMax = maxSide;
-	param->zBoundMax = maxHigh;
+	    param->xBoundMax = maxSide;
+	    param->yBoundMax = maxSide;
+    	param->zBoundMax = maxHigh;
 		
         param->Lx = param->maxSideX - param->minSideX;
         param->Ly = param->maxSideY - param->minSideY;
@@ -1095,23 +1108,23 @@ main(int argc, char *argv[])
         param->invLz = 1.0 / param->Lz;
 
         param->maxSeg = inArgs.maxSegLen;
-	param->minSeg = inArgs.maxSegLen/2.0;
+	    param->minSeg = inArgs.maxSegLen/2.0;
 		
-	param->polycrystal = inArgs.polycrystal;
-	param->nGrain = inArgs.nGrain;
-	param->twinRatio = inArgs.twinRatio;
+	    param->polycrystal = inArgs.polycrystal;
+	    param->nGrain = inArgs.nGrain;
+	    param->twinRatio = inArgs.twinRatio;
 
-	param->xBoundType = ((inArgs.pbcVal & 0x01) == 0 ? Periodic : Free);
-	param->yBoundType = ((inArgs.pbcVal & 0x02) == 0 ? Periodic : Free);
-	param->zBoundType = ((inArgs.pbcVal & 0x04) == 0 ? Periodic : Free);
+	    param->xBoundType = ((inArgs.pbcVal & 0x01) == 0 ? Periodic : Free);
+	    param->yBoundType = ((inArgs.pbcVal & 0x02) == 0 ? Periodic : Free);
+	    param->zBoundType = ((inArgs.pbcVal & 0x04) == 0 ? Periodic : Free);
 
-	VECTOR_COPY(param->matrixOrientation[0],inArgs.xMatDir);
-	VECTOR_COPY(param->matrixOrientation[1],inArgs.yMatDir);
-	VECTOR_COPY(param->matrixOrientation[2],inArgs.zMatDir);
+	    VECTOR_COPY(param->matrixOrientation[0],inArgs.xMatDir);
+	    VECTOR_COPY(param->matrixOrientation[1],inArgs.yMatDir);
+	    VECTOR_COPY(param->matrixOrientation[2],inArgs.zMatDir);
 
-	InitGrain(&home, param);
+	    InitGrain(&home, param);
 		
-    strncpy(param->node_data_file, inArgs.outputFile,
+        strncpy(param->node_data_file, inArgs.outputFile,
             sizeof(param->node_data_file)-1);
 
 #if 1
@@ -1157,8 +1170,6 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
              home.zMaxLevel++);
 
         UniformDecomp(&home, &home.decomp);
-		
-		
 		
 
 /*
@@ -1229,9 +1240,8 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
                                &totDislocLen);
                 break;
         case FTYPE_FCC:
-			CreateFCCConfig(&home, &inData, inArgs.cubeLength,
-							inArgs.numChains, inArgs.seed, &totDislocLen,
-							inArgs.type);
+			CreateFCCConfig(&home, &inData, &inArgs,
+                               &totDislocLen);
                 break;
         case FTYPE_FCC_IRRAD:
                 CreateFCCIrradConfig(&home, &inData, inArgs.cubeLength,

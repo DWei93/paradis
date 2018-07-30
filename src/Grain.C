@@ -10,7 +10,9 @@
 *****************************************************************************/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
+#include <time.h>
 #include "Home.h" 
 #include "Grain.h"
 #include "Util.h" 
@@ -22,6 +24,11 @@
 bool IsOnGB(Node_t *node)
 {
     return(node->onGB > -1);
+}
+
+real8 Normal(std::vector<real8>& a)
+{
+    return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]) );
 }
 
 void PrintNeighbor(Home_t *home, Node_t *node){
@@ -44,9 +51,14 @@ void PrintNeighbor(Home_t *home, Node_t *node){
 
 void FormatMatrix(real8 M[3][3], const char *msg){
 	int i;
-	printf("%s matrix:\n",msg);
+	printf("%s:\n{",msg);
 	for (i = 0; i < 3; i++){
-	    printf("%20.15e %20.15e %20.15e\n", M[i][0], M[i][1], M[i][2]);
+	    printf("{%20.15f,%20.15f,%20.15f}", M[i][0], M[i][1], M[i][2]);
+        if(i<2){
+            printf(",\n");
+        }else{
+            printf("}\n");
+        }
 	}
 
 	return;
@@ -392,7 +404,9 @@ void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& on
     onGB = -1;
 	param = home->param;
 
-	if(param->polycrystal == 0)return;
+	if(param->polycrystal == 0){
+        return;
+    }
 
 	nGrains = home->nGrains;
     pos[0] = x;
@@ -465,9 +479,6 @@ Node_t *GetinDataNodeFromTag(InData_t *inData, Tag_t tag){
 	return((Node_t *)NULL);
 }
 
-int JudgeNodeInCuboid(real8 *x1, real8 *y1, real8 *z1, real8 x2, real8 y2, real8 z2){
-	return(fabs(*x1) <= x2 && fabs(*y1) <= y2 && fabs(*z1) <= z2);
-}
 
 BurgInfo_t* GetBurgData(Home_t *home, Node_t *node1, Node_t *node2)
 {
@@ -477,6 +488,29 @@ BurgInfo_t* GetBurgData(Home_t *home, Node_t *node1, Node_t *node2)
             GB_t    *gb;
 
             GetArmGrain(home, node1, node2, inGrain, onGB);
+            if(onGB > -1){
+                gb = home->GBKeys[onGB];
+                return(&(gb->burgData));
+            }else{
+                grain = home->grainKeys[inGrain];    
+                return(&(grain->burgData));
+            }
+        }else{
+            if(!home->param->useLabFrame){
+                return(&(home->crystBurgData));               
+            }else{
+                return(&(home->burgData));               
+            }
+        }
+        return((BurgInfo_t *)NULL);
+}
+
+BurgInfo_t* GetBurgData(Home_t *home, int inGrain, int onGB)
+{
+        if(home->param->polycrystal){
+            Grain_t *grain;
+            GB_t    *gb;
+
             if(onGB > -1){
                 gb = home->GBKeys[onGB];
                 return(&(gb->burgData));
@@ -568,6 +602,19 @@ int PlaneID_FCC(BurgInfo_t *burgData, real8 plane[3])
         
         for(i=0; i<burgData->numPlanes; i++){
             cross(burgData->planeList[i], plane, crossProd);
+            if(Normal(crossProd) < 1.0E-3)break;
+        }
+        
+        return(i);
+}
+
+int KeyLineID_FCC(BurgInfo_t *burgData, real8 line[3])
+{
+        int     i;
+        real8   crossProd[3];
+        
+        for(i=0; i<burgData->numKeyLines; i++){
+            cross(burgData->keyLineList[i], line, crossProd);
             if(Normal(crossProd) < 1.0E-3)break;
         }
         
@@ -1318,19 +1365,24 @@ int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]){
  *          f2        Array in which to return image force at pos2
  *
  *-------------------------------------------------------------------------*/
-void ImageForce(Home_t *home, real8 armGrain, real8 x1, real8 y1, real8 z1,
-                  real8 x2, real8 y2, real8 z2, real8 bx, real8 by, real8 bz,
-                  real8 f1[3], real8 f2[3])
+void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f2[3])
 {
 
-    int         grainID;
-    Grain_t    *grain;
+    real8       dis;
+    GB_t        *gb;
     Param_t     *param;
-
-    param = home->param;
 
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);
+
+    if(IsOnGB(node1) && IsOnGB(node2))return;
+
+#if 0
+    param = home->param;
+
+	dis =  ClosedGB(home, segCentor, &gb);
+    if(fabs(dis) > 
+#endif
 
 
     return;
@@ -1753,13 +1805,51 @@ void CompressDirectionList(std::vector< std::vector<real8> >& dirList)
     return;
 }
 
+void CompressBurgListWithType(std::vector<std::vector<real8> >& burgList,
+                              std::vector<int>& burgType)
+{
+    int     i, j, nRows;
+    real8   crossProdt[3], vec1[3], vec2[3];
+    int     newNRows = 0;
+    std::vector< std::vector<real8> >::iterator  it;
+    std::vector<int>::iterator  it2;
+
+    nRows = burgList.size();
+    if(nRows != burgType.size())Fatal("in %s at %d", __FILE__, __LINE__);
+    for(i=0; i<nRows; i++){
+        for(j=0; j<newNRows; j++){
+            VECTOR_COPY(vec1, burgList[i]);
+            VECTOR_COPY(vec2, burgList[j]);
+            cross(vec1, vec2, crossProdt);
+            if(Normal(crossProdt) < 1.0E-2 && fabs(Normal(burgList[i]) - 
+               Normal(burgList[j])) < 1.0E-4 &&  burgType[i] == burgType[j])break;
+
+        }
+        if(j == newNRows){
+            VECTOR_COPY(burgList[newNRows], burgList[i])
+            burgType[newNRows] = burgType[i];
+            newNRows++;
+        }
+    }
+    
+    for(it = burgList.end(); it != burgList.begin()+newNRows; it--){
+        burgList.erase(it);
+    }
+//    for(it2 = burgType.end(); it2 != burgType.begin()+newNRows; it2--){
+//        burgType.erase(it2);
+//    }
+        burgType.resize(newNRows);
+
+    return;
+}
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
 {
 
     int         i, j, numRows;
-    real8       crossProdt[3];
+    real8       crossProdt[3], vec[3];
     Grain_t     *grain1, *grain2;
     BurgInfo_t  *bd1, *bd2, *gbd;
+    std::vector<double>                 vecSTL(3);
    
     grain1 = home->grainKeys[GB->nbrGrain[0]];
     grain2 = home->grainKeys[GB->nbrGrain[1]];
@@ -1774,7 +1864,6 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
     gbd->planeList = (real8 (*)[3])malloc(3*numRows*sizeof(real8));
     gbd->planeType = (int *)malloc(numRows*sizeof(int));
     gbd->planeInGrain = (int *)malloc(numRows*sizeof(int));
-    gbd->numBurgsPerPlane = (int *)malloc(numRows*sizeof(int));
 
     memcpy(gbd->planeList, bd1->planeList, bd1->numPlanes*sizeof(real8 [3]));
     memcpy(gbd->planeList+bd1->numPlanes, bd2->planeList, 
@@ -1796,99 +1885,62 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
         }
     }
 
-    memcpy(gbd->numBurgsPerPlane, bd1->numBurgsPerPlane, bd1->numPlanes*sizeof(int));
-    memcpy(gbd->numBurgsPerPlane+bd1->numPlanes, bd2->numBurgsPerPlane, 
-           bd2->numPlanes*sizeof(int));
-
-    int **bd2BurgOnPlaneID = (int **)malloc(bd2->numBurgVectors*sizeof(int *));
-    for(i=0; i<bd2->numBurgVectors; i++){
-        bd2BurgOnPlaneID[i] = (int *)malloc(bd2->numPlanesPerBurg[i]*sizeof(int));
+    std::vector<std::vector<real8> >                burgList;
+    std::vector<int>                                burgType;
+    for(i=0; i<bd1->numBurgVectors; i++){
+        VECTOR_COPY(vecSTL, bd1->burgList[i]);
+        burgList.push_back(vecSTL);
+        burgType.push_back(bd1->burgType[i]);
     }
-
     for(i=0; i<bd2->numBurgVectors; i++){
-        for(j=0; j<bd2->numPlanesPerBurg[i]; j++){
-            bd2BurgOnPlaneID[i][j] = bd2->burgOnPlaneID[i][j]+bd1->numPlanes;
-        }
+        VECTOR_COPY(vecSTL, bd2->burgList[i]);
+        burgList.push_back(vecSTL);
+        burgType.push_back(bd2->burgType[i]);
     }
+    CompressBurgListWithType(burgList, burgType);
 
-    numRows = bd1->numBurgVectors + bd2->numBurgVectors;
+    numRows = burgList.size();
     gbd->numBurgVectors = numRows;
     gbd->burgList = (real8 (*)[3])malloc(3*numRows*sizeof(real8));
     gbd->burgType = (int *)malloc(numRows*sizeof(int));
     gbd->numPlanesPerBurg = (int *)malloc(numRows*sizeof(int));
+    std::vector<std::vector<int> >        burgOnPlaneID(numRows);
 
-    memcpy(gbd->burgList, bd1->burgList, bd1->numBurgVectors*sizeof(real8 [3]));
-    memcpy(gbd->burgList+bd1->numBurgVectors, bd2->burgList, 
-           bd2->numBurgVectors*sizeof(real8 [3]));
-
-    memcpy(gbd->burgType, bd1->burgType, bd1->numBurgVectors*sizeof(int));
-    memcpy(gbd->burgType+bd1->numBurgVectors, bd2->burgType, 
-           bd2->numBurgVectors*sizeof(int));
-
-    memcpy(gbd->numPlanesPerBurg, bd1->numPlanesPerBurg, bd1->numBurgVectors*sizeof(int));
-    memcpy(gbd->numPlanesPerBurg+bd1->numBurgVectors, bd2->numPlanesPerBurg, 
-           bd2->numBurgVectors*sizeof(int));
-
-    int **bd2PlaneOnBurgID = (int **)malloc(bd2->numPlanes*sizeof(int *));
-    for(i=0; i<bd2->numPlanes; i++){
-        bd2PlaneOnBurgID[i] = (int *)malloc(bd2->numBurgsPerPlane[i]*sizeof(int));
-    }
-    for(i=0; i<bd2->numPlanes; i++){
-        for(j=0; j<bd2->numBurgsPerPlane[i]; j++){
-            bd2PlaneOnBurgID[i][j] = bd2->planeOnBurgID[i][j]+bd1->numBurgVectors;
+    for(i=0; i<numRows; i++){
+        VECTOR_COPY(gbd->burgList[i], burgList[i]);
+        gbd->burgType[i] = burgType[i];
+        gbd->numPlanesPerBurg[i] = 0;
+        VECTOR_COPY(vec, burgList[i]);
+        NormalizeVec(vec);
+        for(j=0; j<gbd->numPlanes; j++){
+            if(fabs(DotProduct(vec, gbd->planeList[j])) < 1.0E-2){
+                gbd->numPlanesPerBurg[i]++;
+                burgOnPlaneID[i].push_back(j);
+            }
         }
     }
-
+    
+    std::vector<std::vector<int> >      planeOnBurgID(gbd->numPlanes);
     gbd->burgOnPlaneID = (int **)malloc(gbd->numBurgVectors*sizeof(int *));
     for(i=0; i<gbd->numBurgVectors; i++){
         gbd->burgOnPlaneID[i] = (int *)malloc(gbd->numPlanesPerBurg[i]*sizeof(int));
-        if(i<bd1->numBurgVectors){
-            memcpy(gbd->burgOnPlaneID[i], bd1->burgOnPlaneID[i], 
-                   gbd->numPlanesPerBurg[i]*sizeof(int));
-        }else{
-            memcpy(gbd->burgOnPlaneID[i], bd2BurgOnPlaneID[i-bd1->numBurgVectors],
-                   gbd->numPlanesPerBurg[i]*sizeof(int));
+        for(j=0; j<gbd->numPlanesPerBurg[i]; j++){
+            gbd->burgOnPlaneID[i][j] = burgOnPlaneID[i][j];
+            planeOnBurgID[burgOnPlaneID[i][j]].push_back(i);
         }
     }
-    
 
-#if 0
-        printf("%-2d: ", i);
-        for(j=0; j<gbd->numPlanesPerKeyLine[i]; j++){
-            printf("%3d",gbd->keyLineOnPlaneID[i][j]);
-        }
-        printf("\n");
-#endif
+    gbd->numBurgsPerPlane = (int *)malloc(gbd->numPlanes*sizeof(int));
     gbd->planeOnBurgID = (int **)malloc(gbd->numPlanes*sizeof(int *));
     for(i=0; i<gbd->numPlanes; i++){
+        gbd->numBurgsPerPlane[i] = planeOnBurgID[i].size();
         gbd->planeOnBurgID[i] = (int *)malloc(gbd->numBurgsPerPlane[i]*sizeof(int));
-        if(i<bd1->numPlanes){
-            memcpy(gbd->planeOnBurgID[i], bd1->planeOnBurgID[i], 
-                   gbd->numBurgsPerPlane[i]*sizeof(int));
-        }else{
-            memcpy(gbd->planeOnBurgID[i], bd2PlaneOnBurgID[i-bd1->numPlanes],
-                   gbd->numBurgsPerPlane[i]*sizeof(int));
-        }
-#if 0
-        printf("%-2d: ", i);
         for(j=0; j<gbd->numBurgsPerPlane[i]; j++){
-            printf("%3d",gbd->planeOnBurgID[i][j]);
+            gbd->planeOnBurgID[i][j] = planeOnBurgID[i][j];
         }
-        printf("\n");
-#endif
     }
     
-
-    for(i=0; i<bd2->numBurgVectors; i++){
-        free(*(bd2BurgOnPlaneID+i)); 
-    }
-
-    for(i=0; i<bd2->numPlanes; i++){
-        free(*(bd2PlaneOnBurgID+i));
-    }
-
     std::vector<std::vector<double> >   keyLineList;
-    std::vector<double>                 vecSTL(3);
 
     for(i=0; i<gbd->numPlanes; i++){
         cross(gbd->planeList[i], GB->n, crossProdt);
@@ -1907,7 +1959,31 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
     for(i=0; i<keyLineList.size(); i++){
         VECTOR_COPY(gbd->keyLineList[i], keyLineList[i]);
     }
+    
+#if 0
+    printf("Burgs info:\n");
+    for(i=0; i<gbd->numBurgVectors; i++){
+        printf("%d(%d): {%f,%f,%f} numPlanes %d, ", i,gbd->burgType[i], 
+               gbd->burgList[i][0], gbd->burgList[i][1],gbd->burgList[i][2],
+               gbd->numPlanesPerBurg[i]);
+        for(j=0; j<gbd->numPlanesPerBurg[i]; j++){
+            printf("%d ", gbd->burgOnPlaneID[i][j]);
+        }
+        printf("\n");
+    }
 
+    printf("\nPlanes info:\n");
+    for(i=0; i<gbd->numPlanes; i++){
+        printf("%d(%d,%d): {%f,%f,%f} numBurgs %d, ", i ,gbd->planeInGrain[i], gbd->planeType[i],
+               gbd->planeList[i][0], gbd->planeList[i][1],gbd->planeList[i][2],
+               gbd->numBurgsPerPlane[i]);
+        for(j=0; j<gbd->numBurgsPerPlane[i]; j++){
+            printf("%d ", gbd->planeOnBurgID[i][j]);
+        }
+        printf("\n");
+        
+    }
+#endif
     return;
 }
 
@@ -1933,7 +2009,7 @@ void SumOfValuesIsConstant(int n, int sum, std::vector<int>& valueList, int tot,
 }
 
 
-bool cmp(std::vector<int >& p, std::vector<int >& q)
+bool cmp(std::vector<int > p, std::vector<int > q)
 {
     if(p.back() != q.back()){
         return(p.back()<q.back());
@@ -2149,6 +2225,9 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
     printf("Basic glide planes : \n");
 #endif
 
+    std::vector<std::vector<double> >().swap(burgList);
+    std::vector<std::vector<Dislocation_t> >().swap(disArray);
+
     for(i=0; i<bd->numPlanes; i++){
         planeID.push_back(nPlanes);
         if((bd->planeType[i] & GLIDE_PLANE) == 0)continue;
@@ -2199,6 +2278,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
             j++;
             for(k=0; k<bd->numBurgsPerPlane[i]; k++){
                 burgType = BurgType_FCC(bd->burgList[bd->planeOnBurgID[i][k]]);
+                if(flag == 2 && burgType == BASIC_BURG)continue;
                 if(!(burgType != SHOCKLEY_BURG || burgType != BASIC_BURG))continue;
                 VECTOR_COPY(vector, bd->burgList[bd->planeOnBurgID[i][k]]);
                 if(DotProduct(vector, burg) < 0){
@@ -2440,3 +2520,119 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
     return(1);
 }
 
+void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
+                    real8 glidePlane[3], Node_t *node1, Node_t *node2)
+{
+    int         armID, burgID, normalID=-1, lineID;
+    int         inGrain, onGB;
+    real8       normBurg[3], crossProdt[3];
+
+    Param_t     *param = home->param;
+    BurgInfo_t  *bd = GetBurgData(home, node1, node2);
+
+#if 0
+    if(GetArmID(home, node1, node2) == -1){
+        FindPreciseGlidePlane(home, burg, lDir, glidePlane, node1, node2);
+        return;
+    }
+#endif
+
+    srand(time(NULL));
+
+    burgID = BurgID_FCC(bd, burg);
+    GetArmGrain(home, node1, node2, inGrain, onGB);
+    if(Normal(lDir) < 1.0E-4){
+        if(burgID<bd->numBurgVectors){
+            printf("Warning: define a palne with zero length\n");
+            while(normalID == -1){
+                normalID = bd->burgOnPlaneID[burgID][rand()%bd->numPlanesPerBurg[burgID]];
+                if((bd->planeInGrain[normalID] == -1 || bd->planeInGrain[normalID] == inGrain) &&
+                   (bd->planeType[normalID] & GLIDE_PLANE) > 0){
+                    VECTOR_COPY(glidePlane, bd->planeList[normalID]);
+                    break;
+                }else{
+                    normalID = -1;
+                }
+            }
+            return;
+        }else{
+            Fatal("in %s at %d", __FILE__, __LINE__);
+        }
+    }
+
+    NormalizeVec(lDir);
+    VECTOR_COPY(normBurg, burg);
+    NormalizeVec(normBurg);
+
+    cross(normBurg, lDir, crossProdt);
+    if(Normal(crossProdt) < 1.0E-2){
+        if(burgID >= bd->numBurgVectors)Fatal("in %s at %d", __FILE__, __LINE__);
+        while(normalID == -1){
+            normalID = bd->burgOnPlaneID[burgID][rand()%bd->numPlanesPerBurg[burgID]];
+            if((bd->planeInGrain[normalID] == -1 || bd->planeInGrain[normalID] == inGrain) &&
+               (bd->planeType[normalID] & GLIDE_PLANE) > 0){
+                VECTOR_COPY(glidePlane, bd->planeList[normalID]);
+                break;
+            }else{
+                normalID = -1;
+            }
+        }
+    }else{
+        NormalizeVec(crossProdt);
+        normalID = PlaneID_FCC(bd, crossProdt);
+        if(normalID < bd->numPlanes){
+            VECTOR_COPY(glidePlane, bd->planeList[normalID]);
+        }else{
+            VECTOR_COPY(glidePlane, crossProdt);
+        }
+    }
+    
+    return;
+}
+
+
+void StackingFaultForce(Home_t *home, Node_t *node1, Node_t *node2,
+                        real8 *f1, real8 *f2) 
+{
+    Param_t     *param;
+    real8       vec[3], length, normal[3], dir[3], signSF;
+    int         armID;
+
+    param = home->param;
+
+    VECTOR_ZERO(f1);
+    VECTOR_ZERO(f2);
+
+    vec[0] = node2->x - node1->x;
+    vec[1] = node2->y - node1->y;
+    vec[2] = node2->z - node1->z;
+    ZImage(param, vec, vec+1, vec+2);
+
+    length = Normal(vec);
+    if(length < 1.0E-4){
+        printf("warning %s at %d",__FILE__, __LINE__);
+    }
+
+    
+    NormalizeVec(vec);
+
+    armID = GetArmID(home, node1, node2);
+    normal[0] = node1->nx[armID];
+    normal[1] = node1->ny[armID];
+    normal[2] = node1->nz[armID];
+    signSF = node1->signSF[armID];
+
+    cross(normal, vec, dir);
+    if(Normal(dir) < 1.0E-4){
+        printf("warning %s at %d",__FILE__, __LINE__);
+    }
+
+    NormalizeVec(dir);
+
+    f1[0] = length*param->sfEnergy*0.5*dir[0]*signSF;
+    f1[1] = length*param->sfEnergy*0.5*dir[1]*signSF;
+    f1[2] = length*param->sfEnergy*0.5*dir[2]*signSF;
+
+    VECTOR_COPY(f2, f1);
+    return;
+}

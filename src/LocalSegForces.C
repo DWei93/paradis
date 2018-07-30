@@ -2299,6 +2299,7 @@ void LocalSegForces(Home_t *home, int reqType)
         Segment_t  *segList, *nbrSegList, **cellSegLists;
         NativeSeg_t   *nativeSegList = NULL;
         SegmentPair_t *segPairList = NULL;
+        int             inGrain, onGB;
 
 
         homeCells       = home->cellCount;
@@ -2892,10 +2893,7 @@ void LocalSegForces(Home_t *home, int reqType)
  *          add the image force in now.
  */
             if(param->polycrystal){
-                int inGrain, onGB;
-                GetArmGrain(home,node1, node2, inGrain, onGB);
-                ImageForce(home, armGrain, x1, y1, z1, x2, y2, z2, 
-                           bx1, by1, bz1, f1, f2);
+                ImageForce(home, node1, node2, f1, f2);
 
                 VECTOR_ADD(node1SegForce, f1);
                 VECTOR_ADD(node2SegForce, f2);
@@ -2904,6 +2902,16 @@ void LocalSegForces(Home_t *home, int reqType)
                     nativeSegList[i].seg->f1[j] += f1[j];
                     nativeSegList[i].seg->f2[j] += f2[j];
                 }
+            }
+
+            StackingFaultForce(home, node1, node2, f1, f2);
+
+            VECTOR_ADD(node1SegForce, f1);
+            VECTOR_ADD(node2SegForce, f2);
+
+            for (j = 0; j < 3; j++) {
+                nativeSegList[i].seg->f1[j] += f1[j];
+                nativeSegList[i].seg->f2[j] += f2[j];
             }
 
 /*

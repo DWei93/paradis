@@ -318,6 +318,7 @@ static void FindBCCGlidePlane(real8 burg[3], real8 dir[3], real8 glidePlane[3])
  *                       caller.
  *
  *------------------------------------------------------------------------*/
+
 static void FindFCCGlidePlane(real8 burg[3], real8 dir[3], real8 glidePlane[3])
 {
         int    burgIndex, firstGlidePlaneIndex, numGlidePlanes, glidePlaneIndex;

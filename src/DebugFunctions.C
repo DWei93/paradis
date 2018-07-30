@@ -489,13 +489,11 @@ void DebugGB(Home_t *home, int flag){
 
 	param = home->param;
 
-	printf("%d %d\n",home->myDomain, flag);
+//	printf("%d %d\n",home->myDomain, flag);
 
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
-        if(node->inGrain == -1 && node->onGB == -1 || isnan(node->x)){
-            PrintNode(node);
-            Fatal("DebugGB %d %d", home->myDomain, flag);
+        if(i==0 && flag == 18){
         }
     }
 

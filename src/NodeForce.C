@@ -867,6 +867,7 @@ void NodeForce(Home_t *home, int reqType)
         TimerStop(home, CALC_FORCE_BARRIER);
 #endif
 #endif
+        
         return;
 
 
@@ -1154,6 +1155,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
         Node_t  *nodeB;
         Param_t *param;
         SegPair_t *segPairList = (SegPair_t *)NULL;
+        int     inGrain, onGB, armGrain;
 
         param           = home->param;
 
@@ -1355,6 +1357,24 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
  */
             ExtPKForce(extstress, burg[0], burg[1], burg[2],
                        x1, y1, z1, x2, y2, z2, f1,f2);
+
+            VECTOR_ADD(fseg1node1, f1);
+            VECTOR_ADD(fseg1node2, f2);
+
+
+/*
+ *          If we're including grain boundary or free surface, 
+ *          add the image force in now.
+ */
+            if(param->polycrystal){
+                ImageForce(home, node1, node2, f1, f2);
+
+                VECTOR_ADD(fseg1node1, f1);
+                VECTOR_ADD(fseg1node2, f2);
+
+            }
+
+            StackingFaultForce(home, node1, node2, f1, f2);
 
             VECTOR_ADD(fseg1node1, f1);
             VECTOR_ADD(fseg1node2, f2);

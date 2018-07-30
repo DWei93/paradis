@@ -162,7 +162,7 @@ void CrossSlipFCC(Home_t *home)
             burgID = BurgID_FCC(burgData, burgLab);
             if(burgID >= burgData->numBurgVectors)continue;
 
-            if(burgData->burgType[burgID] != EDGE_BURG)continue;
+            if((burgData->burgType[burgID] & EDGE_BURG) == 0)continue;
 
             if(IsOnGB(nbr1) || IsOnGB(nbr2) || IsOnGB(node))continue;
 //            if(node->onGB != nbr1->onGB && node->onGB != nbr2->onGB ||

@@ -244,13 +244,13 @@ struct _param {
 
         real8 shearModulus;
         real8 pois;
-	real8 outRadius;
+	    real8 outRadius;
         real8 burgMag;
-	real8 rho;
-	real8 vshr;
-	real8 TBSFEnergy;					
-	real8 TBEnergy;
-		
+	    real8 rho;
+	    real8 vshr;
+	    real8 TBSFEnergy;					
+	    real8 TBEnergy;
+		real8 sfEnergy;
 
         real8 YoungsModulus;
 		

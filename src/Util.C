@@ -1997,7 +1997,7 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
                 burg[1] = by;
                 burg[2] = bz;
 
-                FindPreciseGlidePlane(home, burg, dir, glidePlane,node1,node2);
+                FindGlidePlane(home, burg, dir, glidePlane,node1,node2);
 
                 gpDotgp = DotProduct(glidePlane, glidePlane);
 
@@ -2006,7 +2006,7 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
                     vel[1] = (node1->vY + node2->vY) * 0.5;
                     vel[2] = (node1->vZ + node2->vZ) * 0.5;
 
-                    FindPreciseGlidePlane(home, vel, dir, glidePlane,node1,node2);
+                    FindGlidePlane(home, vel, dir, glidePlane,node1,node2);
 
                     gpDotgp = DotProduct(glidePlane, glidePlane);
 
@@ -2142,6 +2142,42 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
         return;
 }
 
+void ChangeArmStackingFault(Home_t *home, Node_t *node1, Tag_t *tag2,
+                   real8 signSF, int globalOp)
+{
+
+        int     armID;
+        Node_t  *node2;
+
+        if (node1 == NULL) return;
+
+        node2 = GetNodeFromIndex(home, tag2->domainID, tag2->index);
+        if(node2 == (Node_t *)NULL)return;
+		
+		
+        armID = GetArmID(home, node1, node2);
+		if(armID == -1){
+			PrintNode(node1);
+			PrintNode(node2);
+			printf("Warning: Task %d, node1 <-|-> node2\n",home->myDomain);
+		}
+
+        node1->signSF[armID] = signSF;
+
+        if(globalOp){
+            AddOp(home, CHANGE_ARM_SIGNSF,
+                node1->myTag.domainID,
+                node1->myTag.index,
+                tag2->domainID,
+                tag2->index,
+                -1,-1,
+                signSF,0,0,
+                0,0,0,
+                0,0,0);
+        }
+
+        return;
+}
 
 /*-------------------------------------------------------------------------
  *
@@ -2636,7 +2672,7 @@ void RecalcSegGlidePlane(Home_t *home, Node_t *node1, Node_t *node2,
         ZImage(home->param, &lineDir[0], &lineDir[1], &lineDir[2]);
         NormalizeVec(lineDir);
 
-         FindPreciseGlidePlane(home, burg, lineDir, newPlane,node1,node2);
+        FindGlidePlane(home, burg, lineDir, newPlane,node1,node2);
 
         if (DotProduct(newPlane, newPlane) < 1.0e-03) {
             if (ignoreIfScrew) return;

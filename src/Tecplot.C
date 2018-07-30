@@ -54,7 +54,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         int      newNodeKeyPtr, narm;
         int      burgID, normalID; 
         int	     armInGrain, armOnGB;
-        real8    x,y,z;
+        real8    x,y,z, sfForce[3];
         real8    x2,y2,z2;
         real8    x2o,y2o,z2o;
         real8    prx,pry,prz;
@@ -182,10 +182,10 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 cycle = home->cycle;
                 num = 0;
             }
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,domain,index\n");
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,domain,index,signSF\n");
 		    fprintf(fp, "zone T = \"%10.5f%1d\" i = %d  F=POINT\n", param->timeNow*1.0E9,num, numArms); 
 #else
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint\n");
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,signSF,constraint\n");
 		    fprintf(fp, "zone T = \"%10.5f\" i = %d  F=POINT\n", param->timeNow*1.0E9,numArms); 
 	
 #endif
@@ -331,12 +331,12 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 	            }else{
 #if CHECK_GB_TOPO
 
-                    fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d\n", 
+                    fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %2.0f\n", 
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,node->constraint,
-                            node->myTag.domainID,node->myTag.index);
+                            node->myTag.domainID,node->myTag.index, node->signSF[j]);
 #else
-                    fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d\n", 
-                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,node->constraint);
+                    fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %2.0f %d\n", 
+                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,node->signSF[j],node->constraint);
 #endif
 	        }
 #endif	

@@ -17,13 +17,13 @@
 #define FLTS_PER_GHOST2_NODE     20		//increased by 2 for inGrain and onGB
 #endif
 
-#define FLTS_PER_GHOST_ARM       11
+#define FLTS_PER_GHOST_ARM       12     //increased by 1 for signSF
 #define FLTS_PER_GHOST_CELL       3
 #define EXTRA_GHOST_FLTS          4
 
 #define INIT_PARAMS         1
-#define INIT_VALS_PER_NODE  9  	//increased by 2 for inGrain and onGB
-#define INIT_VALS_PER_ARM   8 
+#define INIT_VALS_PER_NODE  9  	// increased by 2 for inGrain and onGB
+#define INIT_VALS_PER_ARM   9   // increased by 1 for signSF
 
 #define INTS_PER_TAG        2
 /*

@@ -69,9 +69,9 @@ typedef struct {
 #define JUNCTION1_BURG_MAG_FCC  1.414213562373095
 #define JUNCTION2_BURG_MAG_FCC  1.732050807568877
 
-#define EDGE_BURG       0
-#define PARTIAL_BURG    1
-#define JUNCTION_BURG   2
+#define EDGE_BURG       0x0001
+#define PARTIAL_BURG    0x0002
+#define JUNCTION_BURG   0x0004
 
 typedef	enum{
     ZERO_BURG,
@@ -192,8 +192,8 @@ void FreeGrainStructure(Grain_t *grain);
 void InitGrain(Home_t *home, Param_t *param);
 void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB);
 Node_t *GetinDataNodeFromTag(InData_t *inData, Tag_t tag);
-int JudgeNodeInCuboid(real8 *x1, real8 *y1, real8 *z1, real8 x2, real8 y2, real8 z2);
 BurgInfo_t* GetBurgData(Home_t *home, Node_t *node1, Node_t *node2);
+BurgInfo_t* GetBurgData(Home_t *home, int inGrain, int onGB);
 int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3]);
 int	BurgType_FCC(real8 burg[3]);
 int PlaneID_FCC(BurgInfo_t *burgData, real8 plane[3]);
@@ -253,9 +253,7 @@ int SurfaceNode(Node_t *node);
 int AdjustNodeDirection(Home_t *home, Node_t *node, real8 *vec);
 int ExceedBox(Param_t *param, real8 *pos);
 int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]);
-void ImageForce(Home_t *home, real8 armGrain, real8 x1, real8 y1, real8 z1,
-                  real8 x2, real8 y2, real8 z2, real8 bx, real8 by, real8 bz,
-                  real8 f1[3], real8 f2[3]);
+void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f2[3]);
 bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, real8* dis);
 bool IsOnGB(Node_t *node);
 void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainID = -1);
@@ -268,5 +266,9 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                        int maxDissPerBasicBurg = 1, int maxDiss = 4);
 void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp);
 void GBCrossSlip(Home_t *home);
+void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
+                    real8 glidePlane[3], Node_t *node1, Node_t *node2);
+void StackingFaultForce(Home_t *home, Node_t *node1, Node_t *node2,
+                        real8 *f1, real8 *f2); 
 int GeosTest();
 #endif

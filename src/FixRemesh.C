@@ -20,7 +20,7 @@
 
 void FixRemesh(Home_t *home, const char flag[256])
 {
-	int			    idom, domIdx, rcvOpCount, opidx;
+	int			    idom, domIdx, rcvOpCount, opidx, i;
 	real8			newPlane[3];
     real8   		cellSize[3], cellIndex[3];
 	RemoteDomain_t	*remDom;
@@ -431,7 +431,21 @@ void FixRemesh(Home_t *home, const char flag[256])
 				ResetGlidePlane(home, newPlane,
 						&tag1, &tag2, 0);
 				break;
+            
+            case CHANGE_ARM_SIGNSF:
+				node1 = GetNodeFromIndex(home, op->dom1,
+							 op->idx1);
+                
+                if(node1 == (Node_t *)NULL)break;
 
+                for(i=0; i<node1->numNbrs; i++){
+                    if(op->dom2 == node1->nbrTag[i].domainID &&
+                       op->idx2 == node1->nbrTag[i].index){
+                        node1->signSF[i] = op->bx;
+                    }
+                }                
+
+                break;
 			default:
 				Fatal("FixRemesh : invalid Remesh operation");
 			}

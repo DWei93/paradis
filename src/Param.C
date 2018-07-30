@@ -371,6 +371,10 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
                 VFLAG_NULL);
         param->TBEnergy = 0.0;  
 
+		BindVar(CPList, "sfEnergy", &param->sfEnergy, V_DBL, 1,
+                VFLAG_NULL);
+        param->sfEnergy = 29.498E-3;  /* Jm^-2*/ 
+
         BindVar(CPList, "burgMag", &param->burgMag, V_DBL, 1, VFLAG_NULL);
         param->burgMag = 2.875401e-10;  /* Ta: units=m @t=600K, pressure=0Pa */
 

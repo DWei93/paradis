@@ -19,7 +19,7 @@
 #
 numXdoms = 2
 numYdoms = 2
-numZdoms = 2
+numZdoms = 1
 #
 #  Cell geometry
 #
@@ -62,7 +62,7 @@ rTol = 2.0
 fmEnabled =   1  
 fmMPOrder =   2  
 fmTaylorOrder =   5  
-fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.freesur.dat"
+fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 #
 #  Loading conditions
 #  
@@ -78,7 +78,7 @@ edotdir = [
 appliedStress = [
 	0.0e0
 	0.0e0
-	0.0e0
+	-3.0e8
 	0.0e0
 	0.0e0
 	0.0e0
@@ -90,10 +90,12 @@ appliedStress = [
 mobilityLaw =   "FCC_0"  
 #shearModulus =   54.6e9  # Voight Average
 shearModulus =  46.554e9  # in jin paper
+sfEnergy = 2.9498e-3
 pois =   0.324
 burgMag =   2.55600e-10  
 limitDisplacement = 0
-GBStrength = 5.0e8
+#GBStrength = 5.0e8
+GBStrength = 0.0e0
 fricStress = 0.0e0
 
 #fricStress = 3.46e7
@@ -107,7 +109,7 @@ rc =  10.0
 #  
 #
 tecplot = 1
-tecplotfreq = 200
+tecplotfreq = 100
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1

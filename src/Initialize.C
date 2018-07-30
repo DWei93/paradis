@@ -1717,6 +1717,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
 	    InitGrain(home, param);
         
 	    param->vshr = sqrt(param->YoungsModulus / param->rho ) / param->burgMag;
+        param->sfEnergy /= param->burgMag; 
 	    if(home->myDomain == 0)printf("shear Wave velocity: %6.2f m/s.\n",
 	    param->vshr * param->burgMag);
 

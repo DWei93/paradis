@@ -14,3 +14,4 @@ res*
 utilities/*.cpp
 utilities/*.C
 *.phy
+*.out

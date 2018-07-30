@@ -133,6 +133,7 @@ static void AllocNodeArrays(Node_t *node, int armCount)
         node->armfx    = (real8 *)malloc(armCount * sizeof(real8));
         node->armfy    = (real8 *)malloc(armCount * sizeof(real8));
         node->armfz    = (real8 *)malloc(armCount * sizeof(real8));
+        node->signSF   = (real8 *)malloc(armCount * sizeof(real8));
         node->burgX    = (real8 *)malloc(armCount * sizeof(real8));
         node->burgY    = (real8 *)malloc(armCount * sizeof(real8));
         node->burgZ    = (real8 *)malloc(armCount * sizeof(real8));
@@ -176,6 +177,7 @@ void FreeNodeArrays(Node_t *node)
             free(node->armfx);
             free(node->armfy);
             free(node->armfz);
+            free(node->signSF);
             free(node->nx);
             free(node->ny);
             free(node->nz);
@@ -220,6 +222,7 @@ static void CopyNodeArrays(Node_t *source, Node_t *dest)
             dest->armfx[i]           = source->armfx[i];
             dest->armfy[i]           = source->armfy[i];
             dest->armfz[i]           = source->armfz[i];
+            dest->signSF[i]          = source->signSF[i];
             dest->burgX[i]           = source->burgX[i];
             dest->burgY[i]           = source->burgY[i];
             dest->burgZ[i]           = source->burgZ[i];
@@ -1540,7 +1543,7 @@ void SplitMultiNodes(Home_t *home)
                             dirvec[1] = diry;
                             dirvec[2] = dirz;
 
-                            FindPreciseGlidePlane(home, burg, dirvec,
+                            FindGlidePlane(home, burg, dirvec,
                                                   nplane, splitNode1, splitNode2);
 
 /*
@@ -2032,11 +2035,12 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
         int     inGrain1, onGB1, inGrain2, onGB2;
 	    real8	bx, by, bz;
 	    real8	cx, cy, cz;
-	    real8	nx, ny, nz;
+	    real8	nx, ny, nz, bakSignSF = 0.0;
         real8   segPlaneX, segPlaneY, segPlaneZ;
 	    real8	eps = 1.0e-12;
 	    real8   ftmp[3];
         real8   burg[3], vel[3], dirVec[3], glidePlane[3];
+        real8   signSF;
 	    Node_t	*newNode, *nbrNode;
 	    Param_t	*param;
         int     thisDomain, ownsSelectedArms, switchedArms;
@@ -2077,6 +2081,7 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
             segPlaneX = node->nx[armList[0]];
             segPlaneY = node->ny[armList[0]];
             segPlaneZ = node->nz[armList[0]];
+            bakSignSF = node->signSF[armList[0]];
 
             nbrNode = GetNeighborNode(home, node, armList[0]);
             if (nbrNode == (Node_t *)NULL) {
@@ -2329,13 +2334,15 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
  */
 	    for (i = 0; i < armCount; i++) {
 		    nbrNode = GetNeighborNode(home, node, tarmList[i]);
-                if (nbrNode == (Node_t *)NULL) {
-                    Fatal("Neighbor not found at %s line %d\n",
-                           __FILE__, __LINE__);
-                }
+            if (nbrNode == (Node_t *)NULL) {
+                Fatal("Neighbor not found at %s line %d\n",
+                       __FILE__, __LINE__);
+            }
 		    ftmp[0] = node->armfx[tarmList[i]];
 		    ftmp[1] = node->armfy[tarmList[i]];
 		    ftmp[2] = node->armfz[tarmList[i]];
+
+            signSF = node->signSF[tarmList[i]];
 
 		    SubtractSegForce(home, node, nbrNode);
 
@@ -2345,6 +2352,8 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 				             &newNode->myTag, globalOp);
 		    InsertArm(home, newNode, &node->nbrTag[tarmList[i]],
 			          bx, by, bz, nx, ny, nz, globalOp);
+            ChangeArmStackingFault(home, newNode, &nbrNode->myTag, signSF, globalOp);
+
 		    ChangeArmBurg(home, node, &nbrNode->myTag, 0, 0, 0, 0, 0, 0,
 			              globalOp, DEL_SEG_NONE);
 		    ResetSegForces(home, newNode, &nbrNode->myTag, ftmp[0],
@@ -2429,14 +2438,14 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                 NormalizeVec(dirVec);
                 NormalizeVec(burg);
 
-                FindPreciseGlidePlane(home, burg, dirVec, glidePlane, (*splitNode1), (*splitNode2));
+                FindGlidePlane(home, burg, dirVec, glidePlane, (*splitNode1), (*splitNode2));
 
                 if (DotProduct(glidePlane,glidePlane) < eps) {
                     vel[0] = ((*splitNode1)->vX + (*splitNode2)->vX) * 0.5;
                     vel[1] = ((*splitNode1)->vY + (*splitNode2)->vY) * 0.5;
                     vel[2] = ((*splitNode1)->vZ + (*splitNode2)->vZ) * 0.5;
 
-                    FindPreciseGlidePlane(home, vel, dirVec, glidePlane, (*splitNode1), (*splitNode2));
+                    FindGlidePlane(home, vel, dirVec, glidePlane, (*splitNode1), (*splitNode2));
 
                     if (DotProduct(glidePlane,glidePlane) < eps) {
                         PickScrewGlidePlane(home, burg, glidePlane, (*splitNode1), (*splitNode2));
@@ -2460,6 +2469,9 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 
 		    InsertArm(home, (*splitNode2), &(*splitNode1)->myTag,
                           -bx, -by, -bz, cx, cy, cz, globalOp);
+
+            ChangeArmStackingFault(home, (*splitNode1), &(*splitNode2)->myTag, bakSignSF, globalOp);
+            ChangeArmStackingFault(home, (*splitNode2), &(*splitNode1)->myTag, -bakSignSF, globalOp);
 
 	}
 
@@ -2520,7 +2532,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	int     node1Deletable, node2Deletable;
 	int     targetIsLocal, nbrIsLocal, targetOwnsSeg;
 	real8	bx, by, bz;
-	real8	nx, ny, nz;
+	real8	nx, ny, nz, signSF;
 	real8   ftmp[3], mergeInGrain;
 	Node_t	*nbrNode, *targetNode, *deadNode;
 	Tag_t	tmpTag, *nbr1Tag, *nbr2Tag;
@@ -2735,20 +2747,21 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	for (i = (deadNode->numNbrs - 1); i >= 0; i--) {
 		
 	    if(deadNode->numNbrs == 0) {
-		PrintTag(deadNode);
-		Tecplot(home,(char*)"MergeNode",0,0,0,0,0,1);
-		Fatal("MergeNode: no nbr exists.\n");
-		break;
+		    PrintTag(deadNode);
+		    Tecplot(home,(char*)"MergeNode",0,0,0,0,0,1);
+		    Fatal("MergeNode: no nbr exists.\n");
+		    break;
 	    }
 
 	    tmpTag.domainID = deadNode->nbrTag[i].domainID;
 	    tmpTag.index    = deadNode->nbrTag[i].index;
 	    nbrNode = GetNeighborNode(home, deadNode, i);
+        signSF = deadNode->signSF[i];
 
 	    if (nbrNode == (Node_t *)NULL) {
-		Tecplot(home,(char*)"MergeNode",0,0,0,0,0,1);
-		Fatal("Neighbor not found at %s line %d\n",
-		      __FILE__, __LINE__);
+		    Tecplot(home,(char*)"MergeNode",0,0,0,0,0,1);
+		    Fatal("Neighbor not found at %s line %d\n",
+		          __FILE__, __LINE__);
 	    }
 
 	    ftmp[0] = deadNode->armfx[i];
@@ -2763,6 +2776,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 			  0.0, 0.0, 0.0, globalOp, DEL_SEG_NONE);
 	    InsertArm(home, targetNode, &tmpTag, bx, by, bz,
 		      nx, ny, nz, globalOp);
+        ChangeArmStackingFault(home, targetNode, &nbrNode->myTag, signSF, globalOp);
 
 	    ResetSegForces(home, targetNode, &tmpTag, ftmp[0], ftmp[1],
 			   ftmp[2], globalOp);
@@ -2814,13 +2828,14 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
                      int inGrain, int onGB, real8 pos[3], real8  burg[3], real8 normal[3],
                      Node_t **newNodePtr)
 {
-    int         thisDomain;
+    int         thisDomain, armID;
     Param_t     *param;
     bool        switched = 0;
     Node_t      *newNode;
 
     thisDomain = home->myDomain;
     param = home->param;
+
 
     *newNodePtr = (Node_t *)NULL;
     if (node1->myTag.domainID != thisDomain || 
@@ -2830,6 +2845,8 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
         Fatal("InsertConnection: only allow local node");
     }
 
+    armID = GetArmID(home, node1, node2);
+    if(armID == -1)Fatal("the two nodes are not connected in InsertConnection");
 
     newNode = GetNewNativeNode(home);
     FreeNodeArms(newNode);
