@@ -2663,10 +2663,10 @@ void GeneratePotentialParamters(Home_t *home, Param_t *param)
         home->potParams[i][1] = 2.0*(randm(&seed)-0.5)*param->xBoundMax;  
         home->potParams[i][2] = 2.0*(randm(&seed)-0.5)*param->yBoundMax;  
         home->potParams[i][3] = 2.0*(randm(&seed)-0.5)*param->zBoundMax;  
-
-        printf("%f,%f,%f -- %f\n",param->xBoundMax,param->yBoundMax,param->zBoundMax,randm(&seed));
+#if 0
         printf("%d: %f--{%f,%f,%f}\n", i, home->potParams[i][0], home->potParams[i][1],
                 home->potParams[i][2], home->potParams[i][3]);
+#endif
     }
 
     return;
