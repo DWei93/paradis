@@ -1379,6 +1379,14 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
             VECTOR_ADD(fseg1node1, f1);
             VECTOR_ADD(fseg1node2, f2);
 
+            if(param->randomInternalForce){
+                RandomInternalForce(home, param, node1, node2, f1, f2);
+
+                VECTOR_ADD(fseg1node1, f1);
+                VECTOR_ADD(fseg1node2, f2);
+            }
+
+
 /*
  *          If we're including osmotic forces, add those in
  */

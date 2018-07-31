@@ -137,6 +137,7 @@ void ReleaseMemory(Home_t *home)
             free(home->grainKeys);
             home->grainKeys = NULL;
         }
+
 /*
  *      Free the heap used for recycling nodes that have bee deleted
  */
@@ -227,6 +228,11 @@ void ReleaseMemory(Home_t *home)
                 free(home->dataParamList->varList);
             }
             free(home->dataParamList);
+        }
+
+        if(param->nPotParams > 0){
+            free(home->potParams);
+            home->potParams = NULL;
         }
 
         free(home->param);

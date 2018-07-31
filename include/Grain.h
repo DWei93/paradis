@@ -270,5 +270,8 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
                     real8 glidePlane[3], Node_t *node1, Node_t *node2);
 void StackingFaultForce(Home_t *home, Node_t *node1, Node_t *node2,
                         real8 *f1, real8 *f2); 
+
+void GeneratePotentialParamters(Home_t *home, Param_t *param); 
+void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *node2, real8 *f1, real8 *f2);
 int GeosTest();
 #endif

@@ -2914,6 +2914,18 @@ void LocalSegForces(Home_t *home, int reqType)
                 nativeSegList[i].seg->f2[j] += f2[j];
             }
 
+            if(param->randomInternalForce){
+                RandomInternalForce(home, param, node1, node2, f1, f2);
+
+                VECTOR_ADD(node1SegForce, f1);
+                VECTOR_ADD(node2SegForce, f2);
+
+                for (j = 0; j < 3; j++) {
+                    nativeSegList[i].seg->f1[j] += f1[j];
+                    nativeSegList[i].seg->f2[j] += f2[j];
+                }
+            }
+
 /*
  *          Add in remote force from fast-multipole method.  Arm
  *          specific forces don't need to be explicitly updated
