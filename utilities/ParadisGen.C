@@ -767,7 +767,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                     if (token == (char *)NULL) Fatal("orientation wrong");
 	            inArgs->zMatDir[2] = atof(token);
 	            NormalizeVec(inArgs->yMatDir);
-	            existDir[1] = 1;
+	            existDir[2] = 1;
 	            orientationType = 1;
 	                break;
 	        case OPT_TBANGLE:

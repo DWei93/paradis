@@ -411,6 +411,7 @@ struct _home {
 		
         real8	**pstnEle;
         real8	**disDenEle;
+        real8   (*potParams)[4];
 
 #ifdef _FEM
 /*

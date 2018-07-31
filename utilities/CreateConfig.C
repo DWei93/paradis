@@ -1304,25 +1304,20 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     p0[1] = (randm(&seed)-0.5) * cubeSize;			
                     p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
                     VECTOR_ZERO(p0);
-                    p0[2] = -50;
+//                    p0[2] = -50;
                     NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
                     bd = GetBurgData(home, inGrain0, onGB0);
-                    printf("1 %d %d\n", inGrain0, onGB0);
                     if(onGB0 > -1)continue;
-                    printf("1.5\n");
 
                     ranNum = (int)(randm(&seed) * 1000);
                     gpBurgIndex = ranNum % bd->numBurgVectors;
-                    printf("2\n");
                     if(gpBurgIndex != 1)continue;
                     if((bd->burgType[gpBurgIndex] & EDGE_BURG) == 0)continue;
-                    printf("2.5\n");
 
-                    printf("3\n");
                     ranNum = (int)(randm(&seed) * 1000);
                     gpIndex = bd->burgOnPlaneID[gpBurgIndex][ranNum%bd->numPlanesPerBurg[gpBurgIndex]];
+                    if(gpIndex != 3)continue;
                     if((bd->planeType[gpIndex] & GLIDE_PLANE) == 0 )continue;
-                    printf("3.5\n");
    
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
@@ -1350,11 +1345,11 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     } 
 
                     NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1);
-                    NodeLocation(home, p2[0],  p2[1], p2[2], inGrain1, onGB1);
+                    NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2);
              
-//                    if(onGB1 > -1 || inGrain0 != inGrain1 || onGB2 > -1 || inGrain2 != inGrain1){
-//                        continue;
-//                    }	                
+                    if(onGB1 > -1 || inGrain0 != inGrain1 || onGB2 > -1 || inGrain2 != inGrain1){
+                        continue;
+                    }	                
 
                     if(inArgs->extended != 0){
                         VECTOR_COPY(basePos, p0);
@@ -2836,19 +2831,20 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     p0[0] = (randm(&seed)-0.5) * cubeSize;
                     p0[1] = (randm(&seed)-0.5) * cubeSize;			
                     p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
-                    VECTOR_ZERO(p0);
-                    p0[2] = -40;
+//                    VECTOR_ZERO(p0);
+//                    p0[2] = -30;
                     NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
                     bd = GetBurgData(home, inGrain0, onGB0);
                     if(onGB0 > -1)continue;
 
                     ranNum = (int)(randm(&seed) * 1000);
                     gpBurgIndex = ranNum % bd->numBurgVectors;
-                    if(gpBurgIndex != 1)continue;
+//                    if(gpBurgIndex != 0)continue;
                     if((bd->burgType[gpBurgIndex] & EDGE_BURG) == 0)continue;
 
                     ranNum = (int)(randm(&seed) * 1000);
                     gpIndex = bd->burgOnPlaneID[gpBurgIndex][ranNum%bd->numPlanesPerBurg[gpBurgIndex]];
+//                    if(gpIndex != 1)continue;
                     if((bd->planeType[gpIndex] & GLIDE_PLANE) == 0 )continue;
    
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
@@ -2861,7 +2857,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     if(randomAngle > pi *1.75/1.8){		/* 175 degree */
                         randomAngle = pi;
                     }
-                    randomAngle = 0;
 
                     cross(n0, b, n1);
                     NormalizeVec(n1);
@@ -2870,6 +2865,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
                     }
                     NormalizeVec(randomLine);
+                
+//                    if(fabs(randomLine[2]) > 1.0E-2)continue;
 
                     for (i = 0; i < 3; i++) {
                         p1[i] = p0[i] + (srcLen * randomLine[i])/2.0;

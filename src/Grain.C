@@ -2530,7 +2530,7 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
     Param_t     *param = home->param;
     BurgInfo_t  *bd = GetBurgData(home, node1, node2);
 
-#if 0
+#if 1
     if(GetArmID(home, node1, node2) == -1){
         FindPreciseGlidePlane(home, burg, lDir, glidePlane, node1, node2);
         return;
@@ -2613,7 +2613,6 @@ void StackingFaultForce(Home_t *home, Node_t *node1, Node_t *node2,
         printf("warning %s at %d",__FILE__, __LINE__);
     }
 
-    
     NormalizeVec(vec);
 
     armID = GetArmID(home, node1, node2);
@@ -2632,6 +2631,92 @@ void StackingFaultForce(Home_t *home, Node_t *node1, Node_t *node2,
     f1[0] = length*param->sfEnergy*0.5*dir[0]*signSF;
     f1[1] = length*param->sfEnergy*0.5*dir[1]*signSF;
     f1[2] = length*param->sfEnergy*0.5*dir[2]*signSF;
+
+    VECTOR_COPY(f2, f1);
+    return;
+}
+
+void GeneratePotentialParamters(Home_t *home, Param_t *param) 
+{
+    real8   A, B, C, E, D, uni[2];
+    int     i;
+    int     seed;
+    
+    if(param->nPotParams == 0)return;
+
+    seed = time(0);
+    E = param->potExpection;
+    D = param->potVariance;
+
+    home->potParams =  (real8 (*)[4])malloc(4*param->nPotParams*sizeof(real8)); 
+    printf("Random potential field parameters:\n");
+    for(i=0; i<param->nPotParams; i++){
+        uni[0] = randm(&seed); 
+        uni[1] = randm(&seed); 
+
+        A = sqrt((-2)*log(uni[0]));
+        B = 2 * PI*uni[1];
+        C = A*cos(B);
+        home->potParams[i][0] = E + C*D;   
+        home->potParams[i][0] /= param->burgMag;
+        
+        home->potParams[i][1] = 2.0*(randm(&seed)-0.5)*param->xBoundMax;  
+        home->potParams[i][2] = 2.0*(randm(&seed)-0.5)*param->yBoundMax;  
+        home->potParams[i][3] = 2.0*(randm(&seed)-0.5)*param->zBoundMax;  
+
+        printf("%f,%f,%f -- %f\n",param->xBoundMax,param->yBoundMax,param->zBoundMax,randm(&seed));
+        printf("%d: %f--{%f,%f,%f}\n", i, home->potParams[i][0], home->potParams[i][1],
+                home->potParams[i][2], home->potParams[i][3]);
+    }
+
+    return;
+}
+       
+void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *node2, real8 *f1, real8 *f2) 
+{
+    int     i;
+    real8   vec[3], x0, y0, z0, A, sigR;
+    real8   x, y, z, length;
+    real8   E = 2.718281828459045;
+
+    sigR = param->potSigR;
+
+    VECTOR_ZERO(f1);
+    VECTOR_ZERO(f2);
+    
+    vec[0] = node2->x - node1->x;
+    vec[1] = node2->y - node1->y;
+    vec[2] = node2->z - node1->z;
+    ZImage(param, vec, vec+1, vec+2);
+    length = Normal(vec);
+
+    vec[0] *= 0.5;
+    vec[1] *= 0.5;
+    vec[2] *= 0.5;
+
+    vec[0] += node1->x; 
+    vec[1] += node1->y; 
+    vec[2] += node1->z; 
+    x = vec[0]; y = vec[1]; z = vec[2];    
+
+    for(i=0; i<param->nPotParams; i++){
+
+        A  = home->potParams[i][0];
+        x0 = home->potParams[i][1];
+        y0 = home->potParams[i][2];
+        z0 = home->potParams[i][3];
+
+        f1[0] += (A*(x - x0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
+                 (2.0*pow(sigR,2)))*pow(sigR,2));
+        f1[1] += (A*(y - y0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
+                 (2.0*pow(sigR,2)))*pow(sigR,2));
+        f1[2] += (A*(z - z0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
+                 (2.0*pow(sigR,2)))*pow(sigR,2));
+    }
+    
+    f1[0] *= (0.5*length);
+    f1[1] *= (0.5*length);
+    f1[2] *= (0.5*length);
 
     VECTOR_COPY(f2, f1);
     return;
