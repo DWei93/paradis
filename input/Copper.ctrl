@@ -19,7 +19,7 @@
 #
 numXdoms = 2
 numYdoms = 2
-numZdoms = 1
+numZdoms = 4
 #
 #  Cell geometry
 #
@@ -78,7 +78,7 @@ edotdir = [
 appliedStress = [
 	0.0e0
 	0.0e0
-	-3.0e8
+	0.0e0
 	0.0e0
 	0.0e0
 	0.0e0
@@ -94,8 +94,8 @@ sfEnergy = 2.9498e-3
 pois =   0.324
 burgMag =   2.55600e-10  
 limitDisplacement = 0
-#GBStrength = 5.0e8
-GBStrength = 0.0e0
+GBStrength = 5.0e8
+#GBStrength = 0.0e0
 fricStress = 0.0e0
 
 #fricStress = 3.46e7
@@ -109,7 +109,7 @@ rc =  10.0
 #  
 #
 tecplot = 1
-tecplotfreq = 100
+tecplotfreq = 200
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1

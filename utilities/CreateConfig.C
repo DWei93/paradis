@@ -2836,19 +2836,20 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     p0[0] = (randm(&seed)-0.5) * cubeSize;
                     p0[1] = (randm(&seed)-0.5) * cubeSize;			
                     p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
-                    VECTOR_ZERO(p0);
-                    p0[2] = -40;
+//                    VECTOR_ZERO(p0);
+//                    p0[2] = -30;
                     NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
                     bd = GetBurgData(home, inGrain0, onGB0);
                     if(onGB0 > -1)continue;
 
                     ranNum = (int)(randm(&seed) * 1000);
                     gpBurgIndex = ranNum % bd->numBurgVectors;
-                    if(gpBurgIndex != 1)continue;
+//                    if(gpBurgIndex != 0)continue;
                     if((bd->burgType[gpBurgIndex] & EDGE_BURG) == 0)continue;
 
                     ranNum = (int)(randm(&seed) * 1000);
                     gpIndex = bd->burgOnPlaneID[gpBurgIndex][ranNum%bd->numPlanesPerBurg[gpBurgIndex]];
+//                    if(gpIndex != 1)continue;
                     if((bd->planeType[gpIndex] & GLIDE_PLANE) == 0 )continue;
    
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
@@ -2861,7 +2862,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     if(randomAngle > pi *1.75/1.8){		/* 175 degree */
                         randomAngle = pi;
                     }
-                    randomAngle = 0;
 
                     cross(n0, b, n1);
                     NormalizeVec(n1);
@@ -2870,6 +2870,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
                     }
                     NormalizeVec(randomLine);
+//                    if(fabs(randomLine[2]) > 1.0E-2)continue;
 
                     for (i = 0; i < 3; i++) {
                         p1[i] = p0[i] + (srcLen * randomLine[i])/2.0;

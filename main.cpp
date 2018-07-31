@@ -218,7 +218,7 @@ void InitGrain(Home_t *home){
     gb->nbrGrain[1] = 1;
     VECTOR_ZERO(gb->n);
     VECTOR_ZERO(gb->p);
-    gb->n[1] = 1.0;
+    gb->n[2] = 1.0;
 
     real8 rotMatrix[3][3] = 
 
@@ -227,16 +227,15 @@ void InitGrain(Home_t *home){
   0.211325}, {-0.57735, -0.57735, -0.57735}, {-0.211325, -0.57735, 
   0.788675}};
 #else
-    {
-        {7.071067811865475e-01,-7.071067811865475e-01,0.000000000000000e+00},
-        {5.773502691896258e-01,5.773502691896258e-01,5.773502691896258e-01},
-        {-4.082482904638631e-01,-4.082482904638631e-01,8.164965809277261e-01}
-    };
+{{  -0.593686979430953,  -0.188596339553418,   0.782283318984371},
+{   0.560537632207525,  -0.794416822187017,   0.233879189979493},
+{   0.577350269189626,   0.577350269189626,   0.577350269189626}};
 #endif
     real8 rotTwin[3][3] = 
 #if 1        
-        {{-0.707107, 0.707107, 0.}, {0.57735, 0.57735, 0.57735}, {0.408248, 
-  0.408248, -0.816497}};
+{{  -0.188596339553418,  -0.593686979430953,   0.782283318984371},
+{  -0.794416822187017,   0.560537632207524,   0.233879189979493},
+{  -0.577350269189626,  -0.577350269189626,  -0.577350269189626}};
 #else
     {{0., 0.707107, -0.707107}, {-0.57735, -0.57735, -0.57735}, 
 {-0.816497, 0.408248, 0.408248}};
@@ -260,19 +259,16 @@ void InitGrain(Home_t *home){
 #if 1
     bool     stat;
     int      crossSlip = 1;
-   real8   burgCry[3] = {0.707107, 0.0, 0.707107};    // AD
+   real8   burgCry[3] = {0.707107, 0.707107, 0.0};   //DC
  //real8   burgCry[3] = {0.707107, -0.707107, 0.};     //AB
   //  real8   burgCry[3] = {0.3, -0.7, 0.6};     //randon
-    real8   lineCry[3] = {0.707107, -0.707107, 0.};     //AB
+    real8   lineCry[3] = {0., -0.707107, 0.707107};     //CA
   //  real8   planeCry[3]= {0.57735, 0.57735, 0.57735}; // ABC 
-    real8   planeCry[3]= {0.57735, 0.57735, -0.57735}; // ABD 
+    real8   planeCry[3]= {0.5773502691896258, -0.577350269189626, -0.577350269189626}; // ACD
  //   real8   planeCry[3]= {0.57735, 0.57735, 0.57735};   // ABC
     int     grainID = 0;
     real8   burg[3], line[3], plane[3], vec[3], crossProd[3];
 
-    burgCry[0] *= 2.0;
-    burgCry[1] *= 2.0;
-    burgCry[2] *= 2.0;
 
     vector< vector<double> >                    burgList;
     std::vector<std::vector<Dislocation_t> >    disArray;
@@ -299,7 +295,7 @@ void InitGrain(Home_t *home){
 
 
     if(stat){
-        printf("\n Basic shockley burg\n");
+        printf("\n Basic burg\n");
         for(i=0; i<burgList.size(); i++){
             printf("%d: {%7.4f,%7.4f,%7.4f}\n",i, 
                     burgList[i][0], burgList[i][1],burgList[i][2]);
@@ -353,7 +349,7 @@ void InitGrain(Home_t *home){
         for(i=0; i<disArray.size(); i++){
             printf("%d: ",i);
             for(j=0; j<disArray[i].size(); j++){
-#if 1
+#if 0
                 printf("(%d<%d>)[%d] ", disArray[i][j].planeID, 
                         gb->burgData.planeInGrain[disArray[i][j].planeID], 
                         disArray[i][j].burgID);
@@ -1163,6 +1159,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                        std::vector< std::vector<double> >&       burgList, 
                        std::vector<std::vector<Dislocation_t> >& disArray,
                        int maxDissPerBasicBurg, int maxDiss) 
+
 {
     int     i, j, k, m, nPlanes = 0, nBurgs = 0;
     int     sum, onGBPlane;
@@ -1206,6 +1203,9 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
     }
     printf("Basic glide planes : \n");
 #endif
+
+    std::vector<std::vector<double> >().swap(burgList);
+    std::vector<std::vector<Dislocation_t> >().swap(disArray);
 
     for(i=0; i<bd->numPlanes; i++){
         planeID.push_back(nPlanes);
@@ -1498,6 +1498,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
 
     return(1);
 }
+
 
 int main(){
     Home_t  home;
