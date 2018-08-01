@@ -1587,10 +1587,10 @@ void PrintNode(Node_t *node)
 /*
  *      Print the nodal velocity and total node force
  */
-        printf("  node(%d,%d) v = {%16.10f,%16.10f,%16.10f}\n",
+        printf("  node(%d,%d) v = {%e,%e,%e}\n",
                node->myTag.domainID, node->myTag.index, 
                node->vX, node->vY, node->vZ);
-        printf("  node(%d,%d) f = {%16.10f,%16.10f,%16.10f}\n",
+        printf("  node(%d,%d) f = {%e,%e,%e}\n",
                node->myTag.domainID, node->myTag.index, 
                node->fX, node->fY, node->fZ);
 #endif
@@ -1600,7 +1600,7 @@ void PrintNode(Node_t *node)
  *      Print the arm specific forces
  */
         for (i = 0; i < node->numNbrs; i++) {
-            printf("  node(%d,%d) arm[%d]-> (%d %d) f = {%16.10f,%16.10f,%16.10f}\n",
+            printf("  node(%d,%d) arm[%d]-> (%d %d) f = {%e,%e,%e}\n",
                    node->myTag.domainID, node->myTag.index, i,       
                    node->nbrTag[i].domainID, node->nbrTag[i].index,
                    node->armfx[i], node->armfy[i], node->armfz[i]);
