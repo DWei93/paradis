@@ -23,13 +23,14 @@
 #                    
 ######################################################################################
 
-frlen=2900
+frlen=800,1200
+#frlen=2900
 cubel=3000
 maxSeg=200
-nfrs=1
+nfrs=8
 maxDensity=1E13
 seed=""
-srctype=1
+srctype=5
 
 
 PI=3.1415926535897932385
@@ -89,7 +90,7 @@ case $srctype in
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity \
-    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1;;
+    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
 
 #    -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 ;;
     *)

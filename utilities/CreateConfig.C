@@ -2865,7 +2865,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
                     }
                     NormalizeVec(randomLine);
-                
+
 //                    if(fabs(randomLine[2]) > 1.0E-2)continue;
 
                     for (i = 0; i < 3; i++) {

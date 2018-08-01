@@ -1033,73 +1033,6 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
 }
 
 
-/****************************************************************************  
-*
-*	In order to avoid numerical error, we must ensure the node is pulled 
-*	back into its grain.
-*
-*****************************************************************************/
-void PullBack(Home_t *home, Node_t *node){
-
-    int     currInGrain, currOnGB;
-	real8	newPos[3];
-	
-	if(node == (Node_t *)NULL){
-        printf("Task %d: %s, line %d -- Node = NULL",
-		       home->myDomain, __FILE__, __LINE__);
-        return;
-	}
-
-	newPos[0] = node->oldx;
-	newPos[1] = node->oldy;
-	newPos[2] = node->oldz;
-	
-	NodeLocation(home,newPos[0],newPos[1],newPos[2], currInGrain, currOnGB);
-
-    if(IsOnGB(node)){
-        if(node->onGB != currOnGB){
-            int     type;
-            GB_t    *gb;
-            real8   nodePos[3], dis;
-            
-            nodePos[0] = node->x;
-            nodePos[1] = node->y;
-            nodePos[2] = node->z;
-            gb = home->GBKeys[node->onGB];
-
-            type = PointPlaneIntersection(nodePos, gb->n, gb->p, newPos, &dis);
-            if(fabs(dis) > 5){
-                PrintNode(node);
-                FormatVector(newPos, "newPos");
-                printf("Warning in PullBack, error is %f", dis);
-            }
-        }
-    }else{
-        if(currOnGB == -1){
-            if(node->inGrain != currInGrain){
-                printf("newPos--{%f,%f,%f}--(%d,%d)\n", newPos[0],
-                       newPos[1],newPos[2], currInGrain, currOnGB);
-                PrintNode(node);
-                printf("Warning in %s at %d", __FILE__, __LINE__);
-
-                if(!NewPosToGB(home, node, node->inGrain, currOnGB, newPos)){
-                    PrintNode(node);
-                    Fatal("in %s at %d", __FILE__, __LINE__);
-                }
-            }
-        }else{
-            if(!NewPosToGB(home, node, node->inGrain, currOnGB, newPos)){
-                PrintNode(node);
-                Fatal("in %s at %d", __FILE__, __LINE__);
-            }
-        }
-    }
-
-	FoldBox(home->param, newPos, newPos+1, newPos+2);
-    RepositionNode(home,newPos,&node->myTag,1);
-
-	return;
-}
 
 int SameTag(Tag_t *tag1, Tag_t *tag2){
 
@@ -2543,15 +2476,14 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
     GetArmGrain(home, node1, node2, inGrain, onGB);
     if(Normal(lDir) < 1.0E-4){
         if(burgID<bd->numBurgVectors){
-            printf("Warning: define a palne with zero length\n");
+            printf("Warning: define a palne with zero length, arm (%d,%d)\n", inGrain, onGB);
             while(normalID == -1){
                 normalID = bd->burgOnPlaneID[burgID][rand()%bd->numPlanesPerBurg[burgID]];
-                if((bd->planeInGrain[normalID] == -1 || bd->planeInGrain[normalID] == inGrain) &&
-                   (bd->planeType[normalID] & GLIDE_PLANE) > 0){
+                if(bd->planeInGrain[normalID] != inGrain){
+                    normalID = -1;
+                }else{
                     VECTOR_COPY(glidePlane, bd->planeList[normalID]);
                     break;
-                }else{
-                    normalID = -1;
                 }
             }
             return;
@@ -2569,12 +2501,11 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
         if(burgID >= bd->numBurgVectors)Fatal("in %s at %d", __FILE__, __LINE__);
         while(normalID == -1){
             normalID = bd->burgOnPlaneID[burgID][rand()%bd->numPlanesPerBurg[burgID]];
-            if((bd->planeInGrain[normalID] == -1 || bd->planeInGrain[normalID] == inGrain) &&
-               (bd->planeType[normalID] & GLIDE_PLANE) > 0){
+            if(bd->planeInGrain[normalID] != inGrain){
+                normalID = -1;
+            }else{
                 VECTOR_COPY(glidePlane, bd->planeList[normalID]);
                 break;
-            }else{
-                normalID = -1;
             }
         }
     }else{
