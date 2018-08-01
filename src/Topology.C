@@ -2846,8 +2846,12 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
     }
 
     armID = GetArmID(home, node1, node2);
-    if(armID == -1)Fatal("the two nodes are not connected in InsertConnection");
-
+    if(armID == -1){
+        PrintNode(node1);
+        PrintNode(node2);
+		Tecplot(home,(char*)"Insertconnection",0,0,0,0,0,1);
+        Fatal("the two nodes are not connected in InsertConnection");
+    }
     newNode = GetNewNativeNode(home);
     FreeNodeArms(newNode);
 
