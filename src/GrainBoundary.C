@@ -526,14 +526,14 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 
     type = LineLineIntersection(pene->line1.direction, pene->line1.point,
            pene->line2.direction, pene->line2.point, vec1, vec2, &dis);
+#if CROSS_SLIP_GB_MODEL
+    return(1);
+#endif  
     if(type != LINE_INTERSECTION && fabs(dis) > 5){
         printf("Warning: type %d in file %s at line %d, dis is %f \n", 
                 type, __FILE__, __LINE__, dis);
         return(0);
     }
-#if CROSS_SLIP_GB_MODEL
-    return(0);
-#endif  
 
 	pos[0] = node->x;
 	pos[1] = node->y;
