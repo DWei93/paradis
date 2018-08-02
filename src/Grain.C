@@ -942,7 +942,7 @@ bool GetPublicGB(Grain_t *grain1, Grain_t *grain2, GB_t **GB)
 
 bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos){
     
-    real8       dis, vec[3], vec1[3], vec2[3];
+    real8       dis, vec[3], vec1[3], vec2[3], eps;
     real8       pos[3], interPos[3], vec3[3]; 
     int         currInGrain, currOnGB, type, index;
     int         bakOnGB, bakInGrain, nbrInGrain;
@@ -959,6 +959,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
                home->myDomain, __FILE__, __LINE__);
 	}
 
+    eps = 1.0;
 	pos[0] = node->x; pos[1] = node->y; pos[2] = node->z;
 	FoldBox(param, pos, pos+1, pos+2);
 
@@ -970,9 +971,9 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
         grain = home->grainKeys[inGrain];
         index = GetGBIndexOfGrain(grain, onGB);
         if(index < 0)Fatal("in %s at %d", __FILE__, __LINE__);
-        vec2[0] -= (grain->sign[index] * param->rann * GB->n[0]);
-        vec2[1] -= (grain->sign[index] * param->rann * GB->n[1]);
-        vec2[2] -= (grain->sign[index] * param->rann * GB->n[2]);
+        vec2[0] -= (grain->sign[index] * eps * GB->n[0]);
+        vec2[1] -= (grain->sign[index] * eps * GB->n[1]);
+        vec2[2] -= (grain->sign[index] * eps * GB->n[2]);
 /*
  *      If the node is on grain boundary
  *      Only allow the neighbors of the node in the same grain

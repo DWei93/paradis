@@ -1054,39 +1054,6 @@ static int CheckCollisionConditions(Home_t *home, Node_t *node1, Node_t *node2)
         return(0);
 }
 
-bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8 *pos){
-    
-    VECTOR_ZERO(pos);
-    if(home->param->polycrystal == 0)return(0);
-
-    int     currInGrain, currOnGB;
-    GB_t    *GB;
-
-    NodeLocation(home, currPos[0], currPos[1],
-                 currPos[2], currInGrain, currOnGB);
-                                    
-    if(IsOnGB(node)){
-        if(currOnGB != node->onGB){
-            Fatal("a GB splited node has wrong position");
-        }
-    }else{
-        if(currInGrain != node->inGrain || currOnGB > -1){
-            if(currOnGB == -1){
-                if(GetPublicGB(home->grainKeys[node->inGrain],
-                               home->grainKeys[currInGrain], &GB)){
-                    currOnGB = GB->GBID;
-                }else{
-                    Fatal("in %s at %d", __FILE__, __LINE__);
-                }
-            }
-            if(!NewPosToGB(home, node, node->inGrain, currOnGB, pos)){
-                Fatal("in %s at %d", __FILE__, __LINE__);
-            }
-            return(1);
-        }
-    }
-    return(0);
-}
 
 /*---------------------------------------------------------------------------
  *
@@ -1479,6 +1446,12 @@ void SplitMultiNodes(Home_t *home)
                                 splitNode1->x = pos[0];
                                 splitNode1->y = pos[1];
                                 splitNode1->z = pos[2];
+
+                                if(node != splitNode1){
+                                    splitNode1->oldx = pos[0];
+                                    splitNode1->oldy = pos[1];
+                                    splitNode1->oldz = pos[2];
+                                }
                             }
 /*
  *                          If the split node is a grain node, we should ensure
@@ -1502,6 +1475,12 @@ void SplitMultiNodes(Home_t *home)
                                 splitNode2->x = pos[0];
                                 splitNode2->y = pos[1];
                                 splitNode2->z = pos[2];
+                                
+                                if(node != splitNode2){
+                                    splitNode2->oldx = pos[0];
+                                    splitNode2->oldy = pos[1];
+                                    splitNode2->oldz = pos[2];
+                                }
                             }
 
                             FoldBox(param, &splitNode2->x, &splitNode2->y,
@@ -2828,7 +2807,7 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
                      int inGrain, int onGB, real8 pos[3], real8  burg[3], real8 normal[3],
                      Node_t **newNodePtr)
 {
-    int         thisDomain, armID;
+    int         thisDomain;
     Param_t     *param;
     bool        switched = 0;
     Node_t      *newNode;
@@ -2845,13 +2824,6 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
         Fatal("InsertConnection: only allow local node");
     }
 
-    armID = GetArmID(home, node1, node2);
-    if(armID == -1){
-        PrintNode(node1);
-        PrintNode(node2);
-		Tecplot(home,(char*)"Insertconnection",0,0,0,0,0,1);
-        Fatal("the two nodes are not connected in InsertConnection");
-    }
     newNode = GetNewNativeNode(home);
     FreeNodeArms(newNode);
 

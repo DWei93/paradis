@@ -3034,3 +3034,34 @@ void GBCrossSlip(Home_t *home)
 
     return;
 }
+
+
+bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8 *pos)
+{
+    
+    VECTOR_ZERO(pos);
+    if(home->param->polycrystal == 0)return(0);
+
+    int     currInGrain, currOnGB;
+    GB_t    *GB;
+
+    if(IsOnGB(node))return(0);
+    NodeLocation(home, currPos[0], currPos[1],
+                 currPos[2], currInGrain, currOnGB);
+                                    
+    if(currInGrain != node->inGrain || currOnGB > -1){
+        if(currOnGB == -1){
+            if(GetPublicGB(home->grainKeys[node->inGrain],
+                           home->grainKeys[currInGrain], &GB)){
+                currOnGB = GB->GBID;
+            }else{
+                Fatal("in %s at %d", __FILE__, __LINE__);
+            }
+        }
+        if(!NewPosToGB(home, node, node->inGrain, currOnGB, pos)){
+            Fatal("in %s at %d", __FILE__, __LINE__);
+        }
+        return(1);
+    }
+    return(0);
+}
