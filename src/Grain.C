@@ -2541,10 +2541,7 @@ void StackingFaultForce(Home_t *home, Node_t *node1, Node_t *node2,
     ZImage(param, vec, vec+1, vec+2);
 
     length = Normal(vec);
-    if(length < 1.0E-4){
-        printf("warning %s at %d",__FILE__, __LINE__);
-    }
-
+    if(length < 1.0E-4)return;
     NormalizeVec(vec);
 
     armID = GetArmID(home, node1, node2);
@@ -2554,10 +2551,7 @@ void StackingFaultForce(Home_t *home, Node_t *node1, Node_t *node2,
     signSF = node1->signSF[armID];
 
     cross(normal, vec, dir);
-    if(Normal(dir) < 1.0E-4){
-        printf("warning %s at %d",__FILE__, __LINE__);
-    }
-
+    if(Normal(dir) < 1.0E-4)return;
     NormalizeVec(dir);
 
     f1[0] = length*param->sfEnergy*0.5*dir[0]*signSF;
@@ -2581,7 +2575,6 @@ void GeneratePotentialParamters(Home_t *home, Param_t *param)
     D = param->potVariance;
 
     home->potParams =  (real8 (*)[4])malloc(4*param->nPotParams*sizeof(real8)); 
-    printf("Random potential field parameters:\n");
     for(i=0; i<param->nPotParams; i++){
         uni[0] = randm(&seed); 
         uni[1] = randm(&seed); 

@@ -1745,6 +1745,15 @@ void PredictiveCollisions(Home_t *home)
  *                                 planes for the segments attched to the
  *                                 collision node.
  */
+                                   if(!IsOnGB(targetNode) && home->param->polycrystal){
+                                        NodeLocation(home, targetNode->x, targetNode->y,
+                                                     targetNode->z, inGrain1, onGB1);
+                                        if(inGrain1 != targetNode->inGrain){
+                                            Fatal("There are something wrong in %s at %d",
+                                                   __FILE__, __LINE__);
+                                        } 
+                                   }
+
                                    if (param->enforceGlidePlanes &&
                                        param->allowFuzzyGlidePlanes) {
                                        int n;
@@ -2157,6 +2166,14 @@ void PredictiveCollisions(Home_t *home)
  *                      from subsequent segment collisions this cycle.
  */
                         if (targetNode != (Node_t *)NULL) {
+                            if(!IsOnGB(targetNode) && home->param->polycrystal){
+                                 NodeLocation(home, targetNode->x, targetNode->y,
+                                              targetNode->z, inGrain1, onGB1);
+                                 if(inGrain1 != targetNode->inGrain){
+                                     Fatal("There are something wrong in %s at %d",
+                                            __FILE__, __LINE__);
+                                 } 
+                            }
 /*
  *                          If we are enforcing glide planes but
  *                          allowing some fuzziness in the planes, we
