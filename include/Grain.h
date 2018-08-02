@@ -273,5 +273,6 @@ void StackingFaultForce(Home_t *home, Node_t *node1, Node_t *node2,
 
 void GeneratePotentialParamters(Home_t *home, Param_t *param); 
 void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *node2, real8 *f1, real8 *f2);
+bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8 *pos);
 int GeosTest();
 #endif

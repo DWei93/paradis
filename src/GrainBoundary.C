@@ -220,7 +220,7 @@ real8 SegementEnergy(Param_t *param, real8 cosTheta, real8 bMag){
 		  
 }
 
-int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane, Pene_t *pene){
+int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane){
 	
 	int		i, isScrew = 0;
 	real8	inBurg[3], inEnergy=0.0, cosTheta, bMag;
@@ -531,6 +531,9 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
                 type, __FILE__, __LINE__, dis);
         return(0);
     }
+#if CROSS_SLIP_GB_MODEL
+    return(0);
+#endif  
 
 	pos[0] = node->x;
 	pos[1] = node->y;
@@ -1831,7 +1834,7 @@ void HandleGrainBoundary(Home_t *home)
  */
 
 #if ENERGY_RULER
-	    if(EnergyRule(home, node, &GBPlane, &pene) == 0){
+	    if(EnergyRule(home, node, &GBPlane) == 0){
             PullBack(home,node);
             continue;
 	    }
@@ -3033,4 +3036,35 @@ void GBCrossSlip(Home_t *home)
     }  /* end loop over all nodes */
 
     return;
+}
+
+
+bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8 *pos)
+{
+    
+    VECTOR_ZERO(pos);
+    if(home->param->polycrystal == 0)return(0);
+
+    int     currInGrain, currOnGB;
+    GB_t    *GB;
+
+    if(IsOnGB(node))return(0);
+    NodeLocation(home, currPos[0], currPos[1],
+                 currPos[2], currInGrain, currOnGB);
+                                    
+    if(currInGrain != node->inGrain || currOnGB > -1){
+        if(currOnGB == -1){
+            if(GetPublicGB(home->grainKeys[node->inGrain],
+                           home->grainKeys[currInGrain], &GB)){
+                currOnGB = GB->GBID;
+            }else{
+                Fatal("in %s at %d", __FILE__, __LINE__);
+            }
+        }
+        if(!NewPosToGB(home, node, node->inGrain, currOnGB, pos)){
+            Fatal("in %s at %d", __FILE__, __LINE__);
+        }
+        return(1);
+    }
+    return(0);
 }

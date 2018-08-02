@@ -905,6 +905,7 @@ void PredictiveCollisions(Home_t *home)
         real8   vec1[3], vec2[3];
         real8   p1[3], p2[3], p3[3], p4[3];
         real8   v1[3], v2[3], v3[3], v4[3];
+        real8   pos[3];
         Tag_t   oldTag1, oldTag2;
         Node_t  *node1, *node2, *node3, *node4, *tmpNbr;
         Node_t  *mergenode1, *mergenode2, *targetNode;
@@ -1296,6 +1297,19 @@ void PredictiveCollisions(Home_t *home)
  */
                                      mergenode1 = splitNode2;
 
+                                    if(AdjustSplitedNodePosition(home, mergenode1, pnew, pos)){
+                                        VECTOR_COPY(pnew, pos);
+                                        mergenode1->x = pnew[0];
+                                        mergenode1->y = pnew[1];
+                                        mergenode1->z = pnew[2];
+                
+                                        if(node1 != mergenode1){
+                                            mergenode1->oldx = pnew[0];
+                                            mergenode1->oldy = pnew[1];
+                                            mergenode1->oldz = pnew[2];
+                                        }
+                                    }
+
                                      MarkNodeForceObsolete(home, splitNode2);
     
                                      for (q = 0; q < splitNode2->numNbrs; q++) {
@@ -1494,6 +1508,19 @@ void PredictiveCollisions(Home_t *home)
  */
                                      mergenode2 = splitNode2;
 
+                                    if(AdjustSplitedNodePosition(home, mergenode2, pnew, pos)){
+                                        VECTOR_COPY(pnew, pos);
+                                        mergenode2->x = pnew[0];
+                                        mergenode2->y = pnew[1];
+                                        mergenode2->z = pnew[2];
+                
+                                        if(node3 != mergenode2){
+                                            mergenode2->oldx = pnew[0];
+                                            mergenode2->oldy = pnew[1];
+                                            mergenode2->oldz = pnew[2];
+                                        }
+                                    }
+
                                      MarkNodeForceObsolete(home, splitNode2);
     
                                      for (q = 0; q < splitNode2->numNbrs; q++) {
@@ -1576,8 +1603,8 @@ void PredictiveCollisions(Home_t *home)
                                    newPos[1] = cPoint[1];
                                    newPos[2] = cPoint[2];
                                }
-
-                               FoldBox(param, &cPoint[0],&cPoint[1],&cPoint[2]);
+                                
+                               FoldBox(param, newPos, newPos+1, newPos+2);
     
 #ifdef _FEM
 /*
@@ -1677,6 +1704,15 @@ void PredictiveCollisions(Home_t *home)
  *                                 planes for the segments attched to the
  *                                 collision node.
  */
+                                   if(!IsOnGB(targetNode) && home->param->polycrystal){
+                                        NodeLocation(home, targetNode->x, targetNode->y,
+                                                     targetNode->z, inGrain1, onGB1);
+                                        if(inGrain1 != targetNode->inGrain){
+                                            Fatal("There are something wrong in %s at %d",
+                                                   __FILE__, __LINE__);
+                                        } 
+                                   }
+
                                    if (param->enforceGlidePlanes &&
                                        param->allowFuzzyGlidePlanes) {
                                        int n;
@@ -1927,6 +1963,19 @@ void PredictiveCollisions(Home_t *home)
  */
                              mergenode2 = splitNode2;
 
+                             if(AdjustSplitedNodePosition(home, mergenode2, newPos, pos)){
+                                 VECTOR_COPY(newPos, pos);
+                                 mergenode2->x = newPos[0];
+                                 mergenode2->y = newPos[1];
+                                 mergenode2->z = newPos[2];
+                
+                                 if(node1 != mergenode2){
+                                     mergenode2->oldx = newPos[0];
+                                     mergenode2->oldy = newPos[1];
+                                     mergenode2->oldz = newPos[2];
+                                 }
+                             }
+
                              MarkNodeForceObsolete(home, splitNode1);
                              MarkNodeForceObsolete(home, splitNode2);
                              MarkNodeForceObsolete(home, node4);
@@ -2038,6 +2087,14 @@ void PredictiveCollisions(Home_t *home)
  */
                         if (targetNode != (Node_t *)NULL) {
 
+                            if(!IsOnGB(targetNode) && home->param->polycrystal){
+                                 NodeLocation(home, targetNode->x, targetNode->y,
+                                              targetNode->z, inGrain1, onGB1);
+                                 if(inGrain1 != targetNode->inGrain){
+                                     Fatal("There are something wrong in %s at %d",
+                                            __FILE__, __LINE__);
+                                 } 
+                            }
 /*
  *                          If we are enforcing glide planes but
  *                          allowing some fuzziness in the planes, we

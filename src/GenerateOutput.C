@@ -1082,7 +1082,6 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
                     writePrologue, writeEpilogue, numArms, 0);
             if (sendToken) SendWriteToken(nextInGroup);
         }
-        DebugGB(home, 24);
 
         if ((outputTypes & GEN_TECMESH_DATA) != 0) {
             if (stage == STAGE_CYCLE) {
@@ -1098,7 +1097,6 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
 	                    writeEpilogue, numSegs);
         }
 
-        DebugGB(home, 25);
         if ((outputTypes & GEN_VELOCITY_DATA) != 0) {
             if (stage == STAGE_CYCLE) {
                 snprintf(baseName, sizeof(baseName), "vel%06d.plt",
