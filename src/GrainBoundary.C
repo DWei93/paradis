@@ -3062,7 +3062,7 @@ bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8
             }
         }
         if(!NewPosToGB(home, node, node->inGrain, currOnGB, pos)){
-            Fatal("in %s at %d", __FILE__, __LINE__);
+            printf("in %s at %d", __FILE__, __LINE__);
         }
         return(1);
     }

@@ -1013,7 +1013,9 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
     AdjustNodeDirection(home, node, vec);
     if(Normal(vec) < 1E-8){
         printf("Warning: in %s at %d\n", __FILE__, __LINE__);
-        VECTOR_ZERO(newPos);
+        newPos[0] = node->oldx;
+        newPos[1] = node->oldy;
+        newPos[2] = node->oldz;
         return(0);
     }
     NormalizeVec(vec);
