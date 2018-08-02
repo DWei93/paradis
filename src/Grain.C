@@ -2466,11 +2466,14 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
     Param_t     *param = home->param;
     BurgInfo_t  *bd = GetBurgData(home, node1, node2);
 
-#if 1
+#if 0
     if(GetArmID(home, node1, node2) == -1){
         FindPreciseGlidePlane(home, burg, lDir, glidePlane, node1, node2);
         return;
     }
+#else
+    FindPreciseGlidePlane(home, burg, lDir, glidePlane, node1, node2);
+    return;
 #endif
 
     srand(time(NULL));
