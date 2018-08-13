@@ -470,8 +470,10 @@ static void MeshCoarsen(Home_t *home)
                         vec[1] = (node->y - nbr1->y);
                         vec[2] = (node->z - nbr1->z);
                         ZImage(param, vec, vec+1, vec+2);
+                        VECTOR_COPY(vec1, vec);
                         
                         if(AdjustNodeDirection(home, nbr1, vec) == 1){
+                            VECTOR_COPY(vec, vec1);
                             newPos[0] = nbr1->x + 0.5*vec[0];
                             newPos[1] = nbr1->y + 0.5*vec[1];
                             newPos[2] = nbr1->z + 0.5*vec[2];
@@ -502,8 +504,10 @@ static void MeshCoarsen(Home_t *home)
                             vec[1] = (node->y - nbr2->y);
                             vec[2] = (node->z - nbr2->z);
                             ZImage(param, vec, vec+1, vec+2);
+                            VECTOR_COPY(vec1, vec);
                          
                             if(AdjustNodeDirection(home, nbr2, vec) == 1){
+                                VECTOR_COPY(vec, vec1);
                                 newPos[0] = nbr2->x + 0.5*vec[0];
                                 newPos[1] = nbr2->y + 0.5*vec[1];
                                 newPos[2] = nbr2->z + 0.5*vec[2];
@@ -1158,10 +1162,6 @@ static void MeshRefine(Home_t *home)
                             localRefineCnt++;
 
                             node = splitNode1;
-#if 0							
-							printf("splitNode1->inGrain = %3.1f\n",splitNode1->inGrain);
-							printf("splitNode2->inGrain = %3.1f\n",splitNode2->inGrain);
-#endif
 /*
  *                          The force estimates above are good enough for
  *                          the remainder of this timestep, but mark the

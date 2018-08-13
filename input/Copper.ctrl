@@ -19,7 +19,7 @@
 #
 numXdoms = 2
 numYdoms = 2
-numZdoms = 4
+numZdoms = 1
 #
 #  Cell geometry
 #
@@ -44,7 +44,7 @@ DLBfreq = 3
 dirname = "res.T1"
 remeshRule = 2
 enforceGlidePlanes =  1 
-enableCrossSlip =   1
+enableCrossSlip =  0
 splitMultiNodeFreq =   1  
 #
 #  Simulation time and timestepping controls
@@ -55,8 +55,6 @@ maxStn = 1.0E-2
 maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13;
-rTol = 2.0
-rc =  10
 #
 #  Fast Multipole Method controls
 #  
@@ -69,7 +67,7 @@ fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 #  
 loadType = 1
 indxErate = 3
-eRate =   -5000.000
+eRate =   00.000
 edotdir = [
   0.0
   0.0
@@ -79,7 +77,7 @@ edotdir = [
 appliedStress = [
 	0.0e0
 	0.0e0
-    -2.0e8
+	0.0e0
 	0.0e0
 	0.0e0
 	0.0e0
@@ -104,20 +102,22 @@ MobScrew =   1.000000e+04
 MobEdge =    1.000000e+04  
 MobTwinning = 5.000000e+04
 
-sfEnergy = 2.9498E-3
+sfEnergy = 31.7E-3
+rTol = 1.0
+rc =  1
 # Radom Interal stree field
-randomInternalForce = 0
-nPotParams = 1000
-potExpection = 0.100
+randomInternalForce = 1
+nPotParams = 22500
+potExpection = 0.128
 potVariance = 0.05
-potSigR = 500 
+potSigR = 20 
 
 #
 #  I/O controls and parameters
 #  
 #
 tecplot = 1
-tecplotfreq = 200
+tecplotfreq = 5
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1

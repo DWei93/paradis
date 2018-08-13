@@ -20,6 +20,7 @@
 
 main (int argc, char *argv[])
 {
+        mtrace();
         int     cycleEnd, memSize, initialDLBCycles;
         time_t  tp;
         Home_t  *home;

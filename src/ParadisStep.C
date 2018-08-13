@@ -21,6 +21,8 @@
 #include "Mobility.h"
 #include "Decomp.h"
 #include "QueueOps.h"
+#include <mcheck.h>
+#define MALLOC_TRACE mem.log 
 
 #if defined _FEM | defined _FEMIMGSTRESS
 #include "FEM.h"
@@ -479,6 +481,7 @@ void ParadisStep(Home_t *home)
  */
         Remesh(home);
         DebugGB(home,6);
+
 
 #if CHECK_GB_TOPO
         GenerateOutput(home, STAGE_DEBUG, "-3Remesh");

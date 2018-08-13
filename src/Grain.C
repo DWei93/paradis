@@ -461,6 +461,9 @@ void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& on
     }   /*for(i=0; i<home->nGrains; i++) */
 
     if(breakLoop == 0)Fatal("at file %s at line %d", __FILE__, __LINE__);
+    if(inGrain == -1 && onGB ==  -1){
+        Fatal("in %s at %d", __FILE__, __LINE__);
+    }
 
 	return;
 }
@@ -511,6 +514,9 @@ BurgInfo_t* GetBurgData(Home_t *home, int inGrain, int onGB)
             Grain_t *grain;
             GB_t    *gb;
 
+            if(inGrain == -1 && onGB ==  -1){
+                Fatal("in %s at %d", __FILE__, __LINE__);
+            }
             if(onGB > -1){
                 gb = home->GBKeys[onGB];
                 return(&(gb->burgData));
@@ -591,6 +597,9 @@ int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3])
             cross(burgData->burgList[i], burg, crossProd);
             if(Normal(crossProd) < 1.0E-3)break;
         }
+        if(i == burgData->numBurgVectors){
+            printf("Warning: in %s at %d\n", __FILE__, __LINE__);
+        }
         
         return(i);
 }
@@ -603,6 +612,9 @@ int PlaneID_FCC(BurgInfo_t *burgData, real8 plane[3])
         for(i=0; i<burgData->numPlanes; i++){
             cross(burgData->planeList[i], plane, crossProd);
             if(Normal(crossProd) < 1.0E-3)break;
+        }
+        if(i == burgData->numPlanes){
+            printf("Warning: in %s at %d\n", __FILE__, __LINE__);
         }
         
         return(i);
@@ -618,6 +630,9 @@ int KeyLineID_FCC(BurgInfo_t *burgData, real8 line[3])
             if(Normal(crossProd) < 1.0E-3)break;
         }
         
+        if(i == burgData->numKeyLines){
+            printf("Warning: in %s at %d\n", __FILE__, __LINE__);
+        }
         return(i);
 }
 
@@ -700,6 +715,7 @@ int GetPlaneID_FCC(Home_t *home, Node_t *node, Node_t *nbr){
     burgData = GetBurgData(home, node, nbr);
 
     armID = GetArmID(home, node, nbr);
+    if(armID == -1 )Fatal("in %s at %d", __FILE__, __LINE__);
     plane[0] = node->nx[armID];
     plane[1] = node->ny[armID];
     plane[2] = node->nz[armID];
@@ -715,6 +731,7 @@ int GetPlaneType_FCC(Home_t *home, Node_t *node, Node_t *nbr){
     burgData = GetBurgData(home, node, nbr);
 
     armID = GetArmID(home, node, nbr);
+    if(armID == -1 )Fatal("in %s at %d", __FILE__, __LINE__);
     plane[0] = node->nx[armID];
     plane[1] = node->ny[armID];
     plane[2] = node->nz[armID];
@@ -949,11 +966,15 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
     Param_t     *param;
     GB_t        *GB;
     Grain_t     *grain;
-    Plane_t     *plane;
+    Plane_t     plane;
 
     param = home->param;
 
-    if(onGB < 0)Fatal("in %s at %d", __FILE__, __LINE__);
+    if(param->polycrystal == 0){
+        return(0);
+    }
+
+    if(onGB < 0 || onGB >= home->nGBs)Fatal("in %s at %d", __FILE__, __LINE__);
 	if(node == (Node_t *)NULL){
         Fatal("Task %d: %s, line %d -- Node = NULL",
                home->myDomain, __FILE__, __LINE__);
@@ -964,20 +985,18 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
 	FoldBox(param, pos, pos+1, pos+2);
 
     GB = home->GBKeys[onGB];
+    VECTOR_COPY(plane.normal, GB->n);
+    VECTOR_COPY(plane.point, GB->p);
 
-    VECTOR_COPY(vec1, GB->n);
-    VECTOR_COPY(vec2, GB->p);
     if(inGrain > -1){
+        if(inGrain >= home->nGrains)Fatal("in %s at %d", __FILE__, __LINE__);
         grain = home->grainKeys[inGrain];
         index = GetGBIndexOfGrain(grain, onGB);
         if(index < 0)Fatal("in %s at %d", __FILE__, __LINE__);
-        vec2[0] -= (grain->sign[index] * eps * GB->n[0]);
-        vec2[1] -= (grain->sign[index] * eps * GB->n[1]);
-        vec2[2] -= (grain->sign[index] * eps * GB->n[2]);
-/*
- *      If the node is on grain boundary
- *      Only allow the neighbors of the node in the same grain
- */
+        plane.point[0] -= (grain->sign[index] * eps * GB->n[0]);
+        plane.point[1] -= (grain->sign[index] * eps * GB->n[1]);
+        plane.point[2] -= (grain->sign[index] * eps * GB->n[2]);
+
         if(IsOnGB(node)){
             int     i;
             Node_t  *nbr;
@@ -1000,31 +1019,39 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
 
             node->onGB = -1;
             node->inGrain = nbrInGrain;
+
         }
     }else{
         if(IsOnGB(node)){
-            PointPlaneIntersection(pos, vec1, vec2, newPos, &dis);
+            PointPlaneIntersection(pos, plane.normal, plane.point, newPos, &dis);
             if(onGB != node->onGB)Fatal("in %s at %d", __FILE__, __LINE__);
             return(1);
         }
     }
     
-    VECTOR_COPY(vec, vec1);
+    VECTOR_COPY(vec, plane.normal);
     AdjustNodeDirection(home, node, vec);
+
     if(Normal(vec) < 1E-8){
-        printf("Warning: in %s at %d\n", __FILE__, __LINE__);
         newPos[0] = node->oldx;
         newPos[1] = node->oldy;
         newPos[2] = node->oldz;
-        return(0);
+
+        if(IsOnGB(node)){
+            node->inGrain = bakInGrain;
+            node->onGB = bakOnGB;
+        }
+        printf("Warning: in %s at %d\n", __FILE__, __LINE__);
+        return(1);
     }
+
     NormalizeVec(vec);
     if(IsOnGB(node)){
         node->inGrain = bakInGrain;
         node->onGB = bakOnGB;
     }
 
-    type = LinePlaneIntersection(vec, pos, vec1, vec2, vec3, newPos); 
+    type = LinePlaneIntersection(vec, pos, plane.normal, plane.point, vec3, newPos); 
     if(type != POINT_INTERSECTION){
         printf("Warning: in %s at %d\n", __FILE__, __LINE__);
         VECTOR_ZERO(newPos);
@@ -1032,6 +1059,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
     }
     
     FoldBox(param, newPos, newPos+1, newPos+2);
+    FormatVector(newPos, "newPos");
     return(1);
 }
 
@@ -1172,6 +1200,10 @@ void GetArmGrain(Home_t *home, Node_t *node1, Node_t *node2, int &inGrain, int &
             Fatal("Warning in GetArmGrain: node1 in %d grain, but node2 in %d grain\n",
                    node1->inGrain, node2->inGrain);
         }
+    }
+
+    if(inGrain == -1 && onGB ==  -1){
+        Fatal("in %s at %d", __FILE__, __LINE__);
     }
     return;
 }
@@ -2593,6 +2625,8 @@ void GeneratePotentialParamters(Home_t *home, Param_t *param)
         home->potParams[i][1] = 2.0*(randm(&seed)-0.5)*param->xBoundMax;  
         home->potParams[i][2] = 2.0*(randm(&seed)-0.5)*param->yBoundMax;  
         home->potParams[i][3] = 2.0*(randm(&seed)-0.5)*param->zBoundMax;  
+
+        home->potParams[i][3] = 0.0;
 #if 0
         printf("%d: %f--{%f,%f,%f}\n", i, home->potParams[i][0], home->potParams[i][1],
                 home->potParams[i][2], home->potParams[i][3]);
@@ -2608,6 +2642,22 @@ void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *no
     real8   vec[3], x0, y0, z0, A, sigR;
     real8   x, y, z, length;
     real8   E = 2.718281828459045;
+
+    real8   sigma[3][3], burg[3], strb[3], xi[3];
+    int     armID;
+    VECTOR_ZERO(sigma[0]);
+    VECTOR_ZERO(sigma[1]);
+    VECTOR_ZERO(sigma[2]);
+    armID = GetArmID(home, node1, node2);
+    
+    burg[0] = node1->burgX[armID];
+    burg[1] = node1->burgY[armID];
+    burg[2] = node1->burgZ[armID];
+
+    xi[0] = node2->x -node1->x;
+    xi[1] = node2->y -node1->y;
+    xi[2] = node2->z -node1->z;
+    ZImage(home->param, xi, xi+1, xi+2);
 
     sigR = param->potSigR;
 
@@ -2636,17 +2686,28 @@ void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *no
         y0 = home->potParams[i][2];
         z0 = home->potParams[i][3];
 
-        f1[0] += (A*(x - x0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
-                 (2.0*pow(sigR,2)))*pow(sigR,2));
-        f1[1] += (A*(y - y0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
-                 (2.0*pow(sigR,2)))*pow(sigR,2));
-        f1[2] += (A*(z - z0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
-                 (2.0*pow(sigR,2)))*pow(sigR,2));
+        sigma[0][2] += ((A*(x - x0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
+                 (2.0*pow(sigR,2)))*pow(sigR,2)));
+        sigma[1][2] += ((A*(y - y0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
+                 (2.0*pow(sigR,2)))*pow(sigR,2)));
+        sigma[0][1] += ((A*(z - z0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
+                 (2.0*pow(sigR,2)))*pow(sigR,2)));
+
     }
+
+    sigma[2][0] = sigma[0][2];
+    sigma[2][1] = sigma[1][2];
+    sigma[1][0] = sigma[0][1];
+
+    for (i = 0; i < 3; i++) {
+        strb[i] = sigma[i][0]*burg[0]+sigma[i][1]*burg[1]+sigma[i][2]*burg[2];
+    }
+
+    cross(strb, xi, f1);
     
-    f1[0] *= (0.5*length);
-    f1[1] *= (0.5*length);
-    f1[2] *= (0.5*length);
+    f1[0] *= 0.5;
+    f1[1] *= 0.5;
+    f1[2] *= 0.5;
 
     VECTOR_COPY(f2, f1);
     return;

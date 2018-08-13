@@ -1647,9 +1647,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
 /*
  *      This call to GenerateOutput will initialize the X-Window display.
  */
-#ifndef NO_XWINDOW
-        GenerateOutput(home, STAGE_INIT,"init");
-#endif
+        GenerateOutput(home, STAGE_INIT, "init");
 		
 /*
  *      The code for calculating the forces from remote segments

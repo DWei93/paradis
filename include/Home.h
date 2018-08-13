@@ -56,6 +56,8 @@
 #include "Grain.h"
 #include "Math.h"
 
+#include  <mcheck.h>
+
 #ifdef PARALLEL
 #include "mpi.h"
 #endif
