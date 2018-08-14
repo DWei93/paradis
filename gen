@@ -24,8 +24,8 @@
 ######################################################################################
 
 #frlen=1800
-frlen=2900
-cubel=3000
+frlen=19000
+cubel=20000
 maxSeg=20
 nfrs=1
 maxDensity=1E13
@@ -43,9 +43,9 @@ case $srctype in
 #
 ######################################################################################
     1|I)
-    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 0 -pbc 0 -extended 4\
-    -yMatDir 1,-1,0 -zMatDir 1,1,1 ;;
+    ./bin/paradisgen -type 4 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    -polycrystal 0 -pbc 0 \
+    -xMatDir -1,-1,2 -zMatDir 1,1,1 ;;
 
 ######################################################################################
 #
@@ -54,8 +54,8 @@ case $srctype in
 ######################################################################################
     2|II)
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 0 -pbc 7 \
-    -xMatDir 1,-1,0 -yMatDir 1,1,1\
+    -polycrystal 0 -pbc 7 -extended 4\
+    -xMatDir -1,-1,2 -zMatDir 1,1,1\
     -heightRatio 1 -deltaNums 0 -nLayers 1 ;;
 
 #    -xMatDir 1,0,0 -yMatDir 0,1,0 \

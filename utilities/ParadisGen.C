@@ -766,7 +766,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	            token = strtok(NULL,",");
                     if (token == (char *)NULL) Fatal("orientation wrong");
 	            inArgs->zMatDir[2] = atof(token);
-	            NormalizeVec(inArgs->yMatDir);
+	            NormalizeVec(inArgs->zMatDir);
 	            existDir[2] = 1;
 	            orientationType = 1;
 	                break;

@@ -2623,7 +2623,8 @@ void GeneratePotentialParamters(Home_t *home, Param_t *param)
         home->potParams[i][0] /= param->burgMag;
         
         home->potParams[i][1] = 2.0*(randm(&seed)-0.5)*param->xBoundMax;  
-        home->potParams[i][2] = 2.0*(randm(&seed)-0.5)*param->yBoundMax;  
+        home->potParams[i][2] = 2.0*(randm(&seed)-0.5)*param->yBoundMax/10;  
+//        home->potParams[i][2] = 2.0*(randm(&seed)-0.5)*param->yBoundMax;  
         home->potParams[i][3] = 2.0*(randm(&seed)-0.5)*param->zBoundMax;  
 
         home->potParams[i][3] = 0.0;
@@ -2633,6 +2634,7 @@ void GeneratePotentialParamters(Home_t *home, Param_t *param)
 #endif
     }
 
+    printf("Finish poteni\n");
     return;
 }
        
@@ -2685,13 +2687,23 @@ void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *no
         x0 = home->potParams[i][1];
         y0 = home->potParams[i][2];
         z0 = home->potParams[i][3];
+        
+        vec[0] = x0 - x;
+        vec[1] = y0 - y;
+        vec[2] = z0 - z;
+        ZImage(home->param, vec, vec+1, vec+2);
+        x0 = x + vec[0];
+        y0 = y + vec[1];
+        z0 = z + vec[2];
 
-        sigma[0][2] += ((A*(x - x0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
-                 (2.0*pow(sigR,2)))*pow(sigR,2)));
+//        sigma[0][2] += ((A*(x - x0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
+//                 (2.0*pow(sigR,2)))*pow(sigR,2)));
+        sigma[0][2] = 0.0;
         sigma[1][2] += ((A*(y - y0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
                  (2.0*pow(sigR,2)))*pow(sigR,2)));
-        sigma[0][1] += ((A*(z - z0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
-                 (2.0*pow(sigR,2)))*pow(sigR,2)));
+        sigma[0][1] = 0.0;
+//        sigma[0][1] += ((A*(z - z0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
+//                 (2.0*pow(sigR,2)))*pow(sigR,2)));
 
     }
 

@@ -17,7 +17,7 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
+numXdoms = 4
 numYdoms = 2
 numZdoms = 1
 #
@@ -30,9 +30,9 @@ numZcells = 4
 #
 # Mesh size for tecmesh
 #
-meshSizeX = 50
-meshSizeY = 50
-meshSizeZ = 50
+meshSizeX = 500
+meshSizeY = 500
+meshSizeZ = 500
 
 #  Dynamic load balancing
 #
@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.T1"
+dirname = "res.perfect-9"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =  0
@@ -49,7 +49,7 @@ splitMultiNodeFreq =   1
 #
 #  Simulation time and timestepping controls
 #  
-maxstep =  40000000 
+maxstep =  100 
 #maxstep =  4 
 maxStn = 1.0E-2
 maxPst = 1.0E-2
@@ -62,6 +62,7 @@ fmEnabled =   1
 fmMPOrder =   2  
 fmTaylorOrder =   5  
 fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
+#fmCorrectionTbl =   "input/fm.sur.dat"
 #
 #  Loading conditions
 #  
@@ -102,14 +103,14 @@ MobScrew =   1.000000e+04
 MobEdge =    1.000000e+04  
 MobTwinning = 5.000000e+04
 
-sfEnergy = 31.7E-3
-rTol = 1.0
+sfEnergy = 15E-3
+rTol = 0.5
 rc =  1
 # Radom Interal stree field
 randomInternalForce = 1
-nPotParams = 22500
-potExpection = 0.128
-potVariance = 0.05
+nPotParams = 100000
+potExpection = 0.04
+potVariance = 0.01
 potSigR = 20 
 
 #
@@ -117,7 +118,7 @@ potSigR = 20
 #  
 #
 tecplot = 1
-tecplotfreq = 5
+tecplotfreq = 100
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1
