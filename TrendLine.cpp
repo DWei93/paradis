@@ -16,6 +16,29 @@ typedef struct {
    double   x,y;
 } Point_t;
 
+bool cmp(const Point_t &p, const Point_t &q)
+{
+    return(p.x < q.x);
+}
+
+void RefineCurve(vector<Point_t>& curve, int nPoints){
+    int         i, n, j;
+    Point_t     point;
+    double      x0, meshSize;
+
+    n = curve.size()-1;
+    for(i=0; i<n; i++){
+        if(fabs(curve[i+1].x - curve[i].x) < 1.0E-3)continue;
+        meshSize = (curve[i+1].x - curve[i].x)/(double)(nPoints+1);
+        for(j=0; j<nPoints; j++){
+            point.x = curve[i].x + (double)(j+1)*meshSize;
+            point.y = (curve[i+1].y-curve[i].y)*(point.x-curve[i].x)/(curve[i+1].x - curve[i].x) + curve[i].y;
+            curve.push_back(point);    
+        }
+    }
+    sort(curve.begin(), curve.end(), cmp); 
+    return;
+}
 void FindIntersect(Point_t &p0, Point_t &pout, vector<Point_t> &list, int &ID, double length)
 {
     int         i,j;
@@ -121,6 +144,7 @@ int main(int argc,char** argv)
         infile.close();
     }
     
+    RefineCurve(curve, 5);
     vector<vector<double> >      outArray(curve.size());
     for(i=0; i<outArray.size(); i++){
         outArray[i].push_back(curve[i].x);
