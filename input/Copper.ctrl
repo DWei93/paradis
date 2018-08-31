@@ -67,7 +67,7 @@ fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 #  Loading conditions
 #  
 loadType = 1
-indxErate = 3
+indxErate = 8
 eRate =   00.000
 edotdir = [
   0.0
