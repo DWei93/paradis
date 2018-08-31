@@ -17,8 +17,8 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
-numYdoms = 2
+numXdoms = 4
+numYdoms = 4
 numZdoms = 1
 #
 #  Cell geometry
@@ -67,8 +67,8 @@ fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 #  Loading conditions
 #  
 loadType = 1
-indxErate = 3
-eRate =   00.000
+indxErate = 4
+eRate =   100.00
 edotdir = [
   0.0
   0.0
@@ -112,7 +112,7 @@ randomInternalForce = 1
 #  
 #
 tecplot = 1
-tecplotfreq = 100
+tecplotfreq = 10
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1

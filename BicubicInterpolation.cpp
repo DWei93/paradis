@@ -171,18 +171,18 @@ int main(int argc,char** argv)
     MPI_Comm_size(MPI_COMM_WORLD, &nDomains);
 
 
-    param.xBoundMax = 1000.0;
-    param.yBoundMax = 1000.0;
+    param.xBoundMax = 10000.0;
+    param.yBoundMax = 10000.0;
     xBoundMax = param.xBoundMax;
     yBoundMax = param.yBoundMax;
 
-    param.xBoundMin = -1000.0;
-    param.yBoundMin = -1000.0;
+    param.xBoundMin = -10000.0;
+    param.yBoundMin = -10000.0;
     xBoundMin = param.xBoundMin;
     yBoundMin = param.yBoundMin;
 
-    param.meshSizeX = 50.0;
-    param.meshSizeY = 50.0;
+    param.meshSizeX = 5.0;
+    param.meshSizeY = 5.0;
     param.radius = 100.0;
     meshSizeX = param.meshSizeX;
     meshSizeY = param.meshSizeY;

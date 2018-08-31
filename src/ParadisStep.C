@@ -419,7 +419,7 @@ void ParadisStep(Home_t *home)
  *      Search for dislocation segments in close proximity to each other
  *      and if necessary handle any collision between them.
  */
-        HandleCollisions(home);
+//        HandleCollisions(home);
 		
         DebugGB(home,4);
 
@@ -479,7 +479,7 @@ void ParadisStep(Home_t *home)
 /*
  *      Invoke mesh coarsen/refine
  */
-        Remesh(home);
+//        Remesh(home);
         DebugGB(home,6);
 
 

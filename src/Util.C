@@ -4429,7 +4429,7 @@ double BilinearInterpolation(double f00, double f01, double f10, double f11,
 {
     double temp[2];
 
-    if(x<0.0 || x>1 || y<0.0 || y>1){
+    if(x<-1.0E-5 || x>1+1.0E-5 || y<-1.0E-5 || y>1.0+1.0E-5){
         Fatal("%f %f in %s at %d\n", x, y,__FILE__, __LINE__);
     }
 
@@ -4452,7 +4452,7 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
     double xx[4], yy[4], temp[4], f;
     int     i;
 
-    if(x<0.0 || x>1 || y<0.0 || y>1){
+    if(x<-1.0E-5 || x>1+1.0E-5 || y<-1.0E-5 || y>1.0+1.0E-5){
         Fatal("%f %f in %s at %d\n", x, y,__FILE__, __LINE__);
     }
 
