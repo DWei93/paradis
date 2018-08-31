@@ -49,7 +49,7 @@ splitMultiNodeFreq =   1
 #
 #  Simulation time and timestepping controls
 #  
-maxstep =  100 
+maxstep =  100000000 
 #maxstep =  4 
 maxStn = 1.0E-2
 maxPst = 1.0E-2
@@ -67,7 +67,7 @@ fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 #  Loading conditions
 #  
 loadType = 1
-indxErate = 4
+indxErate = 8
 eRate =   100.00
 edotdir = [
   0.0
@@ -112,9 +112,9 @@ randomInternalForce = 1
 #  
 #
 tecplot = 1
-tecplotfreq = 10
+tecplotfreq = 100
 saveprop = 1
-savepropfreq = 200
+savepropfreq = 20
 tecmesh = 1
 tecmeshfreq = 2000
 velfile = 0

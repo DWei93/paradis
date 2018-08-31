@@ -229,7 +229,9 @@ void WriteProp(Home_t *home, int property)
                     snprintf(fileName, sizeof(fileName),
                              "%s/stress_Plastic_strain", DIR_PROPERTIES);
                     fp = fopen(fileName, "a");
-                    fprintf(fp, "%e %e\n", pstnijk, sigijk);
+                    fprintf(fp, "%e %e %e %e %e %e %e\n", pstnijk, param->appliedStress[0],
+                            param->appliedStress[1], param->appliedStress[2], param->appliedStress[3],
+                            param->appliedStress[4], param->appliedStress[5]);
                     fclose(fp);
 
                     snprintf(fileName, sizeof(fileName),
@@ -239,12 +241,15 @@ void WriteProp(Home_t *home, int property)
                     case 1:
 
 			if(firstSS && home->cycle < 2 *  param->savepropfreq){
-			   fprintf(fp, "variables = strain, stress, pstrain, disDen\n"); 
+			   fprintf(fp, "variables = strain, s1, s2, s3, s4, s5, s6, pstrain, disDen\n"); 
 			   firstSS = 0;
 			}
 
-                        fprintf(fp, "%e %e %e %e\n", param->eRate*param->timeNow*TC*1.0e2,
-                                sigijk*TC/1.0e6, pstnijk*TC*1.0e2, param->disloDensity);
+
+            fprintf(fp, "%e %e %e %e %e %e %e %e %e\n", param->eRate*param->timeNow*TC*1.0e2,
+                    param->appliedStress[0],
+                    param->appliedStress[1], param->appliedStress[2], param->appliedStress[3],
+                    param->appliedStress[4], param->appliedStress[5], pstnijk*TC*1.0e2, param->disloDensity);
 			if(pstnijk*TC*1.0e2 > 0.1){
 			    static int first = 1;
 			    if(first){
