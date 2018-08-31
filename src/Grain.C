@@ -20,6 +20,11 @@
 #include <algorithm>
 #include <numeric>
 
+#include <cstring>
+#include <fstream>
+#include <sstream>
+#include <string>
+
 
 bool IsOnGB(Node_t *node)
 {
@@ -2599,54 +2604,39 @@ void StackingFaultForce(Home_t *home, Node_t *node1, Node_t *node2,
     return;
 }
 
-void GeneratePotentialParamters(Home_t *home, Param_t *param) 
-{
-    real8   A, B, C, E, D, uni[2];
-    int     i;
-    int     seed;
+       
+void Coor2EleNum(Param_t *param, double x, double y, int &nx, int &ny){
+
+	double	eleLx,eleLy,eleLz;
+    double   fnx, fny;
+
+	eleLx = param->fMeshSizeX;
+	eleLx = param->fMeshSizeY;
+
+	fnx = floor((x - param->xBoundMin)/eleLx);
+	fny = floor((y - param->xBoundMin)/eleLx);
     
-    if(param->nPotParams == 0)return;
+    nx = (int)fnx;
+    ny = (int)fny;
 
-    seed = time(0);
-    E = param->potExpection;
-    D = param->potVariance;
-
-    home->potParams =  (real8 (*)[4])malloc(4*param->nPotParams*sizeof(real8)); 
-    for(i=0; i<param->nPotParams; i++){
-        uni[0] = randm(&seed); 
-        uni[1] = randm(&seed); 
-
-        A = sqrt((-2)*log(uni[0]));
-        B = 2 * PI*uni[1];
-        C = A*cos(B);
-        home->potParams[i][0] = E + C*D;   
-        home->potParams[i][0] /= param->burgMag;
-        
-        home->potParams[i][1] = 2.0*(randm(&seed)-0.5)*param->xBoundMax;  
-        home->potParams[i][2] = 2.0*(randm(&seed)-0.5)*param->yBoundMax/10;  
-//        home->potParams[i][2] = 2.0*(randm(&seed)-0.5)*param->yBoundMax;  
-        home->potParams[i][3] = 2.0*(randm(&seed)-0.5)*param->zBoundMax;  
-
-        home->potParams[i][3] = 0.0;
-#if 0
-        printf("%d: %f--{%f,%f,%f}\n", i, home->potParams[i][0], home->potParams[i][1],
-                home->potParams[i][2], home->potParams[i][3]);
-#endif
-    }
-
-    printf("Finish poteni\n");
     return;
 }
-       
+
 void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *node2, real8 *f1, real8 *f2) 
 {
     int     i;
+    int     imin, imax, jmin, jmax, numX1, numY1;
     real8   vec[3], x0, y0, z0, A, sigR;
     real8   x, y, z, length;
     real8   E = 2.718281828459045;
+    real8   l1, l2, nx, ny, f;
 
     real8   sigma[3][3], burg[3], strb[3], xi[3];
+    real8   *globalArray;
     int     armID;
+
+    globalArray = home->randomForceTable;
+
     VECTOR_ZERO(sigma[0]);
     VECTOR_ZERO(sigma[1]);
     VECTOR_ZERO(sigma[2]);
@@ -2661,7 +2651,6 @@ void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *no
     xi[2] = node2->z -node1->z;
     ZImage(home->param, xi, xi+1, xi+2);
 
-    sigR = param->potSigR;
 
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);
@@ -2680,7 +2669,42 @@ void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *no
     vec[1] += node1->y; 
     vec[2] += node1->z; 
     x = vec[0]; y = vec[1]; z = vec[2];    
+    FoldBox(home->param, &x, &y, &z);
 
+    l1 = param->fMeshSizeX;
+    l2 = param->fMeshSizeY;
+
+    nx = param->fNumX;
+    ny = param->fNumY;
+
+    Coor2EleNum(param, x, y, imin, jmin);
+
+    imax = imin + 1;
+    jmax = jmin + 1;
+    if(imax > (int)nx) imax -= (int)nx;
+    if(jmax > (int)ny) jmax -= (int)ny;
+
+    numX1 = (int)nx;
+    numY1 = (int)ny;
+
+    f = BicubicInterpolation(
+                      globalArray[0+jmin*4+imin*4*numY1], globalArray[1+jmin*4+imin*4*numY1]*l1,
+                      globalArray[2+jmin*4+imin*4*numY1]*l2, globalArray[3+jmin*4+imin*4*numY1]*l1*l2,
+             
+                      globalArray[0+jmax*4+imin*4*numY1], globalArray[1+jmax*4+imin*4*numY1]*l1,
+                      globalArray[2+jmax*4+imin*4*numY1]*l2, globalArray[3+jmax*4+imin*4*numY1]*l1*l2,
+             
+                      globalArray[0+jmin*4+imax*4*numY1], globalArray[1+jmin*4+imax*4*numY1]*l1,
+                      globalArray[2+jmin*4+imax*4*numY1]*l2, globalArray[3+jmin*4+imax*4*numY1]*l1*l2,
+             
+                      globalArray[0+jmax*4+imax*4*numY1], globalArray[1+jmax*4+imax*4*numY1]*l1,
+                      globalArray[2+jmax*4+imax*4*numY1]*l2, globalArray[3+jmax*4+imax*4*numY1]*l1*l2,
+             
+                      (x-(param->xBoundMin+((double)imin*l1)))/l1,
+                      (y-(param->yBoundMin+((double)jmin*l2)))/l2);
+
+
+#if 0
     for(i=0; i<param->nPotParams; i++){
 
         A  = home->potParams[i][0];
@@ -2699,13 +2723,19 @@ void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *no
 //        sigma[0][2] += ((A*(x - x0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
 //                 (2.0*pow(sigR,2)))*pow(sigR,2)));
         sigma[0][2] = 0.0;
-        sigma[1][2] += ((A*(y - y0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
+        sigma[1][2] += ((A*(y - y0))/(pow(E,-(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
                  (2.0*pow(sigR,2)))*pow(sigR,2)));
         sigma[0][1] = 0.0;
 //        sigma[0][1] += ((A*(z - z0))/(pow(E,(pow(x - x0, 2.0) + pow(y - y0,2.0) + pow(z - z0, 2.0))/
 //                 (2.0*pow(sigR,2)))*pow(sigR,2)));
 
     }
+#endif
+
+    sigma[0][2] = 0.0;
+    sigma[1][2] = f/param->burgMag;
+    sigma[0][1] = 0.0;
+    if(isnan(sigma[1][2]))sigma[1][2] = 0.0;
 
     sigma[2][0] = sigma[0][2];
     sigma[2][1] = sigma[1][2];
@@ -2724,3 +2754,4 @@ void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *no
     VECTOR_COPY(f2, f1);
     return;
 }
+

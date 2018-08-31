@@ -1479,17 +1479,29 @@ void Initialize(Home_t *home,int argc, char *argv[])
         param->invLz = 1.0 / param->Lz;
 
         if(param->randomInternalForce){
+            real8   para[5];
+            int numData = 0, *data;
             if(home->myDomain == 0){
-                GeneratePotentialParamters(home, param);
-            }else{
-                home->potParams =  (real8 (*)[4])malloc(4*param->nPotParams*sizeof(real8)); 
+                numData = ReadRandomForceTable(&(home->randomForceTable), para);
             }
-		
-#ifdef PARALLEL
-            MPI_Bcast((char *)home->potParams, 4*param->nPotParams*sizeof(real8), MPI_CHAR, 0,
-                       MPI_COMM_WORLD);
-#endif
+
+            MPI_Bcast(&para, sizeof(real8), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+            if(home->myDomain > 0){
+                numData = (int)para[0];
+                home->randomForceTable = (double *)malloc(numData*sizeof(double));
+            }
+
+            MPI_Barrier(MPI_COMM_WORLD);
+            MPI_Bcast((char *)home->randomForceTable, numData*sizeof(double), MPI_CHAR, 0, MPI_COMM_WORLD);
+
+            param->fMeshSizeX = para[1];
+            param->fMeshSizeY = para[2];
+            param->fNumX = para[3];
+            param->fNumY = para[4];
+
         }
+
 /*
  *      Now that the param structure is fully populated, do any
  *      remaining sanity checks or initializations that could not

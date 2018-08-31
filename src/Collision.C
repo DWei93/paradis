@@ -257,7 +257,6 @@ void GetMinDist(real8 p1x, real8 p1y, real8 p1z,
 
 void HandleCollisions(Home_t *home)
 {
-    return;
         switch(home->param->collisionMethod) {
             case 2:
                 PredictiveCollisions(home);

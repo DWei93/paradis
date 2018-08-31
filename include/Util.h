@@ -194,5 +194,12 @@ void ApplyConstraintsToVelocity(int numGlideConstraints,
                                 real8 (*glideConstraints)[3],
                                 real8 velocity[3]);
 
+double BilinearInterpolation(double f00, double f01, double f10, double f11, 
+                             double x, double y);
+double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
+                     double f01, double fx01, double fy01, double fxy01,
+                     double f10, double fx10, double fy10, double fxy10,
+                     double f11, double fx11, double fy11, double fxy11,
+                     double x, double y);
 
 #endif

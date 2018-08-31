@@ -825,21 +825,9 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 		
 		BindVar(CPList, "limitDisplacement", &param->limitDisplacement, V_INT, 1, VFLAG_NULL);
 		param->limitDisplacement = 0;
-		
+
 		BindVar(CPList, "randomInternalForce", &param->randomInternalForce, V_INT, 1, VFLAG_NULL);
 		param->randomInternalForce = 0;
-
-		BindVar(CPList, "nPotParams", &param->nPotParams, V_INT, 1, VFLAG_NULL);
-		param->nPotParams = 0;
-
-		BindVar(CPList, "potExpection", &param->potExpection, V_DBL, 1, VFLAG_NULL);
-        param->potExpection = 0.0;
-
-		BindVar(CPList, "potVariance", &param->potVariance, V_DBL, 1, VFLAG_NULL);
-        param->potVariance = 0.0;
-
-		BindVar(CPList, "potSigR", &param->potSigR, V_DBL, 1, VFLAG_NULL);
-        param->potSigR = 0.0;
 		
 #ifdef _FEM
 /*

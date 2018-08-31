@@ -55,6 +55,7 @@
 #include "Force.h"
 #include "Grain.h"
 #include "Math.h"
+#include "CppFunctions.h"
 
 #include  <mcheck.h>
 
@@ -413,7 +414,7 @@ struct _home {
 		
         real8	**pstnEle;
         real8	**disDenEle;
-        real8   (*potParams)[4];
+        real8   *randomForceTable;
 
 #ifdef _FEM
 /*

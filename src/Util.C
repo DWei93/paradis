@@ -4424,4 +4424,81 @@ void ApplyConstraintsToVelocity(int numGlideConstraints,
 }
 
 
+double BilinearInterpolation(double f00, double f01, double f10, double f11, 
+                             double x, double y)
+{
+    double temp[2];
 
+    if(x<0.0 || x>1 || y<0.0 || y>1){
+        Fatal("%f %f in %s at %d\n", x, y,__FILE__, __LINE__);
+    }
+
+    temp[0] = (1.0-x)*f00 + x*f10;
+    temp[1] = (1.0-x)*f01 + x*f11;
+
+    return(temp[0]*(1.0-y) + temp[1]*y);
+}
+
+double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
+                     double f01, double fx01, double fy01, double fxy01,
+                     double f10, double fx10, double fy10, double fxy10,
+                     double f11, double fx11, double fy11, double fxy11,
+                     double x, double y)
+{
+    double a00, a01, a02, a03;
+    double a10, a11, a12, a13;
+    double a20, a21, a22, a23;
+    double a30, a31, a32, a33;
+    double xx[4], yy[4], temp[4], f;
+    int     i;
+
+    if(x<0.0 || x>1 || y<0.0 || y>1){
+        Fatal("%f %f in %s at %d\n", x, y,__FILE__, __LINE__);
+    }
+
+    xx[0] = 1.0;
+    xx[1] = x;
+    xx[2] = x*x;
+    xx[3] = xx[2]*x;
+
+    yy[0] = 1.0;
+    yy[1] = y;
+    yy[2] = y*y;
+    yy[3] = yy[2]*y;
+
+    a00 = f00;
+    a01 = fy00;
+    a02 = -3*f00 + 3*f01 - 2*fy00 - fy01;
+    a03 = 2*f00 - 2*f01 + fy00 + fy01; 
+    a10 = fx00; 
+    a11 = fxy00;
+    a12 = -3*fx00 + 3*fx01 - 2*fxy00 - fxy01;
+    a13 = 2*fx00 - 2*fx01 + fxy00 + fxy01;
+    a20 = -3*f00 + 3*f10 - 2*fx00 - fx10;
+    a21 = -2*fxy00 - fxy10 - 3*fy00 + 3*fy10; 
+    a22 = 9*f00 - 9*f01 - 9*f10 + 9*f11 + 6*fx00 - 6*fx01 + 3*fx10 - 
+            3*fx11 + 4*fxy00 + 
+            2*fxy01 + 2*fxy10 + fxy11 + 6*fy00 + 3*fy01 - 6*fy10 - 3*fy11;
+    a23 = -6*f00 + 6*f01 + 6*f10 - 6*f11 - 4*fx00 + 4*fx01 - 2*fx10 + 
+            2*fx11 - 2*fxy00 - 
+            2*fxy01 - fxy10 - fxy11 - 3*fy00 - 3*fy01 + 3*fy10 + 3*fy11;
+    a30 = 2*f00 - 2*f10 + fx00 + fx10; 
+    a31 = fxy00 + fxy10 + 2*fy00 - 2*fy10; 
+    a32 = -6*f00 + 6*f01 + 6*f10 - 6*f11 - 3*fx00 + 3*fx01 - 3*fx10 + 
+            3*fx11 - 2*fxy00 - 
+            fxy01 - 2*fxy10 - fxy11 - 4*fy00 - 2*fy01 + 4*fy10 + 2*fy11;
+    a33 = 4*f00 - 4*f01 - 4*f10 + 4*f11 + 2*fx00 - 2*fx01 + 2*fx10 - 
+            2*fx11 + fxy00 + 
+            fxy01 + fxy10 + fxy11 + 2*fy00 + 2*fy01 - 2*fy10 - 2*fy11;
+
+    for(i=0;i<4;i++){
+        temp[0] = xx[0]*a00 + xx[1]*a10 + xx[2]*a20 +xx[3]*a30;
+        temp[1] = xx[0]*a01 + xx[1]*a11 + xx[2]*a21 +xx[3]*a31;
+        temp[2] = xx[0]*a02 + xx[1]*a12 + xx[2]*a22 +xx[3]*a32;
+        temp[3] = xx[0]*a03 + xx[1]*a13 + xx[2]*a23 +xx[3]*a33;
+    }
+
+    f = (temp[0]*yy[0]+temp[1]*yy[1]+temp[2]*yy[2]+temp[3]*yy[3]);
+    if(isnan(f))f=0.0;
+    return(f);
+}

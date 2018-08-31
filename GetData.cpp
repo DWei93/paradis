@@ -114,7 +114,6 @@ vector<string> split(const string& str, const string& delim) {
 
 int main(int argc,char** argv)
 {
-    ifstream infile;
     stringstream strStream;
     string str, Avef, P1f, P2f, RDf, arg2;
     char filename[100], c1[100], c2[100], c3[100], c4[100];
@@ -149,6 +148,7 @@ int main(int argc,char** argv)
     strcpy(filename,argv[1]);
     arg2 = argv[2];
 
+    ifstream infile;
     infile.open(filename);
     if(!infile) cout<<"error"<<endl;
 

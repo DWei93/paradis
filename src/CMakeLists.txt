@@ -1,5 +1,6 @@
 Set ( PARADIS_SRCS 
 #bigtest.h   GeometryTestFactory.cpp TestSweepLineSpeed.cpp  
+bci.c   tdspl.c tools.c
 CellCharge.C               FindPreciseGlidePlane.C   InputSanity.C            ParadisThread.C            SplitSurfaceNodes.C
 Collision.C                FixRemesh.C               LoadCurve.C              Param.C                    Tecplot.C
 CommSendGhostPlanes.C      FMComm.C                  LocalSegForces.C         Parse.C                    Timer.C
@@ -25,6 +26,7 @@ DLBfreeOld.C               InitSendDomains.C         ParadisStep.C            So
 #      DisplayC.C display.C )
 
 Set (CTABLEGEN_SRCS 
+bci.c   tdspl.c tools.c
                  CTableGen.C 
                  CorrectionTable.C       
                  FindPreciseGlidePlane.C 

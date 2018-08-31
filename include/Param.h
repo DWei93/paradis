@@ -505,8 +505,8 @@ struct _param {
         real8   meshSizeY;
         real8   meshSizeZ;
         int     meshNumX, meshNumY, meshNumZ;
-        int     randomInternalForce, nPotParams;
-        real8   potExpection, potVariance, potSigR;
+        int     randomInternalForce;
+        double     fMeshSizeX, fMeshSizeY, fNumX, fNumY;
 
 #ifdef _FEM
 /*

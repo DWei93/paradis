@@ -17,7 +17,7 @@
 #
 #  Domain geometry
 #
-numXdoms = 4
+numXdoms = 2
 numYdoms = 2
 numZdoms = 1
 #
@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.perfect-9"
+dirname = "res.T1-"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =  0
@@ -106,13 +106,7 @@ MobTwinning = 5.000000e+04
 sfEnergy = 15E-3
 rTol = 0.5
 rc =  1
-# Radom Interal stree field
 randomInternalForce = 1
-nPotParams = 100000
-potExpection = 0.04
-potVariance = 0.01
-potSigR = 20 
-
 #
 #  I/O controls and parameters
 #  

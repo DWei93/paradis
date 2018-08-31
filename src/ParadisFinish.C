@@ -230,11 +230,6 @@ void ReleaseMemory(Home_t *home)
             free(home->dataParamList);
         }
 
-        if(param->nPotParams > 0){
-            free(home->potParams);
-            home->potParams = NULL;
-        }
-
         free(home->param);
         home->param = NULL;
 

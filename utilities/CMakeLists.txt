@@ -1,4 +1,5 @@
 Set ( PARADISGEN_SRCS 
+../src/bci.c   ../src/tdspl.c ../src/tools.c
                ParadisGen.C   
                CreateConfig.C      
                InitRemesh.C
@@ -33,6 +34,7 @@ Set ( PARADISGEN_SRCS
                ../src/Grain.C )
 
 Set ( PARADISREPART_SRCS
+../src/bci.c   ../src/tdspl.c ../src/tools.c
                     ParadisRepart.C  
                     ../src/Decomp.C            
                     ../src/DLBfreeOld.C        
@@ -63,6 +65,7 @@ Set ( PARADISREPART_SRCS
                     ../src/WriteRestart.C		
 					../src/Grain.C )
 Set( CALCDENSITY_SRCS
+../src/bci.c   ../src/tdspl.c ../src/tools.c
                     CalcDensity.C      
                     Decomp.C            
                     DLBfreeOld.C        
@@ -93,6 +96,7 @@ Set( CALCDENSITY_SRCS
 					Grain.C )
 
 Set ( STRESSTABLEGEN_SRCS
+../src/bci.c   ../src/tdspl.c ../src/tools.c
                       StressTableGen.C 
                       FindPreciseGlidePlane.C 
                       Heap.C           
@@ -105,6 +109,7 @@ Set ( STRESSTABLEGEN_SRCS
 					  Grain.C )
 
 Set( PARADISCONVERT_SRCS 
+../src/bci.c   ../src/tdspl.c ../src/tools.c
                      ParadisConvert.C 
                      Decomp.C            
                      DLBfreeOld.C        

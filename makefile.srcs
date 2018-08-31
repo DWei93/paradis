@@ -21,6 +21,7 @@
 PARADIS_CPP_SRCS = GrainBoundary.C \
       Grain.C	               \
       Math.C	               \
+      CppFunctions.C            \
       CellCharge.C             \
       Collision.C              \
       CommSendGhosts.C         \
