@@ -24,8 +24,8 @@
 ######################################################################################
 
 #frlen=1800
-frlen=19920
-cubel=20000
+frlen=1980
+cubel=2000
 maxSeg=20
 nfrs=1
 maxDensity=1E13
@@ -44,8 +44,9 @@ case $srctype in
 ######################################################################################
     1|I)
     ./bin/paradisgen -type 4 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 0 -pbc 0 -extend 4 \
+    -polycrystal 0 -pbc 0 \
     -xMatDir -1,-1,2 -zMatDir 1,1,1 ;;
+#    -polycrystal 0 -pbc 0 -extend 4 \
 
 ######################################################################################
 #

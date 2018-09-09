@@ -2770,7 +2770,6 @@ void LocalSegForces(Home_t *home, int reqType)
         for (i = 0; i < nativeSegListCnt; i++) {
             int   j;
             int   armID12, armID21;
-            real8 armGrain;
             real8 x1, y1, z1;
             real8 x2, y2, z2;
             real8 bx1, by1, bz1;
@@ -2778,6 +2777,7 @@ void LocalSegForces(Home_t *home, int reqType)
             real8 f1[3], f2[3];
             real8 node1SegForce[3];
             real8 node2SegForce[3];
+            real8 normal[3], signSF;
 
 /*
  *          Zero out some arrays in which we'll accumulate nodal forces
@@ -2822,6 +2822,10 @@ void LocalSegForces(Home_t *home, int reqType)
 
             ZImage(param, &dx, &dy, &dz);
 
+            normal[0] = node1->nx[armID12];
+            normal[1] = node1->ny[armID12];
+            normal[2] = node1->nz[armID12];
+            signSF = node1->signSF[armID12];
 /*
  *          It is possible to have a zero-length segment (created by
  *          collision handling).  If we find such a segment, there will
@@ -2904,8 +2908,9 @@ void LocalSegForces(Home_t *home, int reqType)
                 }
             }
 
-            StackingFaultForce(home, node1, node2, f1, f2);
-
+            StackingFaultForce(home, dx, dy, dz, param->sfEnergy, signSF, 
+                               normal, f1, f2); 
+            
             VECTOR_ADD(node1SegForce, f1);
             VECTOR_ADD(node2SegForce, f2);
 

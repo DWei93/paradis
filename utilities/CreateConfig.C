@@ -1304,6 +1304,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     p0[1] = (randm(&seed)-0.5) * cubeSize;			
                     p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
                     VECTOR_ZERO(p0);
+                    p0[1] = 0.0;
 //                    p0[2] = -50;
                     NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
                     bd = GetBurgData(home, inGrain0, onGB0);

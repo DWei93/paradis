@@ -89,6 +89,9 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         real8   pstnijk, eAmp, timeNow, cTimeOld;
         real8   dCyclicStrain;
         real8   totCyclicStrain, netCyclicStrain;
+		real8   dpstn[6], dsig[6], destn[6];
+        real8   tmpdSig[6];
+		real8   (*C)[6], (*Sij)[6];
         Param_t *param;
         
         TimerStart(home, LOADCURVE);
@@ -100,9 +103,16 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         erate     = param->eRate;
         dtt       = param->realdt;
         indxerate = param->indxErate;
+		
 
         sigijk          = 0;
         totCyclicStrain = 0.0;
+		
+		for (i = 0; i < 6; i++) {
+            dsig[i] = 0.0;
+            destn[i] = 0.0;
+            tmpdSig[i] = 0.0;
+        }
         
 /*
  *      Update young's modulus in Param_t so the correct value is written
@@ -248,11 +258,14 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
  *          creep - what we have been using so this should be default
  */
             case 0:
+				
+				Matrix33Init(deltaStress);
                 break;
 /*
  *          constant strain rate
  */
             case 1:
+#if	0
 /*
  *              Cover for specific loading direction also
  */
@@ -274,12 +287,10 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
  */
                 dStress= modulus * (erate*dtt - dpl_stn);
         
-#if 0
+/*#if 0
                 printf("al=%e,am=%e,an=%e\n", al, am, an);
                 printf("erate=%e,dtt=%e,dpl_stn=%e\n", erate, dtt, dpl_stn);
                 printf("modulus=%e,dStress=%e\n", modulus, dStress);
-#endif
-        
 /*
  *              global (100)-(010)-(001) frame
  */
@@ -296,7 +307,51 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 param->totstraintensor[3] = erate * param->timeNow *  an*am;
                 param->totstraintensor[4] = erate * param->timeNow *  an*al;
                 param->totstraintensor[5] = erate * param->timeNow *  al*am;
+#endif
+				
+				for (i = 0; i < 6; i++) {
+                    dpstn[i] = param->delpStrain[i];
+                }
+/*
+ *              Set pointers to the precomputed 6x6 elastic constant
+ *              matrix (C) and its inverse, the compliance matrix (Sij)
+ */
+                C   = param->elasticConstantMatrix;
+                Sij = param->elasticConstantMatrixInv;
+				
+				
+				if(indxerate & EXX) dsig[0] = (erate*dtt - dpstn[0]) /Sij[0][0];
+				if(indxerate & EYY) dsig[1] = (erate*dtt - dpstn[1]) /Sij[1][1];
+				if(indxerate & EZZ) dsig[2] = (erate*dtt - dpstn[2]) /Sij[2][2];
+				if(indxerate & EYZ) dsig[3] = 2.0 * (erate*dtt) /Sij[3][3];
+				if(indxerate & EXZ) dsig[4] = 2.0 * (erate*dtt - dpstn[4]) /Sij[4][4];
+				if(indxerate & EXY) dsig[5] = 2.0 * (erate*dtt - dpstn[5]) /Sij[5][5];
+				
+				for(i=0; i<6; i++){
+					for(j=0; j<6; j++){
+						destn[i] += Sij[i][j] * dsig[j];
+					}
+					param->elasticStrainTensor[i] += destn[i];
+				}
+				
+				for(i=0; i<6; i++){
+					param->appliedStress[i] += dsig[i];
+					
+				}
+				
+                deltaStress[0][0] = dsig[0];
+                deltaStress[1][1] = dsig[1];
+                deltaStress[2][2] = dsig[2];
 
+                deltaStress[1][2] = dsig[3];
+                deltaStress[2][0] = dsig[4];
+                deltaStress[0][1] = dsig[5];
+
+                deltaStress[2][1] = deltaStress[1][2];
+                deltaStress[0][2] = deltaStress[2][0];
+                deltaStress[1][0] = deltaStress[0][1];
+
+                if(home->myDomain == 0)printf("Loading %e %e %e %e\n", erate*dtt, dpstn[3], deltaStress[2][1]/dtt, param->appliedStress[3]);
                 break;
         
 /*
@@ -429,7 +484,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 param->appliedStress[0] += dStress *al*al;
                 param->appliedStress[1] += dStress *am*am;
                 param->appliedStress[2] += dStress *an*an;
-                param->appliedStress[3] += dStress *an*am;  
+                param->appliedStress[3] += dStress *an*am; 
                 param->appliedStress[4] += dStress *an*al;
                 param->appliedStress[5] += dStress *al*am;
         
@@ -529,13 +584,13 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 param->appliedStress[5] += dStress *al*am;
         
 /*   
-                param->totstraintensor[0] = erate * param->timeNow *  al*al;
-                param->totstraintensor[1] = erate * param->timeNow *  am*am;
-                param->totstraintensor[2] = erate * param->timeNow *  an*an;
-                param->totstraintensor[3] = erate * param->timeNow *  an*am;
-                param->totstraintensor[4] = erate * param->timeNow *  an*al;
-                param->totstraintensor[5] = erate * param->timeNow *  al*am; 
-*/
+ *               param->totstraintensor[0] = erate * param->timeNow *  al*al;
+ *               param->totstraintensor[1] = erate * param->timeNow *  am*am;
+ *               param->totstraintensor[2] = erate * param->timeNow *  an*an;
+ *               param->totstraintensor[3] = erate * param->timeNow *  an*am;
+ *               param->totstraintensor[4] = erate * param->timeNow *  an*al;
+ *               param->totstraintensor[5] = erate * param->timeNow *  al*am; 
+ */
                 param->totstraintensor[0] = netCyclicStrain *  al*al;
                 param->totstraintensor[1] = netCyclicStrain *  am*am;
                 param->totstraintensor[2] = netCyclicStrain *  an*an;
@@ -558,7 +613,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         }  /* end: switch(loadtype) */
         
         TimerStop(home, LOADCURVE);
-        
+#if 0        
         deltaStress[0][0] = param->appliedStress[0] - deltaStress[0][0];
         deltaStress[1][1] = param->appliedStress[1] - deltaStress[1][1];
         deltaStress[2][2] = param->appliedStress[2] - deltaStress[2][2];
@@ -568,6 +623,9 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         deltaStress[2][1] = deltaStress[1][2];
         deltaStress[0][2] = deltaStress[2][0];
         deltaStress[1][0] = deltaStress[0][1];
-        
+#endif		
+		
+		
+//		printf(" param->appliedStress[2] = %f\n",param->appliedStress[2]);
         return;
 }

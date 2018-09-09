@@ -35,15 +35,12 @@ then
     sed -i "${lineNumber}inumZdoms = 1" $ctrlFile
 #   make clean  > /dev/null 2>&1
 #   make  > /dev/null 2>&1
-#    for((i=0;i<10;i++))
-#    do
-        resultDir=res.$jobID-${i}
-        lineNumber=`grep  -n "dirname" $ctrlFile | cut -d : -f 1`
-        sed -i "${lineNumber}d" $ctrlFile
-        sed -i "${lineNumber}idirname = \"${resultDir}\"" $ctrlFile
+    resultDir=res.$jobID
+    lineNumber=`grep  -n "dirname" $ctrlFile | cut -d : -f 1`
+    sed -i "${lineNumber}d" $ctrlFile
+    sed -i "${lineNumber}idirname = \"${resultDir}\"" $ctrlFile
 
-        mpirun -n 16 ./bin/paradis ./${ctrlFile} | tee out.${jobID}-${i}
-#    done
+    mpirun -n 4 ./bin/paradis ./${ctrlFile} | tee out.${jobID}
 else
 	make clean  > /dev/null 2>&1
     	make  > /dev/null 2>&1

@@ -492,8 +492,6 @@ void ParadisStep(Home_t *home)
         DebugGB(home,7);
         LoadCurve(home, deltaStress);
 		
-        DebugGB(home,8);
-		
 
 /*
  *      This is only needed when we do force calcs for only

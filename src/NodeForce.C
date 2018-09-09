@@ -1198,6 +1198,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
             real8   x2, y2, z2;
             real8   xCenter, yCenter, zCenter;
             real8   burg[3], f1[3], f2[3];
+            real8   normal[3], signSF;
             Cell_t  *cell;
             Node_t  *node1, *node2, *node3, *node4;
 
@@ -1299,6 +1300,11 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
             burg[1] = node1->burgY[armID12];
             burg[2] = node1->burgZ[armID12];
 
+            normal[0] = node1->nx[armID12];
+            normal[1] = node1->ny[armID12];
+            normal[2] = node1->nz[armID12];
+            signSF = node1->signSF[armID12];
+
             if (((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2)) < eps) {
                 continue;
             }
@@ -1374,7 +1380,8 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
 
             }
 
-            StackingFaultForce(home, node1, node2, f1, f2);
+            StackingFaultForce(home, dx, dy, dz, param->sfEnergy, signSF, 
+                               normal, f1, f2); 
 
             VECTOR_ADD(fseg1node1, f1);
             VECTOR_ADD(fseg1node2, f2);

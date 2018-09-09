@@ -17,8 +17,8 @@
 #
 #  Domain geometry
 #
-numXdoms = 4
-numYdoms = 4
+numXdoms = 2
+numYdoms = 2
 numZdoms = 1
 #
 #  Cell geometry
@@ -30,9 +30,9 @@ numZcells = 4
 #
 # Mesh size for tecmesh
 #
-meshSizeX = 500
-meshSizeY = 500
-meshSizeZ = 500
+meshSizeX = 100
+meshSizeY = 100
+meshSizeZ = 100
 
 #  Dynamic load balancing
 #
@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.T1-"
+dirname = "res.T4"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =  0
@@ -54,34 +54,35 @@ maxstep =  100000000
 maxStn = 1.0E-2
 maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
-nextDT = 1.0e-13;
+nextDT = 1.0e-13
 #
 #  Fast Multipole Method controls
 #  
 fmEnabled =   1  
 fmMPOrder =   2  
 fmTaylorOrder =   5  
-fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
+#fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
+fmCorrectionTbl =   "input/fm.2000.dat"
 #fmCorrectionTbl =   "input/fm.sur.dat"
 #
 #  Loading conditions
 #  
 loadType = 1
 indxErate = 8
-eRate =   100.00
 edotdir = [
   0.0
   0.0
   1.0
   ] 
+eRate =   1000.00
 
 appliedStress = [
-	0.0e0
-	0.0e0
-	0.0e0
-	0.0e0
-	0.0e0
-	0.0e0
+      0.0e0
+      0.0e0
+      0.0e0
+      0.0e0
+      0.0e0
+      0.0e0
 ]
 
 #
@@ -102,11 +103,10 @@ fricStress = 0.0e0
 MobScrew =   1.000000e+04
 MobEdge =    1.000000e+04  
 MobTwinning = 5.000000e+04
-
 sfEnergy = 15E-3
 rTol = 0.5
 rc =  1
-randomInternalForce = 1
+randomInternalForce = 0
 #
 #  I/O controls and parameters
 #  
@@ -114,7 +114,7 @@ randomInternalForce = 1
 tecplot = 1
 tecplotfreq = 100
 saveprop = 1
-savepropfreq = 20
+savepropfreq = 100
 tecmesh = 1
 tecmeshfreq = 2000
 velfile = 0
@@ -123,3 +123,4 @@ savecn = 1
 savecnfreq = 5000
 savetimers = 0
 savetimersfreq = 1000
+

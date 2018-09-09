@@ -2565,40 +2565,29 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
 }
 
 
-void StackingFaultForce(Home_t *home, Node_t *node1, Node_t *node2,
-                        real8 *f1, real8 *f2) 
+void StackingFaultForce(Home_t *home, real8 dx, real8 dy, real8 dz, real8 sfEnergy, 
+                        real8 signSF, real8 *normal, real8 *f1, real8 *f2)
 {
-    Param_t     *param;
-    real8       vec[3], length, normal[3], dir[3], signSF;
-    int         armID;
-
-    param = home->param;
-
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);
+    if(fabs(signSF) < 1.0E-4)return;
 
-    vec[0] = node2->x - node1->x;
-    vec[1] = node2->y - node1->y;
-    vec[2] = node2->z - node1->z;
-    ZImage(param, vec, vec+1, vec+2);
+    real8       vec[3], length, dir[3];
+    vec[0] = dx;
+    vec[0] = dy;
+    vec[0] = dz;
 
     length = Normal(vec);
     if(length < 1.0E-4)return;
     NormalizeVec(vec);
 
-    armID = GetArmID(home, node1, node2);
-    normal[0] = node1->nx[armID];
-    normal[1] = node1->ny[armID];
-    normal[2] = node1->nz[armID];
-    signSF = node1->signSF[armID];
-
     cross(normal, vec, dir);
     if(Normal(dir) < 1.0E-4)return;
     NormalizeVec(dir);
 
-    f1[0] = length*param->sfEnergy*0.5*dir[0]*signSF;
-    f1[1] = length*param->sfEnergy*0.5*dir[1]*signSF;
-    f1[2] = length*param->sfEnergy*0.5*dir[2]*signSF;
+    f1[0] = length*sfEnergy*0.5*dir[0]*signSF;
+    f1[1] = length*sfEnergy*0.5*dir[1]*signSF;
+    f1[2] = length*sfEnergy*0.5*dir[2]*signSF;
 
     VECTOR_COPY(f2, f1);
     return;
@@ -2734,6 +2723,7 @@ void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *no
 
     sigma[0][2] = 0.0;
     sigma[1][2] = f/param->burgMag;
+//    printf("f=%e\n",sigma[1][2]);
     sigma[0][1] = 0.0;
     if(isnan(sigma[1][2]))sigma[1][2] = 0.0;
 

@@ -149,7 +149,7 @@ int main(int argc,char** argv)
     int     i, j, k, myDomain, nDomains;
     int     nPotParams, nMeshPoints;
     int     numX1, numY1;
-
+    int     percent;
     double  A, B, C, E, D, uni[2];
     double  potential, x0, y0, xj, yj, xi, yi;
     int     ii, jj, imin, imax, jmin, jmax;
@@ -171,18 +171,18 @@ int main(int argc,char** argv)
     MPI_Comm_size(MPI_COMM_WORLD, &nDomains);
 
 
-    param.xBoundMax = 10000.0;
-    param.yBoundMax = 10000.0;
+    param.xBoundMax = 1000.0;
+    param.yBoundMax = 1000.0;
     xBoundMax = param.xBoundMax;
     yBoundMax = param.yBoundMax;
 
-    param.xBoundMin = -10000.0;
-    param.yBoundMin = -10000.0;
+    param.xBoundMin = -1000.0;
+    param.yBoundMin = -1000.0;
     xBoundMin = param.xBoundMin;
     yBoundMin = param.yBoundMin;
 
-    param.meshSizeX = 5.0;
-    param.meshSizeY = 5.0;
+    param.meshSizeX = 4.0;
+    param.meshSizeY = 4.0;
     param.radius = 100.0;
     meshSizeX = param.meshSizeX;
     meshSizeY = param.meshSizeY;
@@ -226,6 +226,7 @@ int main(int argc,char** argv)
     str = name;
     ofstream out1(name);
 
+    percent = 0;
     for(i=0; i<nPotParams/nDomains; i++){
         uni[0] = randm(&seed); 
         uni[1] = randm(&seed); 
@@ -273,6 +274,11 @@ int main(int argc,char** argv)
                 
             }
         }
+
+        if((int)((double(i))*100/((double)(nPotParams/nDomains))) == percent +1){
+            percent ++;
+            printf("%d: Loading ... %d\n", myDomain, percent);
+        }
     }
     out1.close(); 
 
@@ -305,6 +311,9 @@ int main(int argc,char** argv)
                 " " << meshSizeY << " " << numX1 << " " << numY1 <<endl;
         for(i=0; i<numX1; i++){
             for(j=0; j<numY1; j++){
+//                outfile << scientific << param.xBoundMin + ((double)i)*meshSizeX << " ";
+//                outfile << scientific << param.yBoundMin + ((double)j)*meshSizeY << " ";
+
                 outfile << scientific << globalArray[0+4*j+4*numY1*i] << " ";
                 outfile << scientific << globalArray[1+4*j+4*numY1*i] << " ";
                 outfile << scientific << globalArray[2+4*j+4*numY1*i] << " ";

@@ -249,7 +249,7 @@ void WriteProp(Home_t *home, int property)
             fprintf(fp, "%e %e %e %e %e %e %e %e %e\n", param->eRate*param->timeNow*TC*1.0e2,
                     param->appliedStress[0],
                     param->appliedStress[1], param->appliedStress[2], param->appliedStress[3],
-                    param->appliedStress[4], param->appliedStress[5], pstnijk*TC*1.0e2, param->disloDensity);
+                    param->appliedStress[4], param->appliedStress[5], param->totpStn[3]*TC*1.0e2, param->disloDensity);
 			if(pstnijk*TC*1.0e2 > 0.1){
 			    static int first = 1;
 			    if(first){

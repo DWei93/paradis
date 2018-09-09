@@ -185,7 +185,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,domain,index,signSF\n");
 		    fprintf(fp, "zone T = \"%10.5f%1d\" i = %d  F=POINT\n", param->timeNow*1.0E9,num, numArms); 
 #else
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint\n");
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,fx,fy,fz\n");
 		    fprintf(fp, "zone T = \"%10.5f\" i = %d  F=POINT\n", param->timeNow*1.0E9,numArms); 
 	
 #endif
@@ -335,8 +335,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,node->constraint,
                             node->myTag.domainID,node->myTag.index, node->signSF[j]);
 #else
-                    fprintf(fp, "%7.1f %15.10f %7.1f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d\n", 
-                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,armInGrain,armOnGB,burgID,normalID,node->constraint);
+                    fprintf(fp, "%7.1f %15.10f %7.1f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %e %e %e\n", 
+                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,armInGrain,armOnGB,burgID,normalID,node->constraint,
+                            node->fX/1.0E7, node->fY/1.0E7, node->fZ/1.0E7);
 #endif
 	        }
 #endif	
