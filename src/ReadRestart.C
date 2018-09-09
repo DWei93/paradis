@@ -785,8 +785,8 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
                                &node->burgZ[iNbr]);
 
                         Getline(inLine, sizeof(inLine), fpSeg);
-                        sscanf(inLine, "%lf %lf %lf", &node->nx[iNbr],
-                               &node->ny[iNbr], &node->nz[iNbr]);
+                        sscanf(inLine, "%lf %lf %lf %lf", &node->nx[iNbr],
+                               &node->ny[iNbr], &node->nz[iNbr], &node->signSF[iNbr]);
 
                         Normalize(&node->nx[iNbr], &node->ny[iNbr], &node->nz[iNbr]);
 

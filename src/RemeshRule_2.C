@@ -49,7 +49,6 @@ static void MeshCoarsen(Home_t *home)
         real8   dis;
 	    real8	mergedGrain;
 	    int	    riskySeg1, riskySeg2, armID;    
-        int     armInGrain1, armInGrain2, armOnGB1, armOnGB2;   
         Tag_t   nbr1Tag, nbr2Tag, oldTag1, oldTag2, oldTag3;
         Node_t  *node, *nbr, *nbr1, *nbr2, *mergedNode;
         Param_t *param;
@@ -58,7 +57,9 @@ static void MeshCoarsen(Home_t *home)
         Plane_t GBPlane;
         bool    inhibitMerge,violateGlidePlanesOK = 0; 
         int     mergedBasic;
-        int     planeType;
+        int     planeType, nbrInGrain;
+        int     inGrain, onGB;
+
 
         thisDomain = home->myDomain;
         param      = home->param;
@@ -208,13 +209,6 @@ static void MeshCoarsen(Home_t *home)
             hasRemoteNbr  = (node->myTag.domainID != nbr1->myTag.domainID);
             hasRemoteNbr |= (node->myTag.domainID != nbr2->myTag.domainID);
 
-            if(home->param->polycrystal){
-                GetArmGrain(home, node, nbr1, armInGrain1, armOnGB1);
-                GetArmGrain(home, node, nbr2, armInGrain2, armOnGB2);
-                              
-                if(armOnGB1 != armOnGB2)continue;
-                if(armOnGB1 == -1 && armInGrain1 != armInGrain2)continue;
-            }
 /*
  *          Calculate the lengths of the node's 2 arms plus
  *          the distance between the two neighbor nodes.
@@ -257,7 +251,7 @@ static void MeshCoarsen(Home_t *home)
  *          2) If the node has two segments less than 20% of the minimum
  *             segment length AND both of the node's neighbors are connected
  *             to each other (i.e. 3 nodes form a triangle)
- *          3) If the glide planes are allowed to be 'fuzzy' add
+                *          3) If the glide planes are allowed to be 'fuzzy' add
  *             a few extra exceptions (see below)
  */
             inhibitMerge = 0;
@@ -319,13 +313,13 @@ static void MeshCoarsen(Home_t *home)
                         lineDir2[2] = vec2z;
 
 /*
- *                      FindPreciseGlidePlanes() just uses l cross b if fuzzy
+ *                      FindGlidePlanes() just uses l cross b if fuzzy
  *                      planes are allowed, so we temporarily reset the value
  *                      as a quick kludge to find the closest precise plane.
  */
                         param->allowFuzzyGlidePlanes = 0;
-                        FindPreciseGlidePlane(home, burg1, lineDir1, testPlane1, node, nbr1);
-                        FindPreciseGlidePlane(home, burg2, lineDir2, testPlane2, node, nbr2);
+                        FindGlidePlane(home, burg1, lineDir1, testPlane1, node, nbr1);
+                        FindGlidePlane(home, burg2, lineDir2, testPlane2, node, nbr2);
                         param->allowFuzzyGlidePlanes = 1;
 
                         if (fabs(DotProduct(testPlane1, testPlane2)) > 0.99) {
@@ -342,19 +336,6 @@ static void MeshCoarsen(Home_t *home)
                 }
             }
 
-            if(SurfaceNode(nbr1) && SurfaceNode(node) ||
-               SurfaceNode(nbr2) && SurfaceNode(node))continue;
-
-            if(IsOnGB(node)){
-                if(nbr1->onGB != nbr2->onGB)continue;
-                if(nbr1->inGrain != nbr2->inGrain)continue;
-                if((NodeOnGB(home, node) & INTERSECT_NODE) == 0){
-                    if((NodeOnGB(home, nbr1) & INTERSECT_NODE) == 1 &&
-                       (NodeOnGB(home, nbr2) & INTERSECT_NODE) == 1)continue;
-                }
-            }else{
-                if(IsOnGB(nbr1) && IsOnGB(nbr2))continue;
-            }
 /*
  *          If coarsening out a node would leave a segment longer
  *          than a defined length, the node should not be removed.
@@ -372,6 +353,9 @@ static void MeshCoarsen(Home_t *home)
                 ((hasRemoteNbr == 1) && (r3 > cutoffLength2))) {
                 continue;
             }
+
+            if(SurfaceNode(nbr1) && SurfaceNode(node) ||
+               SurfaceNode(nbr2) && SurfaceNode(node))continue;
 
 /*
  *          Check if the area of the triangle defined by node
@@ -456,31 +440,26 @@ static void MeshCoarsen(Home_t *home)
                 oldTag1 = nbr1->myTag;
                 oldTag2 = node->myTag;
                 oldTag3 = nbr2->myTag;
+                                  
+                if(IsOnGB(node)){
+                    if(!violateGlidePlanesOK){
+                        if(!IsOnGB(nbr1) && !IsOnGB(nbr2) && nbr1->inGrain != nbr2->inGrain)continue;
+                        if(nbr1->inGrain != nbr2->inGrain)continue;
+                    }
+                }else{
+                    if(IsOnGB(nbr1) && IsOnGB(nbr2))continue;
+                }
+
 /*
  *              If the first neighbor is not exempt from a coarsen
  *              operation, attempt to merge the nodes.
  */
-                if ((nbr1->flags & NO_MESH_COARSEN) == 0) {
-                    if(violateGlidePlanesOK == 1 && r1 < 1){
-                        newPos[0] = nbr1->x;
-                        newPos[1] = nbr1->y;
-                        newPos[2] = nbr1->z;
-                    }else{
-                        vec[0] = (node->x - nbr1->x);
-                        vec[1] = (node->y - nbr1->y);
-                        vec[2] = (node->z - nbr1->z);
-                        ZImage(param, vec, vec+1, vec+2);
-                        
-                        if(AdjustNodeDirection(home, nbr1, vec) == 1){
-                            newPos[0] = nbr1->x + 0.5*vec[0];
-                            newPos[1] = nbr1->y + 0.5*vec[1];
-                            newPos[2] = nbr1->z + 0.5*vec[2];
-                        }else{
-                            newPos[0] = nbr1->x;
-                            newPos[1] = nbr1->y;
-                            newPos[2] = nbr1->z;
-                        }
-                    }
+                if ((nbr1->flags & NO_MESH_COARSEN) == 0 &&
+                    !(violateGlidePlanesOK==1 && r1 >= 1.0 && 
+                    IsOnGB(node) && IsOnGB(nbr2) && !IsOnGB(nbr1))) {
+                    newPos[0] = nbr1->x;
+                    newPos[1] = nbr1->y;
+                    newPos[2] = nbr1->z;
 
                     FoldBox(home->param,newPos, newPos+1, newPos+2);
                     MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
@@ -492,27 +471,12 @@ static void MeshCoarsen(Home_t *home)
  *              the other neighbor.
  */
                 if (mergeDone == 0) {
-                    if ((nbr2->flags & NO_MESH_COARSEN) == 0) {
-                        if(violateGlidePlanesOK == 1 && r2 < 1){
-                            newPos[0] = nbr2->x;
-                            newPos[1] = nbr2->y;
-                            newPos[2] = nbr2->z;
-                        }else{
-                            vec[0] = (node->x - nbr2->x);
-                            vec[1] = (node->y - nbr2->y);
-                            vec[2] = (node->z - nbr2->z);
-                            ZImage(param, vec, vec+1, vec+2);
-                         
-                            if(AdjustNodeDirection(home, nbr2, vec) == 1){
-                                newPos[0] = nbr2->x + 0.5*vec[0];
-                                newPos[1] = nbr2->y + 0.5*vec[1];
-                                newPos[2] = nbr2->z + 0.5*vec[2];
-                            }else{
-                                newPos[0] = nbr2->x;
-                                newPos[1] = nbr2->y;
-                                newPos[2] = nbr2->z;
-                            }
-                        }
+                    if ((nbr2->flags & NO_MESH_COARSEN) == 0 &&
+                        !(violateGlidePlanesOK==1 && r2 >= 1.0 && 
+                        IsOnGB(node) && IsOnGB(nbr1) && !IsOnGB(nbr2))) {
+                        newPos[0] = nbr2->x;
+                        newPos[1] = nbr2->y;
+                        newPos[2] = nbr2->z;
     
                         FoldBox(home->param,newPos, newPos+1, newPos+2);
                         MergeNode(home, OPCLASS_REMESH, node, nbr2, newPos,
@@ -562,6 +526,7 @@ static void MeshCoarsen(Home_t *home)
                     nbr2 = mergedNode;
                 }
 
+
 /*
  *              At this point, if we don't have a node at the location
  *              of at least one of the original nbr nodes, looks like
@@ -573,6 +538,40 @@ static void MeshCoarsen(Home_t *home)
                 }
         
                 mergedNode->flags |= NO_MESH_COARSEN;
+
+                if(IsOnGB(mergedNode)){
+                    nbrInGrain = -1;
+                    for(q=0; q<mergedNode->numNbrs; q++){
+                        nbr = GetNodeFromTag(home, mergedNode->nbrTag[q]);
+                        if (nbr == (Node_t *)NULL)break;
+                        if(!IsOnGB(nbr)){
+                            if(nbrInGrain == -1){
+                                nbrInGrain = nbr->inGrain;
+                            }else{
+                                if(nbrInGrain != nbr->inGrain)break;
+                            }
+                        }else{
+                            break;
+                        }
+                    }
+                    if(nbrInGrain > -1 && q == mergedNode->numNbrs){
+                        if(globalOp){
+                            AssignGrain(home, mergedNode, nbrInGrain, -1);
+                        }else{
+                            mergedNode->inGrain = nbrInGrain;
+                            mergedNode->onGB = -1;
+                        }
+                    }
+                }
+
+#if 1 
+                NodeLocation(home, mergedNode->x, mergedNode->y, mergedNode->z,inGrain, onGB);
+                if(inGrain != mergedNode->inGrain && !IsOnGB(mergedNode)){
+                    printf("Warning: ");
+                    PrintTag(mergedNode);
+                    printf(" at %s in %d\n", __FILE__, __LINE__);
+                }
+#endif
 /*
  *              Reset force/velocity for the two remaining nodes
  *              and mark the forces for those nodes and all their
@@ -684,6 +683,7 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
 {
         int     splitStatus, thisDomain, globalOp;
         int     *armList, armCount;
+        int     inGrain, onGB;
         real8   newVel[3], newPos[3], nodeVel[3], nodePos[3],posInGrain;
         real8   f0seg1[3], f0seg2[3], f1seg1[3], f1seg2[3], newInGrain;
         Tag_t   oldTag1, oldTag2;
@@ -786,6 +786,16 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
                 MarkNodeForceObsolete(home, splitNode2);
                 MarkNodeForceObsolete(home, nbr);
 
+                NodeLocation(home, splitNode1->x, splitNode1->y, splitNode1->z,inGrain, onGB);
+                if(inGrain != splitNode1->inGrain && !IsOnGB(splitNode1)){
+                    PrintNode(splitNode1);
+                    printf("Warning: Biset -1\n");
+                }
+                NodeLocation(home, splitNode2->x, splitNode2->y, splitNode2->z,inGrain, onGB);
+                if(inGrain != splitNode2->inGrain && !IsOnGB(splitNode2)){
+                    PrintNode(splitNode2);
+                    printf("Warning: Biset -2\n");
+                }
 /*
  *              Reset nodal forces on all nodes involved
  *              in the split.
@@ -860,7 +870,7 @@ static void MeshRefine(Home_t *home)
         real8   nodePos[3], nodeVel[3], newVel[3], newPos[3];
         real8   f0seg1[3], f1seg1[3], f0seg2[3], f1seg2[3];
         real8   dis, burg[3];
-        int     planeType;
+        int     planeType, inGrain, onGB;
         Tag_t   oldTag1, oldTag2;
         Node_t  *node, *nbr, *nbr1, *nbr2, *splitNode1, *splitNode2;
         Param_t *param;
@@ -1158,10 +1168,6 @@ static void MeshRefine(Home_t *home)
                             localRefineCnt++;
 
                             node = splitNode1;
-#if 0							
-							printf("splitNode1->inGrain = %3.1f\n",splitNode1->inGrain);
-							printf("splitNode2->inGrain = %3.1f\n",splitNode2->inGrain);
-#endif
 /*
  *                          The force estimates above are good enough for
  *                          the remainder of this timestep, but mark the
@@ -1173,6 +1179,17 @@ static void MeshRefine(Home_t *home)
                             MarkNodeForceObsolete(home, splitNode1);
                             MarkNodeForceObsolete(home, splitNode1);
                             MarkNodeForceObsolete(home, nbr1);
+
+                NodeLocation(home, splitNode1->x, splitNode1->y, splitNode1->z,inGrain, onGB);
+                if(inGrain != splitNode1->inGrain && !IsOnGB(splitNode1)){
+                    PrintNode(splitNode1);
+                    printf("Warning: refine -1\n");
+                }
+                NodeLocation(home, splitNode2->x, splitNode2->y, splitNode2->z,inGrain, onGB);
+                if(inGrain != splitNode2->inGrain && !IsOnGB(splitNode2)){
+                    PrintNode(splitNode2);
+                    printf("Warning: refine -2\n");
+                }
         
 /*
  *                          Reset nodal forces on all nodes involved

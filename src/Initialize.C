@@ -1221,7 +1221,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *      appropriate data file name suffix.  Only need to do this on
  *      processor zero.
  */
-	
+
         if (home->myDomain == 0) {
 
             dataFile = (char *)NULL;
@@ -1329,7 +1329,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
             printf("Initialize: Parsing control file %s\n", ctrlFile);
             ReadControlFile(home, ctrlFile);
             printf("Initialize: Control file parsing complete\n");
-
 /*
  *          Set number of initial load-balancing-only cycles. Will
  *          be zero unless user provided value via "-r" command line
@@ -1371,6 +1370,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
  */
 		
 
+
 #ifdef PARALLEL
         MPI_Bcast((char *)param, sizeof(Param_t), MPI_CHAR, 0,
                   MPI_COMM_WORLD);
@@ -1386,7 +1386,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
         omp_set_num_threads(param->maxNumThreads);
 #endif
 
-		
 	
 /*
  *      All processors have the domain geometry but need to calculate
@@ -1479,6 +1478,18 @@ void Initialize(Home_t *home,int argc, char *argv[])
         param->invLy = 1.0 / param->Ly;
         param->invLz = 1.0 / param->Lz;
 
+        if(param->randomInternalForce){
+            if(home->myDomain == 0){
+                GeneratePotentialParamters(home, param);
+            }else{
+                home->potParams =  (real8 (*)[4])malloc(4*param->nPotParams*sizeof(real8)); 
+            }
+		
+#ifdef PARALLEL
+            MPI_Bcast((char *)home->potParams, 4*param->nPotParams*sizeof(real8), MPI_CHAR, 0,
+                       MPI_COMM_WORLD);
+#endif
+        }
 /*
  *      Now that the param structure is fully populated, do any
  *      remaining sanity checks or initializations that could not
@@ -1636,9 +1647,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
 /*
  *      This call to GenerateOutput will initialize the X-Window display.
  */
-#ifndef NO_XWINDOW
-        GenerateOutput(home, STAGE_INIT,"init");
-#endif
+        GenerateOutput(home, STAGE_INIT, "init");
 		
 /*
  *      The code for calculating the forces from remote segments
@@ -1691,9 +1700,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
             Matrix33Invert(home->rotMatrix, home->rotMatrixInverse);
         }
 
-        param->meshNumX = (int)(param->Lx/(real8)param->meshSizeX);
-        param->meshNumY = (int)(param->Ly/(real8)param->meshSizeY);
-        param->meshNumZ = (int)(param->Lz/(real8)param->meshSizeZ);
+        param->meshNumX = (int)(param->Lx/param->meshSizeX);
+        param->meshNumY = (int)(param->Ly/param->meshSizeY);
+        param->meshNumZ = (int)(param->Lz/param->meshSizeZ);
 
         param->meshSizeX = param->Lx/(real8)param->meshNumX;
         param->meshSizeY = param->Ly/(real8)param->meshNumY;
@@ -1711,12 +1720,14 @@ void Initialize(Home_t *home,int argc, char *argv[])
            home->disDenEle[i] = (real8 *)calloc(6, sizeof(real8)); 
         }
         
+
 /*
  *	Iinitialize grain
  */
 	    InitGrain(home, param);
         
 	    param->vshr = sqrt(param->YoungsModulus / param->rho ) / param->burgMag;
+        param->sfEnergy /= param->burgMag; 
 	    if(home->myDomain == 0)printf("shear Wave velocity: %6.2f m/s.\n",
 	    param->vshr * param->burgMag);
 

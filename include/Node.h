@@ -78,6 +78,7 @@ struct _node {
 	real8	*armfx, *armfy, *armfz;	/* arm specific force contribution */
 	real8	*burgX, *burgY, *burgZ;	/* burgers vector */        
 	real8	*nx, *ny, *nz;		/* glide plane */        
+    real8   *signSF;
 
 	real8	*sigbLoc;		/* sig.b on arms (numNbr*3) */
 	real8	*sigbRem;		/* sig.b on arms (numNbr*3) */

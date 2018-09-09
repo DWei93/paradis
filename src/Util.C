@@ -1179,6 +1179,7 @@ static void InitNodeArm(Node_t *node, int armID)
         node->armfx[armID] = 0.0;
         node->armfy[armID] = 0.0;
         node->armfz[armID] = 0.0;
+        node->signSF[armID] = 0.0;
         node->nx[armID] = 0.0;
         node->ny[armID] = 0.0;
         node->nz[armID] = 0.0;
@@ -1224,6 +1225,7 @@ void AllocNodeArms(Node_t *node, int n)
                 free(node->armfx);
                 free(node->armfy);
                 free(node->armfz);
+                free(node->signSF);
                 free(node->nx);
                 free(node->ny);
                 free(node->nz);
@@ -1240,6 +1242,7 @@ void AllocNodeArms(Node_t *node, int n)
             node->armfx = (real8 *)malloc(n*sizeof(real8));
             node->armfy = (real8 *)malloc(n*sizeof(real8));
             node->armfz = (real8 *)malloc(n*sizeof(real8));
+            node->signSF = (real8 *)malloc(n*sizeof(real8));
             node->nx = (real8 *)malloc(n*sizeof(real8));
             node->ny = (real8 *)malloc(n*sizeof(real8));
             node->nz = (real8 *)malloc(n*sizeof(real8));
@@ -1314,6 +1317,7 @@ void FreeNodeArms(Node_t *node)
         free(node->armfx);       node->armfx = (real8 *)NULL;
         free(node->armfy);       node->armfy = (real8 *)NULL;
         free(node->armfz);       node->armfz = (real8 *)NULL;
+        free(node->signSF);      node->signSF = (real8 *)NULL;
         free(node->nx);          node->nx = (real8 *)NULL;
         free(node->ny);          node->ny = (real8 *)NULL;
         free(node->nz);          node->nz = (real8 *)NULL;
@@ -1583,10 +1587,10 @@ void PrintNode(Node_t *node)
 /*
  *      Print the nodal velocity and total node force
  */
-        printf("  node(%d,%d) v = {%16.10f,%16.10f,%16.10f}\n",
+        printf("  node(%d,%d) v = {%e,%e,%e}\n",
                node->myTag.domainID, node->myTag.index, 
                node->vX, node->vY, node->vZ);
-        printf("  node(%d,%d) f = {%16.10f,%16.10f,%16.10f}\n",
+        printf("  node(%d,%d) f = {%e,%e,%e}\n",
                node->myTag.domainID, node->myTag.index, 
                node->fX, node->fY, node->fZ);
 #endif
@@ -1596,7 +1600,7 @@ void PrintNode(Node_t *node)
  *      Print the arm specific forces
  */
         for (i = 0; i < node->numNbrs; i++) {
-            printf("  node(%d,%d) arm[%d]-> (%d %d) f = {%16.10f,%16.10f,%16.10f}\n",
+            printf("  node(%d,%d) arm[%d]-> (%d %d) f = {%e,%e,%e}\n",
                    node->myTag.domainID, node->myTag.index, i,       
                    node->nbrTag[i].domainID, node->nbrTag[i].index,
                    node->armfx[i], node->armfy[i], node->armfz[i]);
@@ -1674,6 +1678,7 @@ void ReallocNodeArms(Node_t *node, int n)
         node->nx = (real8 *) realloc(node->nx, sizeof(real8  )*n);
         node->ny = (real8 *) realloc(node->ny, sizeof(real8  )*n);
         node->nz = (real8 *) realloc(node->nz, sizeof(real8  )*n);
+        node->signSF = (real8 *) realloc(node->signSF, sizeof(real8  )*n);
         node->sigbLoc  = (real8 *) realloc(node->sigbLoc, n*3*sizeof(real8));
         node->sigbRem  = (real8 *) realloc(node->sigbRem, n*3*sizeof(real8));
 
@@ -1992,7 +1997,8 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
                 burg[1] = by;
                 burg[2] = bz;
 
-                FindPreciseGlidePlane(home, burg, dir, glidePlane,node1,node2);
+                            if(Normal(dir) < 1.0E-4)printf("a zero length seg occured 4\n");
+                FindGlidePlane(home, burg, dir, glidePlane,node1,node2);
 
                 gpDotgp = DotProduct(glidePlane, glidePlane);
 
@@ -2001,7 +2007,8 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
                     vel[1] = (node1->vY + node2->vY) * 0.5;
                     vel[2] = (node1->vZ + node2->vZ) * 0.5;
 
-                    FindPreciseGlidePlane(home, vel, dir, glidePlane,node1,node2);
+                            if(Normal(dir) < 1.0E-4)printf("a zero length seg occured 5\n");
+                    FindGlidePlane(home, vel, dir, glidePlane,node1,node2);
 
                     gpDotgp = DotProduct(glidePlane, glidePlane);
 
@@ -2137,6 +2144,42 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
         return;
 }
 
+void ChangeArmStackingFault(Home_t *home, Node_t *node1, Tag_t *tag2,
+                   real8 signSF, int globalOp)
+{
+
+        int     armID;
+        Node_t  *node2;
+
+        if (node1 == NULL) return;
+
+        node2 = GetNodeFromIndex(home, tag2->domainID, tag2->index);
+        if(node2 == (Node_t *)NULL)return;
+		
+		
+        armID = GetArmID(home, node1, node2);
+		if(armID == -1){
+			PrintNode(node1);
+			PrintNode(node2);
+			printf("Warning: Task %d, node1 <-|-> node2\n",home->myDomain);
+		}
+
+        node1->signSF[armID] = signSF;
+
+        if(globalOp){
+            AddOp(home, CHANGE_ARM_SIGNSF,
+                node1->myTag.domainID,
+                node1->myTag.index,
+                tag2->domainID,
+                tag2->index,
+                -1,-1,
+                signSF,0,0,
+                0,0,0,
+                0,0,0);
+        }
+
+        return;
+}
 
 /*-------------------------------------------------------------------------
  *
@@ -2278,6 +2321,7 @@ void CompressArmLists (Node_t *node)
                         node->armfx[i] = node->armfx[j];
                         node->armfy[i] = node->armfy[j];
                         node->armfz[i] = node->armfz[j];
+                        node->signSF[i] = node->signSF[j];
                         node->sigbLoc[3*i]  =node->sigbLoc[3*j];
                         node->sigbLoc[3*i+1]=node->sigbLoc[3*j+1];
                         node->sigbLoc[3*i+2]=node->sigbLoc[3*j+2];
@@ -2630,7 +2674,7 @@ void RecalcSegGlidePlane(Home_t *home, Node_t *node1, Node_t *node2,
         ZImage(home->param, &lineDir[0], &lineDir[1], &lineDir[2]);
         NormalizeVec(lineDir);
 
-         FindPreciseGlidePlane(home, burg, lineDir, newPlane,node1,node2);
+        FindGlidePlane(home, burg, lineDir, newPlane,node1,node2);
 
         if (DotProduct(newPlane, newPlane) < 1.0e-03) {
             if (ignoreIfScrew) return;
@@ -4185,7 +4229,7 @@ int NodeHasSessileBurg(Home_t *home, Node_t *node)
  *------------------------------------------------------------------------*/
 void GetGlideConstraintList(Home_t *home, Node_t *node,
                             int *numGlideConstraints,
-                            real8 (*glideConstraints)[3])
+                            real8 (*glideConstraints)[3], bool GBconstrict)
 {
         int     i,  surfaceConstraint = 0, planeType;
         int     numConstraints, junctionConstraint = 0;
@@ -4234,7 +4278,8 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                 }
 	        }else{
 		        if(i == node->numNbrs){
-		            if(!IsOnGB(node))continue;
+                    if(!GBconstrict)continue;
+                    if(!IsOnGB(node))continue;
 		            VECTOR_COPY(glidePlane, home->GBKeys[node->onGB]->n);
 		        }else if(i == node->numNbrs + 1){
 		            if(surfaceConstraint == 0)continue;

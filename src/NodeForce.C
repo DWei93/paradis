@@ -867,6 +867,7 @@ void NodeForce(Home_t *home, int reqType)
         TimerStop(home, CALC_FORCE_BARRIER);
 #endif
 #endif
+        
         return;
 
 
@@ -1154,6 +1155,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
         Node_t  *nodeB;
         Param_t *param;
         SegPair_t *segPairList = (SegPair_t *)NULL;
+        int     inGrain, onGB, armGrain;
 
         param           = home->param;
 
@@ -1358,6 +1360,32 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
 
             VECTOR_ADD(fseg1node1, f1);
             VECTOR_ADD(fseg1node2, f2);
+
+
+/*
+ *          If we're including grain boundary or free surface, 
+ *          add the image force in now.
+ */
+            if(param->polycrystal){
+                ImageForce(home, node1, node2, f1, f2);
+
+                VECTOR_ADD(fseg1node1, f1);
+                VECTOR_ADD(fseg1node2, f2);
+
+            }
+
+            StackingFaultForce(home, node1, node2, f1, f2);
+
+            VECTOR_ADD(fseg1node1, f1);
+            VECTOR_ADD(fseg1node2, f2);
+
+            if(param->randomInternalForce){
+                RandomInternalForce(home, param, node1, node2, f1, f2);
+
+                VECTOR_ADD(fseg1node1, f1);
+                VECTOR_ADD(fseg1node2, f2);
+            }
+
 
 /*
  *          If we're including osmotic forces, add those in

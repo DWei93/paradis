@@ -20,7 +20,7 @@
 
 void FixRemesh(Home_t *home, const char flag[256])
 {
-	int			    idom, domIdx, rcvOpCount, opidx;
+	int			    idom, domIdx, rcvOpCount, opidx, i;
 	real8			newPlane[3];
     real8   		cellSize[3], cellIndex[3];
 	RemoteDomain_t	*remDom;
@@ -314,6 +314,11 @@ void FixRemesh(Home_t *home, const char flag[256])
 				if (node1 == (Node_t *)NULL) {
 					break;
 				}
+
+				if (node1 == (Node_t *)NULL) break;
+
+                if(node1->inGrain == op->inGrain &&
+                   node1->onGB == op->onGB)break;
 				
 #if CHECK_FIXREMESH				
 				printf("FR %s: Task %d, ", flag, home->myDomain);
@@ -323,12 +328,11 @@ void FixRemesh(Home_t *home, const char flag[256])
 				PrintTag(node1);
 				printf("\n");
 #endif				
-				if (node1 == (Node_t *)NULL) break;
-				
-				
+
 				if(op->dom1 == home->myDomain){
-					PrintNode(node1);
-					printf("Task %d, Warning , the native node change inGrain\n",home->myDomain);
+					PrintTag(node1);
+					printf("Task %d, Warning , the native node change inGrain %d %d\n",
+                           home->myDomain, op->inGrain, op->onGB);
 				}
 				node1->inGrain = op->inGrain;
 				node1->onGB = op->onGB;
@@ -431,7 +435,21 @@ void FixRemesh(Home_t *home, const char flag[256])
 				ResetGlidePlane(home, newPlane,
 						&tag1, &tag2, 0);
 				break;
+            
+            case CHANGE_ARM_SIGNSF:
+				node1 = GetNodeFromIndex(home, op->dom1,
+							 op->idx1);
+                
+                if(node1 == (Node_t *)NULL)break;
 
+                for(i=0; i<node1->numNbrs; i++){
+                    if(op->dom2 == node1->nbrTag[i].domainID &&
+                       op->idx2 == node1->nbrTag[i].index){
+                        node1->signSF[i] = op->bx;
+                    }
+                }                
+
+                break;
 			default:
 				Fatal("FixRemesh : invalid Remesh operation");
 			}

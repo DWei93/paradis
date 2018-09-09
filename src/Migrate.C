@@ -37,10 +37,10 @@
 #ifdef _FEM
 #define VALS_PER_MIG_NODE  19
 #else
-#define VALS_PER_MIG_NODE  16  // increse 2 for inGrain and onGB
+#define VALS_PER_MIG_NODE  16  // increase 2 for inGrain and onGB
 #endif
 
-#define VALS_PER_MIG_ARM       11
+#define VALS_PER_MIG_ARM       12 // increase 1 for signSF
 #define VALS_PER_MIG_EXTRA     2
 
 
@@ -273,6 +273,8 @@ static void PackMigrators(Home_t *home, int remDomID, int *migList,
                 buf[bufIndex++] = node->armfx[j];
                 buf[bufIndex++] = node->armfy[j];
                 buf[bufIndex++] = node->armfz[j];
+                buf[bufIndex++] = node->signSF[j];
+                
             }
 
 /*
@@ -393,6 +395,7 @@ static void UnpackMigrators(Home_t *home, real8 *buf, int remDomID)
                 node->armfx[j] = buf[bufIndex++];
                 node->armfy[j] = buf[bufIndex++];
                 node->armfz[j] = buf[bufIndex++];
+                node->signSF[j] = buf[bufIndex++];
             }
         }
 

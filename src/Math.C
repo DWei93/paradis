@@ -274,6 +274,9 @@ int PointLineIntersection(double *p1, double *d, double *p2,
        SQUARE(dx)*(SQUARE(p1y) + SQUARE(p1z) - 2*p1y*p2y + 
        SQUARE(p2y) - 2*p1z*p2z + SQUARE(p2z)))/
        (SQUARE(dx) + SQUARE(dy) + SQUARE(dz)));
+
+    if(isnan(*dis))*dis = 0.0;
+
     if(*dis < EPS2){
         return(POINT_INTERSECTION);
     }else{
@@ -375,6 +378,7 @@ int LineLineIntersection(double *d1, double *p1, double *d2, double *p2,
            SQUARE(d1y)*(SQUARE(d2x) + SQUARE(d2z)) + 
            SQUARE(d1x)*(SQUARE(d2y) + SQUARE(d2z))));
 
+    if(isnan(*dis)) *dis = 0.0;
     if(*dis < EPS2){
         return(POINT_INTERSECTION);
     }else{
@@ -397,6 +401,7 @@ int PointPlaneIntersection(double *p1, double *n, double *p2, double *vec, doubl
 
     *dis = sqrt(SQUARE(nx*p1x + ny*p1y + nz*p1z - nx*p2x - ny*p2y - nz*p2z)/
            (SQUARE(nx) + SQUARE(ny) + SQUARE(nz)));
+    if(isnan(*dis)) *dis = 0.0;
 
     vec[0] = (SQUARE(ny)*p1x + SQUARE(nz)*p1x + SQUARE(nx)*p2x + 
              nx*ny*(-p1y + p2y) + nx*nz*(-p1z + p2z))/
@@ -429,6 +434,7 @@ int PointPointIntersection(double *p1, double *p2, double *vec, double *dis){
     vec[2] = p2[2] - p1[2];
 
     *dis = sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
+    if(isnan(*dis)) *dis = 0.0;
     
     if(*dis < EPS2){
         return(POINT_INTERSECTION);

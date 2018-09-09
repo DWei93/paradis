@@ -225,6 +225,8 @@ static void Pack1SecondaryGhost(Node_t *node, real8 **outBuf, int *outBufSize,
             buf[bufOffset++] = node->armfx[i];
             buf[bufOffset++] = node->armfy[i];
             buf[bufOffset++] = node->armfz[i];
+            buf[bufOffset++] = node->signSF[i];
+            
         }
 
         *outBuf = buf;
@@ -449,6 +451,7 @@ static void UnpackSecondaryGhostResponse(Home_t *home, real8 *inBuf)
                 node->armfx[armID] = inBuf[bufOffset++];
                 node->armfy[armID] = inBuf[bufOffset++];
                 node->armfz[armID] = inBuf[bufOffset++];
+                node->signSF[armID] = inBuf[bufOffset++];
             }
 
             PushGhostNodeQ(home, node);

@@ -18,7 +18,7 @@
 #include "Comm.h"
 
 #define VEL_FLTS_PER_NODE 8
-#define VEL_FLTS_PER_ARM  5
+#define VEL_FLTS_PER_ARM  6 // increased 1 by signSF
 #define VEL_FLTS_EXTRA    1
 
 
@@ -117,6 +117,7 @@ static void PackVelocity(Home_t *home)
                         outBuf[bufIndex++] = node->armfx[k];
                         outBuf[bufIndex++] = node->armfy[k];
                         outBuf[bufIndex++] = node->armfz[k];
+                        outBuf[bufIndex++] = node->signSF[k];
                     }
 
                     node = node->nextInCell;
@@ -152,7 +153,7 @@ static void UnpackVelocity(Home_t *home)
 {
 #ifdef PARALLEL
         int            i, j, k, arm, domIndex, bufIndex, numNodes, numArms;
-        real8          fx, fy, fz;
+        real8          fx, fy, fz, signSF;
         real8          *inBuf;
         Tag_t          tag, nbrTag;
         Node_t         *node;
@@ -199,6 +200,7 @@ static void UnpackVelocity(Home_t *home)
                     fx = inBuf[bufIndex++];
                     fy = inBuf[bufIndex++];
                     fz = inBuf[bufIndex++];
+                    signSF = inBuf[bufIndex++];
 
                     for (arm = 0; arm < node->numNbrs; arm++) {
                         if ((node->nbrTag[arm].domainID == nbrTag.domainID) &&
@@ -206,6 +208,7 @@ static void UnpackVelocity(Home_t *home)
                             node->armfx[arm] = fx;
                             node->armfy[arm] = fy;
                             node->armfz[arm] = fz;
+                            node->signSF[arm] = signSF;
                             break;
                         }
                     }

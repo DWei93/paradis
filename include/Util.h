@@ -116,6 +116,8 @@ void   ZImage(Param_t *param, real8* x, real8* y, real8* z);
 void   ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
           real8 bx, real8 by, real8 bz, real8 nx,
           real8 ny, real8 nz, int Log, real8 del_seg_factor);
+void ChangeArmStackingFault(Home_t *home, Node_t *node1, Tag_t *tag2,
+                   real8 signSF, int globalOp);
 int    ChangeConnection(Home_t *home, Node_t *node1, Tag_t *tag2,
           Tag_t *tag3, int Log);
 void   CompressArmLists(Node_t *node);
@@ -187,7 +189,7 @@ void   testdeWitStress2();
 void   Uniq(int*, int*);
 void GetGlideConstraintList(Home_t *home, Node_t *node,
                             int *numGlideConstraints,
-                            real8 (*glideConstraints)[3]);
+                            real8 (*glideConstraints)[3], bool GBconstrict = 1);
 void ApplyConstraintsToVelocity(int numGlideConstraints,
                                 real8 (*glideConstraints)[3],
                                 real8 velocity[3]);

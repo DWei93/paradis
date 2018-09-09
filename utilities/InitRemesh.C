@@ -225,6 +225,7 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 					newNode->nx[0] = nodeB->nx[armBA];
 					newNode->ny[0] = nodeB->ny[armBA];
 					newNode->nz[0] = nodeB->nz[armBA];
+                    newNode->signSF[0] = nodeB->signSF[armBA];
 
 					newNode->burgX[1] = nodeA->burgX[armAB];
 					newNode->burgY[1] = nodeA->burgY[armAB];
@@ -232,6 +233,7 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 					newNode->nx[1] = nodeA->nx[armAB];
 					newNode->ny[1] = nodeA->ny[armAB];
 					newNode->nz[1] = nodeA->nz[armAB];
+                    newNode->signSF[1] = nodeA->signSF[armAB];
 
 					prevNewNode = newNode;
 					idxNew++;

@@ -244,13 +244,13 @@ struct _param {
 
         real8 shearModulus;
         real8 pois;
-	real8 outRadius;
+	    real8 outRadius;
         real8 burgMag;
-	real8 rho;
-	real8 vshr;
-	real8 TBSFEnergy;					
-	real8 TBEnergy;
-		
+	    real8 rho;
+	    real8 vshr;
+	    real8 TBSFEnergy;					
+	    real8 TBEnergy;
+		real8 sfEnergy;
 
         real8 YoungsModulus;
 		
@@ -505,6 +505,8 @@ struct _param {
         real8   meshSizeY;
         real8   meshSizeZ;
         int     meshNumX, meshNumY, meshNumZ;
+        int     randomInternalForce, nPotParams;
+        real8   potExpection, potVariance, potSigR;
 
 #ifdef _FEM
 /*

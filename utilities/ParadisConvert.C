@@ -288,7 +288,7 @@ static int CreateDataFileFromCtrl(Home_t *home, char *dataFileName,
         fprintf(fpData, "#  Primary lines: node_tag, x, y, z, "
                 "num_arms, constraint\n");
         fprintf(fpData, "#  Secondary lines: arm_tag, burgx, burgy, "
-                "burgz, nx, ny, nz\n");
+                "burgz, nx, ny, nz signSF\n");
 
 /*
  *      Dump the nodal data to the data file
@@ -309,11 +309,11 @@ static int CreateDataFileFromCtrl(Home_t *home, char *dataFileName,
 
             for (iArm = 0; iArm < node->numNbrs; iArm++) {
                 fprintf(fpData, "   %d,%d %16.10f %16.10f %16.10f\n"
-                        "       %16.10f %16.10f %16.10f\n",
+                        "       %16.10f %16.10f %16.10f %2.0f\n",
                         node->nbrTag[iArm].domainID,
                         node->nbrTag[iArm].index, node->burgX[iArm],
                         node->burgY[iArm], node->burgZ[iArm],
-                        node->nx[iArm], node->ny[iArm], node->nz[iArm]);
+                        node->nx[iArm], node->ny[iArm], node->nz[iArm], node->signSF[iArm]);
             }
         }
 
@@ -816,7 +816,7 @@ static void ConvertDataFile(Home_t *home, char *baseDataFileName)
         fprintf(fpNew, "#  Primary lines: node_tag, x, y, z, "
                 "num_arms, constraint\n");
         fprintf(fpNew, "#  Secondary lines: arm_tag, burgx, burgy, "
-                "burgz, nx, ny, nz\n");
+                "burgz, nx, ny, nz signSF\n");
 
 /*
  *      Now just process all the nodal data left in this file and

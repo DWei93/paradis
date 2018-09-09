@@ -56,19 +56,20 @@ maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13;
 rTol = 2.0
+rc =  10
 #
 #  Fast Multipole Method controls
 #  
 fmEnabled =   1  
 fmMPOrder =   2  
 fmTaylorOrder =   5  
-fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.freesur.dat"
+fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 #
 #  Loading conditions
 #  
 loadType = 1
 indxErate = 3
-eRate = -5000
+eRate =   -5000.000
 edotdir = [
   0.0
   0.0
@@ -90,10 +91,11 @@ appliedStress = [
 mobilityLaw =   "FCC_0"  
 #shearModulus =   54.6e9  # Voight Average
 shearModulus =  46.554e9  # in jin paper
-pois =   0.324
-burgMag =   2.55600e-10  
 limitDisplacement = 0
 GBStrength = 5.0e8
+#GBStrength = 0.0e0
+burgMag =   2.55600e-10 
+pois = 3.240000e-01
 fricStress = 0.0e0
 
 #fricStress = 3.46e7
@@ -101,17 +103,25 @@ fricStress = 0.0e0
 MobScrew =   1.000000e+04
 MobEdge =    1.000000e+04  
 MobTwinning = 5.000000e+04
-rc =  10.0
+
+sfEnergy = 2.9498E-3
+# Radom Interal stree field
+randomInternalForce = 0
+nPotParams = 0
+potExpection = 0.100
+potVariance = 0.05
+potSigR = 500 
+
 #
 #  I/O controls and parameters
 #  
 #
 tecplot = 1
-tecplotfreq = 200
+tecplotfreq = 500
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1
-tecmeshfreq = 2000
+tecmeshfreq = 20000
 velfile = 0
 velfilefreq = 1000
 savecn = 1

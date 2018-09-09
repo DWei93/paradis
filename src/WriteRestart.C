@@ -184,7 +184,7 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
                 fprintf(fp, "#  Primary lines: node_tag, x, y, z, "
                         "num_arms, constraint\n");
                 fprintf(fp, "#  Secondary lines: arm_tag, burgx, burgy, "
-                             "burgz, nx, ny, nz\n");
+                             "burgz, nx, ny, nz signSF\n");
             }
         } else {
 /*
@@ -233,11 +233,11 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
  */
             for (iArm = 0; iArm < node->numNbrs; iArm++) {
                 fprintf(fp, "   %d,%d %lf %lf %lf\n"
-                        "       %lf %lf %lf \n",
+                        "       %lf %lf %lf %2.0f\n",
                         node->nbrTag[iArm].domainID,
                         node->nbrTag[iArm].index, node->burgX[iArm],
                         node->burgY[iArm], node->burgZ[iArm],
-                        node->nx[iArm], node->ny[iArm], node->nz[iArm]);
+                        node->nx[iArm], node->ny[iArm], node->nz[iArm], node->signSF[iArm]);
             }
         }
         

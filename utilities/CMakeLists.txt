@@ -133,8 +133,8 @@ Set( PARADISCONVERT_SRCS
                      Util.C         	
                      Math.C         	
 					 Grain.C )
-INCLUDE_DIRECTORIES(../include ${GEOS_INCLUDE_DIR})    
-LINK_DIRECTORIES(${GEOS_LINK_DIR})
+#INCLUDE_DIRECTORIES(../include ${GEOS_INCLUDE_DIR})    
+#LINK_DIRECTORIES(${GEOS_LINK_DIR})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wno-unknown-pragmas -DPARALLEL=1 " )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 " )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -DNO_XPM -DNO_GENERAL -D_SEM_SEMUN_UNDEFINED")
@@ -143,7 +143,7 @@ add_executable(paradisrepart ${PARADISREPART_SRCS})
 add_definitions(-DNO_XWINDOW )
 
 
-target_link_libraries(paradisgen m geos pthread )
+target_link_libraries(paradisgen m pthread )
 Install(TARGETS paradisgen
         RUNTIME DESTINATION ${PARADIS_SOURCE_DIR}/bin)
 

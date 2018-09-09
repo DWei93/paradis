@@ -164,20 +164,20 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
 /*
  *  Add resitance of friction force of GB force
  */
-#if 0
+#if 1
 	DoResistance(home, node, nForce);
 #else
     nForce[0] = node->fX;
     nForce[1] = node->fY;
     nForce[2] = node->fZ;
 #endif
-
 	/* Velocity is simply proportional to total force per unit length */
 	nVel[0] = nForce[0]/LtimesB;
 	nVel[1] = nForce[1]/LtimesB;
 	nVel[2] = nForce[2]/LtimesB;
 
 	GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints);
+
 	 
 	ApplyConstraintsToVelocity(numGlideConstraints,
 				    glideConstraints, nVel);

@@ -473,9 +473,8 @@ void CheckNodeNANS(Node_t *node){
 
 
 void DebugGB(Home_t *home, int flag){
-    return;
 	int 	i,j,k,l, crossSlipNode, sameNode;
-	int	normalID;
+	int	    normalID, inGrain, onGB;
 	real8   dot,resiBurg[3], resiVec[3];
 	Param_t *param;
 	Grain_t	*grain;
@@ -489,16 +488,34 @@ void DebugGB(Home_t *home, int flag){
 
 	param = home->param;
 
-	printf("%d %d\n",home->myDomain, flag);
+//	printf("%d %d\n",home->myDomain, flag);
 
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
-        if(node->inGrain == -1 && node->onGB == -1 || isnan(node->x)){
-            PrintNode(node);
-            Fatal("DebugGB %d %d", home->myDomain, flag);
+
+        if(flag>22 || flag <= 9){
+            if(!IsOnGB(node)){
+                NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
+                if(node->inGrain != inGrain){
+                    PrintTag(node);
+                    printf(" DebugGB - 1: %d %d\n", home->myDomain, flag);
+                }
+            }
+        }
+
+        if(IsOnGB(node))continue;
+        for(j=0; j<node->numNbrs; j++){
+            nbr = GetNeighborNode(home, node, j);
+            if(nbr == (Node_t *)NULL)continue;
+            if(!IsOnGB(nbr) && nbr->inGrain != node->inGrain && flag < 11){
+                PrintTag(node);
+                PrintTag(nbr);
+                Fatal("DebugGB - 2: %d %d", home->myDomain, flag);
+            }
         }
     }
 
+    return;
 	node = home->ghostNodeQ;
 
     while (node) {

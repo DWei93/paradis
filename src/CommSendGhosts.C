@@ -178,6 +178,7 @@ static void CommPackGhosts(Home_t *home)
                         outBuf[bufIndex++] = node->armfx[iNbr];
                         outBuf[bufIndex++] = node->armfy[iNbr];
                         outBuf[bufIndex++] = node->armfz[iNbr];
+                        outBuf[bufIndex++] = node->signSF[iNbr];
                     }
 
                     outBuf[bufIndex++] = node->x;
@@ -349,6 +350,7 @@ static void CommUnpackGhosts(Home_t *home)
                         node->armfx[iNbr] = inBuf[bufIndex++];
                         node->armfy[iNbr] = inBuf[bufIndex++];
                         node->armfz[iNbr] = inBuf[bufIndex++];
+                        node->signSF[iNbr] = inBuf[bufIndex++];
                     }
 
                     node->x = inBuf[bufIndex++];

@@ -116,6 +116,8 @@ static void PackInitialNodeData(InData_t *inData, int *nodeList,
                 dataBuf[bufIndex++]=inData->node[nIndex].nx[armID];
                 dataBuf[bufIndex++]=inData->node[nIndex].ny[armID];
                 dataBuf[bufIndex++]=inData->node[nIndex].nz[armID];
+
+                dataBuf[bufIndex++]=inData->node[nIndex].signSF[armID];
             }
 
             dataBuf[bufIndex++] = (real8)inData->node[nIndex].constraint;
@@ -355,6 +357,8 @@ static void UnpackInitialNodeData(Home_t *home, real8 *buf,
                 node->nx[armID] = buf[bufIndex++];
                 node->ny[armID] = buf[bufIndex++];
                 node->nz[armID] = buf[bufIndex++];
+
+                node->signSF[armID] = buf[bufIndex++];
             }
 
             node->constraint = (int)buf[bufIndex++];
