@@ -119,7 +119,8 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2,
     double  n2x = n2[0], n2y = n2[1], n2z = n2[2];
     double  p1x = p1[0], p1y = p1[1], p1z = p1[2];
     double  p2x = p2[0], p2y = p2[1], p2z = p2[2];
-    int     defined = 0, dir = -1;
+    double  dir[3], dir1[3], dir2[3], dot, dis, vec3[3], vec4[4], vec5[3], vec6[3];
+    int     type;
 
     VECTOR_ZERO(vec1);
     VECTOR_ZERO(vec2);
@@ -146,133 +147,56 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2,
         return(LINE_INTERSECTION);
     }
 
+    cross(vec1, n1, vec3);
+    if(Normal(vec3)< 1.0E-4){
+        FatalMath("PlanePlaneIntersection in %s at %d\n", __FILE__, __LINE__);
+    }
+    NormalizeVec(vec3);
 
-    if(fabs(vec1[0]) < 1.0E-10 || fabs(vec1[1]) < 1.0E-10 || fabs(vec1[2]) < 1.0E-10){
+    type = LinePlaneIntersection(vec3, p1, n2, p2, vec4, vec2);
+    if(type == NO_INTERSECTION){
+        FatalMath("PlanePlaneIntersection in %s at %d\n", __FILE__, __LINE__);
+    }
+#if 0
+    dir[0] = p2[0] - p1[0];
+    dir[1] = p2[1] - p1[1];
+    dir[2] = p2[2] - p1[2];
+    if(Normal(dir) < 1.0E-2){
+        VECTOR_COPY(vec2, p2);
+        return(LINE_INTERSECTION);
+    }
+    NormalizeVec(dir);
 
-        if(fabs(vec1[0]) < 1.0E-10)defined++;
-        if(fabs(vec1[1]) < 1.0E-10)defined++;
-        if(fabs(vec1[2]) < 1.0E-10)defined++;
-        if(defined < 1 || defined > 2)FatalMath("in %s at %d", __FILE__, __LINE__);
-
-        if(fabs(1-fabs(n1x)) < EPS1){
-            vec2[0] = p1x;
-            dir = 0;
-        }
-        if(fabs(1-fabs(n2x)) < EPS1){
-            vec2[0] = p2x;
-            dir = 3;
-        }
-
-        if(fabs(1-fabs(n1y)) < EPS1){
-            vec2[1] = p1y;
-            dir = 1;
-        }
-
-        if(fabs(1-fabs(n2y)) < EPS1){
-            vec2[1] = p2y;
-            dir = 4;
-        }
-
-        if(fabs(1-fabs(n1z)) < EPS1){
-            vec2[2] = p1z;
-            dir = 2;
-        }
-        if(fabs(1-fabs(n2z)) < EPS1){
-            vec2[2] = p2z;
-            dir = 5;
-        }
-
-        if(defined == 1){
-            if(dir < 3){
-                switch(dir){
-                    case 0:
-                        vec2[2] = -(n2x*(vec2[0]-p2x)+n2y*(0.0-p2y))/n2z + p2z;
-                        break;
-                    case 1:
-                        vec2[2] = -(n2x*(0.0-p2x)+n2y*(vec2[1]-p2y))/n2z + p2z;
-                        break;
-                    case 2:
-                        vec2[0] = -(n2z*(vec2[2]-p2z)+n2y*(0.0-p2y))/n2x + p2x;
-                        break;
-                }
-            }else{
-                dir -= 3;
-                switch(dir){
-                    case 0:
-                        vec2[2] = -(n1x*(vec2[0]-p1x)+n1y*(0.0-p1y))/n1z + p1z;
-                        break;
-                    case 1:
-                        vec2[2] = -(n1x*(0.0-p1x)+n1y*(vec2[1]-p1y))/n1z + p1z;
-                        break;
-                    case 2:
-                        vec2[0] = -(n1z*(vec2[2]-p1z)+n1y*(0.0-p1y))/n1x + p1x;
-                        break;
-                }
-            }
-        } 
-    }else{
-        vec2[0] = ((-(SQUARE(n1y)*n2x) + n1x*n1y*n2y - n1z*(n1z*n2x - n1x*n2z))*
-                (n2z*(n1x*p1x + n1y*p1y + n1z*p1z) - 
-                n1z*(n2x*p2x + n2y*p2y + n2z*p2z)) + 
-                (n1z*n2y - n1y*n2z)*((-(n1y*n2x) + n1x*n2y)*
-                (n1x*p1x + n1y*p1y + n1z*p1z) + 
-                (n1z*(n1z*(n2y*(p1x + p2x) - n2x*(p1y + p2y)) + 
-                n1y*(-(n2z*(p1x + p2x)) + n2x*(p1z + p2z)) + 
-                n1x*(n2z*(p1y + p2y) - n2y*(p1z + p2z))))/2.))/
-                (n1z*(SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y)) - 
-                2*n1x*n1z*n2x*n2z - 2*n1y*n2y*(n1x*n2x + n1z*n2z) + 
-                SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z)) + 
-                SQUARE(n1x)*(SQUARE(n2y) + SQUARE(n2z))));
-        
-        vec2[1] = (2*SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z))*p1y + 
-                SQUARE(n1x)*(2*n2x*n2y*(-p1x + p2x) + 2*SQUARE(n2y)*p2y + 
-                SQUARE(n2z)*(p1y + p2y) + n2y*n2z*(-p1z + p2z)) + 
-                SQUARE(n1z)*(n2x*n2y*(-p1x + p2x) + 
-                SQUARE(n2x)*(p1y + p2y) + 
-                2*n2y*(n2y*p2y + n2z*(-p1z + p2z))) + 
-                n1y*n1z*(n2x*n2z*(p1x - p2x) + SQUARE(n2x)*(p1z - p2z) - 
-                2*n2z*(n2y*(p1y + p2y) + n2z*(-p1z + p2z))) + 
-                n1x*(-(n1z*(2*n2x*n2z*(p1y + p2y) + 
-                n2y*(n2z*p1x + n2x*p1z - n2z*p2x - n2x*p2z))) + 
-                n1y*(2*SQUARE(n2x)*(p1x - p2x) + 
-                SQUARE(n2z)*(p1x - p2x) - 
-                n2x*(2*n2y*(p1y + p2y) + n2z*(-p1z + p2z)))))/
-                (2.*(SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y)) - 
-                2*n1x*n1z*n2x*n2z - 2*n1y*n2y*(n1x*n2x + n1z*n2z) + 
-                SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z)) + 
-                SQUARE(n1x)*(SQUARE(n2y) + SQUARE(n2z))));
-        
-        vec2[2] = (2*SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y))*p1z + 
-                SQUARE(n1x)*(2*n2x*n2z*(-p1x + p2x) + n2y*n2z*(-p1y + p2y) + 
-                2*SQUARE(n2z)*p2z + SQUARE(n2y)*(p1z + p2z)) + 
-                SQUARE(n1y)*(n2x*n2z*(-p1x + p2x) + 
-                SQUARE(n2x)*(p1z + p2z) + 
-                2*n2z*(n2y*(-p1y + p2y) + n2z*p2z)) + 
-                n1y*n1z*(n2x*n2y*(p1x - p2x) + SQUARE(n2x)*(p1y - p2y) + 
-                2*n2y*(n2y*(p1y - p2y) - n2z*(p1z + p2z))) + 
-                n1x*(-(n1y*(n2x*n2z*(p1y - p2y) + 
-                n2y*(n2z*(p1x - p2x) + 2*n2x*(p1z + p2z)))) + 
-                n1z*(2*SQUARE(n2x)*(p1x - p2x) + 
-                SQUARE(n2y)*(p1x - p2x) + 
-                n2x*(n2y*(p1y - p2y) - 2*n2z*(p1z + p2z)))))/
-                (2.*(SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y)) - 
-                2*n1x*n1z*n2x*n2z - 2*n1y*n2y*(n1x*n2x + n1z*n2z) + 
-                SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z)) + 
-                SQUARE(n1x)*(SQUARE(n2y) + SQUARE(n2z))));
-        
-        if(isnan(vec2[0]))vec2[0] = 0.0;
-        if(isnan(vec2[1]))vec2[1] = 0.0;
-        if(isnan(vec2[2]))vec2[2] = 0.0;
+    dot = DotProduct(dir, n1);
+    dir1[0] = dir[0] - dot*n1[0];
+    dir1[1] = dir[1] - dot*n1[1];
+    dir1[2] = dir[2] - dot*n1[2];
+    if(Normal(dir1) < 1.0E-4){
+        VECTOR_COPY(vec2, p1);
+        return(LINE_INTERSECTION);
     }
 
-    if(isinf(vec2[0]) || isinf(vec2[1]) || isinf(vec2[2])){
-        printf("n1: {%f,%f,%f}\n", n1[0], n1[1], n1[2]);
-        printf("p1: {%f,%f,%f}\n", p1[0], p1[1], p1[2]);
-        printf("n2: {%f,%f,%f}\n", n2[0], n2[1], n2[2]);
-        printf("p2: {%f,%f,%f}\n", p2[0], p2[1], p2[2]);
-        exit(0);
+    NormalizeVec(dir1);
+
+    dot = DotProduct(dir, n2);
+    dir2[0] = dir[0] - dot*n2[0];
+    dir2[1] = dir[1] - dot*n2[1];
+    dir2[2] = dir[2] - dot*n2[2];
+    if(Normal(dir2) < 1.0E-4){
+        VECTOR_COPY(vec2, p2);
+        return(LINE_INTERSECTION);
     }
 
+    NormalizeVec(dir2);
+
+    type = LineLineIntersection(dir1, p1, dir2, p2, vec5, vec2, &dis);
+
+    if(fabs(dis) > 2){
+        FormatVector(vec3, "p1");
+        FormatVector(vec4, "p2");
+        printf("Warning: PlanePlaneIntersection dis is %f\n", dis);
+    }
+#endif
     return(LINE_INTERSECTION);
 } 
 

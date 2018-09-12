@@ -434,7 +434,6 @@ void InitGrain(Home_t *home, Param_t *param){
                 if(type != LINE_INTERSECTION){
                     continue;
                 }
-                FormatVector(vec2, "palne.point");
 
                 k = 0;
                 for(j=0; j<6; j++){
@@ -442,23 +441,15 @@ void InitGrain(Home_t *home, Param_t *param){
                     type = LinePlaneIntersection(vec1, vec2, surList[j].normal, 
                                                  surList[j].point, vec3, interPos);
                     if(type != POINT_INTERSECTION){
-                        printf("Line -- {%f,%f,%f}{%f,%f,%f} -- \nPlane {%f,%f,%f}{%f,%f,%f}\n",
-                               vec1[0],vec1[1],vec1[2],vec2[0],vec2[1],vec2[2],
-                               surList[j].normal[0],surList[j].normal[1],surList[j].normal[2],
-                               surList[j].point[0],surList[j].point[1],surList[j].point[2]
-                                );
                         continue;
                     }
                     if(fabs(interPos[0]) > param->xBoundMax+1.0){
-                        printf("discard 3\n");
                         continue;
                     }
                     if(fabs(interPos[1]) > param->yBoundMax+1.0){
                         printf("discard 4\n");
-                        continue;
                     }
                     if(fabs(interPos[2]) > param->zBoundMax+1.0){
-                        printf("discard 5\n");
                         continue;
                     }
                     VECTOR_COPY(poss[k], interPos);
@@ -1446,7 +1437,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 
     burgMag = Normal(burg);
     NormalizeVec(burg);
-    if(fabs(DotProduct(burg, param->TBNormal)) > 1.0E-2)return;
+    if(fabs(DotProduct(burg, param->TBNormal)) < 1.0E-2)return;
 
     vec[0] = node2->x - node1->x;
     vec[1] = node2->y - node1->y;
