@@ -540,10 +540,19 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 
     locVals = (real8 *)calloc(totEleNum*12, sizeof(real8));
     gloVals = (real8 *)calloc(totEleNum*12, sizeof(real8));
+
+    for(i=0; i<totEleNum*12; i++){
+        locVals[i] = 0.0;
+        gloVals[i] = 0.0;
+    }
     
     for(i=0; i<totEleNum; i++){
         totPlaStn[i] = (real8 *)calloc(6,sizeof(real8));
         totDisDen[i] = (real8 *)calloc(6,sizeof(real8));
+        for(j=0; j<6; j++){
+            totPlaStn[i][j] = 0.0;
+            totDisDen[i][j] = 0.0;
+        }
     }
 
 	eleLx = param->meshSizeX;
@@ -640,19 +649,19 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 
     for (i=0; i<totEleNum; i++){
         j = 0;
-        locVals[i+(j++)] = home->pstnEle[i][0];
-        locVals[i+(j++)] = home->pstnEle[i][1];
-        locVals[i+(j++)] = home->pstnEle[i][2];
-        locVals[i+(j++)] = home->pstnEle[i][3];
-        locVals[i+(j++)] = home->pstnEle[i][4];
-        locVals[i+(j++)] = home->pstnEle[i][5];
+        locVals[i*12+(j++)] = home->pstnEle[i][0];
+        locVals[i*12+(j++)] = home->pstnEle[i][1];
+        locVals[i*12+(j++)] = home->pstnEle[i][2];
+        locVals[i*12+(j++)] = home->pstnEle[i][3];
+        locVals[i*12+(j++)] = home->pstnEle[i][4];
+        locVals[i*12+(j++)] = home->pstnEle[i][5];
 
-        locVals[i+(j++)] = home->disDenEle[i][0];
-        locVals[i+(j++)] = home->disDenEle[i][1];
-        locVals[i+(j++)] = home->disDenEle[i][2];
-        locVals[i+(j++)] = home->disDenEle[i][3];
-        locVals[i+(j++)] = home->disDenEle[i][4];
-        locVals[i+(j++)] = home->disDenEle[i][5];
+        locVals[i*12+(j++)] = home->disDenEle[i][0];
+        locVals[i*12+(j++)] = home->disDenEle[i][1];
+        locVals[i*12+(j++)] = home->disDenEle[i][2];
+        locVals[i*12+(j++)] = home->disDenEle[i][3];
+        locVals[i*12+(j++)] = home->disDenEle[i][4];
+        locVals[i*12+(j++)] = home->disDenEle[i][5];
     }
 
 	MPI_Reduce(locVals, gloVals, 12*totEleNum, MPI_DOUBLE,
@@ -660,19 +669,19 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 
     for(i=0; i<totEleNum; i++){
         j=0;
-        home->pstnEle[i][0] = gloVals[i+(j++)];
-        home->pstnEle[i][1] = gloVals[i+(j++)];
-        home->pstnEle[i][2] = gloVals[i+(j++)];
-        home->pstnEle[i][3] = gloVals[i+(j++)];
-        home->pstnEle[i][4] = gloVals[i+(j++)];
-        home->pstnEle[i][5] = gloVals[i+(j++)];
+        home->pstnEle[i][0] = gloVals[i*12+(j++)];
+        home->pstnEle[i][1] = gloVals[i*12+(j++)];
+        home->pstnEle[i][2] = gloVals[i*12+(j++)];
+        home->pstnEle[i][3] = gloVals[i*12+(j++)];
+        home->pstnEle[i][4] = gloVals[i*12+(j++)];
+        home->pstnEle[i][5] = gloVals[i*12+(j++)];
 
-        home->disDenEle[i][0] = gloVals[i+(j++)];
-        home->disDenEle[i][1] = gloVals[i+(j++)];
-        home->disDenEle[i][2] = gloVals[i+(j++)];
-        home->disDenEle[i][3] = gloVals[i+(j++)];
-        home->disDenEle[i][4] = gloVals[i+(j++)];
-        home->disDenEle[i][5] = gloVals[i+(j++)];
+        home->disDenEle[i][0] = gloVals[i*12+(j++)];
+        home->disDenEle[i][1] = gloVals[i*12+(j++)];
+        home->disDenEle[i][2] = gloVals[i*12+(j++)];
+        home->disDenEle[i][3] = gloVals[i*12+(j++)];
+        home->disDenEle[i][4] = gloVals[i*12+(j++)];
+        home->disDenEle[i][5] = gloVals[i*12+(j++)];
     }
 #endif
 

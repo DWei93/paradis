@@ -2799,7 +2799,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 continue;
             }
             	
-            printf("the num of  sources in layers %d is %d\n",layer, xn);
             	
             for(chain = 0; chain < xn; ){
              
@@ -2839,13 +2838,26 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     bd = GetBurgData(home, inGrain0, onGB0);
                     if(onGB0 > -1)continue;
 
-                    ranNum = (int)(randm(&seed) * 1000);
-                    gpBurgIndex = ranNum % bd->numBurgVectors;
+                    if(chain < 24){
+                        ranNum = chain;
+                        if(chain < 12){
+                            if(inGrain0 != 0)continue;
+                        }else{
+                            if(inGrain0 != 1)continue;
+                        }
+                    }else{
+                        ranNum = (int)(randm(&seed) * 1000);
+                    }
+
+                    gpBurgIndex = (ranNum % 12) / 2;
 //                  if(gpBurgIndex != 1)continue;
                     if((bd->burgType[gpBurgIndex] & EDGE_BURG) == 0)continue;
 
-                    ranNum = (int)(randm(&seed) * 1000);
-                    gpIndex = bd->burgOnPlaneID[gpBurgIndex][ranNum%bd->numPlanesPerBurg[gpBurgIndex]];
+                    if(chain >= 24){
+                        ranNum = (int)(randm(&seed) * 1000);
+                    }
+
+                    gpIndex = bd->burgOnPlaneID[gpBurgIndex][ranNum % 2];
 //                  if(gpIndex != 3)continue;
                     if((bd->planeType[gpIndex] & GLIDE_PLANE) == 0 )continue;
    
@@ -3250,6 +3262,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 startRemeshIndex = baseNodeID;
 
             }  /* for (chain = 0; chain < numChains; ) */
+            printf("the num of  sources in layers %d is %d\n",layer, chain);
 		
 	    }/* for(layer=0; layer<nLayers;...)*/
 	

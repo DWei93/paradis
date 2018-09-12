@@ -175,6 +175,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         
         for (i = 0; i < 6; i++) {
             param->totpStn[i] += param->delpStrain[i];                       
+            param->totTwinpStn[i] += param->delpTwinStrain[i];                       
             param->totpSpn[i] += param->delpSpin[i];                         
             param->totedgepStrain[i] += param->dedgepStrain[i];               
             param->totscrewpStrain[i] += param->dscrewpStrain[i];             

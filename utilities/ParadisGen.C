@@ -814,8 +814,8 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	}else{
 	    real8    a1[3] = {1,-1,0}, temR1[3][3];
 	    real8    a2[3] = {1, 0,0}, temR2[3][3], temR3[3][3];
-	    real8    a3[3] = {0, 0,1};
-	    real8    matrixOrientation[3][3];
+	    real8    a3[3] = {0, 0,1}, temR4[3][3], abc[3] = {1,1,1};
+	    real8    matrixOrientation[3][3], abcLab[3];
 	    real8    angle, angleZTB = 9.553166181245092e-01;
 	    int	     seed;
 
@@ -832,7 +832,13 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	    angle = 2 * PI * randm(&seed);
 	    RotateWithAxis(a3, angle, temR1);
 
-	    Matrix33Mult33(temR1, temR3, matrixOrientation);
+	    Matrix33Mult33(temR1, temR3, temR4);
+        NormalizeVec(abc);
+        Matrix33Vector3Multiply(temR4, abc, abcLab);
+
+	    angle = 2 * PI * randm(&seed);
+        RotateWithAxis(abcLab, angle, temR1);
+	    Matrix33Mult33(temR1, temR4, matrixOrientation);
 
 	    VECTOR_COPY(inArgs->xMatDir,matrixOrientation[0])
 	    VECTOR_COPY(inArgs->yMatDir,matrixOrientation[1])

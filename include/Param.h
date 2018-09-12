@@ -415,6 +415,7 @@ struct _param {
         int elasticinteraction;
     
         real8 delpStrain[6],delSig[6],totpStn[6];
+        real8 delpTwinStrain[6], totTwinpStn[6];
         real8 delpSpin[6],totpSpn[6];
 
 /*

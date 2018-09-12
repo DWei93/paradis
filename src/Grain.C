@@ -88,7 +88,7 @@ void InitGrainStructure(Grain_t *grain, int numBounds){
 }
 
 void InitGrain(Home_t *home, Param_t *param){
-	int		    i,j;
+	int		    i,j,k;
 	Grain_t		*grain;
     GB_t        *GB;
 	real8		HalfMatrixThick, maxSeg;
@@ -283,61 +283,65 @@ void InitGrain(Home_t *home, Param_t *param){
 	    Line_t  edge;
 
 	    VECTOR_COPY(plane.normal, param->TBNormal);
+	    VECTOR_ZERO(plane.point);
 
-        
-	    for(i=0; i<3; i++){
-	        VECTOR_ZERO(edge.direction);
-	        VECTOR_ZERO(plane.point);
-
-	        edge.direction[i] = 1;
-	        if(DotProduct(param->TBNormal, edge.direction) > 0){
-	            rho = 1.0 - twinRatio; }
-	        else{
-	            rho = twinRatio;  }
-
-	        if(i == 0){
-	            bound = lx;
-	            hMatrix = 2 * lx * rho - lx; 
-	            p[0][0] = 0; p[0][1] = -ly; p[0][2] = -lz;
-	            p[1][0] = 0; p[1][1] = -ly; p[1][2] =  lz;
-	            p[2][0] = 0; p[2][1] =  ly; p[2][2] = -lz;
-	            p[3][0] = 0; p[3][1] =  ly; p[3][2] =  lz;
-	        }else if(i == 1){
-	            bound = ly;
-	            hMatrix = 2 * ly * rho - ly; 
-	            p[0][0] = -lx; p[0][1] = 0; p[0][2] = -lz;
-	            p[1][0] =  lx; p[1][1] = 0; p[1][2] = -lz;
-	            p[2][0] = -lx; p[2][1] = 0; p[2][2] =  lz;
-	            p[3][0] =  lx; p[3][1] = 0; p[3][2] =  lz;
-	        }else if(i == 2){
-	            bound = lz;
-	            hMatrix = 2 * lz * rho - lz; 
-	            p[0][0] = -lx; p[0][1] = -ly; p[0][2] = 0;
-	            p[1][0] =  lx; p[1][1] = -ly; p[1][2] = 0;
-	            p[2][0] = -lx; p[2][1] =  ly; p[2][2] = 0;
-	            p[3][0] =  lx; p[3][1] =  ly; p[3][2] = 0;
-	        }
-	        plane.point[i] = hMatrix;	        
-
-	        inner = 1;
-	        for(j=0; j<4; j++){
-	            VECTOR_COPY(edge.point, p[j]);
-				type = LinePlaneIntersection(edge.direction, edge.point, 
-						plane.normal, plane.point, vec1, interPos);
-				if(type != POINT_INTERSECTION){
-					inner = 0;
-					break;
-				} 
-
-	            if(fabs(interPos[i]) > bound){
-	                inner = 0; break; }
-	        }/* for (j=0; j ...)*/
-	        if(inner == 1)break;
-
-	    }/* for(i=0; i ...)*/
-	    
-	    if(inner == 0)Fatal("InitGrain: can not find TB plane");
+        if(fabs(0.5-twinRatio) > 1.0E-3){
+	        for(i=0; i<3; i++){
+	            VECTOR_ZERO(edge.direction);
+	            VECTOR_ZERO(plane.point);
+         
+	            edge.direction[i] = 1;
+	            if(DotProduct(param->TBNormal, edge.direction) > 0){
+	                rho = 1.0 - twinRatio; }
+	            else{
+	                rho = twinRatio;  }
+         
+	            if(i == 0){
+	                bound = lx;
+	                hMatrix = 2 * lx * rho - lx; 
+	                p[0][0] = 0; p[0][1] = -ly; p[0][2] = -lz;
+	                p[1][0] = 0; p[1][1] = -ly; p[1][2] =  lz;
+	                p[2][0] = 0; p[2][1] =  ly; p[2][2] = -lz;
+	                p[3][0] = 0; p[3][1] =  ly; p[3][2] =  lz;
+	            }else if(i == 1){
+	                bound = ly;
+	                hMatrix = 2 * ly * rho - ly; 
+	                p[0][0] = -lx; p[0][1] = 0; p[0][2] = -lz;
+	                p[1][0] =  lx; p[1][1] = 0; p[1][2] = -lz;
+	                p[2][0] = -lx; p[2][1] = 0; p[2][2] =  lz;
+	                p[3][0] =  lx; p[3][1] = 0; p[3][2] =  lz;
+	            }else if(i == 2){
+	                bound = lz;
+	                hMatrix = 2 * lz * rho - lz; 
+	                p[0][0] = -lx; p[0][1] = -ly; p[0][2] = 0;
+	                p[1][0] =  lx; p[1][1] = -ly; p[1][2] = 0;
+	                p[2][0] = -lx; p[2][1] =  ly; p[2][2] = 0;
+	                p[3][0] =  lx; p[3][1] =  ly; p[3][2] = 0;
+	            }
+	            plane.point[i] = hMatrix;	        
+         
+	            inner = 1;
+	            for(j=0; j<4; j++){
+	                VECTOR_COPY(edge.point, p[j]);
+	 	   		type = LinePlaneIntersection(edge.direction, edge.point, 
+	 	   				plane.normal, plane.point, vec1, interPos);
+	 	   		if(type != POINT_INTERSECTION){
+	 	   			inner = 0;
+	 	   			break;
+	 	   		} 
+         
+	                if(fabs(interPos[i]) > bound){
+	                    inner = 0; break; }
+	            }/* for (j=0; j ...)*/
+	            if(inner == 1)break;
+         
+	        }/* for(i=0; i ...)*/
 	        
+	        if(inner == 0)Fatal("InitGrain: can not find TB plane");
+	        
+        }
+
+
         home->nGBs = 1;
         home->GBKeys = (GB_t **)malloc(sizeof(GB_t *));
         i = 0;
@@ -390,6 +394,98 @@ void InitGrain(Home_t *home, Param_t *param){
 	        FormatVector(CDelta, "CDelta (use the axis to rotate basis to twin)");
 	    }
 
+        if(home->myDomain == 0){
+            int                     type, m;
+            real8                   vec1[3], vec2[3], vec3[3], interPos[3];
+            real8                   poss[2][3], vecMag, length, vec4[3];
+            std::vector<Plane_t>    surList(6);
+	        FILE     *fp;
+	        char     fileName[256];
+
+            for(i=0; i<6; i++){
+                VECTOR_ZERO(surList[i].normal);
+                VECTOR_ZERO(surList[i].point);
+            }
+            surList[0].normal[0] = 1.0;
+            surList[1].normal[0] = 1.0;
+            surList[2].normal[1] = 1.0;
+            surList[3].normal[1] = 1.0;
+            surList[4].normal[2] = 1.0;
+            surList[5].normal[2] = 1.0;
+
+            surList[0].point[0] = param->xBoundMin;
+            surList[1].point[0] = param->xBoundMax;
+            surList[2].point[1] = param->yBoundMin;
+            surList[3].point[1] = param->yBoundMax;
+            surList[4].point[2] = param->zBoundMin;
+            surList[5].point[2] = param->zBoundMax;
+
+		    snprintf(fileName, sizeof(fileName), "TB.plt");
+
+		    if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
+			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
+		    }
+            
+	        fprintf(fp, "Variables = x, y, z, v1, v2, v3\n");
+
+            for(i=0; i<6; i++){
+                type = PlanePlaneIntersection(surList[i].normal, surList[i].point,
+                                              plane.normal, plane.point, vec1, vec2); 
+                if(type != LINE_INTERSECTION){
+                    continue;
+                }
+                FormatVector(vec2, "palne.point");
+
+                k = 0;
+                for(j=0; j<6; j++){
+                    if(j==i)continue;
+                    type = LinePlaneIntersection(vec1, vec2, surList[j].normal, 
+                                                 surList[j].point, vec3, interPos);
+                    if(type != POINT_INTERSECTION){
+                        printf("Line -- {%f,%f,%f}{%f,%f,%f} -- \nPlane {%f,%f,%f}{%f,%f,%f}\n",
+                               vec1[0],vec1[1],vec1[2],vec2[0],vec2[1],vec2[2],
+                               surList[j].normal[0],surList[j].normal[1],surList[j].normal[2],
+                               surList[j].point[0],surList[j].point[1],surList[j].point[2]
+                                );
+                        continue;
+                    }
+                    if(fabs(interPos[0]) > param->xBoundMax+1.0){
+                        printf("discard 3\n");
+                        continue;
+                    }
+                    if(fabs(interPos[1]) > param->yBoundMax+1.0){
+                        printf("discard 4\n");
+                        continue;
+                    }
+                    if(fabs(interPos[2]) > param->zBoundMax+1.0){
+                        printf("discard 5\n");
+                        continue;
+                    }
+                    VECTOR_COPY(poss[k], interPos);
+                    k++;
+                    if(k==2){
+                        vec4[0] = poss[1][0] - poss[0][0];
+                        vec4[1] = poss[1][1] - poss[0][1];
+                        vec4[2] = poss[1][2] - poss[0][2];
+                        length = Normal(vec4);
+                        vecMag = length/50.0;
+                        NormalizeVec(vec4);
+                        for(m=0; m<50; m++){
+	                        fprintf(fp, "%e %e %e %e %e %e \n", poss[0][0],
+                                    poss[0][1],poss[0][2], vecMag*vec4[0],
+                                    vecMag*vec4[1],vecMag*vec4[2]);
+                            poss[0][0] += vecMag*vec4[0];
+                            poss[0][1] += vecMag*vec4[1];
+                            poss[0][2] += vecMag*vec4[2];
+                        }
+                        k = 0;
+                        break;
+                    }
+                }
+            }
+            fclose(fp);
+            
+        }
 	}else{
 	    Fatal("Not suppose free surface polycrystal problem");
 	}
@@ -1323,22 +1419,73 @@ int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]){
 void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f2[3])
 {
 
-    real8       dis;
+    real8       dis, burgMag, burg[3], segCentor[3];
+    real8       vec[3], a = 5.86854;
+    real8       coff, length, nor[3], gDir[3], gbNormal[3];
     GB_t        *gb;
     Param_t     *param;
+    int         armID;
 
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);
 
+    if(!home->param->polycrystal)return;
     if(IsOnGB(node1) && IsOnGB(node2))return;
 
-#if 0
     param = home->param;
+    armID = GetArmID(home, node1, node2);
+    if(armID == -1)return;
+
+    burg[0] = node1->burgX[armID];
+    burg[1] = node1->burgY[armID];
+    burg[2] = node1->burgZ[armID];
+
+    nor[0] = node1->nx[armID];
+    nor[1] = node1->ny[armID];
+    nor[2] = node1->nz[armID];
+
+    burgMag = Normal(burg);
+    NormalizeVec(burg);
+    if(fabs(DotProduct(burg, param->TBNormal)) > 1.0E-2)return;
+
+    vec[0] = node2->x - node1->x;
+    vec[1] = node2->y - node1->y;
+    vec[2] = node2->z - node1->z;
+    ZImage(param, vec, vec+1, vec+2);
+
+    length = Normal(vec);
+    if(length < 1.0E-2)return;
+    NormalizeVec(vec);
+
+    segCentor[0] = node1->x + 0.5*vec[0];
+    segCentor[1] = node1->y + 0.5*vec[1];
+    segCentor[2] = node1->z + 0.5*vec[2];
+    FoldBox(param, segCentor, segCentor+1, segCentor+2);
 
 	dis =  ClosedGB(home, segCentor, &gb);
-    if(fabs(dis) > 
-#endif
+    if(fabs(dis) > 39.1236 || fabs(dis) < a)return;
 
+    cross(nor, vec, gDir);
+    if(Normal(gDir) < 1E-3)return;
+    NormalizeVec(gDir);
+
+    gbNormal[0] = ((real8)Sign(dis)) * gb->n[0];
+    gbNormal[1] = ((real8)Sign(dis)) * gb->n[1];
+    gbNormal[2] = ((real8)Sign(dis)) * gb->n[2];
+
+    if(DotProduct(gbNormal, gDir) < 0.0){
+        gDir[0] = -gDir[0];
+        gDir[1] = -gDir[1];
+        gDir[2] = -gDir[2];
+    }
+
+    coff = param->GBStrength * a / fabs(dis);
+
+    f1[0] = 0.5*length*coff*gDir[0];
+    f1[1] = 0.5*length*coff*gDir[1];
+    f1[2] = 0.5*length*coff*gDir[2];
+
+    VECTOR_COPY(f2, f1);
 
     return;
 }

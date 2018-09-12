@@ -119,6 +119,7 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2,
     double  n2x = n2[0], n2y = n2[1], n2z = n2[2];
     double  p1x = p1[0], p1y = p1[1], p1z = p1[2];
     double  p2x = p2[0], p2y = p2[1], p2z = p2[2];
+    int     defined = 0, dir = -1;
 
     VECTOR_ZERO(vec1);
     VECTOR_ZERO(vec2);
@@ -145,68 +146,132 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2,
         return(LINE_INTERSECTION);
     }
 
-    vec2[0] = ((-(SQUARE(n1y)*n2x) + n1x*n1y*n2y - n1z*(n1z*n2x - n1x*n2z))*
-            (n2z*(n1x*p1x + n1y*p1y + n1z*p1z) - 
-            n1z*(n2x*p2x + n2y*p2y + n2z*p2z)) + 
-            (n1z*n2y - n1y*n2z)*((-(n1y*n2x) + n1x*n2y)*
-            (n1x*p1x + n1y*p1y + n1z*p1z) + 
-            (n1z*(n1z*(n2y*(p1x + p2x) - n2x*(p1y + p2y)) + 
-            n1y*(-(n2z*(p1x + p2x)) + n2x*(p1z + p2z)) + 
-            n1x*(n2z*(p1y + p2y) - n2y*(p1z + p2z))))/2.))/
-            (n1z*(SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y)) - 
-            2*n1x*n1z*n2x*n2z - 2*n1y*n2y*(n1x*n2x + n1z*n2z) + 
-            SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z)) + 
-            SQUARE(n1x)*(SQUARE(n2y) + SQUARE(n2z))));
 
-    vec2[1] = (2*SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z))*p1y + 
-            SQUARE(n1x)*(2*n2x*n2y*(-p1x + p2x) + 2*SQUARE(n2y)*p2y + 
-            SQUARE(n2z)*(p1y + p2y) + n2y*n2z*(-p1z + p2z)) + 
-            SQUARE(n1z)*(n2x*n2y*(-p1x + p2x) + 
-            SQUARE(n2x)*(p1y + p2y) + 
-            2*n2y*(n2y*p2y + n2z*(-p1z + p2z))) + 
-            n1y*n1z*(n2x*n2z*(p1x - p2x) + SQUARE(n2x)*(p1z - p2z) - 
-            2*n2z*(n2y*(p1y + p2y) + n2z*(-p1z + p2z))) + 
-            n1x*(-(n1z*(2*n2x*n2z*(p1y + p2y) + 
-            n2y*(n2z*p1x + n2x*p1z - n2z*p2x - n2x*p2z))) + 
-            n1y*(2*SQUARE(n2x)*(p1x - p2x) + 
-            SQUARE(n2z)*(p1x - p2x) - 
-            n2x*(2*n2y*(p1y + p2y) + n2z*(-p1z + p2z)))))/
-            (2.*(SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y)) - 
-            2*n1x*n1z*n2x*n2z - 2*n1y*n2y*(n1x*n2x + n1z*n2z) + 
-            SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z)) + 
-            SQUARE(n1x)*(SQUARE(n2y) + SQUARE(n2z))));
+    if(fabs(vec1[0]) < 1.0E-10 || fabs(vec1[1]) < 1.0E-10 || fabs(vec1[2]) < 1.0E-10){
 
-    vec2[2] = (2*SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y))*p1z + 
-            SQUARE(n1x)*(2*n2x*n2z*(-p1x + p2x) + n2y*n2z*(-p1y + p2y) + 
-            2*SQUARE(n2z)*p2z + SQUARE(n2y)*(p1z + p2z)) + 
-            SQUARE(n1y)*(n2x*n2z*(-p1x + p2x) + 
-            SQUARE(n2x)*(p1z + p2z) + 
-            2*n2z*(n2y*(-p1y + p2y) + n2z*p2z)) + 
-            n1y*n1z*(n2x*n2y*(p1x - p2x) + SQUARE(n2x)*(p1y - p2y) + 
-            2*n2y*(n2y*(p1y - p2y) - n2z*(p1z + p2z))) + 
-            n1x*(-(n1y*(n2x*n2z*(p1y - p2y) + 
-            n2y*(n2z*(p1x - p2x) + 2*n2x*(p1z + p2z)))) + 
-            n1z*(2*SQUARE(n2x)*(p1x - p2x) + 
-            SQUARE(n2y)*(p1x - p2x) + 
-            n2x*(n2y*(p1y - p2y) - 2*n2z*(p1z + p2z)))))/
-            (2.*(SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y)) - 
-            2*n1x*n1z*n2x*n2z - 2*n1y*n2y*(n1x*n2x + n1z*n2z) + 
-            SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z)) + 
-            SQUARE(n1x)*(SQUARE(n2y) + SQUARE(n2z))));
+        if(fabs(vec1[0]) < 1.0E-10)defined++;
+        if(fabs(vec1[1]) < 1.0E-10)defined++;
+        if(fabs(vec1[2]) < 1.0E-10)defined++;
+        if(defined < 1 || defined > 2)FatalMath("in %s at %d", __FILE__, __LINE__);
 
-    if(fabs(1-fabs(n1x)) < EPS1)vec2[0] = p1x;
-    if(fabs(1-fabs(n2x)) < EPS1)vec2[0] = p2x;
+        if(fabs(1-fabs(n1x)) < EPS1){
+            vec2[0] = p1x;
+            dir = 0;
+        }
+        if(fabs(1-fabs(n2x)) < EPS1){
+            vec2[0] = p2x;
+            dir = 3;
+        }
 
-    if(fabs(1-fabs(n1y)) < EPS1)vec2[1] = p1y;
-    if(fabs(1-fabs(n2y)) < EPS1)vec2[1] = p2y;
+        if(fabs(1-fabs(n1y)) < EPS1){
+            vec2[1] = p1y;
+            dir = 1;
+        }
 
-    if(fabs(1-fabs(n1z)) < EPS1)vec2[2] = p1z;
-    if(fabs(1-fabs(n2z)) < EPS1)vec2[2] = p2z;
+        if(fabs(1-fabs(n2y)) < EPS1){
+            vec2[1] = p2y;
+            dir = 4;
+        }
 
+        if(fabs(1-fabs(n1z)) < EPS1){
+            vec2[2] = p1z;
+            dir = 2;
+        }
+        if(fabs(1-fabs(n2z)) < EPS1){
+            vec2[2] = p2z;
+            dir = 5;
+        }
 
-    if(isnan(vec2[0]))vec2[0] = 0.0;
-    if(isnan(vec2[1]))vec2[1] = 0.0;
-    if(isnan(vec2[2]))vec2[2] = 0.0;
+        if(defined == 1){
+            if(dir < 3){
+                switch(dir){
+                    case 0:
+                        vec2[2] = -(n2x*(vec2[0]-p2x)+n2y*(0.0-p2y))/n2z + p2z;
+                        break;
+                    case 1:
+                        vec2[2] = -(n2x*(0.0-p2x)+n2y*(vec2[1]-p2y))/n2z + p2z;
+                        break;
+                    case 2:
+                        vec2[0] = -(n2z*(vec2[2]-p2z)+n2y*(0.0-p2y))/n2x + p2x;
+                        break;
+                }
+            }else{
+                dir -= 3;
+                switch(dir){
+                    case 0:
+                        vec2[2] = -(n1x*(vec2[0]-p1x)+n1y*(0.0-p1y))/n1z + p1z;
+                        break;
+                    case 1:
+                        vec2[2] = -(n1x*(0.0-p1x)+n1y*(vec2[1]-p1y))/n1z + p1z;
+                        break;
+                    case 2:
+                        vec2[0] = -(n1z*(vec2[2]-p1z)+n1y*(0.0-p1y))/n1x + p1x;
+                        break;
+                }
+            }
+        } 
+    }else{
+        vec2[0] = ((-(SQUARE(n1y)*n2x) + n1x*n1y*n2y - n1z*(n1z*n2x - n1x*n2z))*
+                (n2z*(n1x*p1x + n1y*p1y + n1z*p1z) - 
+                n1z*(n2x*p2x + n2y*p2y + n2z*p2z)) + 
+                (n1z*n2y - n1y*n2z)*((-(n1y*n2x) + n1x*n2y)*
+                (n1x*p1x + n1y*p1y + n1z*p1z) + 
+                (n1z*(n1z*(n2y*(p1x + p2x) - n2x*(p1y + p2y)) + 
+                n1y*(-(n2z*(p1x + p2x)) + n2x*(p1z + p2z)) + 
+                n1x*(n2z*(p1y + p2y) - n2y*(p1z + p2z))))/2.))/
+                (n1z*(SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y)) - 
+                2*n1x*n1z*n2x*n2z - 2*n1y*n2y*(n1x*n2x + n1z*n2z) + 
+                SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z)) + 
+                SQUARE(n1x)*(SQUARE(n2y) + SQUARE(n2z))));
+        
+        vec2[1] = (2*SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z))*p1y + 
+                SQUARE(n1x)*(2*n2x*n2y*(-p1x + p2x) + 2*SQUARE(n2y)*p2y + 
+                SQUARE(n2z)*(p1y + p2y) + n2y*n2z*(-p1z + p2z)) + 
+                SQUARE(n1z)*(n2x*n2y*(-p1x + p2x) + 
+                SQUARE(n2x)*(p1y + p2y) + 
+                2*n2y*(n2y*p2y + n2z*(-p1z + p2z))) + 
+                n1y*n1z*(n2x*n2z*(p1x - p2x) + SQUARE(n2x)*(p1z - p2z) - 
+                2*n2z*(n2y*(p1y + p2y) + n2z*(-p1z + p2z))) + 
+                n1x*(-(n1z*(2*n2x*n2z*(p1y + p2y) + 
+                n2y*(n2z*p1x + n2x*p1z - n2z*p2x - n2x*p2z))) + 
+                n1y*(2*SQUARE(n2x)*(p1x - p2x) + 
+                SQUARE(n2z)*(p1x - p2x) - 
+                n2x*(2*n2y*(p1y + p2y) + n2z*(-p1z + p2z)))))/
+                (2.*(SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y)) - 
+                2*n1x*n1z*n2x*n2z - 2*n1y*n2y*(n1x*n2x + n1z*n2z) + 
+                SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z)) + 
+                SQUARE(n1x)*(SQUARE(n2y) + SQUARE(n2z))));
+        
+        vec2[2] = (2*SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y))*p1z + 
+                SQUARE(n1x)*(2*n2x*n2z*(-p1x + p2x) + n2y*n2z*(-p1y + p2y) + 
+                2*SQUARE(n2z)*p2z + SQUARE(n2y)*(p1z + p2z)) + 
+                SQUARE(n1y)*(n2x*n2z*(-p1x + p2x) + 
+                SQUARE(n2x)*(p1z + p2z) + 
+                2*n2z*(n2y*(-p1y + p2y) + n2z*p2z)) + 
+                n1y*n1z*(n2x*n2y*(p1x - p2x) + SQUARE(n2x)*(p1y - p2y) + 
+                2*n2y*(n2y*(p1y - p2y) - n2z*(p1z + p2z))) + 
+                n1x*(-(n1y*(n2x*n2z*(p1y - p2y) + 
+                n2y*(n2z*(p1x - p2x) + 2*n2x*(p1z + p2z)))) + 
+                n1z*(2*SQUARE(n2x)*(p1x - p2x) + 
+                SQUARE(n2y)*(p1x - p2x) + 
+                n2x*(n2y*(p1y - p2y) - 2*n2z*(p1z + p2z)))))/
+                (2.*(SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y)) - 
+                2*n1x*n1z*n2x*n2z - 2*n1y*n2y*(n1x*n2x + n1z*n2z) + 
+                SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z)) + 
+                SQUARE(n1x)*(SQUARE(n2y) + SQUARE(n2z))));
+        
+        if(isnan(vec2[0]))vec2[0] = 0.0;
+        if(isnan(vec2[1]))vec2[1] = 0.0;
+        if(isnan(vec2[2]))vec2[2] = 0.0;
+    }
+
+    if(isinf(vec2[0]) || isinf(vec2[1]) || isinf(vec2[2])){
+        printf("n1: {%f,%f,%f}\n", n1[0], n1[1], n1[2]);
+        printf("p1: {%f,%f,%f}\n", p1[0], p1[1], p1[2]);
+        printf("n2: {%f,%f,%f}\n", n2[0], n2[1], n2[2]);
+        printf("p2: {%f,%f,%f}\n", p2[0], p2[1], p2[2]);
+        exit(0);
+    }
 
     return(LINE_INTERSECTION);
 } 
@@ -242,6 +307,14 @@ int LinePlaneIntersection(double *d, double *p1, double *n, double *p2,
     if(isnan(vec2[1]))vec2[1] = 0.0;
     if(isnan(vec2[2]))vec2[2] = 0.0;
     
+    if(isinf(vec2[0]) || isinf(vec2[1]) || isinf(vec2[2])){
+        printf("d: {%f,%f,%f}\n", d[0], d[1], d[2]);
+        printf("p1: {%f,%f,%f}\n", p1[0], p1[1], p1[2]);
+        printf("n: {%f,%f,%f}\n", n[0], n[1], n[2]);
+        printf("p2: {%f,%f,%f}\n", p2[0], p2[1], p2[2]);
+        exit(0);
+    }
+
     return(POINT_INTERSECTION);    
 }
 
@@ -276,6 +349,7 @@ int PointLineIntersection(double *p1, double *d, double *p2,
        (SQUARE(dx) + SQUARE(dy) + SQUARE(dz)));
 
     if(isnan(*dis))*dis = 0.0;
+    if(isinf(*dis)) *dis = 0.0;
 
     if(*dis < EPS2){
         return(POINT_INTERSECTION);
@@ -379,6 +453,7 @@ int LineLineIntersection(double *d1, double *p1, double *d2, double *p2,
            SQUARE(d1x)*(SQUARE(d2y) + SQUARE(d2z))));
 
     if(isnan(*dis)) *dis = 0.0;
+    if(isinf(*dis)) *dis = 0.0;
     if(*dis < EPS2){
         return(POINT_INTERSECTION);
     }else{
@@ -402,6 +477,7 @@ int PointPlaneIntersection(double *p1, double *n, double *p2, double *vec, doubl
     *dis = sqrt(SQUARE(nx*p1x + ny*p1y + nz*p1z - nx*p2x - ny*p2y - nz*p2z)/
            (SQUARE(nx) + SQUARE(ny) + SQUARE(nz)));
     if(isnan(*dis)) *dis = 0.0;
+    if(isinf(*dis)) *dis = 0.0;
 
     vec[0] = (SQUARE(ny)*p1x + SQUARE(nz)*p1x + SQUARE(nx)*p2x + 
              nx*ny*(-p1y + p2y) + nx*nz*(-p1z + p2z))/
@@ -435,6 +511,7 @@ int PointPointIntersection(double *p1, double *p2, double *vec, double *dis){
 
     *dis = sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
     if(isnan(*dis)) *dis = 0.0;
+    if(isinf(*dis)) *dis = 0.0;
     
     if(*dis < EPS2){
         return(POINT_INTERSECTION);

@@ -62,6 +62,7 @@ void WriteProp(Home_t *home, int property)
         int     i, numItems, tmpOffset, numBurgVectors;
 	static int firstSS = 1;
         real8   al, am, an, amag, sigijk, pstnijk, dpstnijk;
+        real8   ptstnijk;
         real8   *localDensityVals  = (real8 *)NULL;
         real8   *globalDensityVals = (real8 *)NULL;
         real8   totDensityChange[14];
@@ -146,15 +147,21 @@ void WriteProp(Home_t *home, int property)
                            2.0*param->totpStn[4]*an*al +
                            2.0*param->totpStn[5]*al*am;
 
+                ptstnijk = param->totTwinpStn[0]*al*al     +
+                           param->totTwinpStn[1]*am*am     +
+                           param->totTwinpStn[2]*an*an     +
+                           2.0*param->totTwinpStn[3]*am*an +
+                           2.0*param->totTwinpStn[4]*an*al +
+                           2.0*param->totTwinpStn[5]*al*am;
 /*
  *              First print the standard stuff that's common
  *              regardless of which mobility (BCC, FCC, etc)
  *              is in use.
  */
-                fprintf(fp, "%e %e %e %e %e %e ",
+                fprintf(fp, "%e %e %e %e %e %e %e",
                         pstnijk,param->eRate*param->timeNow, param->disloDensity,
                         param->delSegLength, param->vAverage,
-                        param->vStDev);
+                        param->vStDev,ptstnijk);
 
 /*
  *              ****************************************************
@@ -217,11 +224,18 @@ void WriteProp(Home_t *home, int property)
                            2.0*param->totpStn[3]*am*an +
                            2.0*param->totpStn[4]*an*al +
                            2.0*param->totpStn[5]*al*am;
+
+                ptstnijk = param->totTwinpStn[0]*al*al     +
+                           param->totTwinpStn[1]*am*am     +
+                           param->totTwinpStn[2]*an*an     +
+                           2.0*param->totTwinpStn[3]*am*an +
+                           2.0*param->totTwinpStn[4]*an*al +
+                           2.0*param->totTwinpStn[5]*al*am;
         
                 snprintf(fileName, sizeof(fileName), "%s/time_Plastic_strain",
                          DIR_PROPERTIES);
                 fp = fopen(fileName, "a");
-                fprintf(fp,"%e %e\n", param->timeNow, pstnijk);
+                fprintf(fp,"%e %e %e\n", param->timeNow, pstnijk, ptstnijk);
                 fclose(fp);
         
                 if ((param->loadType == 1) || (param->loadType == 4)) {
@@ -229,7 +243,7 @@ void WriteProp(Home_t *home, int property)
                     snprintf(fileName, sizeof(fileName),
                              "%s/stress_Plastic_strain", DIR_PROPERTIES);
                     fp = fopen(fileName, "a");
-                    fprintf(fp, "%e %e\n", pstnijk, sigijk);
+                    fprintf(fp, "%e %e %e\n", pstnijk, sigijk, ptstnijk);
                     fclose(fp);
 
                     snprintf(fileName, sizeof(fileName),
@@ -239,12 +253,12 @@ void WriteProp(Home_t *home, int property)
                     case 1:
 
 			if(firstSS && home->cycle < 2 *  param->savepropfreq){
-			   fprintf(fp, "variables = strain, stress, pstrain, disDen\n"); 
+			   fprintf(fp, "variables = strain, stress, pstrain, ptstrain, disDen\n"); 
 			   firstSS = 0;
 			}
 
-                        fprintf(fp, "%e %e %e %e\n", param->eRate*param->timeNow*TC*1.0e2,
-                                sigijk*TC/1.0e6, pstnijk*TC*1.0e2, param->disloDensity);
+                        fprintf(fp, "%e %e %e %e %e\n", param->eRate*param->timeNow*TC*1.0e2,
+                                sigijk*TC/1.0e6, pstnijk*TC*1.0e2, ptstnijk*TC*1.0e2, param->disloDensity);
 			if(pstnijk*TC*1.0e2 > 0.1){
 			    static int first = 1;
 			    if(first){
