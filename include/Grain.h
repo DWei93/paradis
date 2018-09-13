@@ -154,6 +154,15 @@ typedef struct {
 	real8 point[3];
 } Plane_t; 
 
+typedef struct {
+     real8  burg[3];
+     real8  normal[3];
+     real8  schmidt;
+     int    inGrain;
+     int    burgID;
+     int    planeID;
+} SlipSys_t; 
+
 
 typedef struct {
 	real8 direction[3];

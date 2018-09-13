@@ -2829,15 +2829,22 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
     
                 finished = 0;
                 while(!finished){
+#if 0
                     p0[0] = (randm(&seed)-0.5) * cubeSize;
                     p0[1] = (randm(&seed)-0.5) * cubeSize;			
                     p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
-//                  VECTOR_ZERO(p0);
-//                  p0[2] = -50;
+
+#else
+                    VECTOR_ZERO(p0);
+                    p0[1] = -1000;
+                    p0[2] = -200;
+#endif
+
                     NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
                     bd = GetBurgData(home, inGrain0, onGB0);
                     if(onGB0 > -1)continue;
 
+#if 0
                     if(chain < 24){
                         ranNum = chain;
                         if(chain < 12){
@@ -2860,7 +2867,11 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     gpIndex = bd->burgOnPlaneID[gpBurgIndex][ranNum % 2];
 //                  if(gpIndex != 3)continue;
                     if((bd->planeType[gpIndex] & GLIDE_PLANE) == 0 )continue;
-   
+#else
+                    gpIndex = 2;
+                    gpBurgIndex = 1;
+
+#endif   
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
 
@@ -2871,6 +2882,10 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     if(randomAngle > pi *1.75/1.8){		/* 175 degree */
                         randomAngle = pi;
                     }
+
+#if 1
+                    randomAngle = 0.0;
+#endif
 
                     cross(n0, b, n1);
                     NormalizeVec(n1);
