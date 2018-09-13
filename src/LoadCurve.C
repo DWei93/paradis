@@ -323,7 +323,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 				if(indxerate & EXX) dsig[0] = (erate*dtt - dpstn[0]) /Sij[0][0];
 				if(indxerate & EYY) dsig[1] = (erate*dtt - dpstn[1]) /Sij[1][1];
 				if(indxerate & EZZ) dsig[2] = (erate*dtt - dpstn[2]) /Sij[2][2];
-				if(indxerate & EYZ) dsig[3] = 2.0 * (erate*dtt) /Sij[3][3];
+				if(indxerate & EYZ) dsig[3] = 2.0 * (erate*dtt - dpstn[3]) /Sij[3][3];
 				if(indxerate & EXZ) dsig[4] = 2.0 * (erate*dtt - dpstn[4]) /Sij[4][4];
 				if(indxerate & EXY) dsig[5] = 2.0 * (erate*dtt - dpstn[5]) /Sij[5][5];
 				
@@ -351,7 +351,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 deltaStress[0][2] = deltaStress[2][0];
                 deltaStress[1][0] = deltaStress[0][1];
 
-                if(home->myDomain == 0)printf("Loading %e %e %e %e\n", erate*dtt, dpstn[3], deltaStress[2][1]/dtt, param->appliedStress[3]);
+//                if(home->myDomain == 0)printf("Loading %e %e %e %e\n", erate*dtt, dpstn[3], deltaStress[2][1]/dtt, param->appliedStress[3]);
                 break;
         
 /*

@@ -309,13 +309,13 @@ void ParadisStep(Home_t *home)
  *      function should be invoked before either of those items are done.
  */
         InitTopologyExemptions(home);
-        DebugGB(home,19);
+//        DebugGB(home,19);
 
 #if CHECK_GB_TOPO
         GenerateOutput(home, STAGE_DEBUG, "-4Trap");
 #endif
 
-        DebugGB(home,20);
+ //       DebugGB(home,20);
 
         if(param->xBoundType == Free ||
            param->yBoundType == Free ||
@@ -336,7 +336,7 @@ void ParadisStep(Home_t *home)
 #endif
         }
 
-        DebugGB(home,21);
+ //       DebugGB(home,21);
         if(param->polycrystal && param->nGrain>1){
             ClearOpList(home);
             HandleGrainBoundary(home);
@@ -352,7 +352,7 @@ void ParadisStep(Home_t *home)
 
         }
 
-        DebugGB(home,23);
+   //     DebugGB(home,23);
 
 /*
  *      In some simulations, it is necessary to recalculate and distribute
@@ -400,7 +400,7 @@ void ParadisStep(Home_t *home)
 
         SplitMultiNodes(home);
 
-        DebugGB(home,2);
+//        DebugGB(home,2);
 #ifdef _FEM
         SplitSurfaceNodes(home);
 #endif
@@ -413,15 +413,15 @@ void ParadisStep(Home_t *home)
  *      (if necessary) the cross-slip function appropriate to the
  *      type of material in use.
  */
-        CrossSlip(home);
-        DebugGB(home,3);
+//        CrossSlip(home);
+//        DebugGB(home,3);
 /*
  *      Search for dislocation segments in close proximity to each other
  *      and if necessary handle any collision between them.
  */
 //        HandleCollisions(home);
 		
-        DebugGB(home,4);
+  //      DebugGB(home,4);
 
 #ifdef PARALLEL
 #ifdef SYNC_TIMERS
@@ -480,7 +480,7 @@ void ParadisStep(Home_t *home)
  *      Invoke mesh coarsen/refine
  */
 //        Remesh(home);
-        DebugGB(home,6);
+//        DebugGB(home,6);
 
 
 #if CHECK_GB_TOPO
@@ -511,7 +511,7 @@ void ParadisStep(Home_t *home)
  *      processors.
  */
         Rebalance(home, DLB_USE_WALLCLK_TIME);
-        DebugGB(home,10);
+//        DebugGB(home,10);
 
 /*
  *      Send any nodes that have moved beyond the domain's
@@ -519,26 +519,26 @@ void ParadisStep(Home_t *home)
  */
 
         Migrate(home);
-        DebugGB(home,11);
+//        DebugGB(home,11);
 /*
  *      Recycle all the ghost nodes: move them back to the free Queue
  */
         RecycleGhostNodes(home);
-        DebugGB(home,12);
+//        DebugGB(home,12);
 
 /*
  *      Sort the native nodes into their proper subcells.  
  */
 		
         SortNativeNodes(home);
-        DebugGB(home,13);
+ //       DebugGB(home,13);
 
 /*
  *      Communicate ghost cells to/from neighbor domains
  */
 		
         CommSendGhosts(home);
-        DebugGB(home,14);
+   //     DebugGB(home,14);
 
 #ifdef NAN_CHECK
 /*

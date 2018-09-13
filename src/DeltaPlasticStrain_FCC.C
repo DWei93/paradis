@@ -45,7 +45,7 @@
  *                   after that.
  *
  ***************************************************************************/
-static void InitDeltaPlasticStrain_FCC(Home_t *home,
+static void InitDeltaPlasticStrain_FCC(int useLabFrame, real8 rotMatrix[3][3],
                                        real8 nanv[NUM_PLANES][3][NUM_BURG],
                                        real8 tanv[NUM_PLANES][3][NUM_BURG],
                                        real8 burgv[NUM_BURG][3],
@@ -121,7 +121,7 @@ static void InitDeltaPlasticStrain_FCC(Home_t *home,
  *      If necessary, rotate the nanv and tanv arrays from the crystal frame
  *      to the lab frame
  */
-        if (home->param->useLabFrame) {
+        if (useLabFrame) {
             int 		plane;
 
             for (plane = 0; plane < NUM_PLANES; plane++) {
@@ -137,8 +137,8 @@ static void InitDeltaPlasticStrain_FCC(Home_t *home,
                     tanvCryst[1] = tanv[plane][1][bIndex];
                     tanvCryst[2] = tanv[plane][2][bIndex];
 
-                    Matrix33Vector3Multiply(home->rotMatrix,nanvCryst,nanvLab);
-                    Matrix33Vector3Multiply(home->rotMatrix,tanvCryst,tanvLab);
+                    Matrix33Vector3Multiply(rotMatrix,nanvCryst,nanvLab);
+                    Matrix33Vector3Multiply(rotMatrix,tanvCryst,tanvLab);
 
                     nanv[plane][0][bIndex] = nanvLab[0];
                     nanv[plane][1][bIndex] = nanvLab[1];
@@ -155,12 +155,12 @@ static void InitDeltaPlasticStrain_FCC(Home_t *home,
  *      If necessary, rotate the bnorm array from the crystal frame to
  *      the lab frame
  */
-        if (home->param->useLabFrame) {
+        if (useLabFrame) {
 
             for (bIndex = 0; bIndex < NUM_BURG; bIndex++) {
                 real8 bnormLab[3];
 
-                Matrix33Vector3Multiply(home->rotMatrix,bnorm[bIndex],bnormLab);
+                Matrix33Vector3Multiply(rotMatrix,bnorm[bIndex],bnormLab);
                 VECTOR_COPY(bnorm[bIndex], bnormLab);
             }
         }
@@ -204,11 +204,14 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         real8        gdspn[6], gdstn[6];
         real8        dstn[3][3], dspn[3][3];
         real8        Ltot[NUM_BURG][4], areaSwept[NUM_BURG][7];
+        real8        rotMatrix[3][3];
         Param_t      *param;
         static int   initDone = 0;
         static real8 burgv[NUM_BURG][3], bnorm[NUM_BURG][3];
         static real8 nanv[NUM_PLANES][3][NUM_BURG];
         static real8 tanv[NUM_PLANES][3][NUM_BURG];
+        
+        printf("%d - 1\n",home->myDomain);
 
 /*
  *      Ltot : density of 
@@ -218,6 +221,13 @@ void DeltaPlasticStrain_FCC(Home_t *home)
  *         [burg][3] : edge_3
  *      for each burgers vector.
  */
+        VECTOR_ZERO(rotMatrix[0]);
+        VECTOR_ZERO(rotMatrix[1]);
+        VECTOR_ZERO(rotMatrix[2]);
+
+        rotMatrix[0][0] = 1.0;
+        rotMatrix[1][1] = 1.0;
+        rotMatrix[2][2] = 1.0;
 
         param = home->param;
 
@@ -246,9 +256,10 @@ void DeltaPlasticStrain_FCC(Home_t *home)
  */
 		
         if (!param->useLabFrame && !initDone++) {
-            InitDeltaPlasticStrain_FCC(home, nanv, tanv, burgv, bnorm);
+            InitDeltaPlasticStrain_FCC(0, rotMatrix, nanv, tanv, burgv, bnorm);
         }
 	
+        printf("%d - 2\n",home->myDomain);
 /*
  *      Loop through all the nodes calculating the flux contribution
  *      from each of the node's segments.  We want the loop threaded,
@@ -282,6 +293,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         GetThreadIterationIndices(home->newNodeKeyPtr, &threadID,
                                   &threadIterStart, &threadIterEnd);
 
+        printf("%d - 3\n",home->myDomain);
 /*
  *      Each thread now loops over its portion of the node list
  */
@@ -346,10 +358,6 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                }
 			   
 			   if(param->useLabFrame){
-                    real8   bakRot[3][3], bakRotInv[3][3];
-                    memcpy(bakRot, home->rotMatrix, sizeof(int [3][3]));
-                    memcpy(bakRotInv, home->rotMatrixInverse, sizeof(int [3][3]));
-
                     if(param->polycrystal){
 
                         int     inGrain, onGB;
@@ -364,13 +372,12 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                             grain = home->grainKeys[inGrain];    
                         }
                         
-                        memcpy(home->rotMatrix, grain->orientation, sizeof(int [3][3]));
-                        memcpy(home->rotMatrixInverse, grain->orientationInv, sizeof(int [3][3]));
+                        memcpy(rotMatrix, grain->orientation, sizeof(int [3][3]));
+                    }else{
+                        memcpy(rotMatrix, home->rotMatrix, sizeof(int [3][3]));
                     }
 
-					InitDeltaPlasticStrain_FCC(home, nanv, tanv, burgv, bnorm);
-                    memcpy(home->rotMatrix, bakRot, sizeof(int [3][3]));
-                    memcpy(home->rotMatrixInverse, bakRotInv, sizeof(int [3][3]));
+					InitDeltaPlasticStrain_FCC(1, rotMatrix, nanv, tanv, burgv, bnorm);
 			   }
 			   
 /*
@@ -442,6 +449,10 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 	        pp[2] +=  p2[2];
 			   
 	        VECTOR_MULTIPLY(pp,0.25);
+
+            if(isnan(pp[0]))pp[0] = 0.0;
+            if(isnan(pp[1]))pp[1] = 0.0;
+            if(isnan(pp[2]))pp[2] = 0.0;
 	         
 	        FoldBox(param,&pp[0],&pp[1],&pp[2]);
 	         
@@ -454,6 +465,14 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 	        hhx = node->x - nbr->oldx;
 	        hhy = node->y - nbr->oldy;
 	        hhz = node->z - nbr->oldz;
+
+            if(isnan(ex)) ex = 0.0;
+            if(isnan(ey)) ey = 0.0;
+            if(isnan(ez)) ez = 0.0;
+
+            if(isnan(hhx)) hhx = 0.0;
+            if(isnan(hhy)) hhy = 0.0;
+            if(isnan(hhz)) hhz = 0.0;
 
 	        ZImage(param, &ex, &ey, &ez);
 	        ZImage(param, &hhx, &hhy, &hhz);
@@ -976,6 +995,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             }
 
         }  /* for (nodeIndex = 0; nodeIndex < home->newNodeKeyPtr; ...) */
+        printf("%d - 4\n",home->myDomain);
 
 /*
  *      At this point, each thread has a portion of several arrays.
@@ -1012,6 +1032,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         if (thread_partialDensity != NULL) {
             free(thread_partialDensity);
         }
+        printf("%d - 5\n",home->myDomain);
 
     }  /* end "omp parallel" section */
 
@@ -1048,6 +1069,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                                             param->realdt;
             }
         }
+        printf("%d - 6\n",home->myDomain);
  
 #if 0
         printf("Ltot ---------------- \n");
@@ -1117,6 +1139,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             gdspn[i] = param->delpSpin[i];
         }
 #endif /* if PARALLEL */
+        printf("%d - 7\n",home->myDomain);
 
 
 #if 0
@@ -1256,5 +1279,6 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 
 #endif                                                                  
 
+        printf("%d - 8\n",home->myDomain);
         return;
 }

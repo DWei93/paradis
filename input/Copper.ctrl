@@ -17,22 +17,22 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
-numYdoms = 2
+numXdoms = 16
+numYdoms = 1
 numZdoms = 1
 #
 #  Cell geometry
 #
-numXcells = 4
-numYcells = 4
-numZcells = 4
+numXcells = 16
+numYcells = 16
+numZcells = 16
 
 #
 # Mesh size for tecmesh
 #
-meshSizeX = 100
-meshSizeY = 100
-meshSizeZ = 100
+meshSizeX = 1000
+meshSizeY = 1000
+meshSizeZ = 1000
 
 #  Dynamic load balancing
 #
@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.T4"
+dirname = "res.T10"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =  0
@@ -61,8 +61,7 @@ nextDT = 1.0e-13
 fmEnabled =   1  
 fmMPOrder =   2  
 fmTaylorOrder =   5  
-#fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
-fmCorrectionTbl =   "input/fm.2000.dat"
+fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 #fmCorrectionTbl =   "input/fm.sur.dat"
 #
 #  Loading conditions
@@ -112,15 +111,16 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 100
+tecplotfreq = 1000
 saveprop = 1
-savepropfreq = 100
+savepropfreq = 20
+savepropfreq = 2000
 tecmesh = 1
 tecmeshfreq = 2000
 velfile = 0
 velfilefreq = 1000
 savecn = 1
-savecnfreq = 5000
+savecnfreq = 10000
 savetimers = 0
 savetimersfreq = 1000
 

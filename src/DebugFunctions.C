@@ -473,7 +473,6 @@ void CheckNodeNANS(Node_t *node){
 
 
 void DebugGB(Home_t *home, int flag){
-    return;
 	int 	i,j,k,l, crossSlipNode, sameNode;
 	int	    normalID, inGrain, onGB;
 	real8   dot,resiBurg[3], resiVec[3];
@@ -484,33 +483,30 @@ void DebugGB(Home_t *home, int flag){
 	real8   vec1[3],vec2[3], vec[3], vecMag;
 	real8	normalCryst[3];
 	char    name[256];
-        FILE    *fp;
+    FILE    *fp;
 	char    subdir[256], stepdir[256], filename[256];
 
 	param = home->param;
 
 	printf("%d %d\n",home->myDomain, flag);
 
-    if(flag >= 18 && flag <= 22)return;
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
-        if(IsOnGB(node))continue;
-        NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
-        if(node->inGrain != inGrain){
-            PrintNode(node);
-            Fatal("flag : %d, task %d", flag, home->myDomain);
+        if(isnan(node->x) || isnan(node->y) || isnan(node->z)){
+            Fatal("DebugGB %d %d - 1", home->myDomain, flag);
         }
     }
 
 	node = home->ghostNodeQ;
 
     while (node) {
-        if(node->inGrain == -1 && node->onGB == -1){
-            PrintNode(node);
-            Fatal("DebugGB %d %d", home->myDomain, flag);
+        if(isnan(node->x) || isnan(node->y) || isnan(node->z)){
+            Fatal("DebugGB %d %d - 2", home->myDomain, flag);
         }
     
         node = node->next;
     }
+
+    return;
 }
 
