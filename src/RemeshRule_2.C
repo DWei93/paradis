@@ -59,6 +59,7 @@ static void MeshCoarsen(Home_t *home)
         int     mergedBasic;
         int     planeType, nbrInGrain;
         int     inGrain, onGB;
+        int     armInGrain1, armInGrain2, armOnGB1, armOnGB2;
 
 
         thisDomain = home->myDomain;
@@ -442,9 +443,14 @@ static void MeshCoarsen(Home_t *home)
                 oldTag3 = nbr2->myTag;
                                   
                 if(IsOnGB(node)){
+                    GetArmGrain(home, nbr1, node, armInGrain1, armOnGB1);
+                    GetArmGrain(home, nbr2, node, armInGrain2, armOnGB2);
                     if(!violateGlidePlanesOK){
-                        if(!IsOnGB(nbr1) && !IsOnGB(nbr2) && nbr1->inGrain != nbr2->inGrain)continue;
-                        if(nbr1->inGrain != nbr2->inGrain)continue;
+                        if(armOnGB1 != armOnGB2)continue;
+                        if(armInGrain1 != armInGrain2)continue;
+                    }else{
+                        if(armInGrain1 > 0 && armInGrain2 > 0 && armInGrain1 != armInGrain2
+                           && (nbr1->constraint == 7 || nbr2->constraint == 7))continue;    
                     }
                 }else{
                     if(IsOnGB(nbr1) && IsOnGB(nbr2))continue;
@@ -540,6 +546,12 @@ static void MeshCoarsen(Home_t *home)
                 mergedNode->flags |= NO_MESH_COARSEN;
 
                 if(IsOnGB(mergedNode)){
+
+                    if(mergedNode->constraint == 7){
+                        PrintNode(mergedNode);
+                        PrintNeighbor(home, mergedNode);
+                        printf("Warning: GB FR node in %s at %d\n", __FILE__, __LINE__);
+                    }
                     nbrInGrain = -1;
                     for(q=0; q<mergedNode->numNbrs; q++){
                         nbr = GetNodeFromTag(home, mergedNode->nbrTag[q]);
@@ -567,8 +579,8 @@ static void MeshCoarsen(Home_t *home)
 #if 1 
                 NodeLocation(home, mergedNode->x, mergedNode->y, mergedNode->z,inGrain, onGB);
                 if(inGrain != mergedNode->inGrain && !IsOnGB(mergedNode)){
-                    printf("Warning: ");
-                    PrintTag(mergedNode);
+                    printf("Warning (%d){%f,%f}: \n", violateGlidePlanesOK, r1, r2);
+                    PrintNode(mergedNode);
                     printf(" at %s in %d\n", __FILE__, __LINE__);
                 }
 #endif
