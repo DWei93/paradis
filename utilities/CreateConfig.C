@@ -2829,7 +2829,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
     
                 finished = 0;
                 while(!finished){
-#if 0
+#if 1
                     p0[0] = (randm(&seed)-0.5) * cubeSize;
                     p0[1] = (randm(&seed)-0.5) * cubeSize;			
                     p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
@@ -2844,7 +2844,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     bd = GetBurgData(home, inGrain0, onGB0);
                     if(onGB0 > -1)continue;
 
-#if 0
+#if 1
                     if(chain < 24){
                         ranNum = chain;
                         if(chain < 12){
@@ -2857,7 +2857,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     }
 
                     gpBurgIndex = (ranNum % 12) / 2;
-//                  if(gpBurgIndex != 1)continue;
                     if((bd->burgType[gpBurgIndex] & EDGE_BURG) == 0)continue;
 
                     if(chain >= 24){
@@ -2865,7 +2864,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     }
 
                     gpIndex = bd->burgOnPlaneID[gpBurgIndex][ranNum % 2];
-//                  if(gpIndex != 3)continue;
                     if((bd->planeType[gpIndex] & GLIDE_PLANE) == 0 )continue;
 #else
                     gpIndex = 2;
@@ -2874,7 +2872,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 #endif   
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
-
+#if 1
                     randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
                     if(randomAngle < pi * 5.0 /1.8e2){  /* 5 degree */
                         randomAngle = 0;
@@ -2883,22 +2881,18 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         randomAngle = pi;
                     }
 
-#if 1
-                    randomAngle = 0.0;
-#endif
-
                     cross(n0, b, n1);
                     NormalizeVec(n1);
                 	
                     for(i = 0; i < 3; i++){
                         randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
                     }
+
                     NormalizeVec(randomLine);
-
-//                  VECTOR_ZERO(randomLine);
-//                  randomLine[0] = 1.0;
-
-//                  if(fabs(randomLine[2]) > 1.0E-2)continue;
+#else
+                    VECTOR_ZERO(randomLine);
+                    randomLine[0] = -1.0;
+#endif
 
                     for (i = 0; i < 3; i++) {
                         p1[i] = p0[i] + (srcLen * randomLine[i])/2.0;

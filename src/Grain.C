@@ -88,7 +88,7 @@ void InitGrainStructure(Grain_t *grain, int numBounds){
 }
 
 
-bool cmp3(SlipSys_t &p, SlipSys_t &q){
+bool cmp3(SlipSys_t p, SlipSys_t q){
     return(p.schmidt > q.schmidt);
 }
 void InitGrain(Home_t *home, Param_t *param){
@@ -554,6 +554,10 @@ void InitGrain(Home_t *home, Param_t *param){
                     VECTOR_COPY(plane.normal, slipSys[j].normal);
                     VECTOR_ZERO(plane.point);
                     inGrain = slipSys[j].inGrain;
+                    plane.point[0] += -10.0*surArray[inGrain][0].normal[0];
+                    plane.point[1] += -10.0*surArray[inGrain][0].normal[1];
+                    plane.point[2] += -10.0*surArray[inGrain][0].normal[2];
+
 
                     for(k=0; k<surArray[inGrain].size(); k++){
                         type = PlanePlaneIntersection(
@@ -592,7 +596,7 @@ void InitGrain(Home_t *home, Param_t *param){
                                 length = Normal(vec4);
                                 vecMag = length/50.0;
                                 NormalizeVec(vec4);
-                                color = inGrain;
+                                color = slipSys[j].burgID;
             
                                 for(n=0; n<50; n++){
 	                                fprintf(fp, "%e %e %e %e %e %e %d %f %d\n", poss[0][0],
@@ -2265,7 +2269,7 @@ bool cmp(std::vector<int > p, std::vector<int > q)
     }
 }
 
-bool cmp2(Dislocation_t& p, Dislocation_t& q)
+bool cmp2(Dislocation_t p, Dislocation_t q)
 {
     return(p.planeID < q.planeID);
 }
