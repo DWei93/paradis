@@ -544,14 +544,9 @@ static void MeshCoarsen(Home_t *home)
                 }
         
                 mergedNode->flags |= NO_MESH_COARSEN;
-
+#if 0
                 if(IsOnGB(mergedNode)){
 
-                    if(mergedNode->constraint == 7){
-                        PrintNode(mergedNode);
-                        PrintNeighbor(home, mergedNode);
-                        printf("Warning: GB FR node in %s at %d\n", __FILE__, __LINE__);
-                    }
                     nbrInGrain = -1;
                     for(q=0; q<mergedNode->numNbrs; q++){
                         nbr = GetNodeFromTag(home, mergedNode->nbrTag[q]);
@@ -565,6 +560,7 @@ static void MeshCoarsen(Home_t *home)
                         }else{
                             break;
                         }
+                        if (!DomainOwnsSeg(home, OPCLASS_REMESH, thisDomain, &nbr->myTag))break;
                     }
                     if(nbrInGrain > -1 && q == mergedNode->numNbrs){
                         if(globalOp){
@@ -576,12 +572,23 @@ static void MeshCoarsen(Home_t *home)
                     }
                 }
 
-#if 1 
-                NodeLocation(home, mergedNode->x, mergedNode->y, mergedNode->z,inGrain, onGB);
+                NodeLocation(home, mergedNode->x, mergedNode->y, mergedNode->z, inGrain, onGB);
                 if(inGrain != mergedNode->inGrain && !IsOnGB(mergedNode)){
-                    printf("Warning (%d){%f,%f}: \n", violateGlidePlanesOK, r1, r2);
-                    PrintNode(mergedNode);
-                    printf(" at %s in %d\n", __FILE__, __LINE__);
+                    GB_t    *gb;
+                    real8   dis;
+
+                    vec[0] = mergedNode->x;
+                    vec[1] = mergedNode->y;
+                    vec[2] = mergedNode->z;
+                    dis = ClosedGB(home, vec. &gb);
+                    if(fabs(dis) > 1){
+                        printf("Warning (%d){%f,%f}: \n", violateGlidePlanesOK, r1, r2);
+                        PrintNode(mergedNode);
+                        printf(" at %s in %d\n", __FILE__, __LINE__);
+                    }else{
+                        PrintNode(mergedNode);
+                        printf("Dis: \n", violateGlidePlanesOK, r1, r2);
+                    }
                 }
 #endif
 /*
