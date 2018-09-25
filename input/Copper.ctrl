@@ -17,15 +17,15 @@
 #
 #  Domain geometry
 #
-numXdoms = 16
-numYdoms = 1
+numXdoms = 8
+numYdoms = 2
 numZdoms = 1
 #
 #  Cell geometry
 #
-numXcells = 16
-numYcells = 16
-numZcells = 16
+numXcells = 8
+numYcells = 8
+numZcells = 8
 
 #
 # Mesh size for tecmesh
@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.T10"
+dirname = "res.T5"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =  0
