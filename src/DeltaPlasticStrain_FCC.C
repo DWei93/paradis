@@ -211,7 +211,6 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         static real8 nanv[NUM_PLANES][3][NUM_BURG];
         static real8 tanv[NUM_PLANES][3][NUM_BURG];
         
-        printf("%d - 1\n",home->myDomain);
 
 /*
  *      Ltot : density of 
@@ -259,7 +258,6 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             InitDeltaPlasticStrain_FCC(0, rotMatrix, nanv, tanv, burgv, bnorm);
         }
 	
-        printf("%d - 2\n",home->myDomain);
 /*
  *      Loop through all the nodes calculating the flux contribution
  *      from each of the node's segments.  We want the loop threaded,
@@ -293,7 +291,6 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         GetThreadIterationIndices(home->newNodeKeyPtr, &threadID,
                                   &threadIterStart, &threadIterEnd);
 
-        printf("%d - 3\n",home->myDomain);
 /*
  *      Each thread now loops over its portion of the node list
  */
@@ -995,7 +992,6 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             }
 
         }  /* for (nodeIndex = 0; nodeIndex < home->newNodeKeyPtr; ...) */
-        printf("%d - 4\n",home->myDomain);
 
 /*
  *      At this point, each thread has a portion of several arrays.
@@ -1032,7 +1028,6 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         if (thread_partialDensity != NULL) {
             free(thread_partialDensity);
         }
-        printf("%d - 5\n",home->myDomain);
 
     }  /* end "omp parallel" section */
 
@@ -1069,7 +1064,6 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                                             param->realdt;
             }
         }
-        printf("%d - 6\n",home->myDomain);
  
 #if 0
         printf("Ltot ---------------- \n");
@@ -1139,7 +1133,6 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             gdspn[i] = param->delpSpin[i];
         }
 #endif /* if PARALLEL */
-        printf("%d - 7\n",home->myDomain);
 
 
 #if 0
@@ -1279,6 +1272,5 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 
 #endif                                                                  
 
-        printf("%d - 8\n",home->myDomain);
         return;
 }

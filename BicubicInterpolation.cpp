@@ -171,13 +171,13 @@ int main(int argc,char** argv)
     MPI_Comm_size(MPI_COMM_WORLD, &nDomains);
 
 
-    param.xBoundMax = 10000.0;
-    param.yBoundMax = 10000.0;
+    param.xBoundMax = 1000.0;
+    param.yBoundMax = 1000.0;
     xBoundMax = param.xBoundMax;
     yBoundMax = param.yBoundMax;
 
-    param.xBoundMin = -10000.0;
-    param.yBoundMin = -10000.0;
+    param.xBoundMin = -1000.0;
+    param.yBoundMin = -1000.0;
     xBoundMin = param.xBoundMin;
     yBoundMin = param.yBoundMin;
 
@@ -188,8 +188,8 @@ int main(int argc,char** argv)
     meshSizeY = param.meshSizeY;
     radius = param.radius;
 
-    nPotParams = 1000000;
-    potExpection = 0.04;
+    nPotParams = 10000;
+    potExpection = 0.128;
     potVariance = 0.0;
     sigma = 20.0;
     param.burgMag = 2.556e-10;
@@ -275,7 +275,7 @@ int main(int argc,char** argv)
             }
         }
 
-        if((int)((double(i))*100/((double)(nPotParams/nDomains))) == percent +1){
+        if((int)((double(i))*100/((double)(nPotParams/nDomains))) == percent +1 && myDomain == 0){
             percent ++;
             printf("%d: Loading ... %d\n", myDomain, percent);
         }
@@ -307,6 +307,7 @@ int main(int argc,char** argv)
 
     if(myDomain == 0){
         ofstream outfile("Tec.plt");
+        ofstream out2("Refine.plt");
         outfile << numY1*numX1*4 << " " << meshSizeX <<
                 " " << meshSizeY << " " << numX1 << " " << numY1 <<endl;
         for(i=0; i<numX1; i++){
@@ -318,9 +319,18 @@ int main(int argc,char** argv)
                 outfile << scientific << globalArray[1+4*j+4*numY1*i] << " ";
                 outfile << scientific << globalArray[2+4*j+4*numY1*i] << " ";
                 outfile << scientific << globalArray[3+4*j+4*numY1*i] << endl;
+
+                out2 << scientific << param.xBoundMin + ((double)i)*meshSizeX << " ";
+                out2 << scientific << param.yBoundMin + ((double)j)*meshSizeY << " ";
+
+                out2 << scientific << globalArray[0+4*j+4*numY1*i] << " ";
+                out2 << scientific << globalArray[1+4*j+4*numY1*i] << " ";
+                out2 << scientific << globalArray[2+4*j+4*numY1*i] << " ";
+                out2 << scientific << globalArray[3+4*j+4*numY1*i] << endl;
             } 
         }
         outfile.close();
+        out2.close();
 #if 0
         meshSizeX /= 40.0;
         meshSizeY /= 40.0;

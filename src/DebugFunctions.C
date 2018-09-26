@@ -473,6 +473,7 @@ void CheckNodeNANS(Node_t *node){
 
 
 void DebugGB(Home_t *home, int flag){
+    return;
 	int 	i,j,k,l, crossSlipNode, sameNode;
 	int	    normalID, inGrain, onGB;
 	real8   dot,resiBurg[3], resiVec[3];
@@ -507,6 +508,5 @@ void DebugGB(Home_t *home, int flag){
         node = node->next;
     }
 
-    return;
 }
 

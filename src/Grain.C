@@ -58,7 +58,7 @@ void FormatMatrix(real8 M[3][3], const char *msg){
 	int i;
 	printf("%s:\n{",msg);
 	for (i = 0; i < 3; i++){
-	    printf("{%20.15f,%20.15f,%20.15f}", M[i][0], M[i][1], M[i][2]);
+	    printf("{ %20.15f,%20.15f,%20.15f }", M[i][0], M[i][1], M[i][2]);
         if(i<2){
             printf(",\n");
         }else{

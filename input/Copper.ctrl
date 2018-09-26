@@ -17,15 +17,15 @@
 #
 #  Domain geometry
 #
-numXdoms = 8
+numXdoms = 2
 numYdoms = 2
 numZdoms = 1
 #
 #  Cell geometry
 #
-numXcells = 8
-numYcells = 8
-numZcells = 8
+numXcells = 4
+numYcells = 4
+numZcells = 4
 
 #
 # Mesh size for tecmesh
@@ -105,13 +105,13 @@ MobTwinning = 5.000000e+04
 sfEnergy = 15E-3
 rTol = 0.5
 rc =  1
-randomInternalForce = 0
+randomInternalForce = 1
 #
 #  I/O controls and parameters
 #  
 #
 tecplot = 1
-tecplotfreq = 1000
+tecplotfreq = 100
 saveprop = 1
 savepropfreq = 20
 savepropfreq = 2000
