@@ -2574,8 +2574,8 @@ void StackingFaultForce(Home_t *home, real8 dx, real8 dy, real8 dz, real8 sfEner
 
     real8       vec[3], length, dir[3];
     vec[0] = dx;
-    vec[0] = dy;
-    vec[0] = dz;
+    vec[1] = dy;
+    vec[2] = dz;
 
     length = Normal(vec);
     if(length < 1.0E-4)return;

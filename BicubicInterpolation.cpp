@@ -189,9 +189,9 @@ int main(int argc,char** argv)
     radius = param.radius;
 
     nPotParams = 10000;
-    potExpection = 0.128;
     potVariance = 0.0;
     sigma = 20.0;
+    potExpection = 0.05*sigma;
     param.burgMag = 2.556e-10;
     burgMag = param.burgMag;
 
@@ -310,6 +310,7 @@ int main(int argc,char** argv)
         ofstream out2("Refine.plt");
         outfile << numY1*numX1*4 << " " << meshSizeX <<
                 " " << meshSizeY << " " << numX1 << " " << numY1 <<endl;
+        out2 << "variables = x, y, tau, tau_x, tau_y, tau_xy " <<endl;
         for(i=0; i<numX1; i++){
             for(j=0; j<numY1; j++){
 //                outfile << scientific << param.xBoundMin + ((double)i)*meshSizeX << " ";

@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.T5"
+dirname = "res.T1"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =  0
@@ -102,8 +102,8 @@ fricStress = 0.0e0
 MobScrew =   1.000000e+04
 MobEdge =    1.000000e+04  
 MobTwinning = 5.000000e+04
-sfEnergy = 15E-3
-rTol = 0.5
+sfEnergy = 10E-3
+rTol = 1
 rc =  1
 randomInternalForce = 1
 #
@@ -111,9 +111,9 @@ randomInternalForce = 1
 #  
 #
 tecplot = 1
-tecplotfreq = 100
+tecplotfreq = 200
 saveprop = 1
-savepropfreq = 20
+savepropfreq = 2000
 savepropfreq = 2000
 tecmesh = 1
 tecmeshfreq = 2000

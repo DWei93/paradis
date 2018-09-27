@@ -479,7 +479,7 @@ void ParadisStep(Home_t *home)
 /*
  *      Invoke mesh coarsen/refine
  */
-//        Remesh(home);
+        Remesh(home);
 //        DebugGB(home,6);
 
 
