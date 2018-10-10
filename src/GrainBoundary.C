@@ -447,10 +447,10 @@ void FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
     centor[1] = (n1Pos[1] +  n2Pos[1] + n1OldPos[1] + n2OldPos[1])*0.25;
     centor[2] = (n1Pos[2] +  n2Pos[2] + n1OldPos[2] + n2OldPos[2])*0.25;
 
-    PointPlaneIntersection(centor, GBPlane->normal, GBPlane->point, vec1, &dis);
+//    PointPlaneIntersection(centor, GBPlane->normal, GBPlane->point, vec1, &dis);
 
     type = PlanePlaneIntersection(normal, centor, GBPlane->normal, 
-           vec1, line->direction, line->point);
+           GBPlane->point, line->direction, line->point);
     
     if(type != LINE_INTERSECTION){
         Fatal("In file %s at line %d", __FILE__, __LINE__);        

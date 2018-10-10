@@ -2847,10 +2847,12 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 #if 1
                     if(chain < 24){
                         ranNum = chain;
-                        if(chain < 12){
-                            if(inGrain0 != 0)continue;
-                        }else{
-                            if(inGrain0 != 1)continue;
+                        if(polycrystal){
+                            if(chain < 12){
+                                if(inGrain0 != 0)continue;
+                            }else{
+                                if(inGrain0 != 1)continue;
+                            }
                         }
                     }else{
                         ranNum = (int)(randm(&seed) * 1000);

@@ -4266,7 +4266,8 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                 if(nbr != (Node_t *)NULL){
                     planeType = GetPlaneType_FCC(home, node, nbr);
                     if((planeType & JUNCTION_PLANE1) > 0 ||
-                       (planeType & JUNCTION_PLANE2) > 0){
+                       (planeType & JUNCTION_PLANE2) > 0 ||
+                       (planeType & UNKOWN_PLANE) > 0){
                         junctionConstraint = 1;
                         lDir[0] = nbr->x - node->x;
                         lDir[1] = nbr->y - node->y;

@@ -432,7 +432,7 @@ void InitGrain(Home_t *home, Param_t *param){
 			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
 		    }
             
-	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, burgID, schmidt, inGrain\n");
+	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, burgID, normalID, schmidt, inGrain\n");
 
             for(i=0; i<6; i++){
                 type = PlanePlaneIntersection(surList[i].normal, surList[i].point,
@@ -471,7 +471,7 @@ void InitGrain(Home_t *home, Param_t *param){
                         NormalizeVec(vec4);
                         for(m=0; m<50; m++){
 #if 1
-	                        fprintf(fp, "%e %e %e %e %e %e -1 -1.00 -1\n", poss[0][0],
+	                        fprintf(fp, "%e %e %e %e %e %e -1 3 -1.00 -1\n", poss[0][0],
                                     poss[0][1],poss[0][2], vecMag*vec4[0],
                                     vecMag*vec4[1],vecMag*vec4[2]);
 #endif
@@ -599,9 +599,10 @@ void InitGrain(Home_t *home, Param_t *param){
                                 color = slipSys[j].burgID;
             
                                 for(n=0; n<50; n++){
-	                                fprintf(fp, "%e %e %e %e %e %e %d %f %d\n", poss[0][0],
+	                                fprintf(fp, "%e %e %e %e %e %e %d %d %f %d\n", poss[0][0],
                                     poss[0][1],poss[0][2], vecMag*vec4[0],
-                                    vecMag*vec4[1],vecMag*vec4[2],color, slipSys[j].schmidt, inGrain);
+                                    vecMag*vec4[1],vecMag*vec4[2], slipSys[j].burgID, 
+                                    slipSys[j].planeID, slipSys[j].schmidt, inGrain);
                                     poss[0][0] += vecMag*vec4[0];
                                     poss[0][1] += vecMag*vec4[1];
                                     poss[0][2] += vecMag*vec4[2];

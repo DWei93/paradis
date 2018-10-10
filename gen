@@ -29,7 +29,7 @@ maxSeg=200
 nfrs=100
 maxDensity=1E13
 seed=""
-type=5
+type=2
 
 PI=3.1415926535897932385
 angle=`echo "scale=16; ${1}.0 * ${PI} / 180.0 " | bc -l`
@@ -88,10 +88,10 @@ case $type in
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity \
-    -xMatDir 0.707106781186548,-0.707106781186548,0.0 -yMatDir 0.642228525188087,0.642228525188087,-0.418431646591735 \
-     -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
+    -TBAngle ${angle} \
+    -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
 
-#    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
+#    -xMatDir 0.707106781186548,-0.707106781186548,0.0 -yMatDir 0.642228525188087,0.642228525188087,-0.418431646591735 \
 
     *)
      echo "input error!"
