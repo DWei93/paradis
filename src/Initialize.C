@@ -1179,16 +1179,20 @@ void Initialize(Home_t *home,int argc, char *argv[])
         int          maxNumThreads = 1;
         int          doBinRead;
         char         *sep, *start;
-        char         tmpDataFile[256], testFile[256];
+        char         tmpDataFile[256], testFile[256], tmpTableFile[256];
         char         *ctrlFile;
-        char         *dataFile;
+        char         *dataFile, *tableFile;
         const   char* temp;
         Param_t      *param;
         InData_t     *inData;
         int          fd;
         int          totMeshNum;
 
+        int  maxTokenLen, tokenType, pIndex, okay;
+        char token[256];
+        FILE *fp = (FILE *)NULL;
 
+        real8 *pstn;
 /*
  *      Initialize map between old and new node tags before
  *      reading nodal data and distributing it to the remote
@@ -1226,6 +1230,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
             dataFile = (char *)NULL;
             ctrlFile = (char*)"control.script";
+            tableFile = (char *)NULL;
 
             for (i = 1; i < argc; i++) {
                 if (!strcmp(argv[i], "-r")) {
@@ -1254,6 +1259,10 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 } else if (!strcmp(argv[i], "-d")) {
                     if (i >= (argc - 1)) Usage(argv[0]);
                     dataFile = argv[++i];
+
+                } else if (!strcmp(argv[i], "-h")) {
+                    if(i >= (argc - 1)) Usage(argv[0]);
+                    tableFile = argv[++i];
                 } else {
                     if (i < (argc - 1)) Usage(argv[0]);
                     ctrlFile = argv[i];
@@ -1362,6 +1371,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
 #endif
         }  /* if (home->myDomain == 0) */
 
+
+
 /*
  *      All domains need the current Param_t structure that's
  *      been populated by domain zero, so broadcast it out.  There
@@ -1442,13 +1453,13 @@ void Initialize(Home_t *home,int argc, char *argv[])
         }
 	
 		
-	InitIsotropicElasticConstantMatrix(home);
+	    InitIsotropicElasticConstantMatrix(home);
 		
-	Matrix66Invert(param->elasticConstantMatrix,
+	    Matrix66Invert(param->elasticConstantMatrix,
 	               param->elasticConstantMatrixInv);
 		
-	VECTOR_ZERO(&param->elasticStrainTensor[0]);
-	VECTOR_ZERO(&param->elasticStrainTensor[3]);
+	    VECTOR_ZERO(&param->elasticStrainTensor[0]);
+	    VECTOR_ZERO(&param->elasticStrainTensor[3]);
 		
 		
 /*
@@ -1490,6 +1501,91 @@ void Initialize(Home_t *home,int argc, char *argv[])
                        MPI_COMM_WORLD);
 #endif
         }
+
+        param->meshNumX = (int)(param->Lx/param->meshSizeX);
+        param->meshNumY = (int)(param->Ly/param->meshSizeY);
+        param->meshNumZ = (int)(param->Lz/param->meshSizeZ);
+
+        param->meshSizeX = param->Lx/(real8)param->meshNumX;
+        param->meshSizeY = param->Ly/(real8)param->meshNumY;
+        param->meshSizeZ = param->Lz/(real8)param->meshNumZ;
+
+        totMeshNum = param->meshNumX*param->meshNumY*param->meshNumZ;
+        home->pstnEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
+        home->disDenEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
+
+        for(i=0; i<totMeshNum; i++){
+            home->pstnEle[i] = (real8 *)calloc(6, sizeof(real8)); 
+        }
+
+        for(i=0; i<totMeshNum; i++){
+           home->disDenEle[i] = (real8 *)calloc(6, sizeof(real8)); 
+        }
+        
+/*
+ *      Reading the plastic strain restart file
+ */
+
+        if(home->myDomain == 0){
+
+            if (tableFile == (char *)NULL) {
+                strcpy(tmpTableFile, ctrlFile);
+                start = strrchr(tmpTableFile, '/');
+                if (start == (char *)NULL) start = tmpTableFile;
+                sep = strrchr(start, '.');
+                if ((sep != (char *)NULL) && (sep > start)) *sep = 0;
+                strcat(tmpTableFile, TABLE_FILE_SUFFIX);
+                tableFile = tmpTableFile;
+            }
+
+            maxTokenLen = sizeof(token);
+            tokenType = TOKEN_GENERIC;
+
+            if ((fp = fopen(tableFile, "r")) != (FILE *)NULL) {
+                printf("Initialize: Parsing plastic strain file %s\n", tableFile);
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if (strcmp(token, "pstnEle") != 0){
+                    Fatal("Read Table File: can not read pstEle");
+                }
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if(tokenType != TOKEN_EQUAL)Fatal("Read Table File: can not read pstEle");
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if(tokenType != TOKEN_BEGIN_VAL_LIST)Fatal("Read Table File: can not read pstEle");
+            
+                for(i=0; i<totMeshNum; i++){
+                    for(j=0; j<6; j++){
+                        if((tokenType = GetNextToken(fp, token, maxTokenLen)) != TOKEN_GENERIC){
+                            Fatal("Read Table File: can not read pstEle");
+                        }
+                        home->pstnEle[i][j] = atof(token);
+                    }
+                }
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if(tokenType != TOKEN_END_VAL_LIST)Fatal("Read Table File: can not read pstEle");
+                printf("Initialize: Plastic strain file parsing complete\n");
+                fclose(fp);
+            }
+        }        
+
+// ##ifdef PARALLEL
+#if 0
+        pstn = (real8 *)malloc(totMeshNum*6*sizeof(real8));
+        for(i=0; i<totMeshNum; i++){
+            for(j=0; j<6; j++){
+                pstn[i*6+j] = home->pstnEle[i][j];
+            }
+        }
+        MPI_Bcast((real8 *)pstn, 6*totMeshNum, MPI_DOUBLE, 0,  MPI_COMM_WORLD);
+        for(i=0; i<totMeshNum; i++){
+            for(j=0; j<6; j++){
+                home->pstnEle[i][j] = pstn[i*6+j];
+            }
+        }
+        free(pstn);
+        pstn = (real8 *)NULL;
+#endif
+
+        
 /*
  *      Now that the param structure is fully populated, do any
  *      remaining sanity checks or initializations that could not
@@ -1524,7 +1620,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
  */
         FreeInitArrays(home, inData);
         free(inData);
-
 /*
  *      We attempted to preserve the node tags from the previous
  *      run, so the nodeKeys array may be sparsely populated.  If
@@ -1700,26 +1795,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
             Matrix33Invert(home->rotMatrix, home->rotMatrixInverse);
         }
 
-        param->meshNumX = (int)(param->Lx/param->meshSizeX);
-        param->meshNumY = (int)(param->Ly/param->meshSizeY);
-        param->meshNumZ = (int)(param->Lz/param->meshSizeZ);
-
-        param->meshSizeX = param->Lx/(real8)param->meshNumX;
-        param->meshSizeY = param->Ly/(real8)param->meshNumY;
-        param->meshSizeZ = param->Lz/(real8)param->meshNumZ;
-
-        totMeshNum = param->meshNumX*param->meshNumY*param->meshNumZ;
-        home->pstnEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
-        home->disDenEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
-
-        for(i=0; i<totMeshNum; i++){
-            home->pstnEle[i] = (real8 *)calloc(6, sizeof(real8)); 
-        }
-
-        for(i=0; i<totMeshNum; i++){
-           home->disDenEle[i] = (real8 *)calloc(6, sizeof(real8)); 
-        }
-        
 
 /*
  *	Iinitialize grain

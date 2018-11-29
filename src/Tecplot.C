@@ -538,10 +538,10 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
     totPlaStn = (real8 **)malloc(totEleNum*sizeof(real8*));        
     totDisDen = (real8 **)malloc(totEleNum*sizeof(real8*));        
 
-    locVals = (real8 *)calloc(totEleNum*12, sizeof(real8));
-    gloVals = (real8 *)calloc(totEleNum*12, sizeof(real8));
+    locVals = (real8 *)calloc(totEleNum*6, sizeof(real8));
+    gloVals = (real8 *)calloc(totEleNum*6, sizeof(real8));
 
-    for(i=0; i<totEleNum*12; i++){
+    for(i=0; i<totEleNum*6; i++){
         locVals[i] = 0.0;
         gloVals[i] = 0.0;
     }
@@ -648,62 +648,38 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 #ifdef PARALLEL
 
     for (i=0; i<totEleNum; i++){
-        j = 0;
-        locVals[i*12+(j++)] = home->pstnEle[i][0];
-        locVals[i*12+(j++)] = home->pstnEle[i][1];
-        locVals[i*12+(j++)] = home->pstnEle[i][2];
-        locVals[i*12+(j++)] = home->pstnEle[i][3];
-        locVals[i*12+(j++)] = home->pstnEle[i][4];
-        locVals[i*12+(j++)] = home->pstnEle[i][5];
-
-        locVals[i*12+(j++)] = home->disDenEle[i][0];
-        locVals[i*12+(j++)] = home->disDenEle[i][1];
-        locVals[i*12+(j++)] = home->disDenEle[i][2];
-        locVals[i*12+(j++)] = home->disDenEle[i][3];
-        locVals[i*12+(j++)] = home->disDenEle[i][4];
-        locVals[i*12+(j++)] = home->disDenEle[i][5];
+        for(j = 0; j<6; j++){
+            locVals[i*6+j] = home->disDenEle[i][j];
+        }
     }
 
-	MPI_Reduce(locVals, gloVals, 12*totEleNum, MPI_DOUBLE,
+	MPI_Reduce(locVals, gloVals, 6*totEleNum, MPI_DOUBLE,
 			   MPI_SUM, 0, MPI_COMM_WORLD);
 
-    for(i=0; i<totEleNum; i++){
-        j=0;
-        home->pstnEle[i][0] = gloVals[i*12+(j++)];
-        home->pstnEle[i][1] = gloVals[i*12+(j++)];
-        home->pstnEle[i][2] = gloVals[i*12+(j++)];
-        home->pstnEle[i][3] = gloVals[i*12+(j++)];
-        home->pstnEle[i][4] = gloVals[i*12+(j++)];
-        home->pstnEle[i][5] = gloVals[i*12+(j++)];
-
-        home->disDenEle[i][0] = gloVals[i*12+(j++)];
-        home->disDenEle[i][1] = gloVals[i*12+(j++)];
-        home->disDenEle[i][2] = gloVals[i*12+(j++)];
-        home->disDenEle[i][3] = gloVals[i*12+(j++)];
-        home->disDenEle[i][4] = gloVals[i*12+(j++)];
-        home->disDenEle[i][5] = gloVals[i*12+(j++)];
+    for (i=0; i<totEleNum; i++){
+        for(j = 0; j<6; j++){
+            home->disDenEle[i][j] = gloVals[i*6+j];
+        }
     }
 #endif
 
-	for(i=0;i<totEleNum;i++){
-	    totPlaStn[i][0] = home->pstnEle[i][0];
-	    totPlaStn[i][1] = home->pstnEle[i][1];
-	    totPlaStn[i][2] = home->pstnEle[i][2];
-	    totPlaStn[i][3] = home->pstnEle[i][3];
-	    totPlaStn[i][4] = home->pstnEle[i][4];
-	    totPlaStn[i][5] = home->pstnEle[i][5];
-
-	    totDisDen[i][0] = home->disDenEle[i][0];
-	    totDisDen[i][1] = home->disDenEle[i][1];
-	    totDisDen[i][2] = home->disDenEle[i][2];
-	    totDisDen[i][3] = home->disDenEle[i][3];
-	    totDisDen[i][4] = home->disDenEle[i][4];
-	    totDisDen[i][5] = home->disDenEle[i][5];
-	}
-
-
 	if (firstInGroup) {
-		
+		for(i=0;i<totEleNum;i++){
+		    totPlaStn[i][0] = home->pstnEle[i][0];
+		    totPlaStn[i][1] = home->pstnEle[i][1];
+		    totPlaStn[i][2] = home->pstnEle[i][2];
+		    totPlaStn[i][3] = home->pstnEle[i][3];
+		    totPlaStn[i][4] = home->pstnEle[i][4];
+		    totPlaStn[i][5] = home->pstnEle[i][5];
+    
+		    totDisDen[i][0] = home->disDenEle[i][0];
+		    totDisDen[i][1] = home->disDenEle[i][1];
+		    totDisDen[i][2] = home->disDenEle[i][2];
+		    totDisDen[i][3] = home->disDenEle[i][3];
+		    totDisDen[i][4] = home->disDenEle[i][4];
+		    totDisDen[i][5] = home->disDenEle[i][5];
+		}
+
 	    for(i=0;i<totNodeNum;i++){
 		    VECTOR_ZERO(nodeContour[i]);
 	    }

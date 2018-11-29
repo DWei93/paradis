@@ -20,6 +20,7 @@
  */
 #define HDF_DATA_FILE_SUFFIX   ".hdf"
 #define NODEDATA_FILE_SUFFIX   ".data"
+#define TABLE_FILE_SUFFIX      ".tab"
 #define NODEDATA_FILE_VERSION  4
 
 struct _param {

@@ -241,6 +241,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             param->delpTwinStrain[i] = 0.0;
         }                                                                
 
+
 /*
  *      The first time we enter this function, initialize a few
  *      arrays that will remain static for the duration of the

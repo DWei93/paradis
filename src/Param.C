@@ -684,7 +684,11 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 
         BindVar(CPList, "tecplotcounter", &param->tecplotcounter, V_INT, 1,
                 VFLAG_NULL);
+        param->tecplotcounter = -1;
 
+        BindVar(CPList, "tecmeshcounter", &param->tecmeshcounter, V_INT, 1,
+                VFLAG_NULL);
+        param->tecmeshcounter = -1;
 
 /*
  *      nodal velocity data
