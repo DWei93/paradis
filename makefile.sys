@@ -1149,11 +1149,11 @@ HDF_LIBDIR.gcc        =
 HDF_LIB.gcc           = 
 HDF_INCS.gcc          = 
 
-GEOS_LIBDIR.gcc        =  
+#GEOS_LIBDIR.gcc        =  
 # GEOS_LIB.gcc           = -L/usr/local/lib -lgeos -rdynamic -Wl,-rpath,/usr/local/lib
 # GEOS_INCS.gcc          = -I/usr/local/include
-# GEOS_LIB.gcc           = -L/home/dwei/geos/lib -lgeos -rdynamic -Wl,-rpath,/home/dwei/geos/lib
-# GEOS_INCS.gcc          = -I/home/dwei/geos/include
+#GEOS_LIB.gcc           = -L/home/dwei/geos/lib -lgeos -rdynamic -Wl,-rpath,/home/dwei/geos/lib
+#GEOS_INCS.gcc          = -I/home/dwei/geos/include
 
 OPENMP_FLAG.gcc       = -fopenmp
 

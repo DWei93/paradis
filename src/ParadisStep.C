@@ -511,7 +511,7 @@ void ParadisStep(Home_t *home)
  *      processors.
  */
         Rebalance(home, DLB_USE_WALLCLK_TIME);
-//        DebugGB(home,10);
+        DebugGB(home,10);
 
 /*
  *      Send any nodes that have moved beyond the domain's
@@ -519,26 +519,26 @@ void ParadisStep(Home_t *home)
  */
 
         Migrate(home);
-//        DebugGB(home,11);
+        DebugGB(home,11);
 /*
  *      Recycle all the ghost nodes: move them back to the free Queue
  */
         RecycleGhostNodes(home);
-//        DebugGB(home,12);
+        DebugGB(home,12);
 
 /*
  *      Sort the native nodes into their proper subcells.  
  */
 		
         SortNativeNodes(home);
- //       DebugGB(home,13);
+       DebugGB(home,13);
 
 /*
  *      Communicate ghost cells to/from neighbor domains
  */
 		
         CommSendGhosts(home);
-   //     DebugGB(home,14);
+     DebugGB(home,14);
 
 #ifdef NAN_CHECK
 /*

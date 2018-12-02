@@ -80,7 +80,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         int     i, j, k, loadtype, indxerate;
         int     numLoadCycle, numLoadCycle2;       
         real8   youngs, erate, dtt;
-        real8   shr;
+        real8   shr, dstn[6];
         real8   modulus, dpl_stn, dStress, amag, al, am, an;
         real8   sigijk, stn_cut;
         real8   phi1, phi2, phi3;
@@ -112,6 +112,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
             dsig[i] = 0.0;
             destn[i] = 0.0;
             tmpdSig[i] = 0.0;
+            dstn[i] = 0.0;
         }
         
 /*
@@ -319,13 +320,20 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 C   = param->elasticConstantMatrix;
                 Sij = param->elasticConstantMatrixInv;
 				
-				
-				if(indxerate & EXX) dsig[0] = (erate*dtt - dpstn[0]) /Sij[0][0];
-				if(indxerate & EYY) dsig[1] = (erate*dtt - dpstn[1]) /Sij[1][1];
-				if(indxerate & EZZ) dsig[2] = (erate*dtt - dpstn[2]) /Sij[2][2];
-				if(indxerate & EYZ) dsig[3] = 2.0 * (erate*dtt - dpstn[3]) /Sij[3][3];
-				if(indxerate & EXZ) dsig[4] = 2.0 * (erate*dtt - dpstn[4]) /Sij[4][4];
-				if(indxerate & EXY) dsig[5] = 2.0 * (erate*dtt - dpstn[5]) /Sij[5][5];
+                if(indxerate & EXX) dstn[0] = erate*dtt;
+                if(indxerate & EYY) dstn[1] = erate*dtt;
+                if(indxerate & EZZ) dstn[2] = erate*dtt;
+                if(indxerate & EYZ) dstn[3] = erate*dtt;
+                if(indxerate & EXZ) dstn[4] = erate*dtt;
+                if(indxerate & EXY) dstn[5] = erate*dtt;
+
+                dsig[0] = (dstn[0] - dpstn[0]) /Sij[0][0];
+                dsig[1] = (dstn[1] - dpstn[1]) /Sij[1][1];
+                dsig[2] = (dstn[2] - dpstn[2]) /Sij[2][2];
+                dsig[3] = 2.0 * (dstn[3] - dpstn[3]) /Sij[3][3];
+                dsig[4] = 2.0 * (dstn[4] - dpstn[4]) /Sij[4][4];
+                dsig[5] = 2.0 * (dstn[5] - dpstn[5]) /Sij[5][5];
+
 				
 				for(i=0; i<6; i++){
 					for(j=0; j<6; j++){

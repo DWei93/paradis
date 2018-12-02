@@ -335,7 +335,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,node->constraint,
                             node->myTag.domainID,node->myTag.index, node->signSF[j]);
 #else
-                    fprintf(fp, "%7.1f %15.10f %7.1f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %e %e %e\n", 
+                    fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %e %e %e\n", 
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,armInGrain,armOnGB,burgID,normalID,node->constraint,
                             node->fX/1.0E7, node->fY/1.0E7, node->fZ/1.0E7);
 #endif

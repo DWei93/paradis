@@ -421,7 +421,7 @@ struct _param {
  *      Added for strain decomposition and density flux decomp.
  */
         real8 totstraintensor[6];
-	real8 elasticStrainTensor[6];
+	    real8 elasticStrainTensor[6];
         real8 totedgepStrain[6], totscrewpStrain[6];
         real8 dedgepStrain[6],   dscrewpStrain[6];
 

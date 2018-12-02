@@ -18,6 +18,7 @@
 
 void InitCellNatives(Home_t *home)
 {
+        printf("%d 1\n", home->myDomain);
         int     numCells, maxExtendedCells, cIndex;
         int     xIndex, yIndex, zIndex;
         int     xCellMin, yCellMin, zCellMin;
@@ -38,6 +39,7 @@ void InitCellNatives(Home_t *home)
         yCellSize = (param->maxSideY - param->minSideY) / param->nYcells;
         zCellSize = (param->maxSideZ - param->minSideZ) / param->nZcells;
 
+        printf("%d 2\n", home->myDomain);
 /*
  *      Make a temporary copy of the local domain boundaries.
  */
@@ -65,6 +67,7 @@ void InitCellNatives(Home_t *home)
         yCellMax = param->nYcells-1;
         zCellMax = param->nZcells-1;
 
+        printf("%d 3\n", home->myDomain);
 /*
  *      Get min/max cell indices in X
  */
@@ -87,7 +90,7 @@ void InitCellNatives(Home_t *home)
 
             if ((yMin >= cellMin) && (yMin < cellMax)) yCellMin = cIndex;
             if ((yMax <= cellMax) && (yMax > cellMin)) yCellMax = cIndex;
-    }
+        }
 
 /*
  *      Get min/max cell indices in Z
@@ -99,8 +102,9 @@ void InitCellNatives(Home_t *home)
 
             if ((zMin >= cellMin) && (zMin < cellMax)) zCellMin = cIndex;
             if ((zMax <= cellMax) && (zMax > cellMin)) zCellMax = cIndex;
-    }
+        }
 
+        printf("%d 4\n", home->myDomain);
 
 /*
  *      Save the minumum and maximum cells in each dimension in param, for
@@ -125,6 +129,7 @@ void InitCellNatives(Home_t *home)
                    (param->nYcells+2) *
                    (param->nZcells+2);
 
+        printf("%d 5 %d\n", home->myDomain, numCells);
         home->cellKeys = (Cell_t **)calloc(1, numCells * sizeof(Cell_t *));
 
 /*
@@ -142,6 +147,7 @@ void InitCellNatives(Home_t *home)
  *      The native cells are always listed first in cellList; neighbor
  *      cells will be added later.
  */
+        printf("%d 6 %d\n", home->myDomain, maxExtendedCells);
         home->cellList = (int *) malloc (maxExtendedCells * sizeof(int));
         home->cellCount = 0;
 
@@ -151,10 +157,16 @@ void InitCellNatives(Home_t *home)
  *      Since native cells cannot be periodic images, initialize periodic
  *      shifts to 0 and index of base cell to -1 (i.e. none)
  */
+        printf("%d 7 %d,%d %d,%d %d,%d\n", home->myDomain,
+                xCellMin, xCellMax,
+                yCellMin, yCellMax,
+                zCellMin, zCellMax
+        );
         for (xIndex = xCellMin; xIndex <= xCellMax; xIndex++) {
             for (yIndex = yCellMin; yIndex <= yCellMax; yIndex++) {
                 for (zIndex = zCellMin; zIndex <= zCellMax; zIndex++) {
                     cIndex = EncodeCellIdx (home, xIndex, yIndex, zIndex);
+        printf("%d 7 cIndex %d\n", home->myDomain, cIndex);
                     home->cellList[home->cellCount++] = cIndex;
                     pCell = (Cell_t *) calloc (1, sizeof(Cell_t));
                     pCell->xShift = 0.0;
@@ -175,6 +187,7 @@ void InitCellNatives(Home_t *home)
 
         home->nativeCellCount = home->cellCount;
 
+        printf("%d 8 %d\n", home->myDomain, home->nativeCellCount);
 /*
  *      Last thing to be done is (re)initialize some of the
  *      FM cell layers and associated info.
@@ -183,5 +196,6 @@ void InitCellNatives(Home_t *home)
             FMInit(home);
         }
 
+        printf("%d 8\n", home->myDomain);
         return;
 }

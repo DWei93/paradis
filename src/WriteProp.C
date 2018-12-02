@@ -240,25 +240,34 @@ void WriteProp(Home_t *home, int property)
                     switch (param->loadType) {
                     case 1:
 
-			if(firstSS && home->cycle < 2 *  param->savepropfreq){
-			   fprintf(fp, "variables = strain, s1, s2, s3, s4, s5, s6, pstrain, disDen\n"); 
-			   firstSS = 0;
-			}
+#if 0
+					if(firstSS && home->cycle < 2 *  param->savepropfreq){
+					   fprintf(fp, "variables = strain, s1, s2, s3, s4, s5, s6, pstrain, disDen\n"); 
+					   firstSS = 0;
+					}
 
-
-            fprintf(fp, "%e %e %e %e %e %e %e %e %e\n", param->eRate*param->timeNow*TC*1.0e2,
-                    param->appliedStress[0],
-                    param->appliedStress[1], param->appliedStress[2], param->appliedStress[3],
-                    param->appliedStress[4], param->appliedStress[5], param->totpStn[3]*TC*1.0e2, param->disloDensity);
-			if(pstnijk*TC*1.0e2 > 0.1){
-			    static int first = 1;
-			    if(first){
-				first = 0;
-			        printf("0.1%% pstn: %e %e\n",sigijk*TC/1.0e6,param->disloDensity);
-			    }
-			}
-			if(param->eRate*param->timeNow*TC > param->maxStn)param->finish = 1;
-			if(pstnijk*TC > param->maxPst)param->finish = 1;
+        		    fprintf(fp, "%e %e %e %e %e %e %e %e %e\n", param->eRate*param->timeNow*TC*1.0e2,
+        		            param->appliedStress[0],
+        		            param->appliedStress[1], param->appliedStress[2], param->appliedStress[3],
+        		            param->appliedStress[4], param->appliedStress[5], param->totpStn[3]*TC*1.0e2, param->disloDensity);
+					if(pstnijk*TC*1.0e2 > 0.1){
+					    static int first = 1;
+					    if(first){
+						first = 0;
+					        printf("0.1%% pstn: %e %e\n",sigijk*TC/1.0e6,param->disloDensity);
+					    }
+					}
+					if(param->eRate*param->timeNow*TC > param->maxStn)param->finish = 1;
+			        if(pstnijk*TC > param->maxPst)param->finish = 1;
+#else
+					if(firstSS && home->cycle < 2 *  param->savepropfreq){
+					   fprintf(fp, "variables = timeNow, estn_zy, pstn_zy, str_zy, disDen, estn_zx pstn_zx, str_zx\n"); 
+					   firstSS = 0;
+					}
+                    fprintf(fp, "%e %e %e %e %e %e %e %e\n", param->timeNow, param->elasticStrainTensor[3], param->totpStn[3], param->appliedStress[3],
+                            param->disloDensity, param->elasticStrainTensor[4], param->totpStn[4], param->appliedStress[4]);
+            
+#endif
                         break;
                     case 4:
                         fprintf(fp, "%e %e %e %d\n",

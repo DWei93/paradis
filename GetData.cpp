@@ -121,6 +121,7 @@ int main(int argc,char** argv)
     double dis, rd;
     double aveY1=0.0, aveY2=0.0;
     double    n1=0, n2=0, area = 0.0;
+    double  resize;
     Point_t point, pout;
     
     double length = 20000;
@@ -129,7 +130,7 @@ int main(int argc,char** argv)
     if(argc < 2)return(1);
 
     int    nSegs = (int)(length/seg+1);
-    vector<Point_t> p1, p2;
+    vector<Point_t> p1, p2, p;
 
     vector<vector<double> > Rd1(nSegs), Rd2(nSegs), Rd(nSegs);
     for(i=0; i<nSegs; i++){
