@@ -26,6 +26,5 @@ void  Matrix43Vector3Multiply(real8 A[4][3], real8 x[3], real8 y[4]);
 void  Vec3TransposeAndMult(real8 vec[3], real8 result[3][3]);
 void  Vector3Matrix33Mult(real8 vec[3], real8 mat[3][3], real8 result[3]);
 void  Matrix33Init(real8 a[3][3]);
-void Matrix33Copy(real8 a[3][3],real8 b[3][3]);
 int   Matrix66Invert(real8 a[6][6], real8 b[6][6]);
 #endif
