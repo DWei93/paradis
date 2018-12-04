@@ -1,10 +1,6 @@
 #ifndef _FM_h
 #define _FM_h
 
-#define XC   0
-#define YC   1
-#define ZC   2
-
 #define NMAX        20    /* WARNING! MUST be at least param->fmOrder+4 */
 #define NTMAX       (((NMAX+1)*(NMAX+2))>>1)
 #define MAXORDER    (2*NMAX)
