@@ -17,8 +17,8 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
-numYdoms = 2
+numXdoms = 1
+numYdoms = 1
 numZdoms = 4
 #
 #  Cell geometry
@@ -104,7 +104,8 @@ MobScrew =   1.000000e+04
 MobEdge =    1.000000e+04  
 MobTwinning = 5.000000e+04
 
-sfEnergy = 2.9498E-3
+sfEnergy = 1.15E7   #Jb^-1
+
 # Radom Interal stree field
 randomInternalForce = 0
 nPotParams = 0

@@ -245,9 +245,9 @@ struct _param {
 
         real8 shearModulus;
         real8 pois;
+        real8 massDensity;     /* Units are kg/m^3 */
 	    real8 outRadius;
         real8 burgMag;
-	    real8 rho;
 	    real8 vshr;
 	    real8 TBSFEnergy;					
 	    real8 TBEnergy;
@@ -284,14 +284,7 @@ struct _param {
         real8 sessileburgspec[30];
         real8 sessilelinespec[30];
 
-/*
- *      Add some variables needed to include inertial terms into
- *      mobility functions.  If the selected mobility does not
- *      have support for inertial effects, these values will be
- *      quietly ignored.
- */
         int   includeInertia;  /* Toggle: 0 == no, 1 == yes */
-        real8 massDensity;     /* Units are kg/m^3 */
 
 /*
  *      Velocity statistics and parameters

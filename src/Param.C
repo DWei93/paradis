@@ -355,9 +355,10 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 
         BindVar(CPList, "pois", &param->pois, V_DBL, 1, VFLAG_NULL);
         param->pois = 3.327533e-01;    /* Ta: temp=600K, pressure=0Pa */
-	
-	    BindVar(CPList, "rho", &param->rho, V_DBL, 1, VFLAG_NULL);
-    	param->rho=8900;  //(unit: kg/m**3) 
+
+        BindVar(CPList, "massDensity", &param->massDensity, V_DBL,
+                1, VFLAG_NULL);
+        param->massDensity = 8900;
 	
 	    BindVar(CPList, "outRadius", &param->outRadius, V_DBL, 1,
                 VFLAG_NULL);
@@ -381,8 +382,6 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "YoungsModulus", &param->YoungsModulus, V_DBL, 1,
                 VFLAG_NULL);
 	    param->YoungsModulus=2.0 * param->shearModulus * (1.0 + param->pois); /* Ta: units=Pa @t=600K, p=0Pa */
-
-    	param->vshr = sqrt(param->YoungsModulus / param->rho) / param->burgMag;
 
 		BindVar(CPList, "elasticConstantMatrix", param->elasticConstantMatrix,
                 V_DBL, 36, VFLAG_NULL);
@@ -414,16 +413,9 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "sessilelinespec", param->sessilelinespec,
                 V_DBL, 30, VFLAG_NULL);
 
-/*
- *      A couple values for including (if available) inertial terms in
- *      the mobility function.
- */
         BindVar(CPList, "includeInertia", &param->includeInertia, V_INT,
                 1, VFLAG_NULL);
 
-        BindVar(CPList, "massDensity", &param->massDensity, V_DBL,
-                1, VFLAG_NULL);
-        param->massDensity = -1.0;
 
 /*
  *      Flux decomposition
