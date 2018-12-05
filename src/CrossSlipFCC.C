@@ -161,12 +161,17 @@ void CrossSlipFCC(Home_t *home)
             burgData = GetBurgData(home, node, nbr1);
             burgID = BurgID_FCC(burgData, burgLab);
             if(burgID >= burgData->numBurgVectors)continue;
-
             if((burgData->burgType[burgID] & EDGE_BURG) == 0)continue;
 
+/*
+ *          Only consider non-GB dislocations. If any node of the two
+ *          segements is on GB, ignore it.
+ *          FIXME: perhaps the neighors can be on GB, we need consider
+ *          it with dislocation emission on GB.
+ *                                                              D. Wei
+ */
             if(IsOnGB(nbr1) || IsOnGB(nbr2) || IsOnGB(node))continue;
-//            if(node->onGB != nbr1->onGB && node->onGB != nbr2->onGB ||
-//               node->inGrain != nbr1->inGrain && node->inGrain != nbr->inGrain)continue;
+
 /*
  *          Before we commit to doing a cross-slip event, we may shift
  *          nodes and recalculate some forces to determine if it is

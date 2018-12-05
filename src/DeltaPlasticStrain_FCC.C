@@ -334,6 +334,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                real8  Ltemp[NUM_PLANES], Ltemp2[2];
                real8  stemp[NUM_PLANES];
 			   real8  pp[3],p1[3],p2[3];
+               real8 tmpDstn;
                Node_t *nbr;
     
                int  burgType;
@@ -453,6 +454,10 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 			   
 	        VECTOR_MULTIPLY(pp,0.25);
 
+/*
+ *          Some bugs can cause trouble here, such as the nodal position
+ *          is nan.                                             D. Wei
+ */
             if(isnan(pp[0]) || isnan(pp[1]) || isnan(pp[2])){
                 PrintNode(node);
                 PrintNode(nbr);
@@ -471,6 +476,10 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 	        hhy = node->y - nbr->oldy;
 	        hhz = node->z - nbr->oldz;
 
+/*
+ *          Some bugs can cause trouble here, such as the nodal old 
+ *          psoition is nan.                                  D. Wei
+ */
             if(isnan(ex) || isnan(ey) || isnan(ez) ||
                isnan(hhx) || isnan(hhy) || isnan(hhz)){
                 PrintNode(node);
@@ -494,26 +503,30 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 	        thread_dyad[2][0] = nz*bx;
 	        thread_dyad[2][1] = nz*by;
 	        thread_dyad[2][2] = nz*bz;
-               for (k = 0; k < 3; k++){
-                  for (l = 0; l < 3; l++){
-                      real8 tmpDstn;
-                      tmpDstn = (thread_dyad[l][k]+thread_dyad[k][l]) *
-                                0.5/param->simVol;
-                      thread_dstn[l][k] += tmpDstn;
 
-                      if(burgType == SHOCKLEY_BURG){
-                            thread_dtstn[l][k] += tmpDstn;
-                      }
-					  
+/*
+ *          Caculate total plastci strain, twinning deformation and elemental 
+ *          plastic strain.                                         D. Wei
+ */
+            for (k = 0; k < 3; k++){
+                for (l = 0; l < 3; l++){
+                    tmpDstn = (thread_dyad[l][k]+thread_dyad[k][l]) *
+                               0.5/param->simVol;
+                    thread_dstn[l][k] += tmpDstn;
+
+                    if(burgType == SHOCKLEY_BURG){
+                        thread_dtstn[l][k] += tmpDstn;
+                    }
+			 	  
 	                if(l==k)home->pstnEle[eleNum][l] += tmpDstn; // element
 	                if(l<k)home->pstnEle[eleNum][l+k+2] += tmpDstn; // element
-					  
-                      thread_dspn[l][k] += (thread_dyad[l][k] -
-                                            thread_dyad[k][l]) *
-                                           0.5/param->simVol;
-                      localstrain[l][k] += tmpDstn;
-                  }
-               }
+			 	  
+                    thread_dspn[l][k] += (thread_dyad[l][k] -
+                                         thread_dyad[k][l]) *
+                                        0.5/param->simVol;
+                    localstrain[l][k] += tmpDstn;
+                }
+            }
 
                /* Modified for flux decomposition calculation 06/22/04 M.Rhee */
                delxnode = node->x - node->oldx;
