@@ -39,16 +39,32 @@ Set (CTABLEGEN_SRCS
                  Math.C					
 				 Grain.C)
 
-#INCLUDE_DIRECTORIES(../include ${GEOS_INCLUDE_DIR})    
-#LINK_DIRECTORIES(${GEOS_LINK_DIR})
+
+IF(GEOS_FOUND)
+INCLUDE_DIRECTORIES(../include ${GEOS_INCLUDE_DIR})    
+LINK_DIRECTORIES(${GEOS_LINK_DIR})
+ELSE(GEOS_FOUND)
+INCLUDE_DIRECTORIES(../include)
+ENDIF(GEOS_FOUND)
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wno-unknown-pragmas -DPARALLEL=1 " )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 " )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -DNO_XPM -DNO_GENERAL -D_SEM_SEMUN_UNDEFINED")
 add_executable(paradis ${PARADIS_SRCS})
 add_definitions(-DNO_XWINDOW -DPARALLEL=1)
 
+Option(NO_GB_BARRIER "Build paradis using definition NO_GB_BARRIER" OFF)
 
-target_link_libraries(paradis m pthread )
+if(NO_GB_BARRIER)
+Message(STATUS "Macro NO_GB_BARRIER is on")
+add_definitions(-DNO_GB_BARRIER)
+endif(NO_GB_BARRIER)
+
+IF(GEOS_FOUND)
+target_link_libraries(paradis m pthread geos)
+ELSE(GEOS_FOUND)
+target_link_libraries(paradis m pthread)
+ENDIF(GEOS_FOUND)
+
 Install(TARGETS paradis
         RUNTIME DESTINATION ${PARADIS_SOURCE_DIR}/bin)
-

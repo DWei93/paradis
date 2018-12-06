@@ -31,20 +31,21 @@ typedef struct {
  *      them in this structure to pass them around with the values from
  *      the command line arguments.
  */		
-	int	polycrystal;	
-	real8	twinRatio;
-	int	nGrain;
-	real8	heightRatio;
-	int	deltaNums;
-	int	nLayers;
-	real8   xMatDir[3];
-	real8   yMatDir[3];
-	real8   zMatDir[3];
-	real8	TBAngle;
-	int	srcLenType;
-	real8	maxDensity;
-    int     extended;
-		
+	    int	    polycrystal;	
+	    real8	twinRatio;
+	    int	    nGrain;
+	    real8	heightRatio;
+	    int	    deltaNums;
+	    int	    nLayers;
+	    real8   xMatDir[3];
+	    real8   yMatDir[3];
+	    real8   zMatDir[3];
+	    real8	TBAngle;
+	    int	    srcLenType;
+	    real8	maxDensity;
+        int     extended;
+	    int     burgID, planeID;
+
 }InArgs_t;
 
 /*
@@ -150,6 +151,8 @@ typedef	enum{
 	OPT_SRCLENTYPE,
 	OPT_MAXDENSITY,
     OPT_EXTENDED,
+    OPT_BURGID,
+    OPT_PLANEID,
 	OPT_MAX
 	
 }ParadisGenArgs_t;

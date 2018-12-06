@@ -1852,7 +1852,7 @@ void HandleGrainBoundary(Home_t *home)
  *	    dislocation at this time. 
  */
 
-#if ENERGY_RULER
+#ifndef NO_GB_BARRIER
 	    if(EnergyRule(home, node, &GBPlane) == 0){
             PullBack(home,node);
             continue;

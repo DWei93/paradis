@@ -1,7 +1,7 @@
 Project (PARADIS)
 cmake_minimum_required(VERSION 2.8)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 Message (STATUS "PARADIS_BINARY_DIR = " ${PARADIS_BINARY_DIR})
@@ -37,9 +37,33 @@ Message(STATUS "CMAKE_C_FLAGS = " ${CMAKE_C_FLAGS})
 Message(STATUS "CMAKE_CXX_FLAGS = " ${CMAKE_CXX_FLAGS})
 Message(STATUS "CMAKE_EXE_LINKER_FLAGS = " ${CMAKE_EXE_LINKER_FLAGS})
 
-Add_subdirectory (src bin)
-Add_subdirectory (utilities bin1)
+Add_subdirectory (src)
+Add_subdirectory (utilities)
 
+ENABLE_TESTING()
+
+Set(frlen 1200,1800)
+Set(cubel 3000)
+Set(maxSeg 200)
+Set(nfrs 5)
+Set(angle 1.5707963)
+Set(maxDensity 1E13)
+String(RANDOM LENGTH 5 ALPHABET 0123456789 seed)
+Message(STATUS "random seed for test is " ${seed})
+
+Set(commands_gen_bicrystal -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} -seed ${seed} 
+    -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity ${maxDensity}
+    -TBAngle ${angle} 
+    -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1) 
+
+ADD_TEST(gen_bicrystal utilities/paradisgen ${commands_gen_bicrystal})
+
+Set(commands_repart -infile paradis.data -cells 4 -domains 1,1,4 -outfile bicrystal.data)
+Add_Test(repart_gen utilities/paradisrepart ${commands_repart})
+
+Set(mpirun_commands -n 4 "./src/paradis")
+Set(paradis_commands -d ${PARADIS_BINARY_DIR}/bicrystal.data ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
+Add_Test(run_paradis_bicrystal "mpirun" ${mpirun_commands} ${paradis_commands})
 
 if(0)
 message(STATUS "CMAKE_C_FLAGS = " ${CMAKE_C_FLAGS})

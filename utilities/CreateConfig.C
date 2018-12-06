@@ -2716,11 +2716,10 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         Param_t  *param;
         real8	 invsq2, basePos[3], b1[3], b2[3], f1[3], f2[3], f3[3], f4[3];
         real8	 rotMatrix[3][3],rotLine[3],rotBurg[3],rotPlane[3], btemp[3];
-        int      intID;
+        int      intID, burgID, planeID;
         real8    pi = 3.1415926535897932385, totSrcLen;
         real8    separateLength = 40.0;
-
-        bool        finished;
+        bool        finished, singleSrcTest = 0;
         BurgInfo_t  *bd;
         	
         real8                                       str[3][3];
@@ -2741,7 +2740,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         	
         cubeLength  = inArgs->cubeLength;
 	    srcLenType  = inArgs->srcLenType;
-        nLayers = inArgs->nLayers;
+        nLayers     = inArgs->nLayers;
        	maxDensity  = inArgs->maxDensity;
         numSources  = inArgs->numFRSrcs;
         srcLenMin   = inArgs->frLenMin;
@@ -2752,13 +2751,18 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         nGrain	    = inArgs->nGrain;
         twinRatio   = inArgs->twinRatio;
         maxSeg      = (real8)inArgs->maxSegLen;
+        burgID      = inArgs->burgID;
+        planeID     = inArgs->planeID;
         	
-        d = inArgs->deltaNums;
-		
-        lenRange = srcLenMax - srcLenMin;
-		
         param = inData->param;
+        d = inArgs->deltaNums;
+        lenRange = srcLenMax - srcLenMin;
         cubeSize	=	(real8)cubeLength;
+
+        if(numSources <= 0){
+            singleSrcTest = 1;
+            numSources = 1;
+        }
         	
         n1[0] = 0.0;	n1[1] = 0.0;	n1[2] = 0.0;
 
@@ -2792,13 +2796,14 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 	    totSrcLen = 0.0;
 	    finish = 0;
         for (layer = 0; layer < nLayers; layer++) {
-	    if(finish)break;
+
+	        if(finish)break;
+
             xn = layer * d + x0;
             if(xn <= 0){
                 xn = 0;
                 continue;
             }
-            	
             	
             for(chain = 0; chain < xn; ){
              
@@ -2861,12 +2866,26 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     gpBurgIndex = (ranNum % 12) / 2;
                     if((bd->burgType[gpBurgIndex] & EDGE_BURG) == 0)continue;
 
+                    if(burgID > -1 && burgID < bd->numBurgVectors){
+                        gpBurgIndex = burgID;
+                    }
+
                     if(chain >= 24){
                         ranNum = (int)(randm(&seed) * 1000);
                     }
 
+                    if(planeID > -1 && planeID < bd->numPlanes){
+                        gpIndex = planeID;
+                    }
+
                     gpIndex = bd->burgOnPlaneID[gpBurgIndex][ranNum % 2];
-                    if((bd->planeType[gpIndex] & GLIDE_PLANE) == 0 )continue;
+                    if((bd->planeType[gpIndex] & GLIDE_PLANE) == 0){
+                        if(planeID > -1){
+                            printf("Warning: the input plane %d i not a glide plane, ignore it\n", planeID);
+                            planeID = -1;
+                        }
+                        continue;
+                    }
 #else
                     gpIndex = 2;
                     gpBurgIndex = 1;
@@ -2888,6 +2907,10 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 	
                     for(i = 0; i < 3; i++){
                         randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
+                    }
+
+                    if(singleSrcTest){
+                        randomLine[2] = 0.0;
                     }
 
                     NormalizeVec(randomLine);
