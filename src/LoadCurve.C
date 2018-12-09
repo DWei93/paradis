@@ -320,12 +320,22 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 C   = param->elasticConstantMatrix;
                 Sij = param->elasticConstantMatrixInv;
 				
-                dstn[0] = param->loadDir[0]*dtt*erate;
-                dstn[1] = param->loadDir[1]*dtt*erate;
-                dstn[2] = param->loadDir[2]*dtt*erate;
-                dstn[3] = param->loadDir[3]*dtt*erate;
-                dstn[4] = param->loadDir[4]*dtt*erate;
-                dstn[5] = param->loadDir[5]*dtt*erate;
+                effPlaRate = sqrt((dpstn[0]*dpstn[0]+ 
+                                   dpstn[1]*dpstn[1]+ 
+                                   dpstn[2]*dpstn[2]+ 
+                               2.0*dpstn[3]*dpstn[3]+ 
+                               2.0*dpstn[4]*dpstn[4]+ 
+                               2.0*dpstn[5]*dpstn[5])*2.0/3.0)/param->lastDT;
+
+                if(param->plaRateCtr <= 0.0 || 
+                  (param->plaRateCtr > 0 && 10.0*effPlaRate <= param->plaRateCtr)){
+                    dstn[0] = param->loadDir[0]*dtt*erate;
+                    dstn[1] = param->loadDir[1]*dtt*erate;
+                    dstn[2] = param->loadDir[2]*dtt*erate;
+                    dstn[3] = param->loadDir[3]*dtt*erate;
+                    dstn[4] = param->loadDir[4]*dtt*erate;
+                    dstn[5] = param->loadDir[5]*dtt*erate;
+                }
 
                 dsig[0] = (dstn[0] - 10*dpstn[0]) /Sij[0][0];
                 dsig[1] = (dstn[1] - 10*dpstn[1]) /Sij[1][1];
@@ -627,7 +637,8 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                                2.0*dpstn[4]*dpstn[4]+ 
                                2.0*dpstn[5]*dpstn[5])*2.0/3.0)/param->lastDT;
 
-                if(10*effPlaRate <= fabs(param->plaRateCtr)){
+                if(param->plaRateCtr <= 0.0 || 
+                  (param->plaRateCtr > 0 && 10.0*effPlaRate <= param->plaRateCtr)){
                     dsig[0] = param->strRate*dtt*param->loadDir[0];
                     dsig[1] = param->strRate*dtt*param->loadDir[1];
                     dsig[2] = param->strRate*dtt*param->loadDir[2];

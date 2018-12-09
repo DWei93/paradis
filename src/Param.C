@@ -306,7 +306,7 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         param->loadDir[5] = 0.0;
 
         BindVar(CPList, "plaRateCtr",&param->plaRateCtr, V_DBL, 1, VFLAG_NULL);
-        param->plaRateCtr = 500;
+        param->plaRateCtr = -1.0;
 
         BindVar(CPList, "cTimeOld", &param->cTimeOld, V_DBL, 1, VFLAG_NULL);
 
