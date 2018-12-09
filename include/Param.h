@@ -125,6 +125,7 @@ struct _param {
         real8 realdt;        /* *almost* obsolete */
         real8 nextDT;        /* timestep to attempt the next cycle */
         real8 maxDT;         /* Maximum timestep duration permitted*/
+        real8 lastDT;        /* Store delta time of last step */
         real8 dtIncrementFact;  /* Maximum delta time increment allowed */
         real8 dtDecrementFact;  /* Factor by which delta time is        */
                                 /* multiplied when cutting timestep.    */
@@ -200,6 +201,10 @@ struct _param {
         int   indxErate;     /* to be compatible with micro3d */
         real8 edotdir[3];    /* Uniaxial loading direction accompanying */
                              /* eRate                                   */
+        real8 loadDir[6];    /* Loading factors of six conponents */
+        real8 strRate;       /* Stress rate. Used when loadType == 6 */ 
+        real8 plaRateCtr;    /* Plastic rate for controlling loading */
+
         real8 cTimeOld;      /* Timestep related to cyclic loading */
         real8 netCyclicStrain; /* Net accumulated strain under cyclic load */
         real8 dCyclicStrain; /* Incremental strain under cyclic load */

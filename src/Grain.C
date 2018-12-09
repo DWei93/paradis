@@ -2618,7 +2618,7 @@ void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *no
     real8   vec[3], x0, y0, z0, A, sigR;
     real8   x, y, z, length;
     real8   E = 2.718281828459045;
-    real8   l1, l2, nx, ny, f;
+    real8   l1, l2, nx, ny, f, norX, norY;
 
     real8   sigma[3][3], burg[3], strb[3], xi[3];
     real8   *globalArray;
@@ -2676,6 +2676,16 @@ void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *no
     numX1 = (int)nx;
     numY1 = (int)ny;
 
+    norX = (x-(param->xBoundMin+((double)imin*l1)))/l1;
+    norY = (y-(param->yBoundMin+((double)jmin*l2)))/l2;
+
+    if(norX < -1.0E-10 || norX > 1+1.0E-10 ||
+       norY < -1.0E-10 || norY > 1+1.0E-10){
+        printf("normalized factors: %f %f, %f %f %f %f %f %f\n",
+               norX, norY, x, y, param->xBoundMin, param->yBoundMin, l1, l2);
+        Fatal("interpolation point is out of the cube");
+    }
+
     f = BicubicInterpolation(
                       globalArray[0+jmin*4+imin*4*numY1], globalArray[1+jmin*4+imin*4*numY1]*l1,
                       globalArray[2+jmin*4+imin*4*numY1]*l2, globalArray[3+jmin*4+imin*4*numY1]*l1*l2,
@@ -2688,10 +2698,7 @@ void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *no
              
                       globalArray[0+jmax*4+imax*4*numY1], globalArray[1+jmax*4+imax*4*numY1]*l1,
                       globalArray[2+jmax*4+imax*4*numY1]*l2, globalArray[3+jmax*4+imax*4*numY1]*l1*l2,
-             
-                      (x-(param->xBoundMin+((double)imin*l1)))/l1,
-                      (y-(param->yBoundMin+((double)jmin*l2)))/l2);
-
+                      norX, norY); 
 
 #if 0
     for(i=0; i<param->nPotParams; i++){
@@ -2744,4 +2751,3 @@ void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *no
     VECTOR_COPY(f2, f1);
     return;
 }
-

@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.40"
+dirname = "res.strCtr"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -67,9 +67,20 @@ fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 #
 #  Loading conditions
 #  
-loadType = 1
+loadType = 7
 indxErate = 8
 eRate =   0.000
+strRate = 4.0E15
+plaRateCtr = 2.0E4
+loadDir = [
+    0.0
+    0.0
+    0.0
+    1.0
+    0.0
+    0.0
+]
+  
 edotdir = [
   0.0
   0.0
@@ -80,7 +91,7 @@ appliedStress = [
 	0.0e0
 	0.0e0
 	0.0e0
-	40.0e6
+	0.0e0
 	0.0e0
 	0.0e0
 ]
@@ -113,14 +124,14 @@ randomInternalForce = 1
 #  
 #
 tecplot = 1
-tecplotfreq = 2000
+tecplotfreq = 1000
 saveprop = 1
-savepropfreq = 500
+savepropfreq = 100
 tecmesh = 1
 tecmeshfreq = 50000
 velfile = 0
 velfilefreq = 1000
 savecn = 1
-savecnfreq = 50000
+savecnfreq = 5000
 savetimers = 0
 savetimersfreq = 1000

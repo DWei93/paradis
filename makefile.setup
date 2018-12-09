@@ -105,7 +105,7 @@ OPT = -O3
 #
 #    WARNING: This is still under development and not fully supported!
 #
-# OPENMP_MODE = ON
+ OPENMP_MODE = ON
 
 #######################################################################
 #

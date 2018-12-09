@@ -546,7 +546,7 @@ void TrapezoidIntegrator(Home_t *home)
         int     dumpErrorData = 1, doAll = 1;
 		real8   errMax, globalErrMax;
         real8   oldDT, newDT;
-	static  real8 minDT;
+	    static  real8 minDT;
         real8   oldx, oldy, oldz, nodeVec[3];
         real8   localVals[3], globalVals[3];
 		real8	localMaxDisp, globalMaxDisp;
@@ -656,8 +656,8 @@ void TrapezoidIntegrator(Home_t *home)
                     localMaxDisp = MAX(localMaxDisp, Normal(nodeVec));
 				
                     if(isnan(errMax) || isinf(errMax) || errMax > 1000){
-			PrintNode(node);
-			printf("Warning: errMax is %f at %s, Line %d.\n",errMax,__FILE__,__LINE__);
+			            PrintNode(node);
+			            printf("Warning: errMax is %f at %s, Line %d.\n",errMax,__FILE__,__LINE__);
                     }
 #ifdef DEBUG_TIMESTEP
                     if (errMax > oldErrMax) {
@@ -767,6 +767,11 @@ void TrapezoidIntegrator(Home_t *home)
             }
 #endif
 
+/*
+ *          Store delta time of this step for controlling loading rate.
+ *                                                              D. Wei
+ */
+            param->lastDT = newDT;
 /*
  *          If there is convergence, we've got a good delta T, otherwise
  *          cut the delta T by a configured factor and try again.

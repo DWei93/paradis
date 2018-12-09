@@ -4452,10 +4452,6 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
     double xx[4], yy[4], temp[4], f;
     int     i;
 
-    if(x<-1.0E-5 || x>1+1.0E-5 || y<-1.0E-5 || y>1.0+1.0E-5){
-        Fatal("%f %f in %s at %d\n", x, y,__FILE__, __LINE__);
-    }
-
     xx[0] = 1.0;
     xx[1] = x;
     xx[2] = x*x;

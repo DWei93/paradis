@@ -224,7 +224,8 @@ void WriteProp(Home_t *home, int property)
                 fprintf(fp,"%e %e\n", param->timeNow, pstnijk);
                 fclose(fp);
         
-                if ((param->loadType == 1) || (param->loadType == 4)) {
+                if ((param->loadType == 1) || (param->loadType == 4) || 
+                     (param->loadType == 7)) {
         
                     snprintf(fileName, sizeof(fileName),
                              "%s/stress_Plastic_strain", DIR_PROPERTIES);
@@ -238,7 +239,7 @@ void WriteProp(Home_t *home, int property)
                              "%s/stress_Total_strain.plt", DIR_PROPERTIES);
                     fp = fopen(fileName, "a");
                     switch (param->loadType) {
-                    case 1:
+                    case 1|7:
 
 #if 0
 					if(firstSS && home->cycle < 2 *  param->savepropfreq){

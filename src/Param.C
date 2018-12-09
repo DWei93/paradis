@@ -289,10 +289,24 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "indxErate", &param->indxErate, V_INT, 1, VFLAG_NULL);
         param->indxErate = 1;
 
-        BindVar(CPList, "edotdir",param->edotdir, V_DBL, 3, VFLAG_NULL);
+        BindVar(CPList, "edotdir",&param->edotdir, V_DBL, 3, VFLAG_NULL);
         param->edotdir[0] = 1.0;
         param->edotdir[1] = 0.0;
         param->edotdir[2] = 0.0;
+
+        BindVar(CPList, "strRate",&param->strRate, V_DBL, 1, VFLAG_NULL);
+        param->strRate = -1.0E15;
+
+        BindVar(CPList, "loadDir",&param->loadDir, V_DBL, 6, VFLAG_NULL);
+        param->loadDir[0] = 0.0;
+        param->loadDir[1] = 0.0;
+        param->loadDir[2] = 1.0;
+        param->loadDir[3] = 0.0;
+        param->loadDir[4] = 0.0;
+        param->loadDir[5] = 0.0;
+
+        BindVar(CPList, "plaRateCtr",&param->plaRateCtr, V_DBL, 1, VFLAG_NULL);
+        param->plaRateCtr = 500;
 
         BindVar(CPList, "cTimeOld", &param->cTimeOld, V_DBL, 1, VFLAG_NULL);
 

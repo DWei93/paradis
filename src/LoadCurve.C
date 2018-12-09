@@ -92,6 +92,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 		real8   dpstn[6], dsig[6], destn[6];
         real8   tmpdSig[6];
 		real8   (*C)[6], (*Sij)[6];
+        real8   effPlaRate;
         Param_t *param;
         
         TimerStart(home, LOADCURVE);
@@ -103,7 +104,6 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         erate     = param->eRate;
         dtt       = param->realdt;
         indxerate = param->indxErate;
-		
 
         sigijk          = 0;
         totCyclicStrain = 0.0;
@@ -320,19 +320,19 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 C   = param->elasticConstantMatrix;
                 Sij = param->elasticConstantMatrixInv;
 				
-                if(indxerate & EXX) dstn[0] = erate*dtt;
-                if(indxerate & EYY) dstn[1] = erate*dtt;
-                if(indxerate & EZZ) dstn[2] = erate*dtt;
-                if(indxerate & EYZ) dstn[3] = erate*dtt;
-                if(indxerate & EXZ) dstn[4] = erate*dtt;
-                if(indxerate & EXY) dstn[5] = erate*dtt;
+                dstn[0] = param->loadDir[0]*dtt*erate;
+                dstn[1] = param->loadDir[1]*dtt*erate;
+                dstn[2] = param->loadDir[2]*dtt*erate;
+                dstn[3] = param->loadDir[3]*dtt*erate;
+                dstn[4] = param->loadDir[4]*dtt*erate;
+                dstn[5] = param->loadDir[5]*dtt*erate;
 
-                dsig[0] = (dstn[0] - dpstn[0]) /Sij[0][0];
-                dsig[1] = (dstn[1] - dpstn[1]) /Sij[1][1];
-                dsig[2] = (dstn[2] - dpstn[2]) /Sij[2][2];
-                dsig[3] = 2.0 * (dstn[3] - dpstn[3]) /Sij[3][3];
-                dsig[4] = 2.0 * (dstn[4] - dpstn[4]) /Sij[4][4];
-                dsig[5] = 2.0 * (dstn[5] - dpstn[5]) /Sij[5][5];
+                dsig[0] = (dstn[0] - 10*dpstn[0]) /Sij[0][0];
+                dsig[1] = (dstn[1] - 10*dpstn[1]) /Sij[1][1];
+                dsig[2] = (dstn[2] - 10*dpstn[2]) /Sij[2][2];
+                dsig[3] = 2.0 * (dstn[3] - 10*dpstn[3]) /Sij[3][3];
+                dsig[4] = 2.0 * (dstn[4] - 10*dpstn[4]) /Sij[4][4];
+                dsig[5] = 2.0 * (dstn[5] - 10*dpstn[5]) /Sij[5][5];
 
 				
 				for(i=0; i<6; i++){
@@ -612,6 +612,53 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
  *          User defined load-time curve
  */
             case 6:
+                break;
+/*
+ *          Stress loading with plastic strain control
+ */
+            case 7:
+                C   = param->elasticConstantMatrix;
+                Sij = param->elasticConstantMatrixInv;
+    
+                effPlaRate = sqrt((dpstn[0]*dpstn[0]+ 
+                                   dpstn[1]*dpstn[1]+ 
+                                   dpstn[2]*dpstn[2]+ 
+                               2.0*dpstn[3]*dpstn[3]+ 
+                               2.0*dpstn[4]*dpstn[4]+ 
+                               2.0*dpstn[5]*dpstn[5])*2.0/3.0)/param->lastDT;
+
+                if(10*effPlaRate <= fabs(param->plaRateCtr)){
+                    dsig[0] = param->strRate*dtt*param->loadDir[0];
+                    dsig[1] = param->strRate*dtt*param->loadDir[1];
+                    dsig[2] = param->strRate*dtt*param->loadDir[2];
+                    dsig[3] = param->strRate*dtt*param->loadDir[3];
+                    dsig[4] = param->strRate*dtt*param->loadDir[4];
+                    dsig[5] = param->strRate*dtt*param->loadDir[5];
+                }
+
+                for(i=0; i<6; i++){
+                    for(j=0; j<6; j++){
+                        destn[i] += Sij[i][j] * dsig[j];
+                    }
+                    param->elasticStrainTensor[i] += destn[i];
+                }
+                
+                for(i=0; i<6; i++){
+                    param->appliedStress[i] += dsig[i];
+                }
+				
+                deltaStress[0][0] = dsig[0];
+                deltaStress[1][1] = dsig[1];
+                deltaStress[2][2] = dsig[2];
+
+                deltaStress[1][2] = dsig[3];
+                deltaStress[2][0] = dsig[4];
+                deltaStress[0][1] = dsig[5];
+
+                deltaStress[2][1] = deltaStress[1][2];
+                deltaStress[0][2] = deltaStress[2][0];
+                deltaStress[1][0] = deltaStress[0][1];
+
                 break;
         
             default:

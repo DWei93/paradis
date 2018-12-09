@@ -3,7 +3,7 @@
 #PBS -o ./out.$PBS_JOBID
 #PBS -e ./error.$PBS_JOBID
 
-logID=000005
+logID=000000
 config=~/.wsconfig
 baseJobName=`grep "baseJobName" $config | cut -d " " -f 3`
 root_dir=`grep "root_dir" $config | cut -d " " -f 3`
