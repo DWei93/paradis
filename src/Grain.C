@@ -2616,6 +2616,8 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
     real8   vec[3], x0, y0, z0, A, sigR;
     real8   x, y, z, length;
     real8   E = 2.718281828459045;
+    real8   gausFac1 = 0.211324865405187; // (1-sqrt(3)/3)/2
+    real8   gausFac2 = 0.7886751345948128; // (1+sqrt(3)/3)/2
     real8   l1, l2, nx, ny, f, totForce, norX, norY;
 
     real8   sigma[3][3], burg[3], strb[3], xi[3];
@@ -2653,10 +2655,15 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
     totForce = 0.0;
     for(i=0; i<2; i++){
         if(i==0){
-            x = x1; y=y1; z=z1;
+            x = x1 + gausFac1 * dx; 
+            y = y1 + gausFac1 * dy; 
+            z = z1 + gausFac1 * dz; 
         }else{
-            x = x2; y=y2; z=z2;
+            x = x1 + gausFac2 * dx; 
+            y = y1 + gausFac2 * dy; 
+            z = z1 + gausFac2 * dz; 
         }
+
         FoldBox(param, &x, &y, &z);
         Coor2EleNum(param, x, y, &imin, &jmin);
         if(imin<0 || imin >= nx || jmin<0 || jmin>=ny){
@@ -2699,11 +2706,6 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
                           globalArray[2+d]*l2, globalArray[3+d]*l1*l2,
                           norX, norY); 
         totForce += f;
-        if(f>10E10 || isnan(f) || isinf(f)){
-            Fatal("%d IRF 1 %d 3 (%f,%f,%f)(%d,%d,%d,%d)(%f,%f)(%f,%f)(%f,%f,%f,%f) %f\n", home->myDomain, i, 
-            x, y, z, a, b, c, d, norX, norY, imin, jmin,l1, l2, param->xBoundMin,param->yBoundMin, f);
-            f = 0.0;
-        }
     }
 #if 0
     for(i=0; i<param->nPotParams; i++){

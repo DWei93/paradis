@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.1023533"
+dirname = "res.1024301"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
