@@ -30,9 +30,9 @@ numZcells = 4
 #
 # Mesh size for tecmesh
 #
-meshSizeX = 400
-meshSizeY = 400
-meshSizeZ = 400
+meshSizeX = 4000
+meshSizeY = 4000
+meshSizeZ = 4000
 
 #  Dynamic load balancing
 #
@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.strCtr"
+dirname = "res.1023533"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -67,11 +67,11 @@ fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 #
 #  Loading conditions
 #  
-loadType = 7
+loadType = 1
 indxErate = 8
 eRate =   0.000
 strRate = 4.0E15
-plaRateCtr = 2.0E4
+#plaRateCtr = 2.0E4
 loadDir = [
     0.0
     0.0
@@ -91,7 +91,7 @@ appliedStress = [
 	0.0e0
 	0.0e0
 	0.0e0
-	0.0e0
+	0.0e6
 	0.0e0
 	0.0e0
 ]

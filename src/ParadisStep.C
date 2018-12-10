@@ -266,12 +266,14 @@ void ParadisStep(Home_t *home)
  *      involved in topological changes the previous step.
  */
         if (firstTime) {
+        DebugGB(home,-16);
             NodeForce(home, FULL);
             CalcNodeVelocities(home, 1, doAll);
             CommSendVelocity(home);
             firstTime = 0;
 
         } else {
+        DebugGB(home,-17);
             NodeForce(home, PARTIAL);
             CalcNodeVelocities(home, 0, doAll);
             CommSendVelocity(home);

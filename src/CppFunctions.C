@@ -37,6 +37,7 @@ int ReadRandomForceTable(double **randomForceTable, double para[5])
     int             lineNo = 0, i = 0, numData;
     ifstream        infile;
 
+    printf("Reading roandom force table ...\n");
     
     infile.open("Tec.plt");
     if(!infile){
@@ -66,5 +67,6 @@ int ReadRandomForceTable(double **randomForceTable, double para[5])
     }
     infile.close();
 
+    printf("End of reading roandom force table\n");
     return(numData);
 }

@@ -2566,19 +2566,19 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
 
 
 void StackingFaultForce(Home_t *home, real8 dx, real8 dy, real8 dz, real8 sfEnergy, 
-                        real8 signSF, real8 *normal, real8 *f1, real8 *f2)
+                        real8 signSF, real8 normal[3], real8 f1[3], real8 f2[3])
 {
+    real8       vec[3], length, dir[3];
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);
     if(fabs(signSF) < 1.0E-4)return;
 
-    real8       vec[3], length, dir[3];
     vec[0] = dx;
     vec[1] = dy;
     vec[2] = dz;
 
     length = Normal(vec);
-    if(length < 1.0E-4)return;
+    if(length < 1.0E-20)return;
     NormalizeVec(vec);
 
     cross(normal, vec, dir);
@@ -2594,71 +2594,55 @@ void StackingFaultForce(Home_t *home, real8 dx, real8 dy, real8 dz, real8 sfEner
 }
 
        
-void Coor2EleNum(Param_t *param, double x, double y, int &nx, int &ny){
+void Coor2EleNum(Param_t *param, double x, double y, real8 *nx, real8 *ny){
 
 	double	eleLx,eleLy,eleLz;
-    double   fnx, fny;
 
 	eleLx = param->fMeshSizeX;
-	eleLx = param->fMeshSizeY;
+	eleLy = param->fMeshSizeY;
 
-	fnx = floor((x - param->xBoundMin)/eleLx);
-	fny = floor((y - param->xBoundMin)/eleLx);
-    
-    nx = (int)fnx;
-    ny = (int)fny;
+	*nx = floor((x - param->xBoundMin)/eleLx);
+	*ny = floor((y - param->yBoundMin)/eleLy);
 
     return;
 }
 
-void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *node2, real8 *f1, real8 *f2) 
+void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, real8 y2, real8 z2,
+                         real8 dx, real8 dy, real8 dz, real8 bx, real8 by, real8 bz,
+                         real8 f1[3], real8 f2[3]) 
 {
-    int     i;
-    int     imin, imax, jmin, jmax, numX1, numY1;
+    int     i, a, b, c, d;
+    real8   imin, imax, jmin, jmax, numX1, numY1;
     real8   vec[3], x0, y0, z0, A, sigR;
     real8   x, y, z, length;
     real8   E = 2.718281828459045;
-    real8   l1, l2, nx, ny, f, norX, norY;
+    real8   l1, l2, nx, ny, f, totForce, norX, norY;
 
     real8   sigma[3][3], burg[3], strb[3], xi[3];
     real8   *globalArray;
     int     armID;
+
+    Param_t *param;
+    param = home->param;
 
     globalArray = home->randomForceTable;
 
     VECTOR_ZERO(sigma[0]);
     VECTOR_ZERO(sigma[1]);
     VECTOR_ZERO(sigma[2]);
-    armID = GetArmID(home, node1, node2);
     
-    burg[0] = node1->burgX[armID];
-    burg[1] = node1->burgY[armID];
-    burg[2] = node1->burgZ[armID];
+    burg[0] = bx;
+    burg[1] = by;
+    burg[2] = bz;
 
-    xi[0] = node2->x -node1->x;
-    xi[1] = node2->y -node1->y;
-    xi[2] = node2->z -node1->z;
-    ZImage(home->param, xi, xi+1, xi+2);
-
+    xi[0] = dx;
+    xi[1] = dy;
+    xi[2] = dz;
+    length = Normal(vec);
+    NormalizeVec(xi);
 
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);
-    
-    vec[0] = node2->x - node1->x;
-    vec[1] = node2->y - node1->y;
-    vec[2] = node2->z - node1->z;
-    ZImage(param, vec, vec+1, vec+2);
-    length = Normal(vec);
-
-    vec[0] *= 0.5;
-    vec[1] *= 0.5;
-    vec[2] *= 0.5;
-
-    vec[0] += node1->x; 
-    vec[1] += node1->y; 
-    vec[2] += node1->z; 
-    x = vec[0]; y = vec[1]; z = vec[2];    
-    FoldBox(home->param, &x, &y, &z);
 
     l1 = param->fMeshSizeX;
     l2 = param->fMeshSizeY;
@@ -2666,40 +2650,61 @@ void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *no
     nx = param->fNumX;
     ny = param->fNumY;
 
-    Coor2EleNum(param, x, y, imin, jmin);
+    totForce = 0.0;
+    for(i=0; i<2; i++){
+        if(i==0){
+            x = x1; y=y1; z=z1;
+        }else{
+            x = x2; y=y2; z=z2;
+        }
+        FoldBox(param, &x, &y, &z);
+        Coor2EleNum(param, x, y, &imin, &jmin);
+        if(imin<0 || imin >= nx || jmin<0 || jmin>=ny){
+            Fatal("(%f,%f,%f)%f,%f,%f,%f,%f,%f\n", x, y, z, imin, jmin, nx, ny, param->xBoundMin, param->yBoundMin);
+        }
 
-    imax = imin + 1;
-    jmax = jmin + 1;
-    if(imax > (int)nx) imax -= (int)nx;
-    if(jmax > (int)ny) jmax -= (int)ny;
-
-    numX1 = (int)nx;
-    numY1 = (int)ny;
-
-    norX = (x-(param->xBoundMin+((double)imin*l1)))/l1;
-    norY = (y-(param->yBoundMin+((double)jmin*l2)))/l2;
-
-    if(norX < -1.0E-10 || norX > 1+1.0E-10 ||
-       norY < -1.0E-10 || norY > 1+1.0E-10){
-        printf("normalized factors: %f %f, %f %f %f %f %f %f\n",
-               norX, norY, x, y, param->xBoundMin, param->yBoundMin, l1, l2);
-        Fatal("interpolation point is out of the cube");
+        imax = imin + 1.0;
+        jmax = jmin + 1.0;
+        if(imax > nx) imax -= nx;
+        if(jmax > ny) jmax -= ny;
+ 
+        numX1 = nx;
+        numY1 = ny;
+        norX = (x-(param->xBoundMin+(imin*l1)))/l1;
+        norY = (y-(param->yBoundMin+(jmin*l2)))/l2;
+ 
+        if(norX < -1.0E-10 || norX > 1+1.0E-10 ||
+           norY < -1.0E-10 || norY > 1+1.0E-10){
+            printf("normalized factors: %f %f, %f %f %f %f %f %f\n",
+                   norX, norY, x, y, param->xBoundMin, param->yBoundMin, l1, l2);
+            Fatal("interpolation point is out of the cube");
+        }
+ 
+        a = (int)(jmin*4+imin*4*numY1);
+        b = (int)(jmax*4+imin*4*numY1);
+        c = (int)(jmin*4+imax*4*numY1);
+        d = (int)(jmax*4+imax*4*numY1);
+        
+        f = BicubicInterpolation(
+                          globalArray[0+a],    globalArray[1+a]*l1,
+                          globalArray[2+a]*l2, globalArray[3+a]*l1*l2,
+                 
+                          globalArray[0+b],    globalArray[1+b]*l1,
+                          globalArray[2+b]*l2, globalArray[3+b]*l1*l2,
+                 
+                          globalArray[0+c],    globalArray[1+c]*l1,
+                          globalArray[2+c]*l2, globalArray[3+c]*l1*l2,
+                 
+                          globalArray[0+d],    globalArray[1+d]*l1,
+                          globalArray[2+d]*l2, globalArray[3+d]*l1*l2,
+                          norX, norY); 
+        totForce += f;
+        if(f>10E10 || isnan(f) || isinf(f)){
+            Fatal("%d IRF 1 %d 3 (%f,%f,%f)(%d,%d,%d,%d)(%f,%f)(%f,%f)(%f,%f,%f,%f) %f\n", home->myDomain, i, 
+            x, y, z, a, b, c, d, norX, norY, imin, jmin,l1, l2, param->xBoundMin,param->yBoundMin, f);
+            f = 0.0;
+        }
     }
-
-    f = BicubicInterpolation(
-                      globalArray[0+jmin*4+imin*4*numY1], globalArray[1+jmin*4+imin*4*numY1]*l1,
-                      globalArray[2+jmin*4+imin*4*numY1]*l2, globalArray[3+jmin*4+imin*4*numY1]*l1*l2,
-             
-                      globalArray[0+jmax*4+imin*4*numY1], globalArray[1+jmax*4+imin*4*numY1]*l1,
-                      globalArray[2+jmax*4+imin*4*numY1]*l2, globalArray[3+jmax*4+imin*4*numY1]*l1*l2,
-             
-                      globalArray[0+jmin*4+imax*4*numY1], globalArray[1+jmin*4+imax*4*numY1]*l1,
-                      globalArray[2+jmin*4+imax*4*numY1]*l2, globalArray[3+jmin*4+imax*4*numY1]*l1*l2,
-             
-                      globalArray[0+jmax*4+imax*4*numY1], globalArray[1+jmax*4+imax*4*numY1]*l1,
-                      globalArray[2+jmax*4+imax*4*numY1]*l2, globalArray[3+jmax*4+imax*4*numY1]*l1*l2,
-                      norX, norY); 
-
 #if 0
     for(i=0; i<param->nPotParams; i++){
 
@@ -2729,8 +2734,7 @@ void RandomInternalForce(Home_t *home, Param_t *param, Node_t *node1, Node_t *no
 #endif
 
     sigma[0][2] = 0.0;
-    sigma[1][2] = f/param->burgMag;
-//    printf("f=%e\n",sigma[1][2]);
+    sigma[1][2] = 0.5*totForce/param->burgMag;
     sigma[0][1] = 0.0;
     if(isnan(sigma[1][2]))sigma[1][2] = 0.0;
 

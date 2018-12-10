@@ -4495,6 +4495,15 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
     }
 
     f = (temp[0]*yy[0]+temp[1]*yy[1]+temp[2]*yy[2]+temp[3]*yy[3]);
+    
+    if(f>1E20){
+        printf("Bic: \n(%e,%e,%e,%e)--\n(%e,%e,%e,%e)--\n(%e,%e,%e,%e)--\n(%e,%e,%e,%e)\n",
+               f00,fx00,fy00,fxy00, f01,fx01,fy01,fxy01, f10,fx10,fy10,fxy10, f11,fx11,fy11,fxy11);
+
+        Fatal("Bic: \n(%e,%e,%e,%e)--\n(%e,%e,%e,%e)--\n(%e,%e,%e,%e)--\n(%e,%e,%e,%e)\n",
+               a00,a01,a02,a03,a10,a11,a12,a13,a20,a21,a22,a23,a30,a31,a32,a33);
+    }    
+
     if(isnan(f))f=0.0;
     return(f);
 }

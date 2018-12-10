@@ -1387,7 +1387,8 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
             VECTOR_ADD(fseg1node2, f2);
 
             if(param->randomInternalForce){
-                RandomInternalForce(home, param, node1, node2, f1, f2);
+                RandomInternalForce(home, x1, y1, z1, x2, y2, z2, dx, dy, dz, 
+                                    burg[0], burg[1], burg[2], f1, f2);
 
                 VECTOR_ADD(fseg1node1, f1);
                 VECTOR_ADD(fseg1node2, f2);

@@ -65,7 +65,8 @@ void WriteProp(Home_t *home, int property)
         real8   *localDensityVals  = (real8 *)NULL;
         real8   *globalDensityVals = (real8 *)NULL;
         real8   totDensityChange[14];
-	real8	TC;
+	    real8	TC;
+        real8   dpstn[6], effPlaRate;
         char    fileName[256];
         FILE    *fp;
         Param_t *param;
@@ -73,7 +74,18 @@ void WriteProp(Home_t *home, int property)
         
         param = home->param;
 
-	TC = Sign(param->eRate);
+		for (i = 0; i < 6; i++) {
+            dpstn[i] = param->delpStrain[i];
+        }
+		
+        effPlaRate = sqrt((dpstn[0]*dpstn[0]+ 
+                           dpstn[1]*dpstn[1]+ 
+                           dpstn[2]*dpstn[2]+ 
+                       2.0*dpstn[3]*dpstn[3]+ 
+                       2.0*dpstn[4]*dpstn[4]+ 
+                       2.0*dpstn[5]*dpstn[5])*2.0/3.0)/param->lastDT;
+
+	    TC = Sign(param->eRate);
         al = param->edotdir[0];
         am = param->edotdir[1];
         an = param->edotdir[2];
@@ -238,10 +250,20 @@ void WriteProp(Home_t *home, int property)
                     snprintf(fileName, sizeof(fileName),
                              "%s/stress_Total_strain.plt", DIR_PROPERTIES);
                     fp = fopen(fileName, "a");
+
+					if(firstSS && home->cycle < 2 *  param->savepropfreq){
+					   fprintf(fp, "variables = timeNow, estn_zy, pstn_zy, str_zy, disDen, estn_zx pstn_zx, str_zx, effPlaRate\n"); 
+					   firstSS = 0;
+					}
+                    fprintf(fp, "%e %e %e %e %e %e %e %e %e\n", param->timeNow, param->elasticStrainTensor[3], param->totpStn[3], param->appliedStress[3],
+                            param->disloDensity, param->elasticStrainTensor[4], param->totpStn[4], param->appliedStress[4],
+                            effPlaRate);
+                    if(effPlaRate < 0.5)param->finish = 1;
+
+#if 0
                     switch (param->loadType) {
                     case 1|7:
 
-#if 0
 					if(firstSS && home->cycle < 2 *  param->savepropfreq){
 					   fprintf(fp, "variables = strain, s1, s2, s3, s4, s5, s6, pstrain, disDen\n"); 
 					   firstSS = 0;
@@ -260,15 +282,7 @@ void WriteProp(Home_t *home, int property)
 					}
 					if(param->eRate*param->timeNow*TC > param->maxStn)param->finish = 1;
 			        if(pstnijk*TC > param->maxPst)param->finish = 1;
-#else
-					if(firstSS && home->cycle < 2 *  param->savepropfreq){
-					   fprintf(fp, "variables = timeNow, estn_zy, pstn_zy, str_zy, disDen, estn_zx pstn_zx, str_zx\n"); 
-					   firstSS = 0;
-					}
-                    fprintf(fp, "%e %e %e %e %e %e %e %e\n", param->timeNow, param->elasticStrainTensor[3], param->totpStn[3], param->appliedStress[3],
-                            param->disloDensity, param->elasticStrainTensor[4], param->totpStn[4], param->appliedStress[4]);
             
-#endif
                         break;
                     case 4:
                         fprintf(fp, "%e %e %e %d\n",
@@ -276,6 +290,8 @@ void WriteProp(Home_t *home, int property)
                                 param->timeNow,param->numLoadCycle);
                         break;
                     }
+#endif
+
                     fclose(fp);
                 }
             }        

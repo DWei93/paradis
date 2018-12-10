@@ -2281,6 +2281,7 @@ void LocalSegForces(Home_t *home, int reqType)
 #else  /* FULL_N2_FORCES not defined */
 void LocalSegForces(Home_t *home, int reqType)
 {
+        
         int        i, cellNum, cellID, cellSegCnt;
         int        arm, armCount;
         int        homeDomain, homeCells, homeNativeCells;
@@ -2920,8 +2921,9 @@ void LocalSegForces(Home_t *home, int reqType)
             }
 
             if(param->randomInternalForce){
-                RandomInternalForce(home, param, node1, node2, f1, f2);
 
+                RandomInternalForce(home, x1, y1, z1, x2, y2, z2, dx, dy, dz, 
+                                    bx1, by1, bz1, f1, f2);
                 VECTOR_ADD(node1SegForce, f1);
                 VECTOR_ADD(node2SegForce, f2);
 
