@@ -191,7 +191,7 @@ int main(int argc,char** argv)
     nPotParams = 1000000;
     potVariance = 0.0;
     sigma = 20.0;
-    potExpection = 0.05*sigma;
+    potExpection = 20;
     param.burgMag = 2.556e-10;
     burgMag = param.burgMag;
 
@@ -307,6 +307,7 @@ int main(int argc,char** argv)
 
     if(myDomain == 0){
         ofstream outfile("Tec.plt");
+        double ave = 0;
         ofstream out2("Refine.plt");
         outfile << numY1*numX1*4 << " " << meshSizeX <<
                 " " << meshSizeY << " " << numX1 << " " << numY1 <<endl;
@@ -316,6 +317,7 @@ int main(int argc,char** argv)
 //                outfile << scientific << param.xBoundMin + ((double)i)*meshSizeX << " ";
 //                outfile << scientific << param.yBoundMin + ((double)j)*meshSizeY << " ";
 
+                ave += fabs(globalArray[0+4*j+4*numY1*i]);
                 outfile << scientific << globalArray[0+4*j+4*numY1*i] << " ";
                 outfile << scientific << globalArray[1+4*j+4*numY1*i] << " ";
                 outfile << scientific << globalArray[2+4*j+4*numY1*i] << " ";
@@ -330,6 +332,8 @@ int main(int argc,char** argv)
                 out2 << scientific << globalArray[3+4*j+4*numY1*i] << endl;
             } 
         }
+        ave /= ((nXs+1)*(nYs+1));
+        printf("avrage size %f %e\n", ave, ave);
         outfile.close();
         out2.close();
 #if 0
@@ -379,6 +383,7 @@ int main(int argc,char** argv)
 #endif   
     }
 
+    
     free(globalArray);
     MPI_Finalize();
 

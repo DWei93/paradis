@@ -40,7 +40,7 @@ then
     sed -i "${lineNumber}d" $ctrlFile
     sed -i "${lineNumber}idirname = \"${resultDir}\"" $ctrlFile
 
-    mpirun -n 4 ./bin/paradis ./${ctrlFile} | tee out.${jobID}
+    mpirun -n 2 ./bin/paradis -n 4 ./${ctrlFile} | tee out.${jobID}
 else
 	make clean  > /dev/null 2>&1
     	make  > /dev/null 2>&1

@@ -46,10 +46,10 @@ case $srctype in
 ######################################################################################
     1|I)
     ./bin/paradisgen -type 4 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 0 -pbc 0 -extended 4 \
+    -polycrystal 0 -pbc 0 -extend 4 \
     -xMatDir -1,-1,2 -zMatDir 1,1,1 ;;
-#    -polycrystal 0 -pbc 0 -extend 4 \
 
+#    -polycrystal 0 -pbc 0 \
 ######################################################################################
 #
 #    Type II: free surface, single crystal, gradient sources distribution

@@ -328,7 +328,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                                2.0*dpstn[5]*dpstn[5])*2.0/3.0)/param->lastDT;
 
                 if(param->plaRateCtr <= 0.0 || 
-                  (param->plaRateCtr > 0 && 10.0*effPlaRate <= param->plaRateCtr)){
+                  (param->plaRateCtr > 0 && effPlaRate <= param->plaRateCtr)){
                     dstn[0] = param->loadDir[0]*dtt*erate;
                     dstn[1] = param->loadDir[1]*dtt*erate;
                     dstn[2] = param->loadDir[2]*dtt*erate;
@@ -337,12 +337,12 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                     dstn[5] = param->loadDir[5]*dtt*erate;
                 }
 
-                dsig[0] = (dstn[0] - 10*dpstn[0]) /Sij[0][0];
-                dsig[1] = (dstn[1] - 10*dpstn[1]) /Sij[1][1];
-                dsig[2] = (dstn[2] - 10*dpstn[2]) /Sij[2][2];
-                dsig[3] = 2.0 * (dstn[3] - 10*dpstn[3]) /Sij[3][3];
-                dsig[4] = 2.0 * (dstn[4] - 10*dpstn[4]) /Sij[4][4];
-                dsig[5] = 2.0 * (dstn[5] - 10*dpstn[5]) /Sij[5][5];
+                dsig[0] = (dstn[0] - dpstn[0]) /Sij[0][0];
+                dsig[1] = (dstn[1] - dpstn[1]) /Sij[1][1];
+                dsig[2] = (dstn[2] - dpstn[2]) /Sij[2][2];
+                dsig[3] = 2.0 * (dstn[3] - dpstn[3]) /Sij[3][3];
+                dsig[4] = 2.0 * (dstn[4] - dpstn[4]) /Sij[4][4];
+                dsig[5] = 2.0 * (dstn[5] - dpstn[5]) /Sij[5][5];
 
 				
 				for(i=0; i<6; i++){
