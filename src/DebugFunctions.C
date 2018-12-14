@@ -489,15 +489,34 @@ return;
 
 	param = home->param;
 
-	printf("%d %d\n",home->myDomain, flag);
+//	printf("%d %d\n",home->myDomain, flag);
 
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
-        if(isnan(node->x) || isnan(node->y) || isnan(node->z)){
-            Fatal("DebugGB %d %d - 1", home->myDomain, flag);
+
+        if(flag>22 || flag <= 9){
+            if(!IsOnGB(node)){
+                NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
+                if(node->inGrain != inGrain){
+                    PrintTag(node);
+                    printf(" DebugGB - 1: %d %d\n", home->myDomain, flag);
+                }
+            }
+        }
+
+        if(IsOnGB(node))continue;
+        for(j=0; j<node->numNbrs; j++){
+            nbr = GetNeighborNode(home, node, j);
+            if(nbr == (Node_t *)NULL)continue;
+            if(!IsOnGB(nbr) && nbr->inGrain != node->inGrain && flag < 11){
+                PrintTag(node);
+                PrintTag(nbr);
+                Fatal("DebugGB - 2: %d %d", home->myDomain, flag);
+            }
         }
     }
 
+    return;
 	node = home->ghostNodeQ;
 
     while (node) {

@@ -208,7 +208,7 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
  *            cycle against the dump frequency will be done.
  */
         if (param->tecplot) {
-            if (stage == STAGE_TERM) {
+            if (stage == STAGE_TERM ) {
                 *outputTypes |= GEN_TECPLOT_DATA;
             } else if (stage == STAGE_CYCLE || stage == STAGE_DEBUG) {
                 if (param->tecplotdt > 0.0) {
@@ -218,7 +218,7 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
                         param->tecplotcounter++;
                         *outputTypes |= GEN_TECPLOT_DATA;
                     }
-                } else if ((home->cycle % param->tecplotfreq) == 0) {
+                } else if ((home->cycle % param->tecplotfreq) == 0 || home->cycle == 1) {
                     param->tecplotcounter++;
                     *outputTypes |= GEN_TECPLOT_DATA;
                 }
@@ -227,10 +227,10 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
 
         
         if (param->tecmesh) {
-            if (stage == STAGE_TERM) {
+            if (stage == STAGE_TERM ) {
                 *outputTypes |= GEN_TECMESH_DATA;
             } else if (stage == STAGE_CYCLE || stage == STAGE_DEBUG) {
-                if ((home->cycle % param->tecmeshfreq) == 0) {
+                if ((home->cycle % param->tecmeshfreq) == 0 || home->cycle == 1) {
                     param->tecmeshcounter++;
                     *outputTypes |= GEN_TECMESH_DATA;
                 }
@@ -1073,10 +1073,10 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
         } else if(stage == STAGE_DEBUG){
                 snprintf(baseName, sizeof(baseName),"tecdata%06d%s",
 			home->cycle,msg);
-	    }else{
-                snprintf(baseName, sizeof(baseName), "tecdata.final");
-            }
-
+        }else{
+                snprintf(baseName, sizeof(baseName), "tecdata.%s", msg);
+        }
+            
             if (recvToken) RecvWriteToken(prevInGroup);
             Tecplot(home, baseName, ioGroup, isFirstInGroup,
                     writePrologue, writeEpilogue, numArms, 0);
@@ -1091,7 +1091,7 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
                 snprintf(baseName, sizeof(baseName),"tecmesh%06d%s",
 			             home->cycle,msg);
             } else if (stage == STAGE_TERM){
-                snprintf(baseName, sizeof(baseName), "tecmesh.final");
+                snprintf(baseName, sizeof(baseName), "tecmesh.%s", msg);
             }
 	        TecplotMesh(home, baseName, ioGroup,isFirstInGroup, writePrologue, 
 	                    writeEpilogue, numSegs);
@@ -1349,20 +1349,20 @@ void GenerateOutput(Home_t *home, int stage, const char *msg)
             if ((param->loadType != 2) && (home->myDomain == 0)) {
                 time(&tp);
 		
-		static int outputPrint = 0;
+		        static int outputPrint = 0;
 
-		if(outputPrint%100 == 0){
-			printf("cycle=%-8d  realdt=%e  timeNow=%e  %s",
+		        if(outputPrint%100 == 0){
+			    printf("cycle=%-8d  realdt=%e  timeNow=%e  %s",
                         	home->cycle, param->timeNow-param->timeStart,
                         	param->timeNow, asctime(localtime(&tp)));
 #if 0
-			printf("applied stress: %.15e %.15e %.15e %.15e %.15e %.15e\n",
+			   printf("applied stress: %.15e %.15e %.15e %.15e %.15e %.15e\n",
 			   param->appliedStress[0],param->appliedStress[1],
 			   param->appliedStress[2],param->appliedStress[3],
 			   param->appliedStress[4],param->appliedStress[5]);
 #endif
-		}
-               		outputPrint++;
+		        }
+              	outputPrint++;
             }
         }
 

@@ -951,8 +951,9 @@ static void ReadDataFile(Home_t *home, char *fileName, CellData_t *cellList,
 
 /*
  *          Got information on the next node, so deal with it.
+ *          D. Wei: ignore inGrain and onGB at primary lines in data file.
  */
-            sscanf(inLine, "%*d,%*d %lf %lf %lf %d %*d %*f",
+            sscanf(inLine, "%*d,%*d %lf %lf %lf %d %*d %*d %*d",
                    &nodeList[i].coord[0], &nodeList[i].coord[1],
                    &nodeList[i].coord[2], &numArms);
 
@@ -1065,7 +1066,7 @@ static void RepartRSDecomp(Home_t *home, NodeData_t *nodeList,
 
         qsort(nodeList, numNodes, sizeof(NodeData_t), XCmp);
 
-        GetBounds(cellList, nodeList, XC, numNodes, numXdoms, param->minSideX,
+        GetBounds(cellList, nodeList, 0, numNodes, numXdoms, param->minSideX,
                   param->maxSideX, xBound, xSlices);
 
 /*
@@ -1087,7 +1088,7 @@ static void RepartRSDecomp(Home_t *home, NodeData_t *nodeList,
             qsort(&nodeList[yFirstIndex], yLastIndex-yFirstIndex,
                   sizeof(NodeData_t), YCmp);
 
-            GetBounds(cellList, &nodeList[yFirstIndex], YC,
+            GetBounds(cellList, &nodeList[yFirstIndex], 1,
                       yLastIndex-yFirstIndex, numYdoms, param->minSideY,
                       param->maxSideY, yBound, ySlices);
 
@@ -1112,7 +1113,7 @@ static void RepartRSDecomp(Home_t *home, NodeData_t *nodeList,
                 qsort(&nodeList[zFirstIndex], zLastIndex-zFirstIndex,
                       sizeof(NodeData_t), ZCmp);
 
-                GetBounds(cellList, &nodeList[zFirstIndex], ZC,
+                GetBounds(cellList, &nodeList[zFirstIndex], 2,
                           zLastIndex-zFirstIndex, numZdoms, param->minSideZ,
                           param->maxSideZ, zBound, zSlices);
 
@@ -1555,17 +1556,17 @@ static void GetBisectionCoord(real8 *cMin, real8 *cMax, int dim,
         slabLoad = (real8 *)calloc(1, numSlabs * sizeof(real8));
 
         switch(dim) {
-            case XC:
+            case 0:
                 slabMinIndex = xMin;
                 slabMaxIndex = xMax;
                 boundaries = xBoundaries;
                 break;
-            case YC:
+            case 1:
                 slabMinIndex = yMin;
                 slabMaxIndex = yMax;
                 boundaries = yBoundaries;
                 break;
-            case ZC:
+            case 2:
                 slabMinIndex = zMin;
                 slabMaxIndex = zMax;
                 boundaries = zBoundaries;
@@ -1763,7 +1764,7 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
         if (cut[0]) {
 
             GetBisectionCoord(subDecompList[LLF]->cMin,
-                              subDecompList[LLF]->cMax, XC, gridDim,
+                              subDecompList[LLF]->cMax, 0, gridDim,
                               uloadData, xBoundaries, yBoundaries,
                               zBoundaries, &coord, minRatio[0]);
 
@@ -1801,7 +1802,7 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
  *          Cut all the existing LLF, LRF halves in the Y dimension.
  */
             GetBisectionCoord(subDecompList[LLF]->cMin,
-                              subDecompList[LLF]->cMax, YC, gridDim,
+                              subDecompList[LLF]->cMax, 1, gridDim,
                               uloadData, xBoundaries, yBoundaries,
                               zBoundaries, &coord, minRatio[1]);
 
@@ -1813,7 +1814,7 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
 
             if (subDecompList[LRF]) {
                 GetBisectionCoord(subDecompList[LRF]->cMin,
-                                  subDecompList[LRF]->cMax, YC, gridDim,
+                                  subDecompList[LRF]->cMax, 1, gridDim,
                                   uloadData, xBoundaries, yBoundaries,
                                   zBoundaries, &coord, minRatio[1]);
 
@@ -1842,7 +1843,7 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
  *          in the Z dimension.
  */
             GetBisectionCoord(subDecompList[LLF]->cMin,
-                              subDecompList[LLF]->cMax, ZC, gridDim,
+                              subDecompList[LLF]->cMax, 2, gridDim,
                               uloadData, xBoundaries, yBoundaries,
                               zBoundaries, &coord, minRatio[2]);
 
@@ -1851,7 +1852,7 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
 
             if (subDecompList[LRF]) {
                 GetBisectionCoord(subDecompList[LRF]->cMin,
-                                  subDecompList[LRF]->cMax, ZC, gridDim,
+                                  subDecompList[LRF]->cMax, 2, gridDim,
                                   uloadData, xBoundaries, yBoundaries,
                                   zBoundaries, &coord, minRatio[2]);
 
@@ -1861,7 +1862,7 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
 
             if (subDecompList[ULF]) {
                 GetBisectionCoord(subDecompList[ULF]->cMin,
-                                  subDecompList[ULF]->cMax, ZC, gridDim,
+                                  subDecompList[ULF]->cMax, 2, gridDim,
                                   uloadData, xBoundaries, yBoundaries,
                                   zBoundaries, &coord, minRatio[2]);
 
@@ -1871,7 +1872,7 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
 
             if (subDecompList[URF]) {
                 GetBisectionCoord(subDecompList[URF]->cMin,
-                                  subDecompList[URF]->cMax, ZC, gridDim,
+                                  subDecompList[URF]->cMax, 2, gridDim,
                                   uloadData, xBoundaries, yBoundaries,
                                   zBoundaries, &coord, minRatio[2]);
     
@@ -1897,7 +1898,7 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
 }
 
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
         int     numXdoms, numYdoms, numZdoms;
         int     numXcells, numYcells, numZcells, numCells;

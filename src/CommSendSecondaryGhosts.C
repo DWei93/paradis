@@ -87,7 +87,6 @@ static void AddSecondaryGhostRequest(Home_t *home, Node_t *node, int segID,
         if (domIndex == *numSendReqBufs) {
             reqDomList[*numSendReqBufs] = remDomID;
             *numSendReqBufs += 1;
-//			printf("Task %d, remot domain ++\n",home->myDomain);
         }
 
 /*
@@ -104,10 +103,10 @@ static void AddSecondaryGhostRequest(Home_t *home, Node_t *node, int segID,
         buf[bufOffset++] = node->nbrTag[segID].index;
 		
 		if(node->nbrTag[segID].domainID < 0 ||
-				node->nbrTag[segID].index < 0 || 
-				node->nbrTag[segID].domainID >= home->numDomains){
-			Fatal("AddSecondaryGhostRequest: error domainID (%d) or index(%d)",
-				 node->nbrTag[segID].domainID,node->nbrTag[segID].index);
+           node->nbrTag[segID].index < 0 || 
+           node->nbrTag[segID].domainID >= home->numDomains){
+            Fatal("AddSecondaryGhostRequest: error domainID (%d) or index(%d)",
+				  node->nbrTag[segID].domainID,node->nbrTag[segID].index);
 		}
 
         remDom->outBuf = (char *)buf;
@@ -598,8 +597,8 @@ void CommSendSecondaryGhosts(Home_t *home)
                                              &numSendReqBufs);
 #if DebugCSSG
 					printf("DebugCSSG: Task %d need secondary ghost node (%d,%d)\n",
-						  home->myDomain,node->nbrTag[segID].domainID,
-						 node->nbrTag[segID].index);
+						   home->myDomain,node->nbrTag[segID].domainID,
+						   node->nbrTag[segID].index);
 #endif
 
                 }

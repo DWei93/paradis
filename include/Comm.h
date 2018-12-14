@@ -22,8 +22,8 @@
 #define EXTRA_GHOST_FLTS          4
 
 #define INIT_PARAMS         1
-#define INIT_VALS_PER_NODE  9  	// increased by 2 for inGrain and onGB
-#define INIT_VALS_PER_ARM   9   // increased by 1 for signSF
+#define INIT_VALS_PER_NODE  9  	        // increased by 2 for inGrain and onGB
+#define INIT_VALS_PER_ARM   9           // increased by 1 for signSF
 
 #define INTS_PER_TAG        2
 /*
@@ -31,7 +31,7 @@
  *	Used for various plotting functions and writing text
  * 	restart files.
  */
-#define INTS_PER_MIRROR_NODE 6  //increased by 2 for inGrain and onGB
+#define INTS_PER_MIRROR_NODE 6          //increased by 2 for inGrain and onGB
 #define INTS_PER_MIRROR_ARM  2
 #define FLTS_PER_MIRROR_NODE 6		
 #define FLTS_PER_MIRROR_ARM  9

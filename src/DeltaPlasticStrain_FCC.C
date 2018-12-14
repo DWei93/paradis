@@ -201,8 +201,8 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         int          i, j;
         real8        factor0, bmagsq;
         real8        eps = 1.e-12;
-        real8        gdspn[6], gdstn[6];
-        real8        dstn[3][3], dspn[3][3];
+        real8        gdspn[6], gdstn[6], gdtstn[6];
+        real8        dstn[3][3], dspn[3][3], dtstn[3][3];
         real8        Ltot[NUM_BURG][4], areaSwept[NUM_BURG][7];
         real8        rotMatrix[3][3];
         Param_t      *param;
@@ -238,6 +238,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 
         Matrix33Init(dstn);
         Matrix33Init(dspn);
+        Matrix33Init(dtstn);
 
 
         for (i = 0; i < param->numBurgGroups; i++) {
@@ -246,7 +247,9 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 
         for (i=0; i < 6; i++) {
             param->delpStrain[i] = 0.0;                                         
+            param->delpTwinStrain[i] = 0.0;
         }                                                                
+
 
 /*
  *      The first time we enter this function, initialize a few
@@ -276,6 +279,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         real8  thread_disloDensity;
         real8  *thread_partialDensity;
         real8  thread_dstn[3][3], thread_dspn[3][3], thread_dyad[3][3];
+        real8  thread_dtstn[3][3];
         real8  thread_Ltot[NUM_BURG][4], thread_areaSwept[NUM_BURG][7];
 
         thread_disloDensity = 0.0;
@@ -284,6 +288,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 
         Matrix33Init(thread_dstn);
         Matrix33Init(thread_dspn);
+        Matrix33Init(thread_dtstn);
 
         memset(thread_Ltot, 0, sizeof(thread_Ltot));
         memset(thread_areaSwept, 0, sizeof(thread_areaSwept));
@@ -338,7 +343,10 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                real8  Ltemp[NUM_PLANES], Ltemp2[2];
                real8  stemp[NUM_PLANES];
 			   real8  pp[3],p1[3],p2[3];
+               real8 tmpDstn;
                Node_t *nbr;
+    
+               int  burgType;
 
                nbr = GetNeighborNode(home, node, segIndex);
 
@@ -406,6 +414,9 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                    bCryst[2] = bz;
                }
 
+
+                burgType = BurgType_FCC(bCryst);
+
 /*
  * 		In the output, we would like to generate the plastic strain
  * 		field, so we should record all the plastic strain in each 
@@ -447,9 +458,15 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 			   
 	        VECTOR_MULTIPLY(pp,0.25);
 
-            if(isnan(pp[0]))pp[0] = 0.0;
-            if(isnan(pp[1]))pp[1] = 0.0;
-            if(isnan(pp[2]))pp[2] = 0.0;
+/*
+ *          Some bugs can cause trouble here, such as the nodal position
+ *          is nan.                                             D. Wei
+ */
+            if(isnan(pp[0]) || isnan(pp[1]) || isnan(pp[2])){
+                PrintNode(node);
+                PrintNode(nbr);
+                Fatal("in %s at %d", __FILE__, __LINE__);
+            }
 	         
 	        FoldBox(param,&pp[0],&pp[1],&pp[2]);
 	         
@@ -463,13 +480,16 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 	        hhy = node->y - nbr->oldy;
 	        hhz = node->z - nbr->oldz;
 
-            if(isnan(ex)) ex = 0.0;
-            if(isnan(ey)) ey = 0.0;
-            if(isnan(ez)) ez = 0.0;
-
-            if(isnan(hhx)) hhx = 0.0;
-            if(isnan(hhy)) hhy = 0.0;
-            if(isnan(hhz)) hhz = 0.0;
+/*
+ *          Some bugs can cause trouble here, such as the nodal old 
+ *          psoition is nan.                                  D. Wei
+ */
+            if(isnan(ex) || isnan(ey) || isnan(ez) ||
+               isnan(hhx) || isnan(hhy) || isnan(hhz)){
+                PrintNode(node);
+                PrintNode(nbr);
+                Fatal("in %s at %d", __FILE__, __LINE__);
+            }
 
 	        ZImage(param, &ex, &ey, &ez);
 	        ZImage(param, &hhx, &hhy, &hhz);
@@ -487,22 +507,30 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 	        thread_dyad[2][0] = nz*bx;
 	        thread_dyad[2][1] = nz*by;
 	        thread_dyad[2][2] = nz*bz;
-               for (k = 0; k < 3; k++){
-                  for (l = 0; l < 3; l++){
-                      real8 tmpDstn;
-                      tmpDstn = (thread_dyad[l][k]+thread_dyad[k][l]) *
-                                0.5/param->simVol;
-                      thread_dstn[l][k] += tmpDstn;
-					  
+
+/*
+ *          Caculate total plastci strain, twinning deformation and elemental 
+ *          plastic strain.                                         D. Wei
+ */
+            for (k = 0; k < 3; k++){
+                for (l = 0; l < 3; l++){
+                    tmpDstn = (thread_dyad[l][k]+thread_dyad[k][l]) *
+                               0.5/param->simVol;
+                    thread_dstn[l][k] += tmpDstn;
+
+                    if(burgType == SHOCKLEY_BURG){
+                        thread_dtstn[l][k] += tmpDstn;
+                    }
+			 	  
 	                if(l==k)home->pstnEle[eleNum][l] += tmpDstn; // element
 	                if(l<k)home->pstnEle[eleNum][l+k+2] += tmpDstn; // element
-					  
-                      thread_dspn[l][k] += (thread_dyad[l][k] -
-                                            thread_dyad[k][l]) *
-                                           0.5/param->simVol;
-                      localstrain[l][k] += tmpDstn;
-                  }
-               }
+			 	  
+                    thread_dspn[l][k] += (thread_dyad[l][k] -
+                                         thread_dyad[k][l]) *
+                                        0.5/param->simVol;
+                    localstrain[l][k] += tmpDstn;
+                }
+            }
 
                /* Modified for flux decomposition calculation 06/22/04 M.Rhee */
                delxnode = node->x - node->oldx;
@@ -1004,6 +1032,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                 for (l = 0; l < 3; l++) {
                     dstn[k][l] += thread_dstn[k][l];
                     dspn[k][l] += thread_dspn[k][l];
+                    dtstn[k][l] += thread_dtstn[k][l];
                 }
             }
 
@@ -1083,6 +1112,13 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         param->delpStrain[3] = dstn[1][2];
         param->delpStrain[4] = dstn[0][2];
         param->delpStrain[5] = dstn[0][1];
+
+        param->delpTwinStrain[0] = dtstn[0][0];
+        param->delpTwinStrain[1] = dtstn[1][1];
+        param->delpTwinStrain[2] = dtstn[2][2];
+        param->delpTwinStrain[3] = dtstn[1][2];
+        param->delpTwinStrain[4] = dtstn[0][2];
+        param->delpTwinStrain[5] = dtstn[0][1];
         
         param->delpSpin[0] = dspn[0][0];
         param->delpSpin[1] = dspn[1][1];
@@ -1100,10 +1136,13 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                       MPI_COMM_WORLD);
         MPI_Allreduce(param->delpSpin, gdspn, 6, MPI_DOUBLE, MPI_SUM,
                       MPI_COMM_WORLD);
+        MPI_Allreduce(param->delpTwinStrain, gdtstn, 6, MPI_DOUBLE, MPI_SUM,
+                      MPI_COMM_WORLD);
 
         for (i = 0; i < 6; i++) {
             param->delpStrain[i] = gdstn[i];
             param->delpSpin[i] = gdspn[i];
+            param->delpTwinStrain[i] = gdtstn[i];
         }
 
 /*
@@ -1131,6 +1170,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         for (i = 0; i < 6; i++) {
             gdstn[i] = param->delpStrain[i];
             gdspn[i] = param->delpSpin[i];
+            gdtstn[i] = param->delpTwinStrain[i];
         }
 #endif /* if PARALLEL */
 

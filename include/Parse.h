@@ -48,5 +48,6 @@ int  LookupParam(ParamList_t *list, char *token);
 void MarkParamDisabled(ParamList_t *CPList, const char *name);
 void MarkParamEnabled(ParamList_t *CPList, const char *name);
 void WriteParam(ParamList_t *list, int index, FILE *fp);
+void WriteArray(real8 **array, char *name, int nRows, int nCols, FILE *fp);
 
 #endif  /* _PARSE_H */

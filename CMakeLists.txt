@@ -12,13 +12,13 @@ Set(CMAKE_CXX_COMPILER "mpicxx")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")  
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")  
 
-#FIND_PACKAGE( OpenMP REQUIRED)  
-#if(OPENMP_FOUND)  
-#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")  
-#    message(STATUS "OpenMP_C_FLAGS = " ${OpenMP_C_FLAGS})  
-#    message(STATUS "OpenMP_CXX_FLAGS = " ${OpenMP_CXX_FLAGS})  
-#    message(STATUS "OpenMP_EXE_LINKER_FLAGS = " ${OpenMP_EXE_LINKER_FLAGS})  
-#endif()  
+FIND_PACKAGE( OpenMP REQUIRED)  
+if(OPENMP_FOUND)  
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")  
+    message(STATUS "OpenMP_C_FLAGS = " ${OpenMP_C_FLAGS})  
+    message(STATUS "OpenMP_CXX_FLAGS = " ${OpenMP_CXX_FLAGS})  
+    message(STATUS "OpenMP_EXE_LINKER_FLAGS = " ${OpenMP_EXE_LINKER_FLAGS})  
+endif()  
 
 Find_Package(GEOS)
 Message(STATUS "include and lib " ${GEOS_INCLUDE_DIR} " " ${GEOS_LIB_DIR})
@@ -37,9 +37,33 @@ Message(STATUS "CMAKE_C_FLAGS = " ${CMAKE_C_FLAGS})
 Message(STATUS "CMAKE_CXX_FLAGS = " ${CMAKE_CXX_FLAGS})
 Message(STATUS "CMAKE_EXE_LINKER_FLAGS = " ${CMAKE_EXE_LINKER_FLAGS})
 
-Add_subdirectory (src bin)
-Add_subdirectory (utilities bin1)
+Add_subdirectory (src)
+Add_subdirectory (utilities)
 
+ENABLE_TESTING()
+
+Set(frlen 1200,1800)
+Set(cubel 3000)
+Set(maxSeg 200)
+Set(nfrs 5)
+Set(angle 1.5707963)
+Set(maxDensity 1E13)
+String(RANDOM LENGTH 5 ALPHABET 0123456789 seed)
+Message(STATUS "random seed for test is " ${seed})
+
+Set(commands_gen_bicrystal -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} -seed ${seed} 
+    -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity ${maxDensity}
+    -TBAngle ${angle} 
+    -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1) 
+
+ADD_TEST(gen_bicrystal utilities/paradisgen ${commands_gen_bicrystal})
+
+Set(commands_repart -infile paradis.data -cells 4 -domains 1,1,4 -outfile bicrystal.data)
+Add_Test(repart_gen utilities/paradisrepart ${commands_repart})
+
+Set(mpirun_commands -n 4 "./src/paradis")
+Set(paradis_commands -n 2 -d ${PARADIS_BINARY_DIR}/bicrystal.data ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
+Add_Test(run_paradis_bicrystal "mpirun" ${mpirun_commands} ${paradis_commands})
 
 if(0)
 message(STATUS "CMAKE_C_FLAGS = " ${CMAKE_C_FLAGS})

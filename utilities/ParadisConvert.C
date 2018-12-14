@@ -286,7 +286,7 @@ static int CreateDataFileFromCtrl(Home_t *home, char *dataFileName,
 
         fprintf(fpData, "nodalData = \n");
         fprintf(fpData, "#  Primary lines: node_tag, x, y, z, "
-                "num_arms, constraint\n");
+                "num_arms, constraint, inGrain, onGB\n");
         fprintf(fpData, "#  Secondary lines: arm_tag, burgx, burgy, "
                 "burgz, nx, ny, nz signSF\n");
 
@@ -814,7 +814,7 @@ static void ConvertDataFile(Home_t *home, char *baseDataFileName)
 
         fprintf(fpNew, "nodalData = \n");
         fprintf(fpNew, "#  Primary lines: node_tag, x, y, z, "
-                "num_arms, constraint\n");
+                "num_arms, constraint, inGrain, onGB\n");
         fprintf(fpNew, "#  Secondary lines: arm_tag, burgx, burgy, "
                 "burgz, nx, ny, nz signSF\n");
 
@@ -977,7 +977,7 @@ static void RenameAllFiles(Home_t *home, char *ctrlFileName,
 }
 
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
         int         doDataConvert = 1;
         char        *ctrlFileName = (char *)NULL;

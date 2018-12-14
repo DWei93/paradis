@@ -335,28 +335,31 @@ void RestoreCrossSlipForce(Node_t *node, Node_t *nbr1, Node_t *nbr2,
 
 void CrossSlip(Home_t *home)
 {
-        int enabled, matType;
+    int enabled, matType;
 		
 
-        enabled = home->param->enableCrossSlip;
-        matType = home->param->materialType;
+    enabled = home->param->enableCrossSlip;
+    matType = home->param->materialType;
+
 #if CROSS_SLIP_GB_MODEL
-        GBCrossSlip(home);
+/*
+ *  GB dislocation emission model like cross-slip process introduced here.
+ *                                                                   D.Wei
+ */
+    GBCrossSlip(home);
 #endif
-        if (enabled) {
 
-            switch(matType) {
-
-                case MAT_TYPE_BCC:
-                    CrossSlipBCC(home);
-                    break;
-
-                case MAT_TYPE_FCC:
-                    CrossSlipFCC(home);
-                    break;
-            }
-
+    if (enabled) {
+        switch(matType) {
+            case MAT_TYPE_BCC:
+                CrossSlipBCC(home);
+                break;
+            case MAT_TYPE_FCC:
+                CrossSlipFCC(home);
+                break;
         }
+
+    }
 
         return;
 }

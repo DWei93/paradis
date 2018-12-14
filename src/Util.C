@@ -1997,6 +1997,7 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
                 burg[1] = by;
                 burg[2] = bz;
 
+                if(Normal(dir) < 1.0E-4)printf("a zero length seg occured 4\n");
                 FindGlidePlane(home, burg, dir, glidePlane,node1,node2);
 
                 gpDotgp = DotProduct(glidePlane, glidePlane);
@@ -2006,6 +2007,7 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
                     vel[1] = (node1->vY + node2->vY) * 0.5;
                     vel[2] = (node1->vZ + node2->vZ) * 0.5;
 
+                    if(Normal(dir) < 1.0E-4)printf("a zero length seg occured 5\n");
                     FindGlidePlane(home, vel, dir, glidePlane,node1,node2);
 
                     gpDotgp = DotProduct(glidePlane, glidePlane);
@@ -4227,7 +4229,7 @@ int NodeHasSessileBurg(Home_t *home, Node_t *node)
  *------------------------------------------------------------------------*/
 void GetGlideConstraintList(Home_t *home, Node_t *node,
                             int *numGlideConstraints,
-                            real8 (*glideConstraints)[3])
+                            real8 (*glideConstraints)[3], bool GBconstrict)
 {
         int     i,  surfaceConstraint = 0, planeType;
         int     numConstraints, junctionConstraint = 0;
@@ -4264,7 +4266,8 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                 if(nbr != (Node_t *)NULL){
                     planeType = GetPlaneType_FCC(home, node, nbr);
                     if((planeType & JUNCTION_PLANE1) > 0 ||
-                       (planeType & JUNCTION_PLANE2) > 0){
+                       (planeType & JUNCTION_PLANE2) > 0 ||
+                       (planeType & UNKOWN_PLANE) > 0){
                         junctionConstraint = 1;
                         lDir[0] = nbr->x - node->x;
                         lDir[1] = nbr->y - node->y;
@@ -4276,7 +4279,8 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                 }
 	        }else{
 		        if(i == node->numNbrs){
-		            if(!IsOnGB(node))continue;
+                    if(!GBconstrict)continue;
+                    if(!IsOnGB(node))continue;
 		            VECTOR_COPY(glidePlane, home->GBKeys[node->onGB]->n);
 		        }else if(i == node->numNbrs + 1){
 		            if(surfaceConstraint == 0)continue;

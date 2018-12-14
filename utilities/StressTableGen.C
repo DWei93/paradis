@@ -712,7 +712,7 @@ static void CheckArgs(InArgs_t *inArgs)
 }
 
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
         int      tableSize;
         InArgs_t inArgs;

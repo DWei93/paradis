@@ -387,7 +387,7 @@ static void InitValues(Param_t *param, int *numLayers, int pbc[3])
 }
 
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
         int      numLevels, numTasks, thisTask;
         int      pbc[3];
