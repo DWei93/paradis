@@ -17,7 +17,7 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
+numXdoms = 4
 numYdoms = 1
 numZdoms = 1
 #
@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.10"
+dirname = "res.1027072"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -67,10 +67,10 @@ fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 #
 #  Loading conditions
 #  
-loadType = 1
+loadType = 7
 indxErate = 8
 eRate =   0.000
-strRate = 4.0E15
+strRate = 0.000
 #plaRateCtr = 2.0E4
 loadDir = [
     0.0
@@ -91,7 +91,7 @@ appliedStress = [
 	0.0e0
 	0.0e0
 	0.0e0
-	20.0e6
+	120.0e6
 	0.0e0
 	0.0e0
 ]
