@@ -120,6 +120,8 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2,
     double  n2x = n2[0], n2y = n2[1], n2z = n2[2];
     double  p1x = p1[0], p1y = p1[1], p1z = p1[2];
     double  p2x = p2[0], p2y = p2[1], p2z = p2[2];
+    double  dir[3], dir1[3], dir2[3], dot, dis, vec3[3], vec4[4], vec5[3], vec6[3];
+    int     type;
 
     VECTOR_ZERO(vec1);
     VECTOR_ZERO(vec2);
@@ -146,69 +148,56 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2,
         return(LINE_INTERSECTION);
     }
 
-    vec2[0] = ((-(SQUARE(n1y)*n2x) + n1x*n1y*n2y - n1z*(n1z*n2x - n1x*n2z))*
-            (n2z*(n1x*p1x + n1y*p1y + n1z*p1z) - 
-            n1z*(n2x*p2x + n2y*p2y + n2z*p2z)) + 
-            (n1z*n2y - n1y*n2z)*((-(n1y*n2x) + n1x*n2y)*
-            (n1x*p1x + n1y*p1y + n1z*p1z) + 
-            (n1z*(n1z*(n2y*(p1x + p2x) - n2x*(p1y + p2y)) + 
-            n1y*(-(n2z*(p1x + p2x)) + n2x*(p1z + p2z)) + 
-            n1x*(n2z*(p1y + p2y) - n2y*(p1z + p2z))))/2.))/
-            (n1z*(SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y)) - 
-            2*n1x*n1z*n2x*n2z - 2*n1y*n2y*(n1x*n2x + n1z*n2z) + 
-            SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z)) + 
-            SQUARE(n1x)*(SQUARE(n2y) + SQUARE(n2z))));
+    cross(vec1, n1, vec3);
+    if(Normal(vec3)< 1.0E-4){
+        FatalMath("PlanePlaneIntersection in %s at %d\n", __FILE__, __LINE__);
+    }
+    NormalizeVec(vec3);
 
-    vec2[1] = (2*SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z))*p1y + 
-            SQUARE(n1x)*(2*n2x*n2y*(-p1x + p2x) + 2*SQUARE(n2y)*p2y + 
-            SQUARE(n2z)*(p1y + p2y) + n2y*n2z*(-p1z + p2z)) + 
-            SQUARE(n1z)*(n2x*n2y*(-p1x + p2x) + 
-            SQUARE(n2x)*(p1y + p2y) + 
-            2*n2y*(n2y*p2y + n2z*(-p1z + p2z))) + 
-            n1y*n1z*(n2x*n2z*(p1x - p2x) + SQUARE(n2x)*(p1z - p2z) - 
-            2*n2z*(n2y*(p1y + p2y) + n2z*(-p1z + p2z))) + 
-            n1x*(-(n1z*(2*n2x*n2z*(p1y + p2y) + 
-            n2y*(n2z*p1x + n2x*p1z - n2z*p2x - n2x*p2z))) + 
-            n1y*(2*SQUARE(n2x)*(p1x - p2x) + 
-            SQUARE(n2z)*(p1x - p2x) - 
-            n2x*(2*n2y*(p1y + p2y) + n2z*(-p1z + p2z)))))/
-            (2.*(SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y)) - 
-            2*n1x*n1z*n2x*n2z - 2*n1y*n2y*(n1x*n2x + n1z*n2z) + 
-            SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z)) + 
-            SQUARE(n1x)*(SQUARE(n2y) + SQUARE(n2z))));
+    type = LinePlaneIntersection(vec3, p1, n2, p2, vec4, vec2);
+    if(type == NO_INTERSECTION){
+        FatalMath("PlanePlaneIntersection in %s at %d\n", __FILE__, __LINE__);
+    }
+#if 0
+    dir[0] = p2[0] - p1[0];
+    dir[1] = p2[1] - p1[1];
+    dir[2] = p2[2] - p1[2];
+    if(Normal(dir) < 1.0E-2){
+        VECTOR_COPY(vec2, p2);
+        return(LINE_INTERSECTION);
+    }
+    NormalizeVec(dir);
 
-    vec2[2] = (2*SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y))*p1z + 
-            SQUARE(n1x)*(2*n2x*n2z*(-p1x + p2x) + n2y*n2z*(-p1y + p2y) + 
-            2*SQUARE(n2z)*p2z + SQUARE(n2y)*(p1z + p2z)) + 
-            SQUARE(n1y)*(n2x*n2z*(-p1x + p2x) + 
-            SQUARE(n2x)*(p1z + p2z) + 
-            2*n2z*(n2y*(-p1y + p2y) + n2z*p2z)) + 
-            n1y*n1z*(n2x*n2y*(p1x - p2x) + SQUARE(n2x)*(p1y - p2y) + 
-            2*n2y*(n2y*(p1y - p2y) - n2z*(p1z + p2z))) + 
-            n1x*(-(n1y*(n2x*n2z*(p1y - p2y) + 
-            n2y*(n2z*(p1x - p2x) + 2*n2x*(p1z + p2z)))) + 
-            n1z*(2*SQUARE(n2x)*(p1x - p2x) + 
-            SQUARE(n2y)*(p1x - p2x) + 
-            n2x*(n2y*(p1y - p2y) - 2*n2z*(p1z + p2z)))))/
-            (2.*(SQUARE(n1z)*(SQUARE(n2x) + SQUARE(n2y)) - 
-            2*n1x*n1z*n2x*n2z - 2*n1y*n2y*(n1x*n2x + n1z*n2z) + 
-            SQUARE(n1y)*(SQUARE(n2x) + SQUARE(n2z)) + 
-            SQUARE(n1x)*(SQUARE(n2y) + SQUARE(n2z))));
+    dot = DotProduct(dir, n1);
+    dir1[0] = dir[0] - dot*n1[0];
+    dir1[1] = dir[1] - dot*n1[1];
+    dir1[2] = dir[2] - dot*n1[2];
+    if(Normal(dir1) < 1.0E-4){
+        VECTOR_COPY(vec2, p1);
+        return(LINE_INTERSECTION);
+    }
 
-    if(fabs(1-fabs(n1x)) < EPS1)vec2[0] = p1x;
-    if(fabs(1-fabs(n2x)) < EPS1)vec2[0] = p2x;
+    NormalizeVec(dir1);
 
-    if(fabs(1-fabs(n1y)) < EPS1)vec2[1] = p1y;
-    if(fabs(1-fabs(n2y)) < EPS1)vec2[1] = p2y;
+    dot = DotProduct(dir, n2);
+    dir2[0] = dir[0] - dot*n2[0];
+    dir2[1] = dir[1] - dot*n2[1];
+    dir2[2] = dir[2] - dot*n2[2];
+    if(Normal(dir2) < 1.0E-4){
+        VECTOR_COPY(vec2, p2);
+        return(LINE_INTERSECTION);
+    }
 
-    if(fabs(1-fabs(n1z)) < EPS1)vec2[2] = p1z;
-    if(fabs(1-fabs(n2z)) < EPS1)vec2[2] = p2z;
+    NormalizeVec(dir2);
 
+    type = LineLineIntersection(dir1, p1, dir2, p2, vec5, vec2, &dis);
 
-    if(isnan(vec2[0]))vec2[0] = 0.0;
-    if(isnan(vec2[1]))vec2[1] = 0.0;
-    if(isnan(vec2[2]))vec2[2] = 0.0;
-
+    if(fabs(dis) > 2){
+        FormatVector(vec3, "p1");
+        FormatVector(vec4, "p2");
+        printf("Warning: PlanePlaneIntersection dis is %f\n", dis);
+    }
+#endif
     return(LINE_INTERSECTION);
 } 
 
@@ -243,6 +232,14 @@ int LinePlaneIntersection(double *d, double *p1, double *n, double *p2,
     if(isnan(vec2[1]))vec2[1] = 0.0;
     if(isnan(vec2[2]))vec2[2] = 0.0;
     
+    if(isinf(vec2[0]) || isinf(vec2[1]) || isinf(vec2[2])){
+        printf("d: {%f,%f,%f}\n", d[0], d[1], d[2]);
+        printf("p1: {%f,%f,%f}\n", p1[0], p1[1], p1[2]);
+        printf("n: {%f,%f,%f}\n", n[0], n[1], n[2]);
+        printf("p2: {%f,%f,%f}\n", p2[0], p2[1], p2[2]);
+        exit(0);
+    }
+
     return(POINT_INTERSECTION);    
 }
 
@@ -275,6 +272,10 @@ int PointLineIntersection(double *p1, double *d, double *p2,
        SQUARE(dx)*(SQUARE(p1y) + SQUARE(p1z) - 2*p1y*p2y + 
        SQUARE(p2y) - 2*p1z*p2z + SQUARE(p2z)))/
        (SQUARE(dx) + SQUARE(dy) + SQUARE(dz)));
+
+    if(isnan(*dis))*dis = 0.0;
+    if(isinf(*dis)) *dis = 0.0;
+
     if(*dis < EPS2){
         return(POINT_INTERSECTION);
     }else{
@@ -376,6 +377,8 @@ int LineLineIntersection(double *d1, double *p1, double *d2, double *p2,
            SQUARE(d1y)*(SQUARE(d2x) + SQUARE(d2z)) + 
            SQUARE(d1x)*(SQUARE(d2y) + SQUARE(d2z))));
 
+    if(isnan(*dis)) *dis = 0.0;
+    if(isinf(*dis)) *dis = 0.0;
     if(*dis < EPS2){
         return(POINT_INTERSECTION);
     }else{
@@ -398,6 +401,8 @@ int PointPlaneIntersection(double *p1, double *n, double *p2, double *vec, doubl
 
     *dis = sqrt(SQUARE(nx*p1x + ny*p1y + nz*p1z - nx*p2x - ny*p2y - nz*p2z)/
            (SQUARE(nx) + SQUARE(ny) + SQUARE(nz)));
+    if(isnan(*dis)) *dis = 0.0;
+    if(isinf(*dis)) *dis = 0.0;
 
     vec[0] = (SQUARE(ny)*p1x + SQUARE(nz)*p1x + SQUARE(nx)*p2x + 
              nx*ny*(-p1y + p2y) + nx*nz*(-p1z + p2z))/
@@ -430,6 +435,8 @@ int PointPointIntersection(double *p1, double *p2, double *vec, double *dis){
     vec[2] = p2[2] - p1[2];
 
     *dis = sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
+    if(isnan(*dis)) *dis = 0.0;
+    if(isinf(*dis)) *dis = 0.0;
     
     if(*dis < EPS2){
         return(POINT_INTERSECTION);

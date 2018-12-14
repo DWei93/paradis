@@ -680,3 +680,19 @@ int GetNextToken(FILE *fp, char *token, int maxTokenSize)
  */
         return(TOKEN_ERR);
 }
+
+void WriteArray(real8 **array, char *name, int nRows, int nCols, FILE *fp)
+{
+    int     i, j; 
+
+    fprintf(fp, "%s = [\n", name);    
+    for(i=0; i<nRows; i++){
+        for(j=0; j<nCols; j++){
+            fprintf(fp, "%10.6e ", array[i][j]);
+        }
+        fprintf(fp, "\n");
+    }
+    fprintf(fp, "]\n");
+    return;
+}
+

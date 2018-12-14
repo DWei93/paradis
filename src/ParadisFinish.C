@@ -124,7 +124,7 @@ void ReleaseMemory(Home_t *home)
                 FreeBurgInfoStr(&(home->GBKeys[i]->burgData));
                 free(home->GBKeys[i]); home->GBKeys[i] = NULL;
             }
-            free(home->GBKeys);
+            free(home->GBKeys); 
             home->GBKeys = NULL;
         }
         if(home->nGrains > 0){
@@ -241,29 +241,28 @@ void ReleaseMemory(Home_t *home)
 
 void ParadisFinish(Home_t *home)
 {
-	int	maxMem;
+    int	maxMem;
 
-	if (home->myDomain == 0) printf("ParadisFinish\n");
 /*
  *	Generate all type of output appropriate at program completion
  *	and write out the timer values 
  */
-	GenerateOutput(home, STAGE_TERM, "finish");
-	TimerPrint(home);
+    GenerateOutput(home, STAGE_TERM, "finish");
+    TimerPrint(home);
 
 #ifndef NO_XWINDOW
 #ifndef NO_THREAD
-	if (WinAlive()) {
-		if (home->myDomain == 0) printf("sleeping ...\n");
-		Sleep();
-	}
+    if (WinAlive()) {
+        if (home->myDomain == 0) printf("sleeping ...\n");
+        Sleep();
+    }
 #else
-	if (WinAlive()) {
-		if (home->myDomain == 0) {
-			printf("sleeping ...\n");
-			WinRoutine();
-		}
-	}
+    if (WinAlive()) {
+        if (home->myDomain == 0) {
+            printf("sleeping ...\n");
+            WinRoutine();
+        }
+    }
 #endif
         if (home->myDomain == 0) {
             WinSemRemove();
@@ -273,16 +272,16 @@ void ParadisFinish(Home_t *home)
 /*
  *	Print out memory usage info for processor zero
  */
-	if (home->myDomain == 0) {
-		Meminfo(&maxMem);
-		printf("Estimated memory usage (proc 0): %dk bytes\n", maxMem);
-	}
+    if (home->myDomain == 0) {
+        Meminfo(&maxMem);
+        printf("Estimated memory usage (proc 0): %dk bytes\n", maxMem);
+    }
 
 #ifdef PARALLEL
-	MPI_Finalize();
+    MPI_Finalize();
 #endif
 
-        ReleaseMemory(home);
+     ReleaseMemory(home);
 
-	return;
+    return;
 }

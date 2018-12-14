@@ -22,7 +22,12 @@ jobID=`echo "${PBS_JOBID}" | cut -d . -f 1`
 
 cd $PBS_O_WORKDIR
 
-ctrlFile=$2 
+resultDir=res.$jobID
+if [ "$2" = "" ];then
+	ctrlFile=input/Copper.ctrl
+else
+	ctrlFile=$2
+fi
 dataFile=input/Copper.data
 
 dirName=`pwd | sed 's,^\(.*/\)\?\([^/]*\),\2,'`
@@ -30,9 +35,6 @@ echo  "$dirName, jobID $jobID:" >> $logFile
 
 if [ $PBS_JOBID = $1 ]
 then
-    lineNumber=`grep  -n "numZdoms" $ctrlFile | cut -d : -f 1`
-    sed -i "${lineNumber}d" $ctrlFile
-    sed -i "${lineNumber}inumZdoms = 1" $ctrlFile
 #   make clean  > /dev/null 2>&1
 #   make  > /dev/null 2>&1
     resultDir=res.$jobID
@@ -42,10 +44,10 @@ then
 
     mpirun -n 2 ./bin/paradis -n 4 ./${ctrlFile} | tee out.${jobID}
 else
-	make clean  > /dev/null 2>&1
-    	make  > /dev/null 2>&1
-	echo "Initial generation type: ${initialType}"
-	./gen 
+#	make clean  > /dev/null 2>&1
+#    	make  > /dev/null 2>&1
+#	echo "Initial generation type: ${initialType}"
+#	./gen 
         lineNumber=`grep  -n "numZdoms" $ctrlFile | cut -d : -f 1`
         sed -i "${lineNumber}d" $ctrlFile
         sed -i "${lineNumber}inumZdoms = 4" $ctrlFile

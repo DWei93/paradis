@@ -161,14 +161,6 @@ void DisableUnneededParams(Home_t *home)
         }
 
 /*
- *      If inertial terms are not being included, don't write parameters
- *      specific to that capability.
- */
-        if (param->includeInertia == 0) {
-            MarkParamDisabled(home->ctrlParamList, "massDensity");
-        }
-
-/*
  *      If no sessile burgers vectors have been specified, don't write
  *      the related arrays out.
  */

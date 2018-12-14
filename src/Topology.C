@@ -1141,6 +1141,8 @@ void SplitMultiNodes(Home_t *home)
 		if (node ==(Node_t *)NULL) continue;
 
 		if (node->numNbrs < 4) continue;
+
+
             origNumNbrs = node->numNbrs;
 
 #ifdef DEBUG_LOG_MULTI_NODE_SPLITS
@@ -1522,6 +1524,7 @@ void SplitMultiNodes(Home_t *home)
                             dirvec[1] = diry;
                             dirvec[2] = dirz;
 
+                            if(Normal(dirvec) < 1.0E-4)printf("a zero length seg occured 1\n");
                             FindGlidePlane(home, burg, dirvec,
                                                   nplane, splitNode1, splitNode2);
 
@@ -2417,6 +2420,7 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                 NormalizeVec(dirVec);
                 NormalizeVec(burg);
 
+//                if(Normal(dirVec) < 1.0E-4)printf("a zero length seg occured 2\n");
                 FindGlidePlane(home, burg, dirVec, glidePlane, (*splitNode1), (*splitNode2));
 
                 if (DotProduct(glidePlane,glidePlane) < eps) {
@@ -2424,6 +2428,7 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                     vel[1] = ((*splitNode1)->vY + (*splitNode2)->vY) * 0.5;
                     vel[2] = ((*splitNode1)->vZ + (*splitNode2)->vZ) * 0.5;
 
+                    if(Normal(dirVec) < 1.0E-4)printf("a zero length seg occured 3\n");
                     FindGlidePlane(home, vel, dirVec, glidePlane, (*splitNode1), (*splitNode2));
 
                     if (DotProduct(glidePlane,glidePlane) < eps) {

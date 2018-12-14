@@ -126,7 +126,7 @@ lineNumber=`grep  -n "logID" $config | cut -d : -f 1`
 sed -i "${lineNumber}d" $config
 sed -i "${lineNumber}ilogID = ${logID}" $config
 
-printf "logID: %06d" ${logID} > $logFile
+echo "logID: ${logID}" > $logFile
 echo -n " { $dateTime @@@ Create a new project into ${projectName}" >> $logFile
 
 for number in $numbers 

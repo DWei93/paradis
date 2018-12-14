@@ -58,7 +58,7 @@ void FormatMatrix(real8 M[3][3], const char *msg){
 	int i;
 	printf("%s:\n{",msg);
 	for (i = 0; i < 3; i++){
-	    printf("{ %20.15f,%20.15f,%20.15f }", M[i][0], M[i][1], M[i][2]);
+	    printf("{%20.15f,%20.15f,%20.15f}", M[i][0], M[i][1], M[i][2]);
         if(i<2){
             printf(",\n");
         }else{
@@ -92,8 +92,12 @@ void InitGrainStructure(Grain_t *grain, int numBounds){
     return;
 }
 
+
+bool cmp3(SlipSys_t p, SlipSys_t q){
+    return(p.schmidt > q.schmidt);
+}
 void InitGrain(Home_t *home, Param_t *param){
-	int		    i,j;
+	int		    i,j,k;
 	Grain_t		*grain;
     GB_t        *GB;
 	real8		HalfMatrixThick, maxSeg;
@@ -281,65 +285,72 @@ void InitGrain(Home_t *home, Param_t *param){
  *	    Type VI: polycrystal = 1, nGrain =2, Free surface.
  *	    simulat twin sample.
  */
-	    real8   hMatrix, p[4][3];
+	    real8   hMatrix, p[4][3], vec1[3], vec2[3];
 	    real8   interPos[3], bound, rho;
-	    int	    inner = 0;
+	    int	    inner = 0, interType;
 	    Plane_t plane;
 	    Line_t  edge;
 
 	    VECTOR_COPY(plane.normal, param->TBNormal);
+	    VECTOR_ZERO(plane.point);
 
-        
-	    for(i=0; i<3; i++){
-	        VECTOR_ZERO(edge.direction);
-	        VECTOR_ZERO(plane.point);
-
-	        edge.direction[i] = 1;
-	        if(DotProduct(param->TBNormal, edge.direction) > 0){
-	            rho = 1.0 - twinRatio; }
-	        else{
-	            rho = twinRatio;  }
-
-	        if(i == 0){
-	            bound = lx;
-	            hMatrix = 2 * lx * rho - lx; 
-	            p[0][0] = 0; p[0][1] = -ly; p[0][2] = -lz;
-	            p[1][0] = 0; p[1][1] = -ly; p[1][2] =  lz;
-	            p[2][0] = 0; p[2][1] =  ly; p[2][2] = -lz;
-	            p[3][0] = 0; p[3][1] =  ly; p[3][2] =  lz;
-	        }else if(i == 1){
-	            bound = ly;
-	            hMatrix = 2 * ly * rho - ly; 
-	            p[0][0] = -lx; p[0][1] = 0; p[0][2] = -lz;
-	            p[1][0] =  lx; p[1][1] = 0; p[1][2] = -lz;
-	            p[2][0] = -lx; p[2][1] = 0; p[2][2] =  lz;
-	            p[3][0] =  lx; p[3][1] = 0; p[3][2] =  lz;
-	        }else if(i == 2){
-	            bound = lz;
-	            hMatrix = 2 * lz * rho - lz; 
-	            p[0][0] = -lx; p[0][1] = -ly; p[0][2] = 0;
-	            p[1][0] =  lx; p[1][1] = -ly; p[1][2] = 0;
-	            p[2][0] = -lx; p[2][1] =  ly; p[2][2] = 0;
-	            p[3][0] =  lx; p[3][1] =  ly; p[3][2] = 0;
-	        }
-	        plane.point[i] = hMatrix;	        
-
-	        inner = 1;
-	        for(j=0; j<4; j++){
-	            VECTOR_COPY(edge.point, p[j]);
-
-	            if(!IntersectionOfLinePlane(&edge, &plane, interPos)){
-	                inner = 0; break; }
-	            
-	            if(fabs(interPos[i]) > bound){
-	                inner = 0; break; }
-	        }/* for (j=0; j ...)*/
-	        if(inner == 1)break;
-
-	    }/* for(i=0; i ...)*/
-	    
-	    if(inner == 0)Fatal("InitGrain: can not find TB plane");
+        if(fabs(0.5-twinRatio) > 1.0E-3){
+	        for(i=0; i<3; i++){
+	            VECTOR_ZERO(edge.direction);
+	            VECTOR_ZERO(plane.point);
+         
+	            edge.direction[i] = 1;
+	            if(DotProduct(param->TBNormal, edge.direction) > 0){
+	                rho = 1.0 - twinRatio; }
+	            else{
+	                rho = twinRatio;  }
+         
+	            if(i == 0){
+	                bound = lx;
+	                hMatrix = 2 * lx * rho - lx; 
+	                p[0][0] = 0; p[0][1] = -ly; p[0][2] = -lz;
+	                p[1][0] = 0; p[1][1] = -ly; p[1][2] =  lz;
+	                p[2][0] = 0; p[2][1] =  ly; p[2][2] = -lz;
+	                p[3][0] = 0; p[3][1] =  ly; p[3][2] =  lz;
+	            }else if(i == 1){
+	                bound = ly;
+	                hMatrix = 2 * ly * rho - ly; 
+	                p[0][0] = -lx; p[0][1] = 0; p[0][2] = -lz;
+	                p[1][0] =  lx; p[1][1] = 0; p[1][2] = -lz;
+	                p[2][0] = -lx; p[2][1] = 0; p[2][2] =  lz;
+	                p[3][0] =  lx; p[3][1] = 0; p[3][2] =  lz;
+	            }else if(i == 2){
+	                bound = lz;
+	                hMatrix = 2 * lz * rho - lz; 
+	                p[0][0] = -lx; p[0][1] = -ly; p[0][2] = 0;
+	                p[1][0] =  lx; p[1][1] = -ly; p[1][2] = 0;
+	                p[2][0] = -lx; p[2][1] =  ly; p[2][2] = 0;
+	                p[3][0] =  lx; p[3][1] =  ly; p[3][2] = 0;
+	            }
+	            plane.point[i] = hMatrix;	        
+         
+	            inner = 1;
+	            for(j=0; j<4; j++){
+	                VECTOR_COPY(edge.point, p[j]);
+	 	   		type = LinePlaneIntersection(edge.direction, edge.point, 
+	 	   				plane.normal, plane.point, vec1, interPos);
+	 	   		if(type != POINT_INTERSECTION){
+	 	   			inner = 0;
+	 	   			break;
+	 	   		} 
+         
+	                if(fabs(interPos[i]) > bound){
+	                    inner = 0; break; }
+	            }/* for (j=0; j ...)*/
+	            if(inner == 1)break;
+         
+	        }/* for(i=0; i ...)*/
 	        
+	        if(inner == 0)Fatal("InitGrain: can not find TB plane");
+	        
+        }
+
+
         home->nGBs = 1;
         home->GBKeys = (GB_t **)malloc(sizeof(GB_t *));
         i = 0;
@@ -392,6 +403,228 @@ void InitGrain(Home_t *home, Param_t *param){
 	        FormatVector(CDelta, "CDelta (use the axis to rotate basis to twin)");
 	    }
 
+        if(home->myDomain == 0){
+            int                     type, m, n;
+            real8                   vec1[3], vec2[3], vec3[3], interPos[3];
+            real8                   poss[2][3], vecMag, length, vec4[3];
+            std::vector<Plane_t>    surList(6);
+            std::vector<std::vector<Plane_t> > surArray(2);
+            std::vector<int>        records, records1;
+	        FILE     *fp;
+	        char     fileName[256];
+
+            for(i=0; i<6; i++){
+                VECTOR_ZERO(surList[i].normal);
+                VECTOR_ZERO(surList[i].point);
+            }
+            surList[0].normal[0] =-1.0;
+            surList[1].normal[0] = 1.0;
+            surList[2].normal[1] =-1.0;
+            surList[3].normal[1] = 1.0;
+            surList[4].normal[2] =-1.0;
+            surList[5].normal[2] = 1.0;
+
+            surList[0].point[0] = param->xBoundMin;
+            surList[1].point[0] = param->xBoundMax;
+            surList[2].point[1] = param->yBoundMin;
+            surList[3].point[1] = param->yBoundMax;
+            surList[4].point[2] = param->zBoundMin;
+            surList[5].point[2] = param->zBoundMax;
+
+		    snprintf(fileName, sizeof(fileName), "TB.plt");
+
+		    if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
+			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
+		    }
+            
+	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, burgID, normalID, schmidt, inGrain\n");
+
+            for(i=0; i<6; i++){
+                type = PlanePlaneIntersection(surList[i].normal, surList[i].point,
+                                                      plane.normal, plane.point, vec1, vec2); 
+                        if(type != LINE_INTERSECTION){
+                    records1.push_back(i);
+                    continue;
+                }
+                records.push_back(i);
+
+                k = 0;
+                for(j=0; j<6; j++){
+                    if(j==i)continue;
+                    type = LinePlaneIntersection(vec1, vec2, surList[j].normal, 
+                                                 surList[j].point, vec3, interPos);
+                    if(type != POINT_INTERSECTION){
+                        continue;
+                    }
+                    if(fabs(interPos[0]) > param->xBoundMax+1.0){
+                        continue;
+                    }
+                    if(fabs(interPos[1]) > param->yBoundMax+1.0){
+                        continue;
+                    }
+                    if(fabs(interPos[2]) > param->zBoundMax+1.0){
+                        continue;
+                    }
+                    VECTOR_COPY(poss[k], interPos);
+                    k++;
+                    if(k==2){
+                        vec4[0] = poss[1][0] - poss[0][0];
+                        vec4[1] = poss[1][1] - poss[0][1];
+                        vec4[2] = poss[1][2] - poss[0][2];
+                        length = Normal(vec4);
+                        vecMag = length/50.0;
+                        NormalizeVec(vec4);
+                        for(m=0; m<50; m++){
+#if 1
+	                        fprintf(fp, "%e %e %e %e %e %e -1 3 -1.00 -1\n", poss[0][0],
+                                    poss[0][1],poss[0][2], vecMag*vec4[0],
+                                    vecMag*vec4[1],vecMag*vec4[2]);
+#endif
+                            poss[0][0] += vecMag*vec4[0];
+                            poss[0][1] += vecMag*vec4[1];
+                            poss[0][2] += vecMag*vec4[2];
+                        }
+                        k = 0;
+                        break;
+                    }
+                }
+            }
+
+            surArray[0].push_back(plane);
+            plane.normal[0] = -plane.normal[0];
+            plane.normal[1] = -plane.normal[1];
+            plane.normal[2] = -plane.normal[2];
+            surArray[1].push_back(plane);
+            plane.normal[0] = -plane.normal[0];
+            plane.normal[1] = -plane.normal[1];
+            plane.normal[2] = -plane.normal[2];
+
+            for(i=0; i<records.size(); i++){
+               surArray[0].push_back(surList[records[i]]);
+               surArray[1].push_back(surList[records[i]]);
+            }
+
+            for(i=0; i<records1.size(); i++){
+                if(DotProduct(surList[records1[i]].normal,plane.normal)<0){
+                    surArray[0].push_back(surList[records1[i]]);
+                }else{
+                    surArray[1].push_back(surList[records1[i]]);
+                }
+            }
+#if 0
+            for(i=0; i<surArray[0].size(); i++){
+                printf("0 %d: {%f,%f,%f}--{%f,%f,%f}\n", i,
+                    surArray[0][i].normal[0],surArray[0][i].normal[1],surArray[0][i].normal[2],
+                    surArray[0][i].point[0],surArray[0][i].point[1],surArray[0][i].point[2]);
+            }
+            for(i=0; i<surArray[1].size(); i++){
+                printf("1 %d: {%f,%f,%f}--{%f,%f,%f}\n",i, 
+                    surArray[1][i].normal[0],surArray[1][i].normal[1],surArray[1][i].normal[2],
+                    surArray[1][i].point[0],surArray[1][i].point[1],surArray[1][i].point[2]);
+            }
+#endif
+            std::vector<SlipSys_t>  slipSys;
+            SlipSys_t               slip;
+            BurgInfo_t  *bd;
+            int         slipIndex, inGrain;
+            GB_t        *gb;
+            real8       zaxis[3] = {0,0,1.0}, maxSchmidt, dis;
+            int         th, color;
+
+            gb = home->GBKeys[0];
+            for(i=0; i<home->nGrains; i++){
+                std::vector<SlipSys_t>().swap(slipSys);
+                grain = home->grainKeys[i];
+                bd = &(grain->burgData);
+                slip.inGrain = i;
+                for(j=0; j<6; j++){
+                    VECTOR_COPY(slip.burg, bd->burgList[j]);
+                    slip.burgID = j;
+                    for(k=0; k<2; k++){
+                        slip.planeID = bd->burgOnPlaneID[j][k];
+                        VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
+                        slip.schmidt = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
+                        slipSys.push_back(slip);
+                    }
+                }
+                sort(slipSys.begin(), slipSys.end(),cmp3); 
+    
+                maxSchmidt = slipSys[0].schmidt;
+                for(j=1; j<slipSys.size(); j++){
+                    if(fabs(slipSys[j].schmidt-maxSchmidt)>1.0E-3)break;
+                }
+                slipSys.resize(j);
+
+                for(j=0; j<slipSys.size(); j++){
+                    VECTOR_COPY(plane.normal, slipSys[j].normal);
+                    VECTOR_ZERO(plane.point);
+                    inGrain = slipSys[j].inGrain;
+                    plane.point[0] += -10.0*surArray[inGrain][0].normal[0];
+                    plane.point[1] += -10.0*surArray[inGrain][0].normal[1];
+                    plane.point[2] += -10.0*surArray[inGrain][0].normal[2];
+
+
+                    for(k=0; k<surArray[inGrain].size(); k++){
+                        type = PlanePlaneIntersection(
+                                              plane.normal, plane.point,
+                                             surArray[inGrain][k].normal, surArray[inGrain][k].point, vec1, vec2); 
+                        
+                        if(type != LINE_INTERSECTION)continue;
+                        th = 0;
+                        for(m=0; m<surArray[inGrain].size(); m++){
+                            if(m==k)continue;
+                            type = LinePlaneIntersection(vec1, vec2, surArray[inGrain][m].normal,
+                                         surArray[inGrain][m].point, vec3, interPos);
+
+                            if(type != POINT_INTERSECTION)continue;
+
+                            type = PointPlaneIntersection(interPos, surArray[inGrain][0].normal,
+                                       surArray[inGrain][0].point, vec4, &dis);
+                            if(dis > 0.1)continue;
+                            if(fabs(interPos[0]) > param->xBoundMax+1.0){
+                                continue;
+                            }
+                            if(fabs(interPos[1]) > param->yBoundMax+1.0){
+                                continue;
+                            }
+                            if(fabs(interPos[2]) > param->zBoundMax+1.0){
+                                continue;
+                            }
+
+                            VECTOR_COPY(poss[th], interPos);
+                            th++;
+#if 1
+                            if(th == 2){
+                                vec4[0] = poss[1][0] - poss[0][0];
+                                vec4[1] = poss[1][1] - poss[0][1];
+                                vec4[2] = poss[1][2] - poss[0][2];
+                                length = Normal(vec4);
+                                vecMag = length/50.0;
+                                NormalizeVec(vec4);
+                                color = slipSys[j].burgID;
+            
+                                for(n=0; n<50; n++){
+	                                fprintf(fp, "%e %e %e %e %e %e %d %d %f %d\n", poss[0][0],
+                                    poss[0][1],poss[0][2], vecMag*vec4[0],
+                                    vecMag*vec4[1],vecMag*vec4[2], slipSys[j].burgID, 
+                                    slipSys[j].planeID, slipSys[j].schmidt, inGrain);
+                                    poss[0][0] += vecMag*vec4[0];
+                                    poss[0][1] += vecMag*vec4[1];
+                                    poss[0][2] += vecMag*vec4[2];
+                                }
+                                th = 0;
+                                break;
+                            }
+#endif
+                        }
+                    
+                    }
+                }
+            }
+
+            fclose(fp);
+            
+        }
 	}else{
 	    Fatal("Not suppose free surface polycrystal problem");
 	}
@@ -602,10 +835,11 @@ int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3])
             cross(burgData->burgList[i], burg, crossProd);
             if(Normal(crossProd) < 1.0E-3)break;
         }
+#if 0
         if(i == burgData->numBurgVectors){
             printf("Warning: in %s at %d\n", __FILE__, __LINE__);
         }
-        
+#endif        
         return(i);
 }
 
@@ -618,10 +852,11 @@ int PlaneID_FCC(BurgInfo_t *burgData, real8 plane[3])
             cross(burgData->planeList[i], plane, crossProd);
             if(Normal(crossProd) < 1.0E-3)break;
         }
+#if 0
         if(i == burgData->numPlanes){
             printf("Warning: in %s at %d\n", __FILE__, __LINE__);
         }
-        
+#endif        
         return(i);
 }
 
@@ -965,13 +1200,13 @@ bool GetPublicGB(Grain_t *grain1, Grain_t *grain2, GB_t **GB)
 bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos){
     
     real8       dis, vec[3], vec1[3], vec2[3], eps;
-    real8       pos[3], interPos[3], vec3[3]; 
-    int         currInGrain, currOnGB, type, index;
-    int         bakOnGB, bakInGrain, nbrInGrain;
+    real8       pos[3], interPos[3], vec3[3], GC[3][3]; 
+    int         type, NM, index;
     Param_t     *param;
-    GB_t        *GB;
+    GB_t        *gb;
     Grain_t     *grain;
     Plane_t     plane;
+    NM = 0;
 
     param = home->param;
 
@@ -989,86 +1224,68 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
 	pos[0] = node->x; pos[1] = node->y; pos[2] = node->z;
 	FoldBox(param, pos, pos+1, pos+2);
 
-    GB = home->GBKeys[onGB];
-    VECTOR_COPY(plane.normal, GB->n);
-    VECTOR_COPY(plane.point, GB->p);
+    gb = home->GBKeys[onGB];
+    VECTOR_COPY(plane.normal, gb->n);
+    VECTOR_COPY(plane.point, gb->p);
 
     if(inGrain > -1){
         if(inGrain >= home->nGrains)Fatal("in %s at %d", __FILE__, __LINE__);
         grain = home->grainKeys[inGrain];
         index = GetGBIndexOfGrain(grain, onGB);
         if(index < 0)Fatal("in %s at %d", __FILE__, __LINE__);
-        plane.point[0] -= (grain->sign[index] * eps * GB->n[0]);
-        plane.point[1] -= (grain->sign[index] * eps * GB->n[1]);
-        plane.point[2] -= (grain->sign[index] * eps * GB->n[2]);
+        plane.point[0] -= (grain->sign[index] * eps * gb->n[0]);
+        plane.point[1] -= (grain->sign[index] * eps * gb->n[1]);
+        plane.point[2] -= (grain->sign[index] * eps * gb->n[2]);
+    }
+    
+    PointPlaneIntersection(pos, plane.normal, plane.point, newPos, &dis);
+    if(fabs(dis) < 1E-4)return(0);
 
-        if(IsOnGB(node)){
-            int     i;
-            Node_t  *nbr;
-  
-            nbrInGrain = -1;
-            for(i=0; i<node->numNbrs; i++){
-                nbr = GetNeighborNode(home, node, i);
-                if(nbr == (Node_t *)NULL)break;
-                if(IsOnGB(nbr))break;
-                if(nbrInGrain == -1){
-                    nbrInGrain = nbr->inGrain;
-                }else{
-                    if(nbr->inGrain != nbrInGrain)break;
-                }
-            }
-            if(i != node->numNbrs || nbrInGrain == -1)return(0);
+    vec[0] = newPos[0] - pos[0];
+    vec[1] = newPos[1] - pos[1];
+    vec[2] = newPos[2] - pos[2];
+    if(Normal(vec))("in %s at %d", __FILE__, __LINE__);
+    NormalizeVec(vec);
 
-            bakOnGB = node->onGB;
-            bakInGrain = node->inGrain;
-
-            node->onGB = -1;
-            node->inGrain = nbrInGrain;
-
-        }
-    }else{
-        if(IsOnGB(node)){
-            PointPlaneIntersection(pos, plane.normal, plane.point, newPos, &dis);
-            if(onGB != node->onGB)Fatal("in %s at %d", __FILE__, __LINE__);
+	GetGlideConstraintList(home, node, &NM, GC, 0);
+	ApplyConstraintsToVelocity(NM, GC, vec);
+    if(Normal(vec) < 1.0E-4){
+        if(node->constraint == 7){
+            printf("Warning: NewPosToGB - 1, %d %d {%f,%f,%f}-->{%f,%f,%f}\n", 
+                   inGrain, onGB, pos[0], pos[1], pos[2], newPos[0],
+                   newPos[1], newPos[2]);
+            VECTOR_COPY(newPos, pos);
             return(1);
         }
-    }
-    
-    VECTOR_COPY(vec, plane.normal);
-    AdjustNodeDirection(home, node, vec);
-
-    if(Normal(vec) < 1E-8){
-        newPos[0] = node->oldx;
-        newPos[1] = node->oldy;
-        newPos[2] = node->oldz;
-
-        if(IsOnGB(node)){
-            node->inGrain = bakInGrain;
-            node->onGB = bakOnGB;
+        
+        if(fabs(dis) < 5.0){
+            return(0);
+        }else{
+            PrintNode(node);
+            printf("Warning: NewPosToGB - 2, %d %d {%f,%f,%f}-->{%f,%f,%f}\n", 
+                   inGrain, onGB, pos[0], pos[1], pos[2], newPos[0],
+                   newPos[1], newPos[2]);
+            return(1);
         }
-        printf("Warning: in %s at %d\n", __FILE__, __LINE__);
-        return(1);
+    }else{
+        NormalizeVec(vec);
+        type = LinePlaneIntersection(vec, pos, plane.normal, plane.point, vec1, vec2);
+        if(type != POINT_INTERSECTION){
+            printf("Warning: NewPosToGB - 3, Line {%f,%f,%f}--{%f,%f,%f}; ", 
+                   vec[0], vec[1], vec[2], pos[0], pos[1], pos[2]);
+            printf("Plane {%f,%f,%f}--{%f,%f,%f} == {%f,%f,%f}\n", 
+                   plane.normal[0],plane.normal[1],plane.normal[2],
+                   plane.point[0],plane.point[1],plane.point[2],
+                   vec2[0], vec2[1], vec2[2]);
+            return(1);
+        }else{
+            VECTOR_COPY(newPos, vec2);
+            FoldBox(param, newPos, newPos+1, newPos+2);
+            return(0);
+        }
     }
-
-    NormalizeVec(vec);
-    if(IsOnGB(node)){
-        node->inGrain = bakInGrain;
-        node->onGB = bakOnGB;
-    }
-
-    type = LinePlaneIntersection(vec, pos, plane.normal, plane.point, vec3, newPos); 
-    if(type != POINT_INTERSECTION){
-        printf("Warning: in %s at %d\n", __FILE__, __LINE__);
-        VECTOR_ZERO(newPos);
-        return(0);
-    }
-    
-    FoldBox(param, newPos, newPos+1, newPos+2);
-    FormatVector(newPos, "newPos");
     return(1);
 }
-
-
 
 int SameTag(Tag_t *tag1, Tag_t *tag2){
 
@@ -1253,7 +1470,7 @@ void PrintTag(Node_t *node){
     if(node == (Node_t *)NULL){
         printf("(NULL)");
     }else{
-        printf("[%d %d %d %d %d %d]-{%e,%e,%e} ",node->myTag.domainID,
+        printf("[%d %d %d %d %d %d]-{%f,%f,%f} ",node->myTag.domainID,
                node->myTag.index,node->numNbrs,node->inGrain,
                node->onGB, node->constraint, node->x,node->y,node->z);
 	}
@@ -1341,22 +1558,73 @@ int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]){
 void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f2[3])
 {
 
-    real8       dis;
+    real8       dis, burgMag, burg[3], segCentor[3];
+    real8       vec[3], a = 5.86854;
+    real8       coff, length, nor[3], gDir[3], gbNormal[3];
     GB_t        *gb;
     Param_t     *param;
+    int         armID;
 
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);
 
+    if(!home->param->polycrystal)return;
     if(IsOnGB(node1) && IsOnGB(node2))return;
 
-#if 0
     param = home->param;
+    armID = GetArmID(home, node1, node2);
+    if(armID == -1)return;
+
+    burg[0] = node1->burgX[armID];
+    burg[1] = node1->burgY[armID];
+    burg[2] = node1->burgZ[armID];
+
+    nor[0] = node1->nx[armID];
+    nor[1] = node1->ny[armID];
+    nor[2] = node1->nz[armID];
+
+    burgMag = Normal(burg);
+    NormalizeVec(burg);
+    if(fabs(DotProduct(burg, param->TBNormal)) < 1.0E-2)return;
+
+    vec[0] = node2->x - node1->x;
+    vec[1] = node2->y - node1->y;
+    vec[2] = node2->z - node1->z;
+    ZImage(param, vec, vec+1, vec+2);
+
+    length = Normal(vec);
+    if(length < 1.0E-2)return;
+    NormalizeVec(vec);
+
+    segCentor[0] = node1->x + 0.5*vec[0];
+    segCentor[1] = node1->y + 0.5*vec[1];
+    segCentor[2] = node1->z + 0.5*vec[2];
+    FoldBox(param, segCentor, segCentor+1, segCentor+2);
 
 	dis =  ClosedGB(home, segCentor, &gb);
-    if(fabs(dis) > 
-#endif
+    if(fabs(dis) > 39.1236 || fabs(dis) < a)return;
 
+    cross(nor, vec, gDir);
+    if(Normal(gDir) < 1E-3)return;
+    NormalizeVec(gDir);
+
+    gbNormal[0] = ((real8)Sign(dis)) * gb->n[0];
+    gbNormal[1] = ((real8)Sign(dis)) * gb->n[1];
+    gbNormal[2] = ((real8)Sign(dis)) * gb->n[2];
+
+    if(DotProduct(gbNormal, gDir) < 0.0){
+        gDir[0] = -gDir[0];
+        gDir[1] = -gDir[1];
+        gDir[2] = -gDir[2];
+    }
+
+    coff = param->GBStrength * a / fabs(dis);
+
+    f1[0] = 0.5*length*coff*gDir[0];
+    f1[1] = 0.5*length*coff*gDir[1];
+    f1[2] = 0.5*length*coff*gDir[2];
+
+    VECTOR_COPY(f2, f1);
 
     return;
 }
@@ -1716,21 +1984,35 @@ void FreeBurgInfoStr(BurgInfo_t *burgData)
     free(burgData->planeInGrain); 
     free(burgData->keyLineList);
 
-    for(i=0; i<burgData->numBurgVectors; i++){
-        free(*(burgData->burgOnPlaneID+i)); 
+    if(burgData->burgOnPlaneID != (int **)NULL){
+        for(i=0; i<burgData->numBurgVectors; i++){
+            free(*(burgData->burgOnPlaneID+i)); 
+        }
     }
 
-    for(i=0; i<burgData->numPlanes; i++){
-        free(*(burgData->planeOnBurgID+i));
+    if(burgData->planeOnBurgID != (int **)NULL){
+        for(i=0; i<burgData->numPlanes; i++){
+            free(*(burgData->planeOnBurgID+i));
+        }
     }
 
-    for(i=0; i<burgData->numKeyLines; i++){
-        free(*(burgData->keyLineOnPlaneID+i));
+    if(burgData->keyLineOnPlaneID != (int **)NULL){
+        for(i=0; i<burgData->numKeyLines; i++){
+            free(*(burgData->keyLineOnPlaneID+i));
+        }
     }
 
-    free(burgData->numPlanesPerBurg); 
-    free(burgData->numBurgsPerPlane); 
-    free(burgData->numPlanesPerKeyLine); 
+    if(burgData->numPlanesPerBurg != (int *)NULL){
+        free(burgData->numPlanesPerBurg); 
+    }
+
+    if(burgData->numBurgsPerPlane != (int *)NULL){
+        free(burgData->numBurgsPerPlane); 
+    }
+
+    if(burgData->numPlanesPerKeyLine != (int *)NULL){
+        free(burgData->numPlanesPerKeyLine); 
+    }
 
     burgData->burgList = NULL;
     burgData->planeList = NULL;
@@ -1993,7 +2275,7 @@ bool cmp(std::vector<int > p, std::vector<int > q)
     }
 }
 
-bool cmp2(Dislocation_t& p, Dislocation_t& q)
+bool cmp2(Dislocation_t p, Dislocation_t q)
 {
     return(p.planeID < q.planeID);
 }
@@ -2498,16 +2780,14 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
 {
     int         armID, burgID, normalID=-1, lineID;
     int         inGrain, onGB;
+    int         burgType, interType;
+    int         times;
     real8       normBurg[3], crossProdt[3];
-
+    real8       vec1[3], vec2[3];
     Param_t     *param = home->param;
     BurgInfo_t  *bd = GetBurgData(home, node1, node2);
 
-#if 0
-    if(GetArmID(home, node1, node2) == -1){
-        FindPreciseGlidePlane(home, burg, lDir, glidePlane, node1, node2);
-        return;
-    }
+#if 1
 #else
     FindPreciseGlidePlane(home, burg, lDir, glidePlane, node1, node2);
     return;
@@ -2517,11 +2797,42 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
 
     burgID = BurgID_FCC(bd, burg);
     GetArmGrain(home, node1, node2, inGrain, onGB);
+    burgType = BurgType_FCC(burg);
+
+    if(Normal(lDir) < 1.0E-4){
+        interType = NodesIntersection(home, node1, node2, vec1, vec2);   
+        switch(interType){
+            case LINE_INTERSECTION:
+                VECTOR_COPY(lDir, vec1);
+                break;
+            case PLANE_INTERSECTION:
+                VECTOR_COPY(glidePlane, vec1);
+                return;
+                break;
+            case POINT_INTERSECTION:
+                VECTOR_COPY(glidePlane, burg);
+                NormalizeVec(glidePlane);
+                return;
+                break;
+            default:
+                Fatal("Warning in %s at %d: chose a non-glide plane\n", __FILE__, __LINE__);
+                break;
+        }
+    }
+
     if(Normal(lDir) < 1.0E-4){
         if(burgID<bd->numBurgVectors){
             printf("Warning: define a palne with zero length, arm (%d,%d)\n", inGrain, onGB);
-            while(normalID == -1){
+            times = 0;
+            while(normalID == -1 && times < 100){
+                times++;
                 normalID = bd->burgOnPlaneID[burgID][rand()%bd->numPlanesPerBurg[burgID]];
+                if(burgType == BASIC_BURG){
+                    if((bd->planeType[normalID] & GLIDE_PLANE) == 0){
+                        normalID = -1;
+                        continue;
+                    }
+                }
                 if(bd->planeInGrain[normalID] != inGrain){
                     normalID = -1;
                 }else{
@@ -2529,9 +2840,24 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
                     break;
                 }
             }
+            if(times >= 100){
+                VECTOR_COPY(glidePlane, burg);
+                NormalizeVec(glidePlane);
+                printf("Warning in %s at %d: chose a non-glide plane\n", __FILE__, __LINE__);
+                return;
+            }
             return;
         }else{
-            Fatal("in %s at %d", __FILE__, __LINE__);
+#if 1
+            PrintNode(node1);
+            PrintNeighbor(home, node1);
+            PrintNode(node2);
+            PrintNeighbor(home, node2);
+#endif
+            VECTOR_COPY(glidePlane, burg);
+            NormalizeVec(glidePlane);
+            printf("Warning in %s at %d: chose a non-glide plane\n", __FILE__, __LINE__);
+            return;
         }
     }
 
@@ -2540,15 +2866,29 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
     NormalizeVec(normBurg);
 
     cross(normBurg, lDir, crossProdt);
-    if(Normal(crossProdt) < 1.0E-2){
-        if(burgID >= bd->numBurgVectors)Fatal("in %s at %d", __FILE__, __LINE__);
-        while(normalID == -1){
-            normalID = bd->burgOnPlaneID[burgID][rand()%bd->numPlanesPerBurg[burgID]];
-            if(bd->planeInGrain[normalID] != inGrain){
-                normalID = -1;
-            }else{
-                VECTOR_COPY(glidePlane, bd->planeList[normalID]);
-                break;
+    if(Normal(crossProdt) < 1.0E-4){
+        if(burgID >= bd->numBurgVectors){
+            FormatVector(burg, "burg");
+            FormatVector(lDir, "lDir");
+            VECTOR_COPY(glidePlane, burg);
+            NormalizeVec(glidePlane);
+            printf("Warning: can not find a glide plane without burgID\n");
+            return;
+        }else{
+            while(normalID == -1){
+                normalID = bd->burgOnPlaneID[burgID][rand()%bd->numPlanesPerBurg[burgID]];
+                if(burgType == BASIC_BURG){
+                    if((bd->planeType[normalID] & GLIDE_PLANE) == 0){
+                        normalID = -1;
+                        continue;
+                    }
+                }
+                if(bd->planeInGrain[normalID] != inGrain){
+                    normalID = -1;
+                }else{
+                    VECTOR_COPY(glidePlane, bd->planeList[normalID]);
+                    break;
+                }
             }
         }
     }else{

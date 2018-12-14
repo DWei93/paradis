@@ -136,8 +136,9 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 		for (armAB = 0; armAB < nodeA->numNbrs; armAB++) {
 
 			nodeB = LookupInNode(inData, &nodeA->nbrTag[armAB], &idxB);
-			if(nodeB == (Node_t *)NULL) Fatal("File %s at line %d:null neighbor",__FILE__,__LINE__);
-			
+			if(nodeB == (Node_t *)NULL) {
+                Fatal("File %s at line %d: null neighbor",__FILE__,__LINE__);
+            }
 			
 			if (idxB > idxA) continue; /* don't double-dip */
 
@@ -172,6 +173,7 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 				}
 
 				if (!found) {
+                    Fatal("InitRemesh: broken Linkage");
 				}
 
 /*

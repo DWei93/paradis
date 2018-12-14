@@ -63,17 +63,17 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
                   int firstInGroup, int writePrologue, int writeEpilogue)
 {
         int     i, newNodeKeyPtr;
-        int     iArm;
+        int     iArm, totMeshNum;
         char    *suffix, *start;
-        char    fileName[256], ctrlFile[256], dataFile[256];
-        FILE    *fp, *fpCtrl;
+        char    fileName[256], ctrlFile[256], dataFile[256], tableFile[256], name[256];
+        FILE    *fp, *fpCtrl, *fpTable;
         Node_t  *node;
         Param_t *param;
         struct  stat statbuf;
 
-
         param = home->param;
 
+        totMeshNum = param->meshNumX*param->meshNumY*param->meshNumZ;
 /*
  *      Restart at current cycle count
  */
@@ -91,6 +91,7 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
                  baseFileName);
 
         strcpy(fileName, baseFileName);
+        snprintf(name, sizeof(name), "pstnEle");
 
         start = strrchr(fileName, '/');
         suffix = strrchr(fileName, '.');
@@ -112,9 +113,13 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
         if (param->numIOGroups == 1) {
             snprintf(dataFile, sizeof(dataFile), "%s/%s%s",
                      DIR_RESTART, fileName, NODEDATA_FILE_SUFFIX);
+            snprintf(tableFile, sizeof(tableFile), "%s/%s%s",
+                     DIR_RESTART, fileName, TABLE_FILE_SUFFIX);
         } else {
             snprintf(dataFile, sizeof(dataFile), "%s/%s%s.%d",
                      DIR_RESTART, fileName, NODEDATA_FILE_SUFFIX, ioGroup);
+            snprintf(tableFile, sizeof(tableFile), "%s/%s%s.%d",
+                     DIR_RESTART, fileName, TABLE_FILE_SUFFIX, ioGroup);
         }
 
 #ifdef PARALLEL
@@ -134,6 +139,14 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
 #endif
 #endif
 
+        if(home->myDomain == 0){
+            if ((fpTable = fopen(tableFile, "w")) == (FILE *)NULL) {
+                Fatal("WriteCN: Open error %d on %s\n", errno, tableFile);
+            }
+            WriteArray(home->pstnEle, name, totMeshNum, 6, fpTable);
+            fclose(fpTable);
+        }
+
         if (firstInGroup) {
 
 /*
@@ -143,6 +156,7 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
             if ((fp = fopen(dataFile, "w")) == (FILE *)NULL) {
                 Fatal("WriteCN: Open error %d on %s\n", errno, dataFile);
             }
+
 
 /*
  *          If this process is the first member of the first I/O group

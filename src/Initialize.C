@@ -1179,16 +1179,20 @@ void Initialize(Home_t *home,int argc, char *argv[])
         int          maxNumThreads = 1;
         int          doBinRead;
         char         *sep, *start;
-        char         tmpDataFile[256], testFile[256];
+        char         tmpDataFile[256], testFile[256], tmpTableFile[256];
         char         *ctrlFile;
-        char         *dataFile;
+        char         *dataFile, *tableFile;
         const   char* temp;
         Param_t      *param;
         InData_t     *inData;
         int          fd;
         int          totMeshNum;
 
+        int  maxTokenLen, tokenType, pIndex, okay;
+        char token[256];
+        FILE *fp = (FILE *)NULL;
 
+        real8 *pstn;
 /*
  *      Initialize map between old and new node tags before
  *      reading nodal data and distributing it to the remote
@@ -1226,6 +1230,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
             dataFile = (char *)NULL;
             ctrlFile = (char*)"control.script";
+            tableFile = (char *)NULL;
 
             for (i = 1; i < argc; i++) {
                 if (!strcmp(argv[i], "-r")) {
@@ -1254,6 +1259,10 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 } else if (!strcmp(argv[i], "-d")) {
                     if (i >= (argc - 1)) Usage(argv[0]);
                     dataFile = argv[++i];
+
+                } else if (!strcmp(argv[i], "-h")) {
+                    if(i >= (argc - 1)) Usage(argv[0]);
+                    tableFile = argv[++i];
                 } else {
                     if (i < (argc - 1)) Usage(argv[0]);
                     ctrlFile = argv[i];
@@ -1329,6 +1338,10 @@ void Initialize(Home_t *home,int argc, char *argv[])
             printf("Initialize: Parsing control file %s\n", ctrlFile);
             ReadControlFile(home, ctrlFile);
             printf("Initialize: Control file parsing complete\n");
+    
+#ifdef NO_GB_BARRIER
+            param->GBStrength = 0.0;
+#endif
 /*
  *          Set number of initial load-balancing-only cycles. Will
  *          be zero unless user provided value via "-r" command line
@@ -1361,6 +1374,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
             RemapDomains(home);
 #endif
         }  /* if (home->myDomain == 0) */
+
+
 
 /*
  *      All domains need the current Param_t structure that's
@@ -1442,13 +1457,13 @@ void Initialize(Home_t *home,int argc, char *argv[])
         }
 	
 		
-	InitIsotropicElasticConstantMatrix(home);
+	    InitIsotropicElasticConstantMatrix(home);
 		
-	Matrix66Invert(param->elasticConstantMatrix,
+	    Matrix66Invert(param->elasticConstantMatrix,
 	               param->elasticConstantMatrixInv);
 		
-	VECTOR_ZERO(&param->elasticStrainTensor[0]);
-	VECTOR_ZERO(&param->elasticStrainTensor[3]);
+	    VECTOR_ZERO(&param->elasticStrainTensor[0]);
+	    VECTOR_ZERO(&param->elasticStrainTensor[3]);
 		
 		
 /*
@@ -1536,7 +1551,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
  */
         FreeInitArrays(home, inData);
         free(inData);
-
 /*
  *      We attempted to preserve the node tags from the previous
  *      run, so the nodeKeys array may be sparsely populated.  If
@@ -1738,7 +1752,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
  */
 	    InitGrain(home, param);
         
-	    param->vshr = sqrt(param->YoungsModulus / param->rho ) / param->burgMag;
+	    param->vshr = sqrt(param->YoungsModulus/param->massDensity)/param->burgMag;
 	    if(home->myDomain == 0)printf("shear Wave velocity: %6.2f m/s.\n",
 	    param->vshr * param->burgMag);
 

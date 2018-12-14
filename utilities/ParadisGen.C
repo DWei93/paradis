@@ -138,17 +138,19 @@ Option_t optList[OPT_MAX] = {
         {OPT_XSURF,     "xsurf",    	3, 1},
         {OPT_YSURF,     "ysurf",    	3, 1},
         {OPT_ZSURF,     "zsurf",    	3, 1},
-	    {OPT_POLY,	"polycrystal",	3, 1},
-	    {OPT_NGRAIN,	"nGrain",	3, 1},
+	    {OPT_POLY,	    "polycrystal",	3, 1},
+	    {OPT_NGRAIN,	"nGrain",	    3, 1},
 	    {OPT_TWIN_RATIO,"twinRatio",	3, 1},
-	    {OPT_NLAYERS,   "nLayers",	3, 1},
-	    {OPT_XMATDIR,   "xMatDir",	3, 1},
-	    {OPT_YMATDIR,   "yMatDir",	3, 1},
-	    {OPT_ZMATDIR,   "zMatDir",	3, 1},
-	    {OPT_TBANGLE,   "TBAngle",	3, 1},
+	    {OPT_NLAYERS,   "nLayers",	    3, 1},
+	    {OPT_XMATDIR,   "xMatDir",	    3, 1},
+	    {OPT_YMATDIR,   "yMatDir",	    3, 1},
+	    {OPT_ZMATDIR,   "zMatDir",	    3, 1},
+	    {OPT_TBANGLE,   "TBAngle",	    3, 1},
 	    {OPT_SRCLENTYPE,"srcLenType",	3, 1},
 	    {OPT_MAXDENSITY,"maxDensity",	4, 1},
-        {OPT_EXTENDED,  "extended", 3, 1}
+        {OPT_EXTENDED,  "extended",     3, 1},
+        {OPT_BURGID,    "burgID",       3, 1},
+        {OPT_PLANEID,   "planeID",      3, 1}
 
 };
 
@@ -338,7 +340,7 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->interstitialLoops = 1;
         inArgs->maxSegLen  = 200.0;
         inArgs->numChains  = 2;
-        inArgs->numFRSrcs  = 16;
+        inArgs->numFRSrcs  = -1;
         inArgs->frLenMin   = 3500;
         inArgs->frLenMax   = 3500;
         inArgs->numLoops   = 1000;
@@ -363,20 +365,23 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->zSurf[0]   = 0;
         inArgs->zSurf[1]   = 0;
 
-	inArgs->xMatDir[0] =  1;
-	inArgs->xMatDir[1] = -1;
-	inArgs->xMatDir[2] =  0;
+	    inArgs->xMatDir[0] =  1;
+	    inArgs->xMatDir[1] = -1;
+	    inArgs->xMatDir[2] =  0;
 	    
-	inArgs->yMatDir[0] =  1;
-	inArgs->yMatDir[1] =  1;
-	inArgs->yMatDir[2] =  1;
+	    inArgs->yMatDir[0] =  1;
+	    inArgs->yMatDir[1] =  1;
+	    inArgs->yMatDir[2] =  1;
 
-	inArgs->zMatDir[0] = -1;
-	inArgs->zMatDir[1] = -1;
-	inArgs->zMatDir[2] =  2;
+	    inArgs->zMatDir[0] = -1;
+	    inArgs->zMatDir[1] = -1;
+	    inArgs->zMatDir[2] =  2;
 
-	inArgs->TBAngle = 0;
-	inArgs->maxDensity = 5.0E14;
+	    inArgs->TBAngle = 0;
+	    inArgs->maxDensity = 5.0E14;
+
+        inArgs->burgID = -1;
+        inArgs->planeID = -1;
 
         return;
 }
@@ -542,14 +547,14 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 {
         int     setDefaultRadius = 1;
         int     i, j, k;
-	int	existDir[3];
-	int	orientationType, existCount;
+	    int	existDir[3];
+	    int	orientationType, existCount;
         char    *argName;
         char    *argValue;
         char    *token;
 
-	VECTOR_ZERO(existDir);
-	orientationType = 0;
+	    VECTOR_ZERO(existDir);
+	    orientationType = 0;
 
         for (i = 1; i < argc; i++) {
 /*
@@ -612,15 +617,15 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                         inArgs->radius = inArgs->cubeLength / 4;
                     break;
 					
-	        case OPT_HEIGHTRATIO:
-	            inArgs->heightRatio = atof(argValue);
-	            break;
+	            case OPT_HEIGHTRATIO:
+	                inArgs->heightRatio = atof(argValue);
+	                break;
 	            	
-	        case OPT_DELTA_NUMS:
-	            inArgs->deltaNums = atoi(argValue);
-	            break;
+	            case OPT_DELTA_NUMS:
+	                inArgs->deltaNums = atoi(argValue);
+	                break;
 					
-	        case OPT_FRLEN:
+	            case OPT_FRLEN:
                     token = strtok(argValue, ",");
                     inArgs->frLenMin = atoi(token);
                     token = strtok(NULL, ",");
@@ -719,129 +724,141 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                     }
                     inArgs->zSurf[1] = atof(token);
                         break;
-	        case OPT_POLY:
-	            inArgs->polycrystal	= atof(argValue);
-	                break;
-	        case OPT_NGRAIN:
-	            inArgs->nGrain = atoi(argValue);
-	                break;
-	        case OPT_TWIN_RATIO:
-	            inArgs->twinRatio = atof(argValue);
-	                break;
-	        case OPT_NLAYERS:
-	            inArgs->nLayers = atoi(argValue);
-	                break;
-	        case OPT_XMATDIR:
-	            token = strtok(argValue,",");
-	            inArgs->xMatDir[0] = atof(token);
-	            token = strtok(NULL,",");
-                    if (token == (char *)NULL) Fatal("orientation wrong");
-	            inArgs->xMatDir[1] = atof(token);
-	            token = strtok(NULL,",");
-                    if (token == (char *)NULL) Fatal("orientation wrong");
-	            inArgs->xMatDir[2] = atof(token);
-	            NormalizeVec(inArgs->xMatDir);
-	            existDir[0] = 1;
-	            orientationType = 1;
-	                break;
-	        case OPT_YMATDIR:
-	            token = strtok(argValue,",");
-	            inArgs->yMatDir[0] = atof(token);
-	            token = strtok(NULL,",");
-                    if (token == (char *)NULL) Fatal("orientation wrong");
-	            inArgs->yMatDir[1] = atof(token);
-	            token = strtok(NULL,",");
-                    if (token == (char *)NULL) Fatal("orientation wrong");
-	            inArgs->yMatDir[2] = atof(token);
-	            NormalizeVec(inArgs->yMatDir);
-	            existDir[1] = 1;
-	            orientationType = 1;
-	                break;
-	        case OPT_ZMATDIR:
-	            token = strtok(argValue,",");
-	            inArgs->zMatDir[0] = atof(token);
-	            token = strtok(NULL,",");
-                    if (token == (char *)NULL) Fatal("orientation wrong");
-	            inArgs->zMatDir[1] = atof(token);
-	            token = strtok(NULL,",");
-                    if (token == (char *)NULL) Fatal("orientation wrong");
-	            inArgs->zMatDir[2] = atof(token);
-	            NormalizeVec(inArgs->zMatDir);
-	            existDir[2] = 1;
-	            orientationType = 1;
-	                break;
-	        case OPT_TBANGLE:
-	            inArgs->TBAngle = atof(argValue);
-	            orientationType = 4;
-	                break;
-	        case OPT_SRCLENTYPE:
-	            inArgs->srcLenType = atoi(argValue);
-	                break;
-	        case OPT_MAXDENSITY:
-	            inArgs->maxDensity = atof(argValue);
-	                break;
-            case OPT_EXTENDED:
-                inArgs->extended = atoi(argValue);
-                    break;
+	            case OPT_POLY:
+	                inArgs->polycrystal	= atof(argValue);
+	                    break;
+	            case OPT_NGRAIN:
+	                inArgs->nGrain = atoi(argValue);
+	                    break;
+	            case OPT_TWIN_RATIO:
+	                inArgs->twinRatio = atof(argValue);
+	                    break;
+	            case OPT_NLAYERS:
+	                inArgs->nLayers = atoi(argValue);
+	                    break;
+	            case OPT_XMATDIR:
+	                token = strtok(argValue,",");
+	                inArgs->xMatDir[0] = atof(token);
+	                token = strtok(NULL,",");
+                        if (token == (char *)NULL) Fatal("orientation wrong");
+	                inArgs->xMatDir[1] = atof(token);
+	                token = strtok(NULL,",");
+                        if (token == (char *)NULL) Fatal("orientation wrong");
+	                inArgs->xMatDir[2] = atof(token);
+	                NormalizeVec(inArgs->xMatDir);
+	                existDir[0] = 1;
+	                orientationType = 1;
+	                    break;
+	            case OPT_YMATDIR:
+	                token = strtok(argValue,",");
+	                inArgs->yMatDir[0] = atof(token);
+	                token = strtok(NULL,",");
+                        if (token == (char *)NULL) Fatal("orientation wrong");
+	                inArgs->yMatDir[1] = atof(token);
+	                token = strtok(NULL,",");
+                        if (token == (char *)NULL) Fatal("orientation wrong");
+	                inArgs->yMatDir[2] = atof(token);
+	                NormalizeVec(inArgs->yMatDir);
+	                existDir[1] = 1;
+	                orientationType = 1;
+	                    break;
+	            case OPT_ZMATDIR:
+	                token = strtok(argValue,",");
+	                inArgs->zMatDir[0] = atof(token);
+	                token = strtok(NULL,",");
+                        if (token == (char *)NULL) Fatal("orientation wrong");
+	                inArgs->zMatDir[1] = atof(token);
+	                token = strtok(NULL,",");
+                        if (token == (char *)NULL) Fatal("orientation wrong");
+	                inArgs->zMatDir[2] = atof(token);
+	                NormalizeVec(inArgs->zMatDir);
+	                existDir[2] = 1;
+	                orientationType = 1;
+	                    break;
+	            case OPT_TBANGLE:
+	                inArgs->TBAngle = atof(argValue);
+	                orientationType = 4;
+	                    break;
+	            case OPT_SRCLENTYPE:
+	                inArgs->srcLenType = atoi(argValue);
+	                    break;
+	            case OPT_MAXDENSITY:
+	                inArgs->maxDensity = atof(argValue);
+	                    break;
+                case OPT_EXTENDED:
+                    inArgs->extended = atoi(argValue);
+                        break;
+                case OPT_BURGID:
+                    inArgs->burgID = atoi(argValue);
+                        break;
+                case OPT_PLANEID:
+                    inArgs->planeID = atoi(argValue);
+                        break;
             }
         }
 
-	NormalizeVec(inArgs->xMatDir);
-	NormalizeVec(inArgs->yMatDir);
-	NormalizeVec(inArgs->zMatDir);
+	    NormalizeVec(inArgs->xMatDir);
+	    NormalizeVec(inArgs->yMatDir);
+	    NormalizeVec(inArgs->zMatDir);
 
-	if(orientationType == 0)return;
+	    if(orientationType == 0)return;
 
-	if(orientationType == 1){
-	    existCount = 0;
-	    for(i=0; i<3; i++){
-	        if(existDir[i] == 0)orientationType = i+1;
-		if(existDir[i] == 1)existCount++;
-	    }
-    
-	    if(existCount == 2 && orientationType >= 1 && orientationType <= 3){
-	        if(orientationType == 1){
-	            cross(inArgs->yMatDir, inArgs->zMatDir, inArgs->xMatDir);
-		    NormalizeVec(inArgs->xMatDir);
-	        }else if (orientationType == 2){
-	            cross(inArgs->zMatDir, inArgs->xMatDir, inArgs->yMatDir);
-		    NormalizeVec(inArgs->yMatDir);
-	        }else{
-	            cross(inArgs->xMatDir, inArgs->yMatDir, inArgs->zMatDir);
-		    NormalizeVec(inArgs->zMatDir);
+	    if(orientationType == 1){
+	        existCount = 0;
+	        for(i=0; i<3; i++){
+	            if(existDir[i] == 0)orientationType = i+1;
+		    if(existDir[i] == 1)existCount++;
 	        }
-	    }
-	}else{
-	    real8    a1[3] = {1,-1,0}, temR1[3][3];
-	    real8    a2[3] = {1, 0,0}, temR2[3][3], temR3[3][3];
-	    real8    a3[3] = {0, 0,1};
-	    real8    matrixOrientation[3][3];
-	    real8    angle, angleZTB = 9.553166181245092e-01;
-	    int	     seed;
-
-	    seed = inArgs->seed;
-	    NormalizeVec(a1);
-	    RotateWithAxis(a1, angleZTB, temR1);
-
-	    NormalizeVec(a2);
-	    RotateWithAxis(a2, inArgs->TBAngle, temR2);
-
-	    Matrix33Mult33(temR2, temR1, temR3);
-
-	    NormalizeVec(a3);
-	    angle = 2 * PI * randm(&seed);
-	    RotateWithAxis(a3, angle, temR1);
-
-	    Matrix33Mult33(temR1, temR3, matrixOrientation);
-
-	    VECTOR_COPY(inArgs->xMatDir,matrixOrientation[0])
-	    VECTOR_COPY(inArgs->yMatDir,matrixOrientation[1])
-	    VECTOR_COPY(inArgs->zMatDir,matrixOrientation[2])
-
-	}
-
+    
+	        if(existCount == 2 && orientationType >= 1 && orientationType <= 3){
+	            if(orientationType == 1){
+	                cross(inArgs->yMatDir, inArgs->zMatDir, inArgs->xMatDir);
+	 	       NormalizeVec(inArgs->xMatDir);
+	            }else if (orientationType == 2){
+	                cross(inArgs->zMatDir, inArgs->xMatDir, inArgs->yMatDir);
+	 	       NormalizeVec(inArgs->yMatDir);
+	            }else{
+	                cross(inArgs->xMatDir, inArgs->yMatDir, inArgs->zMatDir);
+	 	       NormalizeVec(inArgs->zMatDir);
+	            }
+	        }
+	    }else{
+	        real8    a1[3] = {1,-1,0}, temR1[3][3];
+	        real8    a2[3] = {1, 0,0}, temR2[3][3], temR3[3][3];
+	        real8    a3[3] = {0, 0,1}, temR4[3][3], abc[3] = {1,1,1};
+	    	real8    matrixOrientation[3][3], abcLab[3];
+	        real8    angle, angleZTB = 9.553166181245092e-01;
+	        int	     seed;
+        	
+	        seed = inArgs->seed;
+	        NormalizeVec(a1);
+	    	RotateWithAxis(a1, angleZTB, temR1);
+            
+	        NormalizeVec(a2);
+	        RotateWithAxis(a2, inArgs->TBAngle, temR2);
+            
+	        Matrix33Mult33(temR2, temR1, temR3);
+        	
+	        NormalizeVec(a3);
+	        angle = 2 * PI * randm(&seed);
+	    	RotateWithAxis(a3, angle, temR1);
+            
+	        Matrix33Mult33(temR1, temR3, temR4);
+        	NormalizeVec(abc);
+            Matrix33Vector3Multiply(temR4, abc, abcLab);
+            
+	        angle = 2 * PI * randm(&seed);
+            RotateWithAxis(abcLab, angle, temR1);
+	        Matrix33Mult33(temR1, temR4, matrixOrientation);
+       	
+	        VECTOR_COPY(inArgs->xMatDir,matrixOrientation[0])
+	        VECTOR_COPY(inArgs->yMatDir,matrixOrientation[1])
+	   	    VECTOR_COPY(inArgs->zMatDir,matrixOrientation[2])
+           
+	    }      
+       	
         return;
-}
+}          
 
 
 /*---------------------------------------------------------------------------
@@ -1037,7 +1054,7 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
 }
 
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
         int             maxSide, minSide,maxHigh,minHigh, memSize;
         real8           cellVolume, bMag2, burgVolFactor;
@@ -1047,7 +1064,6 @@ main(int argc, char *argv[])
         InData_t        inData;
         Param_t         *param;
         Home_t          home;
-
 
         Meminfo(&memSize);
 
@@ -1075,13 +1091,13 @@ main(int argc, char *argv[])
         maxSide = inArgs.cubeLength / 2;
         minSide = -maxSide;
 
-	if(inArgs.pbcVal == 0){
-	    minHigh = minSide;
-	    maxHigh = maxSide;
-	}else{
-	    maxHigh = (int)(inArgs.heightRatio * (real8)maxSide);
-	    minHigh = -maxHigh;
-	}
+	    if(inArgs.pbcVal == 0){
+	        minHigh = minSide;
+	        maxHigh = maxSide;
+	    }else{
+	        maxHigh = (int)(inArgs.heightRatio * (real8)maxSide);
+	        minHigh = -maxHigh;
+	    }
 	
         param->minSideX = minSide;
         param->minSideY = minSide;

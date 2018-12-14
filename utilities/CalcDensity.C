@@ -1175,7 +1175,7 @@ static void ProcessBinNodalData(Home_t *home, hid_t fileID, char *baseFileName,
 #endif
 
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
         int         i, j, k, fd, offset, status;
         int         doBinRead, fileSeqNum;

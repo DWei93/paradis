@@ -806,8 +806,14 @@ void makeeta(int norder, real8 ksi0[3], real8 ksi[3], real8 b[3], real8 *Eeta) {
 
         ksinorm = sqrt(ksi[0]*ksi[0] + ksi[1]*ksi[1] + ksi[2]*ksi[2]);
 
-        if(ksinorm < 1e-12){
-            printf("Warning: makeeta: ksinorm == 0");
+        if(ksinorm < 1e-21){
+/*
+ *          FIXME: sometimes after a topological change, the length of a     
+ *          segement is zero, which casuse a computation error here.
+ *          such as spiliting a node without replacing it.
+ *                                                              D. Wei
+ */
+            printf("Warning: a segement length is almost zero\n");
             ksinormi = 0.0;
         }else{
             ksinormi = 1.0 / ksinorm;
