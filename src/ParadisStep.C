@@ -266,14 +266,12 @@ void ParadisStep(Home_t *home)
  *      involved in topological changes the previous step.
  */
         if (firstTime) {
-        DebugGB(home,-16);
             NodeForce(home, FULL);
             CalcNodeVelocities(home, 1, doAll);
             CommSendVelocity(home);
             firstTime = 0;
 
         } else {
-        DebugGB(home,-17);
             NodeForce(home, PARTIAL);
             CalcNodeVelocities(home, 0, doAll);
             CommSendVelocity(home);
@@ -311,13 +309,13 @@ void ParadisStep(Home_t *home)
  *      function should be invoked before either of those items are done.
  */
         InitTopologyExemptions(home);
-//        DebugGB(home,19);
+        DebugGB(home,19);
 
 #if CHECK_GB_TOPO
         GenerateOutput(home, STAGE_DEBUG, "-4Trap");
 #endif
 
- //       DebugGB(home,20);
+        DebugGB(home,20);
 
         if(param->xBoundType == Free ||
            param->yBoundType == Free ||
@@ -338,7 +336,7 @@ void ParadisStep(Home_t *home)
 #endif
         }
 
- //       DebugGB(home,21);
+        DebugGB(home,21);
         if(param->polycrystal && param->nGrain>1){
             ClearOpList(home);
             HandleGrainBoundary(home);
@@ -354,7 +352,7 @@ void ParadisStep(Home_t *home)
 
         }
 
-   //     DebugGB(home,23);
+        DebugGB(home,23);
 
 /*
  *      In some simulations, it is necessary to recalculate and distribute
@@ -402,7 +400,7 @@ void ParadisStep(Home_t *home)
 
         SplitMultiNodes(home);
 
-//        DebugGB(home,2);
+        DebugGB(home,2);
 #ifdef _FEM
         SplitSurfaceNodes(home);
 #endif
@@ -415,15 +413,15 @@ void ParadisStep(Home_t *home)
  *      (if necessary) the cross-slip function appropriate to the
  *      type of material in use.
  */
-//        CrossSlip(home);
-//        DebugGB(home,3);
+        CrossSlip(home);
+        DebugGB(home,3);
 /*
  *      Search for dislocation segments in close proximity to each other
  *      and if necessary handle any collision between them.
  */
-//        HandleCollisions(home);
+        HandleCollisions(home);
 		
-  //      DebugGB(home,4);
+        DebugGB(home,4);
 
 #ifdef PARALLEL
 #ifdef SYNC_TIMERS
@@ -482,7 +480,7 @@ void ParadisStep(Home_t *home)
  *      Invoke mesh coarsen/refine
  */
         Remesh(home);
-//        DebugGB(home,6);
+        DebugGB(home,6);
 
 
 #if CHECK_GB_TOPO

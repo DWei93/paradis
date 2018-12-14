@@ -50,7 +50,6 @@ add_executable(paradis ${PARADIS_SRCS})
 add_definitions(-DNO_XWINDOW -DPARALLEL=1)
 
 
-target_link_libraries(paradis m geos pthread )
 Install(TARGETS paradis
         RUNTIME DESTINATION ${PARADIS_SOURCE_DIR}/bin)
 
