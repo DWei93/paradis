@@ -150,7 +150,8 @@ Option_t optList[OPT_MAX] = {
 	    {OPT_MAXDENSITY,"maxDensity",	4, 1},
         {OPT_EXTENDED,  "extended",     3, 1},
         {OPT_BURGID,    "burgID",       3, 1},
-        {OPT_PLANEID,   "planeID",      3, 1}
+        {OPT_PLANEID,   "planeID",      3, 1},
+        {OPT_TBCRYST,   "TBCryst",      3, 1}
 
 };
 
@@ -382,6 +383,11 @@ static void InitDefaultValues(InArgs_t *inArgs)
 
         inArgs->burgID = -1;
         inArgs->planeID = -1;
+
+        inArgs->TBCryst[0] = 1;
+        inArgs->TBCryst[1] = 1;
+        inArgs->TBCryst[2] = 1;
+        NormalizeVec(inArgs->TBCryst);
 
         return;
 }
@@ -794,6 +800,17 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                 case OPT_PLANEID:
                     inArgs->planeID = atoi(argValue);
                         break;
+                case OPT_TBCRYST:
+	                token = strtok(argValue,",");
+	                inArgs->TBCryst[0] = atof(token);
+	                token = strtok(NULL,",");
+                    if (token == (char *)NULL) Fatal("TB crystal normal direction wrong");
+	                inArgs->TBCryst[1] = atof(token);
+	                token = strtok(NULL,",");
+                    if (token == (char *)NULL) Fatal("TB crystal normal direction wrong");
+	                inArgs->TBCryst[2] = atof(token);
+	                NormalizeVec(inArgs->TBCryst);
+                        break;
             }
         }
 
@@ -1137,6 +1154,8 @@ int main(int argc, char *argv[])
 	    VECTOR_COPY(param->matrixOrientation[0],inArgs.xMatDir);
 	    VECTOR_COPY(param->matrixOrientation[1],inArgs.yMatDir);
 	    VECTOR_COPY(param->matrixOrientation[2],inArgs.zMatDir);
+
+        VECTOR_COPY(param->TBNormalCryst, inArgs.TBCryst);
 
 	    InitGrain(&home, param);
 		
