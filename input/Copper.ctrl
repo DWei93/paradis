@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.1027072"
+dirname = "res.0MPa"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -91,7 +91,7 @@ appliedStress = [
 	0.0e0
 	0.0e0
 	0.0e0
-	120.0e6
+	0.0e6
 	0.0e0
 	0.0e0
 ]
