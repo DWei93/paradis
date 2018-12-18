@@ -486,7 +486,7 @@ struct _param {
         int	    nGrain;
         real8	twinRatio;
         real8	peneTB;
-        real8   TBNormal[3];
+        real8   TBNormal[3], TBNormalCryst[3];
         real8   rotateNormal[3][3];
 	    real8	matrixOrientation[3][3];
 	    real8   GBStrength;

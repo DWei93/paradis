@@ -272,7 +272,7 @@ void WriteProp(Home_t *home, int property)
                     fprintf(fp, "%e %e %e %e %e %e %e %e %e\n", param->timeNow, param->elasticStrainTensor[3], param->totpStn[3], param->appliedStress[3],
                             param->disloDensity, param->elasticStrainTensor[4], param->totpStn[4], param->appliedStress[4],
                             effPlaRate);
-                    if(effPlaRate < 0.5)param->finish = 1;
+//                    if(effPlaRate < 0.5)param->finish = 1;
 
 #if 0
                     switch (param->loadType) {

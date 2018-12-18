@@ -987,6 +987,18 @@ void DataParamInit(Param_t *param, ParamList_t *DPList)
 	BindVar(DPList, "matrixOrientationY", &param->matrixOrientation[1], V_DBL, 3, VFLAG_NULL);
 	BindVar(DPList, "matrixOrientationZ", &param->matrixOrientation[2], V_DBL, 3, VFLAG_NULL);
 
+	BindVar(DPList, "TBNormal", &param->TBNormal, V_DBL, 3,
+            VFLAG_NULL);
+    param->TBNormal[0] = 1.0;  
+    param->TBNormal[1] = 1.0;  
+    param->TBNormal[2] = 1.0;  
+
+	BindVar(DPList, "TBNormalCryst", &param->TBNormalCryst, V_DBL, 3,
+            VFLAG_NULL);
+    param->TBNormalCryst[0] = 1.0;  
+    param->TBNormalCryst[1] = 1.0;  
+    param->TBNormalCryst[2] = 1.0;  
+
 	param->preDecreaseDT = 0;
 	param->markPreDTDisable = 0;
 	param->finish = 0;

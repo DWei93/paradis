@@ -46,8 +46,8 @@ case $srctype in
 ######################################################################################
     1|I)
     ./bin/paradisgen -type 4 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 0 -pbc 0 -extend 4 \
-    -xMatDir -1,-1,2 -zMatDir 1,1,1 ;;
+    -twinRatio 0.2 -TBCryst -1,-1,1 -polycrystal 1 -nGrain 2 -pbc 6 -extend 4 \
+    -xMatDir -1,1,0 -zMatDir 1,1,1 ;;
 
 #    -polycrystal 0 -pbc 0 \
 ######################################################################################

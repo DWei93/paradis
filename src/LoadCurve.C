@@ -639,7 +639,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                                2.0*dpstn[5]*dpstn[5])*2.0/3.0)/param->lastDT;
 
                 if(param->plaRateCtr <= 0.0 || 
-                  (param->plaRateCtr > 0 && 10.0*effPlaRate <= param->plaRateCtr)){
+                  (param->plaRateCtr > 0 && effPlaRate <= param->plaRateCtr)){
                     dsig[0] = param->strRate*dtt*param->loadDir[0];
                     dsig[1] = param->strRate*dtt*param->loadDir[1];
                     dsig[2] = param->strRate*dtt*param->loadDir[2];

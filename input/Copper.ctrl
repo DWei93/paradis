@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.screw-txy"
+dirname = "res.Shear-core-0"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -56,21 +56,22 @@ maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13;
 rTol = 1.0
-rc =  1
+rc =  0.5
 #
 #  Fast Multipole Method controls
 #  
 fmEnabled =   1  
 fmMPOrder =   2  
 fmTaylorOrder =   5  
-fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
+fmCorrectionTbl =   "input/fm-ctab-Cu.m2.t5.px.dat"
 #
 #  Loading conditions
 #  
-loadType = 1
+loadType = 7
 indxErate = 8
 eRate =   0.000
-strRate = 4.0E15
+strRate = -4.0E16
+#strRate = 0.0
 #plaRateCtr = 2.0E4
 loadDir = [
     0.0
@@ -91,7 +92,7 @@ appliedStress = [
 	0.0e0
 	0.0e0
 	0.0e0
-	20.0e6
+	0.0e6
 	0.0e0
 	0.0e0
 ]
@@ -124,11 +125,11 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 1000
+tecplotfreq = 200
 saveprop = 1
 savepropfreq = 100
 tecmesh = 1
-tecmeshfreq = 50000
+tecmeshfreq = 5000
 velfile = 0
 velfilefreq = 1000
 savecn = 1
