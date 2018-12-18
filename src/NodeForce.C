@@ -1380,7 +1380,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
 
             }
 
-            StackingFaultForce(home, dx, dy, dz, param->sfEnergy, signSF, 
+            StackingFaultForce(home, dx, dy, dz, param->sfEnergy/param->burgMag, signSF, 
                                normal, f1, f2); 
 
             VECTOR_ADD(fseg1node1, f1);
