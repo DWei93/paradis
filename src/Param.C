@@ -188,6 +188,9 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "maxDT", &param->maxDT, V_DBL, 1, VFLAG_NULL);
         param->maxDT = 1.0e-07;
 
+        BindVar(CPList, "lastDT", &param->lastDT, V_DBL, 1, VFLAG_NULL);
+        param->lastDT = 1.0e-013;
+
         BindVar(CPList, "nextDT", &param->nextDT, V_DBL, 1, VFLAG_NULL);
 
         BindVar(CPList, "dtIncrementFact", &param->dtIncrementFact,
