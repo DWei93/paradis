@@ -1278,7 +1278,7 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	if(nbrNode1==(Node_t *)NULL || nbrNode2==(Node_t *)NULL) return(0);
 
 /*	nbrNode2 is always intersection node.	*/
-	if(NodeOnGB(home,nbrNode1) & INTERSECT_NODE){
+	if((NodeOnGB(home,nbrNode1) & INTERSECT_NODE) > 0){
 		Node_t *nodeTemp;
 		nodeTemp = nbrNode1;
 		nbrNode1 = nbrNode2;
@@ -1333,7 +1333,7 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
 	if(nbrNode1==(Node_t *)NULL || nbrNode2==(Node_t *)NULL) return(0);
 
 /*	nbrNode2 is always intersection node.	*/
-	if(NodeOnGB(home,nbrNode1) & INTERSECT_NODE){
+	if((NodeOnGB(home,nbrNode1) & INTERSECT_NODE) > 0){
 		Node_t *nodeTemp;
 		nodeTemp = nbrNode1;
 		nbrNode1 = nbrNode2;
@@ -1813,7 +1813,7 @@ void HandleGrainBoundary(Home_t *home)
 
 #if CROSS_SLIP_GB_MODEL
 #else
-	        if((nbr1OnGB & TB_NODE) == 0 && nbrNode1->numNbrs == 3){
+	        if((nbr1OnGB & GB_NODE) == 0 && nbrNode1->numNbrs == 3){
 	           PullBack(home, node);
 	           continue;
 	        } 
@@ -1824,7 +1824,7 @@ void HandleGrainBoundary(Home_t *home)
 	    if(IsOnGB(nbrNode2)) {
 #if CROSS_SLIP_GB_MODEL
 #else
-	        if((nbr2OnGB & TB_NODE) == 0 && nbrNode2->numNbrs == 3){
+	        if((nbr2OnGB & GB_NODE) == 0 && nbrNode2->numNbrs == 3){
 	           PullBack(home, node);
 	           continue;
 	        } 
