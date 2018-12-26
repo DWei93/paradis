@@ -55,12 +55,16 @@
 #include "Util.h"
 #include "Mobility.h"
 
+#include <vector>
+#include <string>
+
+using namespace std;
+
 #define DENSITY_FILE_VERSION 2
 
 void WriteProp(Home_t *home, int property)
 {
         int     i, numItems, tmpOffset, numBurgVectors;
-	static int firstSS = 1;
         real8   al, am, an, amag, sigijk, pstnijk, dpstnijk;
         real8   ptstnijk;
         real8   *localDensityVals  = (real8 *)NULL;
@@ -68,11 +72,11 @@ void WriteProp(Home_t *home, int property)
         real8   totDensityChange[14];
 	    real8	TC;
         real8   dpstn[6], effPlaRate;
-        char    fileName[256];
+        char    fileName[256], var[256];
         FILE    *fp;
         Param_t *param;
 
-        
+
         param = home->param;
 
 		for (i = 0; i < 6; i++) {
@@ -265,13 +269,30 @@ void WriteProp(Home_t *home, int property)
                              "%s/stress_Total_strain.plt", DIR_PROPERTIES);
                     fp = fopen(fileName, "a");
 
-					if(firstSS && home->cycle < 2 *  param->savepropfreq){
-					   fprintf(fp, "variables = timeNow, estn_zy, pstn_zy, str_zy, disDen, estn_zx pstn_zx, str_zx, effPlaRate\n"); 
-					   firstSS = 0;
+                    
+
+					if(home->cycle < 2 *  param->savepropfreq){
+					    fprintf(fp, "variables = step, timeNow, "); 
+
+                        for(i=0; i<6; i++){
+                            if(param->loadDir[i] != 0){
+                                fprintf(fp, "strn_%1d, strs_%1d, pstn_%1d, ", i, i, i);
+                            }
+                        }
+                        fprintf(fp, "disDen, effPlaRate\n");
 					}
-                    fprintf(fp, "%e %e %e %e %e %e %e %e %e\n", param->timeNow, param->elasticStrainTensor[3], param->totpStn[3], param->appliedStress[3],
-                            param->disloDensity, param->elasticStrainTensor[4], param->totpStn[4], param->appliedStress[4],
-                            effPlaRate);
+        
+                    fprintf(fp,"%d %e ", home->cycle, param->timeNow/1E-9);
+
+                    for(i=0; i<6; i++){
+                        if(param->loadDir[i] != 0){
+                            fprintf(fp, "%e %e %e ",param->elasticStrainTensor[i]+param->totpStn[i],
+                                                   param->appliedStress[i],param->totpStn[i]);
+                        }
+                    }
+
+                    fprintf(fp, "%e %e\n", param->disloDensity, effPlaRate);
+
 //                    if(effPlaRate < 0.5)param->finish = 1;
 
 #if 0

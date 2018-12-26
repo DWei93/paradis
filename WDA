@@ -51,5 +51,5 @@ else
         lineNumber=`grep  -n "numZdoms" $ctrlFile | cut -d : -f 1`
         sed -i "${lineNumber}d" $ctrlFile
         sed -i "${lineNumber}inumZdoms = 4" $ctrlFile
-    	mpirun -machinefile $PBS_NODEFILE -n 16 ./bin/paradis ./${ctrlFile}
+    	mpirun -machinefile $PBS_NODEFILE -n 4 ./bin/paradis -n 2 ./${ctrlFile}
 fi

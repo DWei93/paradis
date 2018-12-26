@@ -187,7 +187,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 		    fprintf(fp, "zone T = \"%10.5f%1d\" i = %d  F=POINT\n", param->timeNow*1.0E9,num, numArms); 
 #else
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,fx,fy,fz\n");
-		    fprintf(fp, "zone T = \"%10.5f\" i = %d  F=POINT\n", param->timeNow*1.0E9,numArms); 
+		    fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle,numArms); 
 	
 #endif
 	    }
