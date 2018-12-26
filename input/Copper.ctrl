@@ -17,7 +17,7 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
+numXdoms = 4
 numYdoms = 1
 numZdoms = 1
 #

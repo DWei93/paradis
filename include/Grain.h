@@ -47,7 +47,7 @@ typedef struct {
 /*	define some node types	*/
 #define INGRAIN_NODE	    0x0001	
 #define INTERSECT_NODE	    0x0002	
-#define TB_NODE		        0x0004	
+#define GB_NODE		        0x0004	
 #define	JUNCTION_NODE	    0x0008
 
 #define INBOX   0x0000

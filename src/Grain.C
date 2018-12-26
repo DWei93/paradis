@@ -1105,8 +1105,7 @@ void AssignConstraint(Home_t *home, Node_t *node, int constraint)
 
 
 int NodeOnGB(Home_t *home, Node_t *node){
-	int 	i, numNbrs, burgType, type = 0;
-	real8	burg[3];
+	int 	i, numNbrs, type = 0;
 	Node_t 	*nbr;
 	
 	if(node == (Node_t *)NULL){
@@ -1119,22 +1118,13 @@ int NodeOnGB(Home_t *home, Node_t *node){
 	numNbrs = node->numNbrs;
 	
 	for(i=0; i<numNbrs; i++){
-		burg[0] = node->burgX[i];
-	    burg[1] = node->burgY[i];
-	    burg[2] = node->burgZ[i];
+        if((nbr = GetNeighborNode(home, node, i)) 
+            == (Node_t *)NULL);
 		
-	    burgType = BurgType_FCC(burg);
-		
-        switch(burgType){
-            case SHOCKLEY_BURG:
-                type |= TB_NODE;
-                break;
-            case BASIC_BURG:
-                type |= INTERSECT_NODE;
-                break;
-            default:
-                type |= JUNCTION_NODE;
-                break;
+        if(IsOnGB(nbr)){
+            type |= GB_NODE;
+        }else{
+            type |= INTERSECT_NODE;
         }
 	}
 	return(type);

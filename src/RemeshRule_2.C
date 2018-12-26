@@ -192,8 +192,8 @@ static void MeshCoarsen(Home_t *home)
 #if CROSS_SLIP_GB_MODEL
 #else
             if(nbr1 != (Node_t *)NULL && nbr2 != (Node_t *)NULL){
-                if(NodeOnGB(home, nbr1) & INTERSECT_NODE &&
-                   NodeOnGB(home, nbr2) & INTERSECT_NODE){
+                if((NodeOnGB(home, nbr1) & INTERSECT_NODE) > 0 &&
+                   (NodeOnGB(home, nbr2) & INTERSECT_NODE) > 0){
                     continue;
                 }
             }
