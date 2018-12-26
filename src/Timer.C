@@ -65,45 +65,47 @@ void TimerInit(Home_t *home)
 
 	home->timers = (Timer_t *) malloc(TIMER_BLOCK_SIZE * sizeof(Timer_t));
 
-	TimerRegister(home, TOTAL_TIME,            "total time           ");
-	TimerRegister(home, INITIALIZE,            "initialization time  ");
-	TimerRegister(home, SORT_NATIVE_NODES,     "sort native nodes    ");
-	TimerRegister(home, SEND_GB,     	       "send grain changes   ");
-	TimerRegister(home, FIX_GB,     		   "apply grain changes  ");
-	TimerRegister(home, COMM_SEND_GHOSTS,      "comm send ghosts     ");
-	TimerRegister(home, GHOST_COMM_BARRIER,    "sync after ghost comm");
-	TimerRegister(home, CELL_CHARGE,           "cell charge          ");
-	TimerRegister(home, CELL_CHARGE_BARRIER,   "sync after cell charge");
-	TimerRegister(home, CALC_FORCE,            "nodal force          ");
-	TimerRegister(home, LOCAL_FORCE,           "  local seg force    ");
-	TimerRegister(home, REMOTE_FORCE,          "  remote seg force   ");
-	TimerRegister(home, CALC_FORCE_BARRIER,    "sync after force calc");
-	TimerRegister(home, CALC_VELOCITY,         "nodal velocity       ");
-	TimerRegister(home, CALC_VELOCITY_BARRIER, "sync after vel calc  ");
-	TimerRegister(home, COMM_SEND_VELOCITY,    "comm send velocity   ");
-	TimerRegister(home, SPLIT_MULTI_NODES,     "split multi-nodes    ");
-	TimerRegister(home, COLLISION_HANDLING,    "handle collisions    ");
-	TimerRegister(home, POST_COLLISION_BARRIER,"barrier after col    ");
-	TimerRegister(home, COL_SEND_REMESH,       "send col topo changes");
-	TimerRegister(home, COL_FIX_REMESH,        "apply col topo changes");
-	TimerRegister(home, COL_FORCE_UPDATE,      "collision force adj. ");
-	TimerRegister(home, GENERATE_IO,           "generate all output  ");
-	TimerRegister(home, PLOT,                  "  X window plot      ");
-	TimerRegister(home, IO_BARRIER,            "sync after I/O       ");
-	TimerRegister(home, REMESH_START_BARRIER,  "sync before remesh   ");
-	TimerRegister(home, REMESH,                "remesh dislocations  ");
-	TimerRegister(home, SEND_REMESH,           "send remesh changes  ");
-	TimerRegister(home, FIX_REMESH,            "apply remesh changes ");
-	TimerRegister(home, FORCE_UPDATE_REMESH,   "remesh force adj.    ");
-	TimerRegister(home, REMESH_END_BARRIER,    "sync after remesh    ");
-	TimerRegister(home, MIGRATION,             "migration            ");
-	TimerRegister(home, MIGRATION_BARRIER,     "sync after migration ");
-	TimerRegister(home, LOADCURVE,             "load curve           ");
-	TimerRegister(home, LOAD_BALANCE,          "load balance         ");
-	TimerRegister(home, SEGFORCE_COMM,         "segment force comm   ");
-
-	return;
-}
+	TimerRegister(home, TOTAL_TIME,            "total time           ");  
+	TimerRegister(home, INITIALIZE,            "initialization time  ");  
+	TimerRegister(home, SORT_NATIVE_NODES,     "sort native nodes    ");  
+	TimerRegister(home, SEND_FS,     	       "send surface change  ");  
+	TimerRegister(home, FIX_FS,     		   "apply surface changes");  
+	TimerRegister(home, SEND_GB,     	       "send grain changes   ");  
+	TimerRegister(home, FIX_GB,     		   "apply grain changes  ");  
+	TimerRegister(home, COMM_SEND_GHOSTS,      "comm send ghosts     ");  
+	TimerRegister(home, GHOST_COMM_BARRIER,    "sync after ghost comm");  
+	TimerRegister(home, CELL_CHARGE,           "cell charge          ");  
+	TimerRegister(home, CELL_CHARGE_BARRIER,   "sync after cell charge"); 
+	TimerRegister(home, CALC_FORCE,            "nodal force          ");  
+	TimerRegister(home, LOCAL_FORCE,           "  local seg force    ");  
+	TimerRegister(home, REMOTE_FORCE,          "  remote seg force   ");  
+	TimerRegister(home, CALC_FORCE_BARRIER,    "sync after force calc");  
+	TimerRegister(home, CALC_VELOCITY,         "nodal velocity       ");  
+	TimerRegister(home, CALC_VELOCITY_BARRIER, "sync after vel calc  ");  
+	TimerRegister(home, COMM_SEND_VELOCITY,    "comm send velocity   ");  
+	TimerRegister(home, SPLIT_MULTI_NODES,     "split multi-nodes    ");  
+	TimerRegister(home, COLLISION_HANDLING,    "handle collisions    ");  
+	TimerRegister(home, POST_COLLISION_BARRIER,"barrier after col    ");  
+	TimerRegister(home, COL_SEND_REMESH,       "send col topo changes");  
+	TimerRegister(home, COL_FIX_REMESH,        "apply col topo changes"); 
+	TimerRegister(home, COL_FORCE_UPDATE,      "collision force adj. ");  
+	TimerRegister(home, GENERATE_IO,           "generate all output  ");  
+	TimerRegister(home, PLOT,                  "  X window plot      ");  
+	TimerRegister(home, IO_BARRIER,            "sync after I/O       ");  
+	TimerRegister(home, REMESH_START_BARRIER,  "sync before remesh   ");  
+	TimerRegister(home, REMESH,                "remesh dislocations  ");  
+	TimerRegister(home, SEND_REMESH,           "send remesh changes  ");  
+	TimerRegister(home, FIX_REMESH,            "apply remesh changes ");  
+	TimerRegister(home, FORCE_UPDATE_REMESH,   "remesh force adj.    ");  
+	TimerRegister(home, REMESH_END_BARRIER,    "sync after remesh    ");  
+	TimerRegister(home, MIGRATION,             "migration            ");  
+	TimerRegister(home, MIGRATION_BARRIER,     "sync after migration ");  
+	TimerRegister(home, LOADCURVE,             "load curve           ");  
+	TimerRegister(home, LOAD_BALANCE,          "load balance         ");  
+	TimerRegister(home, SEGFORCE_COMM,         "segment force comm   ");  
+                                                                          
+	return;                                                               
+}                                                                         
 
 
 /*-------------------------------------------------------------------------
@@ -127,7 +129,8 @@ void TimerStart(Home_t *home, int index)
 		Fatal("TimerStart: invalid timer");
 
 	if (home->timers[index].started != 0)
-		Fatal("TimerStart: timer already started");
+		Fatal("TimerStart: timer already started %d %d", 
+                index, home->timers[index].started);
 
 #ifdef PARALLEL
 	home->timers[index].startTime = MPI_Wtime();
