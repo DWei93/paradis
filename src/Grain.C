@@ -204,11 +204,26 @@ void InitGrain(Home_t *home, Param_t *param){
 	twinRatio = param->twinRatio;
 	numTGrains = nGrain - 1;
 
+#if 0
 	Matrix33Vector3Multiply(param->matrixOrientation, param->TBNormalCryst, param->TBNormal);
     RotateWithAxis(param->TBNormal, PI, temR);
 	Matrix33Mult33(temR, param->matrixOrientation, TwinOrientation);
     RotateWithAxis(param->TBNormal, PI, param->rotateNormal);
 
+#else
+        real8   CDeltaLab[3] = {-1,-1,2}, CDelta[3];
+        real8   planeABC[3] = {1,1,1};
+        NormalizeVec(CDeltaLab);
+        NormalizeVec(planeABC); 
+        Matrix33Vector3Multiply(param->matrixOrientation, CDeltaLab, CDelta);
+
+        RotateWithAxis(CDelta, PI, temR);
+        Matrix33Mult33(temR, param->matrixOrientation, TwinOrientation);
+
+        Matrix33Vector3Multiply(param->matrixOrientation, planeABC, param->TBNormal);
+        RotateWithAxis(param->TBNormal, PI, param->rotateNormal);
+
+#endif
 /*
  *	Type V: polycrystal = 1, nGrain >= 2, PBC.
  *	polycrystal, twin, RVE, XOZ plane is twin plane
@@ -400,9 +415,9 @@ void InitGrain(Home_t *home, Param_t *param){
 	    }
 
         if(home->myDomain == 0){
-            int                     type, m, n;
+            int                     type, m, n, nmesh;
             real8                   vec1[3], vec2[3], vec3[3], interPos[3];
-            real8                   poss[2][3], vecMag, length, vec4[3];
+            real8                   poss[2][3], vecMag, length, vec4[3], msize = 10, tsize;
             std::vector<Plane_t>    surList(6);
             std::vector<std::vector<Plane_t> > surArray(2);
             std::vector<int>        records, records1;
@@ -437,8 +452,8 @@ void InitGrain(Home_t *home, Param_t *param){
 
             for(i=0; i<6; i++){
                 type = PlanePlaneIntersection(surList[i].normal, surList[i].point,
-                                                      plane.normal, plane.point, vec1, vec2); 
-                        if(type != LINE_INTERSECTION){
+                                              plane.normal, plane.point, vec1, vec2); 
+                if(type != LINE_INTERSECTION){
                     records1.push_back(i);
                     continue;
                 }
@@ -468,17 +483,18 @@ void InitGrain(Home_t *home, Param_t *param){
                         vec4[1] = poss[1][1] - poss[0][1];
                         vec4[2] = poss[1][2] - poss[0][2];
                         length = Normal(vec4);
-                        vecMag = length/50.0;
+                        nmesh = int(length/msize);
+                        tsize = length/((real8)nmesh);
                         NormalizeVec(vec4);
-                        for(m=0; m<50; m++){
+                        for(m=0; m<nmesh; m++){
 #if 1
 	                        fprintf(fp, "%e %e %e %e %e %e -1 3 -1.00 -1\n", poss[0][0],
-                                    poss[0][1],poss[0][2], vecMag*vec4[0],
-                                    vecMag*vec4[1],vecMag*vec4[2]);
+                                    poss[0][1],poss[0][2], tsize*vec4[0],
+                                    tsize*vec4[1], tsize*vec4[2]);
 #endif
-                            poss[0][0] += vecMag*vec4[0];
-                            poss[0][1] += vecMag*vec4[1];
-                            poss[0][2] += vecMag*vec4[2];
+                            poss[0][0] += tsize*vec4[0];
+                            poss[0][1] += tsize*vec4[1];
+                            poss[0][2] += tsize*vec4[2];
                         }
                         k = 0;
                         break;
@@ -524,13 +540,74 @@ void InitGrain(Home_t *home, Param_t *param){
             BurgInfo_t  *bd;
             int         slipIndex, inGrain;
             GB_t        *gb;
-            real8       zaxis[3] = {0,0,1.0}, maxSchmidt, dis;
-            int         th, color;
+            real8       zaxis[3] = {0,0,1.0}, maxSchmidt, dis, rad = 300, sqi3 = 0.5773502691896258;
+            int         th, color, l;
+
+            real8       cryst[3], lab[3];
+            real8       ps[4][3];
+            real8       cena[3] = {1,-1, 1}, cenb[3] = {-1,1,1}, cenc[3] = {1,1,-1}, cend[3] = {-1,-1,-1};
+
+            NormalizeVec(cena);
+            NormalizeVec(cenb);
+            NormalizeVec(cenc);
+            NormalizeVec(cend);
 
             gb = home->GBKeys[0];
             for(i=0; i<home->nGrains; i++){
-                std::vector<SlipSys_t>().swap(slipSys);
                 grain = home->grainKeys[i];
+#if 1
+                VECTOR_COPY(plane.normal, gb->n);
+                VECTOR_COPY(plane.point, gb->p);
+
+                plane.point[0] -= (grain->sign[0]*plane.normal[0]*300);
+                plane.point[1] -= (grain->sign[0]*plane.normal[1]*300);
+                plane.point[2] -= (grain->sign[0]*plane.normal[2]*300);
+
+                Matrix33Vector3Multiply(grain->orientation, cena, ps[0]);
+                Matrix33Vector3Multiply(grain->orientation, cenb, ps[1]);
+                Matrix33Vector3Multiply(grain->orientation, cenc, ps[2]);
+                Matrix33Vector3Multiply(grain->orientation, cend, ps[3]);
+
+                for(j=0; j<4; j++){
+                    ps[j][0] *= rad;
+                    ps[j][1] *= rad;
+                    ps[j][2] *= rad;
+
+                    ps[j][0] += (plane.point[0]);
+                    ps[j][1] += (plane.point[1]);
+                    ps[j][2] += (plane.point[2]);
+                }
+
+
+                for(j=0; j<3; j++){
+                    for(k=j+1; k<4; k++){
+                        vec4[0] = ps[k][0] - ps[j][0];
+                        vec4[1] = ps[k][1] - ps[j][1];
+                        vec4[2] = ps[k][2] - ps[j][2];
+
+                        VECTOR_COPY(poss[0], ps[j]);
+
+                        nmesh = ((int)(Normal(vec4)/msize));
+                        tsize = Normal(vec4)/((real8)nmesh);
+
+                        NormalizeVec(vec4);
+
+                        for(l=0; l<nmesh; l++){
+	                        fprintf(fp, "%e %e %e %e %e %e -1 -1 -1.0 %d\n", poss[0][0],
+                            poss[0][1],poss[0][2], tsize*vec4[0],
+                            tsize*vec4[1],tsize*vec4[2], i);
+
+                            poss[0][0] += tsize*vec4[0];
+                            poss[0][1] += tsize*vec4[1];
+                            poss[0][2] += tsize*vec4[2];
+
+                        }
+                    
+                    }
+                }
+                
+#endif
+                std::vector<SlipSys_t>().swap(slipSys);
                 bd = &(grain->burgData);
                 slip.inGrain = i;
                 for(j=0; j<6; j++){
@@ -562,8 +639,8 @@ void InitGrain(Home_t *home, Param_t *param){
 
                     for(k=0; k<surArray[inGrain].size(); k++){
                         type = PlanePlaneIntersection(
-                                              plane.normal, plane.point,
-                                             surArray[inGrain][k].normal, surArray[inGrain][k].point, vec1, vec2); 
+                                  plane.normal, plane.point,
+                                  surArray[inGrain][k].normal, surArray[inGrain][k].point, vec1, vec2); 
                         
                         if(type != LINE_INTERSECTION)continue;
                         th = 0;
@@ -589,24 +666,25 @@ void InitGrain(Home_t *home, Param_t *param){
 
                             VECTOR_COPY(poss[th], interPos);
                             th++;
-#if 1
+#if 0
                             if(th == 2){
                                 vec4[0] = poss[1][0] - poss[0][0];
                                 vec4[1] = poss[1][1] - poss[0][1];
                                 vec4[2] = poss[1][2] - poss[0][2];
                                 length = Normal(vec4);
-                                vecMag = length/50.0;
+                                nmesh = (int)(length/msize);
+                                tsize = length/((real8)nmesh);
                                 NormalizeVec(vec4);
                                 color = slipSys[j].burgID;
             
-                                for(n=0; n<50; n++){
+                                for(n=0; n<nmesh; n++){
 	                                fprintf(fp, "%e %e %e %e %e %e %d %d %f %d\n", poss[0][0],
-                                    poss[0][1],poss[0][2], vecMag*vec4[0],
-                                    vecMag*vec4[1],vecMag*vec4[2], slipSys[j].burgID, 
+                                    poss[0][1],poss[0][2], tsize*vec4[0],
+                                    tsize*vec4[1],tsize*vec4[2], slipSys[j].burgID, 
                                     slipSys[j].planeID, slipSys[j].schmidt, inGrain);
-                                    poss[0][0] += vecMag*vec4[0];
-                                    poss[0][1] += vecMag*vec4[1];
-                                    poss[0][2] += vecMag*vec4[2];
+                                    poss[0][0] += tsize*vec4[0];
+                                    poss[0][1] += tsize*vec4[1];
+                                    poss[0][2] += tsize*vec4[2];
                                 }
                                 th = 0;
                                 break;

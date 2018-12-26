@@ -24,15 +24,15 @@
 ######################################################################################
 
 #frlen=1800
-frlen=19980
-cubel=20000
+frlen=800,1200
+cubel=3000
 #frlen=1980
 #cubel=2000
-maxSeg=20
-nfrs=1
+maxSeg=200
+nfrs=100
 maxDensity=1E13
 seed=""
-srctype=1
+srctype=5
 
 
 PI=3.1415926535897932385
@@ -94,9 +94,10 @@ case $srctype in
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity \
-    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
-#    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
+    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
 
+#    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
+#    -xMatDir 0.707106781186548,-0.707106781186548,0.0 -yMatDir 0.642228525188087,0.642228525188087,-0.418431646591735 \
     *)
      echo "input error!"
      exit 1 ;;

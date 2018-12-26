@@ -2579,7 +2579,6 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
 }
 
 
-
 void GBCrossSlip(Home_t *home)
 {
     int     i, j, k, nBurgsSplit, nNbrsOnGB;
@@ -2593,7 +2592,7 @@ void GBCrossSlip(Home_t *home)
     real8   test1, test2, test3, test1Max, test2Max, test3Max;
     real8   nodePos[3], nbr1Pos[3], nbr2Pos[3], gbNbrPos[3];
     real8   vec1[3], vec2[3], vec3[3], vec[3], crossProd[3];
-    real8   noiseFactor, weightFactor, fnodeThreshold;
+    real8   noiseFactor, glideForce[3], froceMag;
     real8   eps, thetacrit, sthetacrit, s2thetacrit, areamin;
     real8   dis, burg[3], normal[3];
     real8   newNodePos[3], newNbr1Pos[3], newNbr2Pos[3], newGBNbrPos[3];
@@ -2631,7 +2630,6 @@ void GBCrossSlip(Home_t *home)
  *  two values are used in calculating that needed force.
  */
     noiseFactor=1e-05;
-    weightFactor=1.0;
 
 /*
  *  For purposes of determining segment ownership, we need to treat
@@ -2785,6 +2783,10 @@ void GBCrossSlip(Home_t *home)
             if(!GeometricCriterion(gbd, burg, interLine.direction, normal, 1,
                    burgList, disArray))continue;
 
+/*
+ *          Now, we don't need the resultant configure including a lattice burg on GB,
+ *          or a partial burg in Grain.
+ */
             for(j=0; j<disArray.size(); ){
                 barrierFactor = -1.0;
                 for(k=0; k<disArray[j].size(); k++){
@@ -2818,16 +2820,21 @@ void GBCrossSlip(Home_t *home)
                               segForceOrig, nodePos, nbr1Pos,
                               nbr2Pos);
 
-            oriDis = node->fX * node->vX + 
-                     node->fY * node->vY + 
-                     node->fZ * node->vZ;  
-
-            oriDis *= (1.0+noiseFactor);
-
 	        RepositionNode(home, newNodePos, &node->myTag, 0);
 	        RepositionNode(home, newNbr1Pos, &nbr1->myTag, 0);
 	        RepositionNode(home, newNbr2Pos, &nbr2->myTag, 0);
 
+#if 0
+            oriDis = node->fX * node->vX + 
+                     node->fY * node->vY + 
+                     node->fZ * node->vZ;  
+#else
+            vec[0] = node->fX;
+            vec[1] = node->fY;
+            vec[2] = node->fZ;
+            cross(vec, normal, glideForce);
+            oriDis = Normal(glideForce)*(1+noiseFactor);
+#endif
             powerDis.resize(disArray.size());
             disPosArray.resize(disArray.size());
             for(j=0; j<disArray.size(); j++){
@@ -2870,6 +2877,7 @@ void GBCrossSlip(Home_t *home)
 
 		                SetOneNodeForce(home, node);
                         EvaluateMobility(home, node);
+
                         vec[0] = node->vX;
                         vec[1] = node->vY;
                         vec[2] = node->vZ;
@@ -2892,9 +2900,13 @@ void GBCrossSlip(Home_t *home)
                             }
                         }
 
-                        powerDis[j] += (node->fX * node->vX +
-                                        node->fY * node->vY +
-                                        node->fZ * node->vZ);
+                        vec[0] = node->fX;
+                        vec[1] = node->fY;
+                        vec[2] = node->fZ;
+                        cross(vec, gbd->planeList[disArray[j][0].planeID], glideForce);
+
+                        powerDis[j] += Normal(glideForce); 
+                                       
                         continue;
 					
                     }
@@ -2961,9 +2973,13 @@ void GBCrossSlip(Home_t *home)
                         if(onGB > -1 || inGrain != node->inGrain)break;
                     }
 
-                    powerDis[j] += (node->fX * node->vX +
-                                    node->fY * node->vY +
-                                    node->fZ * node->vZ);
+
+                    vec[0] = node->fX;
+                    vec[1] = node->fY;
+                    vec[2] = node->fZ;
+                    cross(vec, gbd->planeList[disArray[j][k].planeID], glideForce);
+
+                    powerDis[j] += Normal(glideForce); 
     
                 }
                 if(k<disArray[j].size())powerDis[j] = -oriDis;
@@ -2978,7 +2994,7 @@ void GBCrossSlip(Home_t *home)
                 }
             }
 
-            if(maxPowerSet == -1 || maxPowerDis < 0){
+            if(maxPowerSet == -1 || maxPowerDis <= 0){
                 RestoreCrossSlipForce(node, nbr1, nbr2, 0,
                                       1, segForceOrig);
 	            RepositionNode(home, nodePos, &node->myTag, 0);
