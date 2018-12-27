@@ -72,7 +72,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         Plane_t	 plane;
         struct stat statbuf;
 
-        int      index;
+        int         index, constraint;
         param      = home->param;
         thisDomain = home->myDomain;
 
@@ -186,8 +186,8 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,domain,index,signSF\n");
 		    fprintf(fp, "zone T = \"%10.5f%1d\" i = %d  F=POINT\n", param->timeNow*1.0E9,num, numArms); 
 #else
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,fx,fy,fz\n");
-		    fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle,numArms); 
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,index\n");
+		    fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
 	
 #endif
 	    }
@@ -317,25 +317,34 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 GetArmGrain(home, node, nbrNode, armInGrain, armOnGB);
         
                 if(armOnGB<0){
-                    index = armInGrain;
+                    if(armInGrain == 0){
+                        index = 3;
+                    }else{
+                        index = 6;
+                    }
                 }else{
                     if(burgID == 7){
-                        index = 2;
+                        index = 0;
                     }else if(burgID == 12){
-                        index = 3;
+                        index = 0;
                     }else if(burgID == 17){
-                        index =4;
+                        index =0;
                     }else{
                         burg[0] = node->burgX[j];
                         burg[1] = node->burgY[j];
                         burg[2] = node->burgZ[j];
                         if(BurgType_FCC(burg) == BASIC_BURG){
-                            index = 5;
+                            index = 1;
                         }else{
-                            index = 6;
+                            index = 2;
                         }
                     }
                 }
+
+                constraint = node->constraint;
+
+                if((NodeOnGB(home, node) & INTERSECT_NODE)>0)constraint = 4;
+
 /*
  *              This part is for output of junction investigation
  */
@@ -356,9 +365,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,node->constraint,
                             node->myTag.domainID,node->myTag.index, node->signSF[j]);
 #else
-                    fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %e %e %e\n", 
-                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,armInGrain,armOnGB,burgID,normalID,node->constraint,
-                            node->fX/1.0E7, node->fY/1.0E7, node->fZ/1.0E7);
+                    fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d\n", 
+                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,armInGrain,armOnGB,burgID,normalID,constraint,
+                            index);
 #endif
 	        }
 #endif	

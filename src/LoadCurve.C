@@ -267,7 +267,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
  *          constant strain rate
  */
             case 1:
-#if	0
+#if	1
 /*
  *              Cover for specific loading direction also
  */
@@ -293,7 +293,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 printf("al=%e,am=%e,an=%e\n", al, am, an);
                 printf("erate=%e,dtt=%e,dpl_stn=%e\n", erate, dtt, dpl_stn);
                 printf("modulus=%e,dStress=%e\n", modulus, dStress);
-/*
+ *
  *              global (100)-(010)-(001) frame
  */
                 param->appliedStress[0] += dStress *al*al;
@@ -309,11 +309,12 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 param->totstraintensor[3] = erate * param->timeNow *  an*am;
                 param->totstraintensor[4] = erate * param->timeNow *  an*al;
                 param->totstraintensor[5] = erate * param->timeNow *  al*am;
-#endif
 				
+#else
 				for (i = 0; i < 6; i++) {
                     dpstn[i] = param->delpStrain[i];
                 }
+
 /*
  *              Set pointers to the precomputed 6x6 elastic constant
  *              matrix (C) and its inverse, the compliance matrix (Sij)
@@ -370,6 +371,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 deltaStress[0][2] = deltaStress[2][0];
                 deltaStress[1][0] = deltaStress[0][1];
 
+#endif
 //                if(home->myDomain == 0)printf("Loading %e %e %e %e\n", erate*dtt, dpstn[3], deltaStress[2][1]/dtt, param->appliedStress[3]);
                 break;
         
@@ -680,7 +682,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         }  /* end: switch(loadtype) */
         
         TimerStop(home, LOADCURVE);
-#if 0        
+#if 1        
         deltaStress[0][0] = param->appliedStress[0] - deltaStress[0][0];
         deltaStress[1][1] = param->appliedStress[1] - deltaStress[1][1];
         deltaStress[2][2] = param->appliedStress[2] - deltaStress[2][2];

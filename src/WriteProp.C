@@ -71,7 +71,7 @@ void WriteProp(Home_t *home, int property)
         real8   *globalDensityVals = (real8 *)NULL;
         real8   totDensityChange[14];
 	    real8	TC;
-        real8   dpstn[6], effPlaRate;
+        real8   dpstn[6], effPlaRate, sign;
         char    fileName[256], var[256];
         FILE    *fp;
         Param_t *param;
@@ -269,7 +269,17 @@ void WriteProp(Home_t *home, int property)
                              "%s/stress_Total_strain.plt", DIR_PROPERTIES);
                     fp = fopen(fileName, "a");
 
-                    
+                    sign  = 1;
+                    switch (param->loadType){
+                        case 1:
+                            sign = Sign(param->eRate);
+                            break;
+                        case 7:
+                            sign = Sign(param->strRate);
+                            break;
+                        default:
+                            break;
+                    }
 
 					if(home->cycle < 2 *  param->savepropfreq){
 					    fprintf(fp, "variables = step, timeNow, "); 
@@ -277,6 +287,7 @@ void WriteProp(Home_t *home, int property)
                         for(i=0; i<6; i++){
                             if(param->loadDir[i] != 0){
                                 fprintf(fp, "strn_%1d, strs_%1d, pstn_%1d, ", i, i, i);
+                                if(param->polycrystal) fprintf(fp, "twi_def_%1d ", i);
                             }
                         }
                         fprintf(fp, "disDen, effPlaRate\n");
@@ -286,8 +297,12 @@ void WriteProp(Home_t *home, int property)
 
                     for(i=0; i<6; i++){
                         if(param->loadDir[i] != 0){
-                            fprintf(fp, "%e %e %e ",param->elasticStrainTensor[i]+param->totpStn[i],
-                                                   param->appliedStress[i],param->totpStn[i]);
+                            fprintf(fp, "%e %e %e ", sign*param->totstraintensor[i]*1E2,
+                                                     sign*param->appliedStress[i]*1E-6,
+                                                     sign*param->totpStn[i]*1E2);
+        
+    
+                            if(param->polycrystal) fprintf(fp, "%e ", sign*param->totTwinpStn[i]*1E2);
                         }
                     }
 

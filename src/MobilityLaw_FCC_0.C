@@ -164,7 +164,7 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
 /*
  *  Add resitance of friction force of GB force
  */
-#if 1
+#if 0
 	DoResistance(home, node, nForce);
 #else
     nForce[0] = node->fX;
