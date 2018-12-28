@@ -287,7 +287,7 @@ void WriteProp(Home_t *home, int property)
                         for(i=0; i<6; i++){
                             if(param->loadDir[i] != 0){
                                 fprintf(fp, "strn_%1d, strs_%1d, pstn_%1d, ", i, i, i);
-                                if(param->polycrystal) fprintf(fp, "twi_def_%1d ", i);
+                                if(param->polycrystal) fprintf(fp, "twi_def_%1d, ", i);
                             }
                         }
                         fprintf(fp, "disDen, effPlaRate\n");
