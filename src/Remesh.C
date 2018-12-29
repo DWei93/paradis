@@ -268,7 +268,7 @@ void CutSurfaceSegments(Home_t *home)
 			 *              in a remote domain, cut the connection in the lower
 			 *              numbered domain only.
 			 */
-			if (thisDomain > nbr->myTag.domainID) {
+            if (!DomainOwnsSeg(home, OPCLASS_REMESH, thisDomain, &nbr->myTag)){
 				j++;
 				continue;
 			} 
@@ -332,7 +332,8 @@ void Remesh(Home_t *home)
             break;
         }
         TimerStop(home, REMESH);
-		
+	
+        DebugGB(home, 300);	
 		
 
 /*

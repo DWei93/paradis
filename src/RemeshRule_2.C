@@ -29,6 +29,7 @@ static int dbgDom;
  *------------------------------------------------------------------------*/
 static void MeshCoarsen(Home_t *home)
 {
+        DebugGB(home, 100);
         int     i,j, k, q, thisDomain, mergeDone, mergeStatus, globalOp;
         int     localCoarsenCnt, globalCoarsenCnt, hasRemoteNbr;
 	    int	    breakLoop = 0, type;
@@ -449,7 +450,7 @@ static void MeshCoarsen(Home_t *home)
                         if(armOnGB1 != armOnGB2)continue;
                         if(armInGrain1 != armInGrain2)continue;
                     }else{
-                        if(armInGrain1 > 0 && armInGrain2 > 0 && armInGrain1 != armInGrain2
+                        if(armInGrain1 > -1 && armInGrain2 > -1 && armInGrain1 != armInGrain2
                            && (nbr1->constraint == 7 || nbr2->constraint == 7))continue;    
                     }
                 }else{
@@ -468,14 +469,40 @@ static void MeshCoarsen(Home_t *home)
                     newPos[2] = nbr1->z;
 
                     FoldBox(home->param,newPos, newPos+1, newPos+2);
-                    MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
+
+                    mergeDone = 1;
+                    if(violateGlidePlanesOK == 0){
+                        VECTOR_COPY(vec1, newPos);
+                        if(BeforeMergeNodes(home, node, nbr1, vec1, &dis)){
+                            vec1[0] -= newPos[0];
+                            vec1[1] -= newPos[1];
+                            vec1[2] -= newPos[2];
+                            ZImage(param, vec1, vec1+1, vec1+2);
+            
+                            if(Normal(vec1) > 5.0){
+//                                PrintNode(node);
+//                                PrintNode(nbr1);
+//                                printf("Warning in %s at %d, dis %f\n", 
+//                                        __FILE__, __LINE__, Normal(vec1));
+                                mergeDone = 0;
+                            }
+                        }else{
+                            mergeDone = 0;
+                        }
+                    }
+
+                    if(mergeDone == 1){
+
+                        MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
                               &mergedNode, &mergeStatus, globalOp);
-                    mergeDone = mergeStatus & MERGE_SUCCESS;
+                        mergeDone = mergeStatus & MERGE_SUCCESS;
+                    }
                 }
 /*
  *              If the merge could not be done, try using
  *              the other neighbor.
  */
+
                 if (mergeDone == 0) {
                     if ((nbr2->flags & NO_MESH_COARSEN) == 0 &&
                         !(violateGlidePlanesOK==1 && r2 >= 1.0 && 
@@ -483,8 +510,29 @@ static void MeshCoarsen(Home_t *home)
                         newPos[0] = nbr2->x;
                         newPos[1] = nbr2->y;
                         newPos[2] = nbr2->z;
-    
+
                         FoldBox(home->param,newPos, newPos+1, newPos+2);
+
+                        if(violateGlidePlanesOK == 0){
+                            VECTOR_COPY(vec1, newPos);
+                            if(BeforeMergeNodes(home, node, nbr2, vec1, &dis)){
+                                vec1[0] -= newPos[0];
+                                vec1[1] -= newPos[1];
+                                vec1[2] -= newPos[2];
+                                ZImage(param, vec1, vec1+1, vec1+2);
+            
+                                if(Normal(vec1) > 5.0){
+//                                    PrintNode(node);
+//                                    PrintNode(nbr2);
+//                                    printf("Warning in %s at %d, dis %f\n", 
+//                                            __FILE__, __LINE__, Normal(vec1));
+                                    continue;
+                                }
+                            }else{
+                                continue;
+                            }
+                        }
+
                         MergeNode(home, OPCLASS_REMESH, node, nbr2, newPos,
                                   &mergedNode, &mergeStatus, globalOp);
                         mergeDone = mergeStatus & MERGE_SUCCESS;
@@ -639,6 +687,7 @@ static void MeshCoarsen(Home_t *home)
                 }
             }
         }
+        DebugGB(home, 101);
         
 #ifdef DEBUG_LOG_MESH_COARSEN
 #ifdef PARALLEL
@@ -874,6 +923,7 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
  *------------------------------------------------------------------------*/
 static void MeshRefine(Home_t *home)
 {
+        DebugGB(home, 200);
         int     i, thisDomain, didBisect, seg, splitIsOK;
         int     splitStatus, armIndex, armCount = 1, globalOp;
         int     armID, *armList;
@@ -1175,6 +1225,12 @@ static void MeshRefine(Home_t *home)
 				
 			            }
 
+                        NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
+                        if(inGrain != node->inGrain && !IsOnGB(node)){
+                            PrintNode(node);
+                            printf("Warning: refine - 0\n");
+                        }
+
                         splitStatus = SplitNode(home, OPCLASS_REMESH,
                                                 node, nodePos, newPos,
                                                 nodeVel, newVel,
@@ -1199,16 +1255,16 @@ static void MeshRefine(Home_t *home)
                             MarkNodeForceObsolete(home, splitNode1);
                             MarkNodeForceObsolete(home, nbr1);
 
-                NodeLocation(home, splitNode1->x, splitNode1->y, splitNode1->z,inGrain, onGB);
-                if(inGrain != splitNode1->inGrain && !IsOnGB(splitNode1)){
-                    PrintNode(splitNode1);
-                    printf("Warning: refine -1\n");
-                }
-                NodeLocation(home, splitNode2->x, splitNode2->y, splitNode2->z,inGrain, onGB);
-                if(inGrain != splitNode2->inGrain && !IsOnGB(splitNode2)){
-                    PrintNode(splitNode2);
-                    printf("Warning: refine -2\n");
-                }
+                            NodeLocation(home, splitNode1->x, splitNode1->y, splitNode1->z,inGrain, onGB);
+                            if(inGrain != splitNode1->inGrain && !IsOnGB(splitNode1)){
+                                PrintNode(splitNode1);
+                                printf("Warning: refine -1\n");
+                            }
+                            NodeLocation(home, splitNode2->x, splitNode2->y, splitNode2->z,inGrain, onGB);
+                            if(inGrain != splitNode2->inGrain && !IsOnGB(splitNode2)){
+                                PrintNode(splitNode2);
+                                printf("Warning: refine -2\n");
+                            }
         
 /*
  *                          Reset nodal forces on all nodes involved
@@ -1257,6 +1313,7 @@ static void MeshRefine(Home_t *home)
                 }
             }
         }
+        DebugGB(home, 201);
         
 #ifdef DEBUG_LOG_MESH_REFINE
 #ifdef PARALLEL
