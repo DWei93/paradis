@@ -2264,14 +2264,16 @@ void AdjustSurfaceNode(Home_t *home)
 	int 	i, j, numNodePtr, thisDomain, splitOK, switchNode;
     int     inGrain, onGB, armInGrain, armOnGB;
 	real8	nodePos[3], nbrPos[3], nbrConstraint;
-	real8	interPos[3], oldPos[3];
-	real8	newPos[3], burg0[3], burgj[3], vec[3];
+	real8	interPos[3], oldPos[3], dis, dot;
+	real8	newPos[3], burg0[3], burgj[3], vec[3], normal[3];
  	Param_t *param;
 	Node_t  *node, *nbr, *newNode, *node1, *node2;
 	int 	nodecst, surfaceNbr, constraint;
 	Line_t	line;
 	Plane_t	plane;
 	param = home->param;
+
+    thisDomain = home->myDomain;
   
 	for (i = 0; i < home->newNodeKeyPtr; i++){
 
@@ -2343,27 +2345,31 @@ void AdjustSurfaceNode(Home_t *home)
 	    nodePos[0] = node->x;
 	    nodePos[1] = node->y;
 	    nodePos[2] = node->z;
+		VECTOR_COPY(line.point, nodePos);
 
 	    if(param->xBoundType == Free &&  fabs(nodePos[0]) >= param->xBoundMax  ||
 	       param->yBoundType == Free &&  fabs(nodePos[1]) >= param->yBoundMax  ||
 	       param->zBoundType == Free &&  fabs(nodePos[2]) >= param->zBoundMax)continue;
 
+		nodecst = node->constraint;
+
 	    for(j=0; j < node->numNbrs; j++){
 	        nbr = GetNeighborNode(home, node, j);
 	        if(nbr == (Node_t *)NULL)continue;
-		    if(nbr->numNbrs < 2)continue;
 	        if(!SurfaceNode(nbr))continue;
+            if(DomainOwnsSeg(home, OPCLASS_REMESH,
+                        thisDomain, &nbr->myTag) == 0)continue;
+
 	        nbrPos[0] = nbr->x;
 	        nbrPos[1] = nbr->y;
 	        nbrPos[2] = nbr->z;
-#if 0
+
 	        if(param->xBoundType == Free &&  fabs(nbrPos[0]) <= param->xBoundMax + 1.0E-10 &&
 	           param->yBoundType == Free &&  fabs(nbrPos[1]) <= param->yBoundMax + 1.0E-10 &&
 	           param->zBoundType == Free &&  fabs(nbrPos[2]) <= param->zBoundMax + 1.0E-10)continue;
-#endif
-		    nodecst = node->constraint;
+
 	        constraint = nbr->constraint;
-		    VECTOR_COPY(line.point, nodePos);
+
 	        line.direction[0] = nbrPos[0] - nodePos[0];
 	        line.direction[1] = nbrPos[1] - nodePos[1];
 	        line.direction[2] = nbrPos[2] - nodePos[2];
@@ -2373,7 +2379,21 @@ void AdjustSurfaceNode(Home_t *home)
 		    }
 
 	        NormalizeVec(line.direction);		
-		
+
+            normal[0] = node->nx[j];
+            normal[1] = node->ny[j];
+            normal[2] = node->nz[j];
+
+            dot = fabs(DotProduct(normal, line.direction));
+            if(dot > 1E-2){
+                printf("Warning: the handling segemnet near to surface is ");
+                printf("not on current glide plane, error of dot is %f\n", dot);
+
+                PrintTag(node);
+                PrintTag(nbr);
+                printf("\n");
+            }
+
 		    VECTOR_ZERO(plane.normal);
 		    plane.normal[nbr->constraint - 1] = 1.0;
 
@@ -2405,42 +2425,72 @@ void AdjustSurfaceNode(Home_t *home)
 
             NodeLocation(home, interPos[0], interPos[1], interPos[2], inGrain, onGB);
             GetArmGrain(home, node, nbr, armInGrain, armOnGB);
-            if(onGB > -1){
-                if(onGB != armOnGB)continue;
-            }else{
-                if(inGrain != armInGrain)continue;                
-            }
 
-            splitOK = 0;
-            if(DomainOwnsSeg(home, OPCLASS_REMESH,
-               thisDomain, &nbr->myTag))splitOK = 1;     
-            if(splitOK){
-                newNode = InsertNode(home, node, nbr, interPos, 1, OPCLASS_REMESH);
-                if(newNode == (Node_t *)NULL){
-#if 1
-                    PrintNode(node);
-                    PrintNode(nbr);
-                    printf("AdjustSurfaceNode: Insert failed\n");
-#endif
+            if(armOnGB > -1){
+                if(onGB > -1){
+                    if(onGB != armOnGB)continue;
+                }else{
+                    nbr->x = interPos[0];
+                    nbr->y = interPos[1];
+                    nbr->z = interPos[2];
+                    if(NewPosToGB(home, nbr, -1, armOnGB, vec)){
+                        nbr->x = nbrPos[0];
+                        nbr->y = nbrPos[1];
+                        nbr->z = nbrPos[2];
+                        continue;
+                    }
+                    nbr->x = nbrPos[0];
+                    nbr->y = nbrPos[1];
+                    nbr->z = nbrPos[2];
+                    VECTOR_COPY(interPos, vec);
                 }
-	            switchNode = 0;
-	            if(GetArmID(home, node, nbr) != -1)switchNode=1;
-	
-	            if(switchNode){
-                    node1 = newNode;
-                    node2 = node;
-	            }else{
-	                node1 = node;
-	                node2 = newNode;
-	            }
-
-                MarkNodeNoMeshCoarsen(home, node2);        
-	            MarkNodeForceObsolete(home, node2);        
-	            MarkNodeNoCollisions(home, node2);        
-
-                AssignConstraint(home, node1, nodecst);
-                AssignConstraint(home, node2, constraint);
+            }else{
+                if(armInGrain != inGrain)continue;
             }
+
+            if(nbr->numNbrs == 1 && nbr->myTag.domainID == home->myDomain){
+	            RepositionNode(home, interPos, &nbr->myTag, 1);
+
+                MarkNodeNoMeshCoarsen(home, node);        
+	            MarkNodeForceObsolete(home, node);        
+	            MarkNodeNoCollisions(home, node);        
+             
+                MarkNodeNoMeshCoarsen(home, nbr);        
+	            MarkNodeForceObsolete(home, nbr);        
+	            MarkNodeNoCollisions(home, nbr);        
+                continue;
+            }
+
+            newNode = InsertNode(home, node, nbr, interPos, 1, OPCLASS_REMESH);
+            if(newNode == (Node_t *)NULL){
+#if 1
+                PrintNode(node);
+                PrintNode(nbr);
+                printf("AdjustSurfaceNode: Insert failed\n");
+                continue;
+#endif
+            }
+	        switchNode = 0;
+	        if(GetArmID(home, node, nbr) != -1)switchNode=1;
+	
+	        if(switchNode){
+                node1 = newNode;
+                node2 = node;
+	        }else{
+	            node1 = node;
+	            node2 = newNode;
+	        }
+
+            MarkNodeNoMeshCoarsen(home, node1);        
+	        MarkNodeForceObsolete(home, node1);        
+	        MarkNodeNoCollisions(home, node1);        
+
+            MarkNodeNoMeshCoarsen(home, node2);        
+	        MarkNodeForceObsolete(home, node2);        
+	        MarkNodeNoCollisions(home, node2);        
+
+            AssignConstraint(home, node1, nodecst);
+            AssignConstraint(home, node2, constraint);
 
 	    } /*for(j=0; j< ...)*/
 	}/*for(i=0; i< ...)*/	
@@ -2476,7 +2526,10 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
         cross(normal, gb->n, crossProd);
         
         if(Normal(crossProd) < 1.0E-4){
-            printf("Warning: in SplitIntersectNode at %d", __LINE__);
+            Tecplot(home, (char*)"NewPosToGB", 0, 0, 0 ,0, 0, 1);
+            PrintNode(node);
+            PrintNode(nbr);
+            Fatal("Warning in SplitIntersectNode gb{%f,%f,%f}\n", gb->n[0],gb->n[1],gb->n[2]);
             return;
         }
         
@@ -3131,7 +3184,7 @@ void GBCrossSlip(Home_t *home)
                 continue;
             } 
             FoldBox(param,newPos, newPos+1, newPos+2);
-            MergeNode(home, OPCLASS_SEPARATION, node, gbNbr, newPos,
+            MergeNode(home, opClass, node, gbNbr, newPos,
                       &mergedNode, &mergeStatus, globalOp);
 
 	        if((mergeStatus & MERGE_SUCCESS) ==0)continue;
