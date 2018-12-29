@@ -4274,7 +4274,6 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                         lDir[2] = nbr->z - node->z;
                         ZImage(home->param, lDir, lDir+1, lDir+2);
                         NormalizeVec(lDir);
-                        VECTOR_COPY(glideConstraints[2], lDir);
                     }
                 }
 	        }else{
@@ -4289,6 +4288,36 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 	        }
 
             gpNormal = Normal(glidePlane);
+            if(junctionConstraint == 1){
+                switch (numConstraints){
+                    case 1:
+                        VECTOR_COPY(glideConstraints[2], lDir);
+                        NormalizeVec(glidePlane);
+                        VECTOR_COPY(glideConstraints[1], glidePlane);
+                        if(fabs(DotProduct(lDir, glideConstraints[0])) < 1E-4){
+                            numConstraints = 2;
+                        }else{
+                            numConstraints = 3;
+                        }
+
+                        break;
+                    case 2:
+                        if(fabs(DotProduct(glideConstraints[2], lDir) < 0.999)){
+                            numConstraints++;
+                        }
+                        break;
+                    case 3:
+                        break;
+                    case 0:
+                        numConstraints = 2;
+                        VECTOR_COPY(glideConstraints[0], glidePlane);
+                        VECTOR_COPY(glideConstraints[2], lDir);
+                        break;        
+                }
+                junctionConstraint = 0;
+                continue;
+            }
+
 
             switch(numConstraints) {
                 case 0:   // the first glide plane
@@ -4299,6 +4328,17 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                     break;
 
                 case 1:
+#if 1
+                    NormalizeVec(glidePlane);
+
+                    cross(glideConstraints[0], glidePlane, glideConstraints[2]);
+
+                    if(Normal(glideConstraints[2]) > 1E-4){
+                        NormalizeVec(glideConstraints[2]);
+                        VECTOR_COPY(glideConstraints[1],glidePlane); 
+                        numConstraints = 2;
+                    }
+#else
                     temp = glideConstraints[0][0] * glidePlane[0] +
                            glideConstraints[0][1] * glidePlane[1] +
                            glideConstraints[0][2] * glidePlane[2];
@@ -4326,41 +4366,24 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                         NormalizeVec(glideConstraints[2]);
                         numConstraints = 2;
                     }
+#endif
                     break;
 
                 case 2:
+
                     temp = glideConstraints[2][0] * glidePlane[0] +
                            glideConstraints[2][1] * glidePlane[1] +
                            glideConstraints[2][2] * glidePlane[2];
 
                     testVal = fabs(temp) / gpNormal;
 
-                    if (testVal > eps) {
+                    if (testVal < 1-eps) {
                         numConstraints = 3;
                     }
-
                     break;
 
             }  /* end switch(numConstraints) */
 
-        }
-        if(junctionConstraint == 1){
-            switch (numConstraints){
-                case 1:
-                    numConstraints++;
-                    break;
-                case 2:
-                    if(fabs(DotProduct(glideConstraints[2], lDir) < 0.999)){
-                        numConstraints++;
-                    }
-                    break;
-                case 3:
-                    break;
-                case 0:
-                    PrintNode(node);
-                    Fatal("in file %s at line %d ", __FILE__, __LINE__);
-                    break;        
-            }
         }
 
         if(node->constraint == 7)numConstraints = 3;
