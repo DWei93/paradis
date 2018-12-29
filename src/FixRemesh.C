@@ -25,7 +25,7 @@ void FixRemesh(Home_t *home, const char flag[256])
     real8   		cellSize[3], cellIndex[3];
 	RemoteDomain_t	*remDom;
 	Operate_t		*rcvOpList, *op;
-	Node_t			*node1, *node2, *node3;
+	Node_t			*node1, *node2, *node3, *nbr;
 	Tag_t			tag1, tag2, tag3;
     Param_t     	*param;
 
@@ -334,8 +334,26 @@ void FixRemesh(Home_t *home, const char flag[256])
 					printf("Task %d, Warning , the native node change inGrain %d %d\n",
                            home->myDomain, op->inGrain, op->onGB);
 				}
+                if(op->inGrain > -1){
+                    for(i=0; i<node1->numNbrs; i++){
+                        if((nbr = GetNeighborNode(home,node1,i)) == (Node_t *)NULL)continue;
+
+                        if(!IsOnGB(nbr) && nbr->inGrain != op->inGrain){
+                            printf("Warning: task %d, flag %s, the node (%d,%d) change grain from ", 
+                                home->myDomain, flag, node1->myTag.domainID, node1->myTag.index);
+                            printf("(%d,%d) to (%d,%d).\n", node1->inGrain, node1->onGB,
+                                op->inGrain, op->onGB);
+                            PrintTag(node1);
+                            PrintTag(nbr);
+                            printf("\n");
+                        }
+                    }
+
+                }
 				node1->inGrain = op->inGrain;
 				node1->onGB = op->onGB;
+
+
 				break;
 				
 			case(UPDATE_CONSTRAINT):
