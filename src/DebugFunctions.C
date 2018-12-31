@@ -473,7 +473,6 @@ void CheckNodeNANS(Node_t *node){
 
 
 void DebugGB(Home_t *home, int flag){
-return;
 	int 	i,j,k,l, crossSlipNode, sameNode;
 	int	    normalID, inGrain, onGB;
 	real8   dot,resiBurg[3], resiVec[3];
@@ -493,26 +492,55 @@ return;
 
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
+        if(IsOnGB(node)){
+            continue;
+        }
 
-        if(flag>22 || flag <= 9){
-            if(!IsOnGB(node)){
-                NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
-                if(node->inGrain != inGrain){
-                    PrintTag(node);
-                    printf(" DebugGB - 1: %d %d\n", home->myDomain, flag);
-                }
+        vec1[0] = node->x;
+        vec1[1] = node->y;
+        vec1[2] = node->z;
+
+        if(flag < 18 || flag > 22){
+            NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
+            if(inGrain != node->inGrain && !IsOnGB(node)){
+                PrintNode(node);
+                Fatal("Task %d, flag %d - 0\n", home->myDomain, flag);
             }
         }
 
-        if(IsOnGB(node))continue;
-        for(j=0; j<node->numNbrs; j++){
+        for (j = 0; j < node->numNbrs; j++) {
             nbr = GetNeighborNode(home, node, j);
             if(nbr == (Node_t *)NULL)continue;
-            if(!IsOnGB(nbr) && nbr->inGrain != node->inGrain && flag < 11){
-                PrintTag(node);
-                PrintTag(nbr);
-                Fatal("DebugGB - 2: %d %d", home->myDomain, flag);
+            if(!IsOnGB(nbr) && nbr->inGrain != node->inGrain){
+                Fatal("Task %d, flag %d\n", home->myDomain, flag);
             }
+#if 0
+            vec2[0] = nbr->x;
+            vec2[1] = nbr->y;
+            vec2[2] = nbr->z;
+            
+            vec[0] = vec2[0] - vec1[0];
+            vec[1] = vec2[1] - vec1[1];
+            vec[2] = vec2[2] - vec1[2];
+            ZImage(param, vec, vec+1, vec+2);
+
+            if(Normal(vec)<1E-10){
+                PrintNode(node);
+                PrintNode(nbr);
+                printf("Warning: seg 0 %d %d\n", home->myDomain, flag);
+            }
+            NormalizeVec(vec);
+
+            vec2[0] = node->nx[j];
+            vec2[1] = node->ny[j];
+            vec2[2] = node->nz[j];
+
+            if(fabs(DotProduct(vec2, vec)) > 1E-2){
+                PrintNode(node);
+                PrintNode(nbr);
+                printf("Task %d, flag %d\n", home->myDomain, flag);
+            }
+#endif
         }
     }
 

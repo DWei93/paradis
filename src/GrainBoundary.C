@@ -2647,7 +2647,7 @@ void GBCrossSlip(Home_t *home)
     real8   vec1[3], vec2[3], vec3[3], vec[3], crossProd[3];
     real8   noiseFactor, glideForce[3], froceMag;
     real8   eps, thetacrit, sthetacrit, s2thetacrit, areamin;
-    real8   dis, burg[3], normal[3];
+    real8   dis, burg[3], normal[3], norm;
     real8   newNodePos[3], newNbr1Pos[3], newNbr2Pos[3], newGBNbrPos[3];
     real8   barrierFactor, oriDis, newVel[3];
     real8   newPos[3],maxPowerDis ;
@@ -2726,12 +2726,18 @@ void GBCrossSlip(Home_t *home)
                 gbNbr = nbr;
             }
 
-            if(sqrt(node->burgX[j]*node->burgX[j]+
-               node->burgY[j]*node->burgY[j]+
-               node->burgZ[j]*node->burgZ[j]) > 
-               SHOCKLEY_BURG_MAG_FCC+1.0E-2) nBurgsSplit++;
+            burg[0] = node->burgX[j];
+            burg[1] = node->burgY[j];
+            burg[2] = node->burgZ[j];
+
+            norm = Normal(burg);
+            if((norm > SHOCKLEY_BURG_MAG_FCC + 1.0E-2) ||
+               fabs(DotProduct(burg, home->GBKeys[node->onGB]->n)/norm) > 1.0E-3){
+                nBurgsSplit++;
+            }
 
         }
+
         if(j != node->numNbrs)continue;
 
         if(nBurgsSplit == 0 || nBurgsSplit > 2 || nNbrsOnGB == 0)continue;
@@ -2739,7 +2745,7 @@ void GBCrossSlip(Home_t *home)
         firstCrossSlipNode = (node->numNbrs == 2 && nNbrsOnGB == 2 && nBurgsSplit == 2);
         sideCrossSlipNode = (nNbrsOnGB == 1 && nBurgsSplit == 1);
         if(!(firstCrossSlipNode || sideCrossSlipNode))continue;
-        
+
         nodePos[0] = node->x;   nodePos[1] = node->y;   nodePos[2] = node->z;
         
         gb = home->GBKeys[node->onGB];
@@ -2815,7 +2821,6 @@ void GBCrossSlip(Home_t *home)
             continue;
         }
 
-        
         armID = GetArmID(home, node, gbNbr);
         burg[0] = node->burgX[armID];
         burg[1] = node->burgY[armID];
@@ -2882,6 +2887,8 @@ void GBCrossSlip(Home_t *home)
                      node->fY * node->vY + 
                      node->fZ * node->vZ;  
 #else
+		    SetOneNodeForce(home, node);
+            EvaluateMobility(home, node);
             vec[0] = node->fX;
             vec[1] = node->fY;
             vec[2] = node->fZ;
@@ -3023,9 +3030,8 @@ void GBCrossSlip(Home_t *home)
 
                     if(!IsOnGB(node)){
                         NodeLocation(home, vec[0], vec[1], vec[2], inGrain, onGB);
-                        if(onGB > -1 || inGrain != node->inGrain)break;
+                        if(inGrain != node->inGrain)break;
                     }
-
 
                     vec[0] = node->fX;
                     vec[1] = node->fY;

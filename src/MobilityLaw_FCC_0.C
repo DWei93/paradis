@@ -178,7 +178,6 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
 
 	GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints);
 
-	 
 	ApplyConstraintsToVelocity(numGlideConstraints,
 				    glideConstraints, nVel);
 #if 0
@@ -247,6 +246,7 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
 	node->vX = nVel[0];
 	node->vY = nVel[1];
 	node->vZ = nVel[2];
+
 
 	if(SurfaceNode(node))factor = 20.0;
 	    
