@@ -444,6 +444,8 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 
         BindVar(CPList, "totpSpn", param->totpSpn, V_DBL, 6, VFLAG_NULL);
 
+        BindVar(CPList, "totTwinpStn",  param->totTwinpStn, V_DBL, 6, VFLAG_NULL);
+
         BindVar(CPList, "Ltot", param->Ltot, V_DBL, 16, VFLAG_NULL);
         BindVar(CPList, "FCC_Ltot", param->FCC_Ltot, V_DBL, 24, VFLAG_NULL);
 
