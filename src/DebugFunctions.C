@@ -512,6 +512,8 @@ void DebugGB(Home_t *home, int flag){
             nbr = GetNeighborNode(home, node, j);
             if(nbr == (Node_t *)NULL)continue;
             if(!IsOnGB(nbr) && nbr->inGrain != node->inGrain){
+                PrintNode(node);
+                PrintNode(nbr);
                 Fatal("Task %d, flag %d\n", home->myDomain, flag);
             }
 #if 0

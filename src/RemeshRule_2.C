@@ -294,7 +294,10 @@ static void MeshCoarsen(Home_t *home)
                         violateGlidePlanesOK = 1;
                     } else if ((r1 < param->rann) || (r2 <  param->rann)) {
                         violateGlidePlanesOK = 1;
-                    } else {
+                    } else if(IsOnGB(node) && IsOnGB(nbr1) && IsOnGB(nbr2) 
+                            && nbr1->onGB == node->onGB && nbr1->onGB == nbr2->onGB){
+                        violateGlidePlanesOK = 1;
+                    }else {
                         real8 burg1[3], burg2[3];
                         real8 lineDir1[3], lineDir2[3];
                         real8 testPlane1[3], testPlane2[3];
@@ -306,6 +309,7 @@ static void MeshCoarsen(Home_t *home)
                         burg2[0] = node->burgX[1];
                         burg2[1] = node->burgY[1];
                         burg2[2] = node->burgZ[1];
+
                         lineDir1[0] = vec1x;
                         lineDir1[1] = vec1y;
                         lineDir1[2] = vec1z;
