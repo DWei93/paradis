@@ -125,14 +125,14 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 1000
+tecplotfreq = 5000
 saveprop = 1
-savepropfreq = 200
+savepropfreq = 500
 tecmesh = 1
-tecmeshfreq = 5000
+tecmeshfreq = 50000
+savecn = 1
+savecnfreq = 50000
+savetimers = 0
+savetimersfreq = 50000
 velfile = 0
 velfilefreq = 1000
-savecn = 1
-savecnfreq = 5000
-savetimers = 0
-savetimersfreq = 1000

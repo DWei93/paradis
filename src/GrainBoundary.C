@@ -2893,7 +2893,7 @@ void GBCrossSlip(Home_t *home)
             vec[1] = node->fY;
             vec[2] = node->fZ;
             cross(vec, normal, glideForce);
-            oriDis = Normal(glideForce)*(1+noiseFactor);
+            oriDis = Normal(glideForce)*noiseFactor;
 #endif
             powerDis.resize(disArray.size());
             disPosArray.resize(disArray.size());
