@@ -31,6 +31,7 @@ Copy () {
 	    cp bin $2 -rf > /dev/null 2>&1
 	    cp input $2 -rf > /dev/null 2>&1
         cp Tec.plt  $2 -f > /dev/null 2>&1
+        cp gen $2 > /dev/null 2>&1
 	    ;;
 	3)
 	    for file in `git ls-files`
@@ -68,9 +69,10 @@ root_dir=`grep "root_dir" $config | cut -d " " -f 3`
 logID=`expr $logID + 1`
 logID=`printf "%06d" ${logID}`
 logFile=$root_dir/log/${logID}.log
+installDir=..
 touch $logFile
 
-ARGS=`getopt -o ho:n:m:x --long cpopt:,numbers:,number:,message:,jobmes: -n 'example.sh' -- "$@"`
+ARGS=`getopt -o ho:n:m:d:x --long cpopt:,numbers:,number:,message:,jobmes:,dir: -n 'example.sh' -- "$@"`
 if [ $? != 0 ]; then
      echo "Terminating..."
      exit 1
@@ -103,6 +105,10 @@ do
             jobMes="-$2"
             shift 2
             ;;
+        -d|--dir)
+            installDir="$2"
+            shift 2
+            ;;
          --)
             shift
             break
@@ -129,13 +135,14 @@ sed -i "${lineNumber}ilogID = ${logID}" $config
 echo "logID: ${logID}" > $logFile
 echo -n " { $dateTime @@@ Create a new project into ${projectName}" >> $logFile
 
+
 for number in $numbers 
 do
-    if [ ! -d "../${projectName}${number}" ] ; then
-       mkdir ../${projectName}${number}
+    if [ ! -d "${installDir}/${projectName}${number}" ] ; then
+       mkdir -p ${installDir}/${projectName}${number}
     fi
 
-    newProject=../${projectName}${number}
+    newProject=${installDir}/${projectName}${number}
     Copy  $cpOpt $newProject
     echo -n " ${number}" >> ${logFile}
     cp ${baseJobName} $newProject/${baseJobName}${jobMes}-${number}
