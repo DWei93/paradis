@@ -1197,7 +1197,12 @@ int NodeOnGB(Home_t *home, Node_t *node){
 	
 	for(i=0; i<numNbrs; i++){
         if((nbr = GetNeighborNode(home, node, i)) 
-            == (Node_t *)NULL);
+            == (Node_t *)NULL){
+            PrintNode(node);
+            printf("Warning in NodeOnGB, unkonwn neighbor\n");
+            type |= UNKNOWN_NODE;
+            continue;
+        }
 		
         if(IsOnGB(nbr)){
             type |= GB_NODE;

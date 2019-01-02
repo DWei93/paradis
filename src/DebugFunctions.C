@@ -492,6 +492,13 @@ void DebugGB(Home_t *home, int flag){
 
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
+
+        if ((node->numNbrs == 1) && (node->constraint == UNCONSTRAINED)) {
+            PrintNode(node);
+            Fatal("DebugGB: Node (%d,%d) singly linked! %d",
+                  node->myTag.domainID, node->myTag.index, flag);
+        }
+
         if(IsOnGB(node)){
             continue;
         }

@@ -49,6 +49,7 @@ typedef struct {
 #define INTERSECT_NODE	    0x0002	
 #define GB_NODE		        0x0004	
 #define	JUNCTION_NODE	    0x0008
+#define	UNKNOWN_NODE	    0x0010
 
 #define INBOX   0x0000
 #define EXCEEDX 0x0001

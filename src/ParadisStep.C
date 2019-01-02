@@ -404,9 +404,6 @@ void ParadisStep(Home_t *home)
 #ifdef _FEM
         SplitSurfaceNodes(home);
 #endif
-		
-
-		
 
 /*
  *      Call a generic cross-slip dispatch function that will call

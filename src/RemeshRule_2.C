@@ -56,7 +56,7 @@ static void MeshCoarsen(Home_t *home)
         Node_t  bkupNodeList[2];
 	    char 	name[50];
         Plane_t GBPlane;
-        bool    inhibitMerge,violateGlidePlanesOK = 0; 
+        bool    violateGlidePlanesOK = 0; 
         int     mergedBasic;
         int     planeType, nbrInGrain;
         int     inGrain, onGB;
@@ -256,7 +256,6 @@ static void MeshCoarsen(Home_t *home)
                 *          3) If the glide planes are allowed to be 'fuzzy' add
  *             a few extra exceptions (see below)
  */
-            inhibitMerge = 0;
             violateGlidePlanesOK = 0;
             if (param->enforceGlidePlanes) {
                 int   connectionID; 
@@ -274,6 +273,12 @@ static void MeshCoarsen(Home_t *home)
                 gp1[0] = node->nx[1];
                 gp1[1] = node->ny[1];
                 gp1[2] = node->nz[1];
+
+                if(fabs(DotProduct(gp0, gp1)) < 0.9555 &&
+                   IsOnGB(node) && IsOnGB(nbr1) && IsOnGB(nbr2) &&
+                   node->onGB == nbr1->onGB && node->onGB == nbr2->onGB){
+                    violateGlidePlanesOK = 1;
+                }
 
 /*
  *              Glide planes are being used, but if we are allowing
@@ -294,10 +299,7 @@ static void MeshCoarsen(Home_t *home)
                         violateGlidePlanesOK = 1;
                     } else if ((r1 < param->rann) || (r2 <  param->rann)) {
                         violateGlidePlanesOK = 1;
-                    } else if(IsOnGB(node) && IsOnGB(nbr1) && IsOnGB(nbr2) 
-                            && nbr1->onGB == node->onGB && nbr1->onGB == nbr2->onGB){
-                        violateGlidePlanesOK = 1;
-                    }else {
+                    }else{
                         real8 burg1[3], burg2[3];
                         real8 lineDir1[3], lineDir2[3];
                         real8 testPlane1[3], testPlane2[3];
@@ -761,6 +763,7 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
         Tag_t   oldTag1, oldTag2;
         Node_t  *node, *splitNode1, *splitNode2;
         Param_t *param;
+        bool    singleGBSeg = 0;
 
         thisDomain = home->myDomain;
         param = home->param;
@@ -768,6 +771,10 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
         armCount = 1;
         didBisect = 0;
         node = *origNode;
+
+
+        if((NodeOnGB(home, node) & INTERSECT_NODE) > 0 &&
+           (NodeOnGB(home, nbr) & INTERSECT_NODE) > 0 ) singleGBSeg = 1;
 
 #if 0
 /*
@@ -798,7 +805,7 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
         if ((segLen > param->maxSeg) ||
             ((area2 > areaMax2) &&
              (segLen >= param->minSeg * 2.0) &&
-             (darea2dt >= 0.0))) {
+             (darea2dt >= 0.0)) || singleGBSeg == 1) {
 /*
  *          When bisecting a segment, we always move exactly one arm
  *          from the original node to the node being created... in this
@@ -948,6 +955,8 @@ static void MeshRefine(Home_t *home)
         Node_t  *node, *nbr, *nbr1, *nbr2, *splitNode1, *splitNode2;
         Param_t *param;
 
+        bool    singleGBSeg, intersectNode;
+
 /*
  *      Initialize some of the constants we'll need during this call.
  */
@@ -973,6 +982,8 @@ static void MeshRefine(Home_t *home)
             node = home->nodeKeys[i];
             if (node == (Node_t *)NULL) continue;
 	        if (SurfaceNode(node))continue;
+
+            intersectNode = (NodeOnGB(home, node) & INTERSECT_NODE > 0);
         
 /*
  *          If the node has only two arms, use both arm lengths and
@@ -1145,6 +1156,7 @@ static void MeshRefine(Home_t *home)
  *              to be sent to remote domains if the segment being
  *              split spans domains.
  */
+
                 for (armIndex = 0; armIndex < node->numNbrs; ) {
         
                     nbr1 = GetNeighborNode(home, node, armIndex);
@@ -1162,6 +1174,11 @@ static void MeshRefine(Home_t *home)
                         continue;
                     }
         
+                    singleGBSeg = 0;
+                    if(intersectNode){
+                        if((NodeOnGB(home, nbr1) & INTERSECT_NODE) > 0)singleGBSeg = 1;
+                    }
+                
                     vec1[0] = nbr1->x - node->x;
                     vec1[1] = nbr1->y - node->y;
                     vec1[2] = nbr1->z - node->z;
@@ -1170,7 +1187,7 @@ static void MeshRefine(Home_t *home)
         
                     r1 = vec1[0]*vec1[0] + vec1[1]*vec1[1] + vec1[2]*vec1[2];
         
-                    if (r1 > maxSeg2) {
+                    if (r1 > maxSeg2 || singleGBSeg) {
         
                         newPos[0] = node->x + (vec1[0] * 0.5);
                         newPos[1] = node->y + (vec1[1] * 0.5);
