@@ -1664,7 +1664,7 @@ void HandleGrainBoundary(Home_t *home)
     int         newNodeKeyPtr, type;
 	int 		oldInGrain, oldOnGB, currInGrain, currOnGB;	
     int         crossSlipNode, nbr1OnGB, nbr2OnGB;
-	real8		x,y,z,burgj[3], burgk[3], vec[3], mergPos[3];
+	real8		x,y,z,burgj[3], burgk[3], vec[3], mergPos[3], dis;
 	real8		burg[3], normal[3], nDir1[3], nDir2[3];
 	real8		mergePos[3], distance, newInGrain, newPos[3];
     real8       vec1[3], vec2[3];
@@ -1695,6 +1695,44 @@ void HandleGrainBoundary(Home_t *home)
             if(currOnGB < 0){
                 PullBack(home, node);
             }
+            
+            if((NodeOnGB(home, node)&INTERSECT_NODE) == 0)continue;
+
+            for(j=0; j<node->numNbrs; j++){
+	            nbrNode1 = GetNeighborNode(home, node, j);
+                if(nbrNode1 == (Node_t *)NULL)continue;
+                if((NodeOnGB(home, nbrNode1)&INTERSECT_NODE) == 0)continue;
+
+                if(!DomainOwnsSeg(home, OPCLASS_SEPARATION, home->myDomain,
+			                    &node->nbrTag[j]))continue;
+
+                vec1[0] = nbrNode1->x - x;
+                vec1[1] = nbrNode1->y - y;
+                vec1[2] = nbrNode1->z - z;
+                ZImage(param, vec1, vec1+1, vec1+2);
+
+                mergePos[0] = x + 0.5*vec1[0];
+                mergePos[1] = y + 0.5*vec1[1];
+                mergePos[2] = z + 0.5*vec1[2];
+                FoldBox(param, mergePos, mergePos+1, mergePos+2);
+
+                if(BeforeMergeNodes(home, node, nbrNode1, mergePos, &dis)){
+                    if(fabs(dis) > 5.0){
+                        printf("Warning in merging single GB seg, dis %f\n", dis);
+                        continue;
+                    }
+                }else{
+                    continue;
+                }
+                FoldBox(param, mergePos, mergePos+1, mergePos+2);
+
+	            MergeNode(home, OPCLASS_SEPARATION, node, nbrNode1,
+			            mergePos, &mergedNode, &mergeStatus, 1);
+
+                printf("MergeStatus %d in merge single GB seg\n", mergeStatus & MERGE_SUCCESS);
+                break;
+            }
+
             continue;
         }
 
