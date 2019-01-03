@@ -17,8 +17,8 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
-numYdoms = 2
+numXdoms = 1
+numYdoms = 1
 numZdoms = 4
 #
 #  Cell geometry
@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.1032361"
+dirname = "res.300"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -91,7 +91,7 @@ edotdir = [
 appliedStress = [
 	0.0e0
 	0.0e0
-	0.0e0
+	-300e6
 	0.0e6
 	0.0e0
 	0.0e0
@@ -125,7 +125,7 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 5000
+tecplotfreq = 100
 saveprop = 1
 savepropfreq = 500
 tecmesh = 1
