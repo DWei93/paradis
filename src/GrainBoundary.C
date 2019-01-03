@@ -2671,7 +2671,7 @@ void GBCrossSlip(Home_t *home)
     thisDomain = home->myDomain;
 
     eps = 1.0e-06;
-    thetacrit = 2.0 / 180.0 * M_PI;
+    thetacrit = 5.0 / 180.0 * M_PI;
     sthetacrit = sin(thetacrit);
     s2thetacrit = sthetacrit * sthetacrit;
     areamin = param->remeshAreaMin;
@@ -3245,7 +3245,10 @@ void GBCrossSlip(Home_t *home)
 	                RepositionNode(home, vec3, &gbNbr->myTag, 0);
                     PrintTag(node);
                     PrintTag(gbNbr);
-                    printf("%d: Merge dis %f %d\n",home->myDomain, dis, type);
+                    printf("%d: Merge dis %f %d (%f,%f,%f)\n",
+                            home->myDomain, dis, type, newPos[0],
+                            newPos[1], newPos[2]);
+                    continue;
                 }
             }else{
 	            RepositionNode(home, vec2, &node->myTag, 0);

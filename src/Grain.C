@@ -1798,9 +1798,9 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
             break;
     }
 
-    printf("%d: NIs: (%d,%d)--(%d,%d)--%d,%d,%d\n", home->myDomain, node1->myTag.domainID,
-           node1->myTag.index, node2->myTag.domainID, node2->myTag.index,
-            numGlideConstraintsNode1, numGlideConstraintsNode2, type);
+//    printf("%d: NIs: (%d,%d)--(%d,%d)--%d,%d,%d\n", home->myDomain, node1->myTag.domainID,
+//           node1->myTag.index, node2->myTag.domainID, node2->myTag.index,
+//            numGlideConstraintsNode1, numGlideConstraintsNode2, type);
     return(type);
 }
 
