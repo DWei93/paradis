@@ -2640,15 +2640,15 @@ void GBCrossSlip(Home_t *home)
     int     inGrain, onGB, globalOp;
     int     type, armID, normalID;
     int     maxPowerSet;
-    int     mergeStatus;
-    bool    firstCrossSlipNode, sideCrossSlipNode;
+    int     mergeStatus, sideCrossSlipNode;
+    bool    firstCrossSlipNode;
     bool    breakLoop;
     real8   test1, test2, test3, test1Max, test2Max, test3Max;
     real8   nodePos[3], nbr1Pos[3], nbr2Pos[3], gbNbrPos[3];
     real8   vec1[3], vec2[3], vec3[3], vec[3], crossProd[3];
     real8   noiseFactor, glideForce[3], froceMag;
     real8   eps, thetacrit, sthetacrit, s2thetacrit, areamin;
-    real8   dis, burg[3], normal[3], norm;
+    real8   dis, burg[3], normal[3], normals[2][3], norm;
     real8   newNodePos[3], newNbr1Pos[3], newNbr2Pos[3], newGBNbrPos[3];
     real8   barrierFactor, oriDis, newVel[3];
     real8   newPos[3],maxPowerDis ;
@@ -2709,46 +2709,66 @@ void GBCrossSlip(Home_t *home)
 
         nBurgsSplit = 0;
         nNbrsOnGB = 0;
-        for(j=0; j<node->numNbrs; j++){
-            nbr = GetNeighborNode(home, node, j);
-            if(nbr == (Node_t *)NULL){
-                printf("WARNING: Neighbor not found at %s line %d\n",
+
+        sideCrossSlipNode = 0;
+        firstCrossSlipNode = 0;
+        if((NodeOnGB(home,node) & INTERSECT_NODE) > 0){
+            
+            for(j=0; j<node->numNbrs; j++){
+                nbr = GetNeighborNode(home, node, j);
+                if(nbr == (Node_t *)NULL){
+                    printf("WARNING: Neighbor not found at %s line %d\n",
                         __FILE__, __LINE__);
-                break;
+                    break;
+                }
+
+                if(!IsOnGB(nbr))continue;
+                if(!DomainOwnsSeg(home, opClass, thisDomain, &node->nbrTag[j])){
+                    continue;
+                }
+
+                burg[0] = node->burgX[j];
+                burg[1] = node->burgY[j];
+                burg[2] = node->burgZ[j];
+
+                norm = Normal(burg);
+                if((norm > SHOCKLEY_BURG_MAG_FCC + 1.0e-2) ||
+                   fabs(DotProduct(burg, home->GBKeys[node->onGB]->n)/norm) > 1.0e-3){
+                    gbNbr = nbr;
+
+                    if((NodeOnGB(home, nbr) & INTERSECT_NODE)>0){
+                        sideCrossSlipNode = 2;
+                    }else{
+                        sideCrossSlipNode = 1;
+                    }
+
+                    break;
+                }
             }
-            if(!DomainOwnsSeg(home, opClass, thisDomain, &node->nbrTag[j])){
-                break;
+        }else{
+            for(j=0; j<node->numNbrs; j++){
+                nbr = GetNeighborNode(home, node, j);
+                if(nbr == (Node_t *)NULL){
+                    printf("WARNING: Neighbor not found at %s line %d\n",
+                        __FILE__, __LINE__);
+                    break;
+                }
+                if(!IsOnGB(nbr))break;
+                if(!DomainOwnsSeg(home, opClass, thisDomain, &node->nbrTag[j])){
+                    break;
+                }
+
+                burg[0] = node->burgX[j];
+                burg[1] = node->burgY[j];
+                burg[2] = node->burgZ[j];
+
+                norm = Normal(burg);
+                if((norm <= SHOCKLEY_BURG_MAG_FCC + 1.0e-2) &&
+                    fabs(DotProduct(burg, home->GBKeys[node->onGB]->n)/norm) <= 1.0e-3){
+                    break;
+                }
             }
-
-            if(nbr->constraint == 7)break;
-
-            if(IsOnGB(nbr)){
-                nNbrsOnGB++;
-                gbNbr = nbr;
-            }
-
-            burg[0] = node->burgX[j];
-            burg[1] = node->burgY[j];
-            burg[2] = node->burgZ[j];
-
-            norm = Normal(burg);
-            if((norm > SHOCKLEY_BURG_MAG_FCC + 1.0E-2) ||
-               fabs(DotProduct(burg, home->GBKeys[node->onGB]->n)/norm) > 1.0E-3){
-                nBurgsSplit++;
-            }
-
-        }
-
-        if(nBurgsSplit == 0 || nBurgsSplit > 2 || nNbrsOnGB == 0)continue;
-        firstCrossSlipNode = (node->numNbrs == 2 && nNbrsOnGB == 2 && nBurgsSplit == 2);
-        sideCrossSlipNode = (nNbrsOnGB == 1);
-
-        if(j != node->numNbrs && firstCrossSlipNode)continue;
-
-        if(sideCrossSlipNode){
-            if(!DomainOwnsSeg(home, opClass, thisDomain, &gbNbr->myTag)){
-                continue;
-            }
+            if(j == node->numNbrs && j == 2)firstCrossSlipNode = 1;
         }
 
         if(!(firstCrossSlipNode || sideCrossSlipNode))continue;
@@ -2761,9 +2781,10 @@ void GBCrossSlip(Home_t *home)
         if(firstCrossSlipNode){
             nbr1 = GetNeighborNode(home, node, 0);
             nbr2 = GetNeighborNode(home, node, 1);
+#if 1
             if(nbr1->myTag.domainID != thisDomain ||
                nbr2->myTag.domainID != thisDomain)continue;
-            
+#endif            
             nbr1Pos[0] = nbr1->x;   nbr1Pos[1] = nbr1->y;   nbr1Pos[2] = nbr1->z;
             nbr2Pos[0] = nbr2->x;   nbr2Pos[1] = nbr2->y;   nbr2Pos[2] = nbr2->z;
 
@@ -2828,20 +2849,29 @@ void GBCrossSlip(Home_t *home)
             continue;
         }
 
-        armID = GetArmID(home, node, gbNbr);
-        burg[0] = node->burgX[armID];
-        burg[1] = node->burgY[armID];
-        burg[2] = node->burgZ[armID];
-        normal[0] = node->nx[armID];
-        normal[1] = node->ny[armID];
-        normal[2] = node->nz[armID];
-
-        NormalizeVec(vec1);
         VECTOR_COPY(interLine.direction,gbd->keyLineList[j]);
         type = PointPlaneIntersection(nodePos, gb->n, gb->p, interLine.point, &dis);
         if(fabs(dis) > 2)printf("Warning in %s at %d\n", __FILE__, __LINE__);
 
+
         if(firstCrossSlipNode){
+            burg[0] = node->burgX[1];
+            burg[1] = node->burgY[1];
+            burg[2] = node->burgZ[1];
+
+            normal[0] = node->nx[0];
+            normal[1] = node->ny[0];
+            normal[2] = node->nz[0];
+
+            if(fabs(DotProduct(normal, gb->n)) > 0.99){
+                normal[0] = node->nx[1];
+                normal[1] = node->ny[1];
+                normal[2] = node->nz[1];
+                if(fabs(DotProduct(normal, gb->n)) > 0.99){
+                    printf("Warning: there is a contstricted dislocation on GB glide plane\n");
+                }
+            }
+
             std::vector<std::vector< Dislocation_t> >().swap(disArray);
             std::vector<std::vector<double> >().swap(burgList);
 
@@ -2883,7 +2913,7 @@ void GBCrossSlip(Home_t *home)
 
             SaveCrossSlipInfo(node, nbr1, nbr2, 0, 1,
                               segForceOrig, nodePos, nbr1Pos,
-                              nbr2Pos);
+                              nbr2Pos, normals);
 
 	        RepositionNode(home, newNodePos, &node->myTag, 0);
 	        RepositionNode(home, newNbr1Pos, &nbr1->myTag, 0);
@@ -3062,23 +3092,23 @@ void GBCrossSlip(Home_t *home)
 
             if(maxPowerSet == -1 || maxPowerDis <= 0){
                 RestoreCrossSlipForce(node, nbr1, nbr2, 0,
-                                      1, segForceOrig);
+                                      1, segForceOrig, normals);
 	            RepositionNode(home, nodePos, &node->myTag, 0);
 	            RepositionNode(home, nbr1Pos, &nbr1->myTag, 0);
 	            RepositionNode(home, nbr2Pos, &nbr2->myTag, 0);
 
 	            ChangeArmBurg(home, nbr1, &node->myTag, 
-                              burg[0],burg[1],burg[2],normal[0],normal[1],normal[2],
+                              burg[0],burg[1],burg[2],normals[0][0],normals[0][1],normals[0][2],
 			                  0, DEL_SEG_NONE);
 	            ChangeArmBurg(home, node, &nbr2->myTag, 
-                              burg[0],burg[1],burg[2],normal[0],normal[1],normal[2],
+                              burg[0],burg[1],burg[2],normals[1][0],normals[1][1],normals[1][2],
 			                  0, DEL_SEG_NONE);
 
 	            ChangeArmBurg(home, nbr2, &node->myTag, 
-                              -burg[0],-burg[1],-burg[2],normal[0],normal[1],normal[2],
+                              -burg[0],-burg[1],-burg[2],normals[1][0],normals[1][1],normals[1][2],
 			                  0, DEL_SEG_NONE);
 	            ChangeArmBurg(home, node, &nbr1->myTag, 
-                              -burg[0],-burg[1],-burg[2],normal[0],normal[1],normal[2],
+                              -burg[0],-burg[1],-burg[2],normals[0][0],normals[0][1],normals[0][2],
 			                  0, DEL_SEG_NONE);
 
                 node->inGrain = -1;
@@ -3184,7 +3214,7 @@ void GBCrossSlip(Home_t *home)
 	        nbr2->vY = 0.0;
 	        nbr2->vZ = 0.0;
             
-        }else if(sideCrossSlipNode){
+        }else if(sideCrossSlipNode > 0){
 
             VECTOR_COPY(vec2, nodePos);
 	        RepositionNode(home, interLine.point, &node->myTag, 0);
@@ -3199,7 +3229,7 @@ void GBCrossSlip(Home_t *home)
             }
 	        RepositionNode(home, newPos, &gbNbr->myTag, 0);
 
-            if((NodeOnGB(home, gbNbr) & INTERSECT_NODE) > 0){
+            if(sideCrossSlipNode == 2){
                 vec1[0] = newPos[0] - interLine.point[0];
                 vec1[1] = newPos[1] - interLine.point[1];
                 vec1[2] = newPos[2] - interLine.point[2];
