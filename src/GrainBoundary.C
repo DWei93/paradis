@@ -1696,43 +1696,6 @@ void HandleGrainBoundary(Home_t *home)
                 PullBack(home, node);
             }
             
-            if((NodeOnGB(home, node)&INTERSECT_NODE) == 0)continue;
-
-            for(j=0; j<node->numNbrs; j++){
-	            nbrNode1 = GetNeighborNode(home, node, j);
-                if(nbrNode1 == (Node_t *)NULL)continue;
-                if((NodeOnGB(home, nbrNode1)&INTERSECT_NODE) == 0)continue;
-
-                if(!DomainOwnsSeg(home, OPCLASS_SEPARATION, home->myDomain,
-			                    &node->nbrTag[j]))continue;
-
-                vec1[0] = nbrNode1->x - x;
-                vec1[1] = nbrNode1->y - y;
-                vec1[2] = nbrNode1->z - z;
-                ZImage(param, vec1, vec1+1, vec1+2);
-
-                mergePos[0] = x + 0.5*vec1[0];
-                mergePos[1] = y + 0.5*vec1[1];
-                mergePos[2] = z + 0.5*vec1[2];
-                FoldBox(param, mergePos, mergePos+1, mergePos+2);
-
-                if(BeforeMergeNodes(home, node, nbrNode1, mergePos, &dis)){
-                    if(fabs(dis) > 5.0){
-                        printf("Warning in merging single GB seg, dis %f\n", dis);
-                        continue;
-                    }
-                }else{
-                    continue;
-                }
-                FoldBox(param, mergePos, mergePos+1, mergePos+2);
-
-	            MergeNode(home, OPCLASS_SEPARATION, node, nbrNode1,
-			            mergePos, &mergedNode, &mergeStatus, 1);
-
-                printf("MergeStatus %d in merge single GB seg\n", mergeStatus & MERGE_SUCCESS);
-                break;
-            }
-
             continue;
         }
 
@@ -2776,12 +2739,18 @@ void GBCrossSlip(Home_t *home)
 
         }
 
-        if(j != node->numNbrs)continue;
-
         if(nBurgsSplit == 0 || nBurgsSplit > 2 || nNbrsOnGB == 0)continue;
-
         firstCrossSlipNode = (node->numNbrs == 2 && nNbrsOnGB == 2 && nBurgsSplit == 2);
-        sideCrossSlipNode = (nNbrsOnGB == 1 && nBurgsSplit == 1);
+        sideCrossSlipNode = (nNbrsOnGB == 1);
+
+        if(j != node->numNbrs && firstCrossSlipNode)continue;
+
+        if(sideCrossSlipNode){
+            if(!DomainOwnsSeg(home, opClass, thisDomain, &gbNbr->myTag)){
+                continue;
+            }
+        }
+
         if(!(firstCrossSlipNode || sideCrossSlipNode))continue;
 
         nodePos[0] = node->x;   nodePos[1] = node->y;   nodePos[2] = node->z;
@@ -3216,22 +3185,54 @@ void GBCrossSlip(Home_t *home)
 	        nbr2->vZ = 0.0;
             
         }else if(sideCrossSlipNode){
-            PointLineIntersection(gbNbrPos, interLine.direction, interLine.point,
-                                  newPos, &dis);
 
-            FoldBox(param,newPos, newPos+1, newPos+2);
-            if(BeforeMergeNodes(home, node, gbNbr, newPos, &dis)){
+            VECTOR_COPY(vec2, nodePos);
+	        RepositionNode(home, interLine.point, &node->myTag, 0);
+
+            VECTOR_COPY(vec3, gbNbrPos);
+            PointLineIntersection(gbNbrPos, interLine.direction, interLine.point,
+                              newPos, &dis);
+            if(fabs(dis) > 5.0){
+                printf("Warning in side cross-slip - 1, dis %f\n", dis);
+	            RepositionNode(home, vec2, &node->myTag, 0);
+                continue;
+            }
+	        RepositionNode(home, newPos, &gbNbr->myTag, 0);
+
+            if((NodeOnGB(home, gbNbr) & INTERSECT_NODE) > 0){
+                vec1[0] = newPos[0] - interLine.point[0];
+                vec1[1] = newPos[1] - interLine.point[1];
+                vec1[2] = newPos[2] - interLine.point[2];
+                ZImage(param, vec1, vec1+1, vec1+2);
+                newPos[0] = interLine.point[0] + 0.5*vec1[0];
+                newPos[1] = interLine.point[1] + 0.5*vec1[1];
+                newPos[2] = interLine.point[2] + 0.5*vec1[2];
+            }
+
+            if(BeforeMergeNodes(home, node, gbNbr, newPos, &dis, type)){
                 if(fabs(dis) > 5.0){
-                printf("Warning in PenetrationSide, dis %f\n", dis);
+	                RepositionNode(home, vec2, &node->myTag, 0);
+	                RepositionNode(home, vec3, &gbNbr->myTag, 0);
+                    PrintTag(node);
+                    PrintTag(gbNbr);
+                    printf("%d: Merge dis %f %d\n",home->myDomain, dis, type);
                 }
             }else{
+	            RepositionNode(home, vec2, &node->myTag, 0);
+	            RepositionNode(home, vec3, &gbNbr->myTag, 0);
                 continue;
-            } 
+            }
+
             FoldBox(param,newPos, newPos+1, newPos+2);
+
             MergeNode(home, opClass, node, gbNbr, newPos,
                       &mergedNode, &mergeStatus, globalOp);
 
-	        if((mergeStatus & MERGE_SUCCESS) ==0)continue;
+	        if((mergeStatus & MERGE_SUCCESS) ==0){
+	            RepositionNode(home, vec2, &node->myTag, 0);
+	            RepositionNode(home, vec3, &gbNbr->myTag, 0);
+                continue;
+            }
     
             if(mergedNode != (Node_t *)NULL){
                 SplitIntersectNode(home, mergedNode, opClass, globalOp);

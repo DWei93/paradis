@@ -292,9 +292,7 @@ int LineLineIntersection(double *d1, double *p1, double *d2, double *p2,
 
     VECTOR_ZERO(vec1);
     VECTOR_ZERO(vec2);
-    if(sqrt(SQUARE(fabs(-(d1y*d2x) + d1x*d2y)) + 
-            SQUARE(fabs(d1z*d2x - d1x*d2z)) + 
-            SQUARE(fabs(-(d1z*d2y) + d1y*d2z))) < EPS1){
+    if(fabs(1.0-fabs(d1x*d2x+d1y*d2y+d1z*d2z)) < EPS1){
         if(PointLineIntersection(p1, d2, p2, vec2, dis) == POINT_INTERSECTION){
             VECTOR_COPY(vec1, d1);
             *dis = fabs(*dis);

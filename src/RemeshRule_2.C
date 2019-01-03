@@ -479,7 +479,7 @@ static void MeshCoarsen(Home_t *home)
                     mergeDone = 1;
                     if(violateGlidePlanesOK == 0){
                         VECTOR_COPY(vec1, newPos);
-                        if(BeforeMergeNodes(home, node, nbr1, vec1, &dis)){
+                        if(BeforeMergeNodes(home, node, nbr1, vec1, &dis, type)){
                             vec1[0] -= newPos[0];
                             vec1[1] -= newPos[1];
                             vec1[2] -= newPos[2];
@@ -521,7 +521,7 @@ static void MeshCoarsen(Home_t *home)
 
                         if(violateGlidePlanesOK == 0){
                             VECTOR_COPY(vec1, newPos);
-                            if(BeforeMergeNodes(home, node, nbr2, vec1, &dis)){
+                            if(BeforeMergeNodes(home, node, nbr2, vec1, &dis, type)){
                                 vec1[0] -= newPos[0];
                                 vec1[1] -= newPos[1];
                                 vec1[2] -= newPos[2];
@@ -763,7 +763,6 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
         Tag_t   oldTag1, oldTag2;
         Node_t  *node, *splitNode1, *splitNode2;
         Param_t *param;
-        bool    singleGBSeg = 0;
 
         thisDomain = home->myDomain;
         param = home->param;
@@ -771,10 +770,6 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
         armCount = 1;
         didBisect = 0;
         node = *origNode;
-
-
-        if((NodeOnGB(home, node) & INTERSECT_NODE) > 0 &&
-           (NodeOnGB(home, nbr) & INTERSECT_NODE) > 0 ) singleGBSeg = 1;
 
 #if 0
 /*
@@ -805,7 +800,7 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
         if ((segLen > param->maxSeg) ||
             ((area2 > areaMax2) &&
              (segLen >= param->minSeg * 2.0) &&
-             (darea2dt >= 0.0)) || singleGBSeg == 1) {
+             (darea2dt >= 0.0))) {
 /*
  *          When bisecting a segment, we always move exactly one arm
  *          from the original node to the node being created... in this
@@ -955,7 +950,6 @@ static void MeshRefine(Home_t *home)
         Node_t  *node, *nbr, *nbr1, *nbr2, *splitNode1, *splitNode2;
         Param_t *param;
 
-        bool    singleGBSeg, intersectNode;
 
 /*
  *      Initialize some of the constants we'll need during this call.
@@ -983,7 +977,6 @@ static void MeshRefine(Home_t *home)
             if (node == (Node_t *)NULL) continue;
 	        if (SurfaceNode(node))continue;
 
-            intersectNode = (NodeOnGB(home, node) & INTERSECT_NODE > 0);
         
 /*
  *          If the node has only two arms, use both arm lengths and
@@ -1174,11 +1167,6 @@ static void MeshRefine(Home_t *home)
                         continue;
                     }
         
-                    singleGBSeg = 0;
-                    if(intersectNode){
-                        if((NodeOnGB(home, nbr1) & INTERSECT_NODE) > 0)singleGBSeg = 1;
-                    }
-                
                     vec1[0] = nbr1->x - node->x;
                     vec1[1] = nbr1->y - node->y;
                     vec1[2] = nbr1->z - node->z;
@@ -1187,7 +1175,7 @@ static void MeshRefine(Home_t *home)
         
                     r1 = vec1[0]*vec1[0] + vec1[1]*vec1[1] + vec1[2]*vec1[2];
         
-                    if (r1 > maxSeg2 || singleGBSeg) {
+                    if (r1 > maxSeg2) {
         
                         newPos[0] = node->x + (vec1[0] * 0.5);
                         newPos[1] = node->y + (vec1[1] * 0.5);
