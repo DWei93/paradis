@@ -4294,7 +4294,7 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                         VECTOR_COPY(glideConstraints[2], lDir);
                         NormalizeVec(glidePlane);
                         VECTOR_COPY(glideConstraints[1], glidePlane);
-                        if(fabs(DotProduct(lDir, glideConstraints[0])) < 1E-4){
+                        if(fabs(DotProduct(lDir, glideConstraints[0])) < 1E-3){
                             numConstraints = 2;
                         }else{
                             numConstraints = 3;
@@ -4377,7 +4377,7 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 
                     testVal = fabs(temp) / gpNormal;
 
-                    if (testVal < 1-eps) {
+                    if (testVal > 1E-2) {
                         numConstraints = 3;
                     }
                     break;

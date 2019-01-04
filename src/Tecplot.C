@@ -183,8 +183,8 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 cycle = home->cycle;
                 num = 0;
             }
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,domain,index,signSF\n");
-		    fprintf(fp, "zone T = \"%10.5f%1d\" i = %d  F=POINT\n", param->timeNow*1.0E9,num, numArms); 
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,index, dom, id\n");
+		    fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
 #else
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,index, dom, id\n");
 		    fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
@@ -360,10 +360,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 	                    displacement,node->myTag.domainID,node->myTag.index);
 	            }else{
 #if CHECK_GB_TOPO
-
-                    fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %2.0f\n", 
-                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,node->constraint,
-                            node->myTag.domainID,node->myTag.index, node->signSF[j]);
+                    fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %d\n", 
+                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,armInGrain,armOnGB,burgID,normalID,constraint,
+                            index, node->myTag.domainID, node->myTag.index);
 #else
                     fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %d\n", 
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,armInGrain,armOnGB,burgID,normalID,constraint,
