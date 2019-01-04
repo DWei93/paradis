@@ -4240,6 +4240,9 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
         Node_t  *nbr;
 
         numConstraints = 0;
+        VECTOR_ZERO(glideConstraints[0]);
+        VECTOR_ZERO(glideConstraints[1]);
+        VECTOR_ZERO(glideConstraints[2]);
 	
 	    if(node->constraint > 0 && node->constraint < 4){
 	        surfaceConstraint = 1;

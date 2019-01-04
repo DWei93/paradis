@@ -2671,7 +2671,7 @@ void GBCrossSlip(Home_t *home)
     thisDomain = home->myDomain;
 
     eps = 1.0e-06;
-    thetacrit = 5.0 / 180.0 * M_PI;
+    thetacrit = 2.0 / 180.0 * M_PI;
     sthetacrit = sin(thetacrit);
     s2thetacrit = sthetacrit * sthetacrit;
     areamin = param->remeshAreaMin;
@@ -3240,7 +3240,7 @@ void GBCrossSlip(Home_t *home)
             }
 
             if(BeforeMergeNodes(home, node, gbNbr, newPos, &dis, type)){
-                if(fabs(dis) > 5.0){
+                if(fabs(dis) > 5.0 && type != POINT_INTERSECTION){
 	                RepositionNode(home, vec2, &node->myTag, 0);
 	                RepositionNode(home, vec3, &gbNbr->myTag, 0);
                     PrintTag(node);

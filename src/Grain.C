@@ -1814,7 +1814,7 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
             break;
         case POINT_INTERSECTION:
             PointPointIntersection(pos, vec2, vec3, dis);
-            VECTOR_COPY(pos, vec3);
+            VECTOR_COPY(pos, vec2);
             break;
         case LINE_INTERSECTION:
             PointLineIntersection(pos, vec1, vec2, vec3, dis);
