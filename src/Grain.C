@@ -1787,6 +1787,7 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                     break;
                 case 3:
                     type = PointPointIntersection(p1, p2, vec2, &dis); 
+                    VECTO_COPY(vec2, p2);
                     break;
                 default:
                     Fatal("NodesIntersectio: node2 %d",numGlideConstraintsNode2);
