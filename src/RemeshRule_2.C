@@ -478,18 +478,12 @@ static void MeshCoarsen(Home_t *home)
 
                     mergeDone = 1;
                     if(violateGlidePlanesOK == 0){
-                        VECTOR_COPY(vec1, newPos);
-                        if(BeforeMergeNodes(home, node, nbr1, vec1, &dis, type)){
-                            vec1[0] -= newPos[0];
-                            vec1[1] -= newPos[1];
-                            vec1[2] -= newPos[2];
-                            ZImage(param, vec1, vec1+1, vec1+2);
-            
-                            if(Normal(vec1) > 5.0){
-//                                PrintNode(node);
-//                                PrintNode(nbr1);
-//                                printf("Warning in %s at %d, dis %f\n", 
-//                                        __FILE__, __LINE__, Normal(vec1));
+                        if(BeforeMergeNodes(home, node, nbr1, newPos, &dis, type)){
+                            if(fabs(dis) > 5.0 && type != POINT_INTERSECTION){
+                                PrintNode(node);
+                                PrintNode(nbr1);
+                                printf("Warning in %s at %d, dis %f\n", 
+                                        __FILE__, __LINE__, Normal(vec1));
                                 mergeDone = 0;
                             }
                         }else{
@@ -520,18 +514,12 @@ static void MeshCoarsen(Home_t *home)
                         FoldBox(home->param,newPos, newPos+1, newPos+2);
 
                         if(violateGlidePlanesOK == 0){
-                            VECTOR_COPY(vec1, newPos);
-                            if(BeforeMergeNodes(home, node, nbr2, vec1, &dis, type)){
-                                vec1[0] -= newPos[0];
-                                vec1[1] -= newPos[1];
-                                vec1[2] -= newPos[2];
-                                ZImage(param, vec1, vec1+1, vec1+2);
-            
-                                if(Normal(vec1) > 5.0){
-//                                    PrintNode(node);
-//                                    PrintNode(nbr2);
-//                                    printf("Warning in %s at %d, dis %f\n", 
-//                                            __FILE__, __LINE__, Normal(vec1));
+                            if(BeforeMergeNodes(home, node, nbr2, newPos, &dis, type)){
+                                if(fabs(dis) > 5.0 && type != POINT_INTERSECTION){
+                                    PrintNode(node);
+                                    PrintNode(nbr2);
+                                    printf("Warning in %s at %d, dis %f\n", 
+                                            __FILE__, __LINE__, Normal(vec1));
                                     continue;
                                 }
                             }else{
@@ -1356,8 +1344,11 @@ void RemeshRule_2(Home_t *home)
         dbgDom = -1;
 #endif
 
+        DebugGB(home, 301);
         MeshCoarsen(home);
+        DebugGB(home, 302);
         MeshRefine(home);
+        DebugGB(home, 302);
 		
 
         return;
