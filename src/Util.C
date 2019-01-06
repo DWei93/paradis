@@ -4229,20 +4229,31 @@ int NodeHasSessileBurg(Home_t *home, Node_t *node)
  *------------------------------------------------------------------------*/
 void GetGlideConstraintList(Home_t *home, Node_t *node,
                             int *numGlideConstraints,
-                            real8 (*glideConstraints)[3], bool GBconstrict)
+                            real8 (*glideConstraints)[3], 
+                            bool GBconstrict, 
+                            real8 negPlaneX,
+                            real8 negPlaneY,
+                            real8 negPlaneZ) 
 {
         int     i,  surfaceConstraint = 0, planeType;
         int     numConstraints, junctionConstraint = 0;
 	    real8   n1[3], nCryst[3], nLab[3], lDir[3];
         real8   eps = 1.0e-06;
-        real8   glidePlane[3], gpNormal;
+        real8   glidePlane[3], gpNormal, negPlane[3];
         real8   temp, testVal, dpnnm;
+        bool    neglectful = 0;
         Node_t  *nbr;
 
         numConstraints = 0;
         VECTOR_ZERO(glideConstraints[0]);
         VECTOR_ZERO(glideConstraints[1]);
         VECTOR_ZERO(glideConstraints[2]);
+
+        negPlane[0] = negPlaneX;
+        negPlane[1] = negPlaneY;
+        negPlane[2] = negPlaneZ;
+
+        if(Normal(negPlane) > 1E-10)neglectful = 1;
 	
 	    if(node->constraint > 0 && node->constraint < 4){
 	        surfaceConstraint = 1;
@@ -4264,6 +4275,12 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                 glidePlane[0] = node->nx[i];
                 glidePlane[1] = node->ny[i];
                 glidePlane[2] = node->nz[i];
+
+                if(neglectful){
+                    if(fabs(DotProduct(glidePlane, negPlane)) > 0.95){
+                        continue;
+                    }
+                }
 
 	            nbr = GetNeighborNode(home, node, i);
                 if(nbr != (Node_t *)NULL){

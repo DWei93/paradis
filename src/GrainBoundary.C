@@ -29,7 +29,8 @@
 void PullBack(Home_t *home, Node_t *node){
 
     int     currInGrain, currOnGB;
-	real8	newPos[3];
+	real8	newPos[3], bakVec[3];
+    GB_t    *gb;
     char name[50];
 	
 	if(node == (Node_t *)NULL){
@@ -38,68 +39,65 @@ void PullBack(Home_t *home, Node_t *node){
         return;
 	}
 
-	newPos[0] = node->oldx;
-	newPos[1] = node->oldy;
-	newPos[2] = node->oldz;
-	
-	NodeLocation(home,newPos[0],newPos[1],newPos[2], currInGrain, currOnGB);
-
     if(IsOnGB(node)){
-        if(node->onGB != currOnGB){
-            int     type;
-            GB_t    *gb;
-            real8   nodePos[3], dis;
-            
-            nodePos[0] = node->x;
-            nodePos[1] = node->y;
-            nodePos[2] = node->z;
-            gb = home->GBKeys[node->onGB];
+        currOnGB = node->onGB;
+    }else{
+        NodeLocation(home, node->x, node->y, node->z, currInGrain, currOnGB);
+        if(currOnGB == -1 && currInGrain > -1){
+            if(GetPublicGB(home->grainKeys[node->inGrain],
+               home->grainKeys[currInGrain], &gb)){
+                currOnGB = gb->GBID;
+            }else{
+                real8 vec[3], dis;
+                vec[0] = node->x - node->oldx;
+                vec[1] = node->y - node->oldy;
+                vec[2] = node->z - node->oldz;
+                ZImage(home->param, vec, vec+1, vec+2);
 
-            type = PointPlaneIntersection(nodePos, gb->n, gb->p, newPos, &dis);
-            if(fabs(dis) > 5){
-                PrintNode(node);
-                FormatVector(newPos, "newPos");
-				FormatVector(gb->n,"gb->n");
-				FormatVector(gb->p,"gb->p");
-                snprintf(name,50,"PullBack%d-1",home->cycle);
-                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                printf("Warning in PullBack, error is %f\n", dis);
+                newPos[0] = node->oldx + 0.5*vec[0];
+                newPos[1] = node->oldy + 0.5*vec[1];
+                newPos[2] = node->oldz + 0.5*vec[2];
+                FoldBox(home->param, newPos, newPos+1, newPos+2);
+
+                dis = ClosedGB(home, newPos, &gb);
+	            if(fabs(dis) > 50){
+                   printf("Warning in PullBack, hard to find a GB, dis is %f\n", dis); 
+                }
+
+                currOnGB = gb->GBID;
             }
         }
-    }else{
-        if(currOnGB == -1){
-            if(node->inGrain != currInGrain){
-                GB_t    *gb;                
-#if 0
-                printf("newPos--{%f,%f,%f}--(%d,%d)\n", newPos[0],
-                       newPos[1],newPos[2], currInGrain, currOnGB);
-                PrintNode(node);
-                snprintf(name,50,"PullBack%d-2",home->cycle);
-                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                printf("Warning in %s at %d", __FILE__, __LINE__);
-#endif
-        
-                if(!GetPublicGB(home->grainKeys[node->inGrain],
-                           home->grainKeys[currInGrain], &gb)){
-                    Fatal("in %s at %d", __FILE__, __LINE__);
-                }
 
-                if(NewPosToGB(home, node, node->inGrain, gb->GBID, newPos)){
-                    PrintNode(node);
-                    Fatal("in %s at %d", __FILE__, __LINE__);
-                }
-            }
-        }else{
-            if(NewPosToGB(home, node, node->inGrain, currOnGB, newPos)){
-                PrintNode(node);
-                printf("Warning in %s at %d", __FILE__, __LINE__);
-            }
+        if(currOnGB < 0 || currOnGB >= home->nGBs){
+            Fatal("can not find gb in pull back %d,%d\n",
+                  currInGrain, currOnGB);
+        }
+    }
+
+    bakVec[0] = node->x;
+    bakVec[1] = node->y;
+    bakVec[2] = node->z;
+
+    if(NewPosToGB(home, node, node->inGrain, currOnGB, bakVec, newPos)){
+        bakVec[0] = node->oldx;
+        bakVec[1] = node->oldy;
+        bakVec[2] = node->oldz;
+        
+        if(NewPosToGB(home, node, node->inGrain, currOnGB, bakVec, newPos)){
+            int     NM;
+            real8   GC[3][3];
+
+            PrintNode(node);
+	        GetGlideConstraintList(home, node, &NM, GC);
+
+            FormatMatrix(GC, "GC");
+            Fatal("can not find new position in PullBack %d", NM);
         }
     }
 
 	FoldBox(home->param, newPos, newPos+1, newPos+2);
-    RepositionNode(home,newPos,&node->myTag,1);
 
+    RepositionNode(home,newPos,&node->myTag,1);
 	return;
 }
 
@@ -2431,18 +2429,12 @@ void AdjustSurfaceNode(Home_t *home)
                 if(onGB > -1){
                     if(onGB != armOnGB)continue;
                 }else{
-                    nbr->x = interPos[0];
-                    nbr->y = interPos[1];
-                    nbr->z = interPos[2];
-                    if(NewPosToGB(home, nbr, -1, armOnGB, vec)){
+                    if(NewPosToGB(home, nbr, -1, armOnGB, interPos, vec)){
                         nbr->x = nbrPos[0];
                         nbr->y = nbrPos[1];
                         nbr->z = nbrPos[2];
                         continue;
                     }
-                    nbr->x = nbrPos[0];
-                    nbr->y = nbrPos[1];
-                    nbr->z = nbrPos[2];
                     VECTOR_COPY(interPos, vec);
                 }
             }else{
@@ -2505,7 +2497,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
     int         i, j, BakOnGB;    
     Node_t      *nbr;
     real8       normal[3], crossProd[3];
-    real8       newPos[3];
+    real8       newPos[3], nodePos[3];
     GB_t        *gb;
 
     std::vector<int>    vec(2);
@@ -2530,7 +2522,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             Tecplot(home, (char*)"NewPosToGB", 0, 0, 0 ,0, 0, 1);
             PrintNode(node);
             PrintNode(nbr);
-            Fatal("Warning in SplitIntersectNode gb{%f,%f,%f}\n", gb->n[0],gb->n[1],gb->n[2]);
+            Fatal("SplitIntersectNode gb{%f,%f,%f}\n", gb->n[0],gb->n[1],gb->n[2]);
             return;
         }
         
@@ -2549,7 +2541,11 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
 
     for(i=0; i<nbrInGrain.size(); i++){
         if(nbrInGrain[i].size()-1 == node->numNbrs){
-            if(NewPosToGB(home, node, nbrInGrain[i][0], node->onGB, newPos)){
+            nodePos[0] = node->x;
+            nodePos[1] = node->y;
+            nodePos[2] = node->z;
+
+            if(NewPosToGB(home, node, nbrInGrain[i][0], node->onGB, nodePos, newPos)){
                 PrintNode(node);
                 printf("Warning in SplitIntersectNode at %d\n", __LINE__);
             }
@@ -2568,7 +2564,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
         if(nbrInGrain[i].size() <= 2)continue;
 
         if(nbrInGrain[i].size()-1 < node->numNbrs){
-            real8   nodePos[3], nodeVel[3], newVel[3];
+            real8   nodeVel[3], newVel[3];
             Node_t  *splitNode1, *splitNode2;
             int     splitStatus, nArms, *armList;
             real8   resBurg[3];
@@ -2604,7 +2600,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             free(armList);
             if (splitStatus != SPLIT_SUCCESS)continue;
 
-            if(NewPosToGB(home, splitNode2, nbrInGrain[i][0], node->onGB, newPos)){
+            if(NewPosToGB(home, splitNode2, nbrInGrain[i][0], node->onGB, nodePos, newPos)){
                 PrintNode(splitNode2);
                 Tecplot(home, (char*)"NewPosToGB", 0, 0, 0 ,0, 0, 1);
                 Fatal("Warning in SplitIntersectNode at %d\n", __LINE__);
@@ -3092,7 +3088,7 @@ void GBCrossSlip(Home_t *home)
 
             if(maxPowerSet == -1 || maxPowerDis <= 0){
                 RestoreCrossSlipForce(node, nbr1, nbr2, 0,
-                                      1, segForceOrig, normals);
+                                      1, segForceOrig);
 	            RepositionNode(home, nodePos, &node->myTag, 0);
 	            RepositionNode(home, nbr1Pos, &nbr1->myTag, 0);
 	            RepositionNode(home, nbr2Pos, &nbr2->myTag, 0);
@@ -3213,7 +3209,7 @@ void GBCrossSlip(Home_t *home)
 	        nbr2->vX = 0.0;
 	        nbr2->vY = 0.0;
 	        nbr2->vZ = 0.0;
-            
+
         }else if(sideCrossSlipNode > 0){
 
             VECTOR_COPY(vec2, nodePos);
@@ -3282,30 +3278,57 @@ void GBCrossSlip(Home_t *home)
 bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8 *pos)
 {
     
-    VECTOR_ZERO(pos);
+    VECTOR_COPY(pos, currPos);
     if(home->param->polycrystal == 0)return(0);
 
     int     currInGrain, currOnGB;
     GB_t    *GB;
 
-    if(IsOnGB(node))return(0);
     NodeLocation(home, currPos[0], currPos[1],
                  currPos[2], currInGrain, currOnGB);
-                                    
-    if(currInGrain != node->inGrain || currOnGB > -1){
-        if(currOnGB == -1){
-            if(GetPublicGB(home->grainKeys[node->inGrain],
-                           home->grainKeys[currInGrain], &GB)){
-                currOnGB = GB->GBID;
-            }else{
+
+    if(node->onGB > -1){
+        if(node->onGB != currOnGB){
+            if(NewPosToGB(home, node, -1, node->onGB, currPos, pos)){
+                PrintNode(node);
                 Fatal("in %s at %d", __FILE__, __LINE__);
             }
+            return(1);
         }
-        if(NewPosToGB(home, node, node->inGrain, currOnGB, pos)){
-            printf("in %s at %d", __FILE__, __LINE__);
+    }else{
+        if(node->inGrain != currInGrain){
+            if(currOnGB == -1){
+                if(GetPublicGB(home->grainKeys[node->inGrain],
+                               home->grainKeys[currInGrain], &GB)){
+                    currOnGB = GB->GBID;
+                }else{
+                    real8 vec[3], dis, newPos[3];
+                    vec[0] = node->x - node->oldx;
+                    vec[1] = node->y - node->oldy;
+                    vec[2] = node->z - node->oldz;
+                    ZImage(home->param, vec, vec+1, vec+2);
+
+                    newPos[0] = node->oldx + 0.5*vec[0];
+                    newPos[1] = node->oldy + 0.5*vec[1];
+                    newPos[2] = node->oldz + 0.5*vec[2];
+                    FoldBox(home->param, newPos, newPos+1, newPos+2);
+
+                    dis = ClosedGB(home, newPos, &GB);
+	                if(fabs(dis) > 50){
+                        printf("Warning in AdjustSplitedNode, hard to find a GB, dis is %f\n", dis); 
+                    }
+                    currOnGB = GB->GBID;
+                }
+            }
+
+            if(NewPosToGB(home, node, node->inGrain, currOnGB, currPos, pos)){
+                Fatal("in %s at %d", __FILE__, __LINE__);
+            }
+
+            return(1);
         }
-        return(1);
     }
+
     return(0);
 }
 

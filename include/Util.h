@@ -189,7 +189,11 @@ void   testdeWitStress2();
 void   Uniq(int*, int*);
 void GetGlideConstraintList(Home_t *home, Node_t *node,
                             int *numGlideConstraints,
-                            real8 (*glideConstraints)[3], bool GBconstrict = 1);
+                            real8 (*glideConstraints)[3], 
+                            bool GBconstrict = 1, 
+                            real8 negPlaneX = 0.0,
+                            real8 negPlaneY = 0.0,
+                            real8 negPlaneZ = 0.0);
 void ApplyConstraintsToVelocity(int numGlideConstraints,
                                 real8 (*glideConstraints)[3],
                                 real8 velocity[3]);

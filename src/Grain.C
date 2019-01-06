@@ -1255,6 +1255,8 @@ int GetGBIndexOfGrain(Grain_t *grain, int onGB){
 
 bool GetPublicGB(Grain_t *grain1, Grain_t *grain2, GB_t **GB)
 {
+    *GB = (GB_t *)NULL;
+
     int id, i;
     for(i=0; i<grain1->nBounds; i++){
         id = GetGBIndexOfGrain(grain1, grain2->GB[i]->GBID);
@@ -1266,11 +1268,12 @@ bool GetPublicGB(Grain_t *grain1, Grain_t *grain2, GB_t **GB)
     return(0);
 }
 
-bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos){
+bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3], real8 *newPos){
     
     real8       dis, vec[3], vec1[3], vec2[3], eps;
-    real8       pos[3], interPos[3], vec3[3], GC[3][3]; 
-    int         type, NM, index;
+    real8       interPos[3], vec3[3], GC[3][3]; 
+    int         type, NM, index, curInGrain, curOnGB;
+    bool        rval;
     Param_t     *param;
     GB_t        *gb;
     Grain_t     *grain;
@@ -1290,8 +1293,14 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
 	}
 
     eps = 1.0;
-	pos[0] = node->x; pos[1] = node->y; pos[2] = node->z;
 	FoldBox(param, pos, pos+1, pos+2);
+
+    NodeLocation(home, pos[0], pos[1], pos[2], curInGrain, curOnGB);
+    if(inGrain == -1){
+        rval = (curOnGB == onGB) ? 0 : 1;
+    }else{
+        rval = (inGrain == curInGrain) ? 0 : 1;
+    }
 
     gb = home->GBKeys[onGB];
     VECTOR_COPY(plane.normal, gb->n);
@@ -1308,51 +1317,64 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos
     }
     
     PointPlaneIntersection(pos, plane.normal, plane.point, newPos, &dis);
-    if(fabs(dis) < 1E-4)return(0);
+    if(fabs(dis) < 1E-4){
+        FoldBox(param, newPos, newPos+1, newPos+2);
+        return(rval);
+    }
 
     vec[0] = newPos[0] - pos[0];
     vec[1] = newPos[1] - pos[1];
     vec[2] = newPos[2] - pos[2];
-    if(Normal(vec))("in %s at %d", __FILE__, __LINE__);
-    NormalizeVec(vec);
 
-	GetGlideConstraintList(home, node, &NM, GC, 0);
+    if(Normal(vec) < 1E-10){
+        PrintNode(node);
+        printf("Warning in NewPosToGB: {%f,%f,%f} too short of the vector\n",
+                vec[0], vec[1], vec[2]);
+        VECTOR_COPY(newPos, pos);
+        FoldBox(param, newPos, newPos+1, newPos+2);
+        return(rval);
+    }
+
+    NormalizeVec(vec);
+    VECTOR_COPY(vec1, vec);
+	GetGlideConstraintList(home, node, &NM, GC, 0, 
+                           plane.normal[0], plane.normal[1],
+                           plane.normal[2]);
 	ApplyConstraintsToVelocity(NM, GC, vec);
-    if(Normal(vec) < 1.0E-4){
-        if(node->constraint == 7){
-            printf("Warning: NewPosToGB - 1, %d %d {%f,%f,%f}-->{%f,%f,%f}\n", 
-                   inGrain, onGB, pos[0], pos[1], pos[2], newPos[0],
-                   newPos[1], newPos[2]);
-            VECTOR_COPY(newPos, pos);
-            return(1);
-        }
-        
-        if(fabs(dis) < 5.0){
-            return(0);
-        }else{
-            PrintNode(node);
-            printf("Warning: NewPosToGB - 2, %d %d {%f,%f,%f}-->{%f,%f,%f}\n", 
-                   inGrain, onGB, pos[0], pos[1], pos[2], newPos[0],
-                   newPos[1], newPos[2]);
-            return(1);
-        }
-    }else{
-        NormalizeVec(vec);
-        type = LinePlaneIntersection(vec, pos, plane.normal, plane.point, vec1, vec2);
-        if(type != POINT_INTERSECTION){
-            printf("Warning: NewPosToGB - 3, Line {%f,%f,%f}--{%f,%f,%f}; ", 
-                   vec[0], vec[1], vec[2], pos[0], pos[1], pos[2]);
-            printf("Plane {%f,%f,%f}--{%f,%f,%f} == {%f,%f,%f}\n", 
-                   plane.normal[0],plane.normal[1],plane.normal[2],
-                   plane.point[0],plane.point[1],plane.point[2],
-                   vec2[0], vec2[1], vec2[2]);
-            return(1);
-        }else{
-            VECTOR_COPY(newPos, vec2);
-            FoldBox(param, newPos, newPos+1, newPos+2);
-            return(0);
+
+    if(Normal(vec) < 1.0E-6 && node->constraint != 7){
+        while(NM >= 0){
+            NM--;
+            VECTOR_COPY(vec, vec1);
+            ApplyConstraintsToVelocity(NM, GC, vec);
+            if(Normal(vec) >= 1.0E-6)break;
         }
     }
+
+    if(Normal(vec) < 1.0E-6){
+        VECTOR_COPY(newPos, pos);
+        FoldBox(param, newPos, newPos+1, newPos+2);
+        return(rval);
+    }
+
+    NormalizeVec(vec);
+    type = LinePlaneIntersection(vec, pos, plane.normal, plane.point, vec1, vec2);
+    if(type != POINT_INTERSECTION){
+        printf("Warning: NewPosToGB - 2, Line {%f,%f,%f}--{%f,%f,%f}; ", 
+               vec[0], vec[1], vec[2], pos[0], pos[1], pos[2]);
+        printf("Plane {%f,%f,%f}--{%f,%f,%f} == {%f,%f,%f}\n", 
+               plane.normal[0],plane.normal[1],plane.normal[2],
+               plane.point[0],plane.point[1],plane.point[2],
+               vec2[0], vec2[1], vec2[2]);
+        VECTOR_COPY(newPos, pos);
+        FoldBox(param, newPos, newPos+1, newPos+2);
+        return(1);
+    }else{
+        VECTOR_COPY(newPos, vec2);
+        FoldBox(param, newPos, newPos+1, newPos+2);
+        return(0);
+    }
+
     return(1);
 }
 
@@ -1485,11 +1507,20 @@ void GetArmGrain(Home_t *home, Node_t *node1, Node_t *node2, int &inGrain, int &
         }
     }else {
         inGrain = node1->inGrain;
+
         if(!IsOnGB(node2) && node1->inGrain != node2->inGrain){
-            PrintNode(node1);
-            PrintNode(node2);
-            Fatal("Warning in GetArmGrain: node1 in %d grain, but node2 in %d grain\n",
-                   node1->inGrain, node2->inGrain);
+            GB_t    *gb;
+
+            if(GetPublicGB(home->grainKeys[node1->inGrain], 
+                        home->grainKeys[node2->inGrain], &gb)){
+                inGrain = -1;
+                onGB = gb->GBID;
+            }else{
+                PrintNode(node1);
+                PrintNode(node2);
+                Fatal("Warning in GetArmGrain: node1 in %d grain, but node2 in %d grain\n",
+                      node1->inGrain, node2->inGrain);
+            }
         }
     }
 
@@ -1787,7 +1818,7 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                     break;
                 case 3:
                     type = PointPointIntersection(p1, p2, vec2, &dis); 
-                    VECTO_COPY(vec2, p2);
+                    VECTOR_COPY(vec2, p2);
                     break;
                 default:
                     Fatal("NodesIntersectio: node2 %d",numGlideConstraintsNode2);

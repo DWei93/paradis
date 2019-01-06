@@ -488,8 +488,9 @@ void DebugGB(Home_t *home, int flag){
 
 	param = home->param;
 
-//	printf("%d %d\n",home->myDomain, flag);
-
+//    if(flag >= 4 && flag == 5){
+	    printf("%d %d\n",home->myDomain, flag);
+//    }
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
 
@@ -497,10 +498,6 @@ void DebugGB(Home_t *home, int flag){
             PrintNode(node);
             Fatal("DebugGB: Node (%d,%d) singly linked! %d",
                   node->myTag.domainID, node->myTag.index, flag);
-        }
-
-        if(IsOnGB(node)){
-            continue;
         }
 
         vec1[0] = node->x;
@@ -517,8 +514,26 @@ void DebugGB(Home_t *home, int flag){
 
         for (j = 0; j < node->numNbrs; j++) {
             nbr = GetNeighborNode(home, node, j);
+
+            vec[0] = node->burgX[j];
+            vec[1] = node->burgY[j];
+            vec[2] = node->burgZ[j];
+
+            vec1[0] = node->nx[j];
+            vec1[1] = node->ny[j];
+            vec1[2] = node->nz[j];
+
+            if(BurgType_FCC(vec) == SHOCKLEY_BURG){
+                NormalizeVec(vec);
+                if(fabs(DotProduct(vec1, vec)) > 0.01){
+                    PrintNode(node);
+                    PrintNode(nbr);
+                    Fatal("Task %d, wrong shockley, flag %d\n", home->myDomain, flag);
+                } 
+            }
+
             if(nbr == (Node_t *)NULL)continue;
-            if(!IsOnGB(nbr) && nbr->inGrain != node->inGrain){
+            if(!IsOnGB(nbr) && !IsOnGB(node) && nbr->inGrain != node->inGrain){
                 PrintNode(node);
                 PrintNode(nbr);
                 Fatal("Task %d, flag %d\n", home->myDomain, flag);

@@ -433,6 +433,7 @@ void ParadisStep(Home_t *home)
         CommSendRemesh(home);
         TimerStop(home, COL_SEND_REMESH);
 		
+        DebugGB(home,5);
         TimerStart(home, COL_FIX_REMESH);
         FixRemesh(home, "Collision");
         TimerStop(home, COL_FIX_REMESH);

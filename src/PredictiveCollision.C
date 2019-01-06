@@ -940,6 +940,7 @@ void PredictiveCollisions(Home_t *home)
 
         TimerStart(home, COLLISION_HANDLING);
 
+        DebugGB(home, 401);
 /*
  *      Start looping through native nodes looking for segments to collide...
  */
@@ -1169,6 +1170,7 @@ void PredictiveCollisions(Home_t *home)
                                 collisionConditionIsMet = 0;
                             }
 
+                            printf("%d 1\n", home->myDomain);
                             if (collisionConditionIsMet) {
 /*
  *                              Segments are unconnected and colliding.
@@ -1183,6 +1185,7 @@ void PredictiveCollisions(Home_t *home)
  *                              even if the collision point is close to 
  *                              that node.
  */
+                                printf("%d 2\n", home->myDomain);
                                 adjustCollisionPoint = 0;
 
                                 vec1[0] = cPoint[0] - p1[0];
@@ -1201,6 +1204,7 @@ void PredictiveCollisions(Home_t *home)
                                     continue;
                                 }
 
+                                printf("%d 2.5\n", home->myDomain);
                                 if (close2node1) {
                                     mergenode1 = node1;
                                     splitSeg1 = 0;
@@ -1218,6 +1222,7 @@ void PredictiveCollisions(Home_t *home)
  *                              segment, do it now.
  */
                                 if (splitSeg1) {
+                                printf("%d 3\n", home->myDomain);
                                      real8 pos0[3], pos1[3];
 
                                      newx = x1 * (1.0-L1) + x2*L1;
@@ -1271,6 +1276,7 @@ void PredictiveCollisions(Home_t *home)
 
                                      FoldBox(param, &pnew[0], &pnew[1], &pnew[2]);
 
+                                     printf("%d 4\n", home->myDomain);
                                      splitStatus = SplitNode(home,
                                                              OPCLASS_COLLISION,
                                                              node1, pos0, pnew,
@@ -1279,14 +1285,17 @@ void PredictiveCollisions(Home_t *home)
                                                              &arm12, globalOp,
                                                              &splitNode1,
                                                              &splitNode2, 0);
+                                     printf("%d 5\n", home->myDomain);
 /*
  *                                   If we were unable to split the node
  *                                   go back to looking for more collision
  *                                   candidates.
  */
                                      if (splitStatus == SPLIT_FAILED) {
+                                     printf("%d 6\n", home->myDomain);
                                          continue;
                                      }
+                                     printf("%d 7\n", home->myDomain);
 
 /*
  *                                   The force estimates above are good enough
@@ -1298,19 +1307,6 @@ void PredictiveCollisions(Home_t *home)
  *                                   the beginning of the next.
  */
                                      mergenode1 = splitNode2;
-
-                                    if(AdjustSplitedNodePosition(home, mergenode1, pnew, pos)){
-                                        VECTOR_COPY(pnew, pos);
-                                        mergenode1->x = pnew[0];
-                                        mergenode1->y = pnew[1];
-                                        mergenode1->z = pnew[2];
-                
-                                        if(node1 != mergenode1){
-                                            mergenode1->oldx = pnew[0];
-                                            mergenode1->oldy = pnew[1];
-                                            mergenode1->oldz = pnew[2];
-                                        }
-                                    }
 
                                      MarkNodeForceObsolete(home, splitNode2);
     
@@ -1387,6 +1383,7 @@ void PredictiveCollisions(Home_t *home)
                                      didCollision = 1;
 
                                 }  /* if (splitSeg1) */
+                                printf("%d 3.5\n", home->myDomain);
 
 /*
  *                              Identify the second node to be merged
@@ -1425,11 +1422,13 @@ void PredictiveCollisions(Home_t *home)
                                     splitSeg2 = 1;
                                 }
 
+                                printf("%d 4.5\n", home->myDomain);
 /*
  *                              If we need to add a new node to the second
  *                              segment, do it now.
  */
                                 if (splitSeg2) {
+                                printf("%d 4.5 1\n", home->myDomain);
                                      real8 pos0[3], pos1[3];
 
                                      newx = x3 * (1.0-L2) + x4*L2;
@@ -1482,6 +1481,7 @@ void PredictiveCollisions(Home_t *home)
                                      oldTag2 = node4->myTag;
 
                                      FoldBox(param, &pnew[0], &pnew[1], &pnew[2]);
+                                printf("%d 4.5 2\n", home->myDomain);
 
                                      splitStatus = SplitNode(home,
                                                             OPCLASS_COLLISION,
@@ -1491,14 +1491,17 @@ void PredictiveCollisions(Home_t *home)
                                                             &arm34, globalOp,
                                                             &splitNode1,
                                                             &splitNode2, 0);
+                                printf("%d 4.5 3\n", home->myDomain);
 /*
  *                                   If we were unable to split the node
  *                                   go back to looking for more collision
  *                                   candidates.
  */
                                      if (splitStatus == SPLIT_FAILED) {
+                                printf("%d 4.5 4\n", home->myDomain);
                                          continue;
                                      }
+                                printf("%d 4.5 5\n", home->myDomain);
 /*
  *                                   The force estimates above are good enough
  *                                   for the remainder of this timestep, but
@@ -1510,19 +1513,7 @@ void PredictiveCollisions(Home_t *home)
  */
                                      mergenode2 = splitNode2;
 
-                                    if(AdjustSplitedNodePosition(home, mergenode2, pnew, pos)){
-                                        VECTOR_COPY(pnew, pos);
-                                        mergenode2->x = pnew[0];
-                                        mergenode2->y = pnew[1];
-                                        mergenode2->z = pnew[2];
-                
-                                        if(node3 != mergenode2){
-                                            mergenode2->oldx = pnew[0];
-                                            mergenode2->oldy = pnew[1];
-                                            mergenode2->oldz = pnew[2];
-                                        }
-                                    }
-
+                                printf("%d 4.5 6\n", home->myDomain);
                                      MarkNodeForceObsolete(home, splitNode2);
     
                                      for (q = 0; q < splitNode2->numNbrs; q++) {
@@ -1586,8 +1577,10 @@ void PredictiveCollisions(Home_t *home)
                                          PrintNode(node4);
                                     }
 #endif
+                                printf("%d 4.5 7\n", home->myDomain);
                                 }  /* if (splitSeg2) */
     
+                                printf("%d 5.5 \n", home->myDomain);
     
 /*
  *                             If the initially selected collision point
@@ -1606,6 +1599,7 @@ void PredictiveCollisions(Home_t *home)
                                    newPos[2] = cPoint[2];
                                }
                                 
+                                printf("%d 6.5 \n", home->myDomain);
                                FoldBox(param, newPos, newPos+1, newPos+2);
     
 #ifdef _FEM
@@ -1642,53 +1636,78 @@ void PredictiveCollisions(Home_t *home)
                                newVel[2] = half * (mergenode1->vZ +
                                                    mergenode2->vZ);
     
-    
                                oldTag1 = mergenode1->myTag;
                                oldTag2 = mergenode2->myTag;
                     
-                               if(home->param->polycrystal &&
-                                  !IsOnGB(mergenode1) && !IsOnGB(mergenode2)){
-                                    NodeLocation(home, newPos[0], newPos[1], newPos[2],
-                                                 inGrain1, onGB1);
-                                    if(inGrain1 != mergenode1->inGrain && inGrain1 != -1){
-                                        if(GetPublicGB(home->grainKeys[inGrain1],
-                                           home->grainKeys[mergenode1->inGrain], &gb)){
-
-                                            VECTOR_COPY(plane.normal, gb->n); 
-                                            VECTOR_COPY(plane.point, gb->p); 
-
-                                            grain = home->grainKeys[mergenode1->inGrain];
-                                            gbIndex = GetGBIndexOfGrain(grain, gb->GBID);
-                                            plane.point[0] -= (gb->n[0]*grain->sign[gbIndex]);
-                                            plane.point[1] -= (gb->n[1]*grain->sign[gbIndex]);
-                                            plane.point[2] -= (gb->n[2]*grain->sign[gbIndex]);
-                                             
-                                            vec1[0] = mergenode2->x - mergenode1->x;
-                                            vec1[1] = mergenode2->y - mergenode1->y;
-                                            vec1[2] = mergenode2->z - mergenode1->z;
-                                            ZImage(param, vec1, vec1+1, vec1+2);
-                                            NormalizeVec(vec1);
-
-                                            vec2[0] = mergenode1->x;
-                                            vec2[1] = mergenode1->y;
-                                            vec2[2] = mergenode1->z;
-
-                                            if(LinePlaneIntersection(vec1, vec2, plane.normal, 
-                                               plane.point, vec3, newPos) != POINT_INTERSECTION){
-                                                Fatal("in %s at %s", __FILE__, __LINE__);
-                                            }
-
-                                        }else{
-                                            Fatal("in %s at %s", __FILE__, __LINE__);
+                                printf("%d 7.5 \n", home->myDomain);
+                               if(param->polycrystal){
+                                    inGrain1 = -1;
+                                    onGB1 = -1;
+                                    if(mergenode1->inGrain != mergenode2->inGrain){
+                                        if(IsOnGB(mergenode1) && IsOnGB(mergenode2) 
+                                           && mergenode1->onGB != mergenode2->onGB){
+                                            Fatal("in %s at %d", __FILE__, __LINE__);
                                         }
-                                        printf("A multi-arm node occur in PredictiveCollision\n");
+
+                                        if(IsOnGB(mergenode1)){
+                                            onGB1 = mergenode1->onGB;
+                                        }else if(IsOnGB(mergenode2)){
+                                            onGB1 = mergenode2->onGB;
+                                        }else{
+                                            GetArmGrain(home, mergenode1, mergenode2,
+                                                        inGrain1, onGB1);
+                                        }
+
+                                    }else{
+                                        GetArmGrain(home, mergenode1, mergenode2,
+                                                    inGrain1, onGB1);
+                                    }
+
+                                    NodeLocation(home, newPos[0], newPos[1], newPos[2],
+                                                 inGrain2, onGB2);
+
+                                    VECTOR_COPY(vec1, newPos);
+                                    
+                                    if(onGB1 > -1 && onGB2 != onGB1){
+                                        NewPosToGB(home, mergenode1, -1, onGB1, newPos, vec1);
+                                        NewPosToGB(home, mergenode2, -1, onGB1, newPos, vec2);
+                                        vec1[0] -= vec2[0];
+                                        vec1[1] -= vec2[1];
+                                        vec1[2] -= vec2[2];
+                                        ZImage(param, vec1, vec1+1, vec1+2);
+                                        if(Normal(vec1) > 5){
+                                            PrintNode(mergenode1);
+                                            PrintNode(mergenode2);
+                                            printf("Warning: can not merge the two nodes in PredictiveCollision.\n");
+                                            continue;
+                                        }
+
+                                        newPos[0] = vec2[0] + 0.5*vec1[0];
+                                        newPos[1] = vec2[1] + 0.5*vec1[1];
+                                        newPos[2] = vec2[2] + 0.5*vec1[2];
+                                    }else{
+                                        if(onGB1 == -1 && inGrain1 != inGrain2){
+                                            AdjustSplitedNodePosition(home, mergenode1, newPos, vec1);
+                                            AdjustSplitedNodePosition(home, mergenode2, newPos, vec2);
+
+                                            vec1[0] -= vec2[0];
+                                            vec1[1] -= vec2[1];
+                                            vec1[2] -= vec2[2];
+                                            ZImage(param, vec1, vec1+1, vec1+2);
+
+                                            newPos[0] = vec2[0] + 0.5*vec1[0];
+                                            newPos[1] = vec2[1] + 0.5*vec1[1];
+                                            newPos[2] = vec2[2] + 0.5*vec1[2];
+                                        }
                                     }
                                }
 
+                                printf("%d 9.5 \n", home->myDomain);
                                MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                          mergenode2, newPos, &targetNode,
                                          &mergeStatus, globalOp);
     
+                                printf("%d 10.5 \n", home->myDomain);
 /*
  *                             If the merge did not succeed, go back and
  *                             continue looking for collision candidates.
@@ -1745,6 +1764,7 @@ void PredictiveCollisions(Home_t *home)
  *                                 planes for the segments attched to the
  *                                 collision node.
  */
+                                printf("%d 11.5 \n", home->myDomain);
                                    if(!IsOnGB(targetNode) && home->param->polycrystal){
                                         NodeLocation(home, targetNode->x, targetNode->y,
                                                      targetNode->z, inGrain1, onGB1);
@@ -1779,13 +1799,16 @@ void PredictiveCollisions(Home_t *home)
                                    targetNode->flags |= NO_COLLISIONS;
 #ifdef DEBUG_LOG_MULTI_NODE_SPLITS
                                    targetNode->multiNodeLife = 0;
+                                printf("%d 11.5 1\n", home->myDomain);
 #endif
                                }
     
                                didCollision = 1;
                                localCollisionCnt++;
+                                printf("%d 12.5 \n", home->myDomain);
 
                             }  /* If conditions for collision are met */
+                            printf("%d 100\n", home->myDomain);
                         }  /* Loop over node3 arms */
                     }  /* Loop over node1 arms */
                 }  /* while(nextIndex >= 0) */
@@ -1793,6 +1816,7 @@ void PredictiveCollisions(Home_t *home)
            }
           }
         }  /* for (i = 0 ...) */
+        DebugGB(home, 402);
 
 /*
  *      Now we have to loop for collisions on hinge joints (i.e zipping)
@@ -2113,42 +2137,65 @@ void PredictiveCollisions(Home_t *home)
                         oldTag1 = mergenode1->myTag;
                         oldTag2 = mergenode2->myTag;
 
-                        if(home->param->polycrystal &&
-                           !IsOnGB(mergenode1) && !IsOnGB(mergenode2)){
-                             NodeLocation(home, newPos[0], newPos[1], newPos[2],
-                                          inGrain1, onGB1);
-                             if(inGrain1 != mergenode1->inGrain && inGrain1 != -1){
-                                 if(GetPublicGB(home->grainKeys[inGrain1],
-                                    home->grainKeys[mergenode1->inGrain], &gb)){
-
-                                     VECTOR_COPY(plane.normal, gb->n); 
-                                     VECTOR_COPY(plane.point, gb->p); 
-
-                                     grain = home->grainKeys[mergenode1->inGrain];
-                                     gbIndex = GetGBIndexOfGrain(grain, gb->GBID);
-                                     plane.point[0] -= (gb->n[0]*grain->sign[gbIndex]);
-                                     plane.point[1] -= (gb->n[1]*grain->sign[gbIndex]);
-                                     plane.point[2] -= (gb->n[2]*grain->sign[gbIndex]);
-                                      
-                                     vec1[0] = mergenode2->x - mergenode1->x;
-                                     vec1[1] = mergenode2->y - mergenode1->y;
-                                     vec1[2] = mergenode2->z - mergenode1->z;
-                                     ZImage(param, vec1, vec1+1, vec1+2);
-                                     NormalizeVec(vec1);
-
-                                     vec2[0] = mergenode1->x;
-                                     vec2[1] = mergenode1->y;
-                                     vec2[2] = mergenode1->z;
-
-                                     if(LinePlaneIntersection(vec1, vec2, plane.normal, 
-                                        plane.point, vec3, newPos) != POINT_INTERSECTION){
-                                         Fatal("in %s at %s", __FILE__, __LINE__);
-                                     }
-
-                                 }else{
-                                     Fatal("in %s at %s", __FILE__, __LINE__);
+                        if(param->polycrystal){
+                             inGrain1 = -1;
+                             onGB1 = -1;
+                             if(mergenode1->inGrain != mergenode2->inGrain){
+                                 if(IsOnGB(mergenode1) && IsOnGB(mergenode2) 
+                                    && mergenode1->onGB != mergenode2->onGB){
+                                     Fatal("in %s at %d", __FILE__, __LINE__);
                                  }
-                                 printf("A multi-arm node occur in PredictiveCollision\n");
+
+                                 if(IsOnGB(mergenode1)){
+                                     onGB1 = mergenode1->onGB;
+                                 }else if(IsOnGB(mergenode2)){
+                                     onGB1 = mergenode2->onGB;
+                                 }else{
+                                     GetArmGrain(home, mergenode1, mergenode2,
+                                                 inGrain1, onGB1);
+                                 }
+
+                             }else{
+                                 GetArmGrain(home, mergenode1, mergenode2,
+                                             inGrain1, onGB1);
+                             }
+
+                             NodeLocation(home, newPos[0], newPos[1], newPos[2],
+                                          inGrain2, onGB2);
+
+                             VECTOR_COPY(vec1, newPos);
+                             
+                             if(onGB1 > -1 && onGB2 != onGB1){
+                                 NewPosToGB(home, mergenode1, -1, onGB1, newPos, vec1);
+                                 NewPosToGB(home, mergenode2, -1, onGB1, newPos, vec2);
+                                 vec1[0] -= vec2[0];
+                                 vec1[1] -= vec2[1];
+                                 vec1[2] -= vec2[2];
+                                 ZImage(param, vec1, vec1+1, vec1+2);
+                                 if(Normal(vec1) > 5){
+                                     PrintNode(mergenode1);
+                                     PrintNode(mergenode2);
+                                     printf("Warning: can not merge the two nodes in PredictiveCollision.\n");
+                                     continue;
+                                 }
+
+                                 newPos[0] = vec2[0] + 0.5*vec1[0];
+                                 newPos[1] = vec2[1] + 0.5*vec1[1];
+                                 newPos[2] = vec2[2] + 0.5*vec1[2];
+                             }else{
+                                 if(onGB1 == -1 && inGrain1 != inGrain2){
+                                     AdjustSplitedNodePosition(home, mergenode1, newPos, vec1);
+                                     AdjustSplitedNodePosition(home, mergenode2, newPos, vec2);
+
+                                     vec1[0] -= vec2[0];
+                                     vec1[1] -= vec2[1];
+                                     vec1[2] -= vec2[2];
+                                     ZImage(param, vec1, vec1+1, vec1+2);
+
+                                     newPos[0] = vec2[0] + 0.5*vec1[0];
+                                     newPos[1] = vec2[1] + 0.5*vec1[1];
+                                     newPos[2] = vec2[2] + 0.5*vec1[2];
+                                 }
                              }
                         }
 
@@ -2217,6 +2264,7 @@ void PredictiveCollisions(Home_t *home)
                 }  /* for (k = 0...) */
             }  /* for (j = 0...) */
         }  /* for (i = 0...) */
+        DebugGB(home, 403);
 
 
 #ifdef DEBUG_LOG_COLLISIONS

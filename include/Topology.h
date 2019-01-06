@@ -65,7 +65,9 @@ void   SplitMultiNodes(Home_t *home);
 int    SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
            real8 *pos2, real8 *vel1, real8 *vel2, int armCount,
            int *armList, int globalOp, Node_t **splitNode1,
-           Node_t **splitNode2, int flags);
+           Node_t **splitNode2, int flags, 
+           int inGrain1 = -1, int onGB1 = -1, 
+           int inGrain2 = -1, int onGB2 = -1);
 
 /*
  *     Some functions for preserving and restoring node info

@@ -2011,17 +2011,17 @@ void SplitMultiNodes(Home_t *home)
 int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
               real8 *pos2, real8 *vel1, real8 *vel2, int armCount,
               int *armList, int globalOp, Node_t **splitNode1,
-              Node_t **splitNode2, int flags)
+              Node_t **splitNode2, int flags, 
+              int inGrain1, int onGB1, int inGrain2, int onGB2)
 {
 	    int	    i, j, k, tarm, *tarmList, *tarmList2;
-        int     inGrain1, onGB1, inGrain2, onGB2;
 	    real8	bx, by, bz;
 	    real8	cx, cy, cz;
 	    real8	nx, ny, nz, bakSignSF = 0.0;
         real8   segPlaneX, segPlaneY, segPlaneZ;
 	    real8	eps = 1.0e-12;
 	    real8   ftmp[3];
-        real8   burg[3], vel[3], dirVec[3], glidePlane[3];
+        real8   burg[3], vel[3], dirVec[3], glidePlane[3], pos[3];
         real8   signSF;
 	    Node_t	*newNode, *nbrNode;
 	    Param_t	*param;
@@ -2056,25 +2056,30 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
  *      On the anoter hand, we we can define the nodal locations in this 
  *      situation.
  */
-        inGrain1 = node->inGrain;
-        onGB1 = node->onGB;
+
+        if(inGrain1 = -1 && inGrain2 == -1 && onGB1 == -1 && onGB2 == -1){
+            inGrain1 = node->inGrain;
+            onGB1 = node->onGB;
+
+            if (armCount == 1) {
+                nbrNode = GetNeighborNode(home, node, armList[0]);
+                if (nbrNode == (Node_t *)NULL) {
+                    Fatal("Neighbor not found at %s line %d\n",
+                        __FILE__, __LINE__);
+                }
+
+                GetArmGrain(home, node, nbrNode, inGrain2, onGB2);
+            }else{
+                inGrain2 = inGrain1;
+                onGB2 = onGB1;
+            }
+        }
 
         if (armCount == 1) {
             segPlaneX = node->nx[armList[0]];
             segPlaneY = node->ny[armList[0]];
             segPlaneZ = node->nz[armList[0]];
             bakSignSF = node->signSF[armList[0]];
-
-            nbrNode = GetNeighborNode(home, node, armList[0]);
-            if (nbrNode == (Node_t *)NULL) {
-                Fatal("Neighbor not found at %s line %d\n",
-                      __FILE__, __LINE__);
-            }
-
-            GetArmGrain(home, node, nbrNode, inGrain2, onGB2);
-        }else{
-            inGrain2 = inGrain1;
-            onGB2 = onGB1;
         }
 
 /*
@@ -2458,6 +2463,24 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
             ChangeArmStackingFault(home, (*splitNode2), &(*splitNode1)->myTag, -bakSignSF, globalOp);
 
 	}
+
+    if(AdjustSplitedNodePosition(home, (*splitNode1), pos1, pos)){
+        VECTOR_COPY(pos1, pos);
+        (*splitNode1)->x = pos1[0];
+        (*splitNode1)->y = pos1[1];
+        (*splitNode1)->z = pos1[2];
+    }
+
+    if(AdjustSplitedNodePosition(home, (*splitNode2), pos2, pos)){
+        VECTOR_COPY(pos2, pos);
+        (*splitNode2)->x = pos2[0];
+        (*splitNode2)->y = pos2[1];
+        (*splitNode2)->z = pos2[2];
+    }
+
+    newNode->oldx = newNode->x;
+    newNode->oldy = newNode->y;
+    newNode->oldz = newNode->z;
 
 	return(SPLIT_SUCCESS);
 }

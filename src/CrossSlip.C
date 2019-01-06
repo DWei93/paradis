@@ -351,32 +351,6 @@ void RestoreCrossSlipForce(Node_t *node, Node_t *nbr1, Node_t *nbr2,
         return;
 }
 
-void RestoreCrossSlipForce(Node_t *node, Node_t *nbr1, Node_t *nbr2,
-                           int nbr1ArmID, int nbr2ArmID,
-                           real8 segForceOrig[4][3], real8 normal[2][3])
-{
-        RestoreCrossSlipForce(node, nbr1, nbr2,
-                          nbr1ArmID, nbr2ArmID,
-                          segForceOrig);
-    
-        node->nx[0] = normal[0][0];
-        node->ny[0] = normal[0][1];
-        node->nz[0] = normal[0][2];
-
-        node->nx[1] = normal[1][0];
-        node->ny[1] = normal[1][1];
-        node->nz[1] = normal[1][2];
-
-        nbr1->nx[nbr1ArmID] = normal[0][0];
-        nbr1->ny[nbr1ArmID] = normal[0][1];
-        nbr1->nz[nbr1ArmID] = normal[0][2];
-
-        nbr2->nx[nbr2ArmID] = normal[1][0];
-        nbr2->ny[nbr2ArmID] = normal[1][1];
-        nbr2->nz[nbr2ArmID] = normal[1][2];
-        
-    return;
-}
 
 void CrossSlip(Home_t *home)
 {
@@ -391,7 +365,9 @@ void CrossSlip(Home_t *home)
  *  GB dislocation emission model like cross-slip process introduced here.
  *                                                                   D.Wei
  */
+    DebugGB(home, 301);
     GBCrossSlip(home);
+    DebugGB(home, 302);
 #endif
 
     if (enabled) {
@@ -406,5 +382,6 @@ void CrossSlip(Home_t *home)
 
     }
 
+    DebugGB(home, 303);
         return;
 }
