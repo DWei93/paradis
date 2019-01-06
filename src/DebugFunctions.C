@@ -503,7 +503,7 @@ void DebugGB(Home_t *home, int flag){
         vec1[0] = node->x;
         vec1[1] = node->y;
         vec1[2] = node->z;
-
+#if 0
         if(flag < 18 || flag > 22){
             NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
             if(inGrain != node->inGrain && !IsOnGB(node)){
@@ -511,7 +511,7 @@ void DebugGB(Home_t *home, int flag){
                 Fatal("Task %d, flag %d - 0\n", home->myDomain, flag);
             }
         }
-
+#endif
         for (j = 0; j < node->numNbrs; j++) {
             nbr = GetNeighborNode(home, node, j);
 

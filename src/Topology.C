@@ -2026,7 +2026,7 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 	    Node_t	*newNode, *nbrNode;
 	    Param_t	*param;
         int     thisDomain, ownsSelectedArms, switchedArms;
-
+    
 
         thisDomain = home->myDomain;
 	    param      = home->param;
@@ -2057,7 +2057,7 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
  *      situation.
  */
 
-        if(inGrain1 = -1 && inGrain2 == -1 && onGB1 == -1 && onGB2 == -1){
+        if(inGrain1 == -1 && inGrain2 == -1 && onGB1 == -1 && onGB2 == -1){
             inGrain1 = node->inGrain;
             onGB1 = node->onGB;
 
@@ -2469,6 +2469,9 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
         (*splitNode1)->x = pos1[0];
         (*splitNode1)->y = pos1[1];
         (*splitNode1)->z = pos1[2];
+        if(globalOp){
+            RepositionNode(home,pos1,&(*splitNode1)->myTag,globalOp);
+        }
     }
 
     if(AdjustSplitedNodePosition(home, (*splitNode2), pos2, pos)){
@@ -2476,6 +2479,9 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
         (*splitNode2)->x = pos2[0];
         (*splitNode2)->y = pos2[1];
         (*splitNode2)->z = pos2[2];
+        if(globalOp){
+            RepositionNode(home,pos2,&(*splitNode2)->myTag,globalOp);
+        }
     }
 
     newNode->oldx = newNode->x;

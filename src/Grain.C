@@ -1292,7 +1292,12 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
                home->myDomain, __FILE__, __LINE__);
 	}
 
+#if ENABLE_COMPLICATED_REACTION
+    eps = param->rann/2.0;
+#else
     eps = 1.0;
+#endif
+
 	FoldBox(param, pos, pos+1, pos+2);
 
     NodeLocation(home, pos[0], pos[1], pos[2], curInGrain, curOnGB);

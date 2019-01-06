@@ -40,7 +40,6 @@
 #include "Comm.h"
 #include "Mobility.h"
 
-
 static int dbgDom;
 
 
@@ -915,6 +914,9 @@ void PredictiveCollisions(Home_t *home)
         Plane_t plane;
         Param_t *param;
 
+#if ENABLE_COMPLICATED_REACTION
+        int     splitInGrain, splitOnGB;
+#endif
 
 #ifdef _FEM
         int     resetSurfaceProperties, femSurface[2];
@@ -1064,9 +1066,34 @@ void PredictiveCollisions(Home_t *home)
                             if(home->param->polycrystal){
                                 GetArmGrain(home, node1, node2, inGrain1, onGB1);
                                 GetArmGrain(home, node3, node4, inGrain2, onGB2);
-                                
+#if ENABLE_COMPLICATED_REACTION
+                                splitInGrain = -1;
+                                splitOnGB = -1;
+                                if(onGB1 > -1 || onGB2 > -1){
+                                    if(onGB1 == onGB2){
+                                        splitOnGB = onGB1;
+                                    }else{
+                                        continue;
+                                    }
+                                }else{
+                                    if(inGrain1 == inGrain2){
+                                        splitInGrain = inGrain1;
+                                    }else{
+                                        if(inGrain1 == -1 || inGrain2 == -1){
+                                            Fatal("in %s at %d", __FILE__, __LINE__);
+                                        }
+                                        if(GetPublicGB(home->grainKeys[inGrain1],
+                                           home->grainKeys[inGrain2], &gb)){
+                                           splitOnGB = gb->GBID;
+                                        }else{
+                                            continue;
+                                        }
+                                    }
+                                }
+#else
                                 if(onGB1 != onGB2)continue;
                                 if(onGB1 == -1 && inGrain1 != inGrain2)continue;
+#endif
                             }
 /*
  *                          At this point, segment node3/node4 is owned by
@@ -1276,7 +1303,11 @@ void PredictiveCollisions(Home_t *home)
 
                                      FoldBox(param, &pnew[0], &pnew[1], &pnew[2]);
 
-                                     printf("%d 4\n", home->myDomain);
+                                     printf("%d 4 %d", home->myDomain, node1->inGrain);
+                                     PrintTag(node1);
+                                     PrintTag(node2);
+                                     printf("\n");
+        
                                      splitStatus = SplitNode(home,
                                                              OPCLASS_COLLISION,
                                                              node1, pos0, pnew,
@@ -1284,8 +1315,17 @@ void PredictiveCollisions(Home_t *home)
                                                              newNodeVel, 1,
                                                              &arm12, globalOp,
                                                              &splitNode1,
-                                                             &splitNode2, 0);
-                                     printf("%d 5\n", home->myDomain);
+                                                             &splitNode2, 0
+#if ENABLE_COMPLICATED_REACTION
+                                                             ,node1->inGrain, node1->onGB
+                                                             ,splitInGrain, splitOnGB
+#endif
+                                                                            );
+                                         
+                                     printf("%d 5", home->myDomain);
+                                     PrintTag(splitNode1);
+                                     PrintTag(splitNode2);
+                                     printf("\n");
 /*
  *                                   If we were unable to split the node
  *                                   go back to looking for more collision
@@ -1481,8 +1521,10 @@ void PredictiveCollisions(Home_t *home)
                                      oldTag2 = node4->myTag;
 
                                      FoldBox(param, &pnew[0], &pnew[1], &pnew[2]);
-                                printf("%d 4.5 2\n", home->myDomain);
-
+                                printf("%d 4.5 2 ", home->myDomain);
+                                    PrintTag(node3);
+                                    PrintTag(node4);
+                                    printf("\n");
                                      splitStatus = SplitNode(home,
                                                             OPCLASS_COLLISION,
                                                             node3, pos0,
@@ -1490,8 +1532,17 @@ void PredictiveCollisions(Home_t *home)
                                                             newNodeVel, 1,
                                                             &arm34, globalOp,
                                                             &splitNode1,
-                                                            &splitNode2, 0);
-                                printf("%d 4.5 3\n", home->myDomain);
+                                                            &splitNode2, 0
+
+#if ENABLE_COMPLICATED_REACTION
+                                                            ,node3->inGrain, node3->onGB
+                                                            ,splitInGrain, splitOnGB
+#endif
+                                                                            );
+                                printf("%d 4.5 3", home->myDomain);
+                                PrintTag(splitNode1);
+                                PrintTag(splitNode2);
+                                printf("\n");
 /*
  *                                   If we were unable to split the node
  *                                   go back to looking for more collision
@@ -1702,12 +1753,17 @@ void PredictiveCollisions(Home_t *home)
                                     }
                                }
 
-                                printf("%d 9.5 \n", home->myDomain);
+                                printf("%d 9.5 ", home->myDomain);
+                                PrintTag(mergenode1);
+                                PrintTag(mergenode2);
+                                printf("\n");
                                MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                          mergenode2, newPos, &targetNode,
                                          &mergeStatus, globalOp);
     
-                                printf("%d 10.5 \n", home->myDomain);
+                                printf("%d 10.5 ", home->myDomain);
+                                PrintTag(targetNode);
+                                printf("\n");
 /*
  *                             If the merge did not succeed, go back and
  *                             continue looking for collision candidates.
@@ -1844,8 +1900,34 @@ void PredictiveCollisions(Home_t *home)
                         GetArmGrain(home, node1, node3, inGrain1, onGB1);
                         GetArmGrain(home, node1, node4, inGrain2, onGB2);
                                 
+#if ENABLE_COMPLICATED_REACTION
+                        splitInGrain = -1;
+                        splitOnGB = -1;
+                        if(onGB1 > -1 || onGB2 > -1){
+                            if(onGB1 == onGB2){
+                                splitOnGB = onGB1;
+                            }else{
+                                continue;
+                            }
+                        }else{
+                            if(inGrain1 == inGrain2){
+                                splitInGrain = inGrain1;
+                            }else{
+                                if(inGrain1 == -1 || inGrain2 == -1){
+                                    Fatal("in %s at %d", __FILE__, __LINE__);
+                                }
+                                if(GetPublicGB(home->grainKeys[inGrain1],
+                                   home->grainKeys[inGrain2], &gb)){
+                                   splitOnGB = gb->GBID;
+                                }else{
+                                    continue;
+                                }
+                            }
+                        }
+#else
                         if(onGB1 != onGB2)continue;
                         if(onGB1 == -1 && inGrain1 != inGrain2)continue;
+#endif
                     }
 
                     x1 = node1->x; y1 = node1->y; z1 = node1->z;
@@ -2012,7 +2094,12 @@ void PredictiveCollisions(Home_t *home)
                                                      nodeVel, newVel, 1,
                                                      &k, globalOp,
                                                      &splitNode1,
-                                                     &splitNode2, 0);
+                                                     &splitNode2, 0
+#if ENABLE_COMPLICATED_REACTION
+                                                     ,node1->inGrain, node1->onGB
+                                                     ,splitInGrain, splitOnGB
+#endif
+                                                                     );
 
                              if (splitStatus != SPLIT_SUCCESS) {
                                  continue;
