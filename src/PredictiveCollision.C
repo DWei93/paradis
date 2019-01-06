@@ -1197,7 +1197,6 @@ void PredictiveCollisions(Home_t *home)
                                 collisionConditionIsMet = 0;
                             }
 
-                            printf("%d 1\n", home->myDomain);
                             if (collisionConditionIsMet) {
 /*
  *                              Segments are unconnected and colliding.
@@ -1212,7 +1211,6 @@ void PredictiveCollisions(Home_t *home)
  *                              even if the collision point is close to 
  *                              that node.
  */
-                                printf("%d 2\n", home->myDomain);
                                 adjustCollisionPoint = 0;
 
                                 vec1[0] = cPoint[0] - p1[0];
@@ -1231,7 +1229,6 @@ void PredictiveCollisions(Home_t *home)
                                     continue;
                                 }
 
-                                printf("%d 2.5\n", home->myDomain);
                                 if (close2node1) {
                                     mergenode1 = node1;
                                     splitSeg1 = 0;
@@ -1249,7 +1246,6 @@ void PredictiveCollisions(Home_t *home)
  *                              segment, do it now.
  */
                                 if (splitSeg1) {
-                                printf("%d 3\n", home->myDomain);
                                      real8 pos0[3], pos1[3];
 
                                      newx = x1 * (1.0-L1) + x2*L1;
@@ -1303,11 +1299,6 @@ void PredictiveCollisions(Home_t *home)
 
                                      FoldBox(param, &pnew[0], &pnew[1], &pnew[2]);
 
-                                     printf("%d 4 %d", home->myDomain, node1->inGrain);
-                                     PrintTag(node1);
-                                     PrintTag(node2);
-                                     printf("\n");
-        
                                      splitStatus = SplitNode(home,
                                                              OPCLASS_COLLISION,
                                                              node1, pos0, pnew,
@@ -1321,21 +1312,14 @@ void PredictiveCollisions(Home_t *home)
                                                              ,splitInGrain, splitOnGB
 #endif
                                                                             );
-                                         
-                                     printf("%d 5", home->myDomain);
-                                     PrintTag(splitNode1);
-                                     PrintTag(splitNode2);
-                                     printf("\n");
 /*
  *                                   If we were unable to split the node
  *                                   go back to looking for more collision
  *                                   candidates.
  */
                                      if (splitStatus == SPLIT_FAILED) {
-                                     printf("%d 6\n", home->myDomain);
                                          continue;
                                      }
-                                     printf("%d 7\n", home->myDomain);
 
 /*
  *                                   The force estimates above are good enough
@@ -1423,7 +1407,6 @@ void PredictiveCollisions(Home_t *home)
                                      didCollision = 1;
 
                                 }  /* if (splitSeg1) */
-                                printf("%d 3.5\n", home->myDomain);
 
 /*
  *                              Identify the second node to be merged
@@ -1462,13 +1445,11 @@ void PredictiveCollisions(Home_t *home)
                                     splitSeg2 = 1;
                                 }
 
-                                printf("%d 4.5\n", home->myDomain);
 /*
  *                              If we need to add a new node to the second
  *                              segment, do it now.
  */
                                 if (splitSeg2) {
-                                printf("%d 4.5 1\n", home->myDomain);
                                      real8 pos0[3], pos1[3];
 
                                      newx = x3 * (1.0-L2) + x4*L2;
@@ -1521,10 +1502,6 @@ void PredictiveCollisions(Home_t *home)
                                      oldTag2 = node4->myTag;
 
                                      FoldBox(param, &pnew[0], &pnew[1], &pnew[2]);
-                                printf("%d 4.5 2 ", home->myDomain);
-                                    PrintTag(node3);
-                                    PrintTag(node4);
-                                    printf("\n");
                                      splitStatus = SplitNode(home,
                                                             OPCLASS_COLLISION,
                                                             node3, pos0,
@@ -1539,20 +1516,14 @@ void PredictiveCollisions(Home_t *home)
                                                             ,splitInGrain, splitOnGB
 #endif
                                                                             );
-                                printf("%d 4.5 3", home->myDomain);
-                                PrintTag(splitNode1);
-                                PrintTag(splitNode2);
-                                printf("\n");
 /*
  *                                   If we were unable to split the node
  *                                   go back to looking for more collision
  *                                   candidates.
  */
                                      if (splitStatus == SPLIT_FAILED) {
-                                printf("%d 4.5 4\n", home->myDomain);
                                          continue;
                                      }
-                                printf("%d 4.5 5\n", home->myDomain);
 /*
  *                                   The force estimates above are good enough
  *                                   for the remainder of this timestep, but
@@ -1564,7 +1535,6 @@ void PredictiveCollisions(Home_t *home)
  */
                                      mergenode2 = splitNode2;
 
-                                printf("%d 4.5 6\n", home->myDomain);
                                      MarkNodeForceObsolete(home, splitNode2);
     
                                      for (q = 0; q < splitNode2->numNbrs; q++) {
@@ -1628,10 +1598,8 @@ void PredictiveCollisions(Home_t *home)
                                          PrintNode(node4);
                                     }
 #endif
-                                printf("%d 4.5 7\n", home->myDomain);
                                 }  /* if (splitSeg2) */
     
-                                printf("%d 5.5 \n", home->myDomain);
     
 /*
  *                             If the initially selected collision point
@@ -1650,7 +1618,6 @@ void PredictiveCollisions(Home_t *home)
                                    newPos[2] = cPoint[2];
                                }
                                 
-                                printf("%d 6.5 \n", home->myDomain);
                                FoldBox(param, newPos, newPos+1, newPos+2);
     
 #ifdef _FEM
@@ -1690,7 +1657,6 @@ void PredictiveCollisions(Home_t *home)
                                oldTag1 = mergenode1->myTag;
                                oldTag2 = mergenode2->myTag;
                     
-                                printf("%d 7.5 \n", home->myDomain);
                                if(param->polycrystal){
                                     inGrain1 = -1;
                                     onGB1 = -1;
@@ -1753,17 +1719,10 @@ void PredictiveCollisions(Home_t *home)
                                     }
                                }
 
-                                printf("%d 9.5 ", home->myDomain);
-                                PrintTag(mergenode1);
-                                PrintTag(mergenode2);
-                                printf("\n");
                                MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                          mergenode2, newPos, &targetNode,
                                          &mergeStatus, globalOp);
     
-                                printf("%d 10.5 ", home->myDomain);
-                                PrintTag(targetNode);
-                                printf("\n");
 /*
  *                             If the merge did not succeed, go back and
  *                             continue looking for collision candidates.
@@ -1820,7 +1779,6 @@ void PredictiveCollisions(Home_t *home)
  *                                 planes for the segments attched to the
  *                                 collision node.
  */
-                                printf("%d 11.5 \n", home->myDomain);
                                    if(!IsOnGB(targetNode) && home->param->polycrystal){
                                         NodeLocation(home, targetNode->x, targetNode->y,
                                                      targetNode->z, inGrain1, onGB1);
@@ -1855,16 +1813,13 @@ void PredictiveCollisions(Home_t *home)
                                    targetNode->flags |= NO_COLLISIONS;
 #ifdef DEBUG_LOG_MULTI_NODE_SPLITS
                                    targetNode->multiNodeLife = 0;
-                                printf("%d 11.5 1\n", home->myDomain);
 #endif
                                }
     
                                didCollision = 1;
                                localCollisionCnt++;
-                                printf("%d 12.5 \n", home->myDomain);
 
                             }  /* If conditions for collision are met */
-                            printf("%d 100\n", home->myDomain);
                         }  /* Loop over node3 arms */
                     }  /* Loop over node1 arms */
                 }  /* while(nextIndex >= 0) */

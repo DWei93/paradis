@@ -2850,7 +2850,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     if(onGB0 > -1)continue;
 
 #if 1
-                    if(chain < 0){
+                    if(chain < 24){
                         ranNum = chain;
                         if(polycrystal){
                             if(chain < 12){

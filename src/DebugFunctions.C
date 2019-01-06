@@ -489,7 +489,7 @@ void DebugGB(Home_t *home, int flag){
 	param = home->param;
 
 //    if(flag >= 4 && flag == 5){
-	    printf("%d %d\n",home->myDomain, flag);
+//	    printf("%d %d\n",home->myDomain, flag);
 //    }
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
