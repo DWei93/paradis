@@ -189,6 +189,9 @@ static void MeshCoarsen(Home_t *home)
                        __FILE__, __LINE__);
                 continue;
             }
+            if(SurfaceNode(nbr1) && SurfaceNode(node) ||
+               SurfaceNode(nbr2) && SurfaceNode(node) ||
+               SurfaceNode(node) )continue;
 
 #if CROSS_SLIP_GB_MODEL
 #else
@@ -362,8 +365,6 @@ static void MeshCoarsen(Home_t *home)
                 continue;
             }
 
-            if(SurfaceNode(nbr1) && SurfaceNode(node) ||
-               SurfaceNode(nbr2) && SurfaceNode(node))continue;
 
 /*
  *          Check if the area of the triangle defined by node
@@ -492,7 +493,6 @@ static void MeshCoarsen(Home_t *home)
                     }
 
                     if(mergeDone == 1){
-
                         MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
                               &mergedNode, &mergeStatus, globalOp);
                         mergeDone = mergeStatus & MERGE_SUCCESS;
@@ -519,7 +519,7 @@ static void MeshCoarsen(Home_t *home)
                                     PrintNode(node);
                                     PrintNode(nbr2);
                                     printf("Warning in %s at %d, dis %f\n", 
-                                            __FILE__, __LINE__, Normal(vec1));
+                                            __FILE__, __LINE__, dis);
                                     continue;
                                 }
                             }else{
@@ -1118,10 +1118,19 @@ static void MeshRefine(Home_t *home)
 				
 			        }
 
+                    if(nbr->myTag.domainID != thisDomain){
+                        printf("MR: ");
+                        PrintTag(node);
+                        PrintTag(nbr);
+                    }
+
                     didBisect = TrySegBisect(home, &node, nbr, armID, segLen,
                                              vec, area2, areaMax2, darea2dt,
                                              splitIsOK, didBisect);
 
+                    printf("--");
+                    PrintTag(node);
+                    printf("\n");
                     localRefineCnt += didBisect;
 
                 }  /* for (seg = 0; seg < 2; ...) */
@@ -1344,12 +1353,10 @@ void RemeshRule_2(Home_t *home)
         dbgDom = -1;
 #endif
 
-        DebugGB(home, 301);
+        DebugGB(home, 501);
         MeshCoarsen(home);
-        DebugGB(home, 302);
+        DebugGB(home, 502);
         MeshRefine(home);
-        DebugGB(home, 302);
-		
-
+        DebugGB(home, 502);
         return;
 }

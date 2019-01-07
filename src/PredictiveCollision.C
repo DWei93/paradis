@@ -1072,6 +1072,12 @@ void PredictiveCollisions(Home_t *home)
                                 if(onGB1 > -1 || onGB2 > -1){
                                     if(onGB1 == onGB2){
                                         splitOnGB = onGB1;
+                                    }else if(onGB1 > -1 && onGB2 > -1){
+                                        continue;
+                                    }else if(onGB1 > -1){
+                                        splitOnGB = onGB1;
+                                    }else if(onGB2 > -1){
+                                        splitOnGB = onGB2;
                                     }else{
                                         continue;
                                     }
@@ -1406,8 +1412,7 @@ void PredictiveCollisions(Home_t *home)
  */
                                      didCollision = 1;
 
-                                }  /* if (splitSeg1) */
-
+                                }          /* if (splitSeg1) */
 /*
  *                              Identify the second node to be merged
  *
@@ -1658,6 +1663,11 @@ void PredictiveCollisions(Home_t *home)
                                oldTag2 = mergenode2->myTag;
                     
                                if(param->polycrystal){
+#if ENABLE_COMPLICATED_REACTION
+                                    inGrain1 = splitInGrain;
+                                    onGB1 = splitOnGB;
+#else
+
                                     inGrain1 = -1;
                                     onGB1 = -1;
                                     if(mergenode1->inGrain != mergenode2->inGrain){
@@ -1679,6 +1689,7 @@ void PredictiveCollisions(Home_t *home)
                                         GetArmGrain(home, mergenode1, mergenode2,
                                                     inGrain1, onGB1);
                                     }
+#endif
 
                                     NodeLocation(home, newPos[0], newPos[1], newPos[2],
                                                  inGrain2, onGB2);
@@ -1692,6 +1703,7 @@ void PredictiveCollisions(Home_t *home)
                                         vec1[1] -= vec2[1];
                                         vec1[2] -= vec2[2];
                                         ZImage(param, vec1, vec1+1, vec1+2);
+
                                         if(Normal(vec1) > 5){
                                             PrintNode(mergenode1);
                                             PrintNode(mergenode2);
@@ -1721,7 +1733,12 @@ void PredictiveCollisions(Home_t *home)
 
                                MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                          mergenode2, newPos, &targetNode,
-                                         &mergeStatus, globalOp);
+                                         &mergeStatus, globalOp
+#if ENABLE_COMPLICATED_REACTION
+                                         ,splitInGrain, splitOnGB
+#endif
+
+                                        );
     
 /*
  *                             If the merge did not succeed, go back and
@@ -1861,6 +1878,12 @@ void PredictiveCollisions(Home_t *home)
                         if(onGB1 > -1 || onGB2 > -1){
                             if(onGB1 == onGB2){
                                 splitOnGB = onGB1;
+                            }else if(onGB1 > -1 && onGB2 > -1){
+                                continue;
+                            }else if(onGB1 > -1){
+                                splitOnGB = onGB1;
+                            }else if(onGB2 > -1){
+                                splitOnGB = onGB2;
                             }else{
                                 continue;
                             }
@@ -2180,6 +2203,10 @@ void PredictiveCollisions(Home_t *home)
                         oldTag2 = mergenode2->myTag;
 
                         if(param->polycrystal){
+#if ENABLE_COMPLICATED_REACTION
+                             inGrain1 = splitInGrain;
+                             onGB1 = splitOnGB;
+#else
                              inGrain1 = -1;
                              onGB1 = -1;
                              if(mergenode1->inGrain != mergenode2->inGrain){
@@ -2201,6 +2228,7 @@ void PredictiveCollisions(Home_t *home)
                                  GetArmGrain(home, mergenode1, mergenode2,
                                              inGrain1, onGB1);
                              }
+#endif
 
                              NodeLocation(home, newPos[0], newPos[1], newPos[2],
                                           inGrain2, onGB2);
@@ -2243,7 +2271,11 @@ void PredictiveCollisions(Home_t *home)
 
                         MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                   mergenode2, newPos, &targetNode,
-                                  &mergeStatus, globalOp);
+                                  &mergeStatus, globalOp
+#if ENABLE_COMPLICATED_REACTION
+                                  , splitInGrain, splitOnGB
+#endif
+                                 );
 
                         localCollisionCnt++;
 

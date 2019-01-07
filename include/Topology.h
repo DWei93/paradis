@@ -57,7 +57,8 @@
 int    EvaluateMobility(Home_t *home, Node_t *nodeA);
 int    InitTopologyExemptions(Home_t *home);
 void   MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
-           real8 *position, Node_t **mergedNode, int *status, int globalOp);
+           real8 *position, Node_t **mergedNode, int *status, int globalOp,
+           int inGrain = -1, int onGB = -1);
 int    NodeTopologyExemptions(Home_t *home, Node_t *node);
 int    RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp);
 void   RemoveOrphanedNodes(Home_t *home);
@@ -79,7 +80,7 @@ void   GetForcesFromBkup(Home_t *home, Node_t *node, Node_t *bkupNodeList);
 void   RestoreNode(Home_t *home, Node_t *origNode, Node_t *bkupNode);
 
 void DebugMergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
-               real8 *position, Node_t **mergedNode, int *status, int globalOp);
+                    real8 *position, Node_t **mergedNode, int *status, int globalOp);
 int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
                      int inGrain, int onGB, real8 pos[3], real8  burg[3], real8 normal[3],
                      Node_t **newNodePtr);

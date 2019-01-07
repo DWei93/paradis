@@ -2538,7 +2538,8 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
  *
  *-------------------------------------------------------------------------*/
 void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
-               real8 *position, Node_t **mergedNode, int *status, int globalOp)
+               real8 *position, Node_t **mergedNode, int *status, int globalOp,
+               int  inGrain, int onGB)
 {
 	int		i,sameGrain=0;
 	int     armID, armID1, armID2, thisDomain; 
@@ -2697,6 +2698,11 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
     if(IsOnGB(deadNode)){
         targetNode->inGrain = deadNode->inGrain;
         targetNode->onGB = deadNode->onGB;
+    }
+
+    if(inGrain != -1 || onGB != -1){
+        targetNode->inGrain = inGrain;
+        targetNode->onGB = onGB;
     }
 	
 	if ((targetNode->myTag.domainID == thisDomain)) {

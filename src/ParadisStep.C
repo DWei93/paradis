@@ -438,7 +438,7 @@ void ParadisStep(Home_t *home)
         FixRemesh(home, "Collision");
         TimerStop(home, COL_FIX_REMESH);
 		
-        DebugGB(home,5);
+        DebugGB(home,6);
 
 #ifdef _FEM
 	AdjustNodePosition(home, 1); 
@@ -477,8 +477,9 @@ void ParadisStep(Home_t *home)
 /*
  *      Invoke mesh coarsen/refine
  */
+        DebugGB(home,7);
         Remesh(home);
-        DebugGB(home,6);
+        DebugGB(home,8);
 
 
 #if CHECK_GB_TOPO
@@ -487,7 +488,7 @@ void ParadisStep(Home_t *home)
 /*
  *      Define load curve and calculate change in applied stress this cycle
  */
-        DebugGB(home,7);
+        DebugGB(home,9);
         LoadCurve(home, deltaStress);
 		
 
@@ -502,7 +503,7 @@ void ParadisStep(Home_t *home)
  */
         ApplyDeltaStress(home, deltaStress);
 
-        DebugGB(home,9);
+        DebugGB(home,10);
 /*
  *      If necessary, use the current load data to generate a new
  *      domain decomposition to rebalance the workload among the
