@@ -476,19 +476,19 @@ static void AdvanceAllNodes(Home_t *home, real8 oldDT)
 		if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
 
 /*
- *              If we don't have a value for the previous velocity, assume
- *              previous velocity was same as current velocity.
+ *      If we don't have a value for the previous velocity, assume
+ *      previous velocity was same as current velocity.
  */
-                if ((node->oldvX == 0.0) && (node->oldvY == 0.0) &&
-                    (node->oldvZ == 0.0)) {
-                    node->oldvX = node->currvX;
-                    node->oldvY = node->currvY;
-                    node->oldvZ = node->currvZ;
-                }
+        if ((node->oldvX == 0.0) && (node->oldvY == 0.0) &&
+            (node->oldvZ == 0.0)) {
+            node->oldvX = node->currvX;
+            node->oldvY = node->currvY;
+            node->oldvZ = node->currvZ;
+        }
 
-                x = node->oldx + 0.5 * (node->currvX + node->oldvX) * currDT;
-                y = node->oldy + 0.5 * (node->currvY + node->oldvY) * currDT;
-                z = node->oldz + 0.5 * (node->currvZ + node->oldvZ) * currDT;
+        x = node->oldx + 0.5 * (node->currvX + node->oldvX) * currDT;
+        y = node->oldy + 0.5 * (node->currvY + node->oldvY) * currDT;
+        z = node->oldz + 0.5 * (node->currvZ + node->oldvZ) * currDT;
 
 		FoldBox(param, &x, &y, &z);
         
@@ -504,16 +504,16 @@ static void AdvanceAllNodes(Home_t *home, real8 oldDT)
 
 	while (node) {
 
-                if ((node->oldvX == 0.0) && (node->oldvY == 0.0) &&
-                    (node->oldvZ == 0.0)) {
-                    node->oldvX = node->currvX;
-                    node->oldvY = node->currvY;
-                    node->oldvZ = node->currvZ;
-                }
+        if ((node->oldvX == 0.0) && (node->oldvY == 0.0) &&
+            (node->oldvZ == 0.0)) {
+            node->oldvX = node->currvX;
+            node->oldvY = node->currvY;
+            node->oldvZ = node->currvZ;
+        }
 
-                x = node->oldx + 0.5 * (node->currvX + node->oldvX) * currDT;
-                y = node->oldy + 0.5 * (node->currvY + node->oldvY) * currDT;
-                z = node->oldz + 0.5 * (node->currvZ + node->oldvZ) * currDT;
+        x = node->oldx + 0.5 * (node->currvX + node->oldvX) * currDT;
+        y = node->oldy + 0.5 * (node->currvY + node->oldvY) * currDT;
+        z = node->oldz + 0.5 * (node->currvZ + node->oldvZ) * currDT;
 
 		FoldBox(param,&x,&y,&z);
         
@@ -877,11 +877,6 @@ void TrapezoidIntegrator(Home_t *home)
  *               can we live with the results until the next cycle???
  */
         AdjustNodePosition(home, 1);
-#endif
-		
-#if 1
-		
-
 #endif
 		
         return;

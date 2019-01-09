@@ -352,6 +352,9 @@ void ParadisStep(Home_t *home)
 
         }
 
+#if CHECK_GB_TOPO
+            GenerateOutput(home, STAGE_DEBUG, "-6HG");
+#endif
         DebugGB(home,23);
 
 /*
@@ -463,7 +466,7 @@ void ParadisStep(Home_t *home)
         }
 
 #if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-2Collision");
+//        GenerateOutput(home, STAGE_DEBUG, "-2Collision");
 #endif
 /*
  *      If memory debugging is enabled, run a consistency check on all
@@ -483,7 +486,7 @@ void ParadisStep(Home_t *home)
 
 
 #if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-3Remesh");
+//        GenerateOutput(home, STAGE_DEBUG, "-3Remesh");
 #endif
 /*
  *      Define load curve and calculate change in applied stress this cycle

@@ -56,11 +56,11 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 	real8   normCrystal[3][3];
 	
 	real8   velocity,directionV[3];
-
 	real8	forceGB[3];
 	Node_t  *nbrNode;
 	int	nodeType;
 	Param_t *param;
+    bool    zeroLenJunc;
 
 	param  = home->param;
 
@@ -138,7 +138,7 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
  *  Get the normal for the first segment in both the lab and crystal frames
  */
     GetGlideConstraintList(home, node, 
-                           &numGlideConstraints, glideConstraints);
+                           &numGlideConstraints, glideConstraints, zeroLenJunc);
 
 /*
  *  Glide constraints have been set, now initialize the velocity

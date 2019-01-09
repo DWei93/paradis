@@ -3042,26 +3042,19 @@ void RepositionNode(Home_t *home, real8 newPos[3], Tag_t *tag, int globalOp)
 
         if (node != (Node_t *)NULL) {
 
-	    if(node->constraint >= 1 && node->constraint <= 3){
-	        real8	vec[3], nSurf[3];
+	        real8	vec[3];
 
 	        vec[0] = node->x - newPos[0];
 	        vec[1] = node->y - newPos[1];
 	        vec[2] = node->z - newPos[2];
+            ZImage(home->param, vec, vec+1, vec+2);
 	        NormalizeVec(vec);
-
-	        nSurf[0] = (node->constraint==1);
-	        nSurf[1] = (node->constraint==2);
-	        nSurf[2] = (node->constraint==3);
-#if 0
-	        if(fabs(DotProduct(vec,nSurf)) > 1e-5){
-	            PrintNode(node);
-	            FormatVector(newPos,"newPos");
-	            printf("Warning: the surface ndoe move to inner\n");
-	        }
-#endif
-
-	    }
+            
+            if(Normal(vec) > 500){
+                PrintTag(node);
+                printf("Warning: task %d, the node new pos is {%f,%f,%f}, dis %f\n",
+                      home->myDomain, newPos[0], newPos[1], newPos[2], Normal(vec));
+            }
 
             node->x = newPos[0];
             node->y = newPos[1];
@@ -4230,6 +4223,7 @@ int NodeHasSessileBurg(Home_t *home, Node_t *node)
 void GetGlideConstraintList(Home_t *home, Node_t *node,
                             int *numGlideConstraints,
                             real8 (*glideConstraints)[3], 
+                            bool &zeroLenJunc,
                             bool GBconstrict, 
                             real8 negPlaneX,
                             real8 negPlaneY,
@@ -4244,6 +4238,7 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
         bool    neglectful = 0;
         Node_t  *nbr;
 
+        zeroLenJunc = 0;
         numConstraints = 0;
         VECTOR_ZERO(glideConstraints[0]);
         VECTOR_ZERO(glideConstraints[1]);
@@ -4288,12 +4283,18 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                     if((planeType & JUNCTION_PLANE1) > 0 ||
                        (planeType & JUNCTION_PLANE2) > 0 ||
                        (planeType & UNKOWN_PLANE) > 0){
-                        junctionConstraint = 1;
                         lDir[0] = nbr->x - node->x;
                         lDir[1] = nbr->y - node->y;
                         lDir[2] = nbr->z - node->z;
                         ZImage(home->param, lDir, lDir+1, lDir+2);
-                        NormalizeVec(lDir);
+                        if(Normal(lDir) > 1E-10){
+                            NormalizeVec(lDir);
+                            junctionConstraint = 1;
+                        }else{
+                            zeroLenJunc = 1;    
+                            *numGlideConstraints = 3;
+                            return;
+                        }
                     }
                 }
 	        }else{
@@ -4348,7 +4349,6 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                     break;
 
                 case 1:
-#if 1
                     NormalizeVec(glidePlane);
 
                     cross(glideConstraints[0], glidePlane, glideConstraints[2]);
@@ -4357,36 +4357,9 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                         NormalizeVec(glideConstraints[2]);
                         VECTOR_COPY(glideConstraints[1],glidePlane); 
                         numConstraints = 2;
+                    }else{
+                        VECTOR_ZERO(glideConstraints[2]);
                     }
-#else
-                    temp = glideConstraints[0][0] * glidePlane[0] +
-                           glideConstraints[0][1] * glidePlane[1] +
-                           glideConstraints[0][2] * glidePlane[2];
-
-                    testVal = 1.0 - fabs(temp) / gpNormal;
-
-                    if (testVal > eps) { // the second glide plane
-                        dpnnm = (glidePlane[0] * glideConstraints[0][0] +
-                                glidePlane[1] * glideConstraints[0][1] +
-                                glidePlane[2] * glideConstraints[0][2]);
-
-                        glideConstraints[1][0] = glidePlane[0] -
-                                                 dpnnm * glideConstraints[0][0];
-                        glideConstraints[1][1] = glidePlane[1] -
-                                                 dpnnm * glideConstraints[0][1];
-                        glideConstraints[1][2] = glidePlane[2] -
-                                                 dpnnm * glideConstraints[0][2];
-
-                        Normalize(&glideConstraints[1][0],
-                                  &glideConstraints[1][1],
-                                  &glideConstraints[1][2]);
-
-                        cross(glideConstraints[0], glideConstraints[1],
-                              glideConstraints[2]);
-                        NormalizeVec(glideConstraints[2]);
-                        numConstraints = 2;
-                    }
-#endif
                     break;
 
                 case 2:

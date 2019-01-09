@@ -292,6 +292,16 @@ int LineLineIntersection(double *d1, double *p1, double *d2, double *p2,
 
     VECTOR_ZERO(vec1);
     VECTOR_ZERO(vec2);
+
+    if(SQUARE(d1x) + SQUARE(d1y) + SQUARE(d1z) < EPS1*EPS1){
+        FatalMath("LineLineIntersection: line direction is zero L1\n");
+        return(NO_INTERSECTION);
+    }
+    if(SQUARE(d2x) + SQUARE(d2y) + SQUARE(d2z) < EPS1*EPS1){
+        FatalMath("LineLineIntersection: line direction is zero L2\n");
+        return(NO_INTERSECTION);
+    }
+
     if(fabs(1.0-fabs(d1x*d2x+d1y*d2y+d1z*d2z)) < EPS1){
         if(PointLineIntersection(p1, d2, p2, vec2, dis) == POINT_INTERSECTION){
             VECTOR_COPY(vec1, d1);

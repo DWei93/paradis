@@ -1217,10 +1217,11 @@ int AdjustNodeDirection(Home_t *home, Node_t *node, real8 *vec){
 
     int 	NM;
     real8 	GC[3][3];
+    bool    zeroLenJunc;
 
 	NM = 0;
 
-	GetGlideConstraintList(home, node, &NM, GC);
+	GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc);
 	ApplyConstraintsToVelocity(NM, GC, vec);
 
 	return(NM);
@@ -1278,8 +1279,10 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
     GB_t        *gb;
     Grain_t     *grain;
     Plane_t     plane;
-    NM = 0;
+    bool        zeroLenJunc;    
 
+    NM = 0;
+   
     param = home->param;
 
     if(param->polycrystal == 0){
@@ -1342,12 +1345,12 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
 
     NormalizeVec(vec);
     VECTOR_COPY(vec1, vec);
-	GetGlideConstraintList(home, node, &NM, GC, 0, 
+	GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc, 0, 
                            plane.normal[0], plane.normal[1],
                            plane.normal[2]);
 	ApplyConstraintsToVelocity(NM, GC, vec);
 
-    if(Normal(vec) < 1.0E-6 && node->constraint != 7){
+    if(Normal(vec) < 1.0E-6 && node->constraint != 7 && zeroLenJunc != 1){
         while(NM >= 0){
             NM--;
             VECTOR_COPY(vec, vec1);
@@ -1756,6 +1759,7 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
     real8   glideConstraintsNode1[3][3], glideConstraintsNode2[3][3]; 
     real8   p1[3], p2[3], dis;
     real8   direction1[3], direction2[3];
+    bool    zeroLenJunc1, zeroLenJunc2;
     
     VECTOR_ZERO(vec1);
     VECTOR_ZERO(vec2);
@@ -1770,9 +1774,9 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
     PBCPOSITION(home->param, p1[0], p1[1], p1[2], p2, p2+1, p2+2);
 
     GetGlideConstraintList(home, node1, 
-                           &numGlideConstraintsNode1, glideConstraintsNode1);
+                           &numGlideConstraintsNode1, glideConstraintsNode1, zeroLenJunc1);
     GetGlideConstraintList(home, node2, 
-                           &numGlideConstraintsNode2, glideConstraintsNode2);
+                           &numGlideConstraintsNode2, glideConstraintsNode2, zeroLenJunc2);
     
     switch (numGlideConstraintsNode1){
         case 1:

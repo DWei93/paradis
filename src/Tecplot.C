@@ -361,11 +361,11 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 	            }else{
 #if CHECK_GB_TOPO
                     fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %d\n", 
-                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,armInGrain,armOnGB,burgID,normalID,constraint,
+                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,constraint,
                             index, node->myTag.domainID, node->myTag.index);
 #else
                     fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %d\n", 
-                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,armInGrain,armOnGB,burgID,normalID,constraint,
+                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,constraint,
                             index, node->myTag.domainID, node->myTag.index);
 #endif
 	        }

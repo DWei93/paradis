@@ -1666,6 +1666,17 @@ void PredictiveCollisions(Home_t *home)
 #if ENABLE_COMPLICATED_REACTION
                                     inGrain1 = splitInGrain;
                                     onGB1 = splitOnGB;
+
+                                    if(IsOnGB(mergenode1) || IsOnGB(mergenode2)){
+                                        inGrain1 = -1;
+                                
+                                        if(IsOnGB(mergenode1)){
+                                            onGB1 = mergenode1->onGB;
+                                            if(IsOnGB(mergenode2) && mergenode1->onGB != mergenode2->onGB)continue;
+                                        }else{
+                                            onGB1 = mergenode2->onGB;
+                                        } 
+                                    }
 #else
 
                                     inGrain1 = -1;
@@ -1716,6 +1727,7 @@ void PredictiveCollisions(Home_t *home)
                                         newPos[2] = vec2[2] + 0.5*vec1[2];
                                     }else{
                                         if(onGB1 == -1 && inGrain1 != inGrain2){
+
                                             AdjustSplitedNodePosition(home, mergenode1, newPos, vec1);
                                             AdjustSplitedNodePosition(home, mergenode2, newPos, vec2);
 
@@ -1735,7 +1747,7 @@ void PredictiveCollisions(Home_t *home)
                                          mergenode2, newPos, &targetNode,
                                          &mergeStatus, globalOp
 #if ENABLE_COMPLICATED_REACTION
-                                         ,splitInGrain, splitOnGB
+                                         ,inGrain1, onGB1
 #endif
 
                                         );
@@ -1800,8 +1812,9 @@ void PredictiveCollisions(Home_t *home)
                                         NodeLocation(home, targetNode->x, targetNode->y,
                                                      targetNode->z, inGrain1, onGB1);
                                         if(inGrain1 != targetNode->inGrain){
-                                            Fatal("There are something wrong in %s at %d",
-                                                   __FILE__, __LINE__);
+                                            PrintNode(targetNode);
+                                            Fatal("There is something wrong in %s at %d %d - 1",
+                                                   __FILE__, __LINE__, mergeStatus);
                                         } 
                                    }
 
@@ -2204,30 +2217,41 @@ void PredictiveCollisions(Home_t *home)
 
                         if(param->polycrystal){
 #if ENABLE_COMPLICATED_REACTION
-                             inGrain1 = splitInGrain;
-                             onGB1 = splitOnGB;
+                            inGrain1 = splitInGrain;
+                            onGB1 = splitOnGB;
+                            
+                            if(IsOnGB(mergenode1) || IsOnGB(mergenode2)){
+                                inGrain1 = -1;
+
+                                if(IsOnGB(mergenode1)){
+                                    onGB1 = mergenode1->onGB;
+                                    if(IsOnGB(mergenode2) && mergenode1->onGB != mergenode2->onGB)continue;
+                                }else{
+                                    onGB1 = mergenode2->onGB;
+                                } 
+                            }
 #else
-                             inGrain1 = -1;
-                             onGB1 = -1;
-                             if(mergenode1->inGrain != mergenode2->inGrain){
-                                 if(IsOnGB(mergenode1) && IsOnGB(mergenode2) 
-                                    && mergenode1->onGB != mergenode2->onGB){
-                                     Fatal("in %s at %d", __FILE__, __LINE__);
-                                 }
+                            inGrain1 = -1;
+                            onGB1 = -1;
+                            if(mergenode1->inGrain != mergenode2->inGrain){
+                                if(IsOnGB(mergenode1) && IsOnGB(mergenode2) 
+                                   && mergenode1->onGB != mergenode2->onGB){
+                                    Fatal("in %s at %d", __FILE__, __LINE__);
+                                }
 
-                                 if(IsOnGB(mergenode1)){
-                                     onGB1 = mergenode1->onGB;
-                                 }else if(IsOnGB(mergenode2)){
-                                     onGB1 = mergenode2->onGB;
-                                 }else{
-                                     GetArmGrain(home, mergenode1, mergenode2,
-                                                 inGrain1, onGB1);
-                                 }
+                                if(IsOnGB(mergenode1)){
+                                    onGB1 = mergenode1->onGB;
+                                }else if(IsOnGB(mergenode2)){
+                                    onGB1 = mergenode2->onGB;
+                                }else{
+                                    GetArmGrain(home, mergenode1, mergenode2,
+                                                inGrain1, onGB1);
+                                }
 
-                             }else{
-                                 GetArmGrain(home, mergenode1, mergenode2,
-                                             inGrain1, onGB1);
-                             }
+                            }else{
+                                GetArmGrain(home, mergenode1, mergenode2,
+                                            inGrain1, onGB1);
+                            }
 #endif
 
                              NodeLocation(home, newPos[0], newPos[1], newPos[2],
@@ -2273,7 +2297,7 @@ void PredictiveCollisions(Home_t *home)
                                   mergenode2, newPos, &targetNode,
                                   &mergeStatus, globalOp
 #if ENABLE_COMPLICATED_REACTION
-                                  , splitInGrain, splitOnGB
+                                  , inGrain1, onGB1
 #endif
                                  );
 
@@ -2291,7 +2315,8 @@ void PredictiveCollisions(Home_t *home)
                                  NodeLocation(home, targetNode->x, targetNode->y,
                                               targetNode->z, inGrain1, onGB1);
                                  if(inGrain1 != targetNode->inGrain){
-                                     Fatal("There are something wrong in %s at %d",
+                                     PrintNode(targetNode);
+                                     Fatal("There is something wrong in %s at %d - 2",
                                             __FILE__, __LINE__);
                                  } 
                             }

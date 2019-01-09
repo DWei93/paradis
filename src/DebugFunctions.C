@@ -538,6 +538,24 @@ void DebugGB(Home_t *home, int flag){
                 PrintNode(nbr);
                 Fatal("Task %d, flag %d\n", home->myDomain, flag);
             }
+
+            if(!(!SurfaceNode(node) && SurfaceNode(nbr)))continue;
+            vec[0] = nbr->x - node->x; 
+            vec[1] = nbr->y - node->y; 
+            vec[2] = nbr->z - node->z; 
+            ZImage(home->param, vec, vec+1, vec+2);
+            if(Normal(vec) < 1E-5)continue;
+
+            NormalizeVec(vec);
+
+            if(fabs(DotProduct(vec, vec1)) > 0.1){
+                PrintTag(node);
+                PrintTag(nbr);
+                printf("Warning: task %d, wrong surface seg, flag %d\n", home->myDomain, flag);
+            }
+
+            
+
 #if 0
             vec2[0] = nbr->x;
             vec2[1] = nbr->y;

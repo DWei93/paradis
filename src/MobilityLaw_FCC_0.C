@@ -51,6 +51,8 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
     MobScrew = param->MobScrew;
     MobEdge  = param->MobEdge;
     MobTwinning = param->MobTwinning;
+
+    bool zeroLenJunc;
 	
     nc = node->numNbrs;
 	
@@ -176,10 +178,23 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
 	nVel[1] = nForce[1]/LtimesB;
 	nVel[2] = nForce[2]/LtimesB;
 
-	GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints);
+	GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints, zeroLenJunc);
 
 	ApplyConstraintsToVelocity(numGlideConstraints,
 				    glideConstraints, nVel);
+
+    if(Normal(nVel) > 1E-10 && SurfaceNode(node)){
+        real8   vec[3], nor[3];
+        VECTOR_ZERO(nor);
+        nor[node->constraint-1] = 1.0;
+        VECTOR_COPY(vec, nVel);
+        NormalizeVec(vec);
+        if(fabs(DotProduct(vec, nor)) > 0.01){
+            FormatMatrix(glideConstraints, "glideConstraints");
+            Fatal("in Mobility %d", numGlideConstraints);
+        }   
+    }
+
 #if 0
 	if (param->uselabframe) {
 	    int   gindex;
@@ -246,7 +261,6 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
 	node->vX = nVel[0];
 	node->vY = nVel[1];
 	node->vZ = nVel[2];
-
 
 	if(SurfaceNode(node))factor = 20.0;
 	    

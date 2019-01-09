@@ -2683,6 +2683,41 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 		}
 	}
 
+    if(inGrain == -1 && onGB == -1){
+        if(IsOnGB(deadNode)){
+            inGrain = deadNode->inGrain;
+            onGB = deadNode->onGB;
+        }else{
+            inGrain = targetNode->inGrain;
+            onGB = targetNode->onGB;
+        }
+    }
+
+	if((targetNode->myTag.domainID != thisDomain)) {
+        int     currInGrain, currOnGB;
+
+        if(targetNode->inGrain != inGrain 
+            || targetNode->onGB != onGB){
+
+	        *status = MERGE_NOT_PERMITTED;
+            return;
+        }
+
+        NodeLocation(home, targetNode->x, targetNode->y, targetNode->z,
+                     currInGrain, currOnGB);
+        if(onGB > -1){
+            if(currOnGB != onGB){
+	            *status = MERGE_NOT_PERMITTED;
+                return;
+            }
+        }else{
+            if(inGrain != currInGrain){
+	            *status = MERGE_NOT_PERMITTED;
+                return;
+            }
+        }
+    }
+
 /*
  *  We've made it past all the checks that would have prevented the
  *  merge operation from being performed.  The target and dead nodes
@@ -2695,15 +2730,8 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	*mergedNode = targetNode;
 	*status = MERGE_SUCCESS;
    
-    if(IsOnGB(deadNode)){
-        targetNode->inGrain = deadNode->inGrain;
-        targetNode->onGB = deadNode->onGB;
-    }
-
-    if(inGrain != -1 || onGB != -1){
-        targetNode->inGrain = inGrain;
-        targetNode->onGB = onGB;
-    }
+    targetNode->inGrain = inGrain;
+    targetNode->onGB = onGB;
 	
 	if ((targetNode->myTag.domainID == thisDomain)) {
 	    if(targetNode->constraint == UNCONSTRAINED){
@@ -2711,21 +2739,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	        targetNode->y = position[1];
 	        targetNode->z = position[2];
 	
-	    }else if(SurfaceNode(targetNode)){
-            int     type;
-            real8   vec1[3], vec2[3], vec3[3], dis;
-
-            VECTOR_ZERO(vec1);
-            vec1[targetNode->constraint-1] = 1.0;
-
-            vec2[0] = targetNode->x;
-            vec2[1] = targetNode->y;
-            vec2[2] = targetNode->z;
-
-            type = PointPlaneIntersection(position, vec1, vec2, vec3, &dis);
-
-            VECTOR_COPY(position, vec3);    
-        }
+	    }
 /*
  *      If we're updating the location of the target node, we may
  *      have to communicate the new position to remote domains.
@@ -2832,10 +2846,10 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
  */
 	if (targetNode->numNbrs == 0) {
 	    if (targetNode->myTag.domainID == thisDomain) {
-		RemoveNode(home, targetNode, globalOp);
-		*mergedNode = (Node_t *)NULL;
+		    RemoveNode(home, targetNode, globalOp);
+		    *mergedNode = (Node_t *)NULL;
 	    } else {
-		*status |= MERGE_NODE_ORPHANED;
+		    *status |= MERGE_NODE_ORPHANED;
 	    }
 	}
 

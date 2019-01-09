@@ -470,7 +470,7 @@ static void MeshCoarsen(Home_t *home)
  */
                 if ((nbr1->flags & NO_MESH_COARSEN) == 0 &&
                     !(violateGlidePlanesOK==1 && r1 >= 1.0 && 
-                    IsOnGB(node) && IsOnGB(nbr2) && !IsOnGB(nbr1))) {
+                    IsOnGB(node) && IsOnGB(nbr2) && !IsOnGB(nbr1))){
                     newPos[0] = nbr1->x;
                     newPos[1] = nbr1->y;
                     newPos[2] = nbr1->z;
@@ -1118,19 +1118,9 @@ static void MeshRefine(Home_t *home)
 				
 			        }
 
-                    if(nbr->myTag.domainID != thisDomain){
-                        printf("MR: ");
-                        PrintTag(node);
-                        PrintTag(nbr);
-                    }
-
                     didBisect = TrySegBisect(home, &node, nbr, armID, segLen,
                                              vec, area2, areaMax2, darea2dt,
                                              splitIsOK, didBisect);
-
-                    printf("--");
-                    PrintTag(node);
-                    printf("\n");
                     localRefineCnt += didBisect;
 
                 }  /* for (seg = 0; seg < 2; ...) */
