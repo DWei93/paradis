@@ -2949,12 +2949,13 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
                     VECTOR_COPY(glidePlane, bd->planeList[normalID]);
                     break;
                 }
-            }
-            if(times >= 100){
-                VECTOR_COPY(glidePlane, burg);
-                NormalizeVec(glidePlane);
-                printf("Warning in %s at %d: chose a non-glide plane\n", __FILE__, __LINE__);
-                return;
+
+                if(times >= 100){
+                    VECTOR_COPY(glidePlane, burg);
+                    NormalizeVec(glidePlane);
+                    printf("Warning in %s at %d: chose a non-glide plane\n", __FILE__, __LINE__);
+                    return;
+                }
             }
             return;
         }else{
@@ -2985,7 +2986,9 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
             printf("Warning: can not find a glide plane without burgID\n");
             return;
         }else{
+            times = 0;
             while(normalID == -1){
+                times++;
                 normalID = bd->burgOnPlaneID[burgID][rand()%bd->numPlanesPerBurg[burgID]];
                 if(burgType == BASIC_BURG){
                     if((bd->planeType[normalID] & GLIDE_PLANE) == 0){
@@ -2998,6 +3001,12 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
                 }else{
                     VECTOR_COPY(glidePlane, bd->planeList[normalID]);
                     break;
+                }
+                if(times >= 100){
+                    VECTOR_COPY(glidePlane, burg);
+                    NormalizeVec(glidePlane);
+                    printf("Warning in %s at %d: chose a non-glide plane\n", __FILE__, __LINE__);
+                    return;
                 }
             }
         }

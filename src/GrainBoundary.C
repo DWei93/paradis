@@ -1907,6 +1907,9 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
 	        RepositionNode(home, newPos, &node->myTag, globalOp);
             return;
         }
+#if ENABLE_COMPLICATED_REACTION	
+        continue;
+#endif
 
         if(nbrInGrain[i].size() <= 2)continue;
 
