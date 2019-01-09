@@ -312,7 +312,7 @@ void ParadisStep(Home_t *home)
         DebugGB(home,19);
 
 #if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-4Trap");
+        GenerateOutput(home, STAGE_DEBUG, "-5Trap");
 #endif
 
         DebugGB(home,20);
@@ -332,7 +332,7 @@ void ParadisStep(Home_t *home)
             FixRemesh(home, "Surface");
             TimerStop(home, FIX_FS);
 #if CHECK_GB_TOPO
-            GenerateOutput(home, STAGE_DEBUG, "-5FS");
+            GenerateOutput(home, STAGE_DEBUG, "-6FS");
 #endif
         }
 
@@ -352,9 +352,6 @@ void ParadisStep(Home_t *home)
 
         }
 
-#if CHECK_GB_TOPO
-            GenerateOutput(home, STAGE_DEBUG, "-6HG");
-#endif
         DebugGB(home,23);
 
 /*
@@ -415,6 +412,9 @@ void ParadisStep(Home_t *home)
  */
         CrossSlip(home);
         DebugGB(home,3);
+#if CHECK_GB_TOPO
+        GenerateOutput(home, STAGE_DEBUG, "-2CrossSlip");
+#endif
 /*
  *      Search for dislocation segments in close proximity to each other
  *      and if necessary handle any collision between them.
@@ -466,7 +466,7 @@ void ParadisStep(Home_t *home)
         }
 
 #if CHECK_GB_TOPO
-//        GenerateOutput(home, STAGE_DEBUG, "-2Collision");
+        GenerateOutput(home, STAGE_DEBUG, "-3Collision");
 #endif
 /*
  *      If memory debugging is enabled, run a consistency check on all
@@ -486,7 +486,7 @@ void ParadisStep(Home_t *home)
 
 
 #if CHECK_GB_TOPO
-//        GenerateOutput(home, STAGE_DEBUG, "-3Remesh");
+        GenerateOutput(home, STAGE_DEBUG, "-4Remesh");
 #endif
 /*
  *      Define load curve and calculate change in applied stress this cycle
