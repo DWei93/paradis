@@ -527,6 +527,68 @@ static void AdvanceAllNodes(Home_t *home, real8 oldDT)
 	return;    
 }
 
+void AdjustConstrictedNodeVelocity(Home_t *home){
+	int	        i;
+	Node_t	    *node;
+    real8       vec[3];
+
+	for (i = 0; i < home->newNodeKeyPtr; i++) {
+
+		if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
+            if(SurfaceNode(node) || 
+               (NodeOnGB(home, node) & INTERSECT_NODE) > 0){
+         
+            vec[0] = node->vX;
+            vec[1] = node->vY;
+            vec[2] = node->vZ;
+            AdjustNodeDirection(home, node, vec);
+            node->vX = vec[0];
+            node->vY = vec[1];
+            node->vZ = vec[2];
+          
+            vec[0] = node->oldvX;
+            vec[1] = node->oldvY;
+            vec[2] = node->oldvZ;
+            AdjustNodeDirection(home, node, vec);
+            node->oldvX = vec[0];
+            node->oldvY = vec[1];
+            node->oldvZ = vec[2];
+        }
+	}
+
+/*
+ *	Also need to move Ghost nodes
+ */
+	node = home->ghostNodeQ;
+
+	while (node) {
+        if(SurfaceNode(node) || 
+          (NodeOnGB(home, node) & INTERSECT_NODE) > 0){
+            vec[0] = node->vX;
+             vec[1] = node->vY;
+             vec[2] = node->vZ;
+             AdjustNodeDirection(home, node, vec);
+         
+             node->vX = vec[0];
+             node->vY = vec[1];
+             node->vZ = vec[2];
+         
+             vec[0] = node->oldvX;
+             vec[1] = node->oldvY;
+             vec[2] = node->oldvZ;
+             AdjustNodeDirection(home, node, vec);
+             node->oldvX = vec[0];
+             node->oldvY = vec[1];
+             node->oldvZ = vec[2];
+
+        }
+		node = node->next;
+	}
+
+	return;    
+
+}
+
 
 /*------------------------------------------------------------------------
  *
@@ -571,6 +633,7 @@ void TrapezoidIntegrator(Home_t *home)
         if (newDT <= 0.0) newDT = param->maxDT;
         param->deltaTT = newDT;
 
+        AdjustConstrictedNodeVelocity(home);
 /*
  *      Preserve certain items of nodal data for later use.
  */
@@ -584,7 +647,6 @@ void TrapezoidIntegrator(Home_t *home)
         convergent = 0;
         maxIterations = 2;
         incrDelta = 1;
-		
 
 
         while (!convergent) {
@@ -858,8 +920,8 @@ void TrapezoidIntegrator(Home_t *home)
 		}else{
 			param->preDecreaseDT = 1;
 		}
-	
 
+	
 /*
  *      Copy the nodal velocities that existed on entry to the timestep
  *      integrator.

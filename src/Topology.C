@@ -2432,6 +2432,30 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 
 	    free(tarmList);
 
+        if(AdjustSplitedNodePosition(home, (*splitNode1), pos1, pos)){
+            VECTOR_COPY(pos1, pos);
+            (*splitNode1)->x = pos1[0];
+            (*splitNode1)->y = pos1[1];
+            (*splitNode1)->z = pos1[2];
+            if(globalOp){
+                RepositionNode(home,pos1,&(*splitNode1)->myTag,globalOp);
+            }
+        }
+ 
+        if(AdjustSplitedNodePosition(home, (*splitNode2), pos2, pos)){
+            VECTOR_COPY(pos2, pos);
+            (*splitNode2)->x = pos2[0];
+            (*splitNode2)->y = pos2[1];
+            (*splitNode2)->z = pos2[2];
+            if(globalOp){
+                RepositionNode(home,pos2,&(*splitNode2)->myTag,globalOp);
+            }
+        }
+ 
+        newNode->oldx = newNode->x;
+        newNode->oldy = newNode->y;
+        newNode->oldz = newNode->z;
+
 
 /*
  *	    We will probably be re-evaluating forces on this new node.  In
@@ -2545,30 +2569,6 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
             ChangeArmStackingFault(home, (*splitNode2), &(*splitNode1)->myTag, -bakSignSF, globalOp);
 
 	}
-
-    if(AdjustSplitedNodePosition(home, (*splitNode1), pos1, pos)){
-        VECTOR_COPY(pos1, pos);
-        (*splitNode1)->x = pos1[0];
-        (*splitNode1)->y = pos1[1];
-        (*splitNode1)->z = pos1[2];
-        if(globalOp){
-            RepositionNode(home,pos1,&(*splitNode1)->myTag,globalOp);
-        }
-    }
-
-    if(AdjustSplitedNodePosition(home, (*splitNode2), pos2, pos)){
-        VECTOR_COPY(pos2, pos);
-        (*splitNode2)->x = pos2[0];
-        (*splitNode2)->y = pos2[1];
-        (*splitNode2)->z = pos2[2];
-        if(globalOp){
-            RepositionNode(home,pos2,&(*splitNode2)->myTag,globalOp);
-        }
-    }
-
-    newNode->oldx = newNode->x;
-    newNode->oldy = newNode->y;
-    newNode->oldz = newNode->z;
 
 	return(SPLIT_SUCCESS);
 }

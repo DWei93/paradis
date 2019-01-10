@@ -1200,7 +1200,6 @@ int NodeOnGB(Home_t *home, Node_t *node){
             == (Node_t *)NULL){
             PrintNode(node);
             printf("Warning in NodeOnGB, unkonwn neighbor\n");
-            type |= UNKNOWN_NODE;
             continue;
         }
 		
