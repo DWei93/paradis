@@ -170,9 +170,8 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 		        VECTOR_ZERO(plane.point);
 #else
 	        if(debug){
-		        fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,"
-                        "onGB,burgID,normalID,constraint,displace,domain,index\n");
-		        fprintf(fp, "zone T = \"%06d\" i = %d  F=POINT\n", home->cycle,numArms); 
+		        fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,index, dom, id, native\n");
+		        fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
 	        }else{
 
 #if CHECK_GB_TOPO
@@ -355,9 +354,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                         node->constraint,minDistance,node->myTag.domainID,1);
 #else
 	            if(debug){
-                    fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %7.4f %d %d\n", 
-                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,node->constraint,
-	                    displacement,node->myTag.domainID,node->myTag.index);
+                    fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %d 1\n", 
+                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,constraint,
+                            index, node->myTag.domainID, node->myTag.index);
 	            }else{
 #if CHECK_GB_TOPO
                     fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %d\n", 
@@ -440,22 +439,53 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 	                prz = prz - Lz*rint(prz/Lz);
 	            }
 				
-                    x2 = x + prx;
-                    y2 = y + pry;
-                    z2 = z + prz;
+                x2 = x + prx;
+                y2 = y + pry;
+                z2 = z + prz;
 				
-                    vx =  node->vX * param->burgMag;
-                    vy =  node->vY * param->burgMag;
-                    vz =  node->vZ * param->burgMag;
+                vx =  node->vX * param->burgMag;
+                vy =  node->vY * param->burgMag;
+                vz =  node->vZ * param->burgMag;
+
 	            velocity = sqrt(vx*vx + vy*vy + vz*vz);
 				
 	            narm = node->numNbrs;
 
                 GetArmGrain(home, node, nbrNode, armInGrain, armOnGB);
+                GetArmGrain(home, node, nbrNode, armInGrain, armOnGB);
+        
+                if(armOnGB<0){
+                    if(armInGrain == 0){
+                        index = 3;
+                    }else{
+                        index = 6;
+                    }
+                }else{
+                    if(burgID == 7){
+                        index = 0;
+                    }else if(burgID == 12){
+                        index = 0;
+                    }else if(burgID == 17){
+                        index =0;
+                    }else{
+                        burg[0] = node->burgX[j];
+                        burg[1] = node->burgY[j];
+                        burg[2] = node->burgZ[j];
+                        if(BurgType_FCC(burg) == BASIC_BURG){
+                            index = 1;
+                        }else{
+                            index = 2;
+                        }
+                    }
+                }
 
-                fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %7.4f %d %d\n", 
-                        x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,node->constraint,
-	                    displacement,node->myTag.domainID,node->myTag.index);
+                constraint = node->constraint;
+
+                if((NodeOnGB(home, node) & INTERSECT_NODE)>0)constraint = 4;
+
+                fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %d 0\n", 
+                        x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,constraint,
+                        index, node->myTag.domainID, node->myTag.index);
 	        }
 			
             node = node->next;

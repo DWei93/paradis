@@ -457,8 +457,9 @@ static void MeshCoarsen(Home_t *home)
                         if(armOnGB1 != armOnGB2)continue;
                         if(armInGrain1 != armInGrain2)continue;
                     }else{
-                        if(armInGrain1 > -1 && armInGrain2 > -1 && armInGrain1 != armInGrain2
-                           && (nbr1->constraint == 7 || nbr2->constraint == 7))continue;    
+                        if(armInGrain1 > -1 && armInGrain2 > -1 && armInGrain1 != armInGrain2){
+                            violateGlidePlanesOK = 0;
+                        }
                     }
                 }else{
                     if(IsOnGB(nbr1) && IsOnGB(nbr2))continue;
@@ -469,22 +470,20 @@ static void MeshCoarsen(Home_t *home)
  *              operation, attempt to merge the nodes.
  */
                 if ((nbr1->flags & NO_MESH_COARSEN) == 0 &&
-                    !(violateGlidePlanesOK==1 && r1 >= 1.0 && 
-                    IsOnGB(node) && IsOnGB(nbr2) && !IsOnGB(nbr1))){
+                    !(violateGlidePlanesOK==1 && r1 >= 1.0) && 
+                    !(IsOnGB(node) && IsOnGB(nbr2) && !IsOnGB(nbr1))){
                     newPos[0] = nbr1->x;
                     newPos[1] = nbr1->y;
                     newPos[2] = nbr1->z;
 
-                    FoldBox(home->param,newPos, newPos+1, newPos+2);
-
                     mergeDone = 1;
                     if(violateGlidePlanesOK == 0){
                         if(BeforeMergeNodes(home, node, nbr1, newPos, &dis, type)){
-                            if(fabs(dis) > 5.0 && type != POINT_INTERSECTION){
+                            if(fabs(dis) > 500.0 && type != POINT_INTERSECTION){
                                 PrintNode(node);
                                 PrintNode(nbr1);
                                 printf("Warning in %s at %d, dis %f\n", 
-                                        __FILE__, __LINE__, Normal(vec1));
+                                        __FILE__, __LINE__, dis);
                                 mergeDone = 0;
                             }
                         }else{
@@ -492,6 +491,7 @@ static void MeshCoarsen(Home_t *home)
                         }
                     }
 
+                    FoldBox(home->param,newPos, newPos+1, newPos+2);
                     if(mergeDone == 1){
                         MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
                               &mergedNode, &mergeStatus, globalOp);
@@ -505,17 +505,15 @@ static void MeshCoarsen(Home_t *home)
 
                 if (mergeDone == 0) {
                     if ((nbr2->flags & NO_MESH_COARSEN) == 0 &&
-                        !(violateGlidePlanesOK==1 && r2 >= 1.0 && 
-                        IsOnGB(node) && IsOnGB(nbr1) && !IsOnGB(nbr2))) {
+                        !(violateGlidePlanesOK==1 && r2 >= 1.0) && 
+                        !(IsOnGB(node) && IsOnGB(nbr1) && !IsOnGB(nbr2))) {
                         newPos[0] = nbr2->x;
                         newPos[1] = nbr2->y;
                         newPos[2] = nbr2->z;
 
-                        FoldBox(home->param,newPos, newPos+1, newPos+2);
-
                         if(violateGlidePlanesOK == 0){
                             if(BeforeMergeNodes(home, node, nbr2, newPos, &dis, type)){
-                                if(fabs(dis) > 5.0 && type != POINT_INTERSECTION){
+                                if(fabs(dis) > 500.0 && type != POINT_INTERSECTION){
                                     PrintNode(node);
                                     PrintNode(nbr2);
                                     printf("Warning in %s at %d, dis %f\n", 
@@ -526,6 +524,8 @@ static void MeshCoarsen(Home_t *home)
                                 continue;
                             }
                         }
+
+                        FoldBox(home->param,newPos, newPos+1, newPos+2);
 
                         MergeNode(home, OPCLASS_REMESH, node, nbr2, newPos,
                                   &mergedNode, &mergeStatus, globalOp);

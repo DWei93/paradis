@@ -2633,7 +2633,6 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	Node_t	*nbrNode, *targetNode, *deadNode;
 	Tag_t	tmpTag, *nbr1Tag, *nbr2Tag;
 
-
 	thisDomain = home->myDomain;
 
 	targetNode  = node1;

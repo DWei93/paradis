@@ -8,8 +8,9 @@
 #define POINT_INTERSECTION  1
 #define LINE_INTERSECTION   2
 #define PLANE_INTERSECTION  3
-#define EPS1 1.0E-3
+#define EPS1 1.0E-2
 #define EPS2 1.0E-1
+#define EPS3 1.0E-2
 
 int Arrange(int n);
 int Arrange(int n, int m);

@@ -25,6 +25,7 @@
 #ifdef PARALLEL
 #include "mpi.h"
 #endif
+#include "ParadisProto.h"
 
 
 /**************************************************************************
@@ -470,8 +471,6 @@ void CheckNodeNANS(Node_t *node){
             }
 }
 
-
-
 void DebugGB(Home_t *home, int flag){
 	int 	i,j,k,l, crossSlipNode, sameNode;
 	int	    normalID, inGrain, onGB;
@@ -479,9 +478,10 @@ void DebugGB(Home_t *home, int flag){
 	Param_t *param;
 	Grain_t	*grain;
 	Node_t	*node,*nbr;
-	int 	inGrainPos, corInGrain, corOnGB; 
-	real8   vec1[3],vec2[3], vec[3], vecMag;
-	real8	normalCryst[3];
+    bool    zeroLenJunc;
+	int 	inGrainPos, corInGrain, corOnGB, NM; 
+	real8   vec1[3],vec2[3], vec[3], vecMag, lDir[3];
+	real8	normalCryst[3], GC[3][3];
 	char    name[256];
     FILE    *fp;
 	char    subdir[256], stepdir[256], filename[256];
@@ -496,9 +496,13 @@ void DebugGB(Home_t *home, int flag){
 
         if ((node->numNbrs == 1) && (node->constraint == UNCONSTRAINED)) {
             PrintNode(node);
+            snprintf(name,50,"singly-%d-%d",home->cycle, flag);
+            Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
             Fatal("DebugGB: Node (%d,%d) singly linked! %d",
                   node->myTag.domainID, node->myTag.index, flag);
         }
+
+	    GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc);
 
         vec1[0] = node->x;
         vec1[1] = node->y;
@@ -514,6 +518,7 @@ void DebugGB(Home_t *home, int flag){
 #endif
         for (j = 0; j < node->numNbrs; j++) {
             nbr = GetNeighborNode(home, node, j);
+            if(nbr == (Node_t *)NULL)continue;
 
             vec[0] = node->burgX[j];
             vec[1] = node->burgY[j];
@@ -523,19 +528,41 @@ void DebugGB(Home_t *home, int flag){
             vec1[1] = node->ny[j];
             vec1[2] = node->nz[j];
 
+            if(DifferentGlidePlane(node)){
+                lDir[0] = node->x - nbr->x;
+                lDir[1] = node->y - nbr->y;
+                lDir[2] = node->z - nbr->z;
+                ZImage(home->param, lDir, lDir+1, lDir+2);
+
+                NormalizeVec(lDir);
+                dot = fabs(DotProduct(lDir, vec1));
+                if(dot > 0.1 && Normal(lDir) > 2.0 && NM == 3){
+                    snprintf(name,50,"mutiarm-%d-%d",home->cycle, flag);
+                    Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
+                    PrintNode(node);
+                    FormatMatrix(GC, "GC");
+                    Fatal("Task %d, wrong multi-arm node, flag %d - dot %f - length %f\n", 
+                            home->myDomain, flag, dot, Normal(lDir));
+                }
+                
+            }
+
             if(BurgType_FCC(vec) == SHOCKLEY_BURG){
                 NormalizeVec(vec);
                 if(fabs(DotProduct(vec1, vec)) > 0.01){
                     PrintNode(node);
                     PrintNode(nbr);
+                    snprintf(name,50,"wrongShockley-%d-%d",home->cycle, flag);
+                    Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
                     Fatal("Task %d, wrong shockley, flag %d\n", home->myDomain, flag);
                 } 
             }
 
-            if(nbr == (Node_t *)NULL)continue;
             if(!IsOnGB(nbr) && !IsOnGB(node) && nbr->inGrain != node->inGrain){
                 PrintNode(node);
                 PrintNode(nbr);
+                snprintf(name,50,"wrongLoacation-%d-%d",home->cycle, flag);
+                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
                 Fatal("Task %d, flag %d\n", home->myDomain, flag);
             }
 
@@ -544,17 +571,17 @@ void DebugGB(Home_t *home, int flag){
             vec[1] = nbr->y - node->y; 
             vec[2] = nbr->z - node->z; 
             ZImage(home->param, vec, vec+1, vec+2);
-            if(Normal(vec) < 1E-5)continue;
+            if(Normal(vec) < 5)continue;
 
             NormalizeVec(vec);
 
             if(fabs(DotProduct(vec, vec1)) > 0.1){
                 PrintTag(node);
                 PrintTag(nbr);
-                printf("Warning: task %d, wrong surface seg, flag %d\n", home->myDomain, flag);
+                snprintf(name,50,"wrongSurface-%d-%d",home->cycle, flag);
+                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
+                Fatal("Warning: task %d, wrong surface seg, flag %d\n", home->myDomain, flag);
             }
-
-            
 
 #if 0
             vec2[0] = nbr->x;

@@ -527,27 +527,6 @@ static void AdvanceAllNodes(Home_t *home, real8 oldDT)
 	return;    
 }
 
-bool DifferentGlidePlaneOnGB(Node_t *node){
-    if(node->onGB < 0 )return(0);
-    if(node->numNbrs < 2) return(0);   
-
-    int     i;
-    int     n0[3], n[3];
-
-    n0[0] = node->nx[0];
-    n0[1] = node->ny[0];
-    n0[2] = node->nz[0];
-
-    for(i=1; i<node->numNbrs; i++){
-        n[0] = node->nx[i];
-        n[1] = node->ny[i];
-        n[2] = node->nz[i];
-
-        if(fabs(DotProduct(n0, n)) < 0.95)return(1);
-
-    }
-    return(0);
-}
 
 void AdjustConstrictedNodeVelocity(Home_t *home){
 	int	        i;
@@ -558,7 +537,7 @@ void AdjustConstrictedNodeVelocity(Home_t *home){
 
 		if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
             if(SurfaceNode(node) || 
-               DifferentGlidePlaneOnGB(node)){
+               DifferentGlidePlane(node)){
          
             vec[0] = node->vX;
             vec[1] = node->vY;
@@ -585,7 +564,7 @@ void AdjustConstrictedNodeVelocity(Home_t *home){
 
 	while (node) {
         if(SurfaceNode(node) || 
-           DifferentGlidePlaneOnGB(node)){
+           DifferentGlidePlane(node)){
          
             vec[0] = node->vX;
              vec[1] = node->vY;

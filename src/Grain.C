@@ -1349,7 +1349,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
                            plane.normal[2]);
 	ApplyConstraintsToVelocity(NM, GC, vec);
 
-    if(Normal(vec) < 1.0E-6 && node->constraint != 7 && zeroLenJunc != 1){
+    if(Normal(vec) < 1.0E-6 && node->constraint != 7){
         while(NM >= 0){
             NM--;
             VECTOR_COPY(vec, vec1);
@@ -1753,12 +1753,12 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                              real8 *vec1, real8 *vec2)
 {
-    int     type;
+    int     type, armID12, armID21;
     int     numGlideConstraintsNode1, numGlideConstraintsNode2;
     real8   glideConstraintsNode1[3][3], glideConstraintsNode2[3][3]; 
+    bool    zeroLenJunc1, zeroLenJunc2;
     real8   p1[3], p2[3], dis;
     real8   direction1[3], direction2[3];
-    bool    zeroLenJunc1, zeroLenJunc2;
     
     VECTOR_ZERO(vec1);
     VECTOR_ZERO(vec2);
@@ -1772,10 +1772,14 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
 
     PBCPOSITION(home->param, p1[0], p1[1], p1[2], p2, p2+1, p2+2);
 
+    Connected(node1, node2, &armID12);
+    Connected(node2, node1, &armID21);
     GetGlideConstraintList(home, node1, 
-                           &numGlideConstraintsNode1, glideConstraintsNode1, zeroLenJunc1);
+                       &numGlideConstraintsNode1, glideConstraintsNode1, zeroLenJunc1,
+                       1, 0.0, 0.0, 0.0, armID12);
     GetGlideConstraintList(home, node2, 
-                           &numGlideConstraintsNode2, glideConstraintsNode2, zeroLenJunc2);
+                       &numGlideConstraintsNode2, glideConstraintsNode2, zeroLenJunc2,
+                       1, 0.0, 0.0, 0.0, armID21);
     
     switch (numGlideConstraintsNode1){
         case 1:
@@ -1790,8 +1794,11 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                     break;
                 case 3:
                     type = PointPlaneIntersection(p2, glideConstraintsNode1[0], p1, vec2, &dis); 
+                    VECTOR_COPY(vec2, p2);
                     break;
                 default:
+                    PrintNode(node1);
+                    PrintNode(node2);
                     Fatal("NodesIntersectio: node2 %d",numGlideConstraintsNode2);
                     break;
             }
@@ -1808,8 +1815,11 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                     break;
                 case 3:
                     type = PointLineIntersection(p2, glideConstraintsNode1[2], p1, vec2, &dis); 
+                    VECTOR_COPY(vec2, p2);
                     break;
                 default:
+                    PrintNode(node1);
+                    PrintNode(node2);
                     Fatal("NodesIntersectio: node2 %d",numGlideConstraintsNode2);
                     break;
             }
@@ -1820,20 +1830,26 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                 case 1:
                     type = PointPlaneIntersection(p1, glideConstraintsNode2[0], p2,
                            vec2, &dis); 
+                    VECTOR_COPY(vec2, p1);
                     break;
                 case 2:
                     type = PointLineIntersection(p1, glideConstraintsNode2[2], p2, vec2, &dis); 
+                    VECTOR_COPY(vec2, p1);
                     break;
                 case 3:
-                    type = PointPointIntersection(p1, p2, vec2, &dis); 
+                    type = PointPointIntersection(p2, p1, vec2, &dis); 
                     VECTOR_COPY(vec2, p2);
                     break;
                 default:
+                    PrintNode(node1);
+                    PrintNode(node2);
                     Fatal("NodesIntersectio: node2 %d",numGlideConstraintsNode2);
                     break;
             }
             break;
         default:
+            PrintNode(node1);
+            PrintNode(node2);
             Fatal("NodesIntersection: node1 %d",numGlideConstraintsNode1);
             break;
     }
@@ -1844,30 +1860,67 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
 bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, real8* dis, int &type)
 {
     bool    canMerge = 1;
-    real8   vec1[3], vec2[3];
-    real8   vec3[3];
+    real8   vec1[3]={0.0,0.0,0.0}, vec2[3]={0.0,0.0,0.0};
+    real8   vec3[3]={0.0,0.0,0.0}, bakPos[3]={0.0,0.0,0.0};
+
+    *dis = 0.0;
+    type = NO_INTERSECTION;
 
     type = NodesIntersection(home, node1, node2, vec1, vec2); 
+    PBCPOSITION(home->param, node1->x, node1->y, node1->z,
+                pos, pos+1, pos+2);
+    VECTOR_COPY(bakPos, pos);
+
     switch (type) {
         case NO_INTERSECTION:
             canMerge = 0;
             break;
         case POINT_INTERSECTION:
-            PointPointIntersection(pos, vec2, vec3, dis);
-            VECTOR_COPY(pos, vec2);
+            if(POINT_INTERSECTION != PointPointIntersection(pos, vec2, vec3, dis)){
+                VECTOR_COPY(pos, vec2);
+            }
             break;
         case LINE_INTERSECTION:
-            PointLineIntersection(pos, vec1, vec2, vec3, dis);
-            VECTOR_COPY(pos, vec3);
+            if(POINT_INTERSECTION != PointLineIntersection(pos, vec1, vec2, vec3, dis)){
+                VECTOR_COPY(pos, vec3);
+            }
             break;
         case PLANE_INTERSECTION:
-            PointPlaneIntersection(pos, vec1, vec2, vec3, dis);
-            VECTOR_COPY(pos, vec3);
+            if(POINT_INTERSECTION != PointPlaneIntersection(pos, vec1, vec2, vec3, dis)){
+                VECTOR_COPY(pos, vec3);
+            }
             break;
         default:
             Fatal("BeforeMergeArm: wrong type %d", __LINE__);
             break;
     }
+
+    if(fabs(*dis) > 500.0 && type != POINT_INTERSECTION){
+        int     numGlideConstraintsNode1, numGlideConstraintsNode2;
+        real8   glideConstraintsNode1[3][3], glideConstraintsNode2[3][3]; 
+        bool    zeroLenJunc1, zeroLenJunc2;
+        
+        GetGlideConstraintList(home, node1, 
+                       &numGlideConstraintsNode1, glideConstraintsNode1, zeroLenJunc1);
+        GetGlideConstraintList(home, node2, 
+                       &numGlideConstraintsNode2, glideConstraintsNode2, zeroLenJunc2);
+
+        FormatVector(vec1, "vec1");
+        FormatVector(vec2, "vec2");
+        FormatVector(vec3, "vec3");
+
+        FormatMatrix(glideConstraintsNode1, "numGlideConstraintsNode1");
+        FormatMatrix(glideConstraintsNode2, "numGlideConstraintsNode2");
+
+        PrintNode(node1);
+        PrintNode(node2);
+
+        Fatal("%d: Merge dis %f %d (%f,%f,%f) - %d,%d\n",
+                home->myDomain, *dis, type, pos[0],
+                pos[1], pos[2],
+                numGlideConstraintsNode1, numGlideConstraintsNode2);
+    }
+
     return(canMerge);
 }
 

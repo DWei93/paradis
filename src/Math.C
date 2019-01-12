@@ -130,10 +130,13 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2,
        SQUARE(fabs(n1z*n2x - n1x*n2z)) + 
        SQUARE(fabs(-(n1z*n2y) + n1y*n2z))) < EPS1){
         if(fabs(n1x*(p1x - p2x) + n1y*(p1y - p2y) + n1z*(p1z - p2z)) < EPS2){
-            VECTOR_COPY(vec1,n1);
-            VECTOR_COPY(vec2,p1);
+            VECTOR_COPY(vec1,n2);
+            VECTOR_COPY(vec2,p2);
             return(PLANE_INTERSECTION);
         }
+
+        VECTOR_COPY(vec1,n2);
+        VECTOR_COPY(vec2,p2);
         return(NO_INTERSECTION);
     } 
 
@@ -208,17 +211,20 @@ int LinePlaneIntersection(double *d, double *p1, double *n, double *p2,
     double  nx = n[0], ny = n[1], nz = n[2];
     double  p1x = p1[0], p1y = p1[1], p1z = p1[2];
     double  p2x = p2[0], p2y = p2[1], p2z = p2[2];
+    double  dis;
 
     VECTOR_ZERO(vec1);
     VECTOR_ZERO(vec2);
 
-    if(fabs(dx*nx + dy*ny + dz*nz) < EPS1*EPS1){
-        if(fabs(nx*(p1x - p2x) + ny*(p1y - p2y) + nz*(p1z - p2z)) < EPS1*EPS2){
-            VECTOR_COPY(vec1, d);
+    if(fabs(dx*nx + dy*ny + dz*nz) < EPS1){
+        VECTOR_COPY(vec1, d);
+        PointPlaneIntersection(p1, n, p2, vec2, &dis);
+        if(fabs(dis) < EPS2){
             VECTOR_COPY(vec2, p1);
             return(LINE_INTERSECTION);
-        } 
-        return(NO_INTERSECTION);
+        }else{ 
+            return(NO_INTERSECTION);
+        }
     }
 
     double  t = (-(nx*p1x) - ny*p1y - nz*p1z + nx*p2x + ny*p2y + nz*p2z)/
@@ -228,16 +234,31 @@ int LinePlaneIntersection(double *d, double *p1, double *n, double *p2,
     vec2[1] = p1y + t*dy;    
     vec2[2] = p1z + t*dz;
 
+    if(isnan(vec2[0]) || isinf(vec2[0]) ||
+       isnan(vec2[1]) || isinf(vec2[1]) ||
+       isnan(vec2[2]) || isinf(vec2[2])){
+        printf(" LinePlaneIntersection: %f,%f,%f\n", 
+                vec2[0], vec2[1], vec2[2]);
+    }
+
     if(isnan(vec2[0]))vec2[0] = 0.0;
     if(isnan(vec2[1]))vec2[1] = 0.0;
     if(isnan(vec2[2]))vec2[2] = 0.0;
     
-    if(isinf(vec2[0]) || isinf(vec2[1]) || isinf(vec2[2])){
+    if(isinf(vec2[0]) || isinf(vec2[1]) || isinf(vec2[2]) ){
         printf("d: {%f,%f,%f}\n", d[0], d[1], d[2]);
         printf("p1: {%f,%f,%f}\n", p1[0], p1[1], p1[2]);
         printf("n: {%f,%f,%f}\n", n[0], n[1], n[2]);
         printf("p2: {%f,%f,%f}\n", p2[0], p2[1], p2[2]);
         exit(0);
+    }
+    if(sqrt(SQUARE(vec2[2]) + SQUARE(vec2[2]) + SQUARE(vec2[2])) > 10000){
+        printf("vec2: {%f,%f,%f}\n", vec2[0], vec2[1], vec2[2]);
+        printf("d: {%f,%f,%f}\n", d[0], d[1], d[2]);
+        printf("p1: {%f,%f,%f}\n", p1[0], p1[1], p1[2]);
+        printf("n: {%f,%f,%f}\n", n[0], n[1], n[2]);
+        printf("p2: {%f,%f,%f}\n", p2[0], p2[1], p2[2]);
+        printf("PointPlaneIntersection\n");
     }
 
     return(POINT_INTERSECTION);    
@@ -249,33 +270,59 @@ int PointLineIntersection(double *p1, double *d, double *p2,
     double  p1x = p1[0], p1y=p1[1], p1z = p1[2];
     double  p2x = p2[0], p2y=p2[1], p2z = p2[2];
     double  dx = d[0], dy=d[1], dz = d[2];
+    double  norm, norm2, invNorm, t;
 
     VECTOR_ZERO(vec);
-    if(SQUARE(dx) + SQUARE(dy) + SQUARE(dz) < EPS1*EPS1){
+    norm = sqrt(SQUARE(dx) + SQUARE(dy) + SQUARE(dz));
+    invNorm = 1.0/norm;
+
+    if(norm < EPS1){
         FatalMath("PointLineIntersection: line direction is zero\n");
         return(NO_INTERSECTION);
     }
-    
-    vec[0] = p2x + (dx*(dx*(p1x - p2x) + dy*(p1y - p2y) + dz*(p1z - p2z)))/
-             (SQUARE(dx) + SQUARE(dy) + SQUARE(dz));
-    vec[1] = p2y + (dy*(dx*(p1x - p2x) + dy*(p1y - p2y) + dz*(p1z - p2z)))/
-             (SQUARE(dx) + SQUARE(dy) + SQUARE(dz));
-    vec[2] = (dz*(dx*(p1x - p2x) + dy*(p1y - p2y) + dz*(p1z - p2z)))/
-             (SQUARE(dx) + SQUARE(dy) + SQUARE(dz)) + p2z;
 
-    *dis = sqrt((SQUARE(dz)*(SQUARE(p1x) + SQUARE(p1y) - 2*p1x*p2x + 
-       SQUARE(p2x) - 2*p1y*p2y + SQUARE(p2y)) - 
-       2*dy*(p1y - p2y)*(dx*(p1x - p2x) + dz*(p1z - p2z)) - 
-       2*dx*dz*(p1x - p2x)*(p1z - p2z) + 
-       SQUARE(dy)*(SQUARE(p1x) + SQUARE(p1z) - 2*p1x*p2x + 
-       SQUARE(p2x) - 2*p1z*p2z + SQUARE(p2z)) + 
-       SQUARE(dx)*(SQUARE(p1y) + SQUARE(p1z) - 2*p1y*p2y + 
-       SQUARE(p2y) - 2*p1z*p2z + SQUARE(p2z)))/
-       (SQUARE(dx) + SQUARE(dy) + SQUARE(dz)));
+    norm2 = sqrt(SQUARE(p1x-p2x) + SQUARE(p1y-p2y) + SQUARE(p1z-p2z));
+    if(norm2 < EPS1){
+        vec[0] = p1[0];
+        vec[1] = p1[1];
+        vec[2] = p1[2];
+        *dis = 0.0;
+        return(POINT_INTERSECTION);
+    }
+
+    if(fabs(dx*(p1x-p2x) + dy*(p1y-p2y) + dz*(p1z-p2z)) < EPS3 * norm *norm2){
+        vec[0] = p1[0];
+        vec[1] = p1[1];
+        vec[2] = p1[2];
+        *dis = 0.0;
+        return(POINT_INTERSECTION);
+    }
+
+    t = (dx*(p1x - p2x) + dy*(p1y - p2y) + dz*(p1z - p2z))*(invNorm*invNorm);
+    vec[0] = p2x + dx*t;
+    vec[1] = p2y + dy*t;
+    vec[2] = p2z + dz*t;
+
+    *dis = sqrt(SQUARE(vec[0]-p1[0]) + SQUARE(vec[1]-p1[1]) + SQUARE(vec[2]-p1[2]) );
+
+    if(isnan(*dis) || isinf(*dis)){
+        printf(" PointLineIntersection: %f {%f,%f,%f}\n", 
+               *dis, vec[0], vec[1], vec[2]);
+        vec[0] = p1[0];
+        vec[1] = p1[1];
+        vec[2] = p1[2];
+    }
 
     if(isnan(*dis))*dis = 0.0;
     if(isinf(*dis)) *dis = 0.0;
 
+    if(*dis < EPS2 && sqrt(SQUARE(vec[0]-p1[0]) + SQUARE(vec[0]-p1[0]) + SQUARE(vec[0]-p1[0])) > 10000){
+        printf("vec: {%f,%f,%f}\n", vec[0], vec[1], vec[2]);
+        printf("p1: {%f,%f,%f}\n", p1[0], p1[1], p1[2]);
+        printf("d: {%f,%f,%f}\n", d[0], d[1], d[2]);
+        printf("p2: {%f,%f,%f}\n", p2[0], p2[1], p2[2]);
+        printf("PointLineIntersection");
+    }
     if(*dis < EPS2){
         return(POINT_INTERSECTION);
     }else{
@@ -309,6 +356,8 @@ int LineLineIntersection(double *d1, double *p1, double *d2, double *p2,
             return(LINE_INTERSECTION);
         }else{
             *dis = fabs(*dis);
+            VECTOR_COPY(vec1, d2);
+            VECTOR_COPY(vec2, p2);
             return(NO_INTERSECTION);
         }
     }
@@ -385,8 +434,22 @@ int LineLineIntersection(double *d1, double *p1, double *d2, double *p2,
            SQUARE(d1y)*(SQUARE(d2x) + SQUARE(d2z)) + 
            SQUARE(d1x)*(SQUARE(d2y) + SQUARE(d2z))));
 
+
+    if(isnan(*dis) || isinf(*dis)){
+        printf("LineLineIntersection: %f\n", *dis);
+    }
     if(isnan(*dis)) *dis = 0.0;
     if(isinf(*dis)) *dis = 0.0;
+
+    if(fabs(*dis) < EPS2 && sqrt(SQUARE(vec2[0]-p1[0]) + SQUARE(vec2[0]-p1[0]) + SQUARE(vec2[0]-p1[0])) > 10000){
+        printf("vec2: {%f,%f,%f}\n", vec2[0], vec2[1], vec2[2]);
+        printf("d1: {%f,%f,%f}\n", d1[0], d1[1], d1[2]);
+        printf("p1: {%f,%f,%f}\n", p1[0], p1[1], p1[2]);
+        printf("d2: {%f,%f,%f}\n", d2[0], d2[1], d2[2]);
+        printf("p2: {%f,%f,%f}\n", p2[0], p2[1], p2[2]);
+        printf("LineLineIntersection\n");
+    }
+
     if(*dis < EPS2){
         return(POINT_INTERSECTION);
     }else{
@@ -409,6 +472,11 @@ int PointPlaneIntersection(double *p1, double *n, double *p2, double *vec, doubl
 
     *dis = sqrt(SQUARE(nx*p1x + ny*p1y + nz*p1z - nx*p2x - ny*p2y - nz*p2z)/
            (SQUARE(nx) + SQUARE(ny) + SQUARE(nz)));
+
+    if(isnan(*dis) || isinf(*dis)){
+        printf(" PointPlaneIntersection: %f\n", *dis);
+    }
+
     if(isnan(*dis)) *dis = 0.0;
     if(isinf(*dis)) *dis = 0.0;
 
@@ -430,6 +498,13 @@ int PointPlaneIntersection(double *p1, double *n, double *p2, double *vec, doubl
         *dis *= -1.0;
     }
     
+    if(fabs(*dis) < EPS2 && sqrt(SQUARE(vec[0]-p1[0]) + SQUARE(vec[0]-p1[0]) + SQUARE(vec[0]-p1[0])) > 10000){
+        printf("vec: {%f,%f,%f}\n", vec[0], vec[1], vec[2]);
+        printf("p1: {%f,%f,%f}\n", p1[0], p1[1], p1[2]);
+        printf("n: {%f,%f,%f}\n", n[0], n[1], n[2]);
+        printf("p2: {%f,%f,%f}\n", p2[0], p2[1], p2[2]);
+        printf("PointPlaneIntersection\n");
+    }
     if(fabs(*dis) < EPS2){
         return(POINT_INTERSECTION);
     }else{
@@ -443,6 +518,9 @@ int PointPointIntersection(double *p1, double *p2, double *vec, double *dis){
     vec[2] = p2[2] - p1[2];
 
     *dis = sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
+    if(isnan(*dis) || isinf(*dis)){
+        printf(" PointPointIntersection: %f\n", *dis);
+    }
     if(isnan(*dis)) *dis = 0.0;
     if(isinf(*dis)) *dis = 0.0;
     

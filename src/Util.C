@@ -2457,9 +2457,9 @@ void InsertArm (Home_t *home, Node_t *nodeA, Tag_t *nodeBtag,
         int     i;
         Node_t  *nodeB;
 
-	if(sqrt(bx*bx + by*by +bz*bz) < 1e-3){
-	    printf("Warning: InsertArm burg is zero");
-	}
+	    if(sqrt(bx*bx + by*by +bz*bz) < 1e-3){
+	        printf("Warning: InsertArm burg is zero");
+	    }
 		
         if (log) {
             AddOp(home, INSERT_ARM,
@@ -4227,7 +4227,8 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                             bool GBconstrict, 
                             real8 negPlaneX,
                             real8 negPlaneY,
-                            real8 negPlaneZ) 
+                            real8 negPlaneZ,
+                            int   ignoreArm) 
 {
         int     i,  surfaceConstraint = 0, planeType;
         int     numConstraints, junctionConstraint = 0;
@@ -4277,6 +4278,8 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                     }
                 }
 
+                if(ignoreArm == i)continue;
+
 	            nbr = GetNeighborNode(home, node, i);
                 if(nbr != (Node_t *)NULL){
                     planeType = GetPlaneType_FCC(home, node, nbr);
@@ -4292,8 +4295,6 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                             junctionConstraint = 1;
                         }else{
                             zeroLenJunc = 1;    
-                            *numGlideConstraints = 3;
-                            return;
                         }
                     }
                 }
@@ -4527,3 +4528,27 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
     if(isnan(f))f=0.0;
     return(f);
 }
+
+
+bool DifferentGlidePlane(Node_t *node){
+    if(node->numNbrs < 2) return(0);   
+
+    int     i;
+    int     n0[3], n[3];
+
+    n0[0] = node->nx[0];
+    n0[1] = node->ny[0];
+    n0[2] = node->nz[0];
+
+    for(i=1; i<node->numNbrs; i++){
+        n[0] = node->nx[i];
+        n[1] = node->ny[i];
+        n[2] = node->nz[i];
+
+        if(fabs(DotProduct(n0, n)) < 0.95)return(1);
+
+    }
+    return(0);
+}
+
+

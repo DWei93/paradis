@@ -430,7 +430,6 @@ void ParadisStep(Home_t *home)
         TimerStop(home, POST_COLLISION_BARRIER);
 #endif
 #endif
-
 		
         TimerStart(home, COL_SEND_REMESH);
         CommSendRemesh(home);

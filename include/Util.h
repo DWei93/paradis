@@ -194,7 +194,8 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                             bool GBconstrict = 1, 
                             real8 negPlaneX = 0.0,
                             real8 negPlaneY = 0.0,
-                            real8 negPlaneZ = 0.0);
+                            real8 negPlaneZ = 0.0, 
+                            int   ignoreArm = -1);
 void ApplyConstraintsToVelocity(int numGlideConstraints,
                                 real8 (*glideConstraints)[3],
                                 real8 velocity[3]);
@@ -207,4 +208,5 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
                      double f11, double fx11, double fy11, double fxy11,
                      double x, double y);
 
+bool DifferentGlidePlane(Node_t *node);
 #endif

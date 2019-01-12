@@ -92,7 +92,7 @@ void PullBack(Home_t *home, Node_t *node){
 	        GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc);
 
             FormatMatrix(GC, "GC");
-            Fatal("can not find new position in PullBack %d", NM);
+            printf("can not find new position in PullBack %d\n", NM);
         }
     }
 
@@ -1846,6 +1846,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
     real8       normal[3], crossProd[3];
     real8       newPos[3], nodePos[3];
     GB_t        *gb;
+    bool        wrongGlidePlane;
 
     std::vector<int>    vec(2);
     std::vector<std::vector<int> >   nbrInGrain;
@@ -1855,7 +1856,9 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
 
     gb = home->GBKeys[node->onGB];
 
+    wrongGlidePlane = 0;
     for(i=0; i<node->numNbrs; i++){
+
 	    nbr = GetNeighborNode(home, node, i);
         if(nbr == (Node_t *)NULL)continue;
         if(IsOnGB(nbr))continue;
@@ -1866,11 +1869,11 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
         cross(normal, gb->n, crossProd);
         
         if(Normal(crossProd) < 1.0E-4){
-            Tecplot(home, (char*)"NewPosToGB", 0, 0, 0 ,0, 0, 1);
-            PrintNode(node);
-            PrintNode(nbr);
-            Fatal("SplitIntersectNode gb{%f,%f,%f}\n", gb->n[0],gb->n[1],gb->n[2]);
-            return;
+            Tecplot(home, (char*)"SplitIntersectionNode", 0, 0, 0 ,0, 0, 1);
+//            PrintNode(node);
+//            PrintNode(nbr);
+//            printf("SplitIntersectNode gb{%f,%f,%f}\n", gb->n[0],gb->n[1],gb->n[2]);
+            wrongGlidePlane = 1;
         }
         
         for(j=0; j<nbrInGrain.size(); j++){
@@ -1884,7 +1887,13 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             nbrInGrain.push_back(vec);
         }
     }
-    if(nbrInGrain.size() == 0)return;
+    if(nbrInGrain.size() != 1){
+        if(wrongGlidePlane == 0){
+            return;
+        }else{
+            Fatal("Wrong glide plane");
+        }
+    }
 
     for(i=0; i<nbrInGrain.size(); i++){
         if(nbrInGrain[i].size()-1 == node->numNbrs){
@@ -1893,8 +1902,11 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             nodePos[2] = node->z;
 
             if(NewPosToGB(home, node, nbrInGrain[i][0], node->onGB, nodePos, newPos)){
-                PrintNode(node);
+//                PrintNode(node);
                 printf("Warning in SplitIntersectNode at %d\n", __LINE__);
+                if(wrongGlidePlane){
+                    printf("Wrong glide plane\n");
+                }
             }
 
             if(globalOp){
@@ -1983,9 +1995,9 @@ void GBCrossSlip(Home_t *home)
 {
     int     i, j, k, nBurgsSplit, nNbrsOnGB;
     int     opClass, thisDomain;
-    int     inGrain, onGB, globalOp;
+    int     inGrain, onGB, globalOp = 1;
     int     type, armID, normalID;
-    int     maxPowerSet;
+    int     maxPowerSet, localGBID, nbrGrain;
     int     mergeStatus, sideCrossSlipNode;
     bool    firstCrossSlipNode;
     bool    violateIntersectDir;
@@ -1997,11 +2009,15 @@ void GBCrossSlip(Home_t *home)
     real8   dis, burg[3], normal[3], normals[2][3], norm;
     real8   newNodePos[3], newNbr1Pos[3], newNbr2Pos[3], newGBNbrPos[3];
     real8   barrierFactor, oriDis, newVel[3];
-    real8   newPos[3],maxPowerDis ;
-    real8  segForceOrig[4][3];
+    real8   newPos[3], maxPowerDis;
+    real8   segForceOrig[4][3], gArmForceDir[3], signDir[3];
     Line_t  interLine;
     Node_t  *node, *nbr1, *nbr2, *nbr, *gbNbr, *newNode;
     Node_t  *mergedNode;
+    int     NM1, NM2;
+    bool    zeroLenJunc1, zeroLenJunc2;
+    real8   GC1[3][3], GC2[3][3];
+
     Param_t *param;
 
     std::vector<real8>                                      powerDis;
@@ -2012,6 +2028,7 @@ void GBCrossSlip(Home_t *home)
 
     BurgInfo_t  *gbd;
     GB_t        *gb;
+    Grain_t     *grain;
 
     param = home->param;
     thisDomain = home->myDomain;
@@ -2059,7 +2076,11 @@ void GBCrossSlip(Home_t *home)
         sideCrossSlipNode = 0;
         firstCrossSlipNode = 0;
         if((NodeOnGB(home,node) & INTERSECT_NODE) > 0){
-            
+
+	        GetGlideConstraintList(home, node, &NM1, GC1, zeroLenJunc1);
+            if(NM1 != 2)continue;
+
+            nbrGrain = -1;
             for(j=0; j<node->numNbrs; j++){
                 nbr = GetNeighborNode(home, node, j);
                 if(nbr == (Node_t *)NULL){
@@ -2068,7 +2089,17 @@ void GBCrossSlip(Home_t *home)
                     break;
                 }
 
-                if(!IsOnGB(nbr))continue;
+                if(!IsOnGB(nbr)){
+                    if(nbrGrain == -1){
+                        nbrGrain = nbr->inGrain;
+                    }else if (nbrGrain > -1){
+                        if(nbrGrain != nbr->inGrain){
+                            nbrGrain = -2;
+                        }
+                    }
+                    continue;
+                }
+    
                 if(!DomainOwnsSeg(home, opClass, thisDomain, &node->nbrTag[j])){
                     continue;
                 }
@@ -2083,7 +2114,7 @@ void GBCrossSlip(Home_t *home)
                     gbNbr = nbr;
                     
                     if(SurfaceNode(nbr)){
-                        sideCrossSlipNode = 3;
+                        sideCrossSlipNode = 2;
                     }else if((NodeOnGB(home, nbr) & INTERSECT_NODE)>0){
                         sideCrossSlipNode = 2;
                     }else{
@@ -2177,6 +2208,7 @@ void GBCrossSlip(Home_t *home)
                 break;
             }
             if(j >= gbd->numKeyLines)continue;
+            VECTOR_COPY(interLine.direction,gbd->keyLineList[j]);
 
         }else if(sideCrossSlipNode > 0){
 
@@ -2189,27 +2221,60 @@ void GBCrossSlip(Home_t *home)
             vec1[2] = gbNbrPos[2] - nodePos[2];
             test1Max = DotProduct(vec1, vec1);
 
-            if(sideCrossSlipNode == 2 && test1Max < 25 && test1Max > 1E-20){
-                violateIntersectDir = 1;
+            if(Normal(GC1[2]) < 1E-6)continue;
+
+            test1 = DotProduct(vec1, GC1[2]);
+            test1 = test1*test1;
+            if(test1Max - test1 > test1Max * s2thetacrit)continue;
+
+	        GetGlideConstraintList(home, gbNbr, &NM2, GC2, zeroLenJunc2);
+            if(sideCrossSlipNode == 2){
+                switch (NM2){
+                    case 2:
+                        if(fabs(DotProduct(GC1[2], GC2[2]) > 0.95)){
+                            violateIntersectDir = 1;
+                        }else{
+                            continue;
+                        }
+                        break;
+                    case 3:
+                        violateIntersectDir = 0;
+                        break;
+                    default:
+                        PrintNode(gbNbr);
+                        Fatal("something wrong with the node");
+                        break;
+                }
             }
 
-            for(j=0; j<gbd->numKeyLines; j++){
-                test1 = DotProduct(vec1, gbd->keyLineList[j]);
-                test1 = test1 * test1;
-                if(test1Max - test1 > test1Max * s2thetacrit)continue;
-                break;
+            if(nbrGrain > -1){
+
+                grain = home->grainKeys[nbrGrain];
+
+                armID = GetArmID(home, node, gbNbr);
+                gArmForceDir[0] = node->armfx[armID];
+                gArmForceDir[1] = node->armfy[armID];
+                gArmForceDir[2] = node->armfz[armID];
+                NormalizeVec(gArmForceDir);
+
+                localGBID = GetGBIndexOfGrain(grain, gb->GBID);
+                if(localGBID == -1){
+                    Fatal("In file %s at line %d", __FILE__, __LINE__);
+                }
+
+                signDir[0] = -grain->sign[localGBID]*gb->n[0];
+                signDir[1] = -grain->sign[localGBID]*gb->n[1];
+                signDir[2] = -grain->sign[localGBID]*gb->n[2];
+
+                if(DotProduct(gArmForceDir, signDir) > 0)sideCrossSlipNode = 3;
             }
-            if(j >= gbd->numKeyLines && violateIntersectDir == 0)continue;
+
+            VECTOR_COPY(interLine.direction,GC1[2]);
+
         }else{
             continue;
         }
 
-        if(violateIntersectDir == 0 || j<gbd->numKeyLines){
-            VECTOR_COPY(interLine.direction,gbd->keyLineList[j]);
-        }else{
-            VECTOR_COPY(interLine.direction, vec1);
-            NormalizeVec(interLine.direction);
-        }
         type = PointPlaneIntersection(nodePos, gb->n, gb->p, interLine.point, &dis);
         if(fabs(dis) > 2)printf("Warning in %s at %d\n", __FILE__, __LINE__);
 
@@ -2481,7 +2546,6 @@ void GBCrossSlip(Home_t *home)
             }
 
             j = maxPowerSet;
-            globalOp = 1;
 
             for(k=0; k<disArray[j].size(); k++){
                 if(k==0){
@@ -2573,8 +2637,27 @@ void GBCrossSlip(Home_t *home)
 	        nbr2->vY = 0.0;
 	        nbr2->vZ = 0.0;
 
-        }else if(sideCrossSlipNode > 0){
+        }else if(sideCrossSlipNode == 1){
+            PointLineIntersection(gbNbrPos, interLine.direction, interLine.point,
+                              newPos, &dis);
 
+            vec1[0] = newPos[0] - interLine.point[0];
+            vec1[1] = newPos[1] - interLine.point[1];
+            vec1[2] = newPos[2] - interLine.point[2];
+            ZImage(param, vec1, vec1+1, vec1+2);
+
+            ApplyConstraintsToVelocity(NM1, GC1, vec1);
+        
+            if(Normal(vec1) < 1E-4)continue;
+
+            newPos[0] = interLine.point[0] + 0.5*vec1[0];
+            newPos[1] = interLine.point[1] + 0.5*vec1[1];
+            newPos[2] = interLine.point[2] + 0.5*vec1[2];
+
+            FoldBox(param, newPos, newPos+1, newPos+2);
+	        RepositionNode(home, newPos, &node->myTag, globalOp);
+
+        }else if(sideCrossSlipNode >= 2){
             VECTOR_COPY(vec2, nodePos);
 	        RepositionNode(home, interLine.point, &node->myTag, 0);
 
@@ -2589,11 +2672,7 @@ void GBCrossSlip(Home_t *home)
             }
 	        RepositionNode(home, newPos, &gbNbr->myTag, 0);
 
-            if(sideCrossSlipNode == 2){
-                int     NM1, NM2;
-                bool    zeroLenJunc1, zeroLenJunc2;
-                real8   GC1[3][3], GC2[3][3];
-
+            if(sideCrossSlipNode == 2 && NM2 != 3){
                 vec1[0] = newPos[0] - interLine.point[0];
                 vec1[1] = newPos[1] - interLine.point[1];
                 vec1[2] = newPos[2] - interLine.point[2];
@@ -2601,13 +2680,6 @@ void GBCrossSlip(Home_t *home)
                 newPos[0] = interLine.point[0] + 0.5*vec1[0];
                 newPos[1] = interLine.point[1] + 0.5*vec1[1];
                 newPos[2] = interLine.point[2] + 0.5*vec1[2];
-
-	            GetGlideConstraintList(home, node, &NM1, GC1, zeroLenJunc1);
-	            GetGlideConstraintList(home, gbNbr, &NM2, GC2, zeroLenJunc2);
-
-                if(NM1 == 2 && NM2 == 2){
-                    if(fabs(DotProduct(GC1[2], GC2[2]) > 0.95))violateIntersectDir = 1;
-                }
             }
 
             if(violateIntersectDir == 0){
@@ -2645,7 +2717,6 @@ void GBCrossSlip(Home_t *home)
             }
         }
 
-        
     }  /* end loop over all nodes */
 
     return;

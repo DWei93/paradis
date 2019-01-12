@@ -1035,6 +1035,8 @@ void PredictiveCollisions(Home_t *home)
                             continue;
                         }
 
+                        if(SurfaceNode(node1) && SurfaceNode(node2))continue;
+
 /*
  *                      Loop over all arms of node3.  Skip any segments that
  *                      terminate at node2 (those hinge arms will be dealt
@@ -1057,6 +1059,8 @@ void PredictiveCollisions(Home_t *home)
                                 (node4->myTag.index   ==node2->myTag.index)) {
                                 continue;
                             }
+
+                            if(SurfaceNode(node3) && SurfaceNode(node3))continue;
             
                             if (CollisionNodeOrder(home, &node3->myTag,
                                                    &node4->myTag) > 0) {
@@ -1066,6 +1070,8 @@ void PredictiveCollisions(Home_t *home)
                             if(home->param->polycrystal){
                                 GetArmGrain(home, node1, node2, inGrain1, onGB1);
                                 GetArmGrain(home, node3, node4, inGrain2, onGB2);
+                                if(onGB1 != onGB2)continue;
+                                if(onGB1 == -1 && inGrain1 != inGrain2)continue;
 #if ENABLE_COMPLICATED_REACTION
                                 splitInGrain = -1;
                                 splitOnGB = -1;
@@ -1450,6 +1456,8 @@ void PredictiveCollisions(Home_t *home)
                                     splitSeg2 = 1;
                                 }
 
+                                if(SurfaceNode(mergenode1) && SurfaceNode(mergenode2))continue;
+
 /*
  *                              If we need to add a new node to the second
  *                              segment, do it now.
@@ -1718,7 +1726,8 @@ void PredictiveCollisions(Home_t *home)
                                         if(Normal(vec1) > 5){
                                             PrintNode(mergenode1);
                                             PrintNode(mergenode2);
-                                            printf("Warning: can not merge the two nodes in PredictiveCollision.\n");
+                                            printf("Warning: can not merge the two nodes in PredictiveCollision. %f\n",
+                                                   Normal(vec1));
                                             continue;
                                         }
 
@@ -2269,7 +2278,8 @@ void PredictiveCollisions(Home_t *home)
                                  if(Normal(vec1) > 5){
                                      PrintNode(mergenode1);
                                      PrintNode(mergenode2);
-                                     printf("Warning: can not merge the two nodes in PredictiveCollision.\n");
+                                     printf("Warning: can not merge the two nodes in PredictiveCollision. %f\n",
+                                            Normal(vec1));
                                      continue;
                                  }
 
