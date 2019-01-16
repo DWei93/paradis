@@ -1778,6 +1778,12 @@ void SplitMultiNodes(Home_t *home)
  *              If the merge failed, something's screwy!  Abort.
  */
                 if ((mergeStatus & MERGE_SUCCESS) == 0) {
+                    char name[50];
+
+                    PrintNode(home, origNode);
+                    PrintNode(newNode);
+                    snprintf(name,sizeof(name),"separationTest-%d.plt",home->cycle);
+                    Tecplot(home, name, 0, 0, 0, 0, 0, 1);
                     Fatal("Unable to merge (%d,%d) into (%d,%d)"
                           "during separation test",
                           newNode->myTag.domainID,

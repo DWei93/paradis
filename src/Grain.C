@@ -49,7 +49,7 @@ void PrintNeighbor(Home_t *home, Node_t *node){
 	           i, node->nbrTag[i].domainID, node->nbrTag[i].index);
 
 	    nbr = GetNeighborNode(home, node, i);
-	    PrintNode(nbr);
+	    PrintNode(home, nbr);
 	}
 	return;
 }
@@ -1198,7 +1198,7 @@ int NodeOnGB(Home_t *home, Node_t *node){
 	for(i=0; i<numNbrs; i++){
         if((nbr = GetNeighborNode(home, node, i)) 
             == (Node_t *)NULL){
-            PrintNode(node);
+            PrintNode(home, node);
             printf("Warning in NodeOnGB, unkonwn neighbor\n");
             continue;
         }
@@ -1334,7 +1334,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
     vec[2] = newPos[2] - pos[2];
 
     if(Normal(vec) < 1E-10){
-        PrintNode(node);
+        PrintNode(home, node);
         printf("Warning in NewPosToGB: {%f,%f,%f} too short of the vector\n",
                 vec[0], vec[1], vec[2]);
         VECTOR_COPY(newPos, pos);
@@ -1366,16 +1366,18 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
 
     NormalizeVec(vec);
     type = LinePlaneIntersection(vec, pos, plane.normal, plane.point, vec1, vec2);
-    if(type != POINT_INTERSECTION){
-        printf("Warning: NewPosToGB - 2, Line {%f,%f,%f}--{%f,%f,%f}; ", 
+    if(type == NO_INTERSECTION){
+#if 0
+        printf("Warning: NewPosToGB, Line {%f,%f,%f}--{%f,%f,%f}; ", 
                vec[0], vec[1], vec[2], pos[0], pos[1], pos[2]);
         printf("Plane {%f,%f,%f}--{%f,%f,%f} == {%f,%f,%f}\n", 
                plane.normal[0],plane.normal[1],plane.normal[2],
                plane.point[0],plane.point[1],plane.point[2],
                vec2[0], vec2[1], vec2[2]);
-        VECTOR_COPY(newPos, pos);
+#endif
+        VECTOR_COPY(newPos, vec2);
         FoldBox(param, newPos, newPos+1, newPos+2);
-        return(1);
+        return(0);
     }else{
         VECTOR_COPY(newPos, vec2);
         FoldBox(param, newPos, newPos+1, newPos+2);
@@ -1523,8 +1525,8 @@ void GetArmGrain(Home_t *home, Node_t *node1, Node_t *node2, int &inGrain, int &
                 inGrain = -1;
                 onGB = gb->GBID;
             }else{
-                PrintNode(node1);
-                PrintNode(node2);
+                PrintNode(home, node1);
+                PrintNode(home, node2);
                 Fatal("Warning in GetArmGrain: node1 in %d grain, but node2 in %d grain\n",
                       node1->inGrain, node2->inGrain);
             }
@@ -1797,8 +1799,8 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                     VECTOR_COPY(vec2, p2);
                     break;
                 default:
-                    PrintNode(node1);
-                    PrintNode(node2);
+                    PrintNode(home, node1);
+                    PrintNode(home, node2);
                     Fatal("NodesIntersectio: node2 %d",numGlideConstraintsNode2);
                     break;
             }
@@ -1818,8 +1820,8 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                     VECTOR_COPY(vec2, p2);
                     break;
                 default:
-                    PrintNode(node1);
-                    PrintNode(node2);
+                    PrintNode(home, node1);
+                    PrintNode(home, node2);
                     Fatal("NodesIntersectio: node2 %d",numGlideConstraintsNode2);
                     break;
             }
@@ -1841,15 +1843,15 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                     VECTOR_COPY(vec2, p2);
                     break;
                 default:
-                    PrintNode(node1);
-                    PrintNode(node2);
+                    PrintNode(home, node1);
+                    PrintNode(home, node2);
                     Fatal("NodesIntersectio: node2 %d",numGlideConstraintsNode2);
                     break;
             }
             break;
         default:
-            PrintNode(node1);
-            PrintNode(node2);
+            PrintNode(home, node1);
+            PrintNode(home, node2);
             Fatal("NodesIntersection: node1 %d",numGlideConstraintsNode1);
             break;
     }
@@ -1912,8 +1914,8 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
         FormatMatrix(glideConstraintsNode1, "numGlideConstraintsNode1");
         FormatMatrix(glideConstraintsNode2, "numGlideConstraintsNode2");
 
-        PrintNode(node1);
-        PrintNode(node2);
+        PrintNode(home, node1);
+        PrintNode(home, node2);
 
         Fatal("%d: Merge dis %f %d (%f,%f,%f) - %d,%d\n",
                 home->myDomain, *dis, type, pos[0],
@@ -3012,9 +3014,9 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
             return;
         }else{
 #if 1
-            PrintNode(node1);
+            PrintNode(home, node1);
             PrintNeighbor(home, node1);
-            PrintNode(node2);
+            PrintNode(home, node2);
             PrintNeighbor(home, node2);
 #endif
             VECTOR_COPY(glidePlane, burg);

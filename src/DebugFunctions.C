@@ -472,6 +472,7 @@ void CheckNodeNANS(Node_t *node){
 }
 
 void DebugGB(Home_t *home, int flag){
+    return;
 	int 	i,j,k,l, crossSlipNode, sameNode;
 	int	    normalID, inGrain, onGB;
 	real8   dot,resiBurg[3], resiVec[3];
@@ -489,7 +490,7 @@ void DebugGB(Home_t *home, int flag){
 	param = home->param;
 
 //    if(flag >= 4 && flag == 5){
-//	    printf("%d %d\n",home->myDomain, flag);
+	    printf("%d %d\n",home->myDomain, flag);
 //    }
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
@@ -571,13 +572,13 @@ void DebugGB(Home_t *home, int flag){
             vec[1] = nbr->y - node->y; 
             vec[2] = nbr->z - node->z; 
             ZImage(home->param, vec, vec+1, vec+2);
-            if(Normal(vec) < 5)continue;
+            if(Normal(vec) < 10)continue;
 
             NormalizeVec(vec);
 
             if(fabs(DotProduct(vec, vec1)) > 0.1){
-                PrintTag(node);
-                PrintTag(nbr);
+                PrintNode(node);
+                PrintNode(nbr);
                 snprintf(name,50,"wrongSurface-%d-%d",home->cycle, flag);
                 Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
                 Fatal("Warning: task %d, wrong surface seg, flag %d\n", home->myDomain, flag);

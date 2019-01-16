@@ -290,7 +290,7 @@ int PointLineIntersection(double *p1, double *d, double *p2,
         return(POINT_INTERSECTION);
     }
 
-    if(fabs(dx*(p1x-p2x) + dy*(p1y-p2y) + dz*(p1z-p2z)) < EPS3 * norm *norm2){
+    if(fabs(dx*(p1x-p2x) + dy*(p1y-p2y) + dz*(p1z-p2z)) < EPS2 * norm *norm2){
         vec[0] = p1[0];
         vec[1] = p1[1];
         vec[2] = p1[2];
@@ -315,7 +315,7 @@ int PointLineIntersection(double *p1, double *d, double *p2,
 
     if(isnan(*dis))*dis = 0.0;
     if(isinf(*dis)) *dis = 0.0;
-
+#if 0
     if(*dis < EPS2 && sqrt(SQUARE(vec[0]-p1[0]) + SQUARE(vec[0]-p1[0]) + SQUARE(vec[0]-p1[0])) > 10000){
         printf("vec: {%f,%f,%f}\n", vec[0], vec[1], vec[2]);
         printf("p1: {%f,%f,%f}\n", p1[0], p1[1], p1[2]);
@@ -323,6 +323,7 @@ int PointLineIntersection(double *p1, double *d, double *p2,
         printf("p2: {%f,%f,%f}\n", p2[0], p2[1], p2[2]);
         printf("PointLineIntersection");
     }
+#endif
     if(*dis < EPS2){
         return(POINT_INTERSECTION);
     }else{

@@ -88,7 +88,7 @@ void PullBack(Home_t *home, Node_t *node){
             bool    zeroLenJunc;
             real8   GC[3][3];
 
-            PrintNode(node);
+            PrintNode(home, node);
 	        GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc);
 
             FormatMatrix(GC, "GC");
@@ -474,8 +474,8 @@ void FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
         vec2[2] = (n1Pos[2] + n2Pos[2])*0.5;
     }
     if(Normal(vec1) < 1.0E-4){
-        PrintNode(node1);
-        PrintNode(node2);
+        PrintNode(home, node1);
+        PrintNode(home, node2);
         Fatal("In file %s at line %d", __FILE__, __LINE__);
     }
     NormalizeVec(vec1);
@@ -483,12 +483,15 @@ void FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
     type = LineLineIntersection(vec1, vec2, line->direction, line->point, vec3, vec4, &dis);
     
     if(fabs(dis) > 10){
+        char name[50];
         printf("type %d, dis %f\n", type, dis);
         FormatVector(vec1, "vec1");
         FormatVector(vec2, "vec2");
         FormatVector(line->direction, "l dir");
         FormatVector(line->point, "l point");
         printf("Warning in file %s at line %d\n", __FILE__, __LINE__);
+        snprintf(name,50,"findIntersection%d",home->cycle);
+        Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
     }
     
     VECTOR_COPY(line->point, vec4);
@@ -563,7 +566,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
     vec[1] = node->burgY[1] + node->burgY[0];
     vec[2] = node->burgZ[1] + node->burgZ[0];
     if(Normal(vec) > 0.01){
-        PrintNode(node);
+        PrintNode(home, node);
         Fatal("In file %s at line %d", __FILE__, __LINE__);
     }
 
@@ -1757,7 +1760,7 @@ void AdjustSurfaceNode(Home_t *home)
 
             if(LinePlaneIntersection(line.direction, line.point, plane.normal,
                plane.point, vec, interPos) != POINT_INTERSECTION){
-                Fatal("AdjustSurfaceNode %d:", __LINE__);
+                continue;
             }
 
 		    if(fabs(interPos[0] - nbrPos[0]) < 1e-10 &&
@@ -1804,8 +1807,8 @@ void AdjustSurfaceNode(Home_t *home)
             newNode = InsertNode(home, node, nbr, interPos, 1, OPCLASS_REMESH);
             if(newNode == (Node_t *)NULL){
 #if 1
-                PrintNode(node);
-                PrintNode(nbr);
+                PrintNode(home, node);
+                PrintNode(home, nbr);
                 printf("AdjustSurfaceNode: Insert failed\n");
                 continue;
 #endif
@@ -1963,7 +1966,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             if (splitStatus != SPLIT_SUCCESS)continue;
 
             if(NewPosToGB(home, splitNode2, nbrInGrain[i][0], node->onGB, nodePos, newPos)){
-                PrintNode(splitNode2);
+                PrintNode(home, splitNode2);
                 Tecplot(home, (char*)"NewPosToGB", 0, 0, 0 ,0, 0, 1);
                 Fatal("Warning in SplitIntersectNode at %d\n", __LINE__);
                 return;
@@ -1978,8 +1981,8 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             }
 
             if(GetArmID(home, splitNode1, splitNode2) != -1){
-                PrintNode(splitNode1);
-                PrintNode(splitNode2);
+                PrintNode(home, splitNode1);
+                PrintNode(home, splitNode2);
                 printf("Warning in SplitIntersectNode at %d", __LINE__);
             }
 
@@ -2241,7 +2244,7 @@ void GBCrossSlip(Home_t *home)
                         violateIntersectDir = 0;
                         break;
                     default:
-                        PrintNode(gbNbr);
+                        PrintNode(home, gbNbr);
                         Fatal("something wrong with the node");
                         break;
                 }
@@ -2595,6 +2598,15 @@ void GBCrossSlip(Home_t *home)
                     MarkNodeForceObsolete(home, node);        
                     MarkNodeNoCollisions(home, node);        
                     MarkNodeNoMeshCoarsen(home, node);        
+                    
+	                node->vX = 0.0;
+	                node->vY = 0.0;
+	                node->vZ = 0.0;
+
+	                node->oldvX = 0.0;
+	                node->oldvY = 0.0;
+	                node->oldvZ = 0.0;
+
                 }else{
                     VECTOR_COPY(vec1, burgList[disArray[j][k].burgID]);
                     VECTOR_COPY(vec2, gbd->planeList[disArray[j][k].planeID]);
@@ -2657,6 +2669,10 @@ void GBCrossSlip(Home_t *home)
             FoldBox(param, newPos, newPos+1, newPos+2);
 	        RepositionNode(home, newPos, &node->myTag, globalOp);
 
+	        MarkNodeForceObsolete(home, node);        
+	        MarkNodeNoCollisions(home, node);        
+	        MarkNodeNoMeshCoarsen(home, node); 
+       
         }else if(sideCrossSlipNode >= 2){
             VECTOR_COPY(vec2, nodePos);
 	        RepositionNode(home, interLine.point, &node->myTag, 0);
@@ -2713,6 +2729,19 @@ void GBCrossSlip(Home_t *home)
             }
     
             if(mergedNode != (Node_t *)NULL){
+
+	            MarkNodeForceObsolete(home, mergedNode);        
+	            MarkNodeNoCollisions(home, mergedNode);        
+	            MarkNodeNoMeshCoarsen(home, mergedNode);
+
+                mergedNode->vX = 0.0; 
+                mergedNode->vY = 0.0; 
+                mergedNode->vZ = 0.0; 
+
+                mergedNode->oldvX = 0.0;
+                mergedNode->oldvY = 0.0;
+                mergedNode->oldvZ = 0.0;
+
                 SplitIntersectNode(home, mergedNode, opClass, globalOp);
             }
         }
@@ -2738,7 +2767,7 @@ bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8
     if(node->onGB > -1){
         if(node->onGB != currOnGB){
             if(NewPosToGB(home, node, -1, node->onGB, currPos, pos)){
-                PrintNode(node);
+                PrintNode(home, node);
                 Fatal("in %s at %d", __FILE__, __LINE__);
             }
             return(1);

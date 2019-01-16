@@ -334,6 +334,7 @@ void FixRemesh(Home_t *home, const char flag[256])
 					printf("Task %d, Warning , the native node change inGrain %d %d\n",
                            home->myDomain, op->inGrain, op->onGB);
 				}
+#if 0
                 if(op->inGrain > -1){
                     for(i=0; i<node1->numNbrs; i++){
                         if((nbr = GetNeighborNode(home,node1,i)) == (Node_t *)NULL)continue;
@@ -350,6 +351,8 @@ void FixRemesh(Home_t *home, const char flag[256])
                     }
 
                 }
+
+#endif
 				node1->inGrain = op->inGrain;
 				node1->onGB = op->onGB;
 

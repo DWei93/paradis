@@ -1549,12 +1549,12 @@ Node_t *GetNodeFromTag (Home_t *home, Tag_t tag)
  *------------------------------------------------------------------------*/
 void PrintNode(Node_t *node)
 {
-        int i;
+        int     i;
 
         if (node == (Node_t *)NULL) {
 	    printf("node is NULL\n");
             return;
-	}
+	    }
 
 #if 1
         printf("  node(%d,%d) location (%d,%d) constraint %d arms %d,",
@@ -1630,6 +1630,95 @@ void PrintNode(Node_t *node)
                    node->nx[i],node->ny[i],node->nz[i]);
         }
 #endif
+
+        return;
+}
+
+void PrintNode(Home_t *home, Node_t *node)
+{
+        int     i;
+        Node_t  *nbr;
+
+        if (node == (Node_t *)NULL) {
+	        printf("node is NULL\n");
+            return;
+	    }
+
+        printf("  node(%d,%d) location (%d,%d) constraint %d arms %d,",
+               node->myTag.domainID, node->myTag.index, node->inGrain, node->onGB,
+               node->constraint, node->numNbrs);
+        for (i = 0; i < node->numNbrs; i++) {
+            printf("(%d,%d) ", node->nbrTag[i].domainID,
+                   node->nbrTag[i].index);
+        }
+		
+        printf("\n");
+
+/*
+ *      Print the nodal position
+ */
+		printf("  node(%d,%d) oldPos   = {%16.10f,%16.10f,%16.10f}\n",
+               node->myTag.domainID, node->myTag.index,
+			   node->oldx,node->oldy,node->oldz);
+		
+        printf("  node(%d,%d) position = {%16.10f,%16.10f,%16.10f}\n",
+               node->myTag.domainID, node->myTag.index, 
+               node->x, node->y, node->z);
+
+/*
+ *      Print the nodal velocity and total node force
+ */
+        printf("  node(%d,%d) v = {%e,%e,%e}\n",
+               node->myTag.domainID, node->myTag.index, 
+               node->vX, node->vY, node->vZ);
+        printf("  node(%d,%d) f = {%e,%e,%e}\n",
+               node->myTag.domainID, node->myTag.index, 
+               node->fX, node->fY, node->fZ);
+
+/*
+ *      Print the arm specific forces
+ */
+        for (i = 0; i < node->numNbrs; i++) {
+            printf("  node(%d,%d) arm[%d]-> (%d %d) f = {%e,%e,%e}\n",
+                   node->myTag.domainID, node->myTag.index, i,       
+                   node->nbrTag[i].domainID, node->nbrTag[i].index,
+                   node->armfx[i], node->armfy[i], node->armfz[i]);
+        }
+
+/*
+ *      Print the burger's vector for each arm of the node
+ */
+        for (i = 0; i < node->numNbrs; i++) {
+            printf("  node(%d,%d) arm[%d]-> (%d %d) b = {%16.10f,%16.10f,%16.10f} -- ",
+                   node->myTag.domainID, node->myTag.index, i,       
+                   node->nbrTag[i].domainID, node->nbrTag[i].index,
+                   node->burgX[i], node->burgY[i], node->burgZ[i]);
+            nbr = GetNeighborNode(home, node, i);
+
+            if(nbr == (Node_t *)NULL){
+                printf("null nbr\n");
+            }else{
+                printf("%d\n", GetBurgID_FCC(home, node, nbr));
+            }
+        }
+
+/*
+ *      Print the glide plane normal for each arm of the node
+ */
+        for (i = 0; i < node->numNbrs; i++) {
+            printf("  node(%d,%d) arm[%d]-> (%d %d) n = {%16.10f,%16.10f,%16.10f} -- ",
+                   node->myTag.domainID,node->myTag.index, i,       
+                   node->nbrTag[i].domainID,node->nbrTag[i].index,
+                   node->nx[i],node->ny[i],node->nz[i]);
+            
+            nbr = GetNeighborNode(home, node, i);
+
+            if(nbr == (Node_t *)NULL){
+                printf("null nbr\n");
+            }else{
+                printf("%d\n", GetPlaneID_FCC(home, node, nbr));
+            }
+        }
 
         return;
 }

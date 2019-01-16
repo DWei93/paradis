@@ -300,15 +300,15 @@ void WriteProp(Home_t *home, int property)
                             fprintf(fp, "%e %e %e ", sign*param->totstraintensor[i]*1E2,
                                                      sign*param->appliedStress[i]*1E-6,
                                                      sign*param->totpStn[i]*1E2);
-        
+
+                            if(fabs(param->totpStn[i]) > param->maxPst)param->finish = 1; 
+                            if(fabs(param->totstraintensor[i]) > param->maxStn)param->finish = 1;
     
                             if(param->polycrystal) fprintf(fp, "%e ", sign*param->totTwinpStn[i]*1E2);
                         }
                     }
 
                     fprintf(fp, "%e %e\n", param->disloDensity, effPlaRate);
-
-//                    if(effPlaRate < 0.5)param->finish = 1;
 
 #if 0
                     switch (param->loadType) {

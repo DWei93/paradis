@@ -85,6 +85,7 @@ void   MarkNodeNoMeshCoarsen(Home_t *home, Node_t *node);
 void   MarkNodeNoCollisions(Home_t *home, Node_t *node);
 real8 NodeDistance(Home_t *home, Node_t *node1, Node_t *node2);
 void   PrintNode(Node_t *node);
+void   PrintNode(Home_t *home, Node_t *node);
 void PrintNbr(Home_t *home, Node_t *node);
 void   ReallocNodeArms(Node_t *node, int n);
 void   RemoveNode(Home_t *home, Node_t *node, int Log);

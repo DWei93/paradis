@@ -1106,6 +1106,9 @@ void PredictiveCollisions(Home_t *home)
                                 if(onGB1 != onGB2)continue;
                                 if(onGB1 == -1 && inGrain1 != inGrain2)continue;
 #endif
+                            }else{
+                                splitInGrain = -1;
+                                splitOnGB = -1;
                             }
 /*
  *                          At this point, segment node3/node4 is owned by
@@ -1750,7 +1753,10 @@ void PredictiveCollisions(Home_t *home)
                                             newPos[2] = vec2[2] + 0.5*vec1[2];
                                         }
                                     }
-                               }
+                               }else{
+                                    inGrain1 = -1;
+                                    onGB1 = -1;
+                                }
 
                                MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                          mergenode2, newPos, &targetNode,
@@ -2301,6 +2307,9 @@ void PredictiveCollisions(Home_t *home)
                                      newPos[2] = vec2[2] + 0.5*vec1[2];
                                  }
                              }
+                        }else{
+                            inGrain1 = -1;
+                            onGB1 = -1;
                         }
 
                         MergeNode(home, OPCLASS_COLLISION, mergenode1,
