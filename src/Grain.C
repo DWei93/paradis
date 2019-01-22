@@ -117,11 +117,32 @@ void InitGrain(Home_t *home, Param_t *param){
     int         slipIndex, inGrain;
     GB_t        *gb;
 
+	real8   hMatrix, p[4][3];
+	real8   bound, rho;
+	int	    inner = 0, interType;
+	Plane_t plane;
+	Line_t  edge;
+
 	/*the following variables are placed in param.h*/
 	int		    numTGrains;
 	real8		halfTwinThick;
 	int		    invFlag;
 	real8		lx=0, ly=0, lz=0;	/*half cube size in param.h*/
+
+    int                     m, n, nmesh;
+    real8                   vec1[3], vec2[3], vec3[3], interPos[3];
+    real8                   poss[2][3], vecMag, length, vec4[3], msize = 10, tsize;
+    std::vector<Plane_t>    surList(6);
+    std::vector<std::vector<Plane_t> > surArray(2);
+    std::vector<int>        records, records1;
+    FILE     *fp;
+    char     fileName[256];
+
+    int         th, color, l;
+
+    real8       cryst[3], lab[3];
+    real8       ps[4][3];
+    real8       cena[3] = {1,-1, 1}, cenb[3] = {-1,1,1}, cenc[3] = {1,1,-1}, cend[3] = {-1,-1,-1};
 
 	lx = param->xBoundMax;
 	ly = param->yBoundMax;
@@ -206,6 +227,69 @@ void InitGrain(Home_t *home, Param_t *param){
 
             param->slipSys.schmidt = maxSchmidt;
 	        FormatMatrix(param->matrixOrientation,"Orientation");
+
+
+		    snprintf(fileName, sizeof(fileName), "Thompson.plt");
+
+		    if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
+			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
+		    }
+            
+	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, burgID\n");
+
+            NormalizeVec(cena);
+            NormalizeVec(cenb);
+            NormalizeVec(cenc);
+            NormalizeVec(cend);
+
+            VECTOR_ZERO(plane.normal);
+            VECTOR_ZERO(plane.point);
+
+            Matrix33Vector3Multiply(param->matrixOrientation, cena, ps[0]);
+            Matrix33Vector3Multiply(param->matrixOrientation, cenb, ps[1]);
+            Matrix33Vector3Multiply(param->matrixOrientation, cenc, ps[2]);
+            Matrix33Vector3Multiply(param->matrixOrientation, cend, ps[3]);
+
+            for(j=0; j<4; j++){
+                ps[j][0] *= rad;
+                ps[j][1] *= rad;
+                ps[j][2] *= rad;
+
+                ps[j][0] += (plane.point[0]);
+                ps[j][1] += (plane.point[1]);
+                ps[j][2] += (plane.point[2]);
+            }
+
+
+            for(j=0; j<3; j++){
+                for(k=j+1; k<4; k++){
+                    vec4[0] = ps[k][0] - ps[j][0];
+                    vec4[1] = ps[k][1] - ps[j][1];
+                    vec4[2] = ps[k][2] - ps[j][2];
+
+                    VECTOR_COPY(poss[0], ps[j]);
+
+                    nmesh = ((int)(Normal(vec4)/msize));
+                    tsize = Normal(vec4)/((real8)nmesh);
+
+                    NormalizeVec(vec4);
+
+                    for(l=0; l<nmesh; l++){
+	                    fprintf(fp, "%e %e %e %e %e %e 1\n", poss[0][0],
+                        poss[0][1],poss[0][2], tsize*vec4[0],
+                        tsize*vec4[1],tsize*vec4[2]);
+
+                        poss[0][0] += tsize*vec4[0];
+                        poss[0][1] += tsize*vec4[1];
+                        poss[0][2] += tsize*vec4[2];
+
+                    }
+                
+                }
+            }
+
+            fclose(fp);
+
 	    }
 	    return;
 	}
@@ -317,11 +401,6 @@ void InitGrain(Home_t *home, Param_t *param){
  *	    Type VI: polycrystal = 1, nGrain =2
  *	    simulat twin sample.
  */
-	    real8   hMatrix, p[4][3], vec1[3], vec2[3];
-	    real8   interPos[3], bound, rho;
-	    int	    inner = 0, interType;
-	    Plane_t plane;
-	    Line_t  edge;
 
 	    VECTOR_COPY(plane.normal, param->TBNormal);
 	    VECTOR_ZERO(plane.point);
@@ -439,14 +518,6 @@ void InitGrain(Home_t *home, Param_t *param){
 	    }
 
         if(home->myDomain == 0){
-            int                     type, m, n, nmesh;
-            real8                   vec1[3], vec2[3], vec3[3], interPos[3];
-            real8                   poss[2][3], vecMag, length, vec4[3], msize = 10, tsize;
-            std::vector<Plane_t>    surList(6);
-            std::vector<std::vector<Plane_t> > surArray(2);
-            std::vector<int>        records, records1;
-	        FILE     *fp;
-	        char     fileName[256];
 
             for(i=0; i<6; i++){
                 VECTOR_ZERO(surList[i].normal);
@@ -559,11 +630,6 @@ void InitGrain(Home_t *home, Param_t *param){
                     surArray[1][i].point[0],surArray[1][i].point[1],surArray[1][i].point[2]);
             }
 #endif
-            int         th, color, l;
-
-            real8       cryst[3], lab[3];
-            real8       ps[4][3];
-            real8       cena[3] = {1,-1, 1}, cenb[3] = {-1,1,1}, cenc[3] = {1,1,-1}, cend[3] = {-1,-1,-1};
 
             NormalizeVec(cena);
             NormalizeVec(cenb);

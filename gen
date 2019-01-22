@@ -29,28 +29,40 @@ cubel=3000
 #frlen=1980
 #cubel=2000
 maxSeg=200
-nfrs=8
+nfrs=100
 maxDensity=1E13
 seed=""
-srctype=5
 
-#lnum=`grep  -n "basis orientation:" ${1} | cut -d : -f 1`
-#let lnum=${lnum}+1
-#l1=`sed -n "${lnum}p" ${1}`
-#x1=`echo ${l1} | cut -d " " -f 2 `
-#x2=`echo ${l1} | cut -d " " -f 3 `
-#x3=`echo ${l1} | cut -d " " -f 4 | cut -d "}" -f 1`
-#let lnum=${lnum}+1
-#l2=`sed -n "${lnum}p" ${1}`
-#y1=`echo ${l2} | cut -d " " -f 2 `
-#y2=`echo ${l2} | cut -d " " -f 3 `
-#y3=`echo ${l2} | cut -d " " -f 4 | cut -d "}" -f 1`
-#
-#xdir=`echo "${x1}${x2}${x3}"`
-#ydir=`echo "${y1}${y2}${y3}"`
-#
+polycrystal=0
+single=2
+
 PI=3.1415926535897932385
-angle=`echo "scale=16; ${1}.0 * ${PI} / 180.0 " | bc -l`
+if [ ${polycrystal} == "1" ]; then
+    srctype=2
+    angle=`echo "scale=16; ${1}.0 * ${PI} / 180.0 " | bc -l`
+else
+    srctype=2
+    if [ ${single} = "1" ]; then
+        lnum=`grep  -n "basis orientation:" ${1} | cut -d : -f 1`
+    else
+        lnum=`grep  -n "twin orientation:" ${1} | cut -d : -f 1`
+    fi
+
+    let lnum=${lnum}+1
+    l1=`sed -n "${lnum}p" ${1}`
+    x1=`echo ${l1} | cut -d " " -f 2 `
+    x2=`echo ${l1} | cut -d " " -f 3 `
+    x3=`echo ${l1} | cut -d " " -f 4 | cut -d "}" -f 1`
+    let lnum=${lnum}+1
+    l2=`sed -n "${lnum}p" ${1}`
+    y1=`echo ${l2} | cut -d " " -f 2 `
+    y2=`echo ${l2} | cut -d " " -f 3 `
+    y3=`echo ${l2} | cut -d " " -f 4 | cut -d "}" -f 1`
+
+    xdir=`echo "${x1}${x2}${x3}"`
+    ydir=`echo "${y1}${y2}${y3}"`
+fi
+
 
 case $srctype in
 ######################################################################################
@@ -72,11 +84,11 @@ case $srctype in
     2|II)
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 0 -pbc 7 \
-#    -polycrystal 0 -pbc 7 -extended 4\
-    -xMatDir -1,-1,2 -zMatDir 1,1,1\
-    -heightRatio 1 -deltaNums 0 -nLayers 1 ;;
+    -xMatDir 1,0,0 -yMatDir 0,1,0 \
+    -heightRatio 3 -deltaNums 0 -nLayers 1 ;;
 
-#    -xMatDir 1,0,0 -yMatDir 0,1,0 \
+#    -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity} \
+#    -polycrystal 0 -pbc 7 -extended 4\
 
 ######################################################################################
 #    
@@ -108,8 +120,9 @@ case $srctype in
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity \
-    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
+    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 3 -deltaNum 0 -nLayers 1;;
 
+#    -xMatDir ${xdir} -yMatDir ${ydir} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
 #    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
 #    -xMatDir 0.707106781186548,-0.707106781186548,0.0 -yMatDir 0.642228525188087,0.642228525188087,-0.418431646591735 \
     *)
@@ -117,4 +130,4 @@ case $srctype in
      exit 1 ;;
 esac
 
-./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile input/Copper.data
+./bin/paradisrepart -infile paradis.data -cells 4 -domains 1,1,4 -outfile input/Copper.data

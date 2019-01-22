@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.T1"
+dirname = "res.5588750"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -51,8 +51,8 @@ splitMultiNodeFreq =   1
 #  
 maxstep =  40000000 
 #maxstep =  4 
-maxStn = 1.0E-2
-maxPst = 1.0E-2
+maxStn = 0.6E-2
+maxPst = 1.0E-3
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
 rTol = 2.0
@@ -91,8 +91,8 @@ edotdir = [
 appliedStress = [
 	0.0e0
 	0.0e0
-	-800.0e6
-	0.0e6
+	0.0e0
+	0.0e0
 	0.0e0
 	0.0e0
 ]
@@ -125,13 +125,13 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 50 
+tecplotfreq = 3000 
 saveprop = 1
-savepropfreq = 500
+savepropfreq = 300
 tecmesh = 1
-tecmeshfreq = 50000
+tecmeshfreq = 300000
 savecn = 1
-savecnfreq = 50000
+savecnfreq = 20000
 savetimers = 0
 savetimersfreq = 50000
 velfile = 0
