@@ -301,7 +301,30 @@ void WriteProp(Home_t *home, int property)
                                                      sign*param->appliedStress[i]*1E-6,
                                                      sign*param->totpStn[i]*1E2);
 
-                            if(fabs(param->totpStn[i]) > param->maxPst)param->finish = 1; 
+                            if(fabs(param->totpStn[i]) > 1.0E-3 && param->finish == -1){
+                                param->finish = 0; 
+                                printf("yield stress schmidt1 schmidt2 smax CRSS:\n");
+                                printf("%e ", sign*param->appliedStress[i]*1E-6);
+
+                                if(home->param->polycrystal){
+                                    Grain_t *grain; 
+                                    real8   maxSchmidt = -1;
+                                    int     j;
+                                    for(j=0; j<home->nGrains; j++){
+                                        grain = home->grainKeys[j];
+                                        printf("%e ", grain->slipSys.schmidt);
+                                        if(maxSchmidt < grain->slipSys.schmidt){
+                                            maxSchmidt = grain->slipSys.schmidt;
+                                        }
+                                    }
+                                    printf("%e %e\n", maxSchmidt, sign*param->appliedStress[i]*1E-6*maxSchmidt);
+                                }else{
+                                    printf("%e %e\n", param->slipSys.schmidt, 
+                                           sign*param->appliedStress[i]*1E-6*param->slipSys.schmidt);
+                                }
+                            }
+        
+                            if(fabs(param->totpStn[i]) > param->maxPst)param->finish = 1;
                             if(fabs(param->totstraintensor[i]) > param->maxStn)param->finish = 1;
     
                             if(param->polycrystal) fprintf(fp, "%e ", sign*param->totTwinpStn[i]*1E2);

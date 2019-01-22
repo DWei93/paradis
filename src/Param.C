@@ -1003,6 +1003,6 @@ void DataParamInit(Param_t *param, ParamList_t *DPList)
 
 	param->preDecreaseDT = 0;
 	param->markPreDTDisable = 0;
-	param->finish = 0;
+	param->finish = -1;
         return;
 }

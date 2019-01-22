@@ -110,6 +110,13 @@ void InitGrain(Home_t *home, Param_t *param){
                             {0.0e+00, 0.0e+00, 1.0e+00}
                           };
 
+    real8       zaxis[3] = {0,0,1.0}, maxSchmidt, dis, rad = 300, sqi3 = 0.5773502691896258;
+    std::vector<SlipSys_t>  slipSys;
+    SlipSys_t               slip;
+    BurgInfo_t  *bd;
+    int         slipIndex, inGrain;
+    GB_t        *gb;
+
 	/*the following variables are placed in param.h*/
 	int		    numTGrains;
 	real8		halfTwinThick;
@@ -177,10 +184,27 @@ void InitGrain(Home_t *home, Param_t *param){
  *	Type II: polycrystal = 0, nGrain = 0, Free surface.
  *	single crystal, free surface.
  */
-	if(param->polycrystal ==0 ){
+	if(param->polycrystal ==0){
         home->nGrains = 0;
         home->nGBs = 0;
 	    if(home->myDomain == 0){
+            std::vector<SlipSys_t>().swap(slipSys);
+            bd = &(home->burgData);
+            for(j=0; j<6; j++){
+                VECTOR_COPY(slip.burg, bd->burgList[j]);
+                slip.burgID = j;
+                for(k=0; k<2; k++){
+                    slip.planeID = bd->burgOnPlaneID[j][k];
+                    VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
+                    slip.schmidt = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
+                    slipSys.push_back(slip);
+                }
+            }
+            sort(slipSys.begin(), slipSys.end(),cmp3); 
+    
+            maxSchmidt = slipSys[0].schmidt;
+
+            param->slipSys.schmidt = maxSchmidt;
 	        FormatMatrix(param->matrixOrientation,"Orientation");
 	    }
 	    return;
@@ -535,12 +559,6 @@ void InitGrain(Home_t *home, Param_t *param){
                     surArray[1][i].point[0],surArray[1][i].point[1],surArray[1][i].point[2]);
             }
 #endif
-            std::vector<SlipSys_t>  slipSys;
-            SlipSys_t               slip;
-            BurgInfo_t  *bd;
-            int         slipIndex, inGrain;
-            GB_t        *gb;
-            real8       zaxis[3] = {0,0,1.0}, maxSchmidt, dis, rad = 300, sqi3 = 0.5773502691896258;
             int         th, color, l;
 
             real8       cryst[3], lab[3];
@@ -623,6 +641,9 @@ void InitGrain(Home_t *home, Param_t *param){
                 sort(slipSys.begin(), slipSys.end(),cmp3); 
     
                 maxSchmidt = slipSys[0].schmidt;
+
+                grain->slipSys.schmidt = maxSchmidt;
+
                 for(j=1; j<slipSys.size(); j++){
                     if(fabs(slipSys[j].schmidt-maxSchmidt)>1.0E-3)break;
                 }

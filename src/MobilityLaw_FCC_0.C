@@ -124,30 +124,30 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
            */
         }else{
         
-           if((node->nx[j]==0)&&(node->ny[j]==0)&&(node->nz[j]==0)){
+            if((node->nx[j]==0)&&(node->ny[j]==0)&&(node->nz[j]==0)){
               printf("Mobility_FCC_0: (%d,%d) glide plane norm = 0\n"
                      "for segment with nonzero length lr = %e!\n",
                      node->myTag.domainID, node->myTag.index, lr);
-        }
+            }
 
-        lx=dx/lr; ly=dy/lr; lz=dz/lr;
+            lx=dx/lr; ly=dy/lr; lz=dz/lr;
         
-        bx = node->burgX[j];
-        by = node->burgY[j];
-        bz = node->burgZ[j];
+            bx = node->burgX[j];
+            by = node->burgY[j];
+            bz = node->burgZ[j];
 /*
- *         If needed, rotate the burgers vector from the laboratory frame to
- *         the crystal frame.
+ *          If needed, rotate the burgers vector from the laboratory frame to
+ *          the crystal frame.
  */
-	    TBBurg = 0;
-        if (param->useLabFrame) {
-            real8 bTmp[3] = {bx, by, bz};
-            real8 bRot[3];
+	        TBBurg = 0;
+            if (param->useLabFrame) {
+                real8 bTmp[3] = {bx, by, bz};
+                real8 bRot[3];
 
-		    if(BurgType_FCC(bTmp) & SHOCKLEY_BURG)TBBurg = 1;
-            VectorLabToCrystal(home, node, nbr, bTmp, bRot);
-            bx = bRot[0]; by = bRot[1]; bz = bRot[2];
-        }       
+		        if(BurgType_FCC(bTmp) == SHOCKLEY_BURG)TBBurg = 1;
+                VectorLabToCrystal(home, node, nbr, bTmp, bRot);
+                bx = bRot[0]; by = bRot[1]; bz = bRot[2];
+            }       
 
 	        br = sqrt(bx*bx+by*by+bz*bz);
 	        bx/=br; by/=br; bz/=br; /* unit vector along Burgers vector */

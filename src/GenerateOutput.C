@@ -1438,6 +1438,7 @@ void GenerateOutput(Home_t *home, int stage, const char *msg)
             WriteProp(home, EPS);      /* Resultant plastic strain (scalar) */
 
         }
+
 #ifdef PARALLEL
         finishLoc = param->finish;
         MPI_Allreduce(&finishLoc, &finishGlo, 1, MPI_INT,

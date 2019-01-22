@@ -135,6 +135,20 @@ typedef struct {
     real8       p[3];
 } GB_t;
 
+typedef struct {
+	real8 normal[3];
+	real8 point[3];
+} Plane_t; 
+
+struct _slipSys{
+     real8  burg[3];
+     real8  normal[3];
+     real8  schmidt;
+     int    inGrain;
+     int    burgID;
+     int    planeID;
+}; 
+
 struct _grain{
 	real8	    cx, cy, cz;
 	real8	    orientation[3][3];
@@ -148,21 +162,8 @@ struct _grain{
     GB_t        **GB;
     real8       *sign;
 
+    SlipSys_t   slipSys;
 };
-
-typedef struct {
-	real8 normal[3];
-	real8 point[3];
-} Plane_t; 
-
-typedef struct {
-     real8  burg[3];
-     real8  normal[3];
-     real8  schmidt;
-     int    inGrain;
-     int    burgID;
-     int    planeID;
-} SlipSys_t; 
 
 
 typedef struct {

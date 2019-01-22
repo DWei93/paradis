@@ -508,6 +508,8 @@ struct _param {
         int     randomInternalForce;
         double     fMeshSizeX, fMeshSizeY, fNumX, fNumY;
 
+        SlipSys_t  slipSys;
+
 #ifdef _FEM
 /*
  *      Include some FEM specific stuff for Meijie.  This is not the

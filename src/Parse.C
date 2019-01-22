@@ -688,7 +688,11 @@ void WriteArray(real8 **array, char *name, int nRows, int nCols, FILE *fp)
     fprintf(fp, "%s = [\n", name);    
     for(i=0; i<nRows; i++){
         for(j=0; j<nCols; j++){
-            fprintf(fp, "%10.6e ", array[i][j]);
+            if(fabs(array[i][j]) < 1.0E-50){
+                fprintf(fp, "0.0 ");
+            }else{
+                fprintf(fp, "%10.6e ", array[i][j]);
+            }
         }
         fprintf(fp, "\n");
     }
