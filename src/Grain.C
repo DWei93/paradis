@@ -110,7 +110,7 @@ void InitGrain(Home_t *home, Param_t *param){
                             {0.0e+00, 0.0e+00, 1.0e+00}
                           };
 
-    real8       zaxis[3] = {0,0,1.0}, maxSchmidt, dis, rad = 300, sqi3 = 0.5773502691896258;
+    real8       zaxis[3] = {0.0,0.0,1.0}, maxSchmidt, dis, rad = 1000, sqi3 = 0.5773502691896258;
     std::vector<SlipSys_t>  slipSys;
     SlipSys_t               slip;
     BurgInfo_t  *bd;
@@ -135,10 +135,10 @@ void InitGrain(Home_t *home, Param_t *param){
     std::vector<Plane_t>    surList(6);
     std::vector<std::vector<Plane_t> > surArray(2);
     std::vector<int>        records, records1;
-    FILE     *fp;
+    FILE     *fp, *fp1;
     char     fileName[256];
 
-    int         th, color, l;
+    int         th, color, l, burgID, maxBurg;
 
     real8       cryst[3], lab[3];
     real8       ps[4][3];
@@ -208,6 +208,9 @@ void InitGrain(Home_t *home, Param_t *param){
 	if(param->polycrystal ==0){
         home->nGrains = 0;
         home->nGBs = 0;
+
+//        VECTOR_COPY(zaxis, param->loadDir);
+
 	    if(home->myDomain == 0){
             std::vector<SlipSys_t>().swap(slipSys);
             bd = &(home->burgData);
@@ -224,10 +227,119 @@ void InitGrain(Home_t *home, Param_t *param){
             sort(slipSys.begin(), slipSys.end(),cmp3); 
     
             maxSchmidt = slipSys[0].schmidt;
+                printf("max %f\n",  maxSchmidt);
+
+            for(j=1; j<slipSys.size(); j++){
+                if(fabs(slipSys[j].schmidt-maxSchmidt)>1.0E-3)break;
+            }
+            slipSys.resize(j);
 
             param->slipSys.schmidt = maxSchmidt;
 	        FormatMatrix(param->matrixOrientation,"Orientation");
 
+
+            for(i=0; i<6; i++){
+                VECTOR_ZERO(surList[i].normal);
+                VECTOR_ZERO(surList[i].point);
+            }
+            surList[0].normal[0] =-1.0;
+            surList[1].normal[0] = 1.0;
+            surList[2].normal[1] =-1.0;
+            surList[3].normal[1] = 1.0;
+            surList[4].normal[2] =-1.0;
+            surList[5].normal[2] = 1.0;
+
+            surList[0].point[0] = param->xBoundMin;
+            surList[1].point[0] = param->xBoundMax;
+            surList[2].point[1] = param->yBoundMin;
+            surList[3].point[1] = param->yBoundMax;
+            surList[4].point[2] = param->zBoundMin;
+            surList[5].point[2] = param->zBoundMax;
+
+		    snprintf(fileName, sizeof(fileName), "primarry_planes.plt");
+
+		    if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
+			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
+		    }
+            
+	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, planeID, cosf\n");
+
+		    snprintf(fileName, sizeof(fileName), "total.plt");
+		    if ((fp1 = fopen(fileName, "w")) == (FILE *)NULL) {
+			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
+		    }
+            
+	        fprintf(fp1, "Variables = x, y, z, v1, v2, v3, index, planID, burg, schmidt\n");
+
+            for(j=0; j<slipSys.size(); j++){
+                VECTOR_COPY(plane.normal, slipSys[j].normal);
+                VECTOR_ZERO(plane.point);
+                inGrain = slipSys[j].inGrain;
+        
+                for(k=0; k<6; k++){
+                    type = PlanePlaneIntersection(
+                              plane.normal, plane.point,
+                              surList[k].normal, surList[k].point, vec1, vec2); 
+                    
+                    if(type != LINE_INTERSECTION)continue;
+
+                    th = 0;
+
+                    for(m=0; m<6; m++){
+                        if(m==k)continue;
+                        type = LinePlaneIntersection(vec1, vec2, surList[m].normal,
+                                     surList[m].point, vec3, interPos);
+                        if(type != POINT_INTERSECTION)continue;
+                        if(fabs(interPos[0]) > param->xBoundMax+1.0){
+                            continue;
+                        }
+                        if(fabs(interPos[1]) > param->yBoundMax+1.0){
+                            continue;
+                        }
+                        if(fabs(interPos[2]) > param->zBoundMax+1.0){
+                            continue;
+                        }
+                        VECTOR_COPY(poss[th], interPos);
+                        th++;
+
+                        if(th == 2){
+
+                            vec4[0] = poss[1][0] - poss[0][0];
+                            vec4[1] = poss[1][1] - poss[0][1];
+                            vec4[2] = poss[1][2] - poss[0][2];
+
+                            nmesh = ((int)(Normal(vec4)/msize));
+                            tsize = Normal(vec4)/((real8)nmesh);
+                            NormalizeVec(vec4);
+            
+                            for(l=0; l<nmesh; l++){
+	                            fprintf(fp, "%e %e %e %e %e %e %d %f\n", poss[0][0],
+                                poss[0][1],poss[0][2], tsize*vec4[0],
+                                tsize*vec4[1],tsize*vec4[2], slipSys[j].planeID,
+                                    fabs(DotProduct(slipSys[j].normal, zaxis)));
+
+	                            fprintf(fp1, "%e %e %e %e %e %e 1 %d -1 %f\n", poss[0][0],
+                                            poss[0][1],poss[0][2], tsize*vec4[0],
+                                            tsize*vec4[1],tsize*vec4[2],  slipSys[j].planeID,
+                                            fabs(DotProduct(slipSys[j].normal, zaxis)));
+
+                                poss[0][0] += tsize*vec4[0];
+                                poss[0][1] += tsize*vec4[1];
+                                poss[0][2] += tsize*vec4[2];
+
+                            }
+
+                            th = 0;
+                            break;
+                        }
+
+                    }
+
+                }
+
+            }
+
+            fclose(fp);
 
 		    snprintf(fileName, sizeof(fileName), "Thompson.plt");
 
@@ -235,7 +347,7 @@ void InitGrain(Home_t *home, Param_t *param){
 			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
 		    }
             
-	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, burgID\n");
+	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, burgID, schmidt\n");
 
             NormalizeVec(cena);
             NormalizeVec(cenb);
@@ -274,21 +386,38 @@ void InitGrain(Home_t *home, Param_t *param){
 
                     NormalizeVec(vec4);
 
-                    for(l=0; l<nmesh; l++){
-	                    fprintf(fp, "%e %e %e %e %e %e 1\n", poss[0][0],
-                        poss[0][1],poss[0][2], tsize*vec4[0],
-                        tsize*vec4[1],tsize*vec4[2]);
+                    burgID = BurgID_FCC(bd, vec4);
+                    for(l=0; l<slipSys.size(); l++){
+                        if(burgID == slipSys[l].burgID)break;
+                    }
+                    if(l==slipSys.size()){
+                        maxBurg = 0;
+                    }else{
+                        maxBurg = 1;
+                    }
 
+                    for(l=0; l<nmesh; l++){
+	                    fprintf(fp, "%e %e %e %e %e %e %d %d\n", poss[0][0],
+                        poss[0][1],poss[0][2], tsize*vec4[0],
+                        tsize*vec4[1],tsize*vec4[2],
+                        burgID, maxBurg);
+
+	                    fprintf(fp1, "%e %e %e %e %e %e %d -1 %d %f\n", poss[0][0],
+                        poss[0][1],poss[0][2], tsize*vec4[0],
+                        tsize*vec4[1],tsize*vec4[2],
+                        maxBurg, burgID, fabs(DotProduct(bd->burgList[burgID], zaxis)));
                         poss[0][0] += tsize*vec4[0];
                         poss[0][1] += tsize*vec4[1];
                         poss[0][2] += tsize*vec4[2];
 
                     }
-                
+
+                    
                 }
             }
 
             fclose(fp);
+            fclose(fp1);
 
 	    }
 	    return;
@@ -707,6 +836,7 @@ void InitGrain(Home_t *home, Param_t *param){
                 sort(slipSys.begin(), slipSys.end(),cmp3); 
     
                 maxSchmidt = slipSys[0].schmidt;
+                printf("max %f\n",  maxSchmidt);
 
                 grain->slipSys.schmidt = maxSchmidt;
 
