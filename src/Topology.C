@@ -1105,6 +1105,7 @@ void SplitMultiNodes(Home_t *home)
 	    Param_t	*param;
         SegData_t *segData = (SegData_t *)NULL;
 
+
 /*
  *      Only do multinode splits on cycles that are multiples
  *      of the <splitMultiNodeFreq> control file parameter.

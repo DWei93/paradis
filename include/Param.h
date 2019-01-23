@@ -501,12 +501,14 @@ struct _param {
 	    int	    finish;
 	    real8	maxStn;
 	    real8	maxPst;
+        real8   maxStr;
         real8   meshSizeX;
         real8   meshSizeY;
         real8   meshSizeZ;
         int     meshNumX, meshNumY, meshNumZ;
         int     randomInternalForce;
-        double     fMeshSizeX, fMeshSizeY, fNumX, fNumY;
+        real8   fMeshSizeX, fMeshSizeY, fNumX, fNumY;
+        real8   position;
 
 #ifdef _FEM
 /*

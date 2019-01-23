@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.0MPa"
+dirname = "res.1030646"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -53,8 +53,9 @@ maxstep =  40000000
 #maxstep =  4 
 maxStn = 1.0E-2
 maxPst = 1.0E-2
+maxStr = 1.2621E8
 timestepIntegrator =   "trapezoid"
-nextDT = 1.0e-13;
+nextDT = 1.0e-13
 rTol = 1.0
 rc =  1
 #
@@ -70,7 +71,7 @@ fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 loadType = 7
 indxErate = 8
 eRate =   0.000
-strRate = 0.000
+strRate = 6.0E15
 #plaRateCtr = 2.0E4
 loadDir = [
     0.0
@@ -114,8 +115,7 @@ fricStress = 0.0e0
 MobScrew =   1.000000e+04
 MobEdge =    1.000000e+04  
 MobTwinning = 5.000000e+04
-
-sfEnergy =   3.912363067292646e+07  
+sfEnergy =   3.9123630672926e+07 
 # Radom Interal stree field
 randomInternalForce = 1
 
@@ -127,11 +127,11 @@ tecplot = 1
 tecplotfreq = 1000
 saveprop = 1
 savepropfreq = 100
-tecmesh = 1
+tecmesh = 0
 tecmeshfreq = 50000
 velfile = 0
 velfilefreq = 1000
 savecn = 1
-savecnfreq = 5000
+savecnfreq = 50000
 savetimers = 0
 savetimersfreq = 1000

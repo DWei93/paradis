@@ -210,7 +210,7 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
         if (param->tecplot) {
             if (stage == STAGE_TERM ) {
                 *outputTypes |= GEN_TECPLOT_DATA;
-            } else if (stage == STAGE_CYCLE || stage == STAGE_DEBUG) {
+            } else if (stage == STAGE_CYCLE) {
                 if (param->tecplotdt > 0.0) {
                     dumpTime = param->tecplottime + param->tecplotdt;
                     if (timeNow >= dumpTime) {
@@ -222,6 +222,8 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
                     param->tecplotcounter++;
                     *outputTypes |= GEN_TECPLOT_DATA;
                 }
+            }else if(stage == STAGE_DEBUG){
+                *outputTypes |= GEN_TECPLOT_DATA;
             }
         }
 
@@ -229,11 +231,13 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
         if (param->tecmesh) {
             if (stage == STAGE_TERM ) {
                 *outputTypes |= GEN_TECMESH_DATA;
-            } else if (stage == STAGE_CYCLE || stage == STAGE_DEBUG) {
+            } else if (stage == STAGE_CYCLE) {
                 if ((home->cycle % param->tecmeshfreq) == 0 || home->cycle == 1) {
                     param->tecmeshcounter++;
                     *outputTypes |= GEN_TECMESH_DATA;
                 }
+            }else if(stage == STAGE_DEBUG){
+                *outputTypes |= GEN_TECMESH_DATA;
             }
         }
 /*
@@ -1071,8 +1075,8 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
                          param->tecplotcounter);
 #endif
         } else if(stage == STAGE_DEBUG){
-                snprintf(baseName, sizeof(baseName),"tecdata%06d%s",
-			home->cycle,msg);
+                snprintf(baseName, sizeof(baseName),"tecdebug%s",
+			msg);
         }else{
                 snprintf(baseName, sizeof(baseName), "tecdata.%s", msg);
         }
@@ -1088,8 +1092,8 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
                 snprintf(baseName, sizeof(baseName), "tecmesh%06d",
                          param->tecmeshcounter);
             } else if (stage == STAGE_DEBUG){
-                snprintf(baseName, sizeof(baseName),"tecmesh%06d%s",
-			             home->cycle,msg);
+                snprintf(baseName, sizeof(baseName),"tecdebug%s",
+			             msg);
             } else if (stage == STAGE_TERM){
                 snprintf(baseName, sizeof(baseName), "tecmesh.%s", msg);
             }

@@ -256,8 +256,7 @@ void WriteProp(Home_t *home, int property)
                 fprintf(fp,"%e %e %e\n", param->timeNow, pstnijk, ptstnijk);
                 fclose(fp);
         
-                if ((param->loadType == 1) || (param->loadType == 4) || 
-                     (param->loadType == 7)) {
+                if (param->loadType >= 1) {
         
                     snprintf(fileName, sizeof(fileName),
                              "%s/stress_Plastic_strain", DIR_PROPERTIES);
@@ -282,7 +281,7 @@ void WriteProp(Home_t *home, int property)
                     fprintf(fp, "%e %e %e %e %e %e %e %e %e\n", param->timeNow, param->elasticStrainTensor[3], param->totpStn[3], param->appliedStress[3],
                             param->disloDensity, param->elasticStrainTensor[4], param->totpStn[4], param->appliedStress[4],
                             effPlaRate);
-                    if(effPlaRate < 0.5)param->finish = 1;
+//                    if(effPlaRate < 0.5)param->finish = 1;
 
 #if 0
                     switch (param->loadType) {

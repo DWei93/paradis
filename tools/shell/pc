@@ -1,5 +1,20 @@
 #!/bin/bash
 
+finds=`find -type f -name "out.*"`
+
+if [ ${1} == "" ] ; then
+    if [ ${#finds} != 0 ]; then
+        c=0
+        for file in `echo "${finds}" | xargs ls -t`
+        do
+            files[${c}]=${file}
+            ((c++))
+        done
+    else
+        echo "nothing need to be packaged."
+    fi
+fi
+
 config=~/.wsconfig
 baseJobName=`grep "baseJobName" $config | cut -d " " -f 3`
 outFile=`ls out.${1}*`

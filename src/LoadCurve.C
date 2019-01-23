@@ -41,6 +41,7 @@
 #include "Util.h"
 #include <stdio.h>
 #include <math.h>
+#include <WriteProp.h>
 
 
 /*
@@ -94,6 +95,13 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 		real8   (*C)[6], (*Sij)[6];
         real8   effPlaRate;
         Param_t *param;
+        int     maxDirID = -1;
+        real8   maxDirVal = -1E50;
+        char name[50];
+
+        real8   displacement, vec[3], locMin, gloMin, py;
+        Node_t  *node;
+        int     locVal, gloVal;
         
         TimerStart(home, LOADCURVE);
         
@@ -639,14 +647,144 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                                2.0*dpstn[5]*dpstn[5])*2.0/3.0)/param->lastDT;
 
                 if(param->plaRateCtr <= 0.0 || 
-                  (param->plaRateCtr > 0 && 10.0*effPlaRate <= param->plaRateCtr)){
-                    dsig[0] = param->strRate*dtt*param->loadDir[0];
-                    dsig[1] = param->strRate*dtt*param->loadDir[1];
-                    dsig[2] = param->strRate*dtt*param->loadDir[2];
-                    dsig[3] = param->strRate*dtt*param->loadDir[3];
-                    dsig[4] = param->strRate*dtt*param->loadDir[4];
-                    dsig[5] = param->strRate*dtt*param->loadDir[5];
+                  (param->plaRateCtr > 0 && effPlaRate <= param->plaRateCtr)){
+                    for(i=0; i<6; i++){
+                        dsig[i] = param->strRate*dtt*param->loadDir[i];
+
+                        if(fabs(param->strRate*param->loadDir[i]) > maxDirVal){
+                            maxDirID = i;
+                            maxDirVal = fabs(param->strRate*param->loadDir[i]);
+                        }
+                    }
+                
                 }
+
+                for(i=0; i<6; i++){
+                    for(j=0; j<6; j++){
+                        destn[i] += Sij[i][j] * dsig[j];
+                    }
+                    param->elasticStrainTensor[i] += destn[i];
+                }
+                
+                for(i=0; i<6; i++){
+                    param->appliedStress[i] += dsig[i];
+                }
+				
+                if(param->maxStr > 0){
+                    if(param->maxStr < fabs(param->appliedStress[maxDirID]) &&
+                       (Sign(param->strRate*param->loadDir[maxDirID]) * 
+                       Sign(param->appliedStress[maxDirID])) > 0){
+                        param->strRate = -param->strRate;
+#ifdef PARALLEL
+                        MPI_Barrier(MPI_COMM_WORLD);
+#endif
+                        snprintf(name, 50, "-%05.0fMPa-%d", 
+                                 param->appliedStress[maxDirID]/1.0E6, home->cycle);
+                        GenerateOutput(home, STAGE_DEBUG, name);
+                        WriteProp(home, EPS);      /* Resultant plastic strain (scalar) */
+                    }
+                }
+
+                deltaStress[0][0] = dsig[0];
+                deltaStress[1][1] = dsig[1];
+                deltaStress[2][2] = dsig[2];
+
+                deltaStress[1][2] = dsig[3];
+                deltaStress[2][0] = dsig[4];
+                deltaStress[0][1] = dsig[5];
+
+                deltaStress[2][1] = deltaStress[1][2];
+                deltaStress[0][2] = deltaStress[2][0];
+                deltaStress[1][0] = deltaStress[0][1];
+
+                break;
+        
+/*
+ *          Step Stress loading.
+ */
+            case 8:
+				for (i = 0; i < 6; i++) {
+                    dpstn[i] = param->delpStrain[i];
+                }
+                Sij = param->elasticConstantMatrixInv;
+    
+                effPlaRate = sqrt((dpstn[0]*dpstn[0]+ 
+                                   dpstn[1]*dpstn[1]+ 
+                                   dpstn[2]*dpstn[2]+ 
+                               2.0*dpstn[3]*dpstn[3]+ 
+                               2.0*dpstn[4]*dpstn[4]+ 
+                               2.0*dpstn[5]*dpstn[5])*2.0/3.0)/param->lastDT;
+
+                locVal = 1;
+                gloVal = 0;
+
+                locMin = param->position;
+	            for(i=0;i<home->newNodeKeyPtr;i++){
+                    if((node = home->nodeKeys[i]) == (Node_t *) NULL)continue;
+
+                    VECTOR_ZERO(vec);
+                    vec[1] = node->y - param->position;
+                    ZImage(param, vec, vec+1, vec+2);
+    
+                    locVal &= (fabs(vec[1]) >= 2000);
+
+                    if(node->y > 0.25*param->Ly){
+                        py = node->y - param->Ly;
+                    }else{
+                        py = node->y;
+                    }
+                    locMin = MIN(locMin, py);
+                }
+
+#ifdef PARALLEL
+                MPI_Allreduce(&locVal, &gloVal, 1, MPI_INT,
+                      MPI_MIN, MPI_COMM_WORLD);
+
+                MPI_Allreduce(&locMin, &gloMin, 1, MPI_DOUBLE,
+                      MPI_MIN, MPI_COMM_WORLD);
+#else
+                gloVal = locVal;
+                gloMin = locMin;
+#endif
+
+                locVal = 0;
+                if(fabs(effPlaRate) <= 1 || gloVal == 1){
+                    locVal = 1;
+                    dsig[0] = 10.0E6*param->loadDir[0];
+                    dsig[1] = 10.0E6*param->loadDir[1];
+                    dsig[2] = 10.0E6*param->loadDir[2];
+                    dsig[3] = 10.0E6*param->loadDir[3];
+                    dsig[4] = 10.0E6*param->loadDir[4];
+                    dsig[5] = 10.0E6*param->loadDir[5];
+                    
+                    if(gloVal == 1){
+                        vec[1] = param->position + 2000;
+                        FoldBox(param, vec, vec+1, vec+2);
+                        param->position = vec[1];
+                    }
+                    if(fabs(effPlaRate) <= 1){
+                        vec[1] = gloMin;
+                        FoldBox(param, vec, vec+1, vec+2);
+                        param->position = vec[1];
+                    }
+
+                }
+
+#ifdef PARALLEL
+                MPI_Allreduce(&locVal, &gloVal, 1, MPI_INT,
+                      MPI_MAX, MPI_COMM_WORLD);
+
+#else
+                gloVal = locVal;
+#endif
+
+                if(gloVal==1){
+                    snprintf(name, 50, "-%05.0fMPa", param->appliedStress[3]/1.0E6);
+                    GenerateOutput(home, STAGE_DEBUG, name);
+                    WriteProp(home, EPS);      /* Resultant plastic strain (scalar) */
+                }
+
+                if(param->appliedStress[3] > 3.0E8)param->finish = 1;
 
                 for(i=0; i<6; i++){
                     for(j=0; j<6; j++){
@@ -672,7 +810,6 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 deltaStress[1][0] = deltaStress[0][1];
 
                 break;
-        
             default:
                 Fatal("Load curves not defined. Stopping the program. \n");
             break;
