@@ -1736,6 +1736,14 @@ void GetArmGrain(Home_t *home, Node_t *node1, Node_t *node2, int &inGrain, int &
 
         if(!IsOnGB(node2) && node1->inGrain != node2->inGrain){
             GB_t    *gb;
+            int     node1SegID;
+
+            if(Connected(node1, node2, &node1SegID)){
+                PrintNode(home, node1);
+                PrintNode(home, node2);
+                Fatal("GetArmGrain: node1 in %d grain, but node2 in %d grain\n",
+                      node1->inGrain, node2->inGrain);
+            }
 
             if(GetPublicGB(home->grainKeys[node1->inGrain], 
                         home->grainKeys[node2->inGrain], &gb)){

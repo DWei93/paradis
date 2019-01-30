@@ -1070,9 +1070,10 @@ void PredictiveCollisions(Home_t *home)
                             if(home->param->polycrystal){
                                 GetArmGrain(home, node1, node2, inGrain1, onGB1);
                                 GetArmGrain(home, node3, node4, inGrain2, onGB2);
+#if ENABLE_COMPLICATED_REACTION
                                 if(onGB1 != onGB2)continue;
                                 if(onGB1 == -1 && inGrain1 != inGrain2)continue;
-#if ENABLE_COMPLICATED_REACTION
+
                                 splitInGrain = -1;
                                 splitOnGB = -1;
                                 if(onGB1 > -1 || onGB2 > -1){
@@ -1227,7 +1228,7 @@ void PredictiveCollisions(Home_t *home)
  *                              that node.
  */
                                 adjustCollisionPoint = 0;
-
+                            
                                 vec1[0] = cPoint[0] - p1[0];
                                 vec1[1] = cPoint[1] - p1[1];
                                 vec1[2] = cPoint[2] - p1[2];
@@ -1459,7 +1460,6 @@ void PredictiveCollisions(Home_t *home)
                                     splitSeg2 = 1;
                                 }
 
-                                if(SurfaceNode(mergenode1) && SurfaceNode(mergenode2))continue;
 
 /*
  *                              If we need to add a new node to the second
@@ -1616,6 +1616,7 @@ void PredictiveCollisions(Home_t *home)
 #endif
                                 }  /* if (splitSeg2) */
     
+                                if(SurfaceNode(mergenode1) && SurfaceNode(mergenode2))continue;
     
 /*
  *                             If the initially selected collision point
@@ -1737,26 +1738,25 @@ void PredictiveCollisions(Home_t *home)
                                         newPos[0] = vec2[0] + 0.5*vec1[0];
                                         newPos[1] = vec2[1] + 0.5*vec1[1];
                                         newPos[2] = vec2[2] + 0.5*vec1[2];
-                                    }else{
-                                        if(onGB1 == -1 && inGrain1 != inGrain2){
+                                    }else if(onGB1 == -1 && inGrain1 != inGrain2){
 
-                                            AdjustSplitedNodePosition(home, mergenode1, newPos, vec1);
-                                            AdjustSplitedNodePosition(home, mergenode2, newPos, vec2);
+                                        AdjustSplitedNodePosition(home, mergenode1, newPos, vec1);
+                                        AdjustSplitedNodePosition(home, mergenode2, newPos, vec2);
 
-                                            vec1[0] -= vec2[0];
-                                            vec1[1] -= vec2[1];
-                                            vec1[2] -= vec2[2];
-                                            ZImage(param, vec1, vec1+1, vec1+2);
+                                        vec1[0] -= vec2[0];
+                                        vec1[1] -= vec2[1];
+                                        vec1[2] -= vec2[2];
+                                        ZImage(param, vec1, vec1+1, vec1+2);
 
-                                            newPos[0] = vec2[0] + 0.5*vec1[0];
-                                            newPos[1] = vec2[1] + 0.5*vec1[1];
-                                            newPos[2] = vec2[2] + 0.5*vec1[2];
-                                        }
+                                        newPos[0] = vec2[0] + 0.5*vec1[0];
+                                        newPos[1] = vec2[1] + 0.5*vec1[1];
+                                        newPos[2] = vec2[2] + 0.5*vec1[2];
                                     }
                                }else{
                                     inGrain1 = -1;
                                     onGB1 = -1;
-                                }
+                               }
+                               FoldBox(param, newPos, newPos+1, newPos+2);
 
                                MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                          mergenode2, newPos, &targetNode,
