@@ -193,33 +193,25 @@ void InitGrain(Home_t *home, Param_t *param){
 	if(nGrain == 0)Fatal("polycrstal type, but nGrain = 0");
 
 	home->nGrains = param->nGrain;				/*num of grain and twins */
-
+    
 	home->grainKeys	= (Grain_t **)malloc(home->nGrains * sizeof(Grain_t *));
 	param->useLabFrame = 1;
+	twinRatio = param->twinRatio;
 	
-
 /*
  *	Initialize twin grain.
  */
 	twinRatio = param->twinRatio;
 	numTGrains = nGrain - 1;
 
-	real8	CDeltaLab[3] = {-1,-1,2}, CDelta[3];
-	real8	planeABC[3] = {1,1,1};
-	NormalizeVec(CDeltaLab);
-	NormalizeVec(planeABC);
-
-	Matrix33Vector3Multiply(param->matrixOrientation, CDeltaLab, CDelta);
-    RotateWithAxis(CDelta, PI, temR);
+	Matrix33Vector3Multiply(param->matrixOrientation, param->TBNormalCryst, param->TBNormal);
+    RotateWithAxis(param->TBNormal, PI, temR);
 	Matrix33Mult33(temR, param->matrixOrientation, TwinOrientation);
-
-	Matrix33Vector3Multiply(param->matrixOrientation, planeABC, param->TBNormal);
     RotateWithAxis(param->TBNormal, PI, param->rotateNormal);
 
-
 /*
- *	    Type V: polycrystal = 1, nGrain >= 2, PBC.
- *	    polycrystal, twin, RVE, XOZ plane is twin plane
+ *	Type V: polycrystal = 1, nGrain >= 2, PBC.
+ *	polycrystal, twin, RVE, XOZ plane is twin plane
  */
     if(type == 4){
 	    halfTwinThick = twinRatio * ly / (real8)numTGrains;
@@ -281,8 +273,9 @@ void InitGrain(Home_t *home, Param_t *param){
     }
 
 	if(nGrain == 2){
+
 /*
- *	    Type VI: polycrystal = 1, nGrain =2, Free surface.
+ *	    Type VI: polycrystal = 1, nGrain =2
  *	    simulat twin sample.
  */
 	    real8   hMatrix, p[4][3], vec1[3], vec2[3];
@@ -295,59 +288,63 @@ void InitGrain(Home_t *home, Param_t *param){
 	    VECTOR_ZERO(plane.point);
 
         if(fabs(0.5-twinRatio) > 1.0E-3){
-	        for(i=0; i<3; i++){
-	            VECTOR_ZERO(edge.direction);
-	            VECTOR_ZERO(plane.point);
-         
-	            edge.direction[i] = 1;
-	            if(DotProduct(param->TBNormal, edge.direction) > 0){
-	                rho = 1.0 - twinRatio; }
-	            else{
-	                rho = twinRatio;  }
-         
-	            if(i == 0){
-	                bound = lx;
-	                hMatrix = 2 * lx * rho - lx; 
-	                p[0][0] = 0; p[0][1] = -ly; p[0][2] = -lz;
-	                p[1][0] = 0; p[1][1] = -ly; p[1][2] =  lz;
-	                p[2][0] = 0; p[2][1] =  ly; p[2][2] = -lz;
-	                p[3][0] = 0; p[3][1] =  ly; p[3][2] =  lz;
-	            }else if(i == 1){
-	                bound = ly;
-	                hMatrix = 2 * ly * rho - ly; 
-	                p[0][0] = -lx; p[0][1] = 0; p[0][2] = -lz;
-	                p[1][0] =  lx; p[1][1] = 0; p[1][2] = -lz;
-	                p[2][0] = -lx; p[2][1] = 0; p[2][2] =  lz;
-	                p[3][0] =  lx; p[3][1] = 0; p[3][2] =  lz;
-	            }else if(i == 2){
-	                bound = lz;
-	                hMatrix = 2 * lz * rho - lz; 
-	                p[0][0] = -lx; p[0][1] = -ly; p[0][2] = 0;
-	                p[1][0] =  lx; p[1][1] = -ly; p[1][2] = 0;
-	                p[2][0] = -lx; p[2][1] =  ly; p[2][2] = 0;
-	                p[3][0] =  lx; p[3][1] =  ly; p[3][2] = 0;
-	            }
-	            plane.point[i] = hMatrix;	        
-         
-	            inner = 1;
-	            for(j=0; j<4; j++){
-	                VECTOR_COPY(edge.point, p[j]);
-	 	   		type = LinePlaneIntersection(edge.direction, edge.point, 
-	 	   				plane.normal, plane.point, vec1, interPos);
-	 	   		if(type != POINT_INTERSECTION){
-	 	   			inner = 0;
-	 	   			break;
-	 	   		} 
-         
-	                if(fabs(interPos[i]) > bound){
-	                    inner = 0; break; }
-	            }/* for (j=0; j ...)*/
-	            if(inner == 1)break;
-         
-	        }/* for(i=0; i ...)*/
-	        
-	        if(inner == 0)Fatal("InitGrain: can not find TB plane");
-	        
+
+            if(param->xBoundType != Periodic){
+	            for(i=0; i<3; i++){
+	                VECTOR_ZERO(edge.direction);
+	                VECTOR_ZERO(plane.point);
+          
+	                edge.direction[i] = 1;
+	                if(DotProduct(param->TBNormal, edge.direction) > 0){
+	                    rho = 1.0 - twinRatio; }
+	                else{
+	                    rho = twinRatio;  }
+          
+	                if(i == 0){
+	                    bound = lx;
+	                    hMatrix = 2 * lx * rho - lx; 
+	                    p[0][0] = 0; p[0][1] = -ly; p[0][2] = -lz;
+	                    p[1][0] = 0; p[1][1] = -ly; p[1][2] =  lz;
+	                    p[2][0] = 0; p[2][1] =  ly; p[2][2] = -lz;
+	                    p[3][0] = 0; p[3][1] =  ly; p[3][2] =  lz;
+	                }else if(i == 1){
+	                    bound = ly;
+	                    hMatrix = 2 * ly * rho - ly; 
+	                    p[0][0] = -lx; p[0][1] = 0; p[0][2] = -lz;
+	                    p[1][0] =  lx; p[1][1] = 0; p[1][2] = -lz;
+	                    p[2][0] = -lx; p[2][1] = 0; p[2][2] =  lz;
+	                    p[3][0] =  lx; p[3][1] = 0; p[3][2] =  lz;
+	                }else if(i == 2){
+	                    bound = lz;
+	                    hMatrix = 2 * lz * rho - lz; 
+	                    p[0][0] = -lx; p[0][1] = -ly; p[0][2] = 0;
+	                    p[1][0] =  lx; p[1][1] = -ly; p[1][2] = 0;
+	                    p[2][0] = -lx; p[2][1] =  ly; p[2][2] = 0;
+	                    p[3][0] =  lx; p[3][1] =  ly; p[3][2] = 0;
+	                }
+	                plane.point[i] = hMatrix;	        
+          
+	                inner = 1;
+	                for(j=0; j<4; j++){
+	                    VECTOR_COPY(edge.point, p[j]);
+	 	    	  		type = LinePlaneIntersection(edge.direction, edge.point, 
+	 	    	  				plane.normal, plane.point, vec1, interPos);
+	 	    	  		if(type != POINT_INTERSECTION){
+	 	    	  			inner = 0;
+	 	    	  			break;
+	 	    	  		} 
+          
+	                    if(fabs(interPos[i]) > bound){
+	                        inner = 0; break; }
+	                }/* for (j=0; j ...)*/
+	                if(inner == 1)break;
+          
+	            }/* for(i=0; i ...)*/
+	            
+	            if(inner == 0)Fatal("InitGrain: can not find TB plane");
+            }else{
+                plane.point[1] = param->yBoundMin + (1-twinRatio)*(param->yBoundMax - param->yBoundMin);
+            }
         }
 
 
@@ -400,7 +397,6 @@ void InitGrain(Home_t *home, Param_t *param){
 	        printf("\n");
 	        FormatVector(param->TBNormal, "twin boundary normal");
 	        printf("\n");
-	        FormatVector(CDelta, "CDelta (use the axis to rotate basis to twin)");
 	    }
 
         if(home->myDomain == 0){

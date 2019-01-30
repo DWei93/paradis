@@ -2909,7 +2909,7 @@ void LocalSegForces(Home_t *home, int reqType)
                 }
             }
 
-            StackingFaultForce(home, dx, dy, dz, param->sfEnergy, signSF, 
+            StackingFaultForce(home, dx, dy, dz, param->sfEnergy/param->burgMag, signSF, 
                                normal, f1, f2); 
             
             VECTOR_ADD(node1SegForce, f1);

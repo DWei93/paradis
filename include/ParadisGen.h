@@ -45,7 +45,7 @@ typedef struct {
 	    real8	maxDensity;
         int     extended;
 	    int     burgID, planeID;
-
+        real8   TBCryst[3];
 }InArgs_t;
 
 /*
@@ -153,6 +153,7 @@ typedef	enum{
     OPT_EXTENDED,
     OPT_BURGID,
     OPT_PLANEID,
+    OPT_TBCRYST,
 	OPT_MAX
 	
 }ParadisGenArgs_t;

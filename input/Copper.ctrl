@@ -66,7 +66,7 @@ rc = 10
 fmEnabled =   1  
 fmMPOrder =   2  
 fmTaylorOrder =   5  
-fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
+fmCorrectionTbl =   "input/fm-ctab-Cu.m2.t5.px.dat"
 #
 #  Loading conditions
 #  
@@ -119,14 +119,14 @@ MobEdge =    1.000000e+04
 MobTwinning = 5.000000e+04
 sfEnergy =   3.91236e+06
 # Radom Interal stree field
-randomInternalForce = 1
+randomInternalForce = 0
 
 #
 #  I/O controls and parameters
 #  
 #
 tecplot = 1
-tecplotfreq = 1000
+tecplotfreq = 200
 saveprop = 1
 savepropfreq = 100
 tecmesh = 0
