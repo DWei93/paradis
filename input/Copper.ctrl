@@ -41,14 +41,16 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.1030646"
+dirname = "res.5611075"
 remeshRule = 2
 enforceGlidePlanes =  1 
-enableCrossSlip =   1
-splitMultiNodeFreq =   1  
+enableCrossSlip = 1
+splitMultiNodeFreq = 1
+  
 #
 #  Simulation time and timestepping controls
-#  
+#
+
 maxstep =  40000000 
 #maxstep =  4 
 maxStn = 1.0E-2
@@ -57,7 +59,7 @@ maxStr = 1.2621E8
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
 rTol = 1.0
-rc =  1
+rc = 10
 #
 #  Fast Multipole Method controls
 #  
@@ -68,7 +70,7 @@ fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 #
 #  Loading conditions
 #  
-loadType = 7
+loadType = 8
 indxErate = 8
 eRate =   0.000
 strRate = 6.0E15
@@ -115,7 +117,7 @@ fricStress = 0.0e0
 MobScrew =   1.000000e+04
 MobEdge =    1.000000e+04  
 MobTwinning = 5.000000e+04
-sfEnergy =   3.9123630672926e+07 
+sfEnergy =   3.91236e+06
 # Radom Interal stree field
 randomInternalForce = 1
 
