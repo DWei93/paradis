@@ -275,7 +275,7 @@ void WriteProp(Home_t *home, int property)
                     }
 
 					if(firstSS && home->cycle < 2 *  param->savepropfreq){
-					   fprintf(fp, "variables = timeNow, estn_zy, pstn_zy, str_zy, disDen, estn_zx pstn_zx, str_zx, effPlaRate\n"); 
+					   fprintf(fp, "variables = timeNow, estn_zy, pstn_zy, str_zy, disDen, estn_zx, pstn_zx, str_zx, effPlaRate\n"); 
 					   firstSS = 0;
 					}
                     fprintf(fp, "%e %e %e %e %e %e %e %e %e\n", param->timeNow, param->elasticStrainTensor[3], param->totpStn[3], param->appliedStress[3],
