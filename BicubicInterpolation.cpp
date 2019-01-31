@@ -191,7 +191,7 @@ int main(int argc,char** argv)
     nPotParams = 1000000;
     potVariance = 0.0;
     sigma = 20.0;
-    potExpection = 20;
+    potExpection = 1;
     param.burgMag = 2.556e-10;
     burgMag = param.burgMag;
 

@@ -17,7 +17,7 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
+numXdoms = 4
 numYdoms = 1
 numZdoms = 1
 #
@@ -41,22 +41,25 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.Shear-core-0"
+dirname = "res.5611075"
 remeshRule = 2
 enforceGlidePlanes =  1 
-enableCrossSlip =   1
-splitMultiNodeFreq =   1  
+enableCrossSlip = 1
+splitMultiNodeFreq = 1
+  
 #
 #  Simulation time and timestepping controls
-#  
+#
+
 maxstep =  40000000 
 #maxstep =  4 
 maxStn = 1.0E-2
 maxPst = 1.0E-2
+maxStr = 1.2621E8
 timestepIntegrator =   "trapezoid"
-nextDT = 1.0e-13;
+nextDT = 1.0e-13
 rTol = 1.0
-rc =  0.5
+rc = 10
 #
 #  Fast Multipole Method controls
 #  
@@ -67,11 +70,10 @@ fmCorrectionTbl =   "input/fm-ctab-Cu.m2.t5.px.dat"
 #
 #  Loading conditions
 #  
-loadType = 7
+loadType = 8
 indxErate = 8
 eRate =   0.000
-strRate = -4.0E16
-#strRate = 0.0
+strRate = 6.0E15
 #plaRateCtr = 2.0E4
 loadDir = [
     0.0
@@ -115,10 +117,9 @@ fricStress = 0.0e0
 MobScrew =   1.000000e+04
 MobEdge =    1.000000e+04  
 MobTwinning = 5.000000e+04
-
-sfEnergy = 29.498E-3    # J.m^-1
+sfEnergy =   0.001          # Jm^-2
 # Radom Interal stree field
-randomInternalForce = 0
+randomInternalForce = 1
 
 #
 #  I/O controls and parameters
@@ -128,11 +129,11 @@ tecplot = 1
 tecplotfreq = 200
 saveprop = 1
 savepropfreq = 100
-tecmesh = 1
-tecmeshfreq = 5000
+tecmesh = 0
+tecmeshfreq = 50000
 velfile = 0
 velfilefreq = 1000
 savecn = 1
-savecnfreq = 5000
+savecnfreq = 50000
 savetimers = 0
 savetimersfreq = 1000

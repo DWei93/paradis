@@ -1187,6 +1187,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
         InData_t     *inData;
         int          fd;
         int          totMeshNum;
+		real8        (*Sij)[6];
 
         int  maxTokenLen, tokenType, pIndex, okay;
         char token[256];
@@ -1465,6 +1466,21 @@ void Initialize(Home_t *home,int argc, char *argv[])
 	    VECTOR_ZERO(&param->elasticStrainTensor[0]);
 	    VECTOR_ZERO(&param->elasticStrainTensor[3]);
 		
+        Sij = param->elasticConstantMatrixInv;
+
+        for(i=0; i<6; i++){
+            for(j=0; j<6; j++){
+                param->elasticStrainTensor[i] += 
+                    (Sij[i][j]*param->appliedStress[j]);
+            }
+        }
+        if(home->myDomain == 0){
+            printf("Initial Strain Tensor:\n");
+            for(i=0; i<6; i++){
+                printf("%f ",param->elasticStrainTensor[i]);
+            }
+            printf("\n");
+        }
 		
 /*
  *      Some of the parameters used in creating the nodal data file

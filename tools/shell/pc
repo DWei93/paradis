@@ -1,8 +1,24 @@
 #!/bin/bash
 
+finds=`find -type f -name "out.*"`
+
+if [ ${1} == "" ] ; then
+    if [ ${#finds} != 0 ]; then
+        c=0
+        for file in `echo "${finds}" | xargs ls -t`
+        do
+            files[${c}]=${file}
+            ((c++))
+        done
+    else
+        echo "nothing need to be packaged."
+    fi
+fi
+
 config=~/.wsconfig
 baseJobName=`grep "baseJobName" $config | cut -d " " -f 3`
 outFile=`ls out.${1}*`
+errFile=`ls err*${1}*`
 resDir=res.${1}
 echo "First 80 lines:" > ${1}
 head -80 ${outFile} >> ${1}
@@ -22,3 +38,4 @@ cp gen $resDir > /dev/null 2>&1
 cp $job $resDir > /dev/null 2>&1
 
 rm ${resDir}/core* -f > /dev/null 2>&1
+rm ${outFile} ${errFile}
