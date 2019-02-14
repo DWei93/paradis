@@ -1228,6 +1228,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
         if (home->myDomain == 0) {
 
+
             dataFile = (char *)NULL;
             ctrlFile = (char*)"control.script";
             tableFile = (char *)NULL;
@@ -1390,6 +1391,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
         MPI_Bcast((char *)param, sizeof(Param_t), MPI_CHAR, 0,
                   MPI_COMM_WORLD);
 #endif
+
+        param->timestart = clock();
 
 #ifdef _OPENMP
 /*

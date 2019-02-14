@@ -7,6 +7,7 @@
 #ifndef _PARAM_H
 #define _PARAM_H
 
+#include <time.h>
 #include "Parse.h"
 #include "Home.h"
 #include "Mobility.h"
@@ -509,6 +510,7 @@ struct _param {
         double     fMeshSizeX, fMeshSizeY, fNumX, fNumY;
 
         SlipSys_t  slipSys;
+        clock_t     timestart;
 
 #ifdef _FEM
 /*

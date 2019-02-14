@@ -281,7 +281,7 @@ void ParadisFinish(Home_t *home)
     MPI_Finalize();
 #endif
 
-     ReleaseMemory(home);
+    ReleaseMemory(home);
 
     return;
 }

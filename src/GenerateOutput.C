@@ -1327,7 +1327,7 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
 void GenerateOutput(Home_t *home, int stage, const char *msg)
 {
         int     outputTypes = 0, finishLoc, finishGlo;
-        real8   localDensity, globalDensity;
+        real8   localDensity, globalDensity, totalTime;
         char    fileName[128];
         time_t  tp;
         Param_t *param;
@@ -1438,6 +1438,9 @@ void GenerateOutput(Home_t *home, int stage, const char *msg)
             WriteProp(home, EPS);      /* Resultant plastic strain (scalar) */
 
         }
+
+        totalTime = ((real8)(clock()-param->timestart))/CLOCKS_PER_SEC/86400.0;
+        if(totalTime > 0.98)param->finish = 1;
 
 #ifdef PARALLEL
         finishLoc = param->finish;

@@ -303,7 +303,7 @@ void WriteProp(Home_t *home, int property)
 
                             if(fabs(param->totpStn[i]) > 1.0E-3 && param->finish == -1){
                                 param->finish = 0; 
-                                printf("yield stress schmidt1 schmidt2 smax CRSS:\n");
+                                printf("stress schmidt1 schmidt2 smax CRSS:\n");
                                 printf("%e ", sign*param->appliedStress[i]*1E-6);
 
                                 if(home->param->polycrystal){
@@ -323,11 +323,15 @@ void WriteProp(Home_t *home, int property)
                                            sign*param->appliedStress[i]*1E-6*param->slipSys.schmidt);
                                 }
                             }
+                            if(param->polycrystal) fprintf(fp, "%e ", sign*param->totTwinpStn[i]*1E2);
         
                             if(fabs(param->totpStn[i]) > param->maxPst)param->finish = 1;
-                            if(fabs(param->totstraintensor[i]) > param->maxStn)param->finish = 1;
+                            if(fabs(param->totstraintensor[i]) > param->maxStn){
+                                param->finish = 1;
+                                if(param->polycrystal)printf("Percentage of twinning deformation is %f.\n",
+                                   param->totTwinpStn[i]*1E2/param->totpStn[i]);
+                            }
     
-                            if(param->polycrystal) fprintf(fp, "%e ", sign*param->totTwinpStn[i]*1E2);
                         }
                     }
 

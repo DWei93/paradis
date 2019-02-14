@@ -252,6 +252,7 @@ int LinePlaneIntersection(double *d, double *p1, double *n, double *p2,
         printf("p2: {%f,%f,%f}\n", p2[0], p2[1], p2[2]);
         exit(0);
     }
+#if 0
     if(sqrt(SQUARE(vec2[2]) + SQUARE(vec2[2]) + SQUARE(vec2[2])) > 10000){
         printf("vec2: {%f,%f,%f}\n", vec2[0], vec2[1], vec2[2]);
         printf("d: {%f,%f,%f}\n", d[0], d[1], d[2]);
@@ -260,6 +261,7 @@ int LinePlaneIntersection(double *d, double *p1, double *n, double *p2,
         printf("p2: {%f,%f,%f}\n", p2[0], p2[1], p2[2]);
         printf("PointPlaneIntersection\n");
     }
+#endif
 
     return(POINT_INTERSECTION);    
 }
