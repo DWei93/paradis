@@ -2698,7 +2698,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         int      i, lineIndex, chain, baseNodeID, numPoints,ranNum;
         int      newNodeIndex, lastBlock, burgIndex;
         int      isScrew, gpIndex, gpBurgIndex;
-        int      lenRange,x0, d, nLayers, xn, layer;
+        int      lenRange,x0, d, nLayers, xn, layer, time;
         int      startRemeshIndex = 0;
         real8    srcLen, thickness;
         real8    p0[3], p1[3], p2[3], p3[3], randomLine[3],k0[3];
@@ -2835,9 +2835,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 finished = 0;
                 while(!finished){
 #if 1
-                    p0[0] = (randm(&seed)-0.5) * cubeSize;
-                    p0[1] = (randm(&seed)-0.5) * cubeSize;			
-                    p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
+                    p1[0] = (randm(&seed)-0.5) * cubeSize;
+                    p1[1] = (randm(&seed)-0.5) * cubeSize;			
+                    p1[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
 
 #else
                     VECTOR_ZERO(p0);
@@ -2845,18 +2845,18 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     p0[2] = -200;
 #endif
 
-                    NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
-                    bd = GetBurgData(home, inGrain0, onGB0);
-                    if(onGB0 > -1)continue;
+                    NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1);
+                    bd = GetBurgData(home, inGrain1, onGB1);
+                    if(onGB1 > -1)continue;
 
 #if 1
                     if(chain < 24){
                         ranNum = chain;
                         if(polycrystal){
                             if(chain < 12){
-                                if(inGrain0 != 0)continue;
+                                if(inGrain1 != 0)continue;
                             }else{
-                                if(inGrain0 != 1)continue;
+                                if(inGrain1 != 1)continue;
                             }
                         }
                     }else{
@@ -2893,68 +2893,65 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 #endif   
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
-#if 1
-                    randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
-                    if(randomAngle < pi * 5.0 /1.8e2){  /* 5 degree */
-                        randomAngle = 0;
-                    }
-                    if(randomAngle > pi *1.75/1.8){		/* 175 degree */
-                        randomAngle = pi;
-                    }
 
-                    cross(n0, b, n1);
-                    NormalizeVec(n1);
+                    time = 0;
+                    while(time < 10000){
+                        time++;
+                        randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
+
+                        randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
+
+                        cross(n0, b, n1);
+                        NormalizeVec(n1);
                 	
-                    for(i = 0; i < 3; i++){
-                        randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
-                    }
-
-                    if(singleSrcTest){
-                        randomLine[2] = 0.0;
-                    }
-
-                    NormalizeVec(randomLine);
-#else
-                    VECTOR_ZERO(randomLine);
-                    randomLine[0] = -1.0;
-#endif
-
-                    for (i = 0; i < 3; i++) {
-                        p1[i] = p0[i] + (srcLen * randomLine[i])/2.0;
-                        p2[i] = p0[i] - (srcLen * randomLine[i])/2.0;
-                    } 
-
-                    NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1);
-                    NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2);
-             
-                    if(onGB1 > -1 || onGB2 > -1 || inGrain0 != inGrain1 || 
-                        inGrain1 != inGrain2){
-                        continue;
-                    }	                
-
-                    if(inArgs->extended != 0){
-                        VECTOR_COPY(basePos, p0);
-                        cross(n0, randomLine, glideDir);
-                        NormalizeVec(glideDir);
-                        p0[0] -= (separateLength*glideDir[0]*0.5);
-                        p0[1] -= (separateLength*glideDir[1]*0.5);
-                        p0[2] -= (separateLength*glideDir[2]*0.5);
-
-                        p3[0] = p0[0] + separateLength*glideDir[0];
-                        p3[1] = p0[1] + separateLength*glideDir[1];
-                        p3[2] = p0[2] + separateLength*glideDir[2];
-                        NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
-                        NodeLocation(home, p3[0],  p3[1], p3[2], inGrain3, onGB3);
-                    
-                        if(onGB0 > -1 || onGB3 > -1 || inGrain0 != inGrain2 || inGrain3 != inGrain2)continue;
-                    }
-
-                    if(srcLenType == 0){
-                        if(!InCuboid(param, p0) || !InCuboid(param, p1) || !InCuboid(param, p2)){
-                            continue;
+                        for(i = 0; i < 3; i++){
+                            randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
                         }
-	                }
-                    finished = 1;
+
+                        if(singleSrcTest){
+                            randomLine[2] = 0.0;
+                        }
+
+                        NormalizeVec(randomLine);
+
+                        for (i = 0; i < 3; i++) {
+                            p0[i] = p1[i] + (srcLen * randomLine[i])/2.0;
+                            p2[i] = p1[i] + (srcLen * randomLine[i]);
+                        } 
+
+                        NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
+                        NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2);
+             
+                        if(onGB0 > 0 || onGB2 > 0 || inGrain0 != inGrain1 || inGrain1 != inGrain2){
+                            continue;
+                        }	                
+
+                        if(inArgs->extended != 0){
+                            VECTOR_COPY(basePos, p0);
+                            cross(n0, randomLine, glideDir);
+                            NormalizeVec(glideDir);
+                            p0[0] -= (separateLength*glideDir[0]*0.5);
+                            p0[1] -= (separateLength*glideDir[1]*0.5);
+                            p0[2] -= (separateLength*glideDir[2]*0.5);
+
+                            p3[0] = p0[0] + separateLength*glideDir[0];
+                            p3[1] = p0[1] + separateLength*glideDir[1];
+                            p3[2] = p0[2] + separateLength*glideDir[2];
+                            NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
+                            NodeLocation(home, p3[0],  p3[1], p3[2], inGrain3, onGB3);
+                    
+                            if(onGB0 > -1 || onGB3 > -1 || inGrain0 != inGrain2 || inGrain3 != inGrain2)continue;
+                        }   
+
+                        if(srcLenType == 0){
+                            if(!InCuboid(param, p0) || !InCuboid(param, p1) || !InCuboid(param, p2)){
+                                continue;
+                            }
+	                    }
+
+                        break;
+                    }
+                    if(time<1000)finished = 1;
                 }
 
                 if(inArgs->extended != 0){

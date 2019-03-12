@@ -154,7 +154,9 @@ void WriteProp(Home_t *home, int property)
             if (home->myDomain == 0) {
                 snprintf(fileName, sizeof(fileName), "%s/density",
                          DIR_PROPERTIES);
-                fp = fopen(fileName, "a");
+                if((fp = fopen(fileName, "a")) == (FILE *)NULL){
+                    Fatal("can not open file %s", fileName);
+                }
 
                 pstnijk =  param->totpStn[0]*al*al     +
                            param->totpStn[1]*am*am     +
@@ -207,7 +209,9 @@ void WriteProp(Home_t *home, int property)
 #ifdef _FEM
                 snprintf(fileName, sizeof(fileName), "%s/fem_density",
                          DIR_PROPERTIES);
-                fp = fopen(fileName, "a");
+                if((fp = fopen(fileName, "a")) == (FILE *)NULL){
+                    Fatal("can not open file %s", fileName);
+                }
                 fprintf(fp, "%d %e %e\n", home->cycle,
                         param->eRate*param->timeNow, param->fem_delSegLength);
                 fclose(fp);
@@ -250,7 +254,10 @@ void WriteProp(Home_t *home, int property)
         
                 snprintf(fileName, sizeof(fileName), "%s/time_Plastic_strain",
                          DIR_PROPERTIES);
-                fp = fopen(fileName, "a");
+                if((fp = fopen(fileName, "a")) == (FILE *)NULL){
+                    Fatal("can not open file %s", fileName);
+                }
+
                 fprintf(fp,"%e %e %e\n", param->timeNow, pstnijk, ptstnijk);
                 fclose(fp);
         
@@ -259,7 +266,10 @@ void WriteProp(Home_t *home, int property)
         
                     snprintf(fileName, sizeof(fileName),
                              "%s/stress_Plastic_strain", DIR_PROPERTIES);
-                    fp = fopen(fileName, "a");
+                    if((fp = fopen(fileName, "a")) == (FILE *)NULL){
+                        Fatal("can not open file %s", fileName);
+                    }
+
                     fprintf(fp, "%e %e %e %e %e %e %e\n", pstnijk, param->appliedStress[0],
                             param->appliedStress[1], param->appliedStress[2], param->appliedStress[3],
                             param->appliedStress[4], param->appliedStress[5]);
@@ -267,7 +277,9 @@ void WriteProp(Home_t *home, int property)
 
                     snprintf(fileName, sizeof(fileName),
                              "%s/stress_Total_strain.plt", DIR_PROPERTIES);
-                    fp = fopen(fileName, "a");
+                    if((fp = fopen(fileName, "a")) == (FILE *)NULL){
+                        Fatal("can not open file %s", fileName);
+                    }
 
                     sign  = 1;
                     switch (param->loadType){
@@ -331,12 +343,18 @@ void WriteProp(Home_t *home, int property)
                                 if(param->polycrystal)printf("Percentage of twinning deformation is %f.\n",
                                    param->totTwinpStn[i]*1E2/param->totpStn[i]);
                             }
-    
+
                         }
                     }
 
                     fprintf(fp, "%e %e\n", param->disloDensity, effPlaRate);
+                    fclose(fp);
 
+                    snprintf(fileName, sizeof(fileName), "Finish");
+                    if((fp = fopen(fileName, "r")) != (FILE *)NULL){
+                        fclose(fp);
+                        param->finish = 1;
+                    }
 #if 0
                     switch (param->loadType) {
                     case 1|7:
@@ -369,7 +387,6 @@ void WriteProp(Home_t *home, int property)
                     }
 #endif
 
-                    fclose(fp);
                 }
             }        
             break;
@@ -378,8 +395,9 @@ void WriteProp(Home_t *home, int property)
             if (home->myDomain == 0) {
                 snprintf(fileName, sizeof(fileName), "%s/alleps",
                          DIR_PROPERTIES);
-                fp=fopen(fileName, "a");
-
+                if((fp = fopen(fileName, "a")) == (FILE *)NULL){
+                    Fatal("can not open file %s", fileName);
+                }
                 fprintf(fp,"%d %e %e %e %e %e %e %e %e\n",
                         home->cycle, param->timeNow,
                         param->totpStn[0],param->totpStn[1],param->totpStn[2],
@@ -401,7 +419,10 @@ void WriteProp(Home_t *home, int property)
         
                     snprintf(fileName, sizeof(fileName), "%s/epsdot",
                              DIR_PROPERTIES);
-                    fp = fopen(fileName, "a");
+                    if((fp = fopen(fileName, "a")) == (FILE *)NULL){
+                        Fatal("can not open file %s", fileName);
+                    }
+
                     fprintf(fp, "%e %e\n", param->timeNow,
                             fabs(dpstnijk/param->realdt));
                     fclose(fp);
@@ -444,8 +465,9 @@ void WriteProp(Home_t *home, int property)
 
                     snprintf(fileName, sizeof(fileName), "%s/density_delta",
                              DIR_PROPERTIES);
-
-                    fp = fopen(fileName, "a");
+                    if((fp = fopen(fileName, "a")) == (FILE *)NULL){
+                        Fatal("can not open file %s", fileName);
+                    }
 
                     fprintf(fp, "%e %e %e ", param->eRate*param->timeNow,
                             totGain, totLoss);

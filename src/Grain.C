@@ -110,7 +110,7 @@ void InitGrain(Home_t *home, Param_t *param){
                             {0.0e+00, 0.0e+00, 1.0e+00}
                           };
 
-    real8       zaxis[3] = {0.0,0.0,1.0}, maxSchmidt, dis, rad = 1000, sqi3 = 0.5773502691896258;
+    real8       zaxis[3] = {0.0,0.0,1.0}, maxSchmidt, dis, rad = 800, sqi3 = 0.5773502691896258;
     std::vector<SlipSys_t>  slipSys;
     SlipSys_t               slip;
     BurgInfo_t  *bd;
@@ -772,9 +772,9 @@ void InitGrain(Home_t *home, Param_t *param){
                 VECTOR_COPY(plane.normal, gb->n);
                 VECTOR_COPY(plane.point, gb->p);
 
-                plane.point[0] -= (grain->sign[0]*plane.normal[0]*300);
-                plane.point[1] -= (grain->sign[0]*plane.normal[1]*300);
-                plane.point[2] -= (grain->sign[0]*plane.normal[2]*300);
+                plane.point[0] -= (grain->sign[0]*plane.normal[0]*500);
+                plane.point[1] -= (grain->sign[0]*plane.normal[1]*500);
+                plane.point[2] -= (grain->sign[0]*plane.normal[2]*500);
 
                 Matrix33Vector3Multiply(grain->orientation, cena, ps[0]);
                 Matrix33Vector3Multiply(grain->orientation, cenb, ps[1]);
@@ -791,6 +791,7 @@ void InitGrain(Home_t *home, Param_t *param){
                     ps[j][2] += (plane.point[2]);
                 }
 
+                bd = &(grain->burgData);
 
                 for(j=0; j<3; j++){
                     for(k=j+1; k<4; k++){
@@ -806,9 +807,9 @@ void InitGrain(Home_t *home, Param_t *param){
                         NormalizeVec(vec4);
 
                         for(l=0; l<nmesh; l++){
-	                        fprintf(fp, "%e %e %e %e %e %e -1 -1 -1.0 %d\n", poss[0][0],
+	                        fprintf(fp, "%e %e %e %e %e %e %d -1 -1.0 %d\n", poss[0][0],
                             poss[0][1],poss[0][2], tsize*vec4[0],
-                            tsize*vec4[1],tsize*vec4[2], i);
+                            tsize*vec4[1],tsize*vec4[2], BurgID_FCC(bd, vec4), i);
 
                             poss[0][0] += tsize*vec4[0];
                             poss[0][1] += tsize*vec4[1];

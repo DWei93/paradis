@@ -824,19 +824,19 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	        existCount = 0;
 	        for(i=0; i<3; i++){
 	            if(existDir[i] == 0)orientationType = i+1;
-		    if(existDir[i] == 1)existCount++;
+		        if(existDir[i] == 1)existCount++;
 	        }
     
 	        if(existCount == 2 && orientationType >= 1 && orientationType <= 3){
 	            if(orientationType == 1){
 	                cross(inArgs->yMatDir, inArgs->zMatDir, inArgs->xMatDir);
-	 	       NormalizeVec(inArgs->xMatDir);
+	 	            NormalizeVec(inArgs->xMatDir);
 	            }else if (orientationType == 2){
 	                cross(inArgs->zMatDir, inArgs->xMatDir, inArgs->yMatDir);
-	 	       NormalizeVec(inArgs->yMatDir);
+	 	            NormalizeVec(inArgs->yMatDir);
 	            }else{
 	                cross(inArgs->xMatDir, inArgs->yMatDir, inArgs->zMatDir);
-	 	       NormalizeVec(inArgs->zMatDir);
+	 	            NormalizeVec(inArgs->zMatDir);
 	            }
 	        }
 	    }else{
@@ -846,7 +846,17 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	    	real8    matrixOrientation[3][3], abcLab[3];
 	        real8    angle, angleZTB = 9.553166181245092e-01;
 	        int	     seed;
-        	
+#if 1
+            real8   temp0[3][3] = {{1,-1,0},{1,1,-2},{1,1,1}};
+            real8   axisx[3] = {1,0,0};
+            NormalizeVec(temp0[0]);
+            NormalizeVec(temp0[1]);
+            NormalizeVec(temp0[2]);
+    
+            RotateWithAxis(axisx, inArgs->TBAngle, temR1);
+
+            Matrix33Mult33(temR1, temp0, matrixOrientation);
+#else   	
 	        seed = inArgs->seed;
 	        NormalizeVec(a1);
 	    	RotateWithAxis(a1, angleZTB, temR1);
@@ -867,7 +877,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	        angle = 2 * PI * randm(&seed);
             RotateWithAxis(abcLab, angle, temR1);
 	        Matrix33Mult33(temR1, temR4, matrixOrientation);
-       	
+#endif       	
 	        VECTOR_COPY(inArgs->xMatDir,matrixOrientation[0])
 	        VECTOR_COPY(inArgs->yMatDir,matrixOrientation[1])
 	   	    VECTOR_COPY(inArgs->zMatDir,matrixOrientation[2])
