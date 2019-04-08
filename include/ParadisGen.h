@@ -46,6 +46,9 @@ typedef struct {
         int     extended;
 	    int     burgID, planeID;
         real8   TBCryst[3];
+        
+        char    outFile[256];
+        
 }InArgs_t;
 
 /*
@@ -154,6 +157,7 @@ typedef	enum{
     OPT_BURGID,
     OPT_PLANEID,
     OPT_TBCRYST,
+    OPT_OUT_FILE,
 	OPT_MAX
 	
 }ParadisGenArgs_t;

@@ -138,7 +138,7 @@ void InitGrain(Home_t *home, Param_t *param){
     FILE     *fp, *fp1;
     char     fileName[256];
 
-    int         th, color, l, burgID, maxBurg;
+    int         th, color, l, burgID, maxBurg, numMaxSchmids;
 
     real8       cryst[3], lab[3];
     real8       ps[4][3];
@@ -727,24 +727,31 @@ void InitGrain(Home_t *home, Param_t *param){
             }
 
             surArray[0].push_back(plane);
+            home->grainKeys[0]->surface.push_back(plane);
             plane.normal[0] = -plane.normal[0];
             plane.normal[1] = -plane.normal[1];
             plane.normal[2] = -plane.normal[2];
+
             surArray[1].push_back(plane);
+            home->grainKeys[1]->surface.push_back(plane);
             plane.normal[0] = -plane.normal[0];
             plane.normal[1] = -plane.normal[1];
             plane.normal[2] = -plane.normal[2];
 
             for(i=0; i<records.size(); i++){
-               surArray[0].push_back(surList[records[i]]);
-               surArray[1].push_back(surList[records[i]]);
+                surArray[0].push_back(surList[records[i]]);
+                surArray[1].push_back(surList[records[i]]);
+                home->grainKeys[0]->surface.push_back(surList[records[i]]);
+                home->grainKeys[1]->surface.push_back(surList[records[i]]);
             }
 
             for(i=0; i<records1.size(); i++){
                 if(DotProduct(surList[records1[i]].normal,plane.normal)<0){
                     surArray[0].push_back(surList[records1[i]]);
+                    home->grainKeys[0]->surface.push_back(surList[records1[i]]);
                 }else{
                     surArray[1].push_back(surList[records1[i]]);
+                    home->grainKeys[1]->surface.push_back(surList[records1[i]]);
                 }
             }
 #if 0
@@ -821,7 +828,6 @@ void InitGrain(Home_t *home, Param_t *param){
                 }
                 
 #endif
-                std::vector<SlipSys_t>().swap(slipSys);
                 bd = &(grain->burgData);
                 slip.inGrain = i;
                 for(j=0; j<6; j++){
@@ -839,14 +845,15 @@ void InitGrain(Home_t *home, Param_t *param){
                 maxSchmidt = slipSys[0].schmidt;
                 printf("max %f\n",  maxSchmidt);
 
-                grain->slipSys.schmidt = maxSchmidt;
+                grain->maxSchmid = maxSchmidt;
 
                 for(j=1; j<slipSys.size(); j++){
                     if(fabs(slipSys[j].schmidt-maxSchmidt)>1.0E-3)break;
                 }
-                slipSys.resize(j);
 
-                for(j=0; j<slipSys.size(); j++){
+                numMaxSchmids = j;
+
+                for(j=0; j<numMaxSchmids; j++){
                     VECTOR_COPY(plane.normal, slipSys[j].normal);
                     VECTOR_ZERO(plane.point);
                     inGrain = slipSys[j].inGrain;
@@ -912,6 +919,9 @@ void InitGrain(Home_t *home, Param_t *param){
                     
                     }
                 }
+
+                swap(grain->slipSys, slipSys);
+
             }
 
             fclose(fp);
@@ -1894,7 +1904,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 {
 
     real8       dis, burgMag, burg[3], segCentor[3];
-    real8       vec[3], a = 5.86854;
+    real8       vec[3], a = 5.8685446009;
     real8       coff, length, nor[3], gDir[3], gbNormal[3];
     GB_t        *gb;
     Param_t     *param;
@@ -1904,9 +1914,10 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     VECTOR_ZERO(f2);
 
     if(!home->param->polycrystal)return;
-    if(IsOnGB(node1) && IsOnGB(node2))return;
+    if(IsOnGB(node1) || IsOnGB(node2))return;
 
     param = home->param;
+
     armID = GetArmID(home, node1, node2);
     if(armID == -1)return;
 
@@ -1929,7 +1940,6 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 
     length = Normal(vec);
     if(length < 1.0E-2)return;
-    NormalizeVec(vec);
 
     segCentor[0] = node1->x + 0.5*vec[0];
     segCentor[1] = node1->y + 0.5*vec[1];
@@ -1937,8 +1947,9 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     FoldBox(param, segCentor, segCentor+1, segCentor+2);
 
 	dis =  ClosedGB(home, segCentor, &gb);
-    if(fabs(dis) > 39.1236 || fabs(dis) < a)return;
+    if(fabs(dis) > 100 || fabs(dis) < 1.0E-3)return;
 
+    NormalizeVec(vec);
     cross(nor, vec, gDir);
     if(Normal(gDir) < 1E-3)return;
     NormalizeVec(gDir);
@@ -1953,7 +1964,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
         gDir[2] = -gDir[2];
     }
 
-    coff = param->GBStrength * a / fabs(dis);
+    coff = param->GBStrength * a/(fabs(dis)+a);
 
     f1[0] = 0.5*length*coff*gDir[0];
     f1[1] = 0.5*length*coff*gDir[1];

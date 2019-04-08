@@ -55,18 +55,18 @@ void ExtPKForce(real8 str[3][3],
     }
 }
 
-bool InCuboid(Param_t *param, real8 pos[3])
+bool InCuboid(Param_t *param, real8 pos[3], real8 eps)
 {
     if(param->xBoundType != Periodic){
-        if(fabs(pos[0]) > param->xBoundMax)return(0);
+        if(fabs(pos[0]) > param->xBoundMax + eps)return(0);
     }
     
     if(param->yBoundType != Periodic){
-        if(fabs(pos[1]) > param->yBoundMax)return(0);
+        if(fabs(pos[1]) > param->yBoundMax + eps)return(0);
     }
 
     if(param->zBoundType != Periodic){
-        if(fabs(pos[2]) > param->zBoundMax)return(0);
+        if(fabs(pos[2]) > param->zBoundMax + eps)return(0);
     }
     return(1);
 }
@@ -2692,6 +2692,75 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
 
 #define INTERACTION_TEST 0
 
+void GetFreePath(Param_t *param, real8 pos1[3], real8 pos2[3], real8 n[0], Grain_t *grain, 
+                 real8 *interDir, real8 &lambda_SAS1, real8 &lambda_GB1, real8 &lambda_SAS2, real8 &lambda_GB2)
+{
+    int         i, j, k, m, th, type; 
+    real8       interPos[3], poss[2][3], vec1[3], vec2[3], vec3[3], dis;
+    Plane_t     plane;
+
+    lambda_GB1 = 0.0;
+    lambda_GB2 = 0.0;
+    lambda_SAS1 = 1E10;
+    lambda_SAS2 = 1E10;
+
+    VECTOR_COPY(plane.point, pos1);
+    VECTOR_COPY(plane.normal, n);
+    VECTOR_ZERO(interDir);
+
+    for(k=0; k<grain->surface.size(); k++){
+        type = PlanePlaneIntersection(
+                  plane.normal, plane.point,
+                  grain->surface[k].normal, grain->surface[k].point, vec1, vec2); 
+        
+        if(type != LINE_INTERSECTION)continue;
+
+        th = 0;
+        for(m=0; m<grain->surface.size(); m++){
+            if(m==k)continue;
+            type = LinePlaneIntersection(vec1, vec2, grain->surface[m].normal,
+                         grain->surface[m].point, vec3, interPos);
+
+            if(type != POINT_INTERSECTION)continue;
+
+            if(fabs(interPos[0]) > param->xBoundMax+1.0){
+                continue;
+            }
+            if(fabs(interPos[1]) > param->yBoundMax+1.0){
+                continue;
+            }
+            if(fabs(interPos[2]) > param->zBoundMax+1.0){
+                continue;
+            }
+
+            VECTOR_COPY(poss[th], interPos);
+
+            if(th == 1){
+                th = 0;
+                break;
+            }else{
+                th++;
+            }
+        }
+
+        if(k == 0){
+            VECTOR_COPY(interDir, vec1);
+            PointLineIntersection(pos1, vec1, vec2, vec3, &dis);
+            lambda_GB1 = fabs(dis);
+            PointLineIntersection(pos2, vec1, vec2, vec3, &dis);
+            lambda_GB2 = fabs(dis);
+        }else{
+            PointLineIntersection(pos1, vec1, vec2, vec3, &dis);
+            lambda_SAS1 = MIN(fabs(dis), lambda_SAS1);
+            PointLineIntersection(pos2, vec1, vec2, vec3, &dis);
+            lambda_SAS2 = MIN(fabs(dis), lambda_SAS2);
+        }
+    
+    }
+
+    return;
+}
+
 void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 						 real8 *totDislocLen)
 {
@@ -2720,18 +2789,30 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         real8    pi = 3.1415926535897932385, totSrcLen;
         real8    separateLength = 40.0;
         bool        finished, singleSrcTest = 0;
-        BurgInfo_t  *bd;
+        BurgInfo_t  *bd, *gbd;
+        GB_t        *gb;
         	
         real8                                       str[3][3];
-        int                                         appliedDir;
+        int                                         appliedDir, j, k;
         real8                                       sign;
         std::vector<std::vector<Dislocation_t> >    disArray;
         std::vector<std::vector<real8> >            burgList;
+        std::vector<std::vector<Dislocation_t> >::iterator      itDisList;
 
-        real8    normalABC[3];
+        real8   normalABC[3], lambda_FR, lambda_SAS1, lambda_GB1, lambda_SAS2, lambda_GB2, interDir[3];
+        real8   barrierFactor, crossProd[3], vec[3];
+        real8   vec1[3], vec2[3], s0,  paras[4][4], zaxis[3] = {0,0,1}, schmid;
+
         normalABC[0] = 1;
         normalABC[1] = 1;
         normalABC[2] = 1;
+
+
+        FILE    *fp;
+        
+        if((fp = fopen(inArgs->outFile, "w")) == (FILE *)NULL){
+            Fatal("can not open file %s", inArgs->outFile);
+        }
 
 /*
  *      Grap the command-line argument values needed for this function
@@ -2764,6 +2845,10 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
             numSources = 1;
         }
         	
+        if(polycrystal){
+            gb = home->GBKeys[0];
+            gbd = &(gb->burgData);
+        }
         n1[0] = 0.0;	n1[1] = 0.0;	n1[2] = 0.0;
 
 		
@@ -2944,7 +3029,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         }   
 
                         if(srcLenType == 0){
-                            if(!InCuboid(param, p0) || !InCuboid(param, p1) || !InCuboid(param, p2)){
+                            if(!InCuboid(param, p0, 0) || !InCuboid(param, p1, 0) || !InCuboid(param, p2, 0)){
                                 continue;
                             }
 	                    }
@@ -3009,6 +3094,81 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 }
 
 	            totSrcLen += srcLen;				
+
+                if(polycrystal){
+                    lambda_FR = srcLen/2;
+                    GetFreePath(param, p1, p2, n0, home->grainKeys[inGrain0], 
+                                interDir, lambda_SAS1, lambda_GB1, lambda_SAS2, lambda_GB2);
+
+                    s0 = DotProduct(zaxis, n0)*DotProduct(zaxis, b);
+                    VECTOR_ZERO(paras[0]);
+                    VECTOR_ZERO(paras[1]);
+                    VECTOR_ZERO(paras[2]);
+                    VECTOR_ZERO(paras[3]);
+                
+                    if(lambda_GB1 != 0.0 && fabs(s0) > 1.0E-2){
+                        std::vector<std::vector< Dislocation_t> >().swap(disArray);
+                        std::vector<std::vector<double> >().swap(burgList);
+
+                        if(!GeometricCriterion(gbd, b, interDir, n0, 1,
+                            burgList, disArray)){
+                            Fatal("something wrong with geometric criterion");
+                        }
+
+
+/*
+ *                      Now, we don't need the resultant configure including a lattice burg on GB,
+ *                      or a partial burg in Grain.
+ */
+                        for(j=0; j<disArray.size(); ){
+                            barrierFactor = -1.0;
+                            for(k=0; k<disArray[j].size(); k++){
+                                barrierFactor += disArray[j][k].energyFactor;
+                                cross(gb->n, gbd->planeList[disArray[j][k].planeID], crossProd);
+                                VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
+                                if(Normal(crossProd) < 1.0E-2){
+                                    if(BurgType_FCC(vec) == BASIC_BURG)break;
+                                }else{
+                                    if(BurgType_FCC(vec) != BASIC_BURG)break;
+                                }
+                            }
+  
+                            if(k != disArray[j].size() || j > 0 && 
+                               barrierFactor > 0){
+                                itDisList = disArray.begin() + j;
+                                disArray.erase(itDisList);
+                            }else{
+                                j++;
+                            }
+                        }
+                        if(disArray.size()>2)Fatal("someting wrong with disArray");
+                    
+                        for(j=0; j<disArray.size(); j++){
+                            if(disArray[j].size()>2)Fatal("someting wrong with disArray[%d]", j);     
+
+                            for(k=0; k<disArray[j].size(); k++){
+                                paras[2*j+k][0] = disArray[j][k].energyFactor;
+                                VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
+                                paras[2*j+k][1] = Normal(vec);
+                                NormalizeVec(vec);
+                                schmid = DotProduct(zaxis, vec)*DotProduct(zaxis, gbd->planeList[disArray[j][k].planeID]);
+                                paras[2*j+k][2] = (schmid*s0 > 0) ? schmid : 0;
+                            }
+                        }
+                    }
+                    fprintf(fp,"%e %e %e %e   ", lambda_FR, lambda_SAS1, lambda_GB1, fabs(s0));
+                    for(j=0; j<4; j++){
+                        fprintf(fp, "%e %e %e ", paras[j][0], paras[j][1], paras[j][2]);
+                    }
+                    fprintf(fp, "\n");
+
+                    fprintf(fp,"%e %e %e %e ", lambda_FR, lambda_SAS2, lambda_GB2, fabs(s0));
+                    for(j=0; j<4; j++){
+                        fprintf(fp, "%e %e %e ", paras[j][0], paras[j][1], paras[j][2]);
+                    }
+                    fprintf(fp, "\n");
+
+                }
 /*           
  *              Reallocate the node array with sufficient size to add
  *              all the new nodes defining this chain.
@@ -3296,6 +3456,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
             printf("the num of  sources in layers %d is %d\n",layer, chain);
 		
 	    }/* for(layer=0; layer<nLayers;...)*/
+
+        fclose(fp);
 	
 	    IncDislocationDensity(inData, totDislocLen);
 	    param->nodeCount = inData->nodeCount;

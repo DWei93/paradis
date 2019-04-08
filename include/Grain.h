@@ -153,6 +153,7 @@ struct _grain{
 	real8	    cx, cy, cz;
 	real8	    orientation[3][3];
 	real8	    orientationInv[3][3];
+    real8       maxSchmid;
     int         grainID;
 	int		    type;	/*0: folded grain*/
 					    /*1: ordinary grain*/
@@ -162,7 +163,8 @@ struct _grain{
     GB_t        **GB;
     real8       *sign;
 
-    SlipSys_t   slipSys;
+    std::vector<SlipSys_t>      slipSys;
+    std::vector<Plane_t>        surface;
 };
 
 

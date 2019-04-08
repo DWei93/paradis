@@ -324,9 +324,9 @@ void WriteProp(Home_t *home, int property)
                                     int     j;
                                     for(j=0; j<home->nGrains; j++){
                                         grain = home->grainKeys[j];
-                                        printf("%e ", grain->slipSys.schmidt);
-                                        if(maxSchmidt < grain->slipSys.schmidt){
-                                            maxSchmidt = grain->slipSys.schmidt;
+                                        printf("%e ", grain->maxSchmid);
+                                        if(maxSchmidt < grain->maxSchmid){
+                                            maxSchmidt = grain->maxSchmid;
                                         }
                                     }
                                     printf("%e %e\n", maxSchmidt, sign*param->appliedStress[i]*1E-6*maxSchmidt);

@@ -151,7 +151,8 @@ Option_t optList[OPT_MAX] = {
         {OPT_EXTENDED,  "extended",     3, 1},
         {OPT_BURGID,    "burgID",       3, 1},
         {OPT_PLANEID,   "planeID",      3, 1},
-        {OPT_TBCRYST,   "TBCryst",      3, 1}
+        {OPT_TBCRYST,   "TBCryst",      3, 1},
+        {OPT_OUT_FILE,   "outFile",      3, 1}
 
 };
 
@@ -810,6 +811,9 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                     if (token == (char *)NULL) Fatal("TB crystal normal direction wrong");
 	                inArgs->TBCryst[2] = atof(token);
 	                NormalizeVec(inArgs->TBCryst);
+                        break;
+                case OPT_OUT_FILE:
+		            snprintf(inArgs->outFile, sizeof(inArgs->outFile), "%s", argValue);
                         break;
             }
         }
