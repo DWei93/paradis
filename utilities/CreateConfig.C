@@ -3105,6 +3105,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     VECTOR_ZERO(paras[1]);
                     VECTOR_ZERO(paras[2]);
                     VECTOR_ZERO(paras[3]);
+
+                    real8   schmidList[2] = {0,0}, maxSchmid = -1;
+                    int     maxSet = 0;
                 
                     if(lambda_GB1 != 0.0 && fabs(s0) > 1.0E-2){
                         std::vector<std::vector< Dislocation_t> >().swap(disArray);
@@ -3152,18 +3155,34 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                                 paras[2*j+k][1] = Normal(vec);
                                 NormalizeVec(vec);
                                 schmid = DotProduct(zaxis, vec)*DotProduct(zaxis, gbd->planeList[disArray[j][k].planeID]);
-                                paras[2*j+k][2] = (schmid*s0 > 0) ? schmid : 0;
+
+	                            if(fabs(paras[2*j+k][1] - 1.0E0) < 1.0E-2){
+                                    paras[2*j+k][2] = (schmid*s0 > 0) ? schmid : 0;
+	                            }else{
+                                    paras[2*j+k][2] = schmid;
+                                }
+                                paras[2*j+k][2] = fabs(paras[2*j+k][2]);
+                                
                             }
+                            schmidList[j] = DotProduct(zaxis,b)*DotProduct(zaxis, gbd->planeList[disArray[j][0].planeID]);
                         }
                     }
+                    
+                    for(j=0; j<2; j++){
+                        if(fabs(schmidList[j]) > maxSchmid){
+                            maxSet = j;
+                            maxSchmid = fabs(schmidList[j]);
+                        }
+                    }
+
                     fprintf(fp,"%e %e %e %e   ", lambda_FR, lambda_SAS1, lambda_GB1, fabs(s0));
-                    for(j=0; j<4; j++){
+                    for(j=2*maxSet; j<2*maxSet+2; j++){
                         fprintf(fp, "%e %e %e ", paras[j][0], paras[j][1], paras[j][2]);
                     }
                     fprintf(fp, "\n");
 
                     fprintf(fp,"%e %e %e %e ", lambda_FR, lambda_SAS2, lambda_GB2, fabs(s0));
-                    for(j=0; j<4; j++){
+                    for(j=2*maxSet; j<2*maxSet+2; j++){
                         fprintf(fp, "%e %e %e ", paras[j][0], paras[j][1], paras[j][2]);
                     }
                     fprintf(fp, "\n");
