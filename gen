@@ -34,6 +34,7 @@ nfrs=100
 maxDensity=1E13
 
 seed="-seed `echo "random()+${3}" | bc -l`"
+echo "${2} ${seed}"
 
 polycrystal=1
 single=2
@@ -122,7 +123,7 @@ case $srctype in
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity \
-    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 -out SAS/${2};;
+    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 -out SAS/${2} > /dev/null 2>&1;;
 
 #    -xMatDir ${xdir} -yMatDir ${ydir} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
 #    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
@@ -132,4 +133,4 @@ case $srctype in
      exit 1 ;;
 esac
 
-./bin/paradisrepart -infile paradis.data -cells 4 -domains 1,1,4 -outfile input/Copper.data
+./bin/paradisrepart -infile paradis.data -cells 4 -domains 1,1,4 -outfile input/Copper.data > /dev/null 2>&1

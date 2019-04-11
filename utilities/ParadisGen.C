@@ -152,7 +152,8 @@ Option_t optList[OPT_MAX] = {
         {OPT_BURGID,    "burgID",       3, 1},
         {OPT_PLANEID,   "planeID",      3, 1},
         {OPT_TBCRYST,   "TBCryst",      3, 1},
-        {OPT_OUT_FILE,   "outFile",      3, 1}
+        {OPT_OUT_FILE,   "outFile",      3, 1},
+        {OPT_LOAD_DIR,   "loadDir",      3, 1}
 
 };
 
@@ -389,6 +390,11 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->TBCryst[1] = 1;
         inArgs->TBCryst[2] = 1;
         NormalizeVec(inArgs->TBCryst);
+
+        inArgs->loadDir[0] = 0;
+        inArgs->loadDir[1] = 0;
+        inArgs->loadDir[2] = -1;
+        
 
         return;
 }
@@ -815,6 +821,17 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                 case OPT_OUT_FILE:
 		            snprintf(inArgs->outFile, sizeof(inArgs->outFile), "%s", argValue);
                         break;
+	            case OPT_LOAD_DIR:
+	                token = strtok(argValue,",");
+	                inArgs->loadDir[0] = atof(token);
+	                token = strtok(NULL,",");
+                    if (token == (char *)NULL) Fatal("load direction wrong");
+	                inArgs->loadDir[1] = atof(token);
+	                token = strtok(NULL,",");
+                    if (token == (char *)NULL) Fatal("load direction wrong");
+	                inArgs->loadDir[2] = atof(token);
+	                NormalizeVec(inArgs->loadDir);
+	                break;
             }
         }
 

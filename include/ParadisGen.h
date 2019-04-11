@@ -48,7 +48,7 @@ typedef struct {
         real8   TBCryst[3];
         
         char    outFile[256];
-        
+        real8   loadDir[3]; 
 }InArgs_t;
 
 /*
@@ -158,6 +158,7 @@ typedef	enum{
     OPT_PLANEID,
     OPT_TBCRYST,
     OPT_OUT_FILE,
+    OPT_LOAD_DIR,
 	OPT_MAX
 	
 }ParadisGenArgs_t;
