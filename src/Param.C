@@ -841,6 +841,17 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 		BindVar(CPList, "randomInternalForce", &param->randomInternalForce, V_INT, 1, VFLAG_NULL);
 		param->randomInternalForce = 0;
 		
+		BindVar(CPList, "accumulation", &param->accumulation, V_DBL, 3, VFLAG_NULL);
+		param->accumulation[0] = 0.0;
+		param->accumulation[1] = 0.0;
+		param->accumulation[2] = 0.0;
+
+		BindVar(CPList, "disLength", &param->disLength, V_DBL, 2, VFLAG_NULL);
+        param->disLength[0] = 0.0;
+        param->disLength[1] = 0.0;
+
+		BindVar(CPList, "cumulativeTime", &param->cumulativeTime, V_DBL, 1, VFLAG_NULL);
+        param->cumulativeTime = 0.0;
 #ifdef _FEM
 /*
  *      Add in some FEM specific stuff for M. Tang

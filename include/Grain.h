@@ -143,7 +143,7 @@ typedef struct {
 struct _slipSys{
      real8  burg[3];
      real8  normal[3];
-     real8  schmidt;
+     real8  schmid;
      int    inGrain;
      int    burgID;
      int    planeID;
@@ -289,5 +289,7 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
                          real8 dx, real8 dy, real8 dz, real8 bx, real8 by, real8 bz,
                          real8 f1[3], real8 f2[3]); 
 bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8 *pos);
+bool InCuboid(Param_t *param, real8 pos[3], real8 eps);
+bool ActiveSlipSystem(Home_t *home, Node_t *node1, Node_t *node2);
 int GeosTest();
 #endif

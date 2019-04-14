@@ -94,7 +94,7 @@ void InitGrainStructure(Grain_t *grain, int numBounds){
 
 
 bool cmp3(SlipSys_t p, SlipSys_t q){
-    return(p.schmidt > q.schmidt);
+    return(p.schmid > q.schmid);
 }
 void InitGrain(Home_t *home, Param_t *param){
 	int		    i,j,k;
@@ -110,7 +110,7 @@ void InitGrain(Home_t *home, Param_t *param){
                             {0.0e+00, 0.0e+00, 1.0e+00}
                           };
 
-    real8       zaxis[3] = {0.0,0.0,1.0}, maxSchmidt, dis, rad = 800, sqi3 = 0.5773502691896258;
+    real8       zaxis[3] = {0.0,0.0,1.0}, maxSchmid, dis, rad = 800, sqi3 = 0.5773502691896258;
     std::vector<SlipSys_t>  slipSys;
     SlipSys_t               slip;
     BurgInfo_t  *bd;
@@ -206,8 +206,28 @@ void InitGrain(Home_t *home, Param_t *param){
  *	single crystal, free surface.
  */
 	if(param->polycrystal ==0){
-        home->nGrains = 0;
+        home->nGrains = 1;
         home->nGBs = 0;
+
+	    home->grainKeys	= (Grain_t **)malloc(home->nGrains * sizeof(Grain_t *));
+        home->grainKeys[0] = (Grain_t *)calloc(1, sizeof(Grain_t));
+        grain = home->grainKeys[0];
+        grain->nBounds = 0;
+
+        memcpy(grain->orientation, home->rotMatrix, sizeof(real8 [3][3]));
+        memcpy(grain->orientationInv, home->rotMatrixInverse, sizeof(real8 [3][3]));
+
+        bd = &(home->burgData);
+        for(j=0; j<6; j++){
+            VECTOR_COPY(slip.burg, bd->burgList[j]);
+            slip.burgID = j;
+            for(k=0; k<2; k++){
+                slip.planeID = bd->burgOnPlaneID[j][k];
+                VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
+                slip.schmid = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
+                grain->slipSys.push_back(slip);
+            }
+        }
 
 //        VECTOR_COPY(zaxis, param->loadDir);
 
@@ -220,23 +240,21 @@ void InitGrain(Home_t *home, Param_t *param){
                 for(k=0; k<2; k++){
                     slip.planeID = bd->burgOnPlaneID[j][k];
                     VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
-                    slip.schmidt = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
+                    slip.schmid = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
                     slipSys.push_back(slip);
                 }
             }
             sort(slipSys.begin(), slipSys.end(),cmp3); 
     
-            maxSchmidt = slipSys[0].schmidt;
-                printf("max %f\n",  maxSchmidt);
+            maxSchmid = slipSys[0].schmid;
 
             for(j=1; j<slipSys.size(); j++){
-                if(fabs(slipSys[j].schmidt-maxSchmidt)>1.0E-3)break;
+                if(fabs(slipSys[j].schmid-maxSchmid)>1.0E-3)break;
             }
             slipSys.resize(j);
 
-            param->slipSys.schmidt = maxSchmidt;
+            param->maxSchmid = maxSchmid;
 	        FormatMatrix(param->matrixOrientation,"Orientation");
-
 
             for(i=0; i<6; i++){
                 VECTOR_ZERO(surList[i].normal);
@@ -269,7 +287,7 @@ void InitGrain(Home_t *home, Param_t *param){
 			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
 		    }
             
-	        fprintf(fp1, "Variables = x, y, z, v1, v2, v3, index, planID, burg, schmidt\n");
+	        fprintf(fp1, "Variables = x, y, z, v1, v2, v3, index, planID, burg, schmid\n");
 
             for(j=0; j<slipSys.size(); j++){
                 VECTOR_COPY(plane.normal, slipSys[j].normal);
@@ -347,7 +365,7 @@ void InitGrain(Home_t *home, Param_t *param){
 			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
 		    }
             
-	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, burgID, schmidt\n");
+	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, burgID, schmid\n");
 
             NormalizeVec(cena);
             NormalizeVec(cenb);
@@ -672,7 +690,7 @@ void InitGrain(Home_t *home, Param_t *param){
 			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
 		    }
             
-	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, burgID, normalID, schmidt, inGrain\n");
+	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, burgID, normalID, schmid, inGrain\n");
 
             for(i=0; i<6; i++){
                 type = PlanePlaneIntersection(surList[i].normal, surList[i].point,
@@ -836,19 +854,19 @@ void InitGrain(Home_t *home, Param_t *param){
                     for(k=0; k<2; k++){
                         slip.planeID = bd->burgOnPlaneID[j][k];
                         VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
-                        slip.schmidt = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
+                        slip.schmid = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
                         slipSys.push_back(slip);
                     }
                 }
                 sort(slipSys.begin(), slipSys.end(),cmp3); 
     
-                maxSchmidt = slipSys[0].schmidt;
-                printf("max %f\n",  maxSchmidt);
+                maxSchmid = slipSys[0].schmid;
+                printf("max %f\n",  maxSchmid);
 
-                grain->maxSchmid = maxSchmidt;
+                grain->maxSchmid = maxSchmid;
 
                 for(j=1; j<slipSys.size(); j++){
-                    if(fabs(slipSys[j].schmidt-maxSchmidt)>1.0E-3)break;
+                    if(fabs(slipSys[j].schmid-maxSchmid)>1.0E-3)break;
                 }
 
                 numMaxSchmids = j;
@@ -906,7 +924,7 @@ void InitGrain(Home_t *home, Param_t *param){
 	                                fprintf(fp, "%e %e %e %e %e %e %d %d %f %d\n", poss[0][0],
                                     poss[0][1],poss[0][2], tsize*vec4[0],
                                     tsize*vec4[1],tsize*vec4[2], slipSys[j].burgID, 
-                                    slipSys[j].planeID, slipSys[j].schmidt, inGrain);
+                                    slipSys[j].planeID, slipSys[j].schmid, inGrain);
                                     poss[0][0] += tsize*vec4[0];
                                     poss[0][1] += tsize*vec4[1];
                                     poss[0][2] += tsize*vec4[2];
@@ -3507,3 +3525,97 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
     VECTOR_COPY(f2, f1);
     return;
 }
+
+bool InCuboid(Param_t *param, real8 pos[3], real8 eps)
+{
+    if(param->xBoundType != Periodic){
+        if(fabs(pos[0]) > param->xBoundMax + eps)return(0);
+    }
+    
+    if(param->yBoundType != Periodic){
+        if(fabs(pos[1]) > param->yBoundMax + eps)return(0);
+    }
+
+    if(param->zBoundType != Periodic){
+        if(fabs(pos[2]) > param->zBoundMax + eps)return(0);
+    }
+    return(1);
+}
+
+void LineBoxIntersection(Param_t *param, real8 dir[3], real8 pos[3], real8 interPos[2][3])
+{
+    int                     i;
+    std::vector<Plane_t>    surface;
+    Plane_t                 plane;
+
+    if(param->xBoundType != Periodic){
+        VECTOR_ZERO(plane.normal);
+        VECTOR_ZERO(plane.point);
+        
+        plane.normal[0] = 1;
+        plane.point[0] = param->xBoundMin;
+        surface.push_back(plane);
+
+        plane.point[0] = param->xBoundMax;
+        surface.push_back(plane);
+
+    }
+    
+    if(param->yBoundType != Periodic){
+        VECTOR_ZERO(plane.normal);
+        VECTOR_ZERO(plane.point);
+        
+        plane.normal[1] = 1;
+        plane.point[1] = param->yBoundMin;
+        surface.push_back(plane);
+
+        plane.point[1] = param->yBoundMax;
+        surface.push_back(plane);
+
+    }
+
+    if(param->zBoundType != Periodic){
+        VECTOR_ZERO(plane.normal);
+        VECTOR_ZERO(plane.point);
+        
+        plane.normal[2] = 1;
+        plane.point[2] = param->zBoundMin;
+        surface.push_back(plane);
+
+        plane.point[2] = param->zBoundMax;
+        surface.push_back(plane);
+    }
+
+
+    for(i=0;i<surface.size();i++){
+        
+    }
+    
+    return;
+}
+
+bool ActiveSlipSystem(Home_t *home, Node_t *node1, Node_t *node2){
+    int burgID = GetBurgID_FCC(home, node1, node2);
+    int planeID = GetPlaneID_FCC(home, node1, node2);
+
+    Grain_t *grain = home->grainKeys[MAX(0, node1->inGrain)];   
+
+    int i;
+    
+    for(i=0; i<grain->slipSys.size(); i++){
+        if(burgID == grain->slipSys[i].burgID && planeID == grain->slipSys[i].planeID){
+            if(home->param->maxSchmid == grain->slipSys[i].schmid){
+                return(1);
+            }else{
+                return(0);
+            }
+        }
+    }
+
+    return (0);
+}
+
+
+
+
+

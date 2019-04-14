@@ -509,8 +509,12 @@ struct _param {
         int     randomInternalForce;
         double     fMeshSizeX, fMeshSizeY, fNumX, fNumY;
 
-        SlipSys_t  slipSys;
+        real8       maxSchmid;
         clock_t     timestart;
+
+        real8       delAccumulation[3], accumulation[3], disLength[2], cumulativeTime;
+
+        
 
 #ifdef _FEM
 /*

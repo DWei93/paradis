@@ -55,21 +55,6 @@ void ExtPKForce(real8 str[3][3],
     }
 }
 
-bool InCuboid(Param_t *param, real8 pos[3], real8 eps)
-{
-    if(param->xBoundType != Periodic){
-        if(fabs(pos[0]) > param->xBoundMax + eps)return(0);
-    }
-    
-    if(param->yBoundType != Periodic){
-        if(fabs(pos[1]) > param->yBoundMax + eps)return(0);
-    }
-
-    if(param->zBoundType != Periodic){
-        if(fabs(pos[2]) > param->zBoundMax + eps)return(0);
-    }
-    return(1);
-}
 
 static void IncDislocationDensity(InData_t *inData, real8 *totDislocLen)
 {
@@ -1255,7 +1240,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         	
         n1[0] = 0.0;	n1[1] = 0.0;	n1[2] = 0.0;
 
-        srcLen = srcLenMax;		
+        srcLen = cubeSize;		
 	    printf("the max density is %e \n", maxDensity);
 /*
  *      Set up an array of dislocation line directions that
@@ -1303,20 +1288,17 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     p0[0] = (randm(&seed)-0.5) * cubeSize;
                     p0[1] = (randm(&seed)-0.5) * cubeSize;			
                     p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
-                    VECTOR_ZERO(p0);
-//                    p0[2] = -50;
                     NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
                     bd = GetBurgData(home, inGrain0, onGB0);
                     if(onGB0 > -1)continue;
 
-                    ranNum = (int)(randm(&seed) * 1000);
-                    gpBurgIndex = ranNum % bd->numBurgVectors;
-                    if(gpBurgIndex != 1)continue;
+                    ranNum = chain;
+                    gpBurgIndex = ranNum % 6;
                     if((bd->burgType[gpBurgIndex] & EDGE_BURG) == 0)continue;
 
-                    ranNum = (int)(randm(&seed) * 1000);
-                    gpIndex = bd->burgOnPlaneID[gpBurgIndex][ranNum%bd->numPlanesPerBurg[gpBurgIndex]];
-                    if(gpIndex != 3)continue;
+                    
+                    gpIndex = (ranNum % 6) / 2;
+
                     if((bd->planeType[gpIndex] & GLIDE_PLANE) == 0 )continue;
    
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
@@ -1337,9 +1319,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
                     }
                     NormalizeVec(randomLine);
-
-                    VECTOR_ZERO(randomLine);
-                    randomLine[0] = 1.0;
+                    VECTOR_COPY(randomLine, b);
 
                     for (i = 0; i < 3; i++) {
                         p1[i] = p0[i] + (srcLen * randomLine[i]*0.5);

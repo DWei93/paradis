@@ -205,12 +205,18 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         real8        dstn[3][3], dspn[3][3], dtstn[3][3];
         real8        Ltot[NUM_BURG][4], areaSwept[NUM_BURG][7];
         real8        rotMatrix[3][3];
+        real8        delAccumulation[3], disLength[2];
         Param_t      *param;
         static int   initDone = 0;
         static real8 burgv[NUM_BURG][3], bnorm[NUM_BURG][3];
         static real8 nanv[NUM_PLANES][3][NUM_BURG];
         static real8 tanv[NUM_PLANES][3][NUM_BURG];
         
+        delAccumulation[0] = 0.0;
+        delAccumulation[1] = 0.0;
+        delAccumulation[2] = 0.0;
+        disLength[0] = 0.0;
+        disLength[1] = 0.0;
 
 /*
  *      Ltot : density of 
@@ -282,7 +288,14 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         real8  thread_dtstn[3][3];
         real8  thread_Ltot[NUM_BURG][4], thread_areaSwept[NUM_BURG][7];
 
+        real8  thread_delAccumulation[3], thread_disLength[0];
+
         thread_disloDensity = 0.0;
+        thread_delAccumulation[0] = 0.0;
+        thread_delAccumulation[1] = 0.0;
+        thread_delAccumulation[2] = 0.0;
+        thread_disLength[0] = 0.0;
+        thread_disLength[1] = 0.0;
         thread_partialDensity = (real8 *)calloc(1, param->numBurgGroups *
                                                sizeof(real8));
 
@@ -330,7 +343,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                real8  deltax2x, deltax2y, deltax2z;
                real8  delxnode, delynode, delznode;
                real8  delxnbr, delynbr, delznbr;
-               real8  minVal;
+               real8  minVal, disLen, burgMag;
                real8  deltaDensity;
                real8  sbsign, sb;
                real8  segd, segd2;
@@ -347,6 +360,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                Node_t *nbr;
     
                int  burgType;
+                bool    activeSys;
 
                nbr = GetNeighborNode(home, node, segIndex);
 
@@ -384,6 +398,42 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 
 					InitDeltaPlasticStrain_FCC(1, rotMatrix, nanv, tanv, burgv, bnorm);
 			   }
+            
+                vec1[0] = node->x - nbr->x;
+                vec1[1] = node->y - nbr->y;
+                vec1[2] = node->z - nbr->z;
+                ZImage(param, vec1, vec1+1, vec1+2);
+
+                disLen = Normal(vec1);
+
+                activeSys = ActiveSlipSystem(home, node, nbr);
+                if(activeSys){
+                    thread_disLength[0] += disLen;
+                }else{
+                    thread_disLength[1] += disLen;
+                }
+
+                vec1[0] = (node->vX + nbr->vX)*0.5; 
+                vec1[1] = (node->vY + nbr->vY)*0.5; 
+                vec1[2] = (node->vZ + nbr->vZ)*0.5; 
+
+                vec2[0] = 2.0*node->armfx[segIndex];
+                vec2[1] = 2.0*node->armfy[segIndex];
+                vec2[2] = 2.0*node->armfz[segIndex];
+                burgMag = sqrt(node->burgX[segIndex]*node->burgX[segIndex]+
+                               node->burgY[segIndex]*node->burgY[segIndex]+
+                               node->burgZ[segIndex]*node->burgZ[segIndex]);
+
+                if(burgMag <1.0E-10){
+                    Fatal("somthing wrong in file %s at %d\n", __FILE__, __LINE__);
+                }
+                thread_delAccumulation[0] += (disLen*(vec1[0]*vec1[0] + vec1[1]*vec1[1] + vec1[2]*vec1[2]));
+
+                if(activeSys){
+                    thread_delAccumulation[1] += (DotProduct(vec1, vec2)/burgMag);
+                }else{
+                    thread_delAccumulation[2] += (DotProduct(vec1, vec2)/burgMag);
+                }
 			   
 /*
  *             This check is in support of some local site-specific
@@ -508,6 +558,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 	        thread_dyad[2][1] = nz*by;
 	        thread_dyad[2][2] = nz*bz;
 
+
 /*
  *          Caculate total plastci strain, twinning deformation and elemental 
  *          plastic strain.                                         D. Wei
@@ -522,8 +573,19 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                         thread_dtstn[l][k] += tmpDstn;
                     }
 			 	  
-	                if(l==k)home->pstnEle[eleNum][l] += tmpDstn; // element
-	                if(l<k)home->pstnEle[eleNum][l+k+2] += tmpDstn; // element
+	                if(l==k){
+#pragma opm critical
+                        {
+                            home->pstnEle[eleNum][l] += tmpDstn; // element
+                        }
+                    }
+
+	                if(l<k){
+#pragma opm critical
+                        {
+                            home->pstnEle[eleNum][l+k+2] += tmpDstn; // element
+                        }
+                    }
 			 	  
                     thread_dspn[l][k] += (thread_dyad[l][k] -
                                          thread_dyad[k][l]) *
@@ -1036,6 +1098,12 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                 }
             }
 
+            disLength[0] += thread_disLength[0];
+            disLength[1] += thread_disLength[1];
+            delAccumulation[0] += thread_delAccumulation[0];
+            delAccumulation[1] += thread_delAccumulation[1];
+            delAccumulation[2] += thread_delAccumulation[2];
+
             for (k = 0; k < NUM_BURG; k++) {
                 for (l = 0; l < 4; l++) {
                     Ltot[k][l] += thread_Ltot[k][l];
@@ -1127,6 +1195,12 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         param->delpSpin[4] = dspn[0][2];
         param->delpSpin[5] = dspn[0][1];
                                                                                 
+        param->delAccumulation[0] = delAccumulation[0]; 
+        param->delAccumulation[1] = delAccumulation[1]; 
+        param->delAccumulation[2] = delAccumulation[2]; 
+        param->disLength[0] = disLength[0];
+        param->disLength[1] = disLength[1];
+
 #ifdef PARALLEL
 /*
  *      We've calculated processor specific values, now sum the
@@ -1139,12 +1213,20 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         MPI_Allreduce(param->delpTwinStrain, gdtstn, 6, MPI_DOUBLE, MPI_SUM,
                       MPI_COMM_WORLD);
 
+        MPI_Allreduce(param->delAccumulation, delAccumulation, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(param->disLength, disLength, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
         for (i = 0; i < 6; i++) {
             param->delpStrain[i] = gdstn[i];
             param->delpSpin[i] = gdspn[i];
             param->delpTwinStrain[i] = gdtstn[i];
         }
 
+        param->disLength[0] = disLength[0];
+        param->disLength[1] = disLength[1];
+        param->delAccumulation[0] = delAccumulation[0];
+        param->delAccumulation[1] = delAccumulation[1];
+        param->delAccumulation[2] = delAccumulation[2];
 /*
  *      Flux decomposition
  */
@@ -1172,6 +1254,11 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             gdspn[i] = param->delpSpin[i];
             gdtstn[i] = param->delpTwinStrain[i];
         }
+        param->disLength[0] = disLength[0];
+        param->disLength[1] = disLength[1];
+        param->delAccumulation[0] = delAccumulation[0];
+        param->delAccumulation[1] = delAccumulation[1];
+        param->delAccumulation[2] = delAccumulation[2];
 #endif /* if PARALLEL */
 
 

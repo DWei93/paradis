@@ -302,10 +302,10 @@ void WriteProp(Home_t *home, int property)
                                 if(param->polycrystal) fprintf(fp, "twi_def_%1d, ", i);
                             }
                         }
-                        fprintf(fp, "disDen, effPlaRate\n");
+                        fprintf(fp, "disDen, effPlaRate, accumulation0, accumulation1, accumulation2, cumulativeTime\n");
 					}
         
-                    fprintf(fp,"%d %e ", home->cycle, param->timeNow/1E-9);
+                    fprintf(fp,"%d %e ", home->cycle, param->timeNow);
 
                     for(i=0; i<6; i++){
                         if(param->loadDir[i] != 0){
@@ -315,24 +315,24 @@ void WriteProp(Home_t *home, int property)
 
                             if(fabs(param->totpStn[i]) > 1.0E-3 && param->finish == -1){
                                 param->finish = 0; 
-                                printf("stress schmidt1 schmidt2 smax CRSS:\n");
+                                printf("stress schmid1 schmid2 smax CRSS:\n");
                                 printf("%e ", sign*param->appliedStress[i]*1E-6);
 
                                 if(home->param->polycrystal){
                                     Grain_t *grain; 
-                                    real8   maxSchmidt = -1;
+                                    real8   maxSchmid = -1;
                                     int     j;
                                     for(j=0; j<home->nGrains; j++){
                                         grain = home->grainKeys[j];
                                         printf("%e ", grain->maxSchmid);
-                                        if(maxSchmidt < grain->maxSchmid){
-                                            maxSchmidt = grain->maxSchmid;
+                                        if(maxSchmid < grain->maxSchmid){
+                                            maxSchmid = grain->maxSchmid;
                                         }
                                     }
-                                    printf("%e %e\n", maxSchmidt, sign*param->appliedStress[i]*1E-6*maxSchmidt);
+                                    printf("%e %e\n", maxSchmid, sign*param->appliedStress[i]*1E-6*maxSchmid);
                                 }else{
-                                    printf("%e %e\n", param->slipSys.schmidt, 
-                                           sign*param->appliedStress[i]*1E-6*param->slipSys.schmidt);
+                                    printf("%e %e\n", param->maxSchmid, 
+                                           sign*param->appliedStress[i]*1E-6*param->maxSchmid);
                                 }
                             }
                             if(param->polycrystal) fprintf(fp, "%e ", sign*param->totTwinpStn[i]*1E2);
@@ -347,7 +347,8 @@ void WriteProp(Home_t *home, int property)
                         }
                     }
 
-                    fprintf(fp, "%e %e\n", param->disloDensity, effPlaRate);
+                    fprintf(fp, "%e %e %e %e %e %e\n", param->disloDensity, effPlaRate, param->accumulation[0], param->accumulation[1], 
+                                                       param->accumulation[2], param->cumulativeTime);
                     fclose(fp);
 
                     snprintf(fileName, sizeof(fileName), "Finish");
@@ -389,6 +390,11 @@ void WriteProp(Home_t *home, int property)
 
                 }
             }        
+
+            param->accumulation[0] = 0.0; 
+            param->accumulation[1] = 0.0; 
+            param->accumulation[2] = 0.0; 
+            param->cumulativeTime = 0.0;
             break;
                
         case ALL_EPS:
