@@ -285,10 +285,11 @@ int PointLineIntersection(double *p1, double *d, double *p2,
 
     norm2 = sqrt(SQUARE(p1x-p2x) + SQUARE(p1y-p2y) + SQUARE(p1z-p2z));
     if(norm2 < EPS1){
-        vec[0] = p1[0];
-        vec[1] = p1[1];
-        vec[2] = p1[2];
+        vec[0] = p2[0];
+        vec[1] = p2[1];
+        vec[2] = p2[2];
         *dis = 0.0;
+        printf("too close 1 %f\n", fabs(dx*(p1x-p2x) + dy*(p1y-p2y) + dz*(p1z-p2z))/norm2/norm);
         return(POINT_INTERSECTION);
     }
 

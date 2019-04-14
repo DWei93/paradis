@@ -1211,6 +1211,13 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         normalABC[0] = 1;
         normalABC[1] = 1;
         normalABC[2] = 1;
+        VECTOR_ZERO(str[0]);
+        VECTOR_ZERO(str[1]);
+        VECTOR_ZERO(str[2]);
+
+        for(i=0;i<3;i++){
+            str[i][i] = inArgs->loadDir[i];
+        }
 
 /*
  *      Grap the command-line argument values needed for this function
@@ -2750,7 +2757,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         int      lenRange,x0, d, nLayers, xn, layer, time;
         int      startRemeshIndex = 0;
         real8    srcLen, thickness;
-        real8    p0[3], p1[3], p2[3], p3[3], randomLine[3],k0[3];
+        real8    p0[3], p1[3], p2[3], p3[3], randomLine[3];
         real8	 randomAngle;
         int	     cubeLength, numSources, srcLenMin, srcLenMax, seed, dislocType;
         int	     polycrystal, nGrain, finish;
@@ -3079,6 +3086,20 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     lambda_FR = srcLen/2;
                     GetFreePath(param, p1, p2, n0, home->grainKeys[inGrain0], 
                                 interDir, lambda_SAS1, lambda_GB1, lambda_SAS2, lambda_GB2);
+
+                    ExtPKForce(str, b[0], b[1], b[2], 
+                               p1[0], p1[1], p1[2],
+                               p2[0], p2[1], p2[2], f1, f2);
+                   
+                    real8 dis; 
+                    PointPlaneIntersection(p0, gb->n, gb->p, vec, &dis);
+                    vec[0] -= p0[0];
+                    vec[1] -= p0[1];
+                    vec[2] -= p0[2];
+                    if(DotProduct(vec, f1) < 0){
+                        lambda_GB1 = -lambda_GB1;
+                        lambda_GB2 = -lambda_GB2;
+                    }
 
                     s0 = DotProduct(zaxis, n0)*DotProduct(zaxis, b);
                     VECTOR_ZERO(paras[0]);
