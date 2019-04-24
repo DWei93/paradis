@@ -166,14 +166,17 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 
         BindVar(CPList, "cycleStart", &param->cycleStart, V_INT, 1, VFLAG_NULL);
 
+        BindVar(CPList, "relax", &param->relax, V_INT, 1, VFLAG_NULL);
+        param->relax = -1;
+
         BindVar(CPList, "maxstep", &param->maxstep, V_INT, 1, VFLAG_NULL);
         param->maxstep = 100;
 
-	BindVar(CPList, "maxStn", &param->maxStn, V_DBL, 1, VFLAG_NULL);
-	param->maxStn = 1.0E-2;
+	    BindVar(CPList, "maxStn", &param->maxStn, V_DBL, 1, VFLAG_NULL);
+	    param->maxStn = 1.0E-2;
 
-	BindVar(CPList, "maxPst", &param->maxPst, V_DBL, 1, VFLAG_NULL);
-	param->maxPst = 1.0E-2;
+	    BindVar(CPList, "maxPst", &param->maxPst, V_DBL, 1, VFLAG_NULL);
+	    param->maxPst = 1.0E-2;
 
         BindVar(CPList, "timeNow", &param->timeNow, V_DBL, 1, VFLAG_NULL);
 

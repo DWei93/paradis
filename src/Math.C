@@ -289,7 +289,6 @@ int PointLineIntersection(double *p1, double *d, double *p2,
         vec[1] = p2[1];
         vec[2] = p2[2];
         *dis = 0.0;
-        printf("too close 1 %f\n", fabs(dx*(p1x-p2x) + dy*(p1y-p2y) + dz*(p1z-p2z))/norm2/norm);
         return(POINT_INTERSECTION);
     }
 
@@ -298,7 +297,6 @@ int PointLineIntersection(double *p1, double *d, double *p2,
         vec[1] = p1[1];
         vec[2] = p1[2];
         *dis = 0.0;
-        printf("too close 2 %f\n", fabs(dx*(p1x-p2x) + dy*(p1y-p2y) + dz*(p1z-p2z))/norm2/norm);
         return(POINT_INTERSECTION);
     }
 

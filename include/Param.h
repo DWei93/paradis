@@ -513,7 +513,7 @@ struct _param {
         clock_t     timestart;
 
         real8       delAccumulation[3], accumulation[3], disLength[2], cumulativeTime;
-
+        int         relax;
         
 
 #ifdef _FEM

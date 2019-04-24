@@ -101,7 +101,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         loadtype  = param->loadType;
         shr       = param->shearModulus;
         youngs    = 2.0 * shr * (1.0+param->pois);
-        erate     = param->eRate;
+        erate     = (param->relax < home->cycle) ? param->eRate : 0.0;
         dtt       = param->realdt;
         indxerate = param->indxErate;
 
@@ -183,14 +183,26 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 break;
         }
         
-        
-        for (i = 0; i < 6; i++) {
-            param->totpStn[i] += param->delpStrain[i];                       
-            param->totTwinpStn[i] += param->delpTwinStrain[i];                       
-            param->totpSpn[i] += param->delpSpin[i];                         
-            param->totedgepStrain[i] += param->dedgepStrain[i];               
-            param->totscrewpStrain[i] += param->dscrewpStrain[i];             
-        }                                                                    
+        if(param->relax == home->cycle){
+            for (i = 0; i < 6; i++) {
+                param->totpStn[i] = 0.0;                       
+                param->totTwinpStn[i] = 0.0;                       
+                param->totpSpn[i] = 0.0;                         
+                param->totedgepStrain[i] = 0.0;               
+                param->totscrewpStrain[i] = 0.0;             
+
+                param->appliedStress[i] = 0.0;
+                param->totstraintensor[i] = 0.0;
+            }     
+        }else{
+            for (i = 0; i < 6; i++) {
+                param->totpStn[i] += param->delpStrain[i];                       
+                param->totTwinpStn[i] += param->delpTwinStrain[i];                       
+                param->totpSpn[i] += param->delpSpin[i];                         
+                param->totedgepStrain[i] += param->dedgepStrain[i];               
+                param->totscrewpStrain[i] += param->dscrewpStrain[i];             
+            }     
+        }                                                               
         
 /*
  *      Part for Loading Axis Rotation due to Small Deformation Spin.
