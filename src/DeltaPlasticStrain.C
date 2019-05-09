@@ -59,10 +59,22 @@ void DeltaPlasticStrain(Home_t *home)
 
 #endif
 
-    param->accumulation[0] += (param->delAccumulation[0]*param->realdt/(param->disLength[0]+param->disLength[1])); 
-    param->accumulation[1] += (param->delAccumulation[1]*param->realdt/param->disLength[0]); 
-    param->accumulation[2] += (param->delAccumulation[2]*param->realdt/param->disLength[1]); 
-    param->cumulativeTime += param->realdt;
+    param->accumulation[0] += (param->delAccumulation[0]*param->realdt/param->disLength[0]); 
+    param->accumulation[1] += (param->delAccumulation[1]*param->realdt/param->disLength[1]); 
+    param->accumulation[2] += (param->delAccumulation[2]*param->realdt/param->disLength[0]); 
+    param->accumulation[3] += (param->delAccumulation[3]*param->realdt/param->disLength[1]); 
+    param->cumulativeTime += (param->realdt/1.0E-9);
+
+    int iBin;
+    for(iBin=0; iBin<param->nDissBins; iBin++){
+        param->dissTable[iBin][1] *= (param->realdt/1.0E-9);
+        param->dissTable[iBin][2] *= (param->realdt/1.0E-9);
+    } 
+    for(iBin=0; iBin<param->nVelBins; iBin++){
+        param->velTable[iBin][1] *= (param->realdt/1.0E-9);
+        param->velTable[iBin][2] *= (param->realdt/1.0E-9);
+        param->velTable[iBin][3] *= (param->realdt/1.0E-9);
+    } 
 
     return;
 }

@@ -79,6 +79,14 @@ void WriteProp(Home_t *home, int property)
 
         param = home->param;
 
+
+       real8   nav_a = 0.0, nav_ia = 0.0;
+       int     dissStartID = 3*param->nVelBins;
+       int     dataLen = 3*param->nVelBins+2*param->nDissBins;
+       real8   *locVals = (real8 *)calloc(dataLen, sizeof(real8));
+       real8   *gloVals = (real8 *)calloc(dataLen, sizeof(real8));
+
+
 		for (i = 0; i < 6; i++) {
             dpstn[i] = param->delpStrain[i];
         }
@@ -230,6 +238,49 @@ void WriteProp(Home_t *home, int property)
             break;
         
         case EPS:
+
+#ifdef PARALLEL
+            
+            for(i=0; i<dataLen; i++)gloVals[i] = 0.0;
+
+            for(i=0; i<param->nVelBins; i++){
+                locVals[3*i] = param->velTable[i][1];
+                locVals[3*i+1] = param->velTable[i][2];
+                locVals[3*i+2] = param->velTable[i][3];
+            }
+            for(i=0; i<param->nDissBins; i++){
+                locVals[dissStartID+2*i] = param->dissTable[i][1];
+                locVals[dissStartID+2*i+1] = param->dissTable[i][2];
+            }
+
+	        MPI_Reduce(locVals, gloVals, dataLen, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+            if(home->myDomain == 0){
+                for(i=0; i<param->nVelBins; i++){
+                    param->velTable[i][1] = gloVals[3*i];
+                    param->velTable[i][2] = gloVals[3*i+1];
+                    param->velTable[i][3] = gloVals[3*i+2];
+                }
+                for(i=0; i<param->nDissBins; i++){
+                    param->dissTable[i][1] = gloVals[dissStartID+2*i];
+                    param->dissTable[i][2] = gloVals[dissStartID+2*i+1];
+                }
+            }else{
+                for(i=0; i<param->nVelBins; i++){
+                    param->velTable[i][1] = 0.0;
+                    param->velTable[i][2] = 0.0;
+                    param->velTable[i][3] = 0.0;
+                }
+                for(i=0; i<param->nDissBins; i++){
+                    param->dissTable[i][1] = 0.0;
+                    param->dissTable[i][2] = 0.0;
+                }
+            }
+
+            free(locVals);
+            free(gloVals);
+#endif
+
             if (home->myDomain == 0) {
                 sigijk = param->appliedStress[0]*al*al     +
                          param->appliedStress[1]*am*am     +
@@ -274,6 +325,64 @@ void WriteProp(Home_t *home, int property)
                             param->appliedStress[1], param->appliedStress[2], param->appliedStress[3],
                             param->appliedStress[4], param->appliedStress[5]);
                     fclose(fp);
+/*
+ *                  dump the velocity problebility table
+ * */
+                    snprintf(fileName, sizeof(fileName), "%s/velocity-%d.plt", DIR_PROPERTIES, home->cycle);
+                    if((fp = fopen(fileName, "a")) == (FILE *)NULL){
+                        Fatal("can not open file %s", fileName);
+                    }
+
+					fprintf(fp, "variables = velocity, p_neg_act, p_pos_act, p_inact\n"); 
+		            fprintf(fp, "zone T = \"%d\"  F=POINT\n", home->cycle); 
+                    fprintf(fp, "AUXDATA cumulativeTime = \"%f\"\n", param->cumulativeTime);
+                    
+                    nav_a = 0.0; nav_ia = 0.0;
+                    for(i=0; i<param->nVelBins; i++){
+                        nav_a += param->velTable[i][1];
+                        nav_a += param->velTable[i][2];
+                        nav_ia += param->velTable[i][3];
+                    }
+                    for(i=0; i<param->nVelBins; i++){
+                        param->velTable[i][1] /= (pow(param->baseVel, (real8)i)*(param->baseVel-1)*param->velMin*nav_a);
+                        param->velTable[i][2] /= (pow(param->baseVel, (real8)i)*(param->baseVel-1)*param->velMin*nav_a);
+                        param->velTable[i][3] /= (pow(param->baseVel, (real8)i)*(param->baseVel-1)*param->velMin*nav_ia);
+                        fprintf(fp, "%e %e %e %e\n", param->velTable[i][0], 
+                                param->velTable[i][1]/param->cumulativeTime, param->velTable[i][2]/param->cumulativeTime, 
+                                param->velTable[i][3]/param->cumulativeTime);
+                        param->velTable[i][1] = 0.0; 
+                        param->velTable[i][2] = 0.0;
+                        param->velTable[i][3] = 0.0;
+                    }
+
+                    fclose(fp);                   
+/*
+ *                  dump the dissipation problebility table
+ * */
+                    snprintf(fileName, sizeof(fileName), "%s/dissipation-%d.plt", DIR_PROPERTIES, home->cycle);
+                    if((fp = fopen(fileName, "a")) == (FILE *)NULL){
+                        Fatal("can not open file %s", fileName);
+                    }
+
+					fprintf(fp, "variables = dissipation, p_act, p_inact\n"); 
+		            fprintf(fp, "zone T = \"%d\"  F=POINT\n", home->cycle); 
+                    fprintf(fp, "AUXDATA cumulativeTime = \"%f\"\n", param->cumulativeTime);
+                    
+                    nav_a = 0.0; nav_ia = 0.0;
+                    for(i=0; i<param->nDissBins; i++){
+                        nav_a += param->dissTable[i][1];
+                        nav_ia += param->dissTable[i][2];
+                    }
+                    for(i=0; i<param->nDissBins; i++){
+                        param->dissTable[i][1] /= (pow(param->baseDiss, (real8)i)*(param->baseDiss-1)*param->dissMin*nav_a);
+                        param->dissTable[i][2] /= (pow(param->baseDiss, (real8)i)*(param->baseDiss-1)*param->dissMin*nav_ia);
+                        fprintf(fp, "%e %e %e\n", param->dissTable[i][0], 
+                                param->dissTable[i][1]/param->cumulativeTime, param->dissTable[i][2]/param->cumulativeTime);
+                        param->dissTable[i][1] = 0.0;
+                        param->dissTable[i][2] = 0.0;
+                    }
+
+                    fclose(fp);                   
 
                     snprintf(fileName, sizeof(fileName),
                              "%s/stress_Total_strain.plt", DIR_PROPERTIES);
@@ -302,7 +411,7 @@ void WriteProp(Home_t *home, int property)
                                 if(param->polycrystal) fprintf(fp, "twi_def_%1d, ", i);
                             }
                         }
-                        fprintf(fp, "disDen, effPlaRate, accumulation0, accumulation1, accumulation2, cumulativeTime\n");
+                        fprintf(fp, "disDen, effPlaRate, vsqua_active, vsqua_inactive, tauv_active, tauv_inactive, cumulativeTime\n");
 					}
         
                     fprintf(fp,"%d %e ", home->cycle, param->timeNow);
@@ -347,8 +456,11 @@ void WriteProp(Home_t *home, int property)
                         }
                     }
 
-                    fprintf(fp, "%e %e %e %e %e %e\n", param->disloDensity, effPlaRate, param->accumulation[0], param->accumulation[1], 
-                                                       param->accumulation[2], param->cumulativeTime);
+                    fprintf(fp, "%e %e %e %e %e %e %e\n", param->disloDensity, effPlaRate, param->accumulation[0]/param->cumulativeTime, 
+                                                       param->accumulation[1]/param->cumulativeTime, 
+                                                       param->accumulation[2]/param->cumulativeTime, 
+                                                       param->accumulation[3]/param->cumulativeTime, 
+                                                       param->cumulativeTime);
                     fclose(fp);
 
                     snprintf(fileName, sizeof(fileName), "Finish");
@@ -394,7 +506,11 @@ void WriteProp(Home_t *home, int property)
             param->accumulation[0] = 0.0; 
             param->accumulation[1] = 0.0; 
             param->accumulation[2] = 0.0; 
+            param->accumulation[3] = 0.0; 
             param->cumulativeTime = 0.0;
+
+
+
             break;
                
         case ALL_EPS:

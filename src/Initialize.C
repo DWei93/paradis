@@ -1755,9 +1755,35 @@ void Initialize(Home_t *home,int argc, char *argv[])
  */
 	    InitGrain(home, param);
         
-	    param->vshr = sqrt(param->YoungsModulus/param->massDensity)/param->burgMag;
+//	    param->vshr = sqrt(param->YoungsModulus/param->massDensity)/param->burgMag;
+        param->vshr = 1.5E3/param->burgMag;
+
 	    if(home->myDomain == 0)printf("shear Wave velocity: %6.2f m/s.\n",
 	    param->vshr * param->burgMag);
+
+        param->velMax = 1.5E3;
+        param->velMin = 1.0E-3;
+        param->dissMin = 1.0;
+        param->dissMax = 7.6E6;
+        param->nVelBins = 100;
+        param->nDissBins = 100;
+        param->baseDiss = 1.173;
+        param->baseVel = 1.154;
+
+        param->velTable = (real8 (*)[4])calloc(4*param->nVelBins, sizeof(real8));
+        for(i=0; i<param->nVelBins; i++){
+            param->velTable[i][0] = param->velMin*pow(param->baseVel,((real8)i)+0.5);
+            param->velTable[i][1] = 0.0;
+            param->velTable[i][2] = 0.0;
+            param->velTable[i][3] = 0.0;
+        }
+
+        param->dissTable = (real8 (*)[3])calloc(3*param->nDissBins, sizeof(real8));
+        for(i=0; i<param->nDissBins; i++){
+            param->dissTable[i][0] = param->dissMin*pow(param->baseDiss, ((real8)i)+0.5);
+            param->dissTable[i][1] = 0.0;
+            param->dissTable[i][2] = 0.0;
+        }
 
 	    CheckMemUsage(home, "Initialize");
 	

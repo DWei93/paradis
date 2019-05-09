@@ -1349,11 +1349,11 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
             if(!SelfForce(0, MU, NU, burg[0], burg[1], burg[2],
                       x1, y1, z1, x2, y2, z2, a, Ecore, f1, f2)){
 
-//	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
-	    PrintNode(node1);
-	    PrintNode(node2);
-	    Fatal("at %s, Line %d",__FILE__,__LINE__);
-	    }
+//	            Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
+	            PrintNode(node1);
+	            PrintNode(node2);
+	            Fatal("at %s, Line %d",__FILE__,__LINE__);
+	        }
 
             VECTOR_ADD(fseg1node1, f1);
             VECTOR_ADD(fseg1node2, f2);

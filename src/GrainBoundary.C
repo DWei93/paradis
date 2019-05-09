@@ -98,7 +98,7 @@ void PullBack(Home_t *home, Node_t *node){
 
 	FoldBox(home->param, newPos, newPos+1, newPos+2);
 
-    RepositionNode(home,newPos,&node->myTag,1);
+    RepositionNode(home, newPos, &node->myTag,1);
 	return;
 }
 

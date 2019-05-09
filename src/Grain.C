@@ -438,6 +438,10 @@ void InitGrain(Home_t *home, Param_t *param){
             fclose(fp1);
 
 	    }
+
+#if PARALLEL
+       MPI_Bcast(&(param->maxSchmid), sizeof(double), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
 	    return;
 	}
 
@@ -3593,29 +3597,5 @@ void LineBoxIntersection(Param_t *param, real8 dir[3], real8 pos[3], real8 inter
     
     return;
 }
-
-bool ActiveSlipSystem(Home_t *home, Node_t *node1, Node_t *node2){
-    int burgID = GetBurgID_FCC(home, node1, node2);
-    int planeID = GetPlaneID_FCC(home, node1, node2);
-
-    Grain_t *grain = home->grainKeys[MAX(0, node1->inGrain)];   
-
-    int i;
-    
-    for(i=0; i<grain->slipSys.size(); i++){
-        if(burgID == grain->slipSys[i].burgID && planeID == grain->slipSys[i].planeID){
-            if(home->param->maxSchmid == grain->slipSys[i].schmid){
-                return(1);
-            }else{
-                return(0);
-            }
-        }
-    }
-
-    return (0);
-}
-
-
-
 
 

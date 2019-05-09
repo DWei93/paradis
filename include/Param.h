@@ -512,7 +512,9 @@ struct _param {
         real8       maxSchmid;
         clock_t     timestart;
 
-        real8       delAccumulation[3], accumulation[3], disLength[2], cumulativeTime;
+        real8       delAccumulation[4], accumulation[4], disLength[2], cumulativeTime;
+        int         nVelBins, nDissBins;
+        real8       velMax, velMin, dissMax, dissMin, baseVel, baseDiss, (*velTable)[4], (*dissTable)[3];
         int         relax;
         
 

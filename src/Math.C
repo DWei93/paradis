@@ -105,11 +105,6 @@ double Volume(double **p, int num){
     if(num < 3)FatalMath("Volume: the shape has %d edges",num);
     numComb = Combine(num, 3);
 
-//    for(i=0; i<; i++){
-        
-    
-//    }
-
     return(0);   
 }
 
@@ -161,6 +156,7 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2,
     if(type == NO_INTERSECTION){
         FatalMath("PlanePlaneIntersection in %s at %d\n", __FILE__, __LINE__);
     }
+
 #if 0
     dir[0] = p2[0] - p1[0];
     dir[1] = p2[1] - p1[1];

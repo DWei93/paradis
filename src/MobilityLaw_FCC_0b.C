@@ -391,8 +391,8 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 #endif
 
 	velocity = sqrt(node->vX * node->vX+
-			node->vY * node->vY+
-			node->vZ * node->vZ);
+			        node->vY * node->vY+
+			        node->vZ * node->vZ);
 	if(velocity > param->vshr && param->vshr > 0){
 	    node->vX = node->vX * param->vshr /velocity ;
 	    node->vY = node->vY * param->vshr /velocity ;

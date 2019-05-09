@@ -942,6 +942,6 @@ void TrapezoidIntegrator(Home_t *home)
  */
         AdjustNodePosition(home, 1);
 #endif
-		
+
         return;
 }

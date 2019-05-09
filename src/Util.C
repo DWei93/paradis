@@ -4639,4 +4639,18 @@ bool DifferentGlidePlane(Node_t *node){
     return(0);
 }
 
+real8 NodeLength(Home_t *home, Node_t *node) 
+{
+    int     i;
+    Node_t  *nbr;
+    real8   len = 0;
+
+    for(i=0; i<node->numNbrs; i++){
+	    nbr = GetNeighborNode(home, node, i);
+        if(nbr == (Node_t *)NULL)continue;
+        len += (0.5*NodeDistance(home, node, nbr));        
+    }
+    return(len);
+}
+
 
