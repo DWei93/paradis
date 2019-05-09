@@ -31,6 +31,35 @@
 #define NUM_BURG    6
 #define NUM_PLANES  3
 
+void GetBinID(real8 a0, real8 q, int n, real8 x, real8 w, int binID[2], real8 coeff[2])
+{
+    binID[0] = 0;
+    binID[1] = 0;
+    coeff[0] = 0.0;
+    coeff[1] = 0.0;
+
+    real8 upper, invLower;
+    if(x < a0*pow(q,0.5)){
+        binID[0] = 0;
+        coeff[0] = x*w/(a0*pow(q,0.5));
+    }else if(x >= a0*pow(q,((real8)n))-0.5){
+        binID[0] = n-1;
+        coeff[0] = x*w/(a0*pow(q,((real8)n)-0.5));
+    }else{
+        for(int i=0; i<n-1; i++){
+            if(x >= a0*pow(q,((real8)i)+0.5)){
+                binID[0] = i;
+                binID[1] = i+1;
+                upper = a0*pow(q,1.5+((real8)i))*w+x;
+                invLower = 1.0/(a0*(pow(q,((real8)i)+0.5)-pow(q,((real8)i)+1.5))); 
+                coeff[0] = upper*invLower;
+                if(isnan(coeff[0]))coeff[0] = 0.0;
+                coeff[1] = w - coeff[0];
+            }
+        }
+    }
+    return;
+}
 
 /***************************************************************************
  *
@@ -373,9 +402,10 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                real8  tmpDstn;
                Node_t *nbr;
     
+               int  binID[2];
                int  burgType, nbrArmID, iBin;
                bool active, positive;
-                real8   velocity;
+                real8   velocity, coeff[2];
 
                nbr = GetNeighborNode(home, node, segIndex);
 
@@ -502,65 +532,47 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                     thread_delAccumulation[2] += vtau;
 
                     if(!positive){
-                        for(iBin=0; iBin<param->nVelBins; iBin++){
-                            if(velocity/param->velMin > pow(param->baseVel, ((real8)iBin)+0.5) - 1.0 &&
-                               velocity/param->velMin < pow(param->baseVel, ((real8)iBin)+1.0)){
+                        GetBinID(param->velMin, param->baseVel, param->nVelBins, velocity, disLen, binID, coeff);
 #pragma opm critical
-{
-                                param->velTable[iBin][1] += disLen;
-}
-                                
-                            }
-                        } 
+                        {
+                            param->velTable[binID[0]][1] += coeff[0];
+                            param->velTable[binID[1]][1] += coeff[1];
+                        }
+                        
                     }else{
-                        for(iBin=0; iBin<param->nVelBins; iBin++){
-                            if(velocity/param->velMin > pow(param->baseVel, ((real8)iBin)+0.5) - 1.0 &&
-                               velocity/param->velMin < pow(param->baseVel, ((real8)iBin)+1.0)){
+                        GetBinID(param->velMin, param->baseVel, param->nVelBins, velocity, disLen, binID, coeff);
 #pragma opm critical
-{
-                                param->velTable[iBin][2] += disLen;
-}
-                                
-                            }
-                        } 
-
+                        {
+                            param->velTable[binID[0]][2] += coeff[0];
+                            param->velTable[binID[1]][2] += coeff[1];
+                        }
                     }
-                     for(iBin=0; iBin<param->nDissBins; iBin++){
-                         if(vtau/param->dissMin > pow(param->baseDiss, ((real8)iBin)+0.5) - 1.0 &&
-                            vtau/param->dissMin < pow(param->baseDiss, ((real8)iBin)+1.0)){
+
+                    GetBinID(param->dissMin, param->baseDiss, param->nDissBins, vtau, disLen, binID, coeff);
 #pragma opm critical
-{
-                             param->dissTable[iBin][1] += disLen;
-}
-                             
-                         }
-                     } 
+                    {
+                        param->dissTable[binID[0]][1] += coeff[0];
+                        param->dissTable[binID[1]][1] += coeff[1];
+                    }
 
                 }else{
                     thread_disLength[1] += disLen;
                     thread_delAccumulation[1] += (DotProduct(vec1, vec1)*disLen);
                     thread_delAccumulation[3] += vtau;
-                    for(iBin=0; iBin<param->nVelBins; iBin++){
-                        if(velocity/param->velMin > pow(param->baseVel, ((real8)iBin)+0.5) - 1.0 &&
-                           velocity/param->velMin < pow(param->baseVel, ((real8)iBin)+1.0)){
-#pragma opm critical
-{
-                            param->velTable[iBin][3] += disLen;
-}
-                            
-                        }
-                    } 
 
-                     for(iBin=0; iBin<param->nDissBins; iBin++){
-                         if(vtau/param->dissMin > pow(param->baseDiss, ((real8)iBin)+0.5) - 1.0 &&
-                            vtau/param->dissMin < pow(param->baseDiss, ((real8)iBin)+1.0)){
+                    GetBinID(param->velMin, param->baseVel, param->nVelBins, velocity, disLen, binID, coeff);
 #pragma opm critical
-{
-                             param->dissTable[iBin][2] += disLen;
-}
-                             
-                         }
-                     } 
+                    {
+                        param->velTable[binID[0]][3] += coeff[0];
+                        param->velTable[binID[1]][3] += coeff[1];
+                    }
+
+                    GetBinID(param->dissMin, param->baseDiss, param->nDissBins, vtau, disLen, binID, coeff);
+#pragma opm critical
+                    {
+                        param->dissTable[binID[0]][2] += coeff[0];
+                        param->dissTable[binID[1]][2] += coeff[1];
+                    }
                 }
 
 /*

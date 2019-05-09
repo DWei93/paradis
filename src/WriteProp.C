@@ -344,9 +344,9 @@ void WriteProp(Home_t *home, int property)
                         nav_ia += param->velTable[i][3];
                     }
                     for(i=0; i<param->nVelBins; i++){
-                        param->velTable[i][1] /= (pow(param->baseVel, (real8)i)*(param->baseVel-1)*param->velMin*nav_a);
-                        param->velTable[i][2] /= (pow(param->baseVel, (real8)i)*(param->baseVel-1)*param->velMin*nav_a);
-                        param->velTable[i][3] /= (pow(param->baseVel, (real8)i)*(param->baseVel-1)*param->velMin*nav_ia);
+                        param->velTable[i][1] /= (pow(param->baseVel, (real8)i+0.5)*(param->baseVel-1)*param->velMin*nav_a);
+                        param->velTable[i][2] /= (pow(param->baseVel, (real8)i+0.5)*(param->baseVel-1)*param->velMin*nav_a);
+                        param->velTable[i][3] /= (pow(param->baseVel, (real8)i+0.5)*(param->baseVel-1)*param->velMin*nav_ia);
                         fprintf(fp, "%e %e %e %e\n", param->velTable[i][0], 
                                 param->velTable[i][1]/param->cumulativeTime, param->velTable[i][2]/param->cumulativeTime, 
                                 param->velTable[i][3]/param->cumulativeTime);
@@ -374,8 +374,8 @@ void WriteProp(Home_t *home, int property)
                         nav_ia += param->dissTable[i][2];
                     }
                     for(i=0; i<param->nDissBins; i++){
-                        param->dissTable[i][1] /= (pow(param->baseDiss, (real8)i)*(param->baseDiss-1)*param->dissMin*nav_a);
-                        param->dissTable[i][2] /= (pow(param->baseDiss, (real8)i)*(param->baseDiss-1)*param->dissMin*nav_ia);
+                        param->dissTable[i][1] /= (pow(param->baseDiss, (real8)i+0.5)*(param->baseDiss-1)*param->dissMin*nav_a);
+                        param->dissTable[i][2] /= (pow(param->baseDiss, (real8)i+0.5)*(param->baseDiss-1)*param->dissMin*nav_ia);
                         fprintf(fp, "%e %e %e\n", param->dissTable[i][0], 
                                 param->dissTable[i][1]/param->cumulativeTime, param->dissTable[i][2]/param->cumulativeTime);
                         param->dissTable[i][1] = 0.0;
