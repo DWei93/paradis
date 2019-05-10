@@ -50,7 +50,7 @@ void GetBinID(real8 a0, real8 q, int n, real8 x, real8 w, int binID[2], real8 co
             if(x >= a0*pow(q,((real8)i)+0.5)){
                 binID[0] = i;
                 binID[1] = i+1;
-                upper = a0*pow(q,1.5+((real8)i))*w+x;
+                upper = -a0*pow(q,1.5+((real8)i))*w+x;
                 invLower = 1.0/(a0*(pow(q,((real8)i)+0.5)-pow(q,((real8)i)+1.5))); 
                 coeff[0] = upper*invLower;
                 if(isnan(coeff[0]))coeff[0] = 0.0;
@@ -58,6 +58,10 @@ void GetBinID(real8 a0, real8 q, int n, real8 x, real8 w, int binID[2], real8 co
             }
         }
     }
+    if(isnan(coeff[0]) < 0 || isnan(coeff[1]) < 0){
+        Fatal("something wrong in GetBinID");
+    }
+
     return;
 }
 
