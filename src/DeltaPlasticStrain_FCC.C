@@ -58,6 +58,9 @@ void GetBinID(real8 a0, real8 q, int n, real8 x, real8 w, int binID[2], real8 co
             }
         }
     }
+    if(isnan(coeff[0]) < 0 || isnan(coeff[1]) < 0){
+        Fatal("something wrong in GetBinID");
+    }
 
     return;
 }
