@@ -58,7 +58,8 @@ void GetBinID(real8 a0, real8 q, int n, real8 x, real8 w, int binID[2], real8 co
             }
         }
     }
-    if(isnan(coeff[0]) < 0 || isnan(coeff[1]) < 0){
+    if(coeff[0] < 0 || coeff[1] < 0){
+        printf("%e %e %d %e %e %d %d %e %e\n", a0, q, n, x, w, binID[0], binID[1], coeff[0], coeff[1]);
         Fatal("something wrong in GetBinID");
     }
 

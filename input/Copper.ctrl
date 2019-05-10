@@ -40,7 +40,6 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-#
 dirname = "res.1105544"
 remeshRule = 2
 enforceGlidePlanes =  1 

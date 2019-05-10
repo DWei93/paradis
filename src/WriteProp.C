@@ -244,6 +244,7 @@ void WriteProp(Home_t *home, int property)
             for(i=0; i<dataLen; i++)gloVals[i] = 0.0;
 
             for(i=0; i<param->nVelBins; i++){
+                if( param->velTable[i][1] < 0) Fatal("w 0");
                 locVals[3*i] = param->velTable[i][1];
                 locVals[3*i+1] = param->velTable[i][2];
                 locVals[3*i+2] = param->velTable[i][3];
@@ -260,6 +261,7 @@ void WriteProp(Home_t *home, int property)
                     param->velTable[i][1] = gloVals[3*i];
                     param->velTable[i][2] = gloVals[3*i+1];
                     param->velTable[i][3] = gloVals[3*i+2];
+                    if( param->velTable[i][1] < 0) Fatal("w 1");
                 }
                 for(i=0; i<param->nDissBins; i++){
                     param->dissTable[i][1] = gloVals[dissStartID+2*i];
@@ -344,6 +346,8 @@ void WriteProp(Home_t *home, int property)
                         nav_ia += param->velTable[i][3];
                     }
                     for(i=0; i<param->nVelBins; i++){
+                        if(param->velTable[i][1] < 0)Fatal("w2");
+                        if((pow(param->baseVel, (real8)i+0.5)*(param->baseVel-1)*param->velMin*nav_a) < 0)Fatal("w3");
                         param->velTable[i][1] /= (pow(param->baseVel, (real8)i+0.5)*(param->baseVel-1)*param->velMin*nav_a);
                         param->velTable[i][2] /= (pow(param->baseVel, (real8)i+0.5)*(param->baseVel-1)*param->velMin*nav_a);
                         param->velTable[i][3] /= (pow(param->baseVel, (real8)i+0.5)*(param->baseVel-1)*param->velMin*nav_ia);
