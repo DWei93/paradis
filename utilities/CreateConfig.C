@@ -2797,8 +2797,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
         FILE    *fp;
         
-        if((fp = fopen(inArgs->outFile, "w")) == (FILE *)NULL){
-            Fatal("can not open file %s", inArgs->outFile);
+        bool    sasAnalyse = 0;
+        if((fp = fopen(inArgs->outFile, "w")) != (FILE *)NULL){
+            sasAnalyse = 1;
         }
 
 /*
@@ -3082,7 +3083,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
 	            totSrcLen += srcLen;				
 
-                if(polycrystal){
+                if(polycrystal && sasAnalyse){
                     lambda_FR = srcLen/2;
                     GetFreePath(param, p1, p2, n0, home->grainKeys[inGrain0], 
                                 interDir, lambda_SAS1, lambda_GB1, lambda_SAS2, lambda_GB2);

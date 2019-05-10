@@ -59,10 +59,10 @@ void DeltaPlasticStrain(Home_t *home)
 
 #endif
 
-    param->accumulation[0] += (param->delAccumulation[0]*param->realdt/param->disLength[0]); 
-    param->accumulation[1] += (param->delAccumulation[1]*param->realdt/param->disLength[1]); 
-    param->accumulation[2] += (param->delAccumulation[2]*param->realdt/param->disLength[0]); 
-    param->accumulation[3] += (param->delAccumulation[3]*param->realdt/param->disLength[1]); 
+    param->accumulation[0] += (param->delAccumulation[0]*param->realdt/param->disLength[0]/1.0E-9); 
+    param->accumulation[1] += (param->delAccumulation[1]*param->realdt/param->disLength[1]/1.0E-9); 
+    param->accumulation[2] += (param->delAccumulation[2]*param->realdt/param->disLength[0]/1.0E-9); 
+    param->accumulation[3] += (param->delAccumulation[3]*param->realdt/param->disLength[1]/1.0E-9); 
     param->cumulativeTime += (param->realdt/1.0E-9);
 
     int iBin;

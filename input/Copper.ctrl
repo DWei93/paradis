@@ -41,7 +41,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.123"
+dirname = "res.1105544"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -49,14 +49,15 @@ splitMultiNodeFreq =   1
 #
 #  Simulation time and timestepping controls
 #  
+relax = 200000
 maxstep =  40000000 
-#maxstep =  4 
+#maxstep =  50000 
 maxStn = 0.6E-2
 maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
-rTol = 1.0
-rc =  0.5
+rTol = 7
+rc =  30
 #
 #  Fast Multipole Method controls
 #  
@@ -69,7 +70,7 @@ fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 #  
 loadType = 1
 indxErate = 8
-eRate =   -10000.000
+eRate =   -1.0E4
 strRate = -4.0E16
 #strRate = 0.0
 #plaRateCtr = 2.0E4
@@ -128,13 +129,13 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 2000
+tecplotfreq = 10000
 saveprop = 1
-savepropfreq = 100
-tecmesh = 1
+savepropfreq = 200
+tecmesh = 0
 tecmeshfreq = 300000
 savecn = 1
-savecnfreq = 200000
+savecnfreq = 1000000
 savetimers = 0
 savetimersfreq = 50000
 velfile = 0
