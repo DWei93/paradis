@@ -244,7 +244,6 @@ void WriteProp(Home_t *home, int property)
             for(i=0; i<dataLen; i++)gloVals[i] = 0.0;
 
             for(i=0; i<param->nVelBins; i++){
-                if( param->velTable[i][1] < 0) Fatal("w 0");
                 locVals[3*i] = param->velTable[i][1];
                 locVals[3*i+1] = param->velTable[i][2];
                 locVals[3*i+2] = param->velTable[i][3];
@@ -261,7 +260,6 @@ void WriteProp(Home_t *home, int property)
                     param->velTable[i][1] = gloVals[3*i];
                     param->velTable[i][2] = gloVals[3*i+1];
                     param->velTable[i][3] = gloVals[3*i+2];
-                    if( param->velTable[i][1] < 0) Fatal("w 1");
                 }
                 for(i=0; i<param->nDissBins; i++){
                     param->dissTable[i][1] = gloVals[dissStartID+2*i];
@@ -345,12 +343,19 @@ void WriteProp(Home_t *home, int property)
                         nav_a += param->velTable[i][2];
                         nav_ia += param->velTable[i][3];
                     }
-                    for(i=0; i<param->nVelBins; i++){
-                        if(param->velTable[i][1] < 0)Fatal("w2");
-                        if((pow(param->baseVel, (real8)i+0.5)*(param->baseVel-1)*param->velMin*nav_a) < 0)Fatal("w3");
-                        param->velTable[i][1] /= (pow(param->baseVel, (real8)i+0.5)*(param->baseVel-1)*param->velMin*nav_a);
-                        param->velTable[i][2] /= (pow(param->baseVel, (real8)i+0.5)*(param->baseVel-1)*param->velMin*nav_a);
-                        param->velTable[i][3] /= (pow(param->baseVel, (real8)i+0.5)*(param->baseVel-1)*param->velMin*nav_ia);
+                    
+                    i=0;
+                    param->velTable[i][1] /= (param->velMin*param->baseVel*nav_a);
+                    param->velTable[i][2] /= (param->velMin*param->baseVel*nav_a);
+                    param->velTable[i][3] /= (param->velMin*param->baseVel*nav_ia);
+                    fprintf(fp, "%e %e %e %e\n", param->velTable[i][0], 
+                            param->velTable[i][1]/param->cumulativeTime, param->velTable[i][2]/param->cumulativeTime, 
+                            param->velTable[i][3]/param->cumulativeTime);
+
+                    for(i=1; i<param->nVelBins; i++){
+                        param->velTable[i][1] /= (pow(param->baseVel, (real8)i)*(param->baseVel-1)*param->velMin*nav_a);
+                        param->velTable[i][2] /= (pow(param->baseVel, (real8)i)*(param->baseVel-1)*param->velMin*nav_a);
+                        param->velTable[i][3] /= (pow(param->baseVel, (real8)i)*(param->baseVel-1)*param->velMin*nav_ia);
                         fprintf(fp, "%e %e %e %e\n", param->velTable[i][0], 
                                 param->velTable[i][1]/param->cumulativeTime, param->velTable[i][2]/param->cumulativeTime, 
                                 param->velTable[i][3]/param->cumulativeTime);
@@ -377,7 +382,12 @@ void WriteProp(Home_t *home, int property)
                         nav_a += param->dissTable[i][1];
                         nav_ia += param->dissTable[i][2];
                     }
-                    for(i=0; i<param->nDissBins; i++){
+                    
+                    i=0;
+                    param->dissTable[i][1] /= (param->dissMin*param->baseDiss*nav_a);
+                    param->dissTable[i][2] /= (param->dissMin*param->baseDiss*nav_a);
+
+                    for(i=1; i<param->nDissBins; i++){
                         param->dissTable[i][1] /= (pow(param->baseDiss, (real8)i+0.5)*(param->baseDiss-1)*param->dissMin*nav_a);
                         param->dissTable[i][2] /= (pow(param->baseDiss, (real8)i+0.5)*(param->baseDiss-1)*param->dissMin*nav_ia);
                         fprintf(fp, "%e %e %e\n", param->dissTable[i][0], 
