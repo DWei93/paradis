@@ -1778,11 +1778,12 @@ void Initialize(Home_t *home,int argc, char *argv[])
             param->velTable[i][3] = 0.0;
         }
 
-        param->dissTable = (real8 (*)[3])calloc(3*param->nDissBins, sizeof(real8));
+        param->dissTable = (real8 (*)[4])calloc(4*param->nDissBins, sizeof(real8));
         for(i=0; i<param->nDissBins; i++){
             param->dissTable[i][0] = param->dissMin*pow(param->baseDiss, ((real8)i)+0.5);
             param->dissTable[i][1] = 0.0;
             param->dissTable[i][2] = 0.0;
+            param->dissTable[i][3] = 0.0;
         }
 
 	    CheckMemUsage(home, "Initialize");

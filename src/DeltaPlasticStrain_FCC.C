@@ -41,10 +41,12 @@ void GetBinID(real8 a0, real8 q, int n, real8 x, real8 w, int binID[2], real8 co
     real8 upper, invLower;
     if(x < a0*pow(q,0.5)){
         binID[0] = 0;
-        coeff[0] = x*w/(a0*pow(q,0.5));
+//        coeff[0] = x*w/(a0*pow(q,0.5));
+        coeff[0] = w;
     }else if(x >= a0*pow(q,((real8)n))-0.5){
         binID[0] = n-1;
-        coeff[0] = x*w/(a0*pow(q,((real8)n)-0.5));
+        coeff[0] = w;
+//        coeff[0] = x*w/(a0*pow(q,((real8)n)-0.5));
     }else{
         for(int i=0; i<n-1; i++){
             if(x >= a0*pow(q,((real8)i)+0.5)){
@@ -540,6 +542,12 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                             param->velTable[binID[1]][1] += coeff[1];
                         }
                         
+                        GetBinID(param->dissMin, param->baseDiss, param->nDissBins, vtau, disLen, binID, coeff);
+#pragma opm critical
+                        {
+                            param->dissTable[binID[0]][1] += coeff[0];
+                            param->dissTable[binID[1]][1] += coeff[1];
+                        }
                     }else{
                         GetBinID(param->velMin, param->baseVel, param->nVelBins, velocity, disLen, binID, coeff);
 #pragma opm critical
@@ -547,14 +555,15 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                             param->velTable[binID[0]][2] += coeff[0];
                             param->velTable[binID[1]][2] += coeff[1];
                         }
+
+                        GetBinID(param->dissMin, param->baseDiss, param->nDissBins, vtau, disLen, binID, coeff);
+#pragma opm critical
+                        {
+                            param->dissTable[binID[0]][2] += coeff[0];
+                            param->dissTable[binID[1]][2] += coeff[1];
+                        }
                     }
 
-                    GetBinID(param->dissMin, param->baseDiss, param->nDissBins, vtau, disLen, binID, coeff);
-#pragma opm critical
-                    {
-                        param->dissTable[binID[0]][1] += coeff[0];
-                        param->dissTable[binID[1]][1] += coeff[1];
-                    }
 
                 }else{
                     thread_disLength[1] += disLen;
@@ -571,8 +580,8 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                     GetBinID(param->dissMin, param->baseDiss, param->nDissBins, vtau, disLen, binID, coeff);
 #pragma opm critical
                     {
-                        param->dissTable[binID[0]][2] += coeff[0];
-                        param->dissTable[binID[1]][2] += coeff[1];
+                        param->dissTable[binID[0]][3] += coeff[0];
+                        param->dissTable[binID[1]][3] += coeff[1];
                     }
                 }
 

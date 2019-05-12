@@ -69,6 +69,7 @@ void DeltaPlasticStrain(Home_t *home)
     for(iBin=0; iBin<param->nDissBins; iBin++){
         param->dissTable[iBin][1] *= (param->realdt/1.0E-9);
         param->dissTable[iBin][2] *= (param->realdt/1.0E-9);
+        param->dissTable[iBin][3] *= (param->realdt/1.0E-9);
     } 
     for(iBin=0; iBin<param->nVelBins; iBin++){
         param->velTable[iBin][1] *= (param->realdt/1.0E-9);

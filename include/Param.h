@@ -514,7 +514,7 @@ struct _param {
 
         real8       delAccumulation[4], accumulation[4], disLength[2], cumulativeTime;
         int         nVelBins, nDissBins;
-        real8       velMax, velMin, dissMax, dissMin, baseVel, baseDiss, (*velTable)[4], (*dissTable)[3];
+        real8       velMax, velMin, dissMax, dissMin, baseVel, baseDiss, (*velTable)[4], (*dissTable)[4];
         int         relax;
         
 

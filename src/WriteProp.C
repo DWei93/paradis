@@ -82,7 +82,7 @@ void WriteProp(Home_t *home, int property)
 
        real8   nav_a = 0.0, nav_ia = 0.0;
        int     dissStartID = 3*param->nVelBins;
-       int     dataLen = 3*param->nVelBins+2*param->nDissBins;
+       int     dataLen = 3*param->nVelBins+3*param->nDissBins;
        real8   *locVals = (real8 *)calloc(dataLen, sizeof(real8));
        real8   *gloVals = (real8 *)calloc(dataLen, sizeof(real8));
 
@@ -249,8 +249,9 @@ void WriteProp(Home_t *home, int property)
                 locVals[3*i+2] = param->velTable[i][3];
             }
             for(i=0; i<param->nDissBins; i++){
-                locVals[dissStartID+2*i] = param->dissTable[i][1];
-                locVals[dissStartID+2*i+1] = param->dissTable[i][2];
+                locVals[dissStartID+3*i] = param->dissTable[i][1];
+                locVals[dissStartID+3*i+1] = param->dissTable[i][2];
+                locVals[dissStartID+3*i+2] = param->dissTable[i][3];
             }
 
 	        MPI_Reduce(locVals, gloVals, dataLen, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
@@ -262,8 +263,9 @@ void WriteProp(Home_t *home, int property)
                     param->velTable[i][3] = gloVals[3*i+2];
                 }
                 for(i=0; i<param->nDissBins; i++){
-                    param->dissTable[i][1] = gloVals[dissStartID+2*i];
-                    param->dissTable[i][2] = gloVals[dissStartID+2*i+1];
+                    param->dissTable[i][1] = gloVals[dissStartID+3*i];
+                    param->dissTable[i][2] = gloVals[dissStartID+3*i+1];
+                    param->dissTable[i][3] = gloVals[dissStartID+3*i+2];
                 }
             }else{
                 for(i=0; i<param->nVelBins; i++){
@@ -274,6 +276,7 @@ void WriteProp(Home_t *home, int property)
                 for(i=0; i<param->nDissBins; i++){
                     param->dissTable[i][1] = 0.0;
                     param->dissTable[i][2] = 0.0;
+                    param->dissTable[i][3] = 0.0;
                 }
             }
 
@@ -327,48 +330,83 @@ void WriteProp(Home_t *home, int property)
                     fclose(fp);
 /*
  *                  dump the velocity problebility table
- * */
-                    snprintf(fileName, sizeof(fileName), "%s/velocity-%d.plt", DIR_PROPERTIES, home->cycle);
-                    if((fp = fopen(fileName, "a")) == (FILE *)NULL){
-                        Fatal("can not open file %s", fileName);
-                    }
-
-					fprintf(fp, "variables = velocity, p_neg_act, p_pos_act, p_inact\n"); 
-		            fprintf(fp, "zone T = \"%d\"  F=POINT\n", home->cycle); 
-                    fprintf(fp, "AUXDATA cumulativeTime = \"%f\"\n", param->cumulativeTime);
-                    
+ */
                     nav_a = 0.0; nav_ia = 0.0;
                     for(i=0; i<param->nVelBins; i++){
+                        param->velTable[i][1] /= param->cumulativeTime;
+                        param->velTable[i][2] /= param->cumulativeTime;
+                        param->velTable[i][3] /= param->cumulativeTime;
                         nav_a += param->velTable[i][1];
                         nav_a += param->velTable[i][2];
                         nav_ia += param->velTable[i][3];
                     }
+
+                    snprintf(fileName, sizeof(fileName), "%s/unsigned-velocity-%d.plt", DIR_PROPERTIES, home->cycle);
+                    if((fp = fopen(fileName, "a")) == (FILE *)NULL){
+                        Fatal("can not open file %s", fileName);
+                    }
+
+					fprintf(fp, "variables = velocity, unsigned_velocity_active, velocity_inactive\n"); 
+		            fprintf(fp, "zone T = \"%d\"  F=POINT\n", home->cycle); 
+                    fprintf(fp, "AUXDATA cumulativeTime = \"%f\"\n", param->cumulativeTime);
                     
                     i=0;
-                    param->velTable[i][1] /= (param->velMin*param->baseVel*nav_a);
-                    param->velTable[i][2] /= (param->velMin*param->baseVel*nav_a);
-                    param->velTable[i][3] /= (param->velMin*param->baseVel*nav_ia);
-                    fprintf(fp, "%e %e %e %e\n", param->velTable[i][0], 
-                            param->velTable[i][1]/param->cumulativeTime, param->velTable[i][2]/param->cumulativeTime, 
-                            param->velTable[i][3]/param->cumulativeTime);
+                    fprintf(fp, "%e %e %e\n", param->velTable[i][0], (param->velTable[i][1]+param->velTable[i][2])/
+                            (param->velMin*nav_a), param->velTable[i][3]/(param->velMin*nav_ia));
 
                     for(i=1; i<param->nVelBins; i++){
-                        param->velTable[i][1] /= (pow(param->baseVel, (real8)i)*(param->baseVel-1)*param->velMin*nav_a);
-                        param->velTable[i][2] /= (pow(param->baseVel, (real8)i)*(param->baseVel-1)*param->velMin*nav_a);
-                        param->velTable[i][3] /= (pow(param->baseVel, (real8)i)*(param->baseVel-1)*param->velMin*nav_ia);
-                        fprintf(fp, "%e %e %e %e\n", param->velTable[i][0], 
-                                param->velTable[i][1]/param->cumulativeTime, param->velTable[i][2]/param->cumulativeTime, 
-                                param->velTable[i][3]/param->cumulativeTime);
+                        fprintf(fp, "%e %e %e\n", param->velTable[i][0], (param->velTable[i][1]+param->velTable[i][2])/
+                                (param->velMin*pow(param->baseVel,(real8)i)*(param->baseVel-1)*nav_a), 
+                                param->velTable[i][3]/(param->velMin*pow(param->baseVel,(real8)i)*(param->baseVel-1)*nav_ia));
+                    }
+
+                    fclose(fp);                   
+
+                    snprintf(fileName, sizeof(fileName), "%s/signed-velocity-%d.plt", DIR_PROPERTIES, home->cycle);
+                    if((fp = fopen(fileName, "a")) == (FILE *)NULL){
+                        Fatal("can not open file %s", fileName);
+                    }
+
+					fprintf(fp, "variables = velocity, signed_velocity_active\n"); 
+		            fprintf(fp, "zone T = \"%d\"  F=POINT\n", home->cycle); 
+                    fprintf(fp, "AUXDATA cumulativeTime = \"%f\"\n", param->cumulativeTime);
+                    
+                    for(i=param->nVelBins; i>0; i--){
+                        fprintf(fp, "%e %e\n", -param->velTable[i][0], param->velTable[i][1]/
+                                (param->velMin*pow(param->baseVel,(real8)i)*(param->baseVel-1)*nav_a)); 
+                    }
+                    i=0;
+                    fprintf(fp, "%e %e\n", -param->velTable[i][0], param->velTable[i][1]/
+                            (param->velMin*nav_a));
+                    fprintf(fp, "%e %e\n", param->velTable[i][0], param->velTable[i][2]/
+                            (param->velMin*nav_a));
+
+                    for(i=1; i<param->nVelBins; i++){
+                        fprintf(fp, "%e %e\n", param->velTable[i][0], param->velTable[i][2]/
+                                (param->velMin*pow(param->baseVel,(real8)i)*(param->baseVel-1)*nav_a));
+                    }
+
+                    fclose(fp);                   
+
+                    for(i=1; i<param->nVelBins; i++){
                         param->velTable[i][1] = 0.0; 
                         param->velTable[i][2] = 0.0;
                         param->velTable[i][3] = 0.0;
                     }
-
-                    fclose(fp);                   
 /*
  *                  dump the dissipation problebility table
  * */
-                    snprintf(fileName, sizeof(fileName), "%s/dissipation-%d.plt", DIR_PROPERTIES, home->cycle);
+                    nav_a = 0.0; nav_ia = 0.0;
+                    for(i=0; i<param->nDissBins; i++){
+                        param->dissTable[i][1] /= param->cumulativeTime;
+                        param->dissTable[i][2] /= param->cumulativeTime;
+                        param->dissTable[i][3] /= param->cumulativeTime;
+                        nav_a += param->dissTable[i][1];
+                        nav_a += param->dissTable[i][2];
+                        nav_ia += param->dissTable[i][3];
+                    }
+                    
+                    snprintf(fileName, sizeof(fileName), "%s/unsigned-dissipation-%d.plt", DIR_PROPERTIES, home->cycle);
                     if((fp = fopen(fileName, "a")) == (FILE *)NULL){
                         Fatal("can not open file %s", fileName);
                     }
@@ -377,26 +415,48 @@ void WriteProp(Home_t *home, int property)
 		            fprintf(fp, "zone T = \"%d\"  F=POINT\n", home->cycle); 
                     fprintf(fp, "AUXDATA cumulativeTime = \"%f\"\n", param->cumulativeTime);
                     
-                    nav_a = 0.0; nav_ia = 0.0;
-                    for(i=0; i<param->nDissBins; i++){
-                        nav_a += param->dissTable[i][1];
-                        nav_ia += param->dissTable[i][2];
-                    }
-                    
                     i=0;
-                    param->dissTable[i][1] /= (param->dissMin*param->baseDiss*nav_a);
-                    param->dissTable[i][2] /= (param->dissMin*param->baseDiss*nav_a);
+                    fprintf(fp, "%e %e %e\n", param->dissTable[i][0], (param->dissTable[i][1]+param->dissTable[i][2])/
+                            (param->dissMin*nav_a), param->dissTable[i][3]/(param->dissMin*nav_a));
 
                     for(i=1; i<param->nDissBins; i++){
-                        param->dissTable[i][1] /= (pow(param->baseDiss, (real8)i+0.5)*(param->baseDiss-1)*param->dissMin*nav_a);
-                        param->dissTable[i][2] /= (pow(param->baseDiss, (real8)i+0.5)*(param->baseDiss-1)*param->dissMin*nav_ia);
-                        fprintf(fp, "%e %e %e\n", param->dissTable[i][0], 
-                                param->dissTable[i][1]/param->cumulativeTime, param->dissTable[i][2]/param->cumulativeTime);
-                        param->dissTable[i][1] = 0.0;
-                        param->dissTable[i][2] = 0.0;
+                        fprintf(fp, "%e %e %e\n", param->dissTable[i][0], (param->dissTable[i][1]+param->dissTable[i][2])/
+                                (param->dissMin*pow(param->baseDiss,(real8)i)*(param->baseDiss-1)*nav_a), 
+                                param->dissTable[i][3]/(param->dissMin*pow(param->baseDiss,(real8)i)*(param->baseDiss-1)*nav_ia));
                     }
 
                     fclose(fp);                   
+
+                    snprintf(fileName, sizeof(fileName), "%s/signed-dissipation-%d.plt", DIR_PROPERTIES, home->cycle);
+                    if((fp = fopen(fileName, "a")) == (FILE *)NULL){
+                        Fatal("can not open file %s", fileName);
+                    }
+
+					fprintf(fp, "variables = dissipation, p_act, p_inact\n"); 
+		            fprintf(fp, "zone T = \"%d\"  F=POINT\n", home->cycle); 
+                    fprintf(fp, "AUXDATA cumulativeTime = \"%f\"\n", param->cumulativeTime);
+                    
+                    for(i=param->nDissBins; i>0; i--){
+                        fprintf(fp, "%e %e\n", -param->dissTable[i][0], param->dissTable[i][1]/
+                                (param->dissMin*pow(param->baseDiss,(real8)i)*(param->baseDiss-1)*nav_a)); 
+                    }
+                    i=0;
+                    fprintf(fp, "%e %e\n", -param->dissTable[i][0], param->dissTable[i][1]/
+                            (param->dissMin*nav_a));
+                    fprintf(fp, "%e %e\n", param->dissTable[i][0], param->dissTable[i][2]/
+                            (param->dissMin*nav_a));
+
+                    for(i=1; i<param->nDissBins; i++){
+                        fprintf(fp, "%e %e\n", param->dissTable[i][0], param->dissTable[i][2]/
+                                (param->dissMin*pow(param->baseDiss,(real8)i)*(param->baseDiss-1)*nav_a));
+                    }
+
+                    fclose(fp);                   
+                    for(i=1; i<param->nDissBins; i++){
+                        param->dissTable[i][1] = 0.0;
+                        param->dissTable[i][2] = 0.0;
+                        param->dissTable[i][3] = 0.0;
+                    }
 
                     snprintf(fileName, sizeof(fileName),
                              "%s/stress_Total_strain.plt", DIR_PROPERTIES);
