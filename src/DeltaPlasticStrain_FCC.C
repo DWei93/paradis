@@ -237,20 +237,21 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         real8        dstn[3][3], dspn[3][3], dtstn[3][3];
         real8        Ltot[NUM_BURG][4], areaSwept[NUM_BURG][7];
         real8        rotMatrix[3][3];
-        real8        delAccumulation[4], disLength[2];
         Param_t      *param;
         static int   initDone = 0;
         static real8 burgv[NUM_BURG][3], bnorm[NUM_BURG][3];
         static real8 nanv[NUM_PLANES][3][NUM_BURG];
         static real8 tanv[NUM_PLANES][3][NUM_BURG];
         
+#ifdef VELOCITY_STATISTICS
+        real8        delAccumulation[4], disLength[2];
         delAccumulation[0] = 0.0;
         delAccumulation[1] = 0.0;
         delAccumulation[2] = 0.0;
         delAccumulation[3] = 0.0;
         disLength[0] = 0.0;
         disLength[1] = 0.0;
-
+#endif
 /*
  *      Ltot : density of 
  *         [burg][0] : screw
@@ -333,6 +334,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         real8  thread_dtstn[3][3];
         real8  thread_Ltot[NUM_BURG][4], thread_areaSwept[NUM_BURG][7];
 
+#ifdef VELOCITY_STATISTICS
         real8  thread_delAccumulation[4], thread_disLength[2], f1[3], f2[3];
 
         thread_disloDensity = 0.0;
@@ -342,6 +344,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         thread_delAccumulation[3] = 0.0;
         thread_disLength[0] = 0.0;
         thread_disLength[1] = 0.0;
+#endif
         thread_partialDensity = (real8 *)calloc(1, param->numBurgGroups *
                                                sizeof(real8));
 
@@ -447,6 +450,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 					InitDeltaPlasticStrain_FCC(1, rotMatrix, nanv, tanv, burgv, bnorm);
 			   }
             
+#ifdef VELOCITY_STATISTICS
                 lDir[0] = nbr->x - node->x;
                 lDir[1] = nbr->y - node->y;
                 lDir[2] = nbr->z - node->z;
@@ -585,6 +589,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                     }
                 }
 
+#endif
 /*
  *             This check is in support of some local site-specific
  *             post-processing only and all *normal* ParaDiS simulations
@@ -1247,14 +1252,14 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                     dtstn[k][l] += thread_dtstn[k][l];
                 }
             }
-
+#ifdef VELOCITY_STATISTICS
             disLength[0] += thread_disLength[0];
             disLength[1] += thread_disLength[1];
             delAccumulation[0] += thread_delAccumulation[0];
             delAccumulation[1] += thread_delAccumulation[1];
             delAccumulation[2] += thread_delAccumulation[2];
             delAccumulation[3] += thread_delAccumulation[3];
-
+#endif
 
             for (k = 0; k < NUM_BURG; k++) {
                 for (l = 0; l < 4; l++) {
@@ -1346,14 +1351,15 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         param->delpSpin[3] = dspn[1][2];
         param->delpSpin[4] = dspn[0][2];
         param->delpSpin[5] = dspn[0][1];
-                                                                                
+
+#ifdef VELOCITY_STATISTICS                                                                                
         param->delAccumulation[0] = delAccumulation[0]; 
         param->delAccumulation[1] = delAccumulation[1]; 
         param->delAccumulation[2] = delAccumulation[2]; 
         param->delAccumulation[3] = delAccumulation[3]; 
         param->disLength[0] = disLength[0];
         param->disLength[1] = disLength[1];
-
+#endif
 #ifdef PARALLEL
 /*
  *      We've calculated processor specific values, now sum the
@@ -1366,21 +1372,24 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         MPI_Allreduce(param->delpTwinStrain, gdtstn, 6, MPI_DOUBLE, MPI_SUM,
                       MPI_COMM_WORLD);
 
+#ifdef VELOCITY_STATISTICS                                                                                
         MPI_Allreduce(param->delAccumulation, delAccumulation, 4, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         MPI_Allreduce(param->disLength, disLength, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
+#endif
         for (i = 0; i < 6; i++) {
             param->delpStrain[i] = gdstn[i];
             param->delpSpin[i] = gdspn[i];
             param->delpTwinStrain[i] = gdtstn[i];
         }
 
+#ifdef VELOCITY_STATISTICS                                                                                
         param->disLength[0] = disLength[0];
         param->disLength[1] = disLength[1];
         param->delAccumulation[0] = delAccumulation[0];
         param->delAccumulation[1] = delAccumulation[1];
         param->delAccumulation[2] = delAccumulation[2];
         param->delAccumulation[3] = delAccumulation[3];
+#endif
 /*
  *      Flux decomposition
  */
@@ -1408,12 +1417,14 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             gdspn[i] = param->delpSpin[i];
             gdtstn[i] = param->delpTwinStrain[i];
         }
+#ifdef VELOCITY_STATISTICS                                                                                
         param->disLength[0] = disLength[0];
         param->disLength[1] = disLength[1];
         param->delAccumulation[0] = delAccumulation[0];
         param->delAccumulation[1] = delAccumulation[1];
         param->delAccumulation[2] = delAccumulation[2];
         param->delAccumulation[3] = delAccumulation[3];
+#endif
 #endif /* if PARALLEL */
 
 

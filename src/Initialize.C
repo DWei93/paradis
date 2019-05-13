@@ -1761,6 +1761,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
 	    if(home->myDomain == 0)printf("shear Wave velocity: %6.2f m/s.\n",
 	    param->vshr * param->burgMag);
 
+#ifdef VELOCITY_STATISTICS
         param->velMax = 1.5E3;
         param->velMin = 1.0E-3;
         param->dissMin = 1.0;
@@ -1785,7 +1786,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
             param->dissTable[i][2] = 0.0;
             param->dissTable[i][3] = 0.0;
         }
-
+#endif
 	    CheckMemUsage(home, "Initialize");
 	
         return;

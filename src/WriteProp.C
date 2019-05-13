@@ -77,16 +77,14 @@ void WriteProp(Home_t *home, int property)
         Param_t *param;
 
 
-        param = home->param;
-
-
-       real8   nav_a = 0.0, nav_ia = 0.0;
-       int     dissStartID = 3*param->nVelBins;
-       int     dataLen = 3*param->nVelBins+3*param->nDissBins;
-       real8   *locVals = (real8 *)calloc(dataLen, sizeof(real8));
-       real8   *gloVals = (real8 *)calloc(dataLen, sizeof(real8));
-
-
+       param = home->param;
+#ifdef VELOCITY_STATISTICS
+        real8   nav_a = 0.0, nav_ia = 0.0;
+        int     dissStartID = 3*param->nVelBins;
+        int     dataLen = 3*param->nVelBins+3*param->nDissBins;
+        real8   *locVals = (real8 *)calloc(dataLen, sizeof(real8));
+        real8   *gloVals = (real8 *)calloc(dataLen, sizeof(real8));
+#endif
 		for (i = 0; i < 6; i++) {
             dpstn[i] = param->delpStrain[i];
         }
@@ -239,6 +237,7 @@ void WriteProp(Home_t *home, int property)
         
         case EPS:
 
+#ifdef VELOCITY_STATISTICS
 #ifdef PARALLEL
             
             for(i=0; i<dataLen; i++)gloVals[i] = 0.0;
@@ -282,6 +281,7 @@ void WriteProp(Home_t *home, int property)
 
             free(locVals);
             free(gloVals);
+#endif
 #endif
 
             if (home->myDomain == 0) {
@@ -328,6 +328,7 @@ void WriteProp(Home_t *home, int property)
                             param->appliedStress[1], param->appliedStress[2], param->appliedStress[3],
                             param->appliedStress[4], param->appliedStress[5]);
                     fclose(fp);
+#ifdef VELOCITY_STATISTICS
 /*
  *                  dump the velocity problebility table
  */
@@ -371,7 +372,7 @@ void WriteProp(Home_t *home, int property)
 		            fprintf(fp, "zone T = \"%d\"  F=POINT\n", home->cycle); 
                     fprintf(fp, "AUXDATA cumulativeTime = \"%f\"\n", param->cumulativeTime);
                     
-                    for(i=param->nVelBins; i>0; i--){
+                    for(i=param->nVelBins-1; i>0; i--){
                         fprintf(fp, "%e %e\n", -param->velTable[i][0], param->velTable[i][1]/
                                 (param->velMin*pow(param->baseVel,(real8)i)*(param->baseVel-1)*nav_a)); 
                     }
@@ -411,7 +412,7 @@ void WriteProp(Home_t *home, int property)
                         Fatal("can not open file %s", fileName);
                     }
 
-					fprintf(fp, "variables = dissipation, p_act, p_inact\n"); 
+					fprintf(fp, "variables = dissipation, unsigned_disspation_active, disspation_inactive\n"); 
 		            fprintf(fp, "zone T = \"%d\"  F=POINT\n", home->cycle); 
                     fprintf(fp, "AUXDATA cumulativeTime = \"%f\"\n", param->cumulativeTime);
                     
@@ -432,11 +433,11 @@ void WriteProp(Home_t *home, int property)
                         Fatal("can not open file %s", fileName);
                     }
 
-					fprintf(fp, "variables = dissipation, p_act, p_inact\n"); 
+					fprintf(fp, "variables = dissipation, signed_disspation\n"); 
 		            fprintf(fp, "zone T = \"%d\"  F=POINT\n", home->cycle); 
                     fprintf(fp, "AUXDATA cumulativeTime = \"%f\"\n", param->cumulativeTime);
                     
-                    for(i=param->nDissBins; i>0; i--){
+                    for(i=param->nDissBins-1; i>0; i--){
                         fprintf(fp, "%e %e\n", -param->dissTable[i][0], param->dissTable[i][1]/
                                 (param->dissMin*pow(param->baseDiss,(real8)i)*(param->baseDiss-1)*nav_a)); 
                     }
@@ -457,7 +458,7 @@ void WriteProp(Home_t *home, int property)
                         param->dissTable[i][2] = 0.0;
                         param->dissTable[i][3] = 0.0;
                     }
-
+#endif
                     snprintf(fileName, sizeof(fileName),
                              "%s/stress_Total_strain.plt", DIR_PROPERTIES);
                     if((fp = fopen(fileName, "a")) == (FILE *)NULL){
@@ -485,7 +486,12 @@ void WriteProp(Home_t *home, int property)
                                 if(param->polycrystal) fprintf(fp, "twi_def_%1d, ", i);
                             }
                         }
+
+#ifndef VELOCITY_STATISTICS
+                        fprintf(fp, "disDen, effPlaRate\n");
+#else
                         fprintf(fp, "disDen, effPlaRate, vsqua_active, vsqua_inactive, tauv_active, tauv_inactive, cumulativeTime\n");
+#endif
 					}
         
                     fprintf(fp,"%d %e ", home->cycle, param->timeNow);
@@ -530,11 +536,15 @@ void WriteProp(Home_t *home, int property)
                         }
                     }
 
+#ifndef VELOCITY_STATISTICS
+                    fprintf(fp, "%e %e\n", param->disloDensity, effPlaRate);
+#else
                     fprintf(fp, "%e %e %e %e %e %e %e\n", param->disloDensity, effPlaRate, param->accumulation[0]/param->cumulativeTime, 
                                                        param->accumulation[1]/param->cumulativeTime, 
                                                        param->accumulation[2]/param->cumulativeTime, 
                                                        param->accumulation[3]/param->cumulativeTime, 
                                                        param->cumulativeTime);
+#endif
                     fclose(fp);
 
                     snprintf(fileName, sizeof(fileName), "Finish");
@@ -576,15 +586,13 @@ void WriteProp(Home_t *home, int property)
 
                 }
             }        
-
+#ifdef VELOCITY_STATISTICS
             param->accumulation[0] = 0.0; 
             param->accumulation[1] = 0.0; 
             param->accumulation[2] = 0.0; 
             param->accumulation[3] = 0.0; 
             param->cumulativeTime = 0.0;
-
-
-
+#endif
             break;
                
         case ALL_EPS:

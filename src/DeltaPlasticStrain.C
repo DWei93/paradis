@@ -58,7 +58,7 @@ void DeltaPlasticStrain(Home_t *home)
     free(gloVals);
 
 #endif
-
+#ifdef VELOCITY_STATISTICS
     param->accumulation[0] += (param->delAccumulation[0]*param->realdt/param->disLength[0]/1.0E-9); 
     param->accumulation[1] += (param->delAccumulation[1]*param->realdt/param->disLength[1]/1.0E-9); 
     param->accumulation[2] += (param->delAccumulation[2]*param->realdt/param->disLength[0]/1.0E-9); 
@@ -76,6 +76,6 @@ void DeltaPlasticStrain(Home_t *home)
         param->velTable[iBin][2] *= (param->realdt/1.0E-9);
         param->velTable[iBin][3] *= (param->realdt/1.0E-9);
     } 
-
+#endif
     return;
 }

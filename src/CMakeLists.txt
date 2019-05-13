@@ -54,6 +54,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fopenmp " )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -DNO_XPM -DNO_GENERAL -D_SEM_SEMUN_UNDEFINED")
 add_executable(paradis ${PARADIS_SRCS})
 add_definitions(-DNO_XWINDOW -DPARALLEL=1)
+add_definitions(-DVELOCITY_STATISTICS)
 
 Option(NO_GB_BARRIER "Build paradis using definition NO_GB_BARRIER" OFF)
 
