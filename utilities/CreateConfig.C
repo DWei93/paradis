@@ -1300,32 +1300,14 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     if(onGB0 > -1)continue;
 
                     ranNum = chain;
-                    gpBurgIndex = ranNum % 6;
+                    gpBurgIndex = (ranNum % 12) / 2;
                     if((bd->burgType[gpBurgIndex] & EDGE_BURG) == 0)continue;
 
-                    
-                    gpIndex = (ranNum % 6) / 2;
-
+                    gpIndex = bd->burgOnPlaneID[gpBurgIndex][ranNum % 2];
                     if((bd->planeType[gpIndex] & GLIDE_PLANE) == 0 )continue;
    
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
-
-                    randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
-                    if(randomAngle < pi * 5.0 /1.8e2){  /* 5 degree */
-                        randomAngle = 0;
-                    }
-                    if(randomAngle > pi *1.75/1.8){		/* 175 degree */
-                        randomAngle = pi;
-                    }
-
-                    cross(n0, b, n1);
-                    NormalizeVec(n1);
-                	
-                    for(i = 0; i < 3; i++){
-                        randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
-                    }
-                    NormalizeVec(randomLine);
                     VECTOR_COPY(randomLine, b);
 
                     for (i = 0; i < 3; i++) {
@@ -2797,9 +2779,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
         FILE    *fp;
         
-        bool    sasAnalyse = 0;
-        if((fp = fopen(inArgs->outFile, "w")) != (FILE *)NULL){
-            sasAnalyse = 1;
+        if((fp = fopen(inArgs->outFile, "w")) == (FILE *)NULL){
+            Fatal("can not open file %s", inArgs->outFile);
         }
 
 /*
@@ -3083,7 +3064,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
 	            totSrcLen += srcLen;				
 
-                if(polycrystal && sasAnalyse){
+                if(polycrystal){
                     lambda_FR = srcLen/2;
                     GetFreePath(param, p1, p2, n0, home->grainKeys[inGrain0], 
                                 interDir, lambda_SAS1, lambda_GB1, lambda_SAS2, lambda_GB2);
