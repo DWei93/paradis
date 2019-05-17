@@ -59,11 +59,33 @@ void DeltaPlasticStrain(Home_t *home)
 
 #endif
 #ifdef VELOCITY_STATISTICS
-    param->accumulation[0] += (param->delAccumulation[0]*param->realdt/param->disLength[0]/1.0E-9); 
-    param->accumulation[1] += (param->delAccumulation[1]*param->realdt/param->disLength[1]/1.0E-9); 
-    param->accumulation[2] += (param->delAccumulation[2]*param->realdt/param->disLength[0]/1.0E-9); 
-    param->accumulation[3] += (param->delAccumulation[3]*param->realdt/param->disLength[1]/1.0E-9); 
+
+    real8   coeff = param->realdt/1.0E-9;
+
+    if(param->disLength[0] > 1.0E-10){
+        param->accumulation[0] += (param->delAccumulation[0]*param->realdt/param->disLength[0]/1.0E-9); 
+        param->accumulation[4] += (param->delAccumulation[4]*param->realdt/param->disLength[0]/1.0E-9); 
+    }
+
+    if(param->disLength[1] > 1.0E-10){
+        param->accumulation[1] += (param->delAccumulation[1]*param->realdt/param->disLength[1]/1.0E-9); 
+        param->accumulation[5] += (param->delAccumulation[5]*param->realdt/param->disLength[1]/1.0E-9); 
+    }
+
+    if(param->disLength[0] > 1.0E-10 || param->disLength[1] > 1.0E-10){
+        param->accumulation[2] += (param->delAccumulation[2]*param->realdt/(param->disLength[0]+param->disLength[1])/1.0E-9); 
+        param->accumulation[6] += (param->delAccumulation[6]*param->realdt/(param->disLength[0]+param->disLength[1])/1.0E-9); 
+    }
+
+    if(param->disLength[2] > 1.0E-10){
+        param->accumulation[3] += (param->delAccumulation[3]*param->realdt/param->disLength[2]/1.0E-9); 
+        param->accumulation[7] += (param->delAccumulation[7]*param->realdt/param->disLength[2]/1.0E-9); 
+    }
+
     param->cumulativeTime += (param->realdt/1.0E-9);
+    param->aveLength[0] += (param->disLength[0]*coeff);
+    param->aveLength[1] += (param->disLength[1]*coeff);
+    param->aveLength[2] += (param->disLength[2]*coeff);
 
     int iBin;
     for(iBin=0; iBin<param->nDissBins; iBin++){

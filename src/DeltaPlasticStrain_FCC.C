@@ -31,13 +31,14 @@
 #define NUM_BURG    6
 #define NUM_PLANES  3
 
+#ifdef VELOCITY_STATISTICS
 void GetBinID(real8 a0, real8 q, int n, real8 x, real8 w, int binID[2], real8 coeff[2])
 {
     binID[0] = 0;
     binID[1] = 0;
     coeff[0] = 0.0;
     coeff[1] = 0.0;
-
+#if 1
     real8 upper, invLower;
     if(x < a0*pow(q,0.5)){
         binID[0] = 0;
@@ -62,8 +63,23 @@ void GetBinID(real8 a0, real8 q, int n, real8 x, real8 w, int binID[2], real8 co
     }
 
     return;
-}
+#else
+    if(x <= a0){
+        coeff[0] = w;
+        return;
+    }
 
+    for(int i=0; i<n; i++){
+        if(x >= a0*pow(q, (real8)i) && x < a0*pow(q, ((real8)i) + 1.0)){
+            binID[0] = i;
+            coeff[0] = w;
+        }
+    }
+#endif
+
+    return;
+}
+#endif
 /***************************************************************************
  *
  *      Function:    InitDeltaPlasticStrain_FCC
@@ -244,13 +260,18 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         static real8 tanv[NUM_PLANES][3][NUM_BURG];
         
 #ifdef VELOCITY_STATISTICS
-        real8        delAccumulation[4], disLength[2];
+        real8        delAccumulation[8], disLength[3];
         delAccumulation[0] = 0.0;
         delAccumulation[1] = 0.0;
         delAccumulation[2] = 0.0;
         delAccumulation[3] = 0.0;
+        delAccumulation[4] = 0.0;
+        delAccumulation[5] = 0.0;
+        delAccumulation[6] = 0.0;
+        delAccumulation[7] = 0.0;
         disLength[0] = 0.0;
         disLength[1] = 0.0;
+        disLength[2] = 0.0;
 #endif
 /*
  *      Ltot : density of 
@@ -335,15 +356,20 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         real8  thread_Ltot[NUM_BURG][4], thread_areaSwept[NUM_BURG][7];
 
 #ifdef VELOCITY_STATISTICS
-        real8  thread_delAccumulation[4], thread_disLength[2], f1[3], f2[3];
+        real8  thread_delAccumulation[8], thread_disLength[3], f1[3], f2[3];
 
         thread_disloDensity = 0.0;
         thread_delAccumulation[0] = 0.0;
         thread_delAccumulation[1] = 0.0;
         thread_delAccumulation[2] = 0.0;
         thread_delAccumulation[3] = 0.0;
+        thread_delAccumulation[4] = 0.0;
+        thread_delAccumulation[5] = 0.0;
+        thread_delAccumulation[6] = 0.0;
+        thread_delAccumulation[7] = 0.0;
         thread_disLength[0] = 0.0;
         thread_disLength[1] = 0.0;
+        thread_disLength[2] = 0.0;
 #endif
         thread_partialDensity = (real8 *)calloc(1, param->numBurgGroups *
                                                sizeof(real8));
@@ -534,11 +560,12 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 //                    printf("%d %d %d: %f %f %f\n", (int)active, GetBurgID_FCC(home, node, nbr),
 //                            GetPlaneID_FCC(home, node, nbr), Normal(vec1),Normal(vec2), vtau);
                 if(active){
-                    thread_disLength[0] += disLen;
-                    thread_delAccumulation[0] += (DotProduct(vec1, vec1)*disLen);
-                    thread_delAccumulation[2] += vtau;
-
+                    thread_delAccumulation[2] += (DotProduct(vec1, vec1)*disLen);
+                    thread_delAccumulation[6] += vtau;
                     if(!positive){
+                        thread_disLength[0] += disLen;
+                        thread_delAccumulation[0] += (DotProduct(vec1, vec1)*disLen);
+                        thread_delAccumulation[4] += vtau;
                         GetBinID(param->velMin, param->baseVel, param->nVelBins, velocity, disLen, binID, coeff);
 #pragma opm critical
                         {
@@ -553,6 +580,9 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                             param->dissTable[binID[1]][1] += coeff[1];
                         }
                     }else{
+                        thread_disLength[1] += disLen;
+                        thread_delAccumulation[1] += (DotProduct(vec1, vec1)*disLen);
+                        thread_delAccumulation[5] += vtau;
                         GetBinID(param->velMin, param->baseVel, param->nVelBins, velocity, disLen, binID, coeff);
 #pragma opm critical
                         {
@@ -570,9 +600,9 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 
 
                 }else{
-                    thread_disLength[1] += disLen;
-                    thread_delAccumulation[1] += (DotProduct(vec1, vec1)*disLen);
-                    thread_delAccumulation[3] += vtau;
+                    thread_disLength[2] += disLen;
+                    thread_delAccumulation[3] += (DotProduct(vec1, vec1)*disLen);
+                    thread_delAccumulation[7] += vtau;
 
                     GetBinID(param->velMin, param->baseVel, param->nVelBins, velocity, disLen, binID, coeff);
 #pragma opm critical
@@ -1255,10 +1285,15 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 #ifdef VELOCITY_STATISTICS
             disLength[0] += thread_disLength[0];
             disLength[1] += thread_disLength[1];
+            disLength[2] += thread_disLength[2];
             delAccumulation[0] += thread_delAccumulation[0];
             delAccumulation[1] += thread_delAccumulation[1];
             delAccumulation[2] += thread_delAccumulation[2];
             delAccumulation[3] += thread_delAccumulation[3];
+            delAccumulation[4] += thread_delAccumulation[4];
+            delAccumulation[5] += thread_delAccumulation[5];
+            delAccumulation[6] += thread_delAccumulation[6];
+            delAccumulation[7] += thread_delAccumulation[7];
 #endif
 
             for (k = 0; k < NUM_BURG; k++) {
@@ -1357,8 +1392,13 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         param->delAccumulation[1] = delAccumulation[1]; 
         param->delAccumulation[2] = delAccumulation[2]; 
         param->delAccumulation[3] = delAccumulation[3]; 
+        param->delAccumulation[4] = delAccumulation[4]; 
+        param->delAccumulation[5] = delAccumulation[5]; 
+        param->delAccumulation[6] = delAccumulation[6]; 
+        param->delAccumulation[7] = delAccumulation[7]; 
         param->disLength[0] = disLength[0];
         param->disLength[1] = disLength[1];
+        param->disLength[2] = disLength[2];
 #endif
 #ifdef PARALLEL
 /*
@@ -1373,8 +1413,8 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                       MPI_COMM_WORLD);
 
 #ifdef VELOCITY_STATISTICS                                                                                
-        MPI_Allreduce(param->delAccumulation, delAccumulation, 4, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(param->disLength, disLength, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(param->delAccumulation, delAccumulation, 8, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(param->disLength, disLength, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #endif
         for (i = 0; i < 6; i++) {
             param->delpStrain[i] = gdstn[i];
@@ -1385,10 +1425,15 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 #ifdef VELOCITY_STATISTICS                                                                                
         param->disLength[0] = disLength[0];
         param->disLength[1] = disLength[1];
+        param->disLength[2] = disLength[2];
         param->delAccumulation[0] = delAccumulation[0];
         param->delAccumulation[1] = delAccumulation[1];
         param->delAccumulation[2] = delAccumulation[2];
         param->delAccumulation[3] = delAccumulation[3];
+        param->delAccumulation[4] = delAccumulation[4]; 
+        param->delAccumulation[5] = delAccumulation[5]; 
+        param->delAccumulation[6] = delAccumulation[6]; 
+        param->delAccumulation[7] = delAccumulation[7]; 
 #endif
 /*
  *      Flux decomposition
@@ -1420,10 +1465,15 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 #ifdef VELOCITY_STATISTICS                                                                                
         param->disLength[0] = disLength[0];
         param->disLength[1] = disLength[1];
+        param->disLength[2] = disLength[2];
         param->delAccumulation[0] = delAccumulation[0];
         param->delAccumulation[1] = delAccumulation[1];
         param->delAccumulation[2] = delAccumulation[2];
         param->delAccumulation[3] = delAccumulation[3];
+        param->delAccumulation[4] = delAccumulation[4]; 
+        param->delAccumulation[5] = delAccumulation[5]; 
+        param->delAccumulation[6] = delAccumulation[6]; 
+        param->delAccumulation[7] = delAccumulation[7]; 
 #endif
 #endif /* if PARALLEL */
 

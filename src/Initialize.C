@@ -1764,12 +1764,13 @@ void Initialize(Home_t *home,int argc, char *argv[])
 #ifdef VELOCITY_STATISTICS
         param->velMax = 1.5E3;
         param->velMin = 1.0E-3;
-        param->dissMin = 1.0;
-        param->dissMax = 7.6E6;
         param->nVelBins = 100;
-        param->nDissBins = 100;
-        param->baseDiss = 1.173;
         param->baseVel = 1.154;
+
+        param->dissMin = 1.0E-1;
+        param->dissMax = 1.0E5;
+        param->nDissBins = 100;
+        param->baseDiss = 1.149;
 
         param->velTable = (real8 (*)[4])calloc(4*param->nVelBins, sizeof(real8));
         for(i=0; i<param->nVelBins; i++){

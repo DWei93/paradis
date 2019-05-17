@@ -542,6 +542,8 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
                 }
             } else if ((home->cycle % param->savepropfreq) == 0) {
                 *outputTypes |= GEN_PROPERTIES_DATA;
+            }else if(home->cycle == 1){
+                *outputTypes |= GEN_PROPERTIES_DATA;
             }
         }
 
@@ -1439,16 +1441,18 @@ void GenerateOutput(Home_t *home, int stage, const char *msg)
 
         }
 
-        totalTime = ((real8)(clock()-param->timestart))/CLOCKS_PER_SEC/86400.0;
-        if(totalTime > 0.98)param->finish = 1;
+
+        if(param->wallTime > 0){
+            totalTime = ((real8)(clock()-param->timestart))/CLOCKS_PER_SEC/3600.0;
+            if(totalTime > 0.98*param->wallTime)param->finish = 1;
 
 #ifdef PARALLEL
-        finishLoc = param->finish;
-        MPI_Allreduce(&finishLoc, &finishGlo, 1, MPI_INT,
-                      MPI_MAX, MPI_COMM_WORLD);
-        param->finish = finishGlo;
+            finishLoc = param->finish;
+            MPI_Allreduce(&finishLoc, &finishGlo, 1, MPI_INT,
+                        MPI_MAX, MPI_COMM_WORLD);
+            param->finish = finishGlo;
 #endif
-
+        }
 /*
  *      A number of the types of output will be done (potentially)
  *      in parallel.  Handle those in a separate routine but only

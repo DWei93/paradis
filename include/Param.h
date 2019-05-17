@@ -513,12 +513,12 @@ struct _param {
         clock_t     timestart;
 
 #ifdef VELOCITY_STATISTICS
-        real8       delAccumulation[4], accumulation[4], disLength[2], cumulativeTime;
+        real8       delAccumulation[8], accumulation[8], disLength[3], cumulativeTime;
+        real8       aveLength[3]; // units: maxSegLen
         int         nVelBins, nDissBins;
         real8       velMax, velMin, dissMax, dissMin, baseVel, baseDiss, (*velTable)[4], (*dissTable)[4];
 #endif
-        int         relax;
-        
+        real8       wallTime; // units hour 
 
 #ifdef _FEM
 /*

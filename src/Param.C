@@ -166,8 +166,8 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 
         BindVar(CPList, "cycleStart", &param->cycleStart, V_INT, 1, VFLAG_NULL);
 
-        BindVar(CPList, "relax", &param->relax, V_INT, 1, VFLAG_NULL);
-        param->relax = -1;
+        BindVar(CPList, "wallTime", &param->wallTime, V_DBL, 1, VFLAG_NULL);
+        param->wallTime = -1;
 
         BindVar(CPList, "maxstep", &param->maxstep, V_INT, 1, VFLAG_NULL);
         param->maxstep = 100;
@@ -845,17 +845,27 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 		param->randomInternalForce = 0;
 		
 #ifdef VELOCITY_STATISTICS
-		BindVar(CPList, "accumulation", &param->accumulation, V_DBL, 4, VFLAG_NULL);
+		BindVar(CPList, "accumulation", &param->accumulation, V_DBL, 8, VFLAG_NULL);
 		param->accumulation[0] = 0.0;
 		param->accumulation[1] = 0.0;
 		param->accumulation[2] = 0.0;
 		param->accumulation[3] = 0.0;
-		BindVar(CPList, "disLength", &param->disLength, V_DBL, 2, VFLAG_NULL);
+		param->accumulation[4] = 0.0;
+		param->accumulation[5] = 0.0;
+		param->accumulation[6] = 0.0;
+		param->accumulation[7] = 0.0;
+		BindVar(CPList, "disLength", &param->disLength, V_DBL, 3, VFLAG_NULL);
         param->disLength[0] = 0.0;
         param->disLength[1] = 0.0;
+        param->disLength[2] = 0.0;
 
 		BindVar(CPList, "cumulativeTime", &param->cumulativeTime, V_DBL, 1, VFLAG_NULL);
         param->cumulativeTime = 0.0;
+
+		BindVar(CPList, "aveLength", &param->aveLength, V_DBL, 3, VFLAG_NULL);
+        param->aveLength[0] = 0.0;
+        param->aveLength[1] = 0.0;
+        param->aveLength[2] = 0.0;
 #endif
 
 #ifdef _FEM

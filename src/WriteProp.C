@@ -347,16 +347,26 @@ void WriteProp(Home_t *home, int property)
                         Fatal("can not open file %s", fileName);
                     }
 
-					fprintf(fp, "variables = velocity, unsigned_velocity_active, velocity_inactive\n"); 
-		            fprintf(fp, "zone T = \"%d\"  F=POINT\n", home->cycle); 
+					fprintf(fp, "variables = velocity, width, p_unsigned_velocity_active, p_velocity_inactive\n"); 
+		            fprintf(fp, "zone T = \"%d\", i = %d, j = 1, k = 1, SOLUTIONTIME = %d, F=POINT\n", 
+                                home->cycle, param->nVelBins, home->cycle); 
                     fprintf(fp, "AUXDATA cumulativeTime = \"%f\"\n", param->cumulativeTime);
+                    fprintf(fp, "AUXDATA neg_v_squal_active = \"%e\"\n", param->accumulation[0]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA pos_v_squal_active = \"%e\"\n", param->accumulation[1]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA v_squal_active = \"%e\"\n", param->accumulation[2]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA vsqual_inactive = \"%e\"\n", param->accumulation[3]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA neg_length_active = \"%e\"\n", param->aveLength[0]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA pos_length_active = \"%e\"\n", param->aveLength[1]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA length_inactive = \"%e\"\n", param->aveLength[2]/param->cumulativeTime);
                     
                     i=0;
-                    fprintf(fp, "%e %e %e\n", param->velTable[i][0], (param->velTable[i][1]+param->velTable[i][2])/
+                    fprintf(fp, "%e %e %e %e\n", param->velTable[i][0], param->velMin,
+                            (param->velTable[i][1]+param->velTable[i][2])/
                             (param->velMin*nav_a), param->velTable[i][3]/(param->velMin*nav_ia));
 
                     for(i=1; i<param->nVelBins; i++){
-                        fprintf(fp, "%e %e %e\n", param->velTable[i][0], (param->velTable[i][1]+param->velTable[i][2])/
+                        fprintf(fp, "%e %e %e %e\n", param->velTable[i][0], param->velMin*(param->baseVel-1)*pow(param->baseVel, ((real8)i)-1.0), 
+                                (param->velTable[i][1]+param->velTable[i][2])/
                                 (param->velMin*pow(param->baseVel,(real8)i)*(param->baseVel-1)*nav_a), 
                                 param->velTable[i][3]/(param->velMin*pow(param->baseVel,(real8)i)*(param->baseVel-1)*nav_ia));
                     }
@@ -368,22 +378,34 @@ void WriteProp(Home_t *home, int property)
                         Fatal("can not open file %s", fileName);
                     }
 
-					fprintf(fp, "variables = velocity, signed_velocity_active\n"); 
-		            fprintf(fp, "zone T = \"%d\"  F=POINT\n", home->cycle); 
+					fprintf(fp, "variables = velocity, width, p_signed_velocity_active\n"); 
+		            fprintf(fp, "zone T = \"%d\", i = %d, j = 1, k = 1, SOLUTIONTIME = %d, F=POINT\n", 
+                                home->cycle, 2*param->nVelBins, home->cycle); 
                     fprintf(fp, "AUXDATA cumulativeTime = \"%f\"\n", param->cumulativeTime);
+                    fprintf(fp, "AUXDATA neg_v_squal_active = \"%e\"\n", param->accumulation[0]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA pos_v_squal_active = \"%e\"\n", param->accumulation[1]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA v_squal_active = \"%e\"\n", param->accumulation[2]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA vsqual_inactive = \"%e\"\n", param->accumulation[3]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA neg_length_active = \"%e\"\n", param->aveLength[0]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA pos_length_active = \"%e\"\n", param->aveLength[1]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA length_inactive = \"%e\"\n", param->aveLength[2]/param->cumulativeTime);
                     
                     for(i=param->nVelBins-1; i>0; i--){
-                        fprintf(fp, "%e %e\n", -param->velTable[i][0], param->velTable[i][1]/
+                        fprintf(fp, "%e %e %e\n", -param->velTable[i][0], param->velMin*(param->baseVel-1)*pow(param->baseVel, ((real8)i)-1.0),
+                                param->velTable[i][1]/
                                 (param->velMin*pow(param->baseVel,(real8)i)*(param->baseVel-1)*nav_a)); 
                     }
                     i=0;
-                    fprintf(fp, "%e %e\n", -param->velTable[i][0], param->velTable[i][1]/
+                    fprintf(fp, "%e %e %e\n", -param->velTable[i][0], param->velMin,
+                            param->velTable[i][1]/
                             (param->velMin*nav_a));
-                    fprintf(fp, "%e %e\n", param->velTable[i][0], param->velTable[i][2]/
+                    fprintf(fp, "%e %e %e\n", param->velTable[i][0], param->velMin,
+                            param->velTable[i][2]/
                             (param->velMin*nav_a));
 
                     for(i=1; i<param->nVelBins; i++){
-                        fprintf(fp, "%e %e\n", param->velTable[i][0], param->velTable[i][2]/
+                        fprintf(fp, "%e %e %e\n", param->velTable[i][0], param->velMin*(param->baseVel-1)*pow(param->baseVel, ((real8)i)-1.0),
+                                param->velTable[i][2]/
                                 (param->velMin*pow(param->baseVel,(real8)i)*(param->baseVel-1)*nav_a));
                     }
 
@@ -412,16 +434,26 @@ void WriteProp(Home_t *home, int property)
                         Fatal("can not open file %s", fileName);
                     }
 
-					fprintf(fp, "variables = dissipation, unsigned_disspation_active, disspation_inactive\n"); 
-		            fprintf(fp, "zone T = \"%d\"  F=POINT\n", home->cycle); 
+					fprintf(fp, "variables = dissipation, width, p_unsigned_disspation_active, p_disspation_inactive\n"); 
+		            fprintf(fp, "zone T = \"%d\", i = %d, j = 1, k = 1, SOLUTIONTIME = %d, F=POINT\n", 
+                                home->cycle, param->nDissBins, home->cycle); 
                     fprintf(fp, "AUXDATA cumulativeTime = \"%f\"\n", param->cumulativeTime);
+                    fprintf(fp, "AUXDATA neg_diss_active = \"%e\"\n", param->accumulation[4]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA pos_diss_active = \"%e\"\n", param->accumulation[5]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA diss_active = \"%e\"\n", param->accumulation[6]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA diss_inactive = \"%e\"\n", param->accumulation[7]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA neg_length_active = \"%e\"\n", param->aveLength[0]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA pos_length_active = \"%e\"\n", param->aveLength[1]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA length_inactive = \"%e\"\n", param->aveLength[2]/param->cumulativeTime);
                     
                     i=0;
-                    fprintf(fp, "%e %e %e\n", param->dissTable[i][0], (param->dissTable[i][1]+param->dissTable[i][2])/
+                    fprintf(fp, "%e %e %e %e\n", param->dissTable[i][0], param->dissMin,
+                            (param->dissTable[i][1]+param->dissTable[i][2])/
                             (param->dissMin*nav_a), param->dissTable[i][3]/(param->dissMin*nav_a));
 
                     for(i=1; i<param->nDissBins; i++){
-                        fprintf(fp, "%e %e %e\n", param->dissTable[i][0], (param->dissTable[i][1]+param->dissTable[i][2])/
+                        fprintf(fp, "%e %e %e %e\n", param->dissTable[i][0], param->dissMin*(param->baseDiss-1)*pow(param->baseDiss, ((real8)i)-1.0),
+                                (param->dissTable[i][1]+param->dissTable[i][2])/
                                 (param->dissMin*pow(param->baseDiss,(real8)i)*(param->baseDiss-1)*nav_a), 
                                 param->dissTable[i][3]/(param->dissMin*pow(param->baseDiss,(real8)i)*(param->baseDiss-1)*nav_ia));
                     }
@@ -433,22 +465,33 @@ void WriteProp(Home_t *home, int property)
                         Fatal("can not open file %s", fileName);
                     }
 
-					fprintf(fp, "variables = dissipation, signed_disspation\n"); 
-		            fprintf(fp, "zone T = \"%d\"  F=POINT\n", home->cycle); 
+					fprintf(fp, "variables = dissipation, width, p_signed_disspation_active\n"); 
+		            fprintf(fp, "zone T = \"%d\", i = %d, j = 1, k = 1, SOLUTIONTIME = %d, F=POINT\n", 
+                                home->cycle, 2*param->nDissBins, home->cycle); 
                     fprintf(fp, "AUXDATA cumulativeTime = \"%f\"\n", param->cumulativeTime);
+                    fprintf(fp, "AUXDATA neg_diss_active = \"%e\"\n", param->accumulation[4]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA pos_diss_active = \"%e\"\n", param->accumulation[5]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA diss_active = \"%e\"\n", param->accumulation[6]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA diss_inactive = \"%e\"\n", param->accumulation[7]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA neg_length_active = \"%e\"\n", param->aveLength[0]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA pos_length_active = \"%e\"\n", param->aveLength[1]/param->cumulativeTime);
+                    fprintf(fp, "AUXDATA length_inactive = \"%e\"\n", param->aveLength[2]/param->cumulativeTime);
                     
                     for(i=param->nDissBins-1; i>0; i--){
-                        fprintf(fp, "%e %e\n", -param->dissTable[i][0], param->dissTable[i][1]/
+                        fprintf(fp, "%e %e %e\n", -param->dissTable[i][0], param->dissMin*(param->baseDiss-1)*pow(param->baseDiss, ((real8)i)-1.0),
+                                param->dissTable[i][1]/
                                 (param->dissMin*pow(param->baseDiss,(real8)i)*(param->baseDiss-1)*nav_a)); 
                     }
                     i=0;
-                    fprintf(fp, "%e %e\n", -param->dissTable[i][0], param->dissTable[i][1]/
+                    fprintf(fp, "%e %e %e\n", -param->dissTable[i][0], param->dissMin, 
+                            param->dissTable[i][1]/
                             (param->dissMin*nav_a));
-                    fprintf(fp, "%e %e\n", param->dissTable[i][0], param->dissTable[i][2]/
+                    fprintf(fp, "%e %e %e\n", param->dissTable[i][0], param->dissMin, param->dissTable[i][2]/
                             (param->dissMin*nav_a));
 
                     for(i=1; i<param->nDissBins; i++){
-                        fprintf(fp, "%e %e\n", param->dissTable[i][0], param->dissTable[i][2]/
+                        fprintf(fp, "%e %e %e\n", param->dissTable[i][0], param->dissMin*(param->baseDiss-1)*pow(param->baseDiss, ((real8)i)-1.0),
+                                param->dissTable[i][2]/
                                 (param->dissMin*pow(param->baseDiss,(real8)i)*(param->baseDiss-1)*nav_a));
                     }
 
@@ -477,7 +520,7 @@ void WriteProp(Home_t *home, int property)
                             break;
                     }
 
-					if(home->cycle < 2 *  param->savepropfreq){
+					if(home->cycle == 1){
 					    fprintf(fp, "variables = step, timeNow, "); 
 
                         for(i=0; i<6; i++){
@@ -490,7 +533,10 @@ void WriteProp(Home_t *home, int property)
 #ifndef VELOCITY_STATISTICS
                         fprintf(fp, "disDen, effPlaRate\n");
 #else
-                        fprintf(fp, "disDen, effPlaRate, vsqua_active, vsqua_inactive, tauv_active, tauv_inactive, cumulativeTime\n");
+                        fprintf(fp, "disDen, effPlaRate, neg_v_squa_active, pos_v_squa_active, v_squa_active," 
+                                    "v_squa_inactive, neg_tauv_active, pos_tauv_active," 
+                                    " tauv_active, tauv_inactive, cumulativeTime"
+                                    ", ave_len_neg_active, ave_len_pos_active, ave_len_inactive\n");
 #endif
 					}
         
@@ -539,11 +585,18 @@ void WriteProp(Home_t *home, int property)
 #ifndef VELOCITY_STATISTICS
                     fprintf(fp, "%e %e\n", param->disloDensity, effPlaRate);
 #else
-                    fprintf(fp, "%e %e %e %e %e %e %e\n", param->disloDensity, effPlaRate, param->accumulation[0]/param->cumulativeTime, 
+                    fprintf(fp, "%e %e %e %e %e %e %e %e %e %e %e %e %e %e\n", param->disloDensity, effPlaRate, param->accumulation[0]/param->cumulativeTime, 
                                                        param->accumulation[1]/param->cumulativeTime, 
                                                        param->accumulation[2]/param->cumulativeTime, 
                                                        param->accumulation[3]/param->cumulativeTime, 
-                                                       param->cumulativeTime);
+                                                       param->accumulation[4]/param->cumulativeTime, 
+                                                       param->accumulation[5]/param->cumulativeTime, 
+                                                       param->accumulation[6]/param->cumulativeTime, 
+                                                       param->accumulation[7]/param->cumulativeTime, 
+                                                       param->cumulativeTime,
+                                                       param->aveLength[0]/param->cumulativeTime,
+                                                       param->aveLength[1]/param->cumulativeTime,
+                                                       param->aveLength[2]/param->cumulativeTime);
 #endif
                     fclose(fp);
 
@@ -591,6 +644,13 @@ void WriteProp(Home_t *home, int property)
             param->accumulation[1] = 0.0; 
             param->accumulation[2] = 0.0; 
             param->accumulation[3] = 0.0; 
+            param->accumulation[4] = 0.0; 
+            param->accumulation[5] = 0.0; 
+            param->accumulation[6] = 0.0; 
+            param->accumulation[7] = 0.0; 
+            param->aveLength[0] = 0.0;
+            param->aveLength[1] = 0.0;
+            param->aveLength[2] = 0.0;
             param->cumulativeTime = 0.0;
 #endif
             break;
