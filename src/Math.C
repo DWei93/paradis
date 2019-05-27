@@ -288,6 +288,7 @@ int PointLineIntersection(double *p1, double *d, double *p2,
         return(POINT_INTERSECTION);
     }
 
+#if 0
     if(fabs(dx*(p1x-p2x) + dy*(p1y-p2y) + dz*(p1z-p2z)) > norm*norm2*(1-EPS1)){
         vec[0] = p1[0];
         vec[1] = p1[1];
@@ -295,7 +296,7 @@ int PointLineIntersection(double *p1, double *d, double *p2,
         *dis = 0.0;
         return(POINT_INTERSECTION);
     }
-
+#endif
     t = (dx*(p1x - p2x) + dy*(p1y - p2y) + dz*(p1z - p2z))*(invNorm*invNorm);
     vec[0] = p2x + dx*t;
     vec[1] = p2y + dy*t;

@@ -622,7 +622,7 @@ void TrapezoidIntegrator(Home_t *home)
 #endif
 
         param = home->param;
-	    minDT = MIN(1.0E-14, 2.0 * param->xBoundMax / 1.0e16);
+	    minDT = MIN(1.0E-15, 2.0 * param->xBoundMax / 1.0e16);
 
 		if(param->limitDisplacement && param->preDecreaseDT){
 			
@@ -843,15 +843,15 @@ void TrapezoidIntegrator(Home_t *home)
             if (!convergent) {
                 newDT *= param->dtDecrementFact;
 #if 1				
-	    if(newDT < minDT){
-	        newDT = minDT;
-	        convergent = 1;
+	        if(newDT < minDT){
+	            newDT = minDT;
+	            convergent = 1;
 /*
  *	        if(home->myDomain == 0){
  *	            printf("Warning: globalErrMax is %e, skip check convergent\n",globalErrMax);
  *	        }
  */
-	    }
+	        }
 #endif				
                 param->deltaTT = newDT;
 	
