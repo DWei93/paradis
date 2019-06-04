@@ -207,7 +207,7 @@ real8 FGlidePerLength(Home_t *home, Node_t *node){
     for(i=0;i<node->numNbrs;i++){
        nbr = GetNeighborNode(home,node,i);
        if(nbr==(Node_t *)NULL) continue;
-       disLength += NodeDistance(home,node,nbr)/2;
+       disLength += (NodeDistance(home,node,nbr)/2);
     }
 
     vec[0] = node->vX;
@@ -1999,7 +1999,7 @@ void GBCrossSlip(Home_t *home)
     int     i, j, k, nBurgsSplit, nNbrsOnGB;
     int     opClass, thisDomain;
     int     inGrain, onGB, globalOp = 1;
-    int     type, armID, normalID;
+    int     type, armID, normalID, nbrArmID;
     int     maxPowerSet, localGBID, nbrGrain;
     int     mergeStatus, sideCrossSlipNode;
     bool    firstCrossSlipNode;
@@ -2255,9 +2255,10 @@ void GBCrossSlip(Home_t *home)
                 grain = home->grainKeys[nbrGrain];
 
                 armID = GetArmID(home, node, gbNbr);
-                gArmForceDir[0] = node->armfx[armID];
-                gArmForceDir[1] = node->armfy[armID];
-                gArmForceDir[2] = node->armfz[armID];
+                nbrArmID = GetArmID(home, gbNbr, node);
+                gArmForceDir[0] = (node->armfx[armID] + gbNbr->armfx[nbrArmID]);
+                gArmForceDir[1] = (node->armfy[armID] + gbNbr->armfy[nbrArmID]);
+                gArmForceDir[2] = (node->armfz[armID] + gbNbr->armfz[nbrArmID]);
                 NormalizeVec(gArmForceDir);
 
                 localGBID = GetGBIndexOfGrain(grain, gb->GBID);
