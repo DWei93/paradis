@@ -524,9 +524,6 @@ void SetRemainingDefaults(Home_t *home)
         if (param->rann <= 0.0) {
             param->rann = 2.0 * param->rTol;
         }
-		if (param->preRann <= 0.0) {
-            param->preRann = 8.0 * param->rann;
-        }
 
 /*
  *      Minimum area criteria for remesh is dependent on maximum

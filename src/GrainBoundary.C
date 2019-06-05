@@ -1021,7 +1021,10 @@ void HandleGrainBoundary(Home_t *home)
             if(currOnGB < 0){
                 PullBack(home, node);
             }
-
+/*
+ *          deal with a particular case, a short arm connected by a GB node and single-armed surface lattice node
+ *          should be assigned to the GB. It is not elegant.        D. Wei
+ */
             if((NodeOnGB(home, node) & INTERSECT_NODE) > 0){
                 for(j=0; j<node->numNbrs; j++){
 	                nbrNode1 = GetNeighborNode(home,node,j);

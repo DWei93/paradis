@@ -467,9 +467,9 @@ static void AdvanceAllNodes(Home_t *home, real8 oldDT)
 
 	currDT = param->realdt;
 
-        if (oldDT <= 0.0) {
-            oldDT = currDT;
-        }
+    if (oldDT <= 0.0) {
+        oldDT = currDT;
+    }
 
 	for (i = 0; i < home->newNodeKeyPtr; i++) {
 
@@ -528,6 +528,15 @@ static void AdvanceAllNodes(Home_t *home, real8 oldDT)
 }
 
 
+/*------------------------------------------------------------------------
+ *
+ *      Function:       AdjustConstrictedNodeVelocity
+ *      Description:    make sure all nodes move along the direction of 
+ *                      constraint.
+ *
+ *      FIXME:          This problem occurs because nodal velocity is not updated
+ *                      correctly when the topology changes.
+ *-----------------------------------------------------------------------*/
 void AdjustConstrictedNodeVelocity(Home_t *home){
 	int	        i;
 	Node_t	    *node;
@@ -611,9 +620,8 @@ void TrapezoidIntegrator(Home_t *home)
 		real8   errMax, globalErrMax;
         real8   oldDT, newDT;
 	    static  real8 minDT;
-        real8   oldx, oldy, oldz, nodeVec[3];
-        real8   localVals[3], globalVals[3];
-		real8	localMaxDisp, globalMaxDisp;
+        real8   oldx, oldy, oldz;
+        real8   localVals[2], globalVals[2];
         Node_t  *node;
         Param_t *param;
 #ifdef 	DEBUG_TIMESTEP
@@ -624,12 +632,6 @@ void TrapezoidIntegrator(Home_t *home)
         param = home->param;
 	    minDT = MIN(1.0E-15, 2.0 * param->xBoundMax / 1.0e16);
 
-		if(param->limitDisplacement && param->preDecreaseDT){
-			
-			param->nextDT *= param->dtDecrementFact;
-			
-		}
-		
         oldDT = param->deltaTT;
         newDT = MIN(param->maxDT, param->nextDT);
         if (newDT <= 0.0) newDT = param->maxDT;
@@ -638,6 +640,7 @@ void TrapezoidIntegrator(Home_t *home)
         AdjustConstrictedNodeVelocity(home);
 /*
  *      Preserve certain items of nodal data for later use.
+ *      vx --> currV    x --> oldx
  */
         PreserveNodalData(home, NODE_POSITION | NODE_CURR_VEL);
 
@@ -649,7 +652,6 @@ void TrapezoidIntegrator(Home_t *home)
         convergent = 0;
         maxIterations = 2;
         incrDelta = 1;
-
 
         while (!convergent) {
 
@@ -688,7 +690,6 @@ void TrapezoidIntegrator(Home_t *home)
                 }
 
                 errMax = 0.0;
-				localMaxDisp = 0.0;
 
                 for (/* i initializex above */; i < home->newNodeKeyPtr; i++) {
 
@@ -712,23 +713,13 @@ void TrapezoidIntegrator(Home_t *home)
                     errMax = MAX(errMax, fabs(node->z - oldz -
                                          ((node->vZ+node->currvZ)*0.5*newDT)));
 
-                    nodeVec[0] = node->x - oldx;
-                    nodeVec[1] = node->y - oldy;
-                    nodeVec[2] = node->z - oldz;
-                    ZImage(param, nodeVec, nodeVec+1, nodeVec+2);
-                    	
-                    localMaxDisp = MAX(localMaxDisp, Normal(nodeVec));
-				
-                    if(isnan(errMax) || isinf(errMax) || errMax > 1000){
-			            PrintNode(node);
-			            printf("Warning: errMax is %f at %s, Line %d.\n",errMax,__FILE__,__LINE__);
-                    }
 #ifdef DEBUG_TIMESTEP
                     if (errMax > oldErrMax) {
                         tmpNode = node;
                     }
 #endif
                 }
+
 /*
  *              Need to find largest errMax from among all domains.
  */
@@ -736,18 +727,15 @@ void TrapezoidIntegrator(Home_t *home)
 #if PARALLEL
                 localVals[0] = errMax;
                 localVals[1] = (real8)mobIterError;
-				localVals[2] = localMaxDisp;
 
-                MPI_Allreduce(localVals, globalVals, 3, MPI_DOUBLE, MPI_MAX, 
+                MPI_Allreduce(localVals, globalVals, 2, MPI_DOUBLE, MPI_MAX, 
                               MPI_COMM_WORLD);
 
                 globalErrMax = globalVals[0];;
                 globalIterError = globalVals[1];
-				globalMaxDisp = globalVals[2];
 #else
                 globalErrMax = errMax;
                 globalIterError = mobIterError;
-				globalMaxDisp = globalVals[2];
 #endif
 
 /*
@@ -794,7 +782,6 @@ void TrapezoidIntegrator(Home_t *home)
                                    ((node->vZ+node->currvZ)*0.5*newDT);
 
                         FoldBox(param, &node->x, &node->y, &node->z);
-						
 						
                     }
 
@@ -843,15 +830,10 @@ void TrapezoidIntegrator(Home_t *home)
             if (!convergent) {
                 newDT *= param->dtDecrementFact;
 #if 1				
-	        if(newDT < minDT){
-	            newDT = minDT;
-	            convergent = 1;
-/*
- *	        if(home->myDomain == 0){
- *	            printf("Warning: globalErrMax is %e, skip check convergent\n",globalErrMax);
- *	        }
- */
-	        }
+	            if(newDT < minDT){
+	                newDT = minDT;
+	                convergent = 1;
+	            }
 #endif				
                 param->deltaTT = newDT;
 	
@@ -915,14 +897,6 @@ void TrapezoidIntegrator(Home_t *home)
         } else {
             param->nextDT = newDT;
         }
-		
-	
-		if(globalMaxDisp < param->rann){
-			param->preDecreaseDT = 0;
-		}else{
-			param->preDecreaseDT = 1;
-		}
-
 	
 /*
  *      Copy the nodal velocities that existed on entry to the timestep

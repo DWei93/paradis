@@ -301,7 +301,6 @@ void ParadisStep(Home_t *home)
         }
         DebugGB(home,18);
 
-
 /*
  *      Before doing topological changes, set flags indicating any
  *      nodes exempt from topological changes.  These flags are used

@@ -834,13 +834,6 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 				V_DBL, 1, VFLAG_NULL);
 		param->fricStress = 0.0e0;
 
-		BindVar(CPList, "preRann", &param->preRann,
-				V_DBL, 1, VFLAG_NULL);
-		param->preRann = -1.0;
-		
-		BindVar(CPList, "limitDisplacement", &param->limitDisplacement, V_INT, 1, VFLAG_NULL);
-		param->limitDisplacement = 0;
-
 		BindVar(CPList, "randomInternalForce", &param->randomInternalForce, V_INT, 1, VFLAG_NULL);
 		param->randomInternalForce = 0;
 		
@@ -1028,8 +1021,6 @@ void DataParamInit(Param_t *param, ParamList_t *DPList)
     param->TBNormalCryst[1] = 1.0;  
     param->TBNormalCryst[2] = 1.0;  
 
-	param->preDecreaseDT = 0;
-	param->markPreDTDisable = 0;
 	param->finish = -1;
         return;
 }

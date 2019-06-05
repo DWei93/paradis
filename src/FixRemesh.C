@@ -55,8 +55,6 @@ void FixRemesh(Home_t *home, const char flag[256])
  *			Change the node1->node2 link so it becomes
  *			a node1->node3 link instead.
  */
-					
-			
 			case CHANGE_CONNECTION:
 				node1 = GetNodeFromIndex(home, op->dom1,
 							 op->idx1);
