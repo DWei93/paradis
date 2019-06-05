@@ -2776,13 +2776,13 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         normalABC[1] = 1;
         normalABC[2] = 1;
 
-
+#ifdef  SAS_ANALYZE
         FILE    *fp;
         
         if((fp = fopen(inArgs->outFile, "w")) == (FILE *)NULL){
             Fatal("can not open file %s", inArgs->outFile);
         }
-
+#endif
 /*
  *      Grap the command-line argument values needed for this function
  */
@@ -2803,6 +2803,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         maxSeg      = (real8)inArgs->maxSegLen;
         burgID      = inArgs->burgID;
         planeID     = inArgs->planeID;
+
+        bool custom = ((inArgs->disList.size() == 0) ? 0 : 1);
         	
         param = inData->param;
         d = inArgs->deltaNums;
@@ -2820,7 +2822,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         }
         n1[0] = 0.0;	n1[1] = 0.0;	n1[2] = 0.0;
 
-		
 	    printf("the max density is %e \n", maxDensity);
 /*
  *      Set up an array of dislocation line directions that
@@ -2901,50 +2902,55 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
                     NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1);
                     bd = GetBurgData(home, inGrain1, onGB1);
-                    if(onGB1 > -1)continue;
 
-#if 1
-                    if(chain < 24){
-                        ranNum = chain;
-                        if(polycrystal){
-                            if(chain < 12){
-                                if(inGrain1 != 0)continue;
-                            }else{
-                                if(inGrain1 != 1)continue;
-                            }
+                    if(custom){
+                        if(chain<inArgs->disList.size()){
+                            if(inGrain1 != inArgs->disList[chain][2])continue;
+                            gpIndex = inArgs->disList[chain][1];
+                            gpBurgIndex = inArgs->disList[chain][0];
+                        }else{
+                            break;
                         }
                     }else{
-                        ranNum = (int)(randm(&seed) * 1000);
-                    }
-
-                    gpBurgIndex = (ranNum % 12) / 2;
-                    if((bd->burgType[gpBurgIndex] & EDGE_BURG) == 0)continue;
-
-                    if(burgID > -1 && burgID < bd->numBurgVectors){
-                        gpBurgIndex = burgID;
-                    }
-
-                    if(chain >= 24){
-                        ranNum = (int)(randm(&seed) * 1000);
-                    }
-
-                    if(planeID > -1 && planeID < bd->numPlanes){
-                        gpIndex = planeID;
-                    }
-
-                    gpIndex = bd->burgOnPlaneID[gpBurgIndex][ranNum % 2];
-                    if((bd->planeType[gpIndex] & GLIDE_PLANE) == 0){
-                        if(planeID > -1){
-                            printf("Warning: the input plane %d i not a glide plane, ignore it\n", planeID);
-                            planeID = -1;
+                        if(onGB1 > -1)continue;
+                       
+                        if(chain < 24){
+                            ranNum = chain;
+                            if(polycrystal){
+                                if(chain < 12){
+                                    if(inGrain1 != 0)continue;
+                                }else{
+                                    if(inGrain1 != 1)continue;
+                                }
+                            }
+                        }else{
+                            ranNum = (int)(randm(&seed) * 1000);
                         }
-                        continue;
+                        gpBurgIndex = (ranNum % 12) / 2;
+                        if((bd->burgType[gpBurgIndex] & EDGE_BURG) == 0)continue;
+                        
+                        if(burgID > -1 && burgID < bd->numBurgVectors){
+                            gpBurgIndex = burgID;
+                        }
+                        
+                        if(chain >= 24){
+                            ranNum = (int)(randm(&seed) * 1000);
+                        }
+                        
+                        if(planeID > -1 && planeID < bd->numPlanes){
+                            gpIndex = planeID;
+                        }
+                        
+                        gpIndex = bd->burgOnPlaneID[gpBurgIndex][ranNum % 2];
+                        if((bd->planeType[gpIndex] & GLIDE_PLANE) == 0){
+                            if(planeID > -1){
+                                printf("Warning: the input plane %d i not a glide plane, ignore it\n", planeID);
+                                planeID = -1;
+                            }
+                            continue;
+                        }
                     }
-#else
-                    gpIndex = 2;
-                    gpBurgIndex = 1;
 
-#endif   
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
 
@@ -3063,7 +3069,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 }
 
 	            totSrcLen += srcLen;				
-
+#ifdef SAS_ANALYZE
                 if(polycrystal){
                     lambda_FR = srcLen/2;
                     GetFreePath(param, p1, p2, n0, home->grainKeys[inGrain0], 
@@ -3171,6 +3177,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     fprintf(fp, "\n");
 
                 }
+#endif
 /*           
  *              Reallocate the node array with sufficient size to add
  *              all the new nodes defining this chain.
@@ -3459,8 +3466,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 		
 	    }/* for(layer=0; layer<nLayers;...)*/
 
+#ifdef SAS_ANALYZE
         fclose(fp);
-	
+#endif
 	    IncDislocationDensity(inData, totDislocLen);
 	    param->nodeCount = inData->nodeCount;
 	    WriteInitialNodeData(home, inData, 1);

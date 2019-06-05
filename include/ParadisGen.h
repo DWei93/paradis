@@ -1,6 +1,8 @@
 #ifndef _ParadisGen_h
 #define _ParadisGen_h
 
+#include <vector>
+
 /*
  *      Define a structure containing all items corresponding to
  *      all command line options that have associated values.  This
@@ -46,9 +48,10 @@ typedef struct {
         int     extended;
 	    int     burgID, planeID;
         real8   TBCryst[3];
-        
         char    outFile[256];
         real8   loadDir[3]; 
+
+        std::vector<std::vector<int> >    disList;
 }InArgs_t;
 
 /*
@@ -159,6 +162,7 @@ typedef	enum{
     OPT_TBCRYST,
     OPT_OUT_FILE,
     OPT_LOAD_DIR,
+    OPT_DIS_LIST,
 	OPT_MAX
 	
 }ParadisGenArgs_t;

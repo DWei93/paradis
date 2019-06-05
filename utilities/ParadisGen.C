@@ -153,7 +153,8 @@ Option_t optList[OPT_MAX] = {
         {OPT_PLANEID,   "planeID",      3, 1},
         {OPT_TBCRYST,   "TBCryst",      3, 1},
         {OPT_OUT_FILE,   "outFile",      3, 1},
-        {OPT_LOAD_DIR,   "loadDir",      3, 1}
+        {OPT_LOAD_DIR,   "loadDir",      3, 1},
+        {OPT_DIS_LIST,   "disList",      3, 1}
 
 };
 
@@ -394,7 +395,6 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->loadDir[0] = 0;
         inArgs->loadDir[1] = 0;
         inArgs->loadDir[2] = -1;
-        
 
         return;
 }
@@ -519,6 +519,13 @@ static void PrintArgs(InArgs_t *inArgs)
 	            printf("HeightRatio:              %f\n",inArgs->heightRatio);
 	            printf("deltaNums:                %d\n",inArgs->deltaNums);
 	            printf("nLayers:                  %d\n",inArgs->nLayers);
+                if(inArgs->disList.size()>0){
+                    printf("customized dislocations: burgID planID grain\n");
+                    for(int i=0; i<inArgs->disList.size(); i++){
+                        printf("                         %d    %d    %d\n", 
+                        inArgs->disList[i][0], inArgs->disList[i][1], inArgs->disList[i][2]);
+                    } 
+                }
                 break;
 
             case FTYPE_FCC:
@@ -615,6 +622,8 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 /*
  *          Do any option-specific processing...
  */
+            std::vector<int> dis(3);
+            int         numDis;
             switch (j)  {
                 case OPT_CUBEL:
 
@@ -832,8 +841,25 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	                inArgs->loadDir[2] = atof(token);
 	                NormalizeVec(inArgs->loadDir);
 	                break;
+                case OPT_DIS_LIST:
+                    numDis = 1;
+                    token = strtok(argValue, ",");
+                    dis[0] = atoi(token);
+                    if ((token = strtok(NULL,",")) == (char *)NULL)Fatal("dislocation list is wrong");
+                    dis[1] = atoi(token);
+                    if ((token = strtok(NULL,",")) == (char *)NULL)Fatal("dislocation list is wrong");
+                    dis[2] = atoi(token);
+                    if ((token = strtok(NULL,",")) != (char *)NULL){
+                        numDis = atoi(token);
+                    }
+                    
+                    for(k=0; k<numDis; k++){
+                        inArgs->disList.push_back(dis);
+                    }
+                    break;
             }
         }
+
 
 	    NormalizeVec(inArgs->xMatDir);
 	    NormalizeVec(inArgs->yMatDir);

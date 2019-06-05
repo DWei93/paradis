@@ -481,7 +481,7 @@ struct _param {
         int   maxNumThreads;
 		
 /*
- *	Define the variables about grain
+ *	    Defined by D. Wei
  */
         int	    polycrystal;
         int	    nGrain;
@@ -492,13 +492,7 @@ struct _param {
 	    real8	matrixOrientation[3][3];
 	    real8   GBStrength;
 	    real8	fricStress;
-/*
- *		
- */
-        int	    preDecreaseDT;
-        int     limitDisplacement;
-        real8	preRann;
-        int	    markPreDTDisable;
+
 	    int	    finish;
 	    real8	maxStn;
 	    real8	maxPst;
