@@ -1579,7 +1579,9 @@ void ApplyPosConstraint(Param_t *param, Node_t *node){
 	pos[1] = node->y;
 	pos[2] = node->z;
 
-	VECTOR_ZERO(disVec);
+    disVec[0] = -1;
+    disVec[1] = -1;
+    disVec[2] = -1;
 
 	if(param->xBoundType == Free &&  fabs(pos[0])>param->xBoundMax) { 
 	    disVec[0] = fabs(pos[0]) - param->xBoundMax;
@@ -1608,6 +1610,20 @@ void ApplyPosConstraint(Param_t *param, Node_t *node){
 	return;
 }
 
+void AdjustBoundaryNodes(Home_t *home)
+{
+
+    Param_t *param = home->param;
+    int thisDomain = home->myDomain;
+
+    Node_t  *node;
+    for(auto i = 0; i<home->newNodeKeyPtr; i++){
+        if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
+        
+    }
+
+    return;
+}
 
 void AdjustSurfaceNode(Home_t *home)
 {
@@ -1625,7 +1641,11 @@ void AdjustSurfaceNode(Home_t *home)
 	param = home->param;
 
     thisDomain = home->myDomain;
-  
+
+
+/*
+ *  Assign constrants of all nodes.
+ */
 	for (i = 0; i < home->newNodeKeyPtr; i++){
 
         if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
@@ -1649,7 +1669,13 @@ void AdjustSurfaceNode(Home_t *home)
 	    }
 
 	    if(SurfaceNode(node) || node->numNbrs < 2) continue;
+
 #if 1
+
+/*
+ *      A single lattice node should be constrained as neighers.
+ *      It's not elegant.          D. Wei
+ */
 	    surfaceNbr = 0;
 	    for(j=0;j<node->numNbrs;j++){
 		    if((nbr=GetNeighborNode(home,node,j))==(Node_t *)NULL) continue;
@@ -1662,6 +1688,7 @@ void AdjustSurfaceNode(Home_t *home)
             AssignConstraint(home, node, nbrConstraint);
         }
 #endif
+
 	}
 
 	node = home->ghostNodeQ;
@@ -1708,7 +1735,7 @@ void AdjustSurfaceNode(Home_t *home)
 	        nbr = GetNeighborNode(home, node, j);
 	        if(nbr == (Node_t *)NULL)continue;
 	        if(!SurfaceNode(nbr))continue;
-            if(DomainOwnsSeg(home, OPCLASS_REMESH,
+            if(DomainOwnsSeg(home, OPCLASS_BOUNDARY,
                         thisDomain, &nbr->myTag) == 0)continue;
 
 	        nbrPos[0] = nbr->x;
@@ -2299,7 +2326,7 @@ void GBCrossSlip(Home_t *home)
                 normal[1] = node->ny[1];
                 normal[2] = node->nz[1];
                 if(fabs(DotProduct(normal, gb->n)) > 0.99){
-                    printf("Warning: there is a contstricted dislocation on GB glide plane\n");
+//                    printf("Warning: there is a contstricted dislocation on GB glide plane\n");
                 }
             }
 

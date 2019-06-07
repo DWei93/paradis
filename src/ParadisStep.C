@@ -268,13 +268,13 @@ void ParadisStep(Home_t *home)
         if (firstTime) {
             NodeForce(home, FULL);
             CalcNodeVelocities(home, 1, doAll);
-            CommSendVelocity(home);
+            CommSendVelocity(home, doAll);
             firstTime = 0;
 
         } else {
             NodeForce(home, PARTIAL);
             CalcNodeVelocities(home, 0, doAll);
-            CommSendVelocity(home);
+            CommSendVelocity(home, doAll);
 
         }
 

@@ -308,7 +308,7 @@ void ForwardEulerIntegrator(Home_t *home)
  */
         NodeForce(home, FULL);
         CalcNodeVelocities(home, 0, doAll);
-        CommSendVelocity(home);
+        CommSendVelocity(home, doAll);
 
         return;
 }

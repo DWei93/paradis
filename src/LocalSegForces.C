@@ -2998,7 +2998,7 @@ void LocalSegForces(Home_t *home, int reqType)
  *             will be synchronized in AddToArmForce().
  */
 /*
- * FIX ME!  It might be better to use a pure parallel code block and
+ * FIXME!  It might be better to use a pure parallel code block and
  *          calculate which interations each thread does.  Then we
  *          might be able to hold off locking and updating segment
  *          forces if the same thread will be calculating another
