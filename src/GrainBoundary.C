@@ -1579,7 +1579,9 @@ void ApplyPosConstraint(Param_t *param, Node_t *node){
 	pos[1] = node->y;
 	pos[2] = node->z;
 
-	VECTOR_ZERO(disVec);
+    disVec[0] = -1;
+    disVec[1] = -1;
+    disVec[2] = -1;
 
 	if(param->xBoundType == Free &&  fabs(pos[0])>param->xBoundMax) { 
 	    disVec[0] = fabs(pos[0]) - param->xBoundMax;
@@ -1608,6 +1610,20 @@ void ApplyPosConstraint(Param_t *param, Node_t *node){
 	return;
 }
 
+void AdjustBoundaryNodes(Home_t *home)
+{
+
+    Param_t *param = home->param;
+    int thisDomain = home->myDomain;
+
+    Node_t  *node;
+    for(auto i = 0; i<home->newNodeKeyPtr; i++){
+        if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
+        
+    }
+
+    return;
+}
 
 void AdjustSurfaceNode(Home_t *home)
 {
@@ -1625,7 +1641,11 @@ void AdjustSurfaceNode(Home_t *home)
 	param = home->param;
 
     thisDomain = home->myDomain;
-  
+
+
+/*
+ *  Assign constrants of all nodes.
+ */
 	for (i = 0; i < home->newNodeKeyPtr; i++){
 
         if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
@@ -1649,7 +1669,13 @@ void AdjustSurfaceNode(Home_t *home)
 	    }
 
 	    if(SurfaceNode(node) || node->numNbrs < 2) continue;
+
 #if 1
+
+/*
+ *      A single lattice node should be constrained as neighers.
+ *      It's not elegant.          D. Wei
+ */
 	    surfaceNbr = 0;
 	    for(j=0;j<node->numNbrs;j++){
 		    if((nbr=GetNeighborNode(home,node,j))==(Node_t *)NULL) continue;
@@ -1662,6 +1688,7 @@ void AdjustSurfaceNode(Home_t *home)
             AssignConstraint(home, node, nbrConstraint);
         }
 #endif
+
 	}
 
 	node = home->ghostNodeQ;
@@ -1708,7 +1735,7 @@ void AdjustSurfaceNode(Home_t *home)
 	        nbr = GetNeighborNode(home, node, j);
 	        if(nbr == (Node_t *)NULL)continue;
 	        if(!SurfaceNode(nbr))continue;
-            if(DomainOwnsSeg(home, OPCLASS_REMESH,
+            if(DomainOwnsSeg(home, OPCLASS_BOUNDARY,
                         thisDomain, &nbr->myTag) == 0)continue;
 
 	        nbrPos[0] = nbr->x;
@@ -1875,10 +1902,12 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
         cross(normal, gb->n, crossProd);
         
         if(Normal(crossProd) < 1.0E-4){
-            Tecplot(home, (char*)"SplitIntersectionNode", 0, 0, 0 ,0, 0, 1);
-//            PrintNode(node);
-//            PrintNode(nbr);
-//            printf("SplitIntersectNode gb{%f,%f,%f}\n", gb->n[0],gb->n[1],gb->n[2]);
+            char name[1024];
+            snprintf(name,sizeof(name),"SplitIntersectionNode-%d",home->cycle);
+            Tecplot(home, name , 0, 0, 0 ,0, 0, 1);
+            PrintNode(home, node);
+            PrintNode(home, nbr);
+            printf("SplitIntersectNode gb{%f,%f,%f}\n", gb->n[0],gb->n[1],gb->n[2]);
             wrongGlidePlane = 1;
         }
         
@@ -2299,7 +2328,7 @@ void GBCrossSlip(Home_t *home)
                 normal[1] = node->ny[1];
                 normal[2] = node->nz[1];
                 if(fabs(DotProduct(normal, gb->n)) > 0.99){
-                    printf("Warning: there is a contstricted dislocation on GB glide plane\n");
+//                    printf("Warning: there is a contstricted dislocation on GB glide plane\n");
                 }
             }
 
@@ -2311,14 +2340,19 @@ void GBCrossSlip(Home_t *home)
 
 /*
  *          Now, we don't need the resultant configure including a lattice burg on GB,
- *          or a partial burg in Grain.
+ *          or a partial burg in Grain. and we also donot need debris on GB now
  */
             for(j=0; j<disArray.size(); ){
                 barrierFactor = -1.0;
+                real8   debris[3] = {0.0,0.0,0.0};
                 for(k=0; k<disArray[j].size(); k++){
                     barrierFactor += disArray[j][k].energyFactor;
                     cross(gb->n, gbd->planeList[disArray[j][k].planeID], crossProd);
                     VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
+
+                    debris[0] += vec[0];
+                    debris[1] += vec[1];
+                    debris[2] += vec[2];
                     if(Normal(crossProd) < 1.0E-2){
                         if(BurgType_FCC(vec) == BASIC_BURG)break;
                     }else{
@@ -2326,8 +2360,11 @@ void GBCrossSlip(Home_t *home)
                     }
                 }
   
+                debris[0] -= burg[0];
+                debris[1] -= burg[1];
+                debris[2] -= burg[2];
                 if(k != disArray[j].size() || j > 0 && 
-                   barrierFactor > 0){
+                   barrierFactor > 0 || Normal(debris) > 0.05){
                     itDisList = disArray.begin() + j;
                     disArray.erase(itDisList);
                 }else{

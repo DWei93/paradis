@@ -674,7 +674,7 @@ void TrapezoidIntegrator(Home_t *home)
  */
                 NodeForce(home, FULL);
                 mobIterError = CalcNodeVelocities(home, 0, doAll);
-                CommSendVelocity(home);
+                CommSendVelocity(home, doAll);
 
 /*
  *              If the mobility function was unable to iterate to

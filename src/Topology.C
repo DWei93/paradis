@@ -1149,7 +1149,7 @@ void SplitMultiNodes(Home_t *home)
 		    node = home->nodeKeys[i];
 		    if (node ==(Node_t *)NULL) continue;
 
-		    if (node->numNbrs < 4) continue;
+		    if (node->numNbrs < 4 || SurfaceNode(node)) continue;
 
             origNumNbrs = node->numNbrs;
 
@@ -1781,7 +1781,7 @@ void SplitMultiNodes(Home_t *home)
                     char name[50];
 
                     PrintNode(home, origNode);
-                    PrintNode(newNode);
+                    PrintNode(home, newNode);
                     snprintf(name,sizeof(name),"separationTest-%d.plt",home->cycle);
                     Tecplot(home, name, 0, 0, 0, 0, 0, 1);
                     Fatal("Unable to merge (%d,%d) into (%d,%d)"

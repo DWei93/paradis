@@ -76,6 +76,6 @@ void CommSendRemesh(Home_t *home);
 void CommSendSecondaryGhosts(Home_t *home);
 void CommSendSegments(Home_t *home, int numRecvBufs, int numSendBufs,
          int *sendDomList, Segment_t **cellSegLists, int *cellSegCnts);
-void CommSendVelocity(Home_t *home);
+void CommSendVelocity(Home_t *home, int doAll);
 
 #endif
