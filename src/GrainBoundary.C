@@ -1620,6 +1620,8 @@ void AdjustBoundaryNodes(Home_t *home)
     for(auto i = 0; i<home->newNodeKeyPtr; i++){
         if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
         
+        
+        
     }
 
     return;

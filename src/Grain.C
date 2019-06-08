@@ -231,49 +231,49 @@ void InitGrain(Home_t *home, Param_t *param){
 
 //        VECTOR_COPY(zaxis, param->loadDir);
 
-	    if(home->myDomain == 0){
-            std::vector<SlipSys_t>().swap(slipSys);
-            bd = &(home->burgData);
-            for(j=0; j<6; j++){
-                VECTOR_COPY(slip.burg, bd->burgList[j]);
-                slip.burgID = j;
-                for(k=0; k<2; k++){
-                    slip.planeID = bd->burgOnPlaneID[j][k];
-                    VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
-                    slip.schmid = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
-                    slipSys.push_back(slip);
-                }
+        std::vector<SlipSys_t>().swap(slipSys);
+        bd = &(home->burgData);
+        for(j=0; j<6; j++){
+            VECTOR_COPY(slip.burg, bd->burgList[j]);
+            slip.burgID = j;
+            for(k=0; k<2; k++){
+                slip.planeID = bd->burgOnPlaneID[j][k];
+                VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
+                slip.schmid = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
+                slipSys.push_back(slip);
             }
-            sort(slipSys.begin(), slipSys.end(),cmp3); 
+        }
+        sort(slipSys.begin(), slipSys.end(),cmp3); 
     
-            maxSchmid = slipSys[0].schmid;
+        maxSchmid = slipSys[0].schmid;
 
-            for(j=1; j<slipSys.size(); j++){
-                if(fabs(slipSys[j].schmid-maxSchmid)>1.0E-3)break;
-            }
-            slipSys.resize(j);
+        for(j=1; j<slipSys.size(); j++){
+            if(fabs(slipSys[j].schmid-maxSchmid)>1.0E-3)break;
+        }
+        slipSys.resize(j);
 
-            param->maxSchmid = maxSchmid;
-	        FormatMatrix(param->matrixOrientation,"Orientation");
+        param->maxSchmid = maxSchmid;
+	    if(home->myDomain==0)FormatMatrix(param->matrixOrientation,"Orientation");
 
-            for(i=0; i<6; i++){
-                VECTOR_ZERO(surList[i].normal);
-                VECTOR_ZERO(surList[i].point);
-            }
-            surList[0].normal[0] =-1.0;
-            surList[1].normal[0] = 1.0;
-            surList[2].normal[1] =-1.0;
-            surList[3].normal[1] = 1.0;
-            surList[4].normal[2] =-1.0;
-            surList[5].normal[2] = 1.0;
+        for(i=0; i<6; i++){
+            VECTOR_ZERO(surList[i].normal);
+            VECTOR_ZERO(surList[i].point);
+        }
+        surList[0].normal[0] =-1.0;
+        surList[1].normal[0] = 1.0;
+        surList[2].normal[1] =-1.0;
+        surList[3].normal[1] = 1.0;
+        surList[4].normal[2] =-1.0;
+        surList[5].normal[2] = 1.0;
 
-            surList[0].point[0] = param->xBoundMin;
-            surList[1].point[0] = param->xBoundMax;
-            surList[2].point[1] = param->yBoundMin;
-            surList[3].point[1] = param->yBoundMax;
-            surList[4].point[2] = param->zBoundMin;
-            surList[5].point[2] = param->zBoundMax;
+        surList[0].point[0] = param->xBoundMin;
+        surList[1].point[0] = param->xBoundMax;
+        surList[2].point[1] = param->yBoundMin;
+        surList[3].point[1] = param->yBoundMax;
+        surList[4].point[2] = param->zBoundMin;
+        surList[5].point[2] = param->zBoundMax;
 
+	    if(home->myDomain == 0){
 		    snprintf(fileName, sizeof(fileName), "primarry_planes.plt");
 
 		    if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
@@ -438,6 +438,8 @@ void InitGrain(Home_t *home, Param_t *param){
             fclose(fp1);
 
 	    }
+
+        grain->surface.swap(surList);
 
 #if PARALLEL
        MPI_Bcast(&(param->maxSchmid), sizeof(double), MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -668,42 +670,42 @@ void InitGrain(Home_t *home, Param_t *param){
 	        printf("\n");
 	    }
 
-        if(home->myDomain == 0){
 
-            for(i=0; i<6; i++){
-                VECTOR_ZERO(surList[i].normal);
-                VECTOR_ZERO(surList[i].point);
+        for(i=0; i<6; i++){
+            VECTOR_ZERO(surList[i].normal);
+            VECTOR_ZERO(surList[i].point);
+        }
+        surList[0].normal[0] =-1.0;
+        surList[1].normal[0] = 1.0;
+        surList[2].normal[1] =-1.0;
+        surList[3].normal[1] = 1.0;
+        surList[4].normal[2] =-1.0;
+        surList[5].normal[2] = 1.0;
+
+        surList[0].point[0] = param->xBoundMin;
+        surList[1].point[0] = param->xBoundMax;
+        surList[2].point[1] = param->yBoundMin;
+        surList[3].point[1] = param->yBoundMax;
+        surList[4].point[2] = param->zBoundMin;
+        surList[5].point[2] = param->zBoundMax;
+
+
+        for(i=0; i<6; i++){
+            type = PlanePlaneIntersection(surList[i].normal, surList[i].point,
+                                          plane.normal, plane.point, vec1, vec2); 
+            if(type != LINE_INTERSECTION){
+                records1.push_back(i);
+                continue;
             }
-            surList[0].normal[0] =-1.0;
-            surList[1].normal[0] = 1.0;
-            surList[2].normal[1] =-1.0;
-            surList[3].normal[1] = 1.0;
-            surList[4].normal[2] =-1.0;
-            surList[5].normal[2] = 1.0;
+            records.push_back(i);
 
-            surList[0].point[0] = param->xBoundMin;
-            surList[1].point[0] = param->xBoundMax;
-            surList[2].point[1] = param->yBoundMin;
-            surList[3].point[1] = param->yBoundMax;
-            surList[4].point[2] = param->zBoundMin;
-            surList[5].point[2] = param->zBoundMax;
-
+        if(home->myDomain == 0){
 		    snprintf(fileName, sizeof(fileName), "TB.plt");
-
 		    if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
 			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
 		    }
             
 	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, burgID, normalID, schmid, inGrain\n");
-
-            for(i=0; i<6; i++){
-                type = PlanePlaneIntersection(surList[i].normal, surList[i].point,
-                                              plane.normal, plane.point, vec1, vec2); 
-                if(type != LINE_INTERSECTION){
-                    records1.push_back(i);
-                    continue;
-                }
-                records.push_back(i);
 
                 k = 0;
                 for(j=0; j<6; j++){
@@ -748,34 +750,36 @@ void InitGrain(Home_t *home, Param_t *param){
                 }
             }
 
-            surArray[0].push_back(plane);
-            home->grainKeys[0]->surface.push_back(plane);
-            plane.normal[0] = -plane.normal[0];
-            plane.normal[1] = -plane.normal[1];
-            plane.normal[2] = -plane.normal[2];
+        }
+#if 0
+        surArray[0].push_back(plane);
+        home->grainKeys[0]->surface.push_back(plane);
+        plane.normal[0] = -plane.normal[0];
+        plane.normal[1] = -plane.normal[1];
+        plane.normal[2] = -plane.normal[2];
 
-            surArray[1].push_back(plane);
-            home->grainKeys[1]->surface.push_back(plane);
-            plane.normal[0] = -plane.normal[0];
-            plane.normal[1] = -plane.normal[1];
-            plane.normal[2] = -plane.normal[2];
+        surArray[1].push_back(plane);
+        home->grainKeys[1]->surface.push_back(plane);
+        plane.normal[0] = -plane.normal[0];
+        plane.normal[1] = -plane.normal[1];
+        plane.normal[2] = -plane.normal[2];
+#endif
+        for(i=0; i<records.size(); i++){
+            surArray[0].push_back(surList[records[i]]);
+            surArray[1].push_back(surList[records[i]]);
+            home->grainKeys[0]->surface.push_back(surList[records[i]]);
+            home->grainKeys[1]->surface.push_back(surList[records[i]]);
+        }
 
-            for(i=0; i<records.size(); i++){
-                surArray[0].push_back(surList[records[i]]);
-                surArray[1].push_back(surList[records[i]]);
-                home->grainKeys[0]->surface.push_back(surList[records[i]]);
-                home->grainKeys[1]->surface.push_back(surList[records[i]]);
+        for(i=0; i<records1.size(); i++){
+            if(DotProduct(surList[records1[i]].normal,plane.normal)<0){
+                surArray[0].push_back(surList[records1[i]]);
+                home->grainKeys[0]->surface.push_back(surList[records1[i]]);
+            }else{
+                surArray[1].push_back(surList[records1[i]]);
+                home->grainKeys[1]->surface.push_back(surList[records1[i]]);
             }
-
-            for(i=0; i<records1.size(); i++){
-                if(DotProduct(surList[records1[i]].normal,plane.normal)<0){
-                    surArray[0].push_back(surList[records1[i]]);
-                    home->grainKeys[0]->surface.push_back(surList[records1[i]]);
-                }else{
-                    surArray[1].push_back(surList[records1[i]]);
-                    home->grainKeys[1]->surface.push_back(surList[records1[i]]);
-                }
-            }
+        }
 #if 0
             for(i=0; i<surArray[0].size(); i++){
                 printf("0 %d: {%f,%f,%f}--{%f,%f,%f}\n", i,
@@ -789,166 +793,163 @@ void InitGrain(Home_t *home, Param_t *param){
             }
 #endif
 
-            NormalizeVec(cena);
-            NormalizeVec(cenb);
-            NormalizeVec(cenc);
-            NormalizeVec(cend);
-
-            gb = home->GBKeys[0];
-            for(i=0; i<home->nGrains; i++){
-                grain = home->grainKeys[i];
-#if 1
-                VECTOR_COPY(plane.normal, gb->n);
-                VECTOR_COPY(plane.point, gb->p);
-
-                plane.point[0] -= (grain->sign[0]*plane.normal[0]*500);
-                plane.point[1] -= (grain->sign[0]*plane.normal[1]*500);
-                plane.point[2] -= (grain->sign[0]*plane.normal[2]*500);
-
-                Matrix33Vector3Multiply(grain->orientation, cena, ps[0]);
-                Matrix33Vector3Multiply(grain->orientation, cenb, ps[1]);
-                Matrix33Vector3Multiply(grain->orientation, cenc, ps[2]);
-                Matrix33Vector3Multiply(grain->orientation, cend, ps[3]);
-
-                for(j=0; j<4; j++){
-                    ps[j][0] *= rad;
-                    ps[j][1] *= rad;
-                    ps[j][2] *= rad;
-
-                    ps[j][0] += (plane.point[0]);
-                    ps[j][1] += (plane.point[1]);
-                    ps[j][2] += (plane.point[2]);
-                }
-
-                bd = &(grain->burgData);
-
-                for(j=0; j<3; j++){
-                    for(k=j+1; k<4; k++){
-                        vec4[0] = ps[k][0] - ps[j][0];
-                        vec4[1] = ps[k][1] - ps[j][1];
-                        vec4[2] = ps[k][2] - ps[j][2];
-
-                        VECTOR_COPY(poss[0], ps[j]);
-
-                        nmesh = ((int)(Normal(vec4)/msize));
-                        tsize = Normal(vec4)/((real8)nmesh);
-
-                        NormalizeVec(vec4);
-
-                        for(l=0; l<nmesh; l++){
-	                        fprintf(fp, "%e %e %e %e %e %e %d -1 -1.0 %d\n", poss[0][0],
-                            poss[0][1],poss[0][2], tsize*vec4[0],
-                            tsize*vec4[1],tsize*vec4[2], BurgID_FCC(bd, vec4), i);
-
-                            poss[0][0] += tsize*vec4[0];
-                            poss[0][1] += tsize*vec4[1];
-                            poss[0][2] += tsize*vec4[2];
-
-                        }
-                    
+            if(home->myDomain == 0){
+                NormalizeVec(cena);
+                NormalizeVec(cenb);
+                NormalizeVec(cenc);
+                NormalizeVec(cend);
+             
+                gb = home->GBKeys[0];
+                for(i=0; i<home->nGrains; i++){
+                    grain = home->grainKeys[i];
+#if 1        
+                    VECTOR_COPY(plane.normal, gb->n);
+                    VECTOR_COPY(plane.point, gb->p);
+             
+                    plane.point[0] -= (grain->sign[0]*plane.normal[0]*500);
+                    plane.point[1] -= (grain->sign[0]*plane.normal[1]*500);
+                    plane.point[2] -= (grain->sign[0]*plane.normal[2]*500);
+             
+                    Matrix33Vector3Multiply(grain->orientation, cena, ps[0]);
+                    Matrix33Vector3Multiply(grain->orientation, cenb, ps[1]);
+                    Matrix33Vector3Multiply(grain->orientation, cenc, ps[2]);
+                    Matrix33Vector3Multiply(grain->orientation, cend, ps[3]);
+             
+                    for(j=0; j<4; j++){
+                        ps[j][0] *= rad;
+                        ps[j][1] *= rad;
+                        ps[j][2] *= rad;
+             
+                        ps[j][0] += (plane.point[0]);
+                        ps[j][1] += (plane.point[1]);
+                        ps[j][2] += (plane.point[2]);
                     }
-                }
-                
-#endif
-                bd = &(grain->burgData);
-                slip.inGrain = i;
-                for(j=0; j<6; j++){
-                    VECTOR_COPY(slip.burg, bd->burgList[j]);
-                    slip.burgID = j;
-                    for(k=0; k<2; k++){
-                        slip.planeID = bd->burgOnPlaneID[j][k];
-                        VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
-                        slip.schmid = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
-                        slipSys.push_back(slip);
-                    }
-                }
-                sort(slipSys.begin(), slipSys.end(),cmp3); 
-    
-                maxSchmid = slipSys[0].schmid;
-                printf("max %f\n",  maxSchmid);
-
-                grain->maxSchmid = maxSchmid;
-
-                for(j=1; j<slipSys.size(); j++){
-                    if(fabs(slipSys[j].schmid-maxSchmid)>1.0E-3)break;
-                }
-
-                numMaxSchmids = j;
-
-                for(j=0; j<numMaxSchmids; j++){
-                    VECTOR_COPY(plane.normal, slipSys[j].normal);
-                    VECTOR_ZERO(plane.point);
-                    inGrain = slipSys[j].inGrain;
-                    plane.point[0] += -10.0*surArray[inGrain][0].normal[0];
-                    plane.point[1] += -10.0*surArray[inGrain][0].normal[1];
-                    plane.point[2] += -10.0*surArray[inGrain][0].normal[2];
-
-
-                    for(k=0; k<surArray[inGrain].size(); k++){
-                        type = PlanePlaneIntersection(
-                                  plane.normal, plane.point,
-                                  surArray[inGrain][k].normal, surArray[inGrain][k].point, vec1, vec2); 
+             
+                    bd = &(grain->burgData);
+                    for(j=0; j<3; j++){
+                        for(k=j+1; k<4; k++){
+                            vec4[0] = ps[k][0] - ps[j][0];
+                            vec4[1] = ps[k][1] - ps[j][1];
+                            vec4[2] = ps[k][2] - ps[j][2];
+             
+                            VECTOR_COPY(poss[0], ps[j]);
+             
+                            nmesh = ((int)(Normal(vec4)/msize));
+                            tsize = Normal(vec4)/((real8)nmesh);
+             
+                            NormalizeVec(vec4);
+             
+                            for(l=0; l<nmesh; l++){
+	                            fprintf(fp, "%e %e %e %e %e %e %d -1 -1.0 %d\n", poss[0][0],
+                                poss[0][1],poss[0][2], tsize*vec4[0],
+                                tsize*vec4[1],tsize*vec4[2], BurgID_FCC(bd, vec4), i);
+             
+                                poss[0][0] += tsize*vec4[0];
+                                poss[0][1] += tsize*vec4[1];
+                                poss[0][2] += tsize*vec4[2];
+             
+                            }
                         
-                        if(type != LINE_INTERSECTION)continue;
-                        th = 0;
-                        for(m=0; m<surArray[inGrain].size(); m++){
-                            if(m==k)continue;
-                            type = LinePlaneIntersection(vec1, vec2, surArray[inGrain][m].normal,
-                                         surArray[inGrain][m].point, vec3, interPos);
-
-                            if(type != POINT_INTERSECTION)continue;
-
-                            type = PointPlaneIntersection(interPos, surArray[inGrain][0].normal,
-                                       surArray[inGrain][0].point, vec4, &dis);
-                            if(dis > 0.1)continue;
-                            if(fabs(interPos[0]) > param->xBoundMax+1.0){
-                                continue;
-                            }
-                            if(fabs(interPos[1]) > param->yBoundMax+1.0){
-                                continue;
-                            }
-                            if(fabs(interPos[2]) > param->zBoundMax+1.0){
-                                continue;
-                            }
-
-                            VECTOR_COPY(poss[th], interPos);
-                            th++;
-#if 0
-                            if(th == 2){
-                                vec4[0] = poss[1][0] - poss[0][0];
-                                vec4[1] = poss[1][1] - poss[0][1];
-                                vec4[2] = poss[1][2] - poss[0][2];
-                                length = Normal(vec4);
-                                nmesh = (int)(length/msize);
-                                tsize = length/((real8)nmesh);
-                                NormalizeVec(vec4);
-                                color = slipSys[j].burgID;
-            
-                                for(n=0; n<nmesh; n++){
-	                                fprintf(fp, "%e %e %e %e %e %e %d %d %f %d\n", poss[0][0],
-                                    poss[0][1],poss[0][2], tsize*vec4[0],
-                                    tsize*vec4[1],tsize*vec4[2], slipSys[j].burgID, 
-                                    slipSys[j].planeID, slipSys[j].schmid, inGrain);
-                                    poss[0][0] += tsize*vec4[0];
-                                    poss[0][1] += tsize*vec4[1];
-                                    poss[0][2] += tsize*vec4[2];
-                                }
-                                th = 0;
-                                break;
-                            }
-#endif
                         }
-                    
                     }
                 }
-
+               
+#endif       
+               bd = &(grain->burgData);
+               slip.inGrain = i;
+               for(j=0; j<6; j++){
+                   VECTOR_COPY(slip.burg, bd->burgList[j]);
+                   slip.burgID = j;
+                   for(k=0; k<2; k++){
+                       slip.planeID = bd->burgOnPlaneID[j][k];
+                       VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
+                       slip.schmid = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
+                       slipSys.push_back(slip);
+                   }
+               }
+               sort(slipSys.begin(), slipSys.end(),cmp3); 
+             
+               maxSchmid = slipSys[0].schmid;
+               printf("max %f\n",  maxSchmid);
+             
+               grain->maxSchmid = maxSchmid;
+             
+               for(j=1; j<slipSys.size(); j++){
+                   if(fabs(slipSys[j].schmid-maxSchmid)>1.0E-3)break;
+               }
+             
+               numMaxSchmids = j;
+             
+               for(j=0; j<numMaxSchmids; j++){
+                   VECTOR_COPY(plane.normal, slipSys[j].normal);
+                   VECTOR_ZERO(plane.point);
+                   inGrain = slipSys[j].inGrain;
+                   plane.point[0] += -10.0*surArray[inGrain][0].normal[0];
+                   plane.point[1] += -10.0*surArray[inGrain][0].normal[1];
+                   plane.point[2] += -10.0*surArray[inGrain][0].normal[2];
+             
+             
+                   for(k=0; k<surArray[inGrain].size(); k++){
+                       type = PlanePlaneIntersection(
+                                 plane.normal, plane.point,
+                                 surArray[inGrain][k].normal, surArray[inGrain][k].point, vec1, vec2); 
+                       
+                       if(type != LINE_INTERSECTION)continue;
+                       th = 0;
+                       for(m=0; m<surArray[inGrain].size(); m++){
+                           if(m==k)continue;
+                           type = LinePlaneIntersection(vec1, vec2, surArray[inGrain][m].normal,
+                                        surArray[inGrain][m].point, vec3, interPos);
+             
+                           if(type != POINT_INTERSECTION)continue;
+             
+                           type = PointPlaneIntersection(interPos, surArray[inGrain][0].normal,
+                                      surArray[inGrain][0].point, vec4, &dis);
+                           if(dis > 0.1)continue;
+                           if(fabs(interPos[0]) > param->xBoundMax+1.0){
+                               continue;
+                           }
+                           if(fabs(interPos[1]) > param->yBoundMax+1.0){
+                               continue;
+                           }
+                           if(fabs(interPos[2]) > param->zBoundMax+1.0){
+                               continue;
+                           }
+             
+                           VECTOR_COPY(poss[th], interPos);
+                           th++;
+#if 0        
+                           if(th == 2){
+                               vec4[0] = poss[1][0] - poss[0][0];
+                               vec4[1] = poss[1][1] - poss[0][1];
+                               vec4[2] = poss[1][2] - poss[0][2];
+                               length = Normal(vec4);
+                               nmesh = (int)(length/msize);
+                               tsize = length/((real8)nmesh);
+                               NormalizeVec(vec4);
+                               color = slipSys[j].burgID;
+               
+                               for(n=0; n<nmesh; n++){
+	                               fprintf(fp, "%e %e %e %e %e %e %d %d %f %d\n", poss[0][0],
+                                   poss[0][1],poss[0][2], tsize*vec4[0],
+                                   tsize*vec4[1],tsize*vec4[2], slipSys[j].burgID, 
+                                   slipSys[j].planeID, slipSys[j].schmid, inGrain);
+                                   poss[0][0] += tsize*vec4[0];
+                                   poss[0][1] += tsize*vec4[1];
+                                   poss[0][2] += tsize*vec4[2];
+                               }
+                               th = 0;
+                               break;
+                           }
+#endif       
+                       }
+                   
+                   }
+               }
+             
                 swap(grain->slipSys, slipSys);
-
+                fclose(fp);
             }
-
-            fclose(fp);
-            
-        }
 	}else{
 	    Fatal("Not suppose free surface polycrystal problem");
 	}

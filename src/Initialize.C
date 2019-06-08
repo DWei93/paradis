@@ -1751,7 +1751,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *	Iinitialize grain
  */
 	    InitGrain(home, param);
-        
+
 //	    param->vshr = sqrt(param->YoungsModulus/param->massDensity)/param->burgMag;
         param->vshr = 1.5E3/param->burgMag;
 
