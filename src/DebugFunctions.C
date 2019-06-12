@@ -489,9 +489,6 @@ void DebugGB(Home_t *home, int flag){
 
 	param = home->param;
 
-//    if(flag >= 4 && flag == 5){
-	    printf("%d %d\n",home->myDomain, flag);
-//    }
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
 
@@ -503,12 +500,12 @@ void DebugGB(Home_t *home, int flag){
                   node->myTag.domainID, node->myTag.index, flag);
         }
 
+#if 0
 	    GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc);
 
         vec1[0] = node->x;
         vec1[1] = node->y;
         vec1[2] = node->z;
-#if 0
         if(flag < 18 || flag > 22){
             NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
             if(inGrain != node->inGrain && !IsOnGB(node)){
@@ -528,6 +525,16 @@ void DebugGB(Home_t *home, int flag){
             vec1[0] = node->nx[j];
             vec1[1] = node->ny[j];
             vec1[2] = node->nz[j];
+
+            if(IsOnGB(node) && !IsOnGB(nbr)){
+                if(fabs(vec1[1]) > 0.99){
+                    PrintNode(home, node);
+                    PrintNode(home, nbr);
+                    snprintf(name,50,"wrongGP-%d-%d",home->cycle, flag);
+                    Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
+                    Fatal("Task %d, wrong Glide plane, flag %d\n", home->myDomain, flag);
+                }
+            }
 
             if(DifferentGlidePlane(node)){
                 lDir[0] = node->x - nbr->x;
@@ -577,8 +584,8 @@ void DebugGB(Home_t *home, int flag){
             NormalizeVec(vec);
 
             if(fabs(DotProduct(vec, vec1)) > 0.1){
-                PrintNode(node);
-                PrintNode(nbr);
+                PrintNode(home, node);
+                PrintNode(home,nbr);
                 snprintf(name,50,"wrongSurface-%d-%d",home->cycle, flag);
                 Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
                 Fatal("Warning: task %d, wrong surface seg, flag %d\n", home->myDomain, flag);

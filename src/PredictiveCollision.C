@@ -904,6 +904,7 @@ void PredictiveCollisions(Home_t *home)
         real8   p1[3], p2[3], p3[3], p4[3];
         real8   v1[3], v2[3], v3[3], v4[3];
         real8   pos[3], dis;
+        int     type;
         Tag_t   oldTag1, oldTag2;
         Node_t  *node1, *node2, *node3, *node4, *tmpNbr;
         Node_t  *mergenode1, *mergenode2, *targetNode;
@@ -1403,9 +1404,9 @@ void PredictiveCollisions(Home_t *home)
                                                splitNode2->myTag.index,
                                                node2->myTag.domainID,
                                                node2->myTag.index);
-                                        PrintNode(splitNode1);
-                                        PrintNode(splitNode2);
-                                        PrintNode(node2);
+//                                        PrintNode(splitNode1);
+//                                        PrintNode(splitNode2);
+//                                        PrintNode(node2);
                                      }
 #endif
 /*
@@ -1609,14 +1610,14 @@ void PredictiveCollisions(Home_t *home)
                                                splitNode2->myTag.index,
                                                node4->myTag.domainID,
                                                node4->myTag.index);
-                                         PrintNode(splitNode1);
-                                         PrintNode(splitNode2);
-                                         PrintNode(node4);
+//                                         PrintNode(splitNode1);
+//                                         PrintNode(splitNode2);
+//                                         PrintNode(node4);
                                     }
 #endif
                                 }  /* if (splitSeg2) */
     
-                                if(SurfaceNode(mergenode1) && SurfaceNode(mergenode2))continue;
+                                if(SurfaceNode(mergenode1) || SurfaceNode(mergenode2))continue;
     
 /*
  *                             If the initially selected collision point
@@ -1758,14 +1759,17 @@ void PredictiveCollisions(Home_t *home)
                                }
                                FoldBox(param, newPos, newPos+1, newPos+2);
 
-                               MergeNode(home, OPCLASS_COLLISION, mergenode1,
-                                         mergenode2, newPos, &targetNode,
-                                         &mergeStatus, globalOp
-#if ENABLE_COMPLICATED_REACTION
-                                         ,inGrain1, onGB1
+                               if(BeforeMergeNodes(home, mergenode1, mergenode2, newPos, &dis, type)){
+
+                                    MergeNode(home, OPCLASS_COLLISION, mergenode1,
+                                              mergenode2, newPos, &targetNode,
+                                              &mergeStatus, globalOp
+#if ENABLE_COMPLICATED_REACTION 
+                                             ,inGrain1, onGB1
 #endif
 
                                         );
+                               }else continue;
     
 /*
  *                             If the merge did not succeed, go back and
@@ -1803,7 +1807,7 @@ void PredictiveCollisions(Home_t *home)
                                           oldTag2.domainID, oldTag2.index,
                                           targetNode->myTag.domainID,
                                           targetNode->myTag.index);
-                                   PrintNode(targetNode);
+//                                   PrintNode(targetNode);
                                }
 #endif
 
@@ -2312,13 +2316,15 @@ void PredictiveCollisions(Home_t *home)
                             onGB1 = -1;
                         }
 
-                        MergeNode(home, OPCLASS_COLLISION, mergenode1,
-                                  mergenode2, newPos, &targetNode,
-                                  &mergeStatus, globalOp
+                        if(BeforeMergeNodes(home, mergenode1, mergenode2, newPos, &dis, type)){
+                            MergeNode(home, OPCLASS_COLLISION, mergenode1,
+                                    mergenode2, newPos, &targetNode,
+                                    &mergeStatus, globalOp
 #if ENABLE_COMPLICATED_REACTION
-                                  , inGrain1, onGB1
+                                    , inGrain1, onGB1
 #endif
-                                 );
+                                    );
+                        }else continue;
 
                         localCollisionCnt++;
 

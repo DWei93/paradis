@@ -30,7 +30,7 @@
  *                   as ghost nodes to neighboring domains.
  *
  *-----------------------------------------------------------------------*/
-static void PackVelocity(Home_t *home)
+static void PackVelocity(Home_t *home, int doAll)
 {
         int            i, j, k, bufIndex;
         int            domainIdx, cellIndex, nodesSent, armsSent, valCount;
@@ -65,13 +65,26 @@ static void PackVelocity(Home_t *home)
                 cell = home->cellKeys[cellIndex];
 
                 node = cell->nodeQ;
-                while (node != (Node_t *)NULL) {
-                    if (node->myTag.domainID == home->myDomain) {
-                        nodesSent++;
-                        armsSent += node->numNbrs;
+
+                if(doAll){
+                    while (node != (Node_t *)NULL) {
+                        if (node->myTag.domainID == home->myDomain) {
+                            nodesSent++;
+                            armsSent += node->numNbrs;
+                        }
+                        node = node->nextInCell;
                     }
-                    node = node->nextInCell;
+                }else{
+                    while (node != (Node_t *)NULL) {
+                        if (node->myTag.domainID == home->myDomain && 
+                            ((node->flags & NODE_RESET_FORCES) != 0)) {
+                            nodesSent++;
+                            armsSent += node->numNbrs;
+                        }
+                        node = node->nextInCell;
+                    }
                 }
+
             }
 
 /*
@@ -99,6 +112,12 @@ static void PackVelocity(Home_t *home)
                         node = node->nextInCell;
                         continue;
                     }
+                    if(!doAll && ((node->flags & NODE_RESET_FORCES) == 0)){
+                        node = node->nextInCell;
+                        continue;
+                    }
+
+                    node->flags &= ~NODE_RESET_FORCES;
 
                     outBuf[bufIndex++] = (real8)node->myTag.index;
                     outBuf[bufIndex++] = (real8)node->numNbrs;
@@ -230,7 +249,7 @@ static void UnpackVelocity(Home_t *home)
  *                   domain maintains as ghost nodes.
  *
  *-----------------------------------------------------------------------*/
-void CommSendVelocity(Home_t *home)
+void CommSendVelocity(Home_t *home, int doAll)
 {
 #ifdef PARALLEL
         int            i, domainIdx;
@@ -254,7 +273,7 @@ void CommSendVelocity(Home_t *home)
  *      Package up velocity data for the neighboring domains and send
  *      out the buffer lengths
  */
-        PackVelocity(home);
+        PackVelocity(home, doAll);
 
         for (i = 0; i < home->remoteDomainCount; i++) {
 
@@ -348,5 +367,14 @@ void CommSendVelocity(Home_t *home)
 
 #endif /* if PARALLEL */
 
+#ifdef DEBUG
+        Node_t *node;
+        for(i=0; i<home->newNodeKeyPtr; i++){
+            if((node = home->nodeKeys[i]) == (Node_t *) NULL)continue;
+            if(((node->flags & NODE_RESET_FORCES) != 0)){
+                Fatal("can not zero out node force sucessfully!");
+            }
+        }
+#endif
         return;
 }

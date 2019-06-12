@@ -2469,6 +2469,7 @@ void CompressArmLists (Node_t *node)
  *                                  OPCLASS_SEPARATION
  *                                  OPCLASS_COLLISION
  *                                  OPCLASS_REMESH
+ *                                  OPCLASS_BOUNDARY
  *              thisDomain      domain containing the first endpoint of
  *                              the segment in question.
  *              endTag          pointer to the tag of the second endpoint
@@ -2508,6 +2509,7 @@ int DomainOwnsSeg(Home_t *home, int opClass, int thisDomain, Tag_t *endTag)
                 ownsSeg = (thisDomain < endTag->domainID);
             break;
         case OPCLASS_REMESH:
+        case OPCLASS_BOUNDARY:
             if (home->cycle & 0x01)
                 ownsSeg = (thisDomain < endTag->domainID);
             else

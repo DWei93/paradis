@@ -51,6 +51,7 @@
 #define OPCLASS_SEPARATION  1
 #define OPCLASS_COLLISION   2
 #define OPCLASS_REMESH      3
+#define OPCLASS_BOUNDARY    4
 /*
  *	Prototypes for functions involved in altering topology
  */
