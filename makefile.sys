@@ -1116,7 +1116,7 @@ INCS_SERIAL.franklin       =
 
 CC_PARALLEL.gcc       = mpicc
 CPP_PARALLEL.gcc      = mpicxx
-CCFLAG_PARALLEL.gcc   = -DPARALLEL=1 -Wno-unknown-pragmas
+CCFLAG_PARALLEL.gcc   = -DPARALLEL=1 -Wno-unknown-pragmas -L/home/DeAn_Wei/LIB/lib -I/home/DeAn_Wei/LIB/include
 CPPFLAG_PARALLEL.gcc  = -DPARALLEL=1
 
 CC_SERIAL.gcc         = gcc -Wno-unknown-pragmas
@@ -1149,13 +1149,13 @@ HDF_LIBDIR.gcc        =
 HDF_LIB.gcc           = 
 HDF_INCS.gcc          = 
 
-#GEOS_LIBDIR.gcc        =  
-# GEOS_LIB.gcc           = -L/usr/local/lib -lgeos -rdynamic -Wl,-rpath,/usr/local/lib
-# GEOS_INCS.gcc          = -I/usr/local/include
-#GEOS_LIB.gcc           = -L/home/dwei/geos/lib -lgeos -rdynamic -Wl,-rpath,/home/dwei/geos/lib
+GEOS_LIBDIR.gcc        =  
+GEOS_LIB.gcc           = -L/home/DeAn_Wei/LIB/lib -lgeos_c -rdynamic -Wl,-rpath,/home/DeAn_Wei/LIB/lib
+GEOS_INCS.gcc          = -I/home/DeAn_Wei/LIB/include
+#GEOS_LIB.gcc           = -L/home/dwei/geos/lib -lgeos_c -rdynamic -Wl,-rpath,/home/dwei/geos/lib
 #GEOS_INCS.gcc          = -I/home/dwei/geos/include
 
-OPENMP_FLAG.gcc       = -fopenmp
+OPENMP_FLAG.gcc       = -fopenmp  
 
 #
 #    Identify any additional libraries and paths needed for compilation

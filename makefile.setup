@@ -114,6 +114,7 @@ OPT = -O3
 #
 #######################################################################
 
+DEFS += -DGEOS
 #DEFS += -DVELOCITY_STATISTICS
 #
 #    FULL_N2_FORCES enables code to explicitly calculate direct

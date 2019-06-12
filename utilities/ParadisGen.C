@@ -1138,7 +1138,9 @@ int main(int argc, char *argv[])
         InData_t        inData;
         Param_t         *param;
         Home_t          home;
-
+#ifdef GEOS
+        GeosTest();
+#endif
         Meminfo(&memSize);
 
         memset(&home, 0, sizeof(Home_t));

@@ -290,5 +290,5 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
                          real8 f1[3], real8 f2[3]); 
 bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8 *pos);
 bool InCuboid(Param_t *param, real8 pos[3], real8 eps);
-int GeosTest();
+void GeosTest();
 #endif
