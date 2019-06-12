@@ -1138,13 +1138,14 @@ int main(int argc, char *argv[])
         InData_t        inData;
         Param_t         *param;
         Home_t          home;
-
+#ifdef GEOS
+        GeosTest();
+#endif
         Meminfo(&memSize);
 
 #ifdef VORO
-        if(home->myDomain ==0){
-            VoroTest();
-        }
+        VoroTest();
+        Fatal("Finsh test");
 #endif
         memset(&home, 0, sizeof(Home_t));
         memset(&inData, 0, sizeof(InData_t));

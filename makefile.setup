@@ -114,12 +114,13 @@ OPT = -O3
 #
 #######################################################################
 
-#DEFS += SAS_ANALYZE
-#DEFS += -DVELOCITY_STATISTICS
-
+DEFS += -DGEOS
 DEFS += -DDEBUG
 DEFS += -DNO_GB_BARRIER
 DEFS += -DVORO
+
+#DEFS += -DVELOCITY_STATISTICS
+#DEFS += SAS_ANALYZE
 #
 #    FULL_N2_FORCES enables code to explicitly calculate direct
 #    segment-to-segment forces for every pair of dislocation

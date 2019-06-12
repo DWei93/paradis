@@ -299,6 +299,6 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
 bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8 *pos);
 bool InCuboid(Param_t *param, real8 pos[3], real8 eps);
 void ReadGrainData(Home_t *home, char *fileName);
-int GeosTest();
 void VoroTest();
+void GeosTest();
 #endif

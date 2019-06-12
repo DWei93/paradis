@@ -30,6 +30,15 @@
 using namespace voro;
 #endif
 
+#ifdef GEOS
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <memory>
+#include <geos/unload.h>
+#include <geos_c.h>
+#endif
+
 bool IsOnGB(Node_t *node)
 {
     return(node->onGB > -1);
@@ -3763,5 +3772,54 @@ void VoroTest()
 	v.centroid(x,y,z);
 	printf("Volume              : %g\n"
 	       "Centroid vector     : (%g,%g,%g)\n",v.volume(),x,y,z);
+    return;
 } 
+#endif
+
+#ifdef GEOS
+static void notice(const char *fmt, ...)
+{
+    std::fprintf( stdout, "NOTICE: ");
+
+    va_list ap;
+    va_start(ap, fmt);
+    std::vfprintf(stdout, fmt, ap);
+    va_end(ap);
+
+    std::fprintf(stdout, "\n");
+}
+
+void GeosTest()
+{
+
+    GEOSGeometry* geom1_;
+    GEOSGeometry* geom2_;
+    GEOSWKTWriter* w_;
+    GEOSGeom_destroy(geom1_);
+    GEOSGeom_destroy(geom2_);
+    GEOSWKTWriter_destroy(w_);
+    geom1_ = 0;
+    geom2_ = 0;
+    initGEOS(notice, notice);
+    w_ = GEOSWKTWriter_create();
+    GEOSWKTWriter_setTrim(w_, 1);
+    
+    geom1_ = GEOSGeomFromWKT("LINESTRING(0 0, 10 10.2, 10 0, 0 10)");
+    geom2_ = GEOSNode(geom1_);
+    
+    GEOSNormalize(geom2_);
+    char* wkt_c = GEOSWKTWriter_write(w_, geom2_);
+    std::string out(wkt_c); 
+    free(wkt_c);
+    
+    printf("out: %s\n", out.c_str());
+    GEOSGeom_destroy(geom1_);
+    GEOSGeom_destroy(geom2_);
+    GEOSWKTWriter_destroy(w_);
+    geom1_ = 0;
+    geom2_ = 0;
+    finishGEOS();
+    
+    return;
+}
 #endif
