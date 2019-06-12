@@ -25,6 +25,10 @@
 #include <sstream>
 #include <string>
 
+#ifdef VORO
+#include "voro++.hh"
+using namespace voro;
+#endif
 
 bool IsOnGB(Node_t *node)
 {
@@ -85,10 +89,10 @@ void FormatVector(real8 vec[3], const char *msg){
 }
 
 
-void InitGrainStructure(Grain_t *grain, int numBounds){
-	grain->nBounds = numBounds;
-    grain->GB = (GB_t **)malloc(numBounds*sizeof(GB_t *));	
-    grain->sign = (real8 *)malloc(numBounds*sizeof(real8));
+void InitGrainStructure(Grain_t *grain, int nGBs){
+	grain->nGBs = nGBs;
+    grain->GB = (GB_t **)malloc(nGBs*sizeof(GB_t *));	
+    grain->sign = (real8 *)malloc(nGBs*sizeof(real8));
     return;
 }
 
@@ -212,7 +216,7 @@ void InitGrain(Home_t *home, Param_t *param){
 	    home->grainKeys	= (Grain_t **)malloc(home->nGrains * sizeof(Grain_t *));
         home->grainKeys[0] = (Grain_t *)calloc(1, sizeof(Grain_t));
         grain = home->grainKeys[0];
-        grain->nBounds = 0;
+        grain->nGBs = 0;
 
         memcpy(grain->orientation, home->rotMatrix, sizeof(real8 [3][3]));
         memcpy(grain->orientationInv, home->rotMatrixInverse, sizeof(real8 [3][3]));
@@ -957,6 +961,123 @@ void InitGrain(Home_t *home, Param_t *param){
 	return;
 }
 
+
+void ReadGrainData(Home_t *home, char *fileName)
+{
+    int     i;
+    const int MAXLINELENGTH=1024;
+    char str[MAXLINELENGTH], *rt;
+
+    Param_t *param = home->param;
+/*
+ *  add surface Info
+ */
+    home->nSurfaces = 0;
+    if(param->xBoundType == Free)home->nSurfaces += 2;
+    if(param->yBoundType == Free)home->nSurfaces += 2;
+    if(param->zBoundType == Free)home->nSurfaces += 2;
+    home->surfacen = (real8 (*)[3])malloc(3*home->nSurfaces*sizeof(real8));
+    home->surfacep = (real8 (*)[3])malloc(3*home->nSurfaces*sizeof(real8));
+    i=0;
+    if(param->xBoundType == Free){
+        VECTOR_ZERO(home->surfacen[i]);
+        VECTOR_ZERO(home->surfacep[i]);
+        VECTOR_ZERO(home->surfacen[i+1]);
+        VECTOR_ZERO(home->surfacep[i+1]);
+        home->surfacen[i][0] = -1.0;
+        home->surfacen[i+1][0] = 1.0;
+        home->surfacep[i][0] = param->xBoundMin;
+        home->surfacep[i+1][0] = param->xBoundMax;
+        i += 2;
+    }
+
+    if(param->yBoundType == Free){
+        VECTOR_ZERO(home->surfacen[i]);
+        VECTOR_ZERO(home->surfacep[i]);
+        VECTOR_ZERO(home->surfacen[i+1]);
+        VECTOR_ZERO(home->surfacep[i+1]);
+        home->surfacen[i][1] = -1.0;
+        home->surfacen[i+1][1] = 1.0;
+        home->surfacep[i][1] = param->yBoundMin;
+        home->surfacep[i+1][1] = param->yBoundMax;
+        i += 2;
+    }
+
+    if(param->zBoundType == Free){
+        VECTOR_ZERO(home->surfacen[i]);
+        VECTOR_ZERO(home->surfacep[i]);
+        VECTOR_ZERO(home->surfacen[i+1]);
+        VECTOR_ZERO(home->surfacep[i+1]);
+        home->surfacen[i][2] = -1.0;
+        home->surfacen[i+1][2] = 1.0;
+        home->surfacep[i][2] = param->zBoundMin;
+        home->surfacep[i+1][2] = param->zBoundMax;
+    }
+
+/*
+ *  Read grain data file
+ */
+
+    int nLines = 0;
+    char **lines;
+    if(home->myDomain == 0){
+        printf("1\n");
+        std::vector<std::string> strings;
+
+        FILE *fp;
+        if((fp = fopen(fileName, "r+")) == NULL){
+            Fatal("Warning: can not open fie %s\n", fileName);
+        }
+
+        printf("2\n");
+        while(1){
+            rt = fgets(str, MAXLINELENGTH, fp);
+            if(feof(fp))break;
+            if(str == NULL)continue;
+            strings.push_back(str);
+            nLines++;
+        }
+
+        lines = (char **)malloc(nLines*sizeof(char *));
+        for(i=0; i<nLines; i++){
+            lines[i] = (char*)malloc(sizeof(str));
+            snprintf(lines[i], sizeof(str), "%s", strings[i].c_str());
+        }
+    }
+
+#ifdef PARALLEL
+        MPI_Bcast(&nLines, sizeof(int), MPI_INT, 0,
+                  MPI_COMM_WORLD);
+
+        if(home->myDomain != 0){
+            lines = (char **)malloc(nLines*sizeof(char *));
+            for(i=0; i<nLines; i++){
+                lines[i] = (char*)malloc(sizeof(str));
+            }
+        }
+
+        for(i=0; i<nLines; i++){
+        MPI_Bcast(&lines[i], sizeof(str), MPI_CHAR, 0,
+                  MPI_COMM_WORLD);
+
+        }
+#endif
+
+    if(home->myDomain == 2){
+        printf("domain 2\n");
+        for(i=0; i<nLines; i++){
+            printf("%s", lines[i]);
+        }
+    }
+    
+
+#ifdef PARALLEL
+    MPI_Barrier(MPI_COMM_WORLD);
+#endif
+    Fatal("OK");
+    return;
+}
+
 void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB){
     int         i, j, nGrains, type, breakLoop = 0;
     real8       vec[3], dis, pos[3], sign;
@@ -980,7 +1101,7 @@ void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& on
     for(i=0; i<nGrains; i++){
         if(breakLoop)break;
         grain = home->grainKeys[i];
-        for(j=0; j<grain->nBounds; j++){
+        for(j=0; j<grain->nGBs; j++){
             type = PointPlaneIntersection(pos, grain->GB[j]->n, 
                    grain->GB[j]->p, vec, &dis);
             dis *= grain->sign[j];
@@ -1012,7 +1133,7 @@ void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& on
                 if(dis > 0.0){
                     break;
                 }else{
-                    if(j == grain->nBounds - 1){
+                    if(j == grain->nGBs - 1){
                         inGrain = grain->grainID;
                         onGB = -1;
                         breakLoop = 1;
@@ -1020,7 +1141,7 @@ void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& on
                     }
                 }
             }
-        }   /*for(j=0; j<grain->nBounds; j++) */
+        }   /*for(j=0; j<grain->nGBs; j++) */
     }   /*for(i=0; i<home->nGrains; i++) */
 
     if(breakLoop == 0)Fatal("at file %s at line %d", __FILE__, __LINE__);
@@ -1498,7 +1619,7 @@ real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB){
 
 int GetGBIndexOfGrain(Grain_t *grain, int onGB){
     int i;
-    for(i=0; i<grain->nBounds; i++){
+    for(i=0; i<grain->nGBs; i++){
          if(grain->GB[i]->GBID == onGB)return(i);
     }
     return(-1);
@@ -1509,7 +1630,7 @@ bool GetPublicGB(Grain_t *grain1, Grain_t *grain2, GB_t **GB)
     *GB = (GB_t *)NULL;
 
     int id, i;
-    for(i=0; i<grain1->nBounds; i++){
+    for(i=0; i<grain1->nGBs; i++){
         id = GetGBIndexOfGrain(grain1, grain2->GB[i]->GBID);
         if(id > -1){
             *GB = grain1->GB[id];
@@ -3599,4 +3720,48 @@ void LineBoxIntersection(Param_t *param, real8 dir[3], real8 pos[3], real8 inter
     return;
 }
 
+#ifdef VORO
+// This function returns a random floating point number between 0 and 1
+double rnd() {return double(rand())/RAND_MAX;}
 
+void VoroTest()
+{
+	double x,y,z;
+	voronoicell v;
+
+	// Initialize the Voronoi cell to be a cube of side length 2, centered
+	// on the origin
+	v.init(-1,1,-1,1,-1,1);
+
+	// Remove one edge of the cell with a single plane cut
+	v.plane(1,1,0,2);
+
+	// Output the Voronoi cell to a file in gnuplot format
+	v.draw_gnuplot(0,0,0,"simple_cell.gnu");
+
+	// Output vertex-based statistics
+	printf("Total vertices      : %d\n",v.p);
+	printf("Vertex positions    : ");v.output_vertices();puts("");
+	printf("Vertex orders       : ");v.output_vertex_orders();puts("");
+	printf("Max rad. sq. vertex : %g\n\n",0.25*v.max_radius_squared());
+
+	// Output edge-based statistics
+	printf("Total edges         : %d\n",v.number_of_edges());
+	printf("Total edge distance : %g\n",v.total_edge_distance());
+	printf("Face perimeters     : ");v.output_face_perimeters();puts("\n");
+
+	// Output face-based statistics
+	printf("Total faces         : %d\n",v.number_of_faces());
+	printf("Surface area        : %g\n",v.surface_area());
+	printf("Face freq. table    : ");v.output_face_freq_table();puts("");
+	printf("Face orders         : ");v.output_face_orders();puts("");
+	printf("Face areas          : ");v.output_face_areas();puts("");
+	printf("Face normals        : ");v.output_normals();puts("");
+	printf("Face vertices       : ");v.output_face_vertices();puts("\n");
+
+	// Output volume-based statistics
+	v.centroid(x,y,z);
+	printf("Volume              : %g\n"
+	       "Centroid vector     : (%g,%g,%g)\n",v.volume(),x,y,z);
+} 
+#endif

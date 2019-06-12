@@ -121,8 +121,8 @@ PARADIS_CPP_SRCS = GrainBoundary.C \
       WriteProp.C              \
       WriteRestart.C           \
 	  WriteVisit.C             \
-      WriteVelocity.C          
-#      GeometryTestFactory.cpp  TestSweepLineSpeed.cpp \
+      WriteVelocity.C     #    \
+#      GeometryTestFactory.C  TestSweepLineSpeed.C \
 #       DisplayC.C display.C
 
 

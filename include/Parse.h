@@ -49,5 +49,6 @@ void MarkParamDisabled(ParamList_t *CPList, const char *name);
 void MarkParamEnabled(ParamList_t *CPList, const char *name);
 void WriteParam(ParamList_t *list, int index, FILE *fp);
 void WriteArray(real8 **array, char *name, int nRows, int nCols, FILE *fp);
+void ReadArray(real8 **array, char *name, int nRows, int nCols, FILE *fp);
 
 #endif  /* _PARSE_H */

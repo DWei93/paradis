@@ -230,6 +230,11 @@ void ReleaseMemory(Home_t *home)
             free(home->dataParamList);
         }
 
+        if(home->nSurfaces > 0){
+            free(home->surfacen);
+            free(home->surfacep);
+        }
+
         free(home->param);
         home->param = NULL;
 

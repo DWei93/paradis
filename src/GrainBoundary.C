@@ -1615,14 +1615,73 @@ void AdjustBoundaryNodes(Home_t *home)
 
     Param_t *param = home->param;
     int thisDomain = home->myDomain;
+    Grain_t **grains = home->grainKeys;
+
+#if DEBUG
+    int     oldInGrain, oldOnGB;
+#endif
 
     Node_t  *node;
-    for(auto i = 0; i<home->newNodeKeyPtr; i++){
-        if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
+    real8   nodePos[3], oldPos[3]; 
+    std::vector<Plane_t> *surface;
+	for(int i=0; i<home->newNodeKeyPtr;i++){
+        if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
+/*
+ *      skip the node whihch has been operated in this loop. 
+ */
+        if(((node->flags & NODE_RESET_FORCES) != 0))continue;
+
+        nodePos[0] = node->x;   nodePos[1] = node->y;   nodePos[2] = node->z;
+        oldPos[0] = node->oldx;   oldPos[1] = node->oldy;   oldPos[2] = node->oldz;
+
+#if DEBUG
+        NodeLocation(home, node->oldx, node->oldy, node->oldz, oldInGrain, oldOnGB);
+        try{
+            if(node->inGrain > 0){
+                if(oldInGrain != node->inGrain) throw "wrong old inGrain";
+            }else{
+                if(node->onGB != oldOnGB) throw "wrong old onGB";
+            }
+
+            if(SurfaceNode(node)){
+                switch (node->constraint){
+                    case 1:
+                        if(fabs(param->xBoundMax - fabs(node->oldx)) > 1.0E-3) throw "wrong surface x node";
+                        break;
+                    case 2:
+                        if(fabs(param->yBoundMax - fabs(node->oldy)) > 1.0E-3) throw "wrong surface y node";
+                        break;
+                    case 3:
+                        if(fabs(param->zBoundMax - fabs(node->oldz)) > 1.0E-3) throw "wrong surface z node";
+                        break;
+                }
+            }
         
-        
-        
-    }
+            if(fabs(oldPos[0]) > param->xBoundMax) throw "oldx is not in box";
+            if(fabs(oldPos[1]) > param->yBoundMax) throw "oldy is not in box";
+            if(fabs(oldPos[2]) > param->zBoundMax) throw "oldz is not in box";
+
+            real8   nodePath[3] = {nodePos[0]-oldPos[0], nodePos[1]-oldPos[1], nodePos[2]-oldPos[2]};
+            real8   bakPath[3];
+            VECTOR_COPY(bakPath, nodePath);
+            AdjustNodeDirection(home, node, nodePath);
+            VECTOR_MINUS(nodePath, bakPath);
+            if(Normal(nodePath) > 1.0E-5)throw "nodal path is not along the constraint direction";
+
+            real8   nodeV[3] = {node->vX, node->vY, node->vZ};
+            real8   bakV[3];
+            VECTOR_COPY(bakV, nodeV);
+            AdjustNodeDirection(home, node, nodeV);
+            VECTOR_MINUS(nodeV, bakV);
+            if(Normal(nodeV) > 1.0E-1)throw "nodal velocity is not along the constraint direction";
+
+        }catch (const char *msg){
+            PrintNode(home, node);
+            Fatal("Something unexpected: %s.", msg);
+        }
+#endif
+
+    }/* for(int i=0; i<home->newNodeKeyPtr;i++) */
 
     return;
 }

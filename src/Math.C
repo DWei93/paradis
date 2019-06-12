@@ -530,3 +530,16 @@ int PointPointIntersection(double *p1, double *p2, double *vec, double *dis){
         return(NO_INTERSECTION);
     }
 }
+
+int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double &t){
+
+    double dot1 = nDir[0]*(p1[0]-point[0]) + nDir[1]*(p1[1]-point[1]) + nDir[2]*(p1[2]-point[2]);
+    double dot2 = nDir[0]*(p2[0]-point[0]) + nDir[1]*(p2[1]-point[1]) + nDir[2]*(p2[2]-point[2]);
+    
+    if(dot1*dot2 > 0)return(NO_INTERSECTION);
+    double tot = fabs(dot1)+fabs(dot2);
+    if(tot < 1.0E-80){
+        t = fabs(dot1)/tot;
+    }else t = 0.0;
+    return(POINT_INTERSECTION);
+}

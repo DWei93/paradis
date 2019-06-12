@@ -25,12 +25,12 @@
 
 
 #frlen=1800
-frlen=2000,3000
+frlen=2000
 cubel=2000
 #frlen=1980
 #cubel=2000
 maxSeg=133
-nfrs=28
+nfrs=8
 maxDensity=1E14
 
 polycrystal=1
@@ -39,7 +39,7 @@ single=2
 PI=3.1415926535897932385
 if [ ${polycrystal} == "1" ]; then
     srctype=5
-    angle=`echo "scale=16; ${1}.0 * ${PI} / 180.0 " | bc -l`
+#    angle=`echo "scale=16; ${1}.0 * ${PI} / 180.0 " | bc -l`
 else
     srctype=2
     if [ ${single} = "1" ]; then
@@ -62,8 +62,6 @@ else
     xdir=`echo "${x1}${x2}${x3}"`
     ydir=`echo "${y1}${y2}${y3}"`
 fi
-
-srctype=1
 case $srctype in
 ######################################################################################
 #
@@ -120,14 +118,18 @@ case $srctype in
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity \
-    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 -out SAS/${2} > /dev/null 2>&1;;
+    -disList 2,1,0,1 -disList 2,1,1,1 \
+    -disList 0,0,0,2 -disList 0,0,1,2 \
+    -disList 3,0,0,2 -disList 3,0,1,2 \
+    -disList 5,1,0,1 -disList 5,1,1,1 \
+    -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 ;;
+#    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 -out SAS/${2} > /dev/null 2>&1;;
 
 #    -xMatDir ${xdir} -yMatDir ${ydir} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
-#    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
 #    -xMatDir 0.707106781186548,-0.707106781186548,0.0 -yMatDir 0.642228525188087,0.642228525188087,-0.418431646591735 \
     *)
      echo "input error!"
      exit 1 ;;
 esac
 
-./bin/paradisrepart -infile paradis.data -cells 4 -domains 1,1,4 -outfile input/Copper.data > /dev/null 2>&1
+./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile input/Copper.data > /dev/null 2>&1

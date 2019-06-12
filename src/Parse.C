@@ -19,7 +19,6 @@
 #include "Home.h"
 #include "Parse.h"
 
-
 /*---------------------------------------------------------------------------
  *
  *      Function:       BindVar
@@ -697,6 +696,27 @@ void WriteArray(real8 **array, char *name, int nRows, int nCols, FILE *fp)
         fprintf(fp, "\n");
     }
     fprintf(fp, "]\n");
+    return;
+}
+
+#define MAXLINELENGTH 1024
+void ReadArray(real8 **array, char *name, int nRows, int nCols, FILE *fp)
+{
+    char str[MAXLINELENGTH], *rt;
+    while(1){
+        rt = fgets(str, MAXLINELENGTH, fp);
+        if(feof(fp))break;
+        if(str == "\n" || str == NULL)continue;
+        if(strstr(str, name) != NULL){
+            for(int i=0; i<nRows; i++){
+                rt = fgets(str, MAXLINELENGTH, fp);
+                array[i][0] = atof(strtok(str, " ")); 
+                for(int j=1; j<nCols; j++){
+                    array[i][j] = atof(strtok(NULL, " \n"));
+                }
+            }
+        }
+    }
     return;
 }
 

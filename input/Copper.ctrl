@@ -17,9 +17,9 @@
 #
 #  Domain geometry
 #
-numXdoms = 4
-numYdoms = 4
-numZdoms = 4
+numXdoms = 2
+numYdoms = 2
+numZdoms = 1
 #
 #  Cell geometry
 #
@@ -40,7 +40,7 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-dirname = "res.1105544"
+dirname = "res.1124501"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -48,7 +48,6 @@ splitMultiNodeFreq =   1
 #
 #  Simulation time and timestepping controls
 #  
-relax = 200000
 maxstep =  40000000 
 #maxstep =  50000 
 maxStn = 0.6E-2
@@ -91,19 +90,18 @@ edotdir = [
 appliedStress = [
 	0.0e0
 	0.0e0
-	0.0e0
-	0.0e0
+	-3.0e8
+	-3.0e8
 	0.0e0
 	0.0e0
 ]
-
+elasticinteraction = 0
 #
 #  Material and mobility parameters
 #  
 mobilityLaw =   "FCC_0"  
 #shearModulus =   54.6e9  # Voight Average
 shearModulus =  46.554e9  # in jin paper
-limitDisplacement = 0
 GBStrength = 5.0e8
 #GBStrength = 0.0e0
 burgMag =   2.55600e-10 
@@ -128,7 +126,7 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 10000
+tecplotfreq = 100
 saveprop = 1
 savepropfreq = 200
 tecmesh = 0

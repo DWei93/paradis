@@ -1177,8 +1177,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
         int          doBinRead;
         char         *sep, *start;
         char         tmpDataFile[256], testFile[256], tmpTableFile[256];
-        char         *ctrlFile;
-        char         *dataFile, *tableFile;
+        char         *ctrlFile, tmpGrainFile[256];
+        char         *dataFile, *tableFile, *grainDataFile;
         const   char* temp;
         Param_t      *param;
         InData_t     *inData;
@@ -1225,11 +1225,11 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
         if (home->myDomain == 0) {
 
-
             dataFile = (char *)NULL;
             ctrlFile = (char*)"control.script";
             tableFile = (char *)NULL;
-
+            grainDataFile = (char *)NULL;
+            
             for (i = 1; i < argc; i++) {
                 if (!strcmp(argv[i], "-r")) {
                     if (i >= (argc - 1)) Usage(argv[0]);
@@ -1258,9 +1258,12 @@ void Initialize(Home_t *home,int argc, char *argv[])
                     if (i >= (argc - 1)) Usage(argv[0]);
                     dataFile = argv[++i];
 
-                } else if (!strcmp(argv[i], "-h")) {
+                } else if (!strcmp(argv[i], "-t")) {
                     if(i >= (argc - 1)) Usage(argv[0]);
                     tableFile = argv[++i];
+                } else if (!strcmp(argv[i], "-g")) {
+                    if(i >= (argc - 1)) Usage(argv[0]);
+                    grainDataFile = argv[++i];
                 } else {
                     if (i < (argc - 1)) Usage(argv[0]);
                     ctrlFile = argv[i];
@@ -1319,6 +1322,34 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
             }
 
+/*
+ *          If the user did not specify a table file name, set
+ *          a default name based on the base control file name.
+ */
+            if (tableFile == (char *)NULL) {
+                strcpy(tmpTableFile, ctrlFile);
+                start = strrchr(tmpTableFile, '/');
+                if (start == (char *)NULL) start = tmpTableFile;
+                sep = strrchr(start, '.');
+                if ((sep != (char *)NULL) && (sep > start)) *sep = 0;
+                strcat(tmpTableFile, TABLE_FILE_SUFFIX);
+                tableFile = tmpTableFile;
+            }
+
+/*
+ *          If the user did not specify a grain data file name, set
+ *          a default name based on the base control file name.
+ */
+            if (grainDataFile == (char *)NULL) {
+                strcpy(tmpGrainFile, ctrlFile);
+                start = strrchr(tmpGrainFile, '/');
+                if (start == (char *)NULL) start = tmpGrainFile;
+                sep = strrchr(start, '.');
+                if ((sep != (char *)NULL) && (sep > start)) *sep = 0;
+                strcat(tmpGrainFile, GRAIN_FILE_SUFFIX);
+                grainDataFile = tmpGrainFile;
+            }
+
             PrintBanner(home, argc, argv);
 
             home->ctrlParamList = (ParamList_t *)calloc(1,sizeof(ParamList_t));
@@ -1335,7 +1366,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
  */
             printf("Initialize: Parsing control file %s\n", ctrlFile);
             ReadControlFile(home, ctrlFile);
-            printf("Initialize: Control file parsing complete\n");
+            printf("Initialize: Control file parsing complete \n");
     
 #ifdef NO_GB_BARRIER
             param->GBStrength = 0.0;
@@ -1465,7 +1496,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
 	    VECTOR_ZERO(&param->elasticStrainTensor[0]);
 	    VECTOR_ZERO(&param->elasticStrainTensor[3]);
 		
-		
 /*
  *      Some of the parameters used in creating the nodal data file
  *      used for this run may not match the values to be used for 
@@ -1517,6 +1547,39 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
         }
 
+        param->meshNumX = (int)(param->Lx/(real8)param->meshSizeX);
+        param->meshNumY = (int)(param->Ly/(real8)param->meshSizeY);
+        param->meshNumZ = (int)(param->Lz/(real8)param->meshSizeZ);
+
+        param->meshSizeX = param->Lx/(real8)param->meshNumX;
+        param->meshSizeY = param->Ly/(real8)param->meshNumY;
+        param->meshSizeZ = param->Lz/(real8)param->meshNumZ;
+
+        totMeshNum = param->meshNumX*param->meshNumY*param->meshNumZ;
+        home->pstnEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
+        home->disDenEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
+
+        for(i=0; i<totMeshNum; i++){
+            home->pstnEle[i] = (real8 *)calloc(6, sizeof(real8)); 
+        }
+
+        for(i=0; i<totMeshNum; i++){
+           home->disDenEle[i] = (real8 *)calloc(6, sizeof(real8)); 
+        }
+
+        if(home->myDomain == 0){
+            fp = (FILE *)NULL;
+            char name[256];
+            snprintf(name, sizeof(name), "pstnEle");
+            if ((fp = fopen(tableFile, "r+")) != (FILE *)NULL) {
+                printf("Reading %s Table ...\n", name);
+                ReadArray(home->pstnEle, name, totMeshNum, 6, fp);
+                fclose(fp);
+                fp = (FILE *)NULL;
+            }
+
+        }
+        ReadGrainData(home, grainDataFile);
 /*
  *      Now that the param structure is fully populated, do any
  *      remaining sanity checks or initializations that could not
@@ -1725,30 +1788,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
             Matrix33Invert(home->rotMatrix, home->rotMatrixInverse);
         }
-
-        param->meshNumX = (int)(param->Lx/(real8)param->meshSizeX);
-        param->meshNumY = (int)(param->Ly/(real8)param->meshSizeY);
-        param->meshNumZ = (int)(param->Lz/(real8)param->meshSizeZ);
-
-        param->meshSizeX = param->Lx/(real8)param->meshNumX;
-        param->meshSizeY = param->Ly/(real8)param->meshNumY;
-        param->meshSizeZ = param->Lz/(real8)param->meshNumZ;
-
-        totMeshNum = param->meshNumX*param->meshNumY*param->meshNumZ;
-        home->pstnEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
-        home->disDenEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
-
-        for(i=0; i<totMeshNum; i++){
-            home->pstnEle[i] = (real8 *)calloc(6, sizeof(real8)); 
-        }
-
-        for(i=0; i<totMeshNum; i++){
-           home->disDenEle[i] = (real8 *)calloc(6, sizeof(real8)); 
-        }
         
-
 /*
- *	Iinitialize grain
+ *	    Iinitialize grain
  */
 	    InitGrain(home, param);
 

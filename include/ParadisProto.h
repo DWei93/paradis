@@ -31,9 +31,11 @@
  * VECTOR_ZERO: Zero out the components of the vector
  */
 #define VECTOR_ADD(a,b)  {(a)[0] += (b)[0]; (a)[1] += (b)[1]; (a)[2] += (b)[2];}
+#define VECTOR_MINUS(a,b)  {(a)[0] -= (b)[0]; (a)[1] -= (b)[1]; (a)[2] -= (b)[2];}
 #define VECTOR_COPY(a,b) {(a)[0] = (b)[0]; (a)[1] = (b)[1]; (a)[2] = (b)[2];}
 #define VECTOR_ZERO(a)   {(a)[0] = 0; (a)[1]  = 0; (a)[2] = 0;}
 #define VECTOR_MULTIPLY(a,x)	{(a)[0] *= (x);    (a)[1] *= (x);    (a)[2] *= (x);}
+
 
 #ifdef __cplusplus
 extern "C" void Getline(char *string, int len, FILE *fp);

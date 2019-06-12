@@ -133,6 +133,10 @@ typedef struct {
 
     real8       n[3];
     real8       p[3];
+
+	int		    nBounds;
+    int         *boundgb;
+    real8       **boundn, **boundp;
 } GB_t;
 
 typedef struct {
@@ -159,9 +163,13 @@ struct _grain{
 					    /*1: ordinary grain*/
     BurgInfo_t  burgData;
 
-	int		    nBounds;
+    int         nGBs;
     GB_t        **GB;
     real8       *sign;
+
+	int		    nBounds;
+    int         *boundgb;
+    real8       **boundn, **boundp;
 
     std::vector<SlipSys_t>      slipSys;
     std::vector<Plane_t>        surface;
@@ -290,5 +298,7 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
                          real8 f1[3], real8 f2[3]); 
 bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8 *pos);
 bool InCuboid(Param_t *param, real8 pos[3], real8 eps);
+void ReadGrainData(Home_t *home, char *fileName);
 int GeosTest();
+void VoroTest();
 #endif

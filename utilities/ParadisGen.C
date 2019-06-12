@@ -1141,6 +1141,11 @@ int main(int argc, char *argv[])
 
         Meminfo(&memSize);
 
+#ifdef VORO
+        if(home->myDomain ==0){
+            VoroTest();
+        }
+#endif
         memset(&home, 0, sizeof(Home_t));
         memset(&inData, 0, sizeof(InData_t));
 

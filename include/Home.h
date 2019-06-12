@@ -426,6 +426,12 @@ struct _home {
         int   surfaceSegCount;
         real8 *surfaceSegList;
 #endif
+
+/*
+ *      Surfaces of the simualation cell
+ */
+        int nSurfaces;
+        real8 (*surfacen)[3], (*surfacep)[3];
 };
 
 /* prototypes */
