@@ -1224,7 +1224,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
  */
 
         if (home->myDomain == 0) {
-
+            GeosTest();
+            Fatal("domain 0");
             dataFile = (char *)NULL;
             ctrlFile = (char*)"control.script";
             tableFile = (char *)NULL;
