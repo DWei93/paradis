@@ -63,6 +63,11 @@
 #include "mpi.h"
 #endif
 
+#ifdef VORO
+#include "voro++.hh"
+using namespace voro;
+#endif
+
 /*
  *      Don't let the code compile with both PARALLEL and FULL_N2_FORCES
  *      defined...
@@ -432,6 +437,16 @@ struct _home {
  */
         int nSurfaces;
         real8 (*surfacen)[3], (*surfacep)[3];
+
+#ifdef VORO
+/*
+ *      Voronoicell 
+ */
+        char        voroFile[256];
+        container   *con;
+        c_loop_all  *cl;
+        voronoicell_neighbor **cells;
+#endif
 };
 
 /* prototypes */

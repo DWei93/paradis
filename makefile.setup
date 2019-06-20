@@ -114,7 +114,7 @@ OPT = -O3
 #
 #######################################################################
 
-DEFS += -DGEOS
+#DEFS += -DGEOS
 DEFS += -DDEBUG
 DEFS += -DNO_GB_BARRIER
 DEFS += -DVORO

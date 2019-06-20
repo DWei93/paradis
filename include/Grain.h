@@ -10,6 +10,11 @@
 
 #include <vector>
 
+#ifdef VORO
+#include "voro++.hh"
+using namespace voro;
+#endif
+
 typedef struct {
     int     planeID;
     int     burgID;

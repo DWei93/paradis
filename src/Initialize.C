@@ -1178,7 +1178,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
         char         *sep, *start;
         char         tmpDataFile[256], testFile[256], tmpTableFile[256];
         char         *ctrlFile, tmpGrainFile[256];
-        char         *dataFile, *tableFile, *grainDataFile;
+        char         *dataFile, *tableFile, *voroFile;
         const   char* temp;
         Param_t      *param;
         InData_t     *inData;
@@ -1224,12 +1224,10 @@ void Initialize(Home_t *home,int argc, char *argv[])
  */
 
         if (home->myDomain == 0) {
-            GeosTest();
-            Fatal("domain 0");
             dataFile = (char *)NULL;
             ctrlFile = (char*)"control.script";
             tableFile = (char *)NULL;
-            grainDataFile = (char *)NULL;
+            voroFile = (char *)NULL;
             
             for (i = 1; i < argc; i++) {
                 if (!strcmp(argv[i], "-r")) {
@@ -1264,7 +1262,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
                     tableFile = argv[++i];
                 } else if (!strcmp(argv[i], "-g")) {
                     if(i >= (argc - 1)) Usage(argv[0]);
-                    grainDataFile = argv[++i];
+                    voroFile = argv[++i];
                 } else {
                     if (i < (argc - 1)) Usage(argv[0]);
                     ctrlFile = argv[i];
@@ -1341,15 +1339,16 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *          If the user did not specify a grain data file name, set
  *          a default name based on the base control file name.
  */
-            if (grainDataFile == (char *)NULL) {
+            if (voroFile == (char *)NULL) {
                 strcpy(tmpGrainFile, ctrlFile);
                 start = strrchr(tmpGrainFile, '/');
                 if (start == (char *)NULL) start = tmpGrainFile;
                 sep = strrchr(start, '.');
                 if ((sep != (char *)NULL) && (sep > start)) *sep = 0;
                 strcat(tmpGrainFile, GRAIN_FILE_SUFFIX);
-                grainDataFile = tmpGrainFile;
+                voroFile = tmpGrainFile;
             }
+            snprintf(home->voroFile, sizeof(home->voroFile), "%s", voroFile);
 
             PrintBanner(home, argc, argv);
 
@@ -1580,7 +1579,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
             }
 
         }
-        ReadGrainData(home, grainDataFile);
 /*
  *      Now that the param structure is fully populated, do any
  *      remaining sanity checks or initializations that could not
@@ -1701,6 +1699,16 @@ void Initialize(Home_t *home,int argc, char *argv[])
         }
 #endif
 
+        
+/*
+ *	    Iinitialize grain
+ */
+	    InitGrain(home, param);
+#if PARALLEL
+        MPI_Barrier(MPI_COMM_WORLD);
+        if(home->myDomain == 2)Fatal("Finish init grain");
+#endif
+
 /*
  *      Create the output directory (and sub-directories) and reset the
  *      current working directory to the top level output directory.
@@ -1789,11 +1797,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
             Matrix33Invert(home->rotMatrix, home->rotMatrixInverse);
         }
-        
-/*
- *	    Iinitialize grain
- */
-	    InitGrain(home, param);
 
 //	    param->vshr = sqrt(param->YoungsModulus/param->massDensity)/param->burgMag;
         param->vshr = 1.5E3/param->burgMag;

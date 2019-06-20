@@ -154,7 +154,8 @@ Option_t optList[OPT_MAX] = {
         {OPT_TBCRYST,   "TBCryst",      3, 1},
         {OPT_OUT_FILE,   "outFile",      3, 1},
         {OPT_LOAD_DIR,   "loadDir",      3, 1},
-        {OPT_DIS_LIST,   "disList",      3, 1}
+        {OPT_DIS_LIST,   "disList",      3, 1},
+        {OPT_VORO_FILE,  "voroFile",     3, 1}
 
 };
 
@@ -395,6 +396,7 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->loadDir[0] = 0;
         inArgs->loadDir[1] = 0;
         inArgs->loadDir[2] = -1;
+        inArgs->voroFile =(char *)"voroFile.vro";
 
         return;
 }
@@ -857,6 +859,9 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                         inArgs->disList.push_back(dis);
                     }
                     break;
+                case OPT_VORO_FILE:
+                    inArgs->voroFile = argValue;
+                    break;
             }
         }
 
@@ -1144,8 +1149,7 @@ int main(int argc, char *argv[])
         Meminfo(&memSize);
 
 #ifdef VORO
-        VoroTest();
-        Fatal("Finsh test");
+//        VoroTest();
 #endif
         memset(&home, 0, sizeof(Home_t));
         memset(&inData, 0, sizeof(InData_t));
@@ -1219,8 +1223,10 @@ int main(int argc, char *argv[])
 	    VECTOR_COPY(param->matrixOrientation[2],inArgs.zMatDir);
 
         VECTOR_COPY(param->TBNormalCryst, inArgs.TBCryst);
+        snprintf(home.voroFile, sizeof(home.voroFile), "%s", inArgs.voroFile);
 
 	    InitGrain(&home, param);
+        Fatal("Finish InitGrain");
 		
         strncpy(param->node_data_file, inArgs.outputFile,
             sizeof(param->node_data_file)-1);

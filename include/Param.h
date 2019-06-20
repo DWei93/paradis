@@ -22,7 +22,7 @@
 #define HDF_DATA_FILE_SUFFIX   ".hdf"
 #define NODEDATA_FILE_SUFFIX   ".data"
 #define TABLE_FILE_SUFFIX      ".tab"
-#define GRAIN_FILE_SUFFIX      ".grn"
+#define GRAIN_FILE_SUFFIX      ".vor"
 #define NODEDATA_FILE_VERSION  4
 
 struct _param {
@@ -514,6 +514,7 @@ struct _param {
         real8       velMax, velMin, dissMax, dissMin, baseVel, baseDiss, (*velTable)[4], (*dissTable)[4];
 #endif
         real8       wallTime; // units hour 
+
 
 #ifdef _FEM
 /*

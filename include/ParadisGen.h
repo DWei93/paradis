@@ -50,6 +50,7 @@ typedef struct {
         real8   TBCryst[3];
         char    outFile[256];
         real8   loadDir[3]; 
+        char    *voroFile;
 
         std::vector<std::vector<int> >    disList;
 }InArgs_t;
@@ -163,6 +164,7 @@ typedef	enum{
     OPT_OUT_FILE,
     OPT_LOAD_DIR,
     OPT_DIS_LIST,
+    OPT_VORO_FILE,
 	OPT_MAX
 	
 }ParadisGenArgs_t;

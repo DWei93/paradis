@@ -25,10 +25,6 @@
 #include <sstream>
 #include <string>
 
-#ifdef VORO
-#include "voro++.hh"
-using namespace voro;
-#endif
 
 #ifdef GEOS
 #include <cstdarg>
@@ -110,6 +106,108 @@ bool cmp3(SlipSys_t p, SlipSys_t q){
     return(p.schmid > q.schmid);
 }
 void InitGrain(Home_t *home, Param_t *param){
+
+    /** allocate and construct the container
+     */
+    home->con = new container(param->xBoundMin,param->xBoundMax,param->yBoundMin,
+                    param->yBoundMax, param->zBoundMin, param->zBoundMax, 1, 1, 1,
+                    param->xBoundType == Periodic, param->yBoundType == Periodic,
+                    param->zBoundType == Periodic, 8);
+    container *con = home->con;
+
+    /** import the voro++ input file in domain 0 and boardcast it.
+     */
+    const int MAXLINELENGTH = 1024;
+    FILE *fp;
+    char *strp, str[MAXLINELENGTH];
+    if(home->myDomain == 0){
+        if((fp = fopen(home->voroFile, "r+")) == NULL){
+            Fatal("Can not open voro++ file %s\n", home->voroFile);
+        }
+
+        home->nGrains = 0;
+        while(1){
+            strp = fgets(str, MAXLINELENGTH, fp);
+            if(feof(fp))break;
+            if(str == "\n" || str == NULL)continue;
+            home->nGrains++;
+        }
+        fclose(fp);
+    }
+#if PARALLEL
+    MPI_Bcast(&(home->nGrains), sizeof(int), MPI_INT, 0, MPI_COMM_WORLD);
+#endif
+
+    real8   *dataList = new real8[home->nGrains*(con->ps+1)];
+    if(home->myDomain == 0){
+        if((fp = fopen(home->voroFile, "r+")) == NULL){
+            Fatal("Can not open voro++ file %s\n", home->voroFile);
+        }
+        
+        char *strok; int i=0;
+        while(1){
+            strp = fgets(str, MAXLINELENGTH, fp);
+            if(feof(fp))break;
+            if(str == "\n" || str == NULL)continue;
+
+            dataList[i++] = atof(strtok(str, " "));
+            for(int j=1; j<(con->ps+1); j++)dataList[i++] = atof(strtok(NULL, " "));
+        }
+        fclose(fp);
+    }
+#if PARALLEL
+    MPI_Bcast(dataList, home->nGrains*(con->ps+1)*sizeof(real8), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
+
+#if DEBUG
+    printf("nGrains %d\n", home->nGrains);
+    for(int i=0; i<home->nGrains*(con->ps+1); i++)printf("%lg ",dataList[i]);
+    printf("\n");
+#endif
+
+    /** put all voronoicell seed
+     */
+    for(int i=0; i<home->nGrains; i++)con->put((int)dataList[i*8],
+        dataList[i*8+1], dataList[i*8+2], dataList[i*8+3],
+        dataList[i*8+4], dataList[i*8+5], dataList[i*8+6], dataList[i*8+7]);
+
+    delete [] dataList;
+
+    /** allocate the loop class home->cl and voronicell_neighbor
+     */
+    home->cl = new c_loop_all(*con);
+    home->cells = (voronoicell_neighbor **)malloc(home->nGrains*sizeof(voronoicell_neighbor *));
+    for(int i=0; i<home->nGrains; i++)home->cells[i] = new voronoicell_neighbor;
+    voronoicell_neighbor **cells = home->cells;
+    c_loop_all &cl = *home->cl;
+
+    /** compute voronoicells
+     */
+	double x,y,z;
+	int id;
+	std::vector<int> neigh,f_vert;
+    std::vector<double> vec;
+	if(cl.start()) for(int i=0; i<home->nGrains; i++, cl.inc()){
+        con->compute_cell(*cells[i], cl);
+		cl.pos(x,y,z);id=cl.pid();
+
+		// Gather information about the computed Voronoi cell
+		cells[i]->neighbors(neigh);
+		cells[i]->face_vertices(f_vert);
+		cells[i]->vertices(x,y,z,vec);
+
+        printf("voronicell_neighbor %d: pos (%g,%g,%g), ib(%g,%g,%g,%g), p_id %d\n", 
+               i, x, y, z, cl.ib_thick(), cl.ib_nx(), cl.ib_ny(), cl.ib_nz(), id);
+        printf("Vertex positions: ");cells[i]->output_vertices();puts("");
+        printf("neighbors: "); for(unsigned int j=0;j<neigh.size(); j++) printf("%d ", neigh[j]);
+        printf("\nface_vertices: "); 
+        voro_print_face_vertices(f_vert,stdout);
+        puts("\n");
+    }
+    
+
+    return;
+#if 0
 	int		    i,j,k;
 	Grain_t		*grain;
     GB_t        *GB;
@@ -967,6 +1065,7 @@ void InitGrain(Home_t *home, Param_t *param){
 	    Fatal("Not suppose free surface polycrystal problem");
 	}
 
+#endif
 	return;
 }
 
@@ -3765,23 +3864,29 @@ void VoroTest()
 		con.put(i,x,y,z);
 	}
 #else
-    con.put(0, 0, y_min+0.25*(y_max-y_min), z_min+0.25*(z_max-z_min));
-    con.put(1, 0, 0, 0);
-    con.put(2, 0, y_min+0.75*(y_max-y_min), z_min+0.75*(z_max-z_min));
+    con.put(0, 0, y_min+0.25*(y_max-y_min), 0);
+    con.put(1, 0, y_min+0.75*(y_max-y_min), 0);
 #endif
     c_loop_all vl(con);
 	voronoicell v, *vcs;
-    vcs = new voronoicell[3];
+    vcs = new voronoicell[particles];
     i = 0;
 	if(vl.start()) do if(con.compute_cell(v,vl)) {
         vcs[i++] = v;
 	} while(vl.inc());
 
-    for(i=0; i<3; i++){
+    for(i=0; i<particles; i++){
         voronoicell &vr = vcs[i];
+        std::vector<real8>  vec;
 	    printf("Total vertices      : %d\n",vr.p);
 	    printf("Vertex positions    : ");vr.output_vertices();puts("");
 	    printf("Vertex orders       : ");vr.output_vertex_orders();puts("");
+        printf("Vertex positions (2): ");
+        vr.vertices(vec);
+        for(int j=0; j<vr.p; j++){
+            printf("(%g,%g,%g) ", vec[3*j], vec[3*j+1], vec[3*j+2]);
+        }puts("");
+
 	    printf("Max rad. sq. vertex : %g\n",0.25*vr.max_radius_squared());
 
 	    // Output edge-based statistics

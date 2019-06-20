@@ -133,10 +133,15 @@ void ReleaseMemory(Home_t *home)
                 free(home->grainKeys[i]->GB); home->grainKeys[i]->GB = NULL;
                 free(home->grainKeys[i]->sign); home->grainKeys[i]->sign = NULL;
                 free(home->grainKeys[i]); home->grainKeys[i] = NULL;
+                delete [] home->cells[i];
             }
             free(home->grainKeys);
             home->grainKeys = NULL;
+
+            delete [] home->cl; 
+            delete [] home->cl;
         }
+        delete [] home->con;
 
 /*
  *      Free the heap used for recycling nodes that have bee deleted
@@ -237,6 +242,8 @@ void ReleaseMemory(Home_t *home)
 
         free(home->param);
         home->param = NULL;
+
+        
 
         free(home);
 
