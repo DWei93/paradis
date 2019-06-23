@@ -446,7 +446,13 @@ struct _home {
         container   *con;
         c_loop_all  *cl;
         voronoicell_neighbor **cells;
+        int         nFaces;
+        Face_t      **faces;
+        int         nPoints;
+        real8       *points;
+        int         nLines, *lines;
 #endif
+
 };
 
 /* prototypes */

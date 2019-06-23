@@ -119,6 +119,7 @@ struct _burgInfo {
         int     *planeType;               /* Array of type of planes*/
 
         int     *planeInGrain;
+        int     *planeInSubGrain;
 
         real8   (*keyLineList)[3];         /* Array of key line vectors */
 
@@ -129,6 +130,16 @@ struct _burgInfo {
         int     **planeOnBurgID;
 
 };
+
+typedef struct{
+    int         id, type, nbrGrain[2];
+    real8       n[3], p[3];
+    BurgInfo_t  bInfs[2][2];
+
+    int         nVertexes, nInSegs;
+    real8       *vertexes, *inSegs;
+
+}Face_t;
 
 typedef struct {
     int         GBID;
@@ -143,6 +154,12 @@ typedef struct {
     int         *boundgb;
     real8       **boundn, **boundp;
 } GB_t;
+
+typedef struct{
+    int         id1, id2;
+    real8       *p1, *p2;
+    BurgInfo_t  burgData;
+}Edge_t;
 
 typedef struct {
 	real8 normal[3];
@@ -159,18 +176,30 @@ struct _slipSys{
 }; 
 
 struct _grain{
-	real8	    cx, cy, cz;
+    int         id;
+
+	real8	    pos[3];
+
+    BurgInfo_t  bInf[2];
+
+    int         nIBs;
+    real8       ibN[3], (*ibPs)[3];
+
+    int         nFaces;
+    Face_t      **faces;
+    real8       *sign;
+    real8       rotMatrixs[2][3][3], rotMatrixsInv[2][3][3];
+
+    /** Below is ready to be abandoned.
+     */
 	real8	    orientation[3][3];
 	real8	    orientationInv[3][3];
-    real8       maxSchmid;
-    int         grainID;
-	int		    type;	/*0: folded grain*/
-					    /*1: ordinary grain*/
-    BurgInfo_t  burgData;
-
     int         nGBs;
     GB_t        **GB;
-    real8       *sign;
+    real8       maxSchmid;
+    int         grainID;
+	int		    type;	
+    BurgInfo_t  burgData;
 
 	int		    nBounds;
     int         *boundgb;
@@ -179,7 +208,6 @@ struct _grain{
     std::vector<SlipSys_t>      slipSys;
     std::vector<Plane_t>        surface;
 };
-
 
 typedef struct {
 	real8 direction[3];

@@ -143,6 +143,12 @@ void ReleaseMemory(Home_t *home)
         }
         delete [] home->con;
 
+        if(home->nFaces > 0){
+            for(i=0; i<home->nFaces; i++){
+            
+            }
+        }
+
 /*
  *      Free the heap used for recycling nodes that have bee deleted
  */

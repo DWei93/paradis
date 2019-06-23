@@ -105,6 +105,101 @@ void InitGrainStructure(Grain_t *grain, int nGBs){
 bool cmp3(SlipSys_t p, SlipSys_t q){
     return(p.schmid > q.schmid);
 }
+
+void DrawLine(FILE *fp, real8 *pos1, real8 *pos2, real8 meshSize, std::vector<int> &indexs)
+{
+    real8 vec[3], length, nums;
+    vec[0] = pos2[0]-pos1[0];vec[1] = pos2[1]-pos1[1];vec[2] = pos2[2]-pos1[2];
+    if((length = Normal(vec))<1E-10)return;
+    NormalizeVec(vec);
+    nums = floor(length/meshSize);
+    meshSize = length/nums;
+
+    for(real8 i=0; i<nums; i++){
+        fprintf(fp, "%g %g %g %g %g %g",pos1[0]+i*meshSize*vec[0], 
+                pos1[1]+i*meshSize*vec[1],pos1[2]+i*meshSize*vec[2], meshSize*vec[0], meshSize*vec[1], meshSize*vec[2]);
+        for(auto j=0; j<indexs.size(); j++)fprintf(fp," %d",indexs[j]);
+        fprintf(fp,"\n");
+    }
+
+    return;
+}
+
+void DrawPolygon(FILE *fp, std::vector<int> &f_vert,std::vector<double> &v,int startID, char *zoneName, std::vector<int> &vec){
+
+	int n=f_vert[startID++];
+
+    fprintf(fp,"Zone T = \"%s\", N = %d, E = %d, F = FEPOINT, ET = TRIANGLE\n",
+            zoneName, n, n-2);
+
+    std::vector<std::vector<int> > record(2);
+    record[0].resize(n);    record[1].resize(n);
+
+    for(int i=startID; i<startID+n; i++){
+        fprintf(fp, "%g %g %g", v[f_vert[i]*3], v[f_vert[i]*3+1], v[f_vert[i]*3+2]);
+        for(unsigned int j=0; j<vec.size(); j++)fprintf(fp," %d", vec[j]); 
+        fprintf(fp, "\n");
+        record[0][i-startID] = f_vert[i];   record[1][i-startID] = i-startID+1;        
+    }
+
+    for(int i=startID+1; i<startID+n-1; i++){
+        int j;
+        for(j=1; j<n-1; j++)if(record[0][j] == f_vert[i])break;
+        fprintf(fp, "1 %d", record[1][j]);
+        for(j=2; j<n; j++)if(record[0][j] == f_vert[i+1])break;
+        fprintf(fp, " %d\n", record[1][j]);
+    }
+    return;
+}
+
+int AddAndSearchVertice(std::vector<real8> &vertices, real8 x, real8 y, real8 z)
+{
+    if(vertices.size() > 0){
+        unsigned int i;
+        for(i=0; i<vertices.size(); i+=3){
+            if(fabs(vertices[i]-x)<1.0E-12 &&
+               fabs(vertices[i+1]-y)<1.0E-12 &&
+               fabs(vertices[i+2]-z)<1.0E-12)break;
+        }
+        if(i == vertices.size()){
+            vertices.push_back(x);
+            vertices.push_back(y);
+            vertices.push_back(z);
+        }
+        return (int)i/3;
+
+    }else{
+        vertices.push_back(x);
+        vertices.push_back(y);
+        vertices.push_back(z);
+        return(0);
+    }
+}
+
+int AddAndSearchSegment(std::vector<int> &segments, int verticeID1, int verticeID2)
+{
+    if(verticeID1 == verticeID2)Fatal("AddAndSearchSegment: verticeID1 == verticeID2");
+    if(verticeID2 < verticeID1){
+        int tempID = verticeID1; verticeID1 = verticeID2; verticeID2=tempID;
+    }
+
+    if(segments.size()>0){
+        unsigned int i;
+        for(i=0; i<segments.size(); i+=2){
+            if(verticeID1 == segments[i] && verticeID2 == segments[i+1])break;
+        }
+        if(i==segments.size()){
+            segments.push_back(verticeID1);
+            segments.push_back(verticeID2);
+        }
+        return( int)i/2;
+    }else{
+        segments.push_back(verticeID1);
+        segments.push_back(verticeID2);
+        return 0;
+    }
+}
+
 void InitGrain(Home_t *home, Param_t *param){
 
     /** allocate and construct the container
@@ -160,16 +255,25 @@ void InitGrain(Home_t *home, Param_t *param){
 #endif
 
 #if DEBUG
-    printf("nGrains %d\n", home->nGrains);
-    for(int i=0; i<home->nGrains*(con->ps+1); i++)printf("%lg ",dataList[i]);
-    printf("\n");
+    if(home->myDomain ==0){
+        printf("nGrains %d\n", home->nGrains);
+        for(int i=0; i<home->nGrains*(con->ps+1); i++)printf("%lg ",dataList[i]);
+        printf("\n");
+    }
 #endif
 
     /** put all voronoicell seed
      */
-    for(int i=0; i<home->nGrains; i++)con->put((int)dataList[i*8],
-        dataList[i*8+1], dataList[i*8+2], dataList[i*8+3],
-        dataList[i*8+4], dataList[i*8+5], dataList[i*8+6], dataList[i*8+7]);
+    for(int i=0; i<home->nGrains; i++){
+        real8 ibNormal[3]={dataList[i*(con->ps+1)+5], dataList[i*(con->ps+1)+6], dataList[i*(con->ps+1)+7]};
+        real8 rotMatrix[3][3]={
+            {dataList[i*(con->ps+1)+8], dataList[i*(con->ps+1)+9], dataList[i*(con->ps+1)+10]}, 
+            {dataList[i*(con->ps+1)+11], dataList[i*(con->ps+1)+12], dataList[i*(con->ps+1)+13]}, 
+            {dataList[i*(con->ps+1)+14], dataList[i*(con->ps+1)+15], dataList[i*(con->ps+1)+16]}};
+        con->put((int)dataList[i*(con->ps+1)],
+        dataList[i*(con->ps+1)+1], dataList[i*(con->ps+1)+2], dataList[i*(con->ps+1)+3],
+        dataList[i*(con->ps+1)+4], ibNormal, rotMatrix);
+    }
 
     delete [] dataList;
 
@@ -181,31 +285,226 @@ void InitGrain(Home_t *home, Param_t *param){
     voronoicell_neighbor **cells = home->cells;
     c_loop_all &cl = *home->cl;
 
-    /** compute voronoicells
+    /** Initialize home->grainKeys
      */
-	double x,y,z;
-	int id;
-	std::vector<int> neigh,f_vert;
-    std::vector<double> vec;
-	if(cl.start()) for(int i=0; i<home->nGrains; i++, cl.inc()){
+    home->grainKeys = new Grain_t *[home->nGrains];
+    for(int i=0; i<home->nGrains; i++)home->grainKeys[i] = new Grain_t;
+
+    /** open the file geometry.plt
+     */
+    if(home->myDomain ==0) {
+        if ((fp = fopen("geometry.plt", "w")) == (FILE *)NULL) {
+         Fatal("tec_plot: Open error %d on %s\n", errno, "geometry.plt");
+        }
+        fprintf(fp,"variables = x, y, z, index, grain1, grain2\n");
+    }
+
+    /** compute voronoicells, cout all faces and draw them out.
+     */
+    int     nFaces =0;
+	std::vector<int> neigh,f_vert, convertList;
+    std::vector<double> vertices, normals, gloVertices;
+    real8   ibThick, ibNormal[3], testPoint[3], testRsq;
+    std::vector<real8>  ibRsq;
+    if(cl.start()) for(int i=0; i<home->nGrains; i++, ibRsq.clear()){
+        int k =0; std::vector<int> info(3);
+        Grain_t *grain = home->grainKeys[i];
+        voronoicell_neighbor *cell = cells[i];
+         
+        /** compute the voronoicell
+         */
         con->compute_cell(*cells[i], cl);
-		cl.pos(x,y,z);id=cl.pid();
+
+        /** Now, what we should construct in Grain_t are:
+         *      int         id; 
+	     *      real8	    pos[3]; 
+         */
+        grain->id = cl.pid();
+        grain->pos[0] = cl.x(); grain->pos[1] = cl.y(); grain->pos[2] = cl.z();
 
 		// Gather information about the computed Voronoi cell
-		cells[i]->neighbors(neigh);
-		cells[i]->face_vertices(f_vert);
-		cells[i]->vertices(x,y,z,vec);
+		cell->neighbors(neigh);
+		cell->face_vertices(f_vert);
+		cell->vertices(grain->pos[0],grain->pos[1],grain->pos[2],vertices);
 
+#if 0
         printf("voronicell_neighbor %d: pos (%g,%g,%g), ib(%g,%g,%g,%g), p_id %d\n", 
-               i, x, y, z, cl.ib_thick(), cl.ib_nx(), cl.ib_ny(), cl.ib_nz(), id);
+               i, grain->pos[0], grain->pos[1], grain->pos[2], cl.ib_thick(), cl.ib_nx(), cl.ib_ny(), cl.ib_nz(), grain->id);
         printf("Vertex positions: ");cells[i]->output_vertices();puts("");
         printf("neighbors: "); for(unsigned int j=0;j<neigh.size(); j++) printf("%d ", neigh[j]);
         printf("\nface_vertices: "); 
+        printf("Face normals        : ");cell->output_normals();puts(""); 
         voro_print_face_vertices(f_vert,stdout);
         puts("\n");
+#endif
+
+		for(auto j=0, k=0; j<neigh.size();j++) {
+			// Skip if the neighbor information is smaller than
+			// this grain ID, to avoid double counting.
+            if(neigh[j] > grain->id || neigh[j] < 0){
+                char zoneName[256];
+                if(neigh[j] < 0)snprintf(zoneName,sizeof(zoneName),"FS.%d",nFaces);
+                else snprintf(zoneName,sizeof(zoneName),"GB.%d",nFaces);
+        
+                info[0] = nFaces; info[1] = grain->id; info[2] = neigh[j];
+                if(home->myDomain ==0)DrawPolygon(fp, f_vert, vertices, k, zoneName, info);
+
+
+                nFaces++;
+            }
+			k+=f_vert[k]+1;
+        }
+        if(!cl.inc())break;
     }
+
+    if(home->myDomain ==0)fclose(fp);
+
+    if(home->myDomain ==0) {
+        if ((fp = fopen("lines.plt", "w")) == (FILE *)NULL) {
+         Fatal("tec_plot: Open error %d on %s\n", errno, "geometry.plt");
+        }
+        fprintf(fp,"variables = x, y, z, vx, vy, vz, segID, nFaces\n");
+    }
+    /** alloccate home=>face
+     */
+    home->nFaces = nFaces;
+    home->faces = new Face_t *[home->nFaces];
+    std::vector<int> globalSegs;
+    std::vector<std::vector<int> > segOnFaces;
+    for(auto i=0; i<home->nFaces; i++)home->faces[i] = new Face_t; 
+    if(cl.start()) for(int i=0, nFaces =0; i<home->nGrains; i++, ibRsq.clear()){
+        int k =0; std::vector<int> info(3);
+        real8   dis; int segID;
+        Grain_t *grain = home->grainKeys[i];
+        voronoicell_neighbor *cell = cells[i];
+        
+		// Gather information about the computed Voronoi cell
+		cell->neighbors(neigh);
+		cell->face_vertices(f_vert);
+		cell->vertices(grain->pos[0],grain->pos[1],grain->pos[2],vertices);
+        cell->normals(normals);
+
+        convertList.resize(vertices.size()/3);
+        for(auto j=0; j<convertList.size(); j++)
+            convertList[j] = AddAndSearchVertice(gloVertices, vertices[3*j], vertices[3*j+1], vertices[3*j+2]);
+        printf("Grain %d: ", grain->id); for(auto j=0; j<convertList.size(); j++)printf(" %d", convertList[j]);
+        printf("\n");
+
+
+        ibThick = cl.ib_thick();
+        ibNormal[0] = cl.ib_nx(); ibNormal[1] = cl.ib_ny(); ibNormal[2] = cl.ib_nz();
+        NormalizeVec(ibNormal); VECTOR_COPY(grain->ibN, ibNormal);
+
+        cl.rotMatrix(grain->rotMatrixs[0]);
+        NormalizeVec(grain->rotMatrixs[0][0]);NormalizeVec(grain->rotMatrixs[0][1]);NormalizeVec(grain->rotMatrixs[0][2]);
+	    Matrix33Invert(grain->rotMatrixs[0], grain->rotMatrixsInv[0]);
+
+        real8 temR[3][3]; RotateWithAxis(grain->ibN, PI, temR);
+        Matrix33Mult33(temR, grain->rotMatrixs[0], grain->rotMatrixs[1]);
+	    Matrix33Invert(grain->rotMatrixs[1], grain->rotMatrixsInv[1]);
+
+        testRsq = ibThick;  while(cell->plane_intersects_guess(ibNormal[0], ibNormal[1], ibNormal[2], testRsq)){
+            ibRsq.push_back(testRsq);
+            testRsq += 2*ibThick;
+        }
+        testRsq = ibThick;  while(cell->plane_intersects_guess(-ibNormal[0], -ibNormal[1], -ibNormal[2], testRsq)){
+            ibRsq.insert(ibRsq.begin(),-testRsq);
+            testRsq += 2*ibThick;
+        }
+
+        /** Assembly inner interfaces of grain
+         */
+        
+        grain->nIBs = (int)ibRsq.size(); grain->ibPs = new real8 [grain->nIBs][3];
+        for(auto j=0; j<ibRsq.size(); j++){
+            grain->ibPs[j][0] = grain->pos[0] + 0.5*grain->ibN[0]*ibRsq[j];
+            grain->ibPs[j][1] = grain->pos[1] + 0.5*grain->ibN[1]*ibRsq[j];
+            grain->ibPs[j][2] = grain->pos[2] + 0.5*grain->ibN[2]*ibRsq[j];
+        }
+
+        /** allocate face pointers of the grain
+         */
+        grain->nFaces = (int)neigh.size();
+        grain->faces = new Face_t *[grain->nFaces];
+        grain->sign = new real8 [grain->nFaces];
+ 
+        printf("Grain %d:", grain->id);       
+		for(auto j=0, k=0; j<neigh.size();j++) {
+            /** convert to global andeliminate duplicate segments.
+             */
+            printf("(");
+            for(auto l=k+1; l<k+f_vert[k]+1; l++){
+                printf("%d->%d ", f_vert[l], convertList[f_vert[l]]);
+                f_vert[l]=convertList[f_vert[l]];
+            }
+            printf(") ");
+
+            if(neigh[j] > grain->id || neigh[j] < 0){
+                for(auto l=k+1; l<k+f_vert[k]+1; l++){
+                    if(l==k+f_vert[k])segID = AddAndSearchSegment(globalSegs, f_vert[l],f_vert[k+1]);
+                    else segID = AddAndSearchSegment(globalSegs, f_vert[l],f_vert[l+1]);
+
+                    if(segID == (int)segOnFaces.size()){
+                        segOnFaces.resize(segID+1);
+                        segOnFaces[segID].push_back(nFaces);
+                    }else if(segID < (int)segOnFaces.size()){
+                        segOnFaces[segID].push_back(nFaces);
+                    }else Fatal("somthing wrong with segOnFaces");
+                }
+            
+                grain->faces[j] = home->faces[nFaces]; grain->sign[j]=1.0;
+                Face_t *face = home->faces[nFaces]; face->id = nFaces;
+                face->n[0] = normals[j*3]; face->n[1] = normals[j*3+1]; face->n[2] = normals[j*3+2];
+                face->p[0] = gloVertices[3*f_vert[k+1]];
+                face->p[1] = gloVertices[1+3*f_vert[k+1]];
+                face->p[2] = gloVertices[2+3*f_vert[k+1]];
+                face->nbrGrain[0] = grain->id; face->nbrGrain[1] = neigh[j];
+                face->type = (neigh[j]>=0)?1:0;
+                PointPlaneIntersection(grain->pos, face->n, face->p, face->p, &dis);
+
+        
+                nFaces++;
+            }
+			k+=f_vert[k]+1;
+        }
+        printf("\n");
+
+        if(!cl.inc())break;
+    }
+
+    if(cl.start()) for(int i=0, nFaces=0; i<home->nGrains; i++){
+		cells[i]->neighbors(neigh);
+        Grain_t *grain = home->grainKeys[i];
+        Face_t  *face;
+        for(auto j=0; j<neigh.size(); j++){
+            if(neigh[j] < grain->id && neigh[j] >=0){
+                int k =0; for(k=0; k<home->nFaces; k++){
+                    face = home->faces[k];
+                    if(face->nbrGrain[0] == neigh[j] && face->nbrGrain[1]==grain->id)break;
+                }
+                if(k==home->nFaces)Fatal("can not find the %dth face of the grain %d in Home: %d", j, grain->id, neigh[j]);
+                grain->faces[j] = face; grain->sign[j]=-1.0;
+            }
+        }
+        if(!cl.inc())break;
+    }
+
     
 
+
+    for(auto i=0; i<globalSegs.size(); i+=2){
+        real8 pos1[3], pos2[3]; std::vector<int> indexs(2); 
+        int segID = (int)i/2;
+        indexs[0]= segID; indexs[1]=(int)segOnFaces[segID].size();
+        pos1[0] = gloVertices[globalSegs[i]*3];
+        pos1[1] = gloVertices[globalSegs[i]*3+1];
+        pos1[2] = gloVertices[globalSegs[i]*3+2];
+        pos2[0] = gloVertices[globalSegs[i+1]*3];
+        pos2[1] = gloVertices[globalSegs[i+1]*3+1];
+        pos2[2] = gloVertices[globalSegs[i+1]*3+2];
+        DrawLine(fp, pos1, pos2, 50, indexs);
+    }
+    if(home->myDomain ==0)fclose(fp);
     return;
 #if 0
 	int		    i,j,k;
