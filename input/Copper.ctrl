@@ -17,9 +17,9 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
-numYdoms = 2
-numZdoms = 1
+numXdoms = 1
+numYdoms = 1
+numZdoms = 4
 #
 #  Cell geometry
 #
@@ -30,9 +30,9 @@ numZcells = 4
 #
 # Mesh size for tecmesh
 #
-meshSizeX = 48
-meshSizeY = 48
-meshSizeZ = 48
+meshSizeX = 480
+meshSizeY = 480
+meshSizeZ = 480
 
 #  Dynamic load balancing
 #

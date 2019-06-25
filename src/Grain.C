@@ -175,27 +175,78 @@ int AddAndSearchVertice(std::vector<real8> &vertices, real8 x, real8 y, real8 z)
         return(0);
     }
 }
+typedef struct{
+    int type; // 0: Grain boundary edge
+             // 1: Inner boubdary edge
+    int vertID1, vertID2;
+    std::vector<int> ofFaces;
+    int ofIB[2];
+}Edge_t;
 
-int AddAndSearchSegment(std::vector<int> &segments, int verticeID1, int verticeID2)
-{
-    if(verticeID1 == verticeID2)Fatal("AddAndSearchSegment: verticeID1 == verticeID2");
-    if(verticeID2 < verticeID1){
-        int tempID = verticeID1; verticeID1 = verticeID2; verticeID2=tempID;
+void EdgeListToPolygon(std::vector<Edge_t> &edges, std::vector<int> &polygon){
+    polygon.clear();
+    if(edges.empty())Fatal("empty edges");
+    polygon.push_back(edges[0].vertID1); 
+    if(edges.size()==1){
+       polygon.push_back(edges[0].vertID2); return;
     }
 
-    if(segments.size()>0){
+    int next=edges[0].vertID2;
+    do{
+        polygon.push_back(next); 
+        for(auto i=1; i<edges.size(); i++){
+            if(edges[i].vertID1 == next){
+                next = edges[i].vertID2; 
+                edges[i].vertID1 = -edges[i].vertID1-1; edges[i].vertID2 = -edges[i].vertID2-1;
+                break;
+            }else if(edges[i].vertID2 == next){
+                next = edges[i].vertID1; 
+                edges[i].vertID1 = -edges[i].vertID1-1; edges[i].vertID2 = -edges[i].vertID2-1;
+                break;
+            }
+        }
+    }while(next != edges[0].vertID1);
+    for(auto i=1; i<edges.size(); i++){
+        edges[i].vertID1 = -edges[i].vertID1-1; edges[i].vertID2 = -edges[i].vertID2-1;
+    }
+    return; 
+}
+
+int AddAndSearchEdge(std::vector<Edge_t> &edges, int vertID1, int vertID2, int ofFace, int type, int ofGB=-1, int ofIB=-1)
+{
+    if(vertID1 == vertID2)Fatal("AddAndSearchSegment: verticeID1 == verticeID2");
+    if(vertID2 < vertID1){
+        int tempID = vertID1; vertID1 = vertID2; vertID2=tempID;
+    }
+
+    if(edges.size()>0){
         unsigned int i;
-        for(i=0; i<segments.size(); i+=2){
-            if(verticeID1 == segments[i] && verticeID2 == segments[i+1])break;
+        for(i=0; i<edges.size(); i++){
+            if(vertID1 == edges[i].vertID1 && vertID2 == edges[i].vertID2){
+                edges[i].type = type; edges[i].ofIB[0]=ofGB; edges[i].ofIB[1]=ofIB;
+                if(edges[i].ofFaces.size()>0){
+                    unsigned int j; for(j=0; j<edges[i].ofFaces.size(); j++)if(edges[i].ofFaces[j]==ofFace)break;
+                    if(j==edges[i].ofFaces.size())edges[i].ofFaces.push_back(ofFace);
+                }else{
+                    edges[i].ofFaces.push_back(ofFace);
+                }
+                break;
+            }
         }
-        if(i==segments.size()){
-            segments.push_back(verticeID1);
-            segments.push_back(verticeID2);
+        if(i==edges.size()){
+            Edge_t edge;
+            edge.vertID1 = vertID1; edge.vertID2 = vertID2; edge.type=type;
+            edge.ofFaces.push_back(ofFace);
+            edge.ofIB[0]=ofGB; edge.ofIB[1]=ofIB;
+            edges.push_back(edge);
         }
-        return( int)i/2;
+        return (int)i;
     }else{
-        segments.push_back(verticeID1);
-        segments.push_back(verticeID2);
+        Edge_t edge;
+        edge.vertID1 = vertID1; edge.vertID2 = vertID2; edge.type=type;
+        edge.ofFaces.push_back(ofFace);
+        edge.ofIB[0]=ofGB; edge.ofIB[1]=ofIB;
+        edges.push_back(edge);
         return 0;
     }
 }
@@ -206,8 +257,9 @@ void InitGrain(Home_t *home, Param_t *param){
      */
     home->con = new container(param->xBoundMin,param->xBoundMax,param->yBoundMin,
                     param->yBoundMax, param->zBoundMin, param->zBoundMax, 1, 1, 1,
-                    param->xBoundType == Periodic, param->yBoundType == Periodic,
-                    param->zBoundType == Periodic, 8);
+                    false, false, false, 8);
+//                    param->xBoundType == Periodic, param->yBoundType == Periodic,
+//                    param->zBoundType == Periodic, 8);
     container *con = home->con;
 
     /** import the voro++ input file in domain 0 and boardcast it.
@@ -251,11 +303,11 @@ void InitGrain(Home_t *home, Param_t *param){
         fclose(fp);
     }
 #if PARALLEL
-    MPI_Bcast(dataList, home->nGrains*(con->ps+1)*sizeof(real8), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast((char*)dataList, home->nGrains*(con->ps+1)*sizeof(real8), MPI_CHAR, 0, MPI_COMM_WORLD);
 #endif
 
 #if DEBUG
-    if(home->myDomain ==0){
+    if(home->myDomain ==1){
         printf("nGrains %d\n", home->nGrains);
         for(int i=0; i<home->nGrains*(con->ps+1); i++)printf("%lg ",dataList[i]);
         printf("\n");
@@ -290,13 +342,13 @@ void InitGrain(Home_t *home, Param_t *param){
     home->grainKeys = new Grain_t *[home->nGrains];
     for(int i=0; i<home->nGrains; i++)home->grainKeys[i] = new Grain_t;
 
-    /** open the file geometry.plt
+    /** open the file polygons.plt
      */
     if(home->myDomain ==0) {
-        if ((fp = fopen("geometry.plt", "w")) == (FILE *)NULL) {
-         Fatal("tec_plot: Open error %d on %s\n", errno, "geometry.plt");
+        if ((fp = fopen("polygons.plt", "w")) == (FILE *)NULL) {
+         Fatal("tec_plot: Open error %d on %s\n", errno, "polygons.plt");
         }
-        fprintf(fp,"variables = x, y, z, index, grain1, grain2\n");
+        fprintf(fp,"variables = x, y, z, type, grain1, grain2\n");
     }
 
     /** compute voronoicells, cout all faces and draw them out.
@@ -343,12 +395,15 @@ void InitGrain(Home_t *home, Param_t *param){
 			// this grain ID, to avoid double counting.
             if(neigh[j] > grain->id || neigh[j] < 0){
                 char zoneName[256];
-                if(neigh[j] < 0)snprintf(zoneName,sizeof(zoneName),"FS.%d",nFaces);
-                else snprintf(zoneName,sizeof(zoneName),"GB.%d",nFaces);
-        
-                info[0] = nFaces; info[1] = grain->id; info[2] = neigh[j];
+                if(neigh[j] < 0){
+                    snprintf(zoneName,sizeof(zoneName),"FS.%d",nFaces);
+                    info[0] = 0;
+                }else{
+                    info[0] = 1;
+                     snprintf(zoneName,sizeof(zoneName),"GB.%d",nFaces);
+                }
+                 info[1] = grain->id; info[2] = neigh[j];
                 if(home->myDomain ==0)DrawPolygon(fp, f_vert, vertices, k, zoneName, info);
-
 
                 nFaces++;
             }
@@ -357,20 +412,12 @@ void InitGrain(Home_t *home, Param_t *param){
         if(!cl.inc())break;
     }
 
-    if(home->myDomain ==0)fclose(fp);
 
-    if(home->myDomain ==0) {
-        if ((fp = fopen("lines.plt", "w")) == (FILE *)NULL) {
-         Fatal("tec_plot: Open error %d on %s\n", errno, "geometry.plt");
-        }
-        fprintf(fp,"variables = x, y, z, vx, vy, vz, segID, nFaces\n");
-    }
     /** alloccate home=>face
      */
     home->nFaces = nFaces;
     home->faces = new Face_t *[home->nFaces];
-    std::vector<int> globalSegs;
-    std::vector<std::vector<int> > segOnFaces;
+    std::vector<Edge_t> edges;
     for(auto i=0; i<home->nFaces; i++)home->faces[i] = new Face_t; 
     if(cl.start()) for(int i=0, nFaces =0; i<home->nGrains; i++, ibRsq.clear()){
         int k =0; std::vector<int> info(3);
@@ -387,8 +434,13 @@ void InitGrain(Home_t *home, Param_t *param){
         convertList.resize(vertices.size()/3);
         for(auto j=0; j<convertList.size(); j++)
             convertList[j] = AddAndSearchVertice(gloVertices, vertices[3*j], vertices[3*j+1], vertices[3*j+2]);
-        printf("Grain %d: ", grain->id); for(auto j=0; j<convertList.size(); j++)printf(" %d", convertList[j]);
-        printf("\n");
+        if(home->myDomain == 0){
+            printf("Grain %d: ", grain->id); for(auto j=0; j<convertList.size(); j++){
+                printf(" %d(%g,%g,%g)", convertList[j],gloVertices[convertList[j]*3],
+                      gloVertices[convertList[j]*3+1],gloVertices[convertList[j]*3+2]);
+            }
+            printf("\n");
+        }
 
 
         ibThick = cl.ib_thick();
@@ -403,53 +455,41 @@ void InitGrain(Home_t *home, Param_t *param){
         Matrix33Mult33(temR, grain->rotMatrixs[0], grain->rotMatrixs[1]);
 	    Matrix33Invert(grain->rotMatrixs[1], grain->rotMatrixsInv[1]);
 
-        testRsq = ibThick;  while(cell->plane_intersects_guess(ibNormal[0], ibNormal[1], ibNormal[2], testRsq)){
-            ibRsq.push_back(testRsq);
-            testRsq += 2*ibThick;
+        if(ibThick>0){
+            testRsq = ibThick;  while(cell->plane_intersects_guess(ibNormal[0], ibNormal[1], ibNormal[2], testRsq)){
+                ibRsq.push_back(testRsq);
+                testRsq += 2*ibThick;
+            }
+            testRsq = ibThick;  while(cell->plane_intersects_guess(-ibNormal[0], -ibNormal[1], -ibNormal[2], testRsq)){
+                ibRsq.insert(ibRsq.begin(),-testRsq);
+                testRsq += 2*ibThick;
+            }
+            
+            /** Assembly inner interfaces of grain
+             */
+            
+            grain->nIBs = (int)ibRsq.size(); grain->ibPs = new real8 [grain->nIBs][3];
+            for(auto j=0; j<ibRsq.size(); j++){
+                grain->ibPs[j][0] = grain->pos[0] + 0.5*grain->ibN[0]*ibRsq[j];
+                grain->ibPs[j][1] = grain->pos[1] + 0.5*grain->ibN[1]*ibRsq[j];
+                grain->ibPs[j][2] = grain->pos[2] + 0.5*grain->ibN[2]*ibRsq[j];
+            }
+            
+            /** allocate face pointers of the grain
+             */
+            grain->nFaces = (int)neigh.size();
+            grain->faces = new Face_t *[grain->nFaces];
+            grain->sign = new real8 [grain->nFaces];
         }
-        testRsq = ibThick;  while(cell->plane_intersects_guess(-ibNormal[0], -ibNormal[1], -ibNormal[2], testRsq)){
-            ibRsq.insert(ibRsq.begin(),-testRsq);
-            testRsq += 2*ibThick;
-        }
-
-        /** Assembly inner interfaces of grain
-         */
-        
-        grain->nIBs = (int)ibRsq.size(); grain->ibPs = new real8 [grain->nIBs][3];
-        for(auto j=0; j<ibRsq.size(); j++){
-            grain->ibPs[j][0] = grain->pos[0] + 0.5*grain->ibN[0]*ibRsq[j];
-            grain->ibPs[j][1] = grain->pos[1] + 0.5*grain->ibN[1]*ibRsq[j];
-            grain->ibPs[j][2] = grain->pos[2] + 0.5*grain->ibN[2]*ibRsq[j];
-        }
-
-        /** allocate face pointers of the grain
-         */
-        grain->nFaces = (int)neigh.size();
-        grain->faces = new Face_t *[grain->nFaces];
-        grain->sign = new real8 [grain->nFaces];
- 
-        printf("Grain %d:", grain->id);       
 		for(auto j=0, k=0; j<neigh.size();j++) {
             /** convert to global andeliminate duplicate segments.
              */
-            printf("(");
-            for(auto l=k+1; l<k+f_vert[k]+1; l++){
-                printf("%d->%d ", f_vert[l], convertList[f_vert[l]]);
-                f_vert[l]=convertList[f_vert[l]];
-            }
-            printf(") ");
+            for(auto l=k+1; l<k+f_vert[k]+1; l++)f_vert[l]=convertList[f_vert[l]];
 
             if(neigh[j] > grain->id || neigh[j] < 0){
                 for(auto l=k+1; l<k+f_vert[k]+1; l++){
-                    if(l==k+f_vert[k])segID = AddAndSearchSegment(globalSegs, f_vert[l],f_vert[k+1]);
-                    else segID = AddAndSearchSegment(globalSegs, f_vert[l],f_vert[l+1]);
-
-                    if(segID == (int)segOnFaces.size()){
-                        segOnFaces.resize(segID+1);
-                        segOnFaces[segID].push_back(nFaces);
-                    }else if(segID < (int)segOnFaces.size()){
-                        segOnFaces[segID].push_back(nFaces);
-                    }else Fatal("somthing wrong with segOnFaces");
+                    if(l==k+f_vert[k])segID = AddAndSearchEdge(edges, f_vert[l],f_vert[k+1], nFaces, 0);
+                    else segID = AddAndSearchEdge(edges, f_vert[l],f_vert[l+1], nFaces, 0);
                 }
             
                 grain->faces[j] = home->faces[nFaces]; grain->sign[j]=1.0;
@@ -462,12 +502,48 @@ void InitGrain(Home_t *home, Param_t *param){
                 face->type = (neigh[j]>=0)?1:0;
                 PointPlaneIntersection(grain->pos, face->n, face->p, face->p, &dis);
 
-        
                 nFaces++;
             }
+            
 			k+=f_vert[k]+1;
         }
-        printf("\n");
+
+        for(auto m=0; m<grain->nIBs; m++){
+            std::vector<Edge_t> ibEdges;
+            real8 p1[3], p2[3], p[3], t; int v1,v2;
+            for(auto j=0, k=0; j<neigh.size();j++) {
+                Edge_t edge; edge.vertID1=-1; edge.vertID2=-1;
+                edge.type=1; edge.ofIB[0]=grain->id; edge.ofIB[1]=m;
+                for(auto l=k+1; l<k+f_vert[k]+1; l++){
+                    v1=f_vert[l]; v2=(l<k+f_vert[k]?f_vert[l+1]:f_vert[k+1]);
+                    p1[0] = gloVertices[v1*3];p1[1] = gloVertices[v1*3+1];p1[2] = gloVertices[v1*3+2];
+                    p2[0] = gloVertices[v2*3];p2[1] = gloVertices[v2*3+1];p2[2] = gloVertices[v2*3+2];
+
+                    if(POINT_INTERSECTION == SegmentPlaneIntersection(p1, p2, grain->ibN, grain->ibPs[m], t)){
+                        p[0] = p1[0]+t*(p2[0]-p1[0]); p[1] = p1[1]+t*(p2[1]-p1[1]); p[2] = p1[2]+t*(p2[2]-p1[2]);
+                        if(edge.vertID1 ==-1){
+                            edge.vertID1 = AddAndSearchVertice(gloVertices,p[0],p[1],p[2]);
+                        }else if(edge.vertID2 == -1){
+                            edge.vertID2 = AddAndSearchVertice(gloVertices,p[0],p[1],p[2]);
+                        }else Fatal("There is third intersection point");
+                    }
+                }
+                if(edge.vertID2 != -1){
+                    edges.push_back(edge);
+                    ibEdges.push_back(edge);
+                }
+
+                k+=f_vert[k]+1;
+            }
+            std::vector<int> polygon; EdgeListToPolygon(ibEdges,polygon); polygon.insert(polygon.begin(), (int)polygon.size());
+            if(home->myDomain ==0){
+                char zoneName[256];std::vector<int> info(3);
+                snprintf(zoneName,sizeof(zoneName),"IB.%d.%d",grain->id, m);
+        
+                info[0] = 2; info[1] = grain->id; info[2] = m;
+                DrawPolygon(fp, polygon, gloVertices, 0, zoneName, info);
+            }
+        }
 
         if(!cl.inc())break;
     }
@@ -489,22 +565,27 @@ void InitGrain(Home_t *home, Param_t *param){
         if(!cl.inc())break;
     }
 
-    
-
-
-    for(auto i=0; i<globalSegs.size(); i+=2){
-        real8 pos1[3], pos2[3]; std::vector<int> indexs(2); 
-        int segID = (int)i/2;
-        indexs[0]= segID; indexs[1]=(int)segOnFaces[segID].size();
-        pos1[0] = gloVertices[globalSegs[i]*3];
-        pos1[1] = gloVertices[globalSegs[i]*3+1];
-        pos1[2] = gloVertices[globalSegs[i]*3+2];
-        pos2[0] = gloVertices[globalSegs[i+1]*3];
-        pos2[1] = gloVertices[globalSegs[i+1]*3+1];
-        pos2[2] = gloVertices[globalSegs[i+1]*3+2];
-        DrawLine(fp, pos1, pos2, 50, indexs);
-    }
     if(home->myDomain ==0)fclose(fp);
+
+    if(home->myDomain == 0){
+        if ((fp = fopen("lines.plt", "w")) == (FILE *)NULL) {
+         Fatal("tec_plot: Open error %d on %s\n", errno, "geometry.plt");
+        }
+        fprintf(fp,"variables = x, y, z, vx, vy, vz, segID, type, nFaces\n");
+
+        for(auto i=0; i<edges.size(); i++){
+            real8 pos1[3], pos2[3]; std::vector<int> indexs(3);
+            indexs[0]= (int)i; indexs[2]=(int)edges[i].ofFaces.size(); indexs[1] = edges[i].type;
+            pos1[0] = gloVertices[edges[i].vertID1*3];
+            pos1[1] = gloVertices[edges[i].vertID1*3+1];
+            pos1[2] = gloVertices[edges[i].vertID1*3+2];
+            pos2[0] = gloVertices[edges[i].vertID2*3];
+            pos2[1] = gloVertices[edges[i].vertID2*3+1];
+            pos2[2] = gloVertices[edges[i].vertID2*3+2];
+            DrawLine(fp, pos1, pos2, 10, indexs);
+        }   
+        fclose(fp);
+    }
     return;
 #if 0
 	int		    i,j,k;

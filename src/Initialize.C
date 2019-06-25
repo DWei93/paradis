@@ -1706,7 +1706,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
 	    InitGrain(home, param);
 #if PARALLEL
         MPI_Barrier(MPI_COMM_WORLD);
-        if(home->myDomain == 2)Fatal("Finish init grain");
+        if(home->myDomain == 0)Fatal("Finish init grain");
 #endif
 
 /*

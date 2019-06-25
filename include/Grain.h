@@ -155,11 +155,6 @@ typedef struct {
     real8       **boundn, **boundp;
 } GB_t;
 
-typedef struct{
-    int         id1, id2;
-    real8       *p1, *p2;
-    BurgInfo_t  burgData;
-}Edge_t;
 
 typedef struct {
 	real8 normal[3];

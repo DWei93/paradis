@@ -538,7 +538,7 @@ int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point
     
     if(dot1*dot2 > 0)return(NO_INTERSECTION);
     double tot = fabs(dot1)+fabs(dot2);
-    if(tot < 1.0E-80){
+    if(tot > 1.0E-80){
         t = fabs(dot1)/tot;
     }else t = 0.0;
     return(POINT_INTERSECTION);

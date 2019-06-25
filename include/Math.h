@@ -24,4 +24,5 @@ int LineLineIntersection(double *d1, double *p1, double *d2, double *p2,
 int PointPlaneIntersection(double *p1, double *n, double *p2, double *vec, double *dis);
 int PointLineIntersection(double *p1, double *d, double *p2, double *vec, double *dis);
 int PointPointIntersection(double *p1, double *p2, double *vec, double *dis);
+int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double &t);
 #endif
