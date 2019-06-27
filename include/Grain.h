@@ -135,10 +135,8 @@ typedef struct{
     int         id, type, nbrGrain[2];
     real8       n[3], p[3];
     BurgInfo_t  bInfs[2][2];
-
-    int         nVertexes, nInSegs;
-    real8       *vertexes, *inSegs;
-
+    int         nEdges;
+    real8       *edges;
 }Face_t;
 
 typedef struct {
@@ -179,6 +177,8 @@ struct _grain{
 
     int         nIBs;
     real8       ibN[3], (*ibPs)[3];
+    int         *ibsNumEdges;
+    real8       **ibsEdges;
 
     int         nFaces;
     Face_t      **faces;
@@ -195,10 +195,6 @@ struct _grain{
     int         grainID;
 	int		    type;	
     BurgInfo_t  burgData;
-
-	int		    nBounds;
-    int         *boundgb;
-    real8       **boundn, **boundp;
 
     std::vector<SlipSys_t>      slipSys;
     std::vector<Plane_t>        surface;

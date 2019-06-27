@@ -152,6 +152,36 @@ void DrawPolygon(FILE *fp, std::vector<int> &f_vert,std::vector<double> &v,int s
     return;
 }
 
+void CentroidOfPolygon(std::vector<int> &f_vert,std::vector<double> &v,int startID, real8 *centroid){
+
+	int n=f_vert[startID++];
+
+    real8 pos0[3], pos1[3], pos2[3], cpd[3], areas=0, area;
+    VECTOR_ZERO(centroid); 
+    for(int i=startID+1; i<startID+n-1; i++){
+        pos1[0]=v[f_vert[i]*3]-v[f_vert[startID]*3];
+        pos1[1]=v[f_vert[i]*3+1]-v[f_vert[startID]*3+1];
+        pos1[2]=v[f_vert[i]*3+2]-v[f_vert[startID]*3+2];
+        pos2[0]=v[f_vert[i+1]*3]-v[f_vert[startID]*3];
+        pos2[1]=v[f_vert[i+1]*3+1]-v[f_vert[startID]*3+1];
+        pos2[2]=v[f_vert[i+1]*3+2]-v[f_vert[startID]*3+2];
+
+        pos0[0] = (pos1[0]+pos2[0])/3.0;
+        pos0[1] = (pos1[1]+pos2[1])/3.0;
+        pos0[2] = (pos1[2]+pos2[2])/3.0;
+        cross(pos1, pos2, cpd);area = Normal(cpd);
+        areas += area;
+        centroid[0] += area*pos0[0]; 
+        centroid[1] += area*pos0[1]; 
+        centroid[2] += area*pos0[2]; 
+    }
+    centroid[0] /= areas; centroid[1] /= areas; centroid[2] /= areas;
+    centroid[0] += v[f_vert[startID]*3];
+    centroid[1] += v[f_vert[startID]*3+1];
+    centroid[2] += v[f_vert[startID]*3+2];
+    return;
+}
+
 int AddAndSearchVertice(std::vector<real8> &vertices, real8 x, real8 y, real8 z)
 {
     if(vertices.size() > 0){
@@ -258,8 +288,6 @@ void InitGrain(Home_t *home, Param_t *param){
     home->con = new container(param->xBoundMin,param->xBoundMax,param->yBoundMin,
                     param->yBoundMax, param->zBoundMin, param->zBoundMax, 1, 1, 1,
                     false, false, false, 8);
-//                    param->xBoundType == Periodic, param->yBoundType == Periodic,
-//                    param->zBoundType == Periodic, 8);
     container *con = home->con;
 
     /** import the voro++ input file in domain 0 and boardcast it.
@@ -379,17 +407,6 @@ void InitGrain(Home_t *home, Param_t *param){
 		cell->face_vertices(f_vert);
 		cell->vertices(grain->pos[0],grain->pos[1],grain->pos[2],vertices);
 
-#if 0
-        printf("voronicell_neighbor %d: pos (%g,%g,%g), ib(%g,%g,%g,%g), p_id %d\n", 
-               i, grain->pos[0], grain->pos[1], grain->pos[2], cl.ib_thick(), cl.ib_nx(), cl.ib_ny(), cl.ib_nz(), grain->id);
-        printf("Vertex positions: ");cells[i]->output_vertices();puts("");
-        printf("neighbors: "); for(unsigned int j=0;j<neigh.size(); j++) printf("%d ", neigh[j]);
-        printf("\nface_vertices: "); 
-        printf("Face normals        : ");cell->output_normals();puts(""); 
-        voro_print_face_vertices(f_vert,stdout);
-        puts("\n");
-#endif
-
 		for(auto j=0, k=0; j<neigh.size();j++) {
 			// Skip if the neighbor information is smaller than
 			// this grain ID, to avoid double counting.
@@ -413,7 +430,7 @@ void InitGrain(Home_t *home, Param_t *param){
     }
 
 
-    /** alloccate home=>face
+    /** alloccate home=>faces
      */
     home->nFaces = nFaces;
     home->faces = new Face_t *[home->nFaces];
@@ -431,9 +448,11 @@ void InitGrain(Home_t *home, Param_t *param){
 		cell->vertices(grain->pos[0],grain->pos[1],grain->pos[2],vertices);
         cell->normals(normals);
 
+        // Generate convertion list and add local vertices into global vertices.
         convertList.resize(vertices.size()/3);
         for(auto j=0; j<convertList.size(); j++)
             convertList[j] = AddAndSearchVertice(gloVertices, vertices[3*j], vertices[3*j+1], vertices[3*j+2]);
+#if 0
         if(home->myDomain == 0){
             printf("Grain %d: ", grain->id); for(auto j=0; j<convertList.size(); j++){
                 printf(" %d(%g,%g,%g)", convertList[j],gloVertices[convertList[j]*3],
@@ -441,21 +460,23 @@ void InitGrain(Home_t *home, Param_t *param){
             }
             printf("\n");
         }
+#endif
 
-
+        // Get the thickness and the normal of inner boundary of the grain and normalize the normal
         ibThick = cl.ib_thick();
         ibNormal[0] = cl.ib_nx(); ibNormal[1] = cl.ib_ny(); ibNormal[2] = cl.ib_nz();
         NormalizeVec(ibNormal); VECTOR_COPY(grain->ibN, ibNormal);
 
+        // Get the first initial rotation matrix and normalize it
         cl.rotMatrix(grain->rotMatrixs[0]);
         NormalizeVec(grain->rotMatrixs[0][0]);NormalizeVec(grain->rotMatrixs[0][1]);NormalizeVec(grain->rotMatrixs[0][2]);
 	    Matrix33Invert(grain->rotMatrixs[0], grain->rotMatrixsInv[0]);
 
-        real8 temR[3][3]; RotateWithAxis(grain->ibN, PI, temR);
-        Matrix33Mult33(temR, grain->rotMatrixs[0], grain->rotMatrixs[1]);
-	    Matrix33Invert(grain->rotMatrixs[1], grain->rotMatrixsInv[1]);
-
         if(ibThick>0){
+            real8 temR[3][3]; RotateWithAxis(grain->ibN, PI, temR);
+            Matrix33Mult33(temR, grain->rotMatrixs[0], grain->rotMatrixs[1]);
+	        Matrix33Invert(grain->rotMatrixs[1], grain->rotMatrixsInv[1]);
+
             testRsq = ibThick;  while(cell->plane_intersects_guess(ibNormal[0], ibNormal[1], ibNormal[2], testRsq)){
                 ibRsq.push_back(testRsq);
                 testRsq += 2*ibThick;
@@ -467,7 +488,6 @@ void InitGrain(Home_t *home, Param_t *param){
             
             /** Assembly inner interfaces of grain
              */
-            
             grain->nIBs = (int)ibRsq.size(); grain->ibPs = new real8 [grain->nIBs][3];
             for(auto j=0; j<ibRsq.size(); j++){
                 grain->ibPs[j][0] = grain->pos[0] + 0.5*grain->ibN[0]*ibRsq[j];
@@ -481,6 +501,7 @@ void InitGrain(Home_t *home, Param_t *param){
             grain->faces = new Face_t *[grain->nFaces];
             grain->sign = new real8 [grain->nFaces];
         }
+
 		for(auto j=0, k=0; j<neigh.size();j++) {
             /** convert to global andeliminate duplicate segments.
              */
@@ -502,12 +523,48 @@ void InitGrain(Home_t *home, Param_t *param){
                 face->type = (neigh[j]>=0)?1:0;
                 PointPlaneIntersection(grain->pos, face->n, face->p, face->p, &dis);
 
+                face->nEdges = f_vert[k];
+                face->edges = new real8 [face->nEdges*6];
+                for(auto l=0; l<face->nEdges; l++){
+                    int next = (l<face->nEdges-1)?l+1:0; 
+                    real8 gDir[3], lDir[3], p[3], crpd[3];
+                    lDir[0] = gloVertices[f_vert[k+1+next]*3] - gloVertices[f_vert[k+1+l]*3];
+                    lDir[1] = gloVertices[f_vert[k+1+next]*3+1] - gloVertices[f_vert[k+1+l]*3+1];
+                    lDir[2] = gloVertices[f_vert[k+1+next]*3+2] - gloVertices[f_vert[k+1+l]*3+2];
+                    if(Normal(lDir) < 1E-10)Fatal("the two vertices are too close");
+                    NormalizeVec(lDir);
+                    p[0] = 0.5*(gloVertices[f_vert[k+1+next]*3] + gloVertices[f_vert[k+1+l]*3]);
+                    p[1] = 0.5*(gloVertices[f_vert[k+1+next]*3+1] + gloVertices[f_vert[k+1+l]*3+1]);
+                    p[2] = 0.5*(gloVertices[f_vert[k+1+next]*3+2] + gloVertices[f_vert[k+1+l]*3+2]);
+                    
+                    cross(face->n, lDir, crpd); NormalizeVec(crpd);
+                    if(crpd[0]*(face->p[0]-p[0])+crpd[1]*(face->p[1]-p[1])+crpd[2]*(face->p[2]-p[2])>0){
+                        crpd[0] = -crpd[0];crpd[1] = -crpd[1];crpd[2] = -crpd[2];
+                    }
+                    VECTOR_COPY(&(face->edges[l*6]), crpd); VECTOR_COPY(&(face->edges[l*6+3]), p);
+#if 0
+                    real8 vec1[3], vec2[3];
+                    if(LINE_INTERSECTION != LinePlaneIntersection(&(face->edges[l*6]), &(face->edges[l*6+3]),
+                       face->n, face->p, vec1, vec2)){
+                        Fatal("Wrong!");
+                    }else {
+                        real8 dis1, dis2, dis3;
+                        PointPlaneIntersection(&(face->edges[l*6+3]),  face->n, face->p, vec1, &dis1);
+                        PointPlaneIntersection(&(gloVertices[f_vert[k+1+next]*3]),  face->n, face->p, vec1, &dis2);
+                        PointPlaneIntersection(&(gloVertices[f_vert[k+1+l]*3]),  face->n, face->p, vec1, &dis2);
+                        printf("dis error %e %e %e\n", dis1, dis2, dis3);
+                    }
+#endif
+                }
+
                 nFaces++;
             }
             
 			k+=f_vert[k]+1;
         }
 
+        
+        grain->ibsNumEdges = new int [grain->nIBs]; grain->ibsEdges = new real8 *[grain->nIBs];
         for(auto m=0; m<grain->nIBs; m++){
             std::vector<Edge_t> ibEdges;
             real8 p1[3], p2[3], p[3], t; int v1,v2;
@@ -535,7 +592,29 @@ void InitGrain(Home_t *home, Param_t *param){
 
                 k+=f_vert[k]+1;
             }
-            std::vector<int> polygon; EdgeListToPolygon(ibEdges,polygon); polygon.insert(polygon.begin(), (int)polygon.size());
+            std::vector<int> polygon; real8 centroid[3],dis;
+            EdgeListToPolygon(ibEdges,polygon); polygon.insert(polygon.begin(), (int)polygon.size());
+            CentroidOfPolygon(polygon,gloVertices,0, centroid);
+            PointPlaneIntersection(centroid, grain->ibN, grain->ibPs[m], grain->ibPs[m], &dis);
+        
+            real8 gDir[3], lDir[3], crpd[3];
+            grain->ibsNumEdges[m] = (int)ibEdges.size(); grain->ibsEdges[m] = new real8 [grain->ibsNumEdges[m]*6];
+            for(auto n=0; n<grain->ibsNumEdges[m]; n++){
+                lDir[0] = gloVertices[ibEdges[n].vertID2*3] - gloVertices[ibEdges[n].vertID1*3];
+                lDir[1] = gloVertices[ibEdges[n].vertID2*3+1] - gloVertices[ibEdges[n].vertID1*3+1];
+                lDir[2] = gloVertices[ibEdges[n].vertID2*3+2] - gloVertices[ibEdges[n].vertID1*3+2];
+                if(Normal(lDir) < 1E-10)Fatal("the two vertices are too close");NormalizeVec(lDir);
+                p[0] = 0.5*(gloVertices[ibEdges[n].vertID2*3] + gloVertices[ibEdges[n].vertID1*3]);
+                p[1] = 0.5*(gloVertices[ibEdges[n].vertID2*3+1] + gloVertices[ibEdges[n].vertID1*3+1]);
+                p[2] = 0.5*(gloVertices[ibEdges[n].vertID2*3+2] + gloVertices[ibEdges[n].vertID1*3+2]);
+
+                cross(grain->ibN, lDir, crpd); NormalizeVec(crpd);
+                if(crpd[0]*(grain->ibPs[m][0]-p[0])+crpd[1]*(grain->ibPs[m][1]-p[1])+crpd[2]*(grain->ibPs[m][2]-p[2])>0){
+                    crpd[0] = -crpd[0];crpd[1] = -crpd[1];crpd[2] = -crpd[2];
+                }
+                VECTOR_COPY(&(grain->ibsEdges[m][n*6]), crpd); VECTOR_COPY(&(grain->ibsEdges[m][n*6+3]), p);
+            }
+            
             if(home->myDomain ==0){
                 char zoneName[256];std::vector<int> info(3);
                 snprintf(zoneName,sizeof(zoneName),"IB.%d.%d",grain->id, m);
@@ -547,6 +626,8 @@ void InitGrain(Home_t *home, Param_t *param){
 
         if(!cl.inc())break;
     }
+
+    if(home->myDomain ==0)fclose(fp);
 
     if(cl.start()) for(int i=0, nFaces=0; i<home->nGrains; i++){
 		cells[i]->neighbors(neigh);
@@ -565,11 +646,10 @@ void InitGrain(Home_t *home, Param_t *param){
         if(!cl.inc())break;
     }
 
-    if(home->myDomain ==0)fclose(fp);
 
     if(home->myDomain == 0){
         if ((fp = fopen("lines.plt", "w")) == (FILE *)NULL) {
-         Fatal("tec_plot: Open error %d on %s\n", errno, "geometry.plt");
+             Fatal("tec_plot: Open error %d on %s\n", errno, "lines.plt");
         }
         fprintf(fp,"variables = x, y, z, vx, vy, vz, segID, type, nFaces\n");
 
@@ -585,868 +665,22 @@ void InitGrain(Home_t *home, Param_t *param){
             DrawLine(fp, pos1, pos2, 10, indexs);
         }   
         fclose(fp);
+
+        if ((fp = fopen("centers.plt", "w")) == (FILE *)NULL) {
+            Fatal("tec_plot: Open error %d on %s\n", errno, "centers.plt");
+        }
+        fprintf(fp,"variables = x, y, z, center_type\n");
+        for(auto i=0; i<home->nGrains; i++){
+            Grain_t *grain = home->grainKeys[i];
+            fprintf(fp, "%g %g %g 0\n", grain->pos[0], grain->pos[1], grain->pos[2]);
+            for(auto j=0; j<grain->nFaces; j++)
+                fprintf(fp,"%g %g %g 1\n",grain->faces[j]->p[0],grain->faces[j]->p[1],grain->faces[j]->p[2]);
+            for(auto j=0; j<grain->nIBs; j++)
+                fprintf(fp, "%g %g %g 2\n",grain->ibPs[j][0], grain->ibPs[j][1], grain->ibPs[j][2]);
+        }
+        fclose(fp);
     }
     return;
-#if 0
-	int		    i,j,k;
-	Grain_t		*grain;
-    GB_t        *GB;
-	real8		HalfMatrixThick, maxSeg;
-	real8		TwinOrientation[3][3], temR[3][3];
-	int		    nGrain, type, GBID;
-	real8		twinRatio;
-    real8       I[3][3] = {
-                            {1.0e+00, 0.0e+00, 0.0e+00},
-                            {0.0e+00, 1.0e+00, 0.0e+00},
-                            {0.0e+00, 0.0e+00, 1.0e+00}
-                          };
-
-    real8       zaxis[3] = {0.0,0.0,1.0}, maxSchmid, dis, rad = 800, sqi3 = 0.5773502691896258;
-    std::vector<SlipSys_t>  slipSys;
-    SlipSys_t               slip;
-    BurgInfo_t  *bd;
-    int         slipIndex, inGrain;
-    GB_t        *gb;
-
-	real8   hMatrix, p[4][3];
-	real8   bound, rho;
-	int	    inner = 0, interType;
-	Plane_t plane;
-	Line_t  edge;
-
-	/*the following variables are placed in param.h*/
-	int		    numTGrains;
-	real8		halfTwinThick;
-	int		    invFlag;
-	real8		lx=0, ly=0, lz=0;	/*half cube size in param.h*/
-
-    int                     m, n, nmesh;
-    real8                   vec1[3], vec2[3], vec3[3], interPos[3];
-    real8                   poss[2][3], vecMag, length, vec4[3], msize = 10, tsize;
-    std::vector<Plane_t>    surList(6);
-    std::vector<std::vector<Plane_t> > surArray(2);
-    std::vector<int>        records, records1;
-    FILE     *fp, *fp1;
-    char     fileName[256];
-
-    int         th, color, l, burgID, maxBurg, numMaxSchmids;
-
-    real8       cryst[3], lab[3];
-    real8       ps[4][3];
-    real8       cena[3] = {1,-1, 1}, cenb[3] = {-1,1,1}, cenc[3] = {1,1,-1}, cend[3] = {-1,-1,-1};
-
-	lx = param->xBoundMax;
-	ly = param->yBoundMax;
-	lz = param->zBoundMax;
-	maxSeg = param->maxSeg;
-
-	for(i=0; i<3; i++){
-	    VECTOR_COPY(home->rotMatrix[i], param->matrixOrientation[i]);
-	}
-	Matrix33Invert(home->rotMatrix, home->rotMatrixInverse);
-
-    GenerateFCCBurgInfo(&(home->burgData), param->matrixOrientation, -1);
-    GenerateFCCBurgInfo(&(home->crystBurgData), I, -1);
-
-	if(fabs(home->rotMatrix[0][0]) > 0.9999999999 &&  
-	   fabs(home->rotMatrix[1][1]) > 0.9999999999 &&
-	   fabs(home->rotMatrix[2][2]) > 0.9999999999){
-	    param->useLabFrame = 0;
-	}else{
-	    param->useLabFrame = 1;
-	}
-
-    if(param->polycrystal == 0){
-        if(param->xBoundType == Periodic && 
-           param->yBoundType == Periodic && 
-           param->zBoundType == Periodic ){
-            type = 1;
-        }else type = 2;
-    }else{
-        if(param->nGrain == 1){
-            if(param->xBoundType == Periodic && 
-               param->yBoundType == Periodic && 
-               param->zBoundType == Periodic ){
-                type = 3;
-            }else{
-                Fatal("at file %s line %d", __FILE__, __LINE__);
-            }
-        }else{
-            if(param->xBoundType == Periodic && 
-               param->yBoundType == Periodic && 
-               param->zBoundType == Periodic ){
-                type = 4;
-            }else{
-                type = 5;
-            }
-
-        }
-    }
-
-	if(param->polycrystal == 0)param->nGrain = 0;
-	nGrain = param->nGrain;
-
-    if(type == 3)Fatal("Not supposed this type now");
-/*
- *	Type I: polycrystal = 0, nGrain = 0, PBC
- * 	origin PBC condition.
- */	
-
-/*
- *	Type II: polycrystal = 0, nGrain = 0, Free surface.
- *	single crystal, free surface.
- */
-	if(param->polycrystal ==0){
-        home->nGrains = 1;
-        home->nGBs = 0;
-
-	    home->grainKeys	= (Grain_t **)malloc(home->nGrains * sizeof(Grain_t *));
-        home->grainKeys[0] = (Grain_t *)calloc(1, sizeof(Grain_t));
-        grain = home->grainKeys[0];
-        grain->nGBs = 0;
-
-        memcpy(grain->orientation, home->rotMatrix, sizeof(real8 [3][3]));
-        memcpy(grain->orientationInv, home->rotMatrixInverse, sizeof(real8 [3][3]));
-
-        bd = &(home->burgData);
-        for(j=0; j<6; j++){
-            VECTOR_COPY(slip.burg, bd->burgList[j]);
-            slip.burgID = j;
-            for(k=0; k<2; k++){
-                slip.planeID = bd->burgOnPlaneID[j][k];
-                VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
-                slip.schmid = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
-                grain->slipSys.push_back(slip);
-            }
-        }
-
-//        VECTOR_COPY(zaxis, param->loadDir);
-
-        std::vector<SlipSys_t>().swap(slipSys);
-        bd = &(home->burgData);
-        for(j=0; j<6; j++){
-            VECTOR_COPY(slip.burg, bd->burgList[j]);
-            slip.burgID = j;
-            for(k=0; k<2; k++){
-                slip.planeID = bd->burgOnPlaneID[j][k];
-                VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
-                slip.schmid = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
-                slipSys.push_back(slip);
-            }
-        }
-        sort(slipSys.begin(), slipSys.end(),cmp3); 
-    
-        maxSchmid = slipSys[0].schmid;
-
-        for(j=1; j<slipSys.size(); j++){
-            if(fabs(slipSys[j].schmid-maxSchmid)>1.0E-3)break;
-        }
-        slipSys.resize(j);
-
-        param->maxSchmid = maxSchmid;
-	    if(home->myDomain==0)FormatMatrix(param->matrixOrientation,"Orientation");
-
-        for(i=0; i<6; i++){
-            VECTOR_ZERO(surList[i].normal);
-            VECTOR_ZERO(surList[i].point);
-        }
-        surList[0].normal[0] =-1.0;
-        surList[1].normal[0] = 1.0;
-        surList[2].normal[1] =-1.0;
-        surList[3].normal[1] = 1.0;
-        surList[4].normal[2] =-1.0;
-        surList[5].normal[2] = 1.0;
-
-        surList[0].point[0] = param->xBoundMin;
-        surList[1].point[0] = param->xBoundMax;
-        surList[2].point[1] = param->yBoundMin;
-        surList[3].point[1] = param->yBoundMax;
-        surList[4].point[2] = param->zBoundMin;
-        surList[5].point[2] = param->zBoundMax;
-
-	    if(home->myDomain == 0){
-		    snprintf(fileName, sizeof(fileName), "primarry_planes.plt");
-
-		    if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
-			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
-		    }
-            
-	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, planeID, cosf\n");
-
-		    snprintf(fileName, sizeof(fileName), "total.plt");
-		    if ((fp1 = fopen(fileName, "w")) == (FILE *)NULL) {
-			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
-		    }
-            
-	        fprintf(fp1, "Variables = x, y, z, v1, v2, v3, index, planID, burg, schmid\n");
-
-            for(j=0; j<slipSys.size(); j++){
-                VECTOR_COPY(plane.normal, slipSys[j].normal);
-                VECTOR_ZERO(plane.point);
-                inGrain = slipSys[j].inGrain;
-        
-                for(k=0; k<6; k++){
-                    type = PlanePlaneIntersection(
-                              plane.normal, plane.point,
-                              surList[k].normal, surList[k].point, vec1, vec2); 
-                    
-                    if(type != LINE_INTERSECTION)continue;
-
-                    th = 0;
-
-                    for(m=0; m<6; m++){
-                        if(m==k)continue;
-                        type = LinePlaneIntersection(vec1, vec2, surList[m].normal,
-                                     surList[m].point, vec3, interPos);
-                        if(type != POINT_INTERSECTION)continue;
-                        if(fabs(interPos[0]) > param->xBoundMax+1.0){
-                            continue;
-                        }
-                        if(fabs(interPos[1]) > param->yBoundMax+1.0){
-                            continue;
-                        }
-                        if(fabs(interPos[2]) > param->zBoundMax+1.0){
-                            continue;
-                        }
-                        VECTOR_COPY(poss[th], interPos);
-                        th++;
-
-                        if(th == 2){
-
-                            vec4[0] = poss[1][0] - poss[0][0];
-                            vec4[1] = poss[1][1] - poss[0][1];
-                            vec4[2] = poss[1][2] - poss[0][2];
-
-                            nmesh = ((int)(Normal(vec4)/msize));
-                            tsize = Normal(vec4)/((real8)nmesh);
-                            NormalizeVec(vec4);
-            
-                            for(l=0; l<nmesh; l++){
-	                            fprintf(fp, "%e %e %e %e %e %e %d %f\n", poss[0][0],
-                                poss[0][1],poss[0][2], tsize*vec4[0],
-                                tsize*vec4[1],tsize*vec4[2], slipSys[j].planeID,
-                                    fabs(DotProduct(slipSys[j].normal, zaxis)));
-
-	                            fprintf(fp1, "%e %e %e %e %e %e 1 %d -1 %f\n", poss[0][0],
-                                            poss[0][1],poss[0][2], tsize*vec4[0],
-                                            tsize*vec4[1],tsize*vec4[2],  slipSys[j].planeID,
-                                            fabs(DotProduct(slipSys[j].normal, zaxis)));
-
-                                poss[0][0] += tsize*vec4[0];
-                                poss[0][1] += tsize*vec4[1];
-                                poss[0][2] += tsize*vec4[2];
-
-                            }
-
-                            th = 0;
-                            break;
-                        }
-
-                    }
-
-                }
-
-            }
-
-            fclose(fp);
-
-		    snprintf(fileName, sizeof(fileName), "Thompson.plt");
-
-		    if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
-			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
-		    }
-            
-	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, burgID, schmid\n");
-
-            NormalizeVec(cena);
-            NormalizeVec(cenb);
-            NormalizeVec(cenc);
-            NormalizeVec(cend);
-
-            VECTOR_ZERO(plane.normal);
-            VECTOR_ZERO(plane.point);
-
-            Matrix33Vector3Multiply(param->matrixOrientation, cena, ps[0]);
-            Matrix33Vector3Multiply(param->matrixOrientation, cenb, ps[1]);
-            Matrix33Vector3Multiply(param->matrixOrientation, cenc, ps[2]);
-            Matrix33Vector3Multiply(param->matrixOrientation, cend, ps[3]);
-
-            for(j=0; j<4; j++){
-                ps[j][0] *= rad;
-                ps[j][1] *= rad;
-                ps[j][2] *= rad;
-
-                ps[j][0] += (plane.point[0]);
-                ps[j][1] += (plane.point[1]);
-                ps[j][2] += (plane.point[2]);
-            }
-
-
-            for(j=0; j<3; j++){
-                for(k=j+1; k<4; k++){
-                    vec4[0] = ps[k][0] - ps[j][0];
-                    vec4[1] = ps[k][1] - ps[j][1];
-                    vec4[2] = ps[k][2] - ps[j][2];
-
-                    VECTOR_COPY(poss[0], ps[j]);
-
-                    nmesh = ((int)(Normal(vec4)/msize));
-                    tsize = Normal(vec4)/((real8)nmesh);
-
-                    NormalizeVec(vec4);
-
-                    burgID = BurgID_FCC(bd, vec4);
-                    for(l=0; l<slipSys.size(); l++){
-                        if(burgID == slipSys[l].burgID)break;
-                    }
-                    if(l==slipSys.size()){
-                        maxBurg = 0;
-                    }else{
-                        maxBurg = 1;
-                    }
-
-                    for(l=0; l<nmesh; l++){
-	                    fprintf(fp, "%e %e %e %e %e %e %d %d\n", poss[0][0],
-                        poss[0][1],poss[0][2], tsize*vec4[0],
-                        tsize*vec4[1],tsize*vec4[2],
-                        burgID, maxBurg);
-
-	                    fprintf(fp1, "%e %e %e %e %e %e %d -1 %d %f\n", poss[0][0],
-                        poss[0][1],poss[0][2], tsize*vec4[0],
-                        tsize*vec4[1],tsize*vec4[2],
-                        maxBurg, burgID, fabs(DotProduct(bd->burgList[burgID], zaxis)));
-                        poss[0][0] += tsize*vec4[0];
-                        poss[0][1] += tsize*vec4[1];
-                        poss[0][2] += tsize*vec4[2];
-
-                    }
-
-                    
-                }
-            }
-
-            fclose(fp);
-            fclose(fp1);
-
-	    }
-
-        grain->surface.swap(surList);
-
-#if PARALLEL
-       MPI_Bcast(&(param->maxSchmid), sizeof(double), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-#endif
-	    return;
-	}
-
-/*
- *	Type III: polycrystal = 1, nGrain =1, PBC 
- *	only have grain boundary
- */
-	if(nGrain == 0)Fatal("polycrstal type, but nGrain = 0");
-
-	home->nGrains = param->nGrain;				/*num of grain and twins */
-    
-	home->grainKeys	= (Grain_t **)malloc(home->nGrains * sizeof(Grain_t *));
-	param->useLabFrame = 1;
-	twinRatio = param->twinRatio;
-	
-/*
- *	Initialize twin grain.
- */
-	twinRatio = param->twinRatio;
-	numTGrains = nGrain - 1;
-
-#if 0
-	Matrix33Vector3Multiply(param->matrixOrientation, param->TBNormalCryst, param->TBNormal);
-    RotateWithAxis(param->TBNormal, PI, temR);
-	Matrix33Mult33(temR, param->matrixOrientation, TwinOrientation);
-    RotateWithAxis(param->TBNormal, PI, param->rotateNormal);
-
-#else
-        real8   CDeltaLab[3] = {-1,-1,2}, CDelta[3];
-        real8   planeABC[3] = {1,1,1};
-        NormalizeVec(CDeltaLab);
-        NormalizeVec(planeABC); 
-        Matrix33Vector3Multiply(param->matrixOrientation, CDeltaLab, CDelta);
-
-        RotateWithAxis(CDelta, PI, temR);
-        Matrix33Mult33(temR, param->matrixOrientation, TwinOrientation);
-
-        Matrix33Vector3Multiply(param->matrixOrientation, planeABC, param->TBNormal);
-        RotateWithAxis(param->TBNormal, PI, param->rotateNormal);
-
-#endif
-/*
- *	Type V: polycrystal = 1, nGrain >= 2, PBC.
- *	polycrystal, twin, RVE, XOZ plane is twin plane
- */
-    if(type == 4){
-	    halfTwinThick = twinRatio * ly / (real8)numTGrains;
-	    HalfMatrixThick = ly / (real8)numTGrains - halfTwinThick;
-	    	
-	    if (HalfMatrixThick <= 0){
-	        printf("the thickness of matrix is %f\n ", HalfMatrixThick);
-	        Fatal("the thickness of matrix is negative value at %s line %d\n", __FILE__, __LINE__);
-	    }
-
-        home->nGBs = home->nGrains;
-        home->GBKeys = (GB_t **)malloc(home->nGrains*sizeof(GB_t *));   
-        for(i=0; i<home->nGrains; i++){
-            home->GBKeys[i] = (GB_t *)calloc(1, sizeof(GB_t));
-            home->GBKeys[i]->GBID = i;
-            VECTOR_ZERO(home->GBKeys[i]->n);
-            VECTOR_ZERO(home->GBKeys[i]->p);
-            home->GBKeys[i]->n[1] = 1.0;
-            home->GBKeys[i]->p[1] = -ly + HalfMatrixThick + 2*((real8)i)*halfTwinThick;
-            home->GBKeys[i]->nbrGrain[0] = i;
-            home->GBKeys[i]->nbrGrain[1] = ((i == home->nGrains -1) ? 0 : i+1);
-        }
-
-	    for(i=0; i<nGrain; i++){
-	        home->grainKeys[i] = (Grain_t *)calloc(1, sizeof(Grain_t));
-	        grain = home->grainKeys[i];
-	        InitGrainStructure(grain, 2);
-    
-	        grain->type = ODINARY_GRAIN;
-	        grain->cy = -ly + (2 * ((real8)i) - 1) * (HalfMatrixThick + halfTwinThick);
-            grain->cx = 0.0;
-            grain->cz = 0.0;
-            grain->grainID = i;
-
-            GBID = i -1;
-            if(GBID < 0) GBID = nGrain - 1;
-            grain->GB[0] = home->GBKeys[GBID];
-            grain->sign[0] = -1.0;
-            grain->GB[1] = home->GBKeys[i];
-            grain->sign[1] =  1.0;
-
-            if(i != 0){
-                memcpy(grain->orientation, TwinOrientation, sizeof(real8 [3][3]));
-            }else{
-                memcpy(grain->orientation, param->matrixOrientation, sizeof(real8 [3][3]));
-            }
-
-            GenerateFCCBurgInfo(&(grain->burgData), grain->orientation, grain->grainID);
-	        invFlag = Matrix33Invert(grain->orientation, grain->orientationInv);
-	        if(!invFlag){
-	            Fatal("Invert twin orientation faild!\n");
-	        }
-        }
-
-        for(i=0; i<home->nGBs; i++){
-            GenerateGBBurgInfo(home, home->GBKeys[i]);    
-        }
-        return;
-    }
-
-	if(nGrain == 2){
-
-/*
- *	    Type VI: polycrystal = 1, nGrain =2
- *	    simulat twin sample.
- */
-
-	    VECTOR_COPY(plane.normal, param->TBNormal);
-	    VECTOR_ZERO(plane.point);
-
-        if(fabs(0.5-twinRatio) > 1.0E-3){
-
-            if(param->xBoundType != Periodic){
-	            for(i=0; i<3; i++){
-	                VECTOR_ZERO(edge.direction);
-	                VECTOR_ZERO(plane.point);
-          
-	                edge.direction[i] = 1;
-	                if(DotProduct(param->TBNormal, edge.direction) > 0){
-	                    rho = 1.0 - twinRatio; }
-	                else{
-	                    rho = twinRatio;  }
-          
-	                if(i == 0){
-	                    bound = lx;
-	                    hMatrix = 2 * lx * rho - lx; 
-	                    p[0][0] = 0; p[0][1] = -ly; p[0][2] = -lz;
-	                    p[1][0] = 0; p[1][1] = -ly; p[1][2] =  lz;
-	                    p[2][0] = 0; p[2][1] =  ly; p[2][2] = -lz;
-	                    p[3][0] = 0; p[3][1] =  ly; p[3][2] =  lz;
-	                }else if(i == 1){
-	                    bound = ly;
-	                    hMatrix = 2 * ly * rho - ly; 
-	                    p[0][0] = -lx; p[0][1] = 0; p[0][2] = -lz;
-	                    p[1][0] =  lx; p[1][1] = 0; p[1][2] = -lz;
-	                    p[2][0] = -lx; p[2][1] = 0; p[2][2] =  lz;
-	                    p[3][0] =  lx; p[3][1] = 0; p[3][2] =  lz;
-	                }else if(i == 2){
-	                    bound = lz;
-	                    hMatrix = 2 * lz * rho - lz; 
-	                    p[0][0] = -lx; p[0][1] = -ly; p[0][2] = 0;
-	                    p[1][0] =  lx; p[1][1] = -ly; p[1][2] = 0;
-	                    p[2][0] = -lx; p[2][1] =  ly; p[2][2] = 0;
-	                    p[3][0] =  lx; p[3][1] =  ly; p[3][2] = 0;
-	                }
-	                plane.point[i] = hMatrix;	        
-          
-	                inner = 1;
-	                for(j=0; j<4; j++){
-	                    VECTOR_COPY(edge.point, p[j]);
-	 	    	  		type = LinePlaneIntersection(edge.direction, edge.point, 
-	 	    	  				plane.normal, plane.point, vec1, interPos);
-	 	    	  		if(type != POINT_INTERSECTION){
-	 	    	  			inner = 0;
-	 	    	  			break;
-	 	    	  		} 
-          
-	                    if(fabs(interPos[i]) > bound){
-	                        inner = 0; break; }
-	                }/* for (j=0; j ...)*/
-	                if(inner == 1)break;
-          
-	            }/* for(i=0; i ...)*/
-	            
-	            if(inner == 0)Fatal("InitGrain: can not find TB plane");
-            }else{
-                plane.point[1] = param->yBoundMin + (1-twinRatio)*(param->yBoundMax - param->yBoundMin);
-            }
-        }
-
-
-        home->nGBs = 1;
-        home->GBKeys = (GB_t **)malloc(sizeof(GB_t *));
-        i = 0;
-        home->GBKeys[i] = (GB_t *)calloc(1, sizeof(GB_t));
-        home->GBKeys[i]->GBID = i;
-        VECTOR_COPY(home->GBKeys[i]->n, param->TBNormal);
-        VECTOR_COPY(home->GBKeys[i]->p, plane.point);
-        home->GBKeys[i]->nbrGrain[0] = i;
-        home->GBKeys[i]->nbrGrain[1] = i+1;
-
-	    home->grainKeys[0] = (Grain_t *)calloc(1, sizeof(Grain_t));
-        grain = home->grainKeys[0];
-	    InitGrainStructure(grain, 1);
-	    grain->type = ODINARY_GRAIN;
-        grain->grainID = 0;
-        grain->sign[0] = 1.0;
-        grain->GB[0] = home->GBKeys[0];
-        memcpy(grain->orientation, param->matrixOrientation, sizeof(real8 [3][3]));
-        GenerateFCCBurgInfo(&(grain->burgData), grain->orientation, grain->grainID);
-	    invFlag = Matrix33Invert(grain->orientation, grain->orientationInv);
-	    if(!invFlag){
-	        Fatal("Invert twin orientation faild!\n");
-	    }
-
-	    home->grainKeys[1] = (Grain_t *)calloc(1, sizeof(Grain_t));
-	    grain = home->grainKeys[1];
-	    InitGrainStructure(grain, 1);
-	    grain->type = ODINARY_GRAIN;
-        grain->grainID = 1;
-        grain->sign[0] = -1.0;
-        grain->GB[0] = home->GBKeys[0];
-    
-        memcpy(grain->orientation, TwinOrientation, sizeof(real8 [3][3]));
-        GenerateFCCBurgInfo(&(grain->burgData), grain->orientation, grain->grainID);
-	    invFlag = Matrix33Invert(grain->orientation, grain->orientationInv);
-	    if(!invFlag){
-	        Fatal("Invert twin orientation faild!\n");
-	    }
-        for(i=0; i<home->nGBs; i++){
-            GenerateGBBurgInfo(home, home->GBKeys[i]);    
-        }
-
-	    if(home->myDomain == 0){
-	        FormatMatrix(param->matrixOrientation,"basis orientation");
-	        printf("\n");
-	        FormatMatrix(TwinOrientation,"twin orientation");
-	        printf("\n");
-	        FormatVector(param->TBNormal, "twin boundary normal");
-	        printf("\n");
-	    }
-
-
-        for(i=0; i<6; i++){
-            VECTOR_ZERO(surList[i].normal);
-            VECTOR_ZERO(surList[i].point);
-        }
-        surList[0].normal[0] =-1.0;
-        surList[1].normal[0] = 1.0;
-        surList[2].normal[1] =-1.0;
-        surList[3].normal[1] = 1.0;
-        surList[4].normal[2] =-1.0;
-        surList[5].normal[2] = 1.0;
-
-        surList[0].point[0] = param->xBoundMin;
-        surList[1].point[0] = param->xBoundMax;
-        surList[2].point[1] = param->yBoundMin;
-        surList[3].point[1] = param->yBoundMax;
-        surList[4].point[2] = param->zBoundMin;
-        surList[5].point[2] = param->zBoundMax;
-
-
-        for(i=0; i<6; i++){
-            type = PlanePlaneIntersection(surList[i].normal, surList[i].point,
-                                          plane.normal, plane.point, vec1, vec2); 
-            if(type != LINE_INTERSECTION){
-                records1.push_back(i);
-                continue;
-            }
-            records.push_back(i);
-
-        if(home->myDomain == 0){
-		    snprintf(fileName, sizeof(fileName), "TB.plt");
-		    if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
-			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
-		    }
-            
-	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, burgID, normalID, schmid, inGrain\n");
-
-                k = 0;
-                for(j=0; j<6; j++){
-                    if(j==i)continue;
-                    type = LinePlaneIntersection(vec1, vec2, surList[j].normal, 
-                                                 surList[j].point, vec3, interPos);
-                    if(type != POINT_INTERSECTION){
-                        continue;
-                    }
-                    if(fabs(interPos[0]) > param->xBoundMax+1.0){
-                        continue;
-                    }
-                    if(fabs(interPos[1]) > param->yBoundMax+1.0){
-                        continue;
-                    }
-                    if(fabs(interPos[2]) > param->zBoundMax+1.0){
-                        continue;
-                    }
-                    VECTOR_COPY(poss[k], interPos);
-                    k++;
-                    if(k==2){
-                        vec4[0] = poss[1][0] - poss[0][0];
-                        vec4[1] = poss[1][1] - poss[0][1];
-                        vec4[2] = poss[1][2] - poss[0][2];
-                        length = Normal(vec4);
-                        nmesh = int(length/msize);
-                        tsize = length/((real8)nmesh);
-                        NormalizeVec(vec4);
-                        for(m=0; m<nmesh; m++){
-#if 1
-	                        fprintf(fp, "%e %e %e %e %e %e -1 3 -1.00 -1\n", poss[0][0],
-                                    poss[0][1],poss[0][2], tsize*vec4[0],
-                                    tsize*vec4[1], tsize*vec4[2]);
-#endif
-                            poss[0][0] += tsize*vec4[0];
-                            poss[0][1] += tsize*vec4[1];
-                            poss[0][2] += tsize*vec4[2];
-                        }
-                        k = 0;
-                        break;
-                    }
-                }
-            }
-
-        }
-#if 0
-        surArray[0].push_back(plane);
-        home->grainKeys[0]->surface.push_back(plane);
-        plane.normal[0] = -plane.normal[0];
-        plane.normal[1] = -plane.normal[1];
-        plane.normal[2] = -plane.normal[2];
-
-        surArray[1].push_back(plane);
-        home->grainKeys[1]->surface.push_back(plane);
-        plane.normal[0] = -plane.normal[0];
-        plane.normal[1] = -plane.normal[1];
-        plane.normal[2] = -plane.normal[2];
-#endif
-        for(i=0; i<records.size(); i++){
-            surArray[0].push_back(surList[records[i]]);
-            surArray[1].push_back(surList[records[i]]);
-            home->grainKeys[0]->surface.push_back(surList[records[i]]);
-            home->grainKeys[1]->surface.push_back(surList[records[i]]);
-        }
-
-        for(i=0; i<records1.size(); i++){
-            if(DotProduct(surList[records1[i]].normal,plane.normal)<0){
-                surArray[0].push_back(surList[records1[i]]);
-                home->grainKeys[0]->surface.push_back(surList[records1[i]]);
-            }else{
-                surArray[1].push_back(surList[records1[i]]);
-                home->grainKeys[1]->surface.push_back(surList[records1[i]]);
-            }
-        }
-#if 0
-            for(i=0; i<surArray[0].size(); i++){
-                printf("0 %d: {%f,%f,%f}--{%f,%f,%f}\n", i,
-                    surArray[0][i].normal[0],surArray[0][i].normal[1],surArray[0][i].normal[2],
-                    surArray[0][i].point[0],surArray[0][i].point[1],surArray[0][i].point[2]);
-            }
-            for(i=0; i<surArray[1].size(); i++){
-                printf("1 %d: {%f,%f,%f}--{%f,%f,%f}\n",i, 
-                    surArray[1][i].normal[0],surArray[1][i].normal[1],surArray[1][i].normal[2],
-                    surArray[1][i].point[0],surArray[1][i].point[1],surArray[1][i].point[2]);
-            }
-#endif
-
-            if(home->myDomain == 0){
-                NormalizeVec(cena);
-                NormalizeVec(cenb);
-                NormalizeVec(cenc);
-                NormalizeVec(cend);
-             
-                gb = home->GBKeys[0];
-                for(i=0; i<home->nGrains; i++){
-                    grain = home->grainKeys[i];
-#if 1        
-                    VECTOR_COPY(plane.normal, gb->n);
-                    VECTOR_COPY(plane.point, gb->p);
-             
-                    plane.point[0] -= (grain->sign[0]*plane.normal[0]*500);
-                    plane.point[1] -= (grain->sign[0]*plane.normal[1]*500);
-                    plane.point[2] -= (grain->sign[0]*plane.normal[2]*500);
-             
-                    Matrix33Vector3Multiply(grain->orientation, cena, ps[0]);
-                    Matrix33Vector3Multiply(grain->orientation, cenb, ps[1]);
-                    Matrix33Vector3Multiply(grain->orientation, cenc, ps[2]);
-                    Matrix33Vector3Multiply(grain->orientation, cend, ps[3]);
-             
-                    for(j=0; j<4; j++){
-                        ps[j][0] *= rad;
-                        ps[j][1] *= rad;
-                        ps[j][2] *= rad;
-             
-                        ps[j][0] += (plane.point[0]);
-                        ps[j][1] += (plane.point[1]);
-                        ps[j][2] += (plane.point[2]);
-                    }
-             
-                    bd = &(grain->burgData);
-                    for(j=0; j<3; j++){
-                        for(k=j+1; k<4; k++){
-                            vec4[0] = ps[k][0] - ps[j][0];
-                            vec4[1] = ps[k][1] - ps[j][1];
-                            vec4[2] = ps[k][2] - ps[j][2];
-             
-                            VECTOR_COPY(poss[0], ps[j]);
-             
-                            nmesh = ((int)(Normal(vec4)/msize));
-                            tsize = Normal(vec4)/((real8)nmesh);
-             
-                            NormalizeVec(vec4);
-             
-                            for(l=0; l<nmesh; l++){
-	                            fprintf(fp, "%e %e %e %e %e %e %d -1 -1.0 %d\n", poss[0][0],
-                                poss[0][1],poss[0][2], tsize*vec4[0],
-                                tsize*vec4[1],tsize*vec4[2], BurgID_FCC(bd, vec4), i);
-             
-                                poss[0][0] += tsize*vec4[0];
-                                poss[0][1] += tsize*vec4[1];
-                                poss[0][2] += tsize*vec4[2];
-             
-                            }
-                        
-                        }
-                    }
-                }
-               
-#endif       
-               bd = &(grain->burgData);
-               slip.inGrain = i;
-               for(j=0; j<6; j++){
-                   VECTOR_COPY(slip.burg, bd->burgList[j]);
-                   slip.burgID = j;
-                   for(k=0; k<2; k++){
-                       slip.planeID = bd->burgOnPlaneID[j][k];
-                       VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
-                       slip.schmid = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
-                       slipSys.push_back(slip);
-                   }
-               }
-               sort(slipSys.begin(), slipSys.end(),cmp3); 
-             
-               maxSchmid = slipSys[0].schmid;
-               printf("max %f\n",  maxSchmid);
-             
-               grain->maxSchmid = maxSchmid;
-             
-               for(j=1; j<slipSys.size(); j++){
-                   if(fabs(slipSys[j].schmid-maxSchmid)>1.0E-3)break;
-               }
-             
-               numMaxSchmids = j;
-             
-               for(j=0; j<numMaxSchmids; j++){
-                   VECTOR_COPY(plane.normal, slipSys[j].normal);
-                   VECTOR_ZERO(plane.point);
-                   inGrain = slipSys[j].inGrain;
-                   plane.point[0] += -10.0*surArray[inGrain][0].normal[0];
-                   plane.point[1] += -10.0*surArray[inGrain][0].normal[1];
-                   plane.point[2] += -10.0*surArray[inGrain][0].normal[2];
-             
-             
-                   for(k=0; k<surArray[inGrain].size(); k++){
-                       type = PlanePlaneIntersection(
-                                 plane.normal, plane.point,
-                                 surArray[inGrain][k].normal, surArray[inGrain][k].point, vec1, vec2); 
-                       
-                       if(type != LINE_INTERSECTION)continue;
-                       th = 0;
-                       for(m=0; m<surArray[inGrain].size(); m++){
-                           if(m==k)continue;
-                           type = LinePlaneIntersection(vec1, vec2, surArray[inGrain][m].normal,
-                                        surArray[inGrain][m].point, vec3, interPos);
-             
-                           if(type != POINT_INTERSECTION)continue;
-             
-                           type = PointPlaneIntersection(interPos, surArray[inGrain][0].normal,
-                                      surArray[inGrain][0].point, vec4, &dis);
-                           if(dis > 0.1)continue;
-                           if(fabs(interPos[0]) > param->xBoundMax+1.0){
-                               continue;
-                           }
-                           if(fabs(interPos[1]) > param->yBoundMax+1.0){
-                               continue;
-                           }
-                           if(fabs(interPos[2]) > param->zBoundMax+1.0){
-                               continue;
-                           }
-             
-                           VECTOR_COPY(poss[th], interPos);
-                           th++;
-#if 0        
-                           if(th == 2){
-                               vec4[0] = poss[1][0] - poss[0][0];
-                               vec4[1] = poss[1][1] - poss[0][1];
-                               vec4[2] = poss[1][2] - poss[0][2];
-                               length = Normal(vec4);
-                               nmesh = (int)(length/msize);
-                               tsize = length/((real8)nmesh);
-                               NormalizeVec(vec4);
-                               color = slipSys[j].burgID;
-               
-                               for(n=0; n<nmesh; n++){
-	                               fprintf(fp, "%e %e %e %e %e %e %d %d %f %d\n", poss[0][0],
-                                   poss[0][1],poss[0][2], tsize*vec4[0],
-                                   tsize*vec4[1],tsize*vec4[2], slipSys[j].burgID, 
-                                   slipSys[j].planeID, slipSys[j].schmid, inGrain);
-                                   poss[0][0] += tsize*vec4[0];
-                                   poss[0][1] += tsize*vec4[1];
-                                   poss[0][2] += tsize*vec4[2];
-                               }
-                               th = 0;
-                               break;
-                           }
-#endif       
-                       }
-                   
-                   }
-               }
-             
-                swap(grain->slipSys, slipSys);
-                fclose(fp);
-            }
-	}else{
-	    Fatal("Not suppose free surface polycrystal problem");
-	}
-
-#endif
-	return;
 }
 
 
@@ -3130,6 +2364,7 @@ void CompressBurgListWithType(std::vector<std::vector<real8> >& burgList,
 
     return;
 }
+
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
 {
 
