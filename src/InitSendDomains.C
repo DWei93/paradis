@@ -36,7 +36,7 @@
  *                    trasnmission to a remote domain.  Data includes generic
  *                    parameters, and node info (node tags of its neighbor
  *                    nodes, burgers vector for node, glide plane orientation,
- *                    coordinates, constraint type, inGrain and onGB).
+ *                    coordinates, constraint type, place).
  *      Arguments:
  *          inData      structure with initial nodal data
  *          nodeList    Integer array of indices into the inData node
@@ -121,8 +121,10 @@ static void PackInitialNodeData(InData_t *inData, int *nodeList,
             }
 
             dataBuf[bufIndex++] = (real8)inData->node[nIndex].constraint;
-			dataBuf[bufIndex++] = (real8)inData->node[nIndex].inGrain;
-			dataBuf[bufIndex++] = (real8)inData->node[nIndex].onGB;
+			dataBuf[bufIndex++] = (real8)inData->node[nIndex].place[0];
+			dataBuf[bufIndex++] = (real8)inData->node[nIndex].place[1];
+			dataBuf[bufIndex++] = (real8)inData->node[nIndex].place[2];
+			dataBuf[bufIndex++] = (real8)inData->node[nIndex].place[3];
 
             dataBuf[bufIndex++] = inData->node[nIndex].x; 
             dataBuf[bufIndex++] = inData->node[nIndex].y; 
@@ -362,8 +364,10 @@ static void UnpackInitialNodeData(Home_t *home, real8 *buf,
             }
 
             node->constraint = (int)buf[bufIndex++];
-			node->inGrain = (int)buf[bufIndex++];
-			node->onGB = (int)buf[bufIndex++];
+			node->place[0] = (int)buf[bufIndex++];
+			node->place[1] = (int)buf[bufIndex++];
+			node->place[2] = (int)buf[bufIndex++];
+			node->place[3] = (int)buf[bufIndex++];
 
             node->x = buf[bufIndex++]; 
             node->y = buf[bufIndex++]; 

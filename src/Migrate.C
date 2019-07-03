@@ -37,7 +37,7 @@
 #ifdef _FEM
 #define VALS_PER_MIG_NODE  19
 #else
-#define VALS_PER_MIG_NODE  16  // increase 2 for inGrain and onGB
+#define VALS_PER_MIG_NODE  18  // increase 4 for place[4]
 #endif
 
 #define VALS_PER_MIG_ARM       12 // increase 1 for signSF
@@ -234,8 +234,10 @@ static void PackMigrators(Home_t *home, int remDomID, int *migList,
             buf[bufIndex++] = (real8)node->sgnv;
             buf[bufIndex++] = (real8)node->flags;
 
-			buf[bufIndex++] = (real8)node->inGrain;
-			buf[bufIndex++] = (real8)node->onGB;
+			buf[bufIndex++] = (real8)node->place[0];
+			buf[bufIndex++] = (real8)node->place[1];
+			buf[bufIndex++] = (real8)node->place[2];
+			buf[bufIndex++] = (real8)node->place[3];
 
             buf[bufIndex++] = node->x;
             buf[bufIndex++] = node->y;
@@ -349,8 +351,10 @@ static void UnpackMigrators(Home_t *home, real8 *buf, int remDomID)
             node->sgnv        = (int)buf[bufIndex++];
             node->flags       = (int)buf[bufIndex++];
 
-			node->inGrain = (int)buf[bufIndex++];
-			node->onGB = (int)buf[bufIndex++];
+			node->place[0] = (int)buf[bufIndex++];
+			node->place[1] = (int)buf[bufIndex++];
+			node->place[2] = (int)buf[bufIndex++];
+			node->place[3] = (int)buf[bufIndex++];
 
             node->x = buf[bufIndex++];
             node->y = buf[bufIndex++];

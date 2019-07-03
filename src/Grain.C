@@ -205,13 +205,6 @@ int AddAndSearchVertice(std::vector<real8> &vertices, real8 x, real8 y, real8 z)
         return(0);
     }
 }
-typedef struct{
-    int type; // 0: Grain boundary edge
-             // 1: Inner boubdary edge
-    int vertID1, vertID2;
-    std::vector<int> ofFaces;
-    int ofIB[2];
-}Edge_t;
 
 void EdgeListToPolygon(std::vector<Edge_t> &edges, std::vector<int> &polygon){
     polygon.clear();
@@ -279,6 +272,14 @@ int AddAndSearchEdge(std::vector<Edge_t> &edges, int vertID1, int vertID2, int o
         edges.push_back(edge);
         return 0;
     }
+}
+
+void EdgeCopy(Edge_t &a, Edge_t &b){
+    a.type = b.type; a.vertID1=b.vertID1; a.vertID2=b.vertID2;
+    a.ofIB[0]=b.ofIB[0]; a.ofIB[1]=b.ofIB[1];
+    a.ofFaces.resize(b.ofFaces.size());
+    for(auto i=0;i<a.ofFaces.size();i++)a.ofFaces[i]=b.ofFaces[i];
+    return;
 }
 
 void InitGrain(Home_t *home, Param_t *param){
@@ -520,7 +521,7 @@ void InitGrain(Home_t *home, Param_t *param){
                 face->p[1] = gloVertices[1+3*f_vert[k+1]];
                 face->p[2] = gloVertices[2+3*f_vert[k+1]];
                 face->nbrGrain[0] = grain->id; face->nbrGrain[1] = neigh[j];
-                face->type = (neigh[j]>=0)?1:0;
+                face->type = (neigh[j]>=0)?GB_FACE:FREE_SURFACE;
                 PointPlaneIntersection(grain->pos, face->n, face->p, face->p, &dis);
 
                 face->nEdges = f_vert[k];
@@ -563,9 +564,10 @@ void InitGrain(Home_t *home, Param_t *param){
 			k+=f_vert[k]+1;
         }
 
-        
+        grain->ibsID = new int [grain->nIBs];
         grain->ibsNumEdges = new int [grain->nIBs]; grain->ibsEdges = new real8 *[grain->nIBs];
         for(auto m=0; m<grain->nIBs; m++){
+            grain->ibsID[m] = IB_START_ID+GRAIN_ID_FACTOR*grain->id+m;
             std::vector<Edge_t> ibEdges;
             real8 p1[3], p2[3], p[3], t; int v1,v2;
             for(auto j=0, k=0; j<neigh.size();j++) {
@@ -646,7 +648,13 @@ void InitGrain(Home_t *home, Param_t *param){
         if(!cl.inc())break;
     }
 
-
+    /*  copy vertices into home
+     */
+    home->nVertices = (int)gloVertices.size()/3; home->vertices = new real8 [3*home->nVertices];
+    for(auto i=0; i<3*home->nVertices; i++)home->vertices[i]=gloVertices[i];
+    home->nEdges = (int)edges.size(); home->edges = new Edge_t [home->nEdges];
+    for(auto i=0;i<home->nEdges;i++)EdgeCopy(home->edges[i], edges[i]);
+    
     if(home->myDomain == 0){
         if ((fp = fopen("lines.plt", "w")) == (FILE *)NULL) {
              Fatal("tec_plot: Open error %d on %s\n", errno, "lines.plt");
@@ -679,124 +687,107 @@ void InitGrain(Home_t *home, Param_t *param){
                 fprintf(fp, "%g %g %g 2\n",grain->ibPs[j][0], grain->ibPs[j][1], grain->ibPs[j][2]);
         }
         fclose(fp);
+#ifdef DEBUG
+        if ((fp = fopen("vertices.plt", "w")) == (FILE *)NULL) {
+            Fatal("tec_plot: Open error %d on %s\n", errno, "vertices.plt");
+        }
+        fprintf(fp,"variables = x, y, z, place[0], place[1], place[2], place[3]\n");
+        int place[4]; real8 pos[3];
+        for(auto i=0; i<home->nVertices; i++){
+            pos[0]=home->vertices[i*3];pos[1]=home->vertices[i*3+1];pos[2]=home->vertices[i*3+2];
+            NodeLocation(home, pos, place);
+            fprintf(fp, "%g %g %g %d %d %d %d\n",pos[0],pos[1],pos[2],place[0],place[1],place[2],place[3]);
+        }
+#endif
     }
+    
     return;
 }
 
-
-void ReadGrainData(Home_t *home, char *fileName)
+void NodeLocation(Home_t *home, real8 *pos, int *place)
 {
-    int     i;
-    const int MAXLINELENGTH=1024;
-    char str[MAXLINELENGTH], *rt;
-
-    Param_t *param = home->param;
-/*
- *  add surface Info
- */
-    home->nSurfaces = 0;
-    if(param->xBoundType == Free)home->nSurfaces += 2;
-    if(param->yBoundType == Free)home->nSurfaces += 2;
-    if(param->zBoundType == Free)home->nSurfaces += 2;
-    home->surfacen = (real8 (*)[3])malloc(3*home->nSurfaces*sizeof(real8));
-    home->surfacep = (real8 (*)[3])malloc(3*home->nSurfaces*sizeof(real8));
-    i=0;
-    if(param->xBoundType == Free){
-        VECTOR_ZERO(home->surfacen[i]);
-        VECTOR_ZERO(home->surfacep[i]);
-        VECTOR_ZERO(home->surfacen[i+1]);
-        VECTOR_ZERO(home->surfacep[i+1]);
-        home->surfacen[i][0] = -1.0;
-        home->surfacen[i+1][0] = 1.0;
-        home->surfacep[i][0] = param->xBoundMin;
-        home->surfacep[i+1][0] = param->xBoundMax;
-        i += 2;
-    }
-
-    if(param->yBoundType == Free){
-        VECTOR_ZERO(home->surfacen[i]);
-        VECTOR_ZERO(home->surfacep[i]);
-        VECTOR_ZERO(home->surfacen[i+1]);
-        VECTOR_ZERO(home->surfacep[i+1]);
-        home->surfacen[i][1] = -1.0;
-        home->surfacen[i+1][1] = 1.0;
-        home->surfacep[i][1] = param->yBoundMin;
-        home->surfacep[i+1][1] = param->yBoundMax;
-        i += 2;
-    }
-
-    if(param->zBoundType == Free){
-        VECTOR_ZERO(home->surfacen[i]);
-        VECTOR_ZERO(home->surfacep[i]);
-        VECTOR_ZERO(home->surfacen[i+1]);
-        VECTOR_ZERO(home->surfacep[i+1]);
-        home->surfacen[i][2] = -1.0;
-        home->surfacen[i+1][2] = 1.0;
-        home->surfacep[i][2] = param->zBoundMin;
-        home->surfacep[i+1][2] = param->zBoundMax;
-    }
-
-/*
- *  Read grain data file
- */
-
-    int nLines = 0;
-    char **lines;
-    if(home->myDomain == 0){
-        printf("1\n");
-        std::vector<std::string> strings;
-
-        FILE *fp;
-        if((fp = fopen(fileName, "r+")) == NULL){
-            Fatal("Warning: can not open fie %s\n", fileName);
-        }
-
-        printf("2\n");
-        while(1){
-            rt = fgets(str, MAXLINELENGTH, fp);
-            if(feof(fp))break;
-            if(str == NULL)continue;
-            strings.push_back(str);
-            nLines++;
-        }
-
-        lines = (char **)malloc(nLines*sizeof(char *));
-        for(i=0; i<nLines; i++){
-            lines[i] = (char*)malloc(sizeof(str));
-            snprintf(lines[i], sizeof(str), "%s", strings[i].c_str());
-        }
-    }
-
-#ifdef PARALLEL
-        MPI_Bcast(&nLines, sizeof(int), MPI_INT, 0,
-                  MPI_COMM_WORLD);
-
-        if(home->myDomain != 0){
-            lines = (char **)malloc(nLines*sizeof(char *));
-            for(i=0; i<nLines; i++){
-                lines[i] = (char*)malloc(sizeof(str));
-            }
-        }
-
-        for(i=0; i<nLines; i++){
-        MPI_Bcast(&lines[i], sizeof(str), MPI_CHAR, 0,
-                  MPI_COMM_WORLD);
-
-        }
-#endif
-
-    if(home->myDomain == 2){
-        printf("domain 2\n");
-        for(i=0; i<nLines; i++){
-            printf("%s", lines[i]);
-        }
-    }
+    *place = -1; place[1]=0; place[2]=0; place[3]=0;
     
-
-#ifdef PARALLEL
-    MPI_Barrier(MPI_COMM_WORLD);
+    int i, j, k, l;
+    bool breakLoop=0; int type; real8 vec[3], dis, interPos[3];
+    Grain_t *grain; Face_t *face;
+    for(i=0; i<home->nGrains; i++){
+        grain = home->grainKeys[i];
+        for(j=0; j<grain->nFaces; j++){
+            face=grain->faces[j];
+            type = PointPlaneIntersection(pos, face->n, face->p, vec, &dis);
+            dis *= grain->sign[j];
+            if(type == POINT_INTERSECTION){
+                breakLoop=true;
+                if(POINT_INTERSECTION==SegmentPolygonIntersection2D(face->p, pos, face->edges, face->nEdges, interPos)){
+                    interPos[0] -= pos[0];interPos[1] -= pos[1];interPos[2] -= pos[2];
+                    if(Normal(interPos) > TWIN_LAYER_RADIUS)breakLoop=false;
+                }
+                if(breakLoop){
+                    place[0] = face->type==FREE_SURFACE?ON_FREE_SURFACE:ON_GB; place[1]=face->id;
+                }
+            }
+            if(dis > 0 || breakLoop)break;
+        }
+        if(breakLoop)break;
+        if(j==grain->nFaces){
+            place[0] = IN_GRAIN; place[1]=grain->id; break;
+        }
+    }
+#ifdef DEBUG
+    if(i==home->nGrains)Fatal("NodeLocation: can not find location of (%g,%g,%g)",*pos,pos[1], pos[2]);
 #endif
-    Fatal("OK");
+    switch(place[0]){
+        case IN_GRAIN:
+            grain=home->grainKeys[place[1]];
+            for(i=0; i<grain->nIBs; i++){
+                if(PointPlaneIntersection(pos, grain->ibN, grain->ibPs[i], vec, &dis)==POINT_INTERSECTION){
+                    place[0]=ON_IB; break;
+                }
+                if(dis<0)break;
+            }
+            place[2]=i;break;
+        case ON_GB:
+            face=home->faces[place[1]];
+            for(i=0; i<2; i++){
+#ifdef DEBUG
+                if(face->nbrGrain[i] < 0)Fatal("nbrGrain[%d]=%d of face %d < 0",i, face->nbrGrain[i], face->id);
+#endif
+                grain=home->grainKeys[face->nbrGrain[i]];
+                for(j=0; j<grain->nIBs; j++){
+                    if(PointPlaneIntersection(pos, grain->ibN, grain->ibPs[j], vec, &dis)==POINT_INTERSECTION){
+                        place[0]=ON_IB; place[1]=grain->id; place[2]=j; place[3]=0; break;
+                    }
+                    if(dis<0)break;
+                }
+
+                if(place[0]==ON_IB)break;
+                else *(place+2+i)=j;
+            }break;
+        case ON_FREE_SURFACE:
+            face=home->faces[place[1]]; grain=home->grainKeys[face->nbrGrain[0]];
+#ifdef DEBUG
+                if(face->nbrGrain[0] < 0)Fatal("nbrGrain[%d]=%d of face %d < 0",0, face->nbrGrain[0], face->id);
+#endif
+            for(i=0; i<grain->nIBs; i++){
+                if(PointPlaneIntersection(pos, grain->ibN, grain->ibPs[i], vec, &dis)==POINT_INTERSECTION){
+                    place[0]=ON_IB; place[1]=grain->id; place[2]=i; place[3]=0; break;
+                }
+                if(dis<0)break;
+            }
+            if(place[0]==ON_IB)break;
+            else {
+                place[2]=grain->id; place[3]=i;
+            }break;
+        default:
+            Fatal("can not supose this location type %d", place[0]);break;
+    }
+    return;
+}
+void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place)
+{
+    real8 pos[3] = {x, y, z};
+    NodeLocation(home, pos, place); 
     return;
 }
 

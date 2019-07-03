@@ -35,6 +35,17 @@
 #define NO_COLLISIONS        0x04
 #define NO_MESH_COARSEN      0x08
 #define NODE_CHK_DBL_LINK    0x10
+/*
+ *      Define the nodal plane
+ */
+typedef	enum{
+    IN_GRAIN,
+    ON_GB,
+    ON_IB,
+    ON_FREE_SURFACE,
+    ON_FACE_EDGE,
+    ON_FACES_INTERSECTION
+}NodeLocation_t;
 
 /*
  *      Used as bit flags to indicate the type of nodal data items
@@ -49,6 +60,7 @@ struct _node {
 	int	flags;
         
 	real8	x, y, z;		/* nodal position */
+    int     place[4];
 	real8	fX, fY, fZ;		/* nodal force: units=Pa*b^2) */
 	real8	vX, vY, vZ;		/* nodal velocity: units=burgMag/sec */
    

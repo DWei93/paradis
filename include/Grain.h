@@ -15,6 +15,14 @@
 using namespace voro;
 #endif
 
+typedef struct{
+    int type; // 0: Grain boundary edge
+             // 1: Inner boubdary edge
+    int vertID1, vertID2;
+    std::vector<int> ofFaces;
+    int ofIB[2];
+}Edge_t;
+
 typedef struct {
     int     planeID;
     int     burgID;
@@ -25,29 +33,15 @@ typedef struct {
  * 	Mesh number used for output of plastic strain field.
  */
 
-#define GRAIN_DEBUG			1
-
-#define TWIN_LAYER_RADIUS			1e-2 
-#define	SAFE_LAYER_RADIUS			1
-#define ERROR_TWIN_LAYER_RADIUS		500
+#define TWIN_LAYER_RADIUS			1e-3 
+#define	SAFE_LAYER_RADIUS			2e-3
+#define IB_START_ID                 10000000
+#define GRAIN_ID_FACTOR             1000
 
 #define	FOLDED_GRAIN		0
-#define ODINARY_GRAIN			1
+#define ODINARY_GRAIN		1
 #define MATRIX_BOUNDARY		0
 #define TWIN_BOUNDARY		1
-
-#define MATRIX_NODE			0
-#define BOUNDARY_NODE		0.5
-#define TWIN_1_NODE			1
-
-#define DELETE_REPEAT_FLAG  0x80000000
-
-#define FIRST_PENETRATION	0
-#define SIDE_PENETRATION	1
-#define LAST_PENETRATION	3
-
-#define MAX_PENE_SETS               3
-#define MAX_PENE_DISS               3
 
 /*	define some node types	*/
 #define INGRAIN_NODE	    0x0001	
@@ -87,6 +81,11 @@ typedef	enum{
     JUNCTION2_BURG, 
     UNKNOWN_BURG 
 } BurgTypeFCC_t;
+
+typedef enum{
+    FREE_SURFACE,
+    GB_FACE
+} FaceType_t;
 
 /*
  *     Define a structure to hold the burgers vectors and associated
@@ -177,7 +176,7 @@ struct _grain{
 
     int         nIBs;
     real8       ibN[3], (*ibPs)[3];
-    int         *ibsNumEdges;
+    int         *ibsNumEdges, *ibsID;
     real8       **ibsEdges;
 
     int         nFaces;
@@ -236,6 +235,8 @@ void InitOrientation(real8 MatrixOrientation[3][3], real8 TwinOrientation[3][3])
 void FreeGrainStructure(Grain_t *grain);
 void InitGrain(Home_t *home, Param_t *param);
 void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB);
+void NodeLocation(Home_t *home, real8 *pos, int *place);
+void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place);
 Node_t *GetinDataNodeFromTag(InData_t *inData, Tag_t tag);
 BurgInfo_t* GetBurgData(Home_t *home, Node_t *node1, Node_t *node2);
 BurgInfo_t* GetBurgData(Home_t *home, int inGrain, int onGB);
@@ -322,7 +323,6 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
                          real8 f1[3], real8 f2[3]); 
 bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8 *pos);
 bool InCuboid(Param_t *param, real8 pos[3], real8 eps);
-void ReadGrainData(Home_t *home, char *fileName);
 void VoroTest();
 void GeosTest();
 #endif

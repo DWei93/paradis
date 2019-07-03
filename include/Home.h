@@ -448,9 +448,11 @@ struct _home {
         voronoicell_neighbor **cells;
         int         nFaces;
         Face_t      **faces;
-        int         nPoints;
-        real8       *points;
+        int         nVertices;
+        real8       *vertices;
         int         nLines, *lines;
+        int         nEdges;
+        Edge_t      *edges;
 #endif
 
 };

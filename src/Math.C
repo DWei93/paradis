@@ -543,3 +543,18 @@ int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point
     }else t = 0.0;
     return(POINT_INTERSECTION);
 }
+
+int SegmentPolygonIntersection2D(double *p1, double *p2, double *edge, int nEdges, double *interPos)
+{
+    int i, type; double t;
+    for(i=0; i<nEdges; i++){
+        if((type=SegmentPlaneIntersection(p1, p2, &(edge[i*6]), &(edge[i*6+3]), t))==POINT_INTERSECTION){
+            interPos[0] = (1.0-t)*p1[0]+t*p2[0];
+            interPos[1] = (1.0-t)*p1[1]+t*p2[1];
+            interPos[2] = (1.0-t)*p1[2]+t*p2[2];
+            break;
+        }
+    }
+    return type;
+}
+
