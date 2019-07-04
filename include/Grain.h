@@ -38,6 +38,13 @@ typedef struct {
 #define IB_START_ID                 10000000
 #define GRAIN_ID_FACTOR             1000
 
+#define GLIDE_PLANE         0x0001
+#define JUNCTION_PLANE1     0x0002
+#define JUNCTION_PLANE2     0x0004
+#define GB_PLANE            0x0008
+#define UNKOWN_PLANE        0x0010
+
+//------------------------------------------------
 #define	FOLDED_GRAIN		0
 #define ODINARY_GRAIN		1
 #define MATRIX_BOUNDARY		0
@@ -59,11 +66,6 @@ typedef struct {
 #define NUM_PLANES_IN_FCC       13
 #define NUM_KEY_LINES_IN_FCC    6
 
-#define GLIDE_PLANE         0x0001
-#define JUNCTION_PLANE1     0x0002
-#define JUNCTION_PLANE2     0x0004
-#define GB_PLANE            0x0008
-#define UNKOWN_PLANE        0x0010
 
 #define SHOCKLEY_BURG_MAG_FCC   0.5773502691896258
 #define JUNCTION1_BURG_MAG_FCC  1.414213562373095
@@ -115,10 +117,9 @@ struct _burgInfo {
         int     *burgType;
 
         real8   (*planeList)[3];          /* Array of planes */
+        real8   (*cutNormals)[3];          /* Array of cut normal of planes, available for incomplete glide plane*/
         int     *planeType;               /* Array of type of planes*/
 
-        int     *planeInGrain;
-        int     *planeInSubGrain;
 
         real8   (*keyLineList)[3];         /* Array of key line vectors */
 
@@ -172,7 +173,7 @@ struct _grain{
 
 	real8	    pos[3];
 
-    BurgInfo_t  bInf[2];
+    BurgInfo_t  bInfs[2], ibBurgInfs[2];
 
     int         nIBs;
     real8       ibN[3], (*ibPs)[3];
@@ -226,6 +227,13 @@ struct _penetration{
     Res_t   *res;           // results list of penentration sets
 };
 
+void InitGrain(Home_t *home, Param_t *param);
+void NodeLocation(Home_t *home, real8 *pos, int *place);
+void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place);
+void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3]);
+void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, BurgInfo_t *bInf2);
+
+
 Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int globalOp, int opClass);
 void PrintNeighbor(Home_t *home, Node_t *node);
 void FormatMatrix(real8 M[3][3], const char *msg);
@@ -233,10 +241,7 @@ void FormatMatrix66(real8 M[6][6], const char *msg);
 void FormatVector(real8 vec[3], const char *msg);
 void InitOrientation(real8 MatrixOrientation[3][3], real8 TwinOrientation[3][3]);
 void FreeGrainStructure(Grain_t *grain);
-void InitGrain(Home_t *home, Param_t *param);
 void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB);
-void NodeLocation(Home_t *home, real8 *pos, int *place);
-void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place);
 Node_t *GetinDataNodeFromTag(InData_t *inData, Tag_t tag);
 BurgInfo_t* GetBurgData(Home_t *home, Node_t *node1, Node_t *node2);
 BurgInfo_t* GetBurgData(Home_t *home, int inGrain, int onGB);
@@ -302,8 +307,6 @@ int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]);
 void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f2[3]);
 bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, real8* dis, int &type);
 bool IsOnGB(Node_t *node);
-void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainID = -1);
-void GenerateGBBurgInfo(Home_t *home, GB_t *GB);
 void FreeBurgInfoStr(BurgInfo_t *burgData);
 int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                        real8 *plane, int flag, 

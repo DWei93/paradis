@@ -628,7 +628,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
             VECTOR_COPY(pene->res[i].burg[j], burgList[disArray[i][j].burgID]);
             VECTOR_COPY(pene->res[i].normal[j], 
                         gbd->planeList[disArray[i][j].planeID]);
-            pene->res[i].inGrain[j] = gbd->planeInGrain[disArray[i][j].planeID];
+//            pene->res[i].inGrain[j] = gbd->planeInGrain[disArray[i][j].planeID];
 
             if(disArray[i][j].planeID != newPlaneID){
                 newPlaneID = disArray[i][j].planeID;
@@ -2500,7 +2500,7 @@ void GBCrossSlip(Home_t *home)
                                       gbd->planeList[disArray[j][0].planeID][2],
 				                      0, DEL_SEG_NONE);
                                       
-                        node->inGrain = gbd->planeInGrain[disArray[j][k].planeID];
+//                        node->inGrain = gbd->planeInGrain[disArray[j][k].planeID];
                         node->onGB = (node->inGrain == -1) ? gb->GBID : -1; 
 
 		                SetOneNodeForce(home, node);
@@ -2577,7 +2577,7 @@ void GBCrossSlip(Home_t *home)
                                   gbd->planeList[disArray[j][k].planeID][2],
 				                  0, DEL_SEG_NONE);
 
-                    node->inGrain = gbd->planeInGrain[disArray[j][k].planeID];
+//                    node->inGrain = gbd->planeInGrain[disArray[j][k].planeID];
                     node->onGB = (node->inGrain == -1) ? gb->GBID : -1; 
 
 		            SetOneNodeForce(home, node);
@@ -2692,7 +2692,7 @@ void GBCrossSlip(Home_t *home)
                                   gbd->planeList[disArray[j][k].planeID][2],
 				                  globalOp, DEL_SEG_NONE);
 
-                    node->inGrain = gbd->planeInGrain[disArray[j][k].planeID];
+//                    node->inGrain = gbd->planeInGrain[disArray[j][k].planeID];
                     node->onGB = (node->inGrain == -1) ? gb->GBID : -1; 
 
                     VECTOR_COPY(newNodePos, disPosArray[j][k]);
@@ -2715,7 +2715,7 @@ void GBCrossSlip(Home_t *home)
                     VECTOR_COPY(vec1, burgList[disArray[j][k].burgID]);
                     VECTOR_COPY(vec2, gbd->planeList[disArray[j][k].planeID]);
                    
-                    inGrain = gbd->planeInGrain[disArray[j][k].planeID];
+//                    inGrain = gbd->planeInGrain[disArray[j][k].planeID];
                     onGB = (inGrain == -1) ? gb->GBID : -1; 
 
                     VECTOR_COPY(newPos, disPosArray[j][k]);
