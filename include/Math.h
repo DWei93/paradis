@@ -26,4 +26,5 @@ int PointLineIntersection(double *p1, double *d, double *p2, double *vec, double
 int PointPointIntersection(double *p1, double *p2, double *vec, double *dis);
 int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double &t);
 int SegmentPolygonIntersection2D(double *p1, double *p2, double *edge, int nEdges, double *interPos);
+int SegmentPolygonIntersection2D(double *p1, double *p2, double *edge, int nEdges, double *interPos, int &interEdgeID);;
 #endif

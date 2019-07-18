@@ -117,6 +117,7 @@
 #include "InData.h"
 #include "Home.h"
 #include "QueueOps.h"
+#include <vector>
 
 #ifdef PARALLEL
 #include "mpi.h"
@@ -1004,6 +1005,10 @@ real8 Normal(real8 a[3])
 {
         return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]) );
 }
+real8 Normal(std::vector<real8>& a)
+{
+    return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]) );
+}
 
 
 /*-------------------------------------------------------------------------
@@ -1724,19 +1729,22 @@ void PrintNode(Home_t *home, Node_t *node)
 }
 
 
-void PrintNbr(Home_t *home, Node_t *node){
+void PrintNeighbor(Home_t *home, Node_t *node){
 	int 	i;
-	Node_t 	*nbr;
-
-	if(node==(Node_t *)NULL)return;
-	printf("neighbor of node(%d,%d):\n", node->myTag.domainID, node->myTag.index);
+	Node_t	*nbr;
+	if(node == (Node_t *)NULL){
+	    printf("node is NULL\n");
+	    return;
+	}
 	for(i=0; i<node->numNbrs; i++){
+	    printf("node (%d,%d) arm %d is (%d,%d):\n",
+	           node->myTag.domainID, node->myTag.index,
+	           i, node->nbrTag[i].domainID, node->nbrTag[i].index);
+
 	    nbr = GetNeighborNode(home, node, i);
-	    if(nbr == (Node_t *)NULL)continue;
-	    PrintNode(nbr);
+	    PrintNode(home, nbr);
 	}
 	return;
-	
 }
 /*-------------------------------------------------------------------------
  *
@@ -4656,3 +4664,32 @@ real8 NodeLength(Home_t *home, Node_t *node)
 }
 
 
+void FormatMatrix(real8 M[3][3], const char *msg){
+	int i;
+	printf("%s:\n{",msg);
+	for (i = 0; i < 3; i++){
+	    printf("{%20.15f,%20.15f,%20.15f}", M[i][0], M[i][1], M[i][2]);
+        if(i<2){
+            printf(",\n");
+        }else{
+            printf("}\n");
+        }
+	}
+
+	return;
+}
+
+void FormatMatrix66(real8 M[6][6], const char *msg){
+	int i;
+	printf("%s matrix:\n",msg);
+	for (i = 0; i < 6; i++){
+		printf("%18.7e %18.7e %18.7e %18.7e %18.7e %18.7e\t\n", M[i][0], M[i][1], M[i][2],
+			  M[i][3], M[i][4], M[i][5]);
+	}
+	return;
+}
+
+void FormatVector(real8 vec[3], const char *msg){
+	printf("%s vector:\n",msg);
+	printf("{%.15f,%.15f,%.15f}\n", vec[0], vec[1], vec[2]);
+}

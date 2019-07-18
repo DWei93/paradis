@@ -35,76 +35,6 @@
 #include <geos_c.h>
 #endif
 
-bool IsOnGB(Node_t *node)
-{
-    return(node->onGB > -1);
-}
-
-real8 Normal(std::vector<real8>& a)
-{
-    return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]) );
-}
-
-void PrintNeighbor(Home_t *home, Node_t *node){
-	int 	i;
-	Node_t	*nbr;
-	if(node == (Node_t *)NULL){
-	    printf("node is NULL\n");
-	    return;
-	}
-	for(i=0; i<node->numNbrs; i++){
-	    printf("node (%d,%d) arm %d is (%d,%d):\n",
-	           node->myTag.domainID, node->myTag.index,
-	           i, node->nbrTag[i].domainID, node->nbrTag[i].index);
-
-	    nbr = GetNeighborNode(home, node, i);
-	    PrintNode(home, nbr);
-	}
-	return;
-}
-
-void FormatMatrix(real8 M[3][3], const char *msg){
-	int i;
-	printf("%s:\n{",msg);
-	for (i = 0; i < 3; i++){
-	    printf("{%20.15f,%20.15f,%20.15f}", M[i][0], M[i][1], M[i][2]);
-        if(i<2){
-            printf(",\n");
-        }else{
-            printf("}\n");
-        }
-	}
-
-	return;
-}
-
-void FormatMatrix66(real8 M[6][6], const char *msg){
-	int i;
-	printf("%s matrix:\n",msg);
-	for (i = 0; i < 6; i++){
-		printf("%18.7e %18.7e %18.7e %18.7e %18.7e %18.7e\t\n", M[i][0], M[i][1], M[i][2],
-			  M[i][3], M[i][4], M[i][5]);
-	}
-	return;
-}
-
-void FormatVector(real8 vec[3], const char *msg){
-	printf("%s vector:\n",msg);
-	printf("{%.15f,%.15f,%.15f}\n", vec[0], vec[1], vec[2]);
-}
-
-
-void InitGrainStructure(Grain_t *grain, int nGBs){
-	grain->nGBs = nGBs;
-    grain->GB = (GB_t **)malloc(nGBs*sizeof(GB_t *));	
-    grain->sign = (real8 *)malloc(nGBs*sizeof(real8));
-    return;
-}
-
-
-bool cmp3(SlipSys_t p, SlipSys_t q){
-    return(p.schmid > q.schmid);
-}
 
 void DrawLine(FILE *fp, real8 *pos1, real8 *pos2, real8 meshSize, std::vector<int> &indexs)
 {
@@ -285,7 +215,6 @@ void InitBurgInfo(BurgInfo_t *bInf)
 {
     bInf->numPlanes = 0; bInf->numBurgVectors=0; bInf->numKeyLines; return;
 }
-
 void InitGrain(Home_t *home, Param_t *param){
 
     /** allocate and construct the container
@@ -726,7 +655,7 @@ void InitGrain(Home_t *home, Param_t *param){
             Fatal("tec_plot: Open error %d on %s\n", errno, "vertices.plt");
         }
         fprintf(fp,"variables = x, y, z, place[0], place[1], place[2], place[3]\n");
-        int place[4]; real8 pos[3];
+        int place[PLACE_LEN]; real8 pos[3];
         for(auto i=0; i<home->nVertices; i++){
             pos[0]=home->vertices[i*3];pos[1]=home->vertices[i*3+1];pos[2]=home->vertices[i*3+2];
             NodeLocation(home, pos, place);
@@ -755,7 +684,7 @@ void NodeLocation(Home_t *home, real8 *pos, int *place)
                 breakLoop=true;
                 if(POINT_INTERSECTION==SegmentPolygonIntersection2D(face->p, pos, face->edges, face->nEdges, interPos)){
                     interPos[0] -= pos[0];interPos[1] -= pos[1];interPos[2] -= pos[2];
-                    if(Normal(interPos) > TWIN_LAYER_RADIUS)breakLoop=false;
+                    if(Normal(interPos) > FACE_ERROR)breakLoop=false;
                 }
                 if(breakLoop){
                     place[0] = face->type==FREE_SURFACE?ON_FREE_SURFACE:ON_GB; place[1]=face->id;
@@ -811,7 +740,7 @@ void NodeLocation(Home_t *home, real8 *pos, int *place)
             }
             if(place[0]==ON_IB)break;
             else {
-                place[2]=grain->id; place[3]=i;
+                place[2]=i;
             }break;
         default:
             Fatal("can not supose this location type %d", place[0]);break;
@@ -824,6 +753,799 @@ void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place)
     NodeLocation(home, pos, place); 
     return;
 }
+
+bool InGrain(Home_t *home, int *place, real8 *pos)
+{
+    Face_t *face;
+    bool state=true;
+
+#if DEBUG
+    real8 bakPos[3] = {pos[0], pos[1], pos[2]};
+    if(place[0]!=IN_GRAIN)Fatal("%s: place[0] = %d",__func__, place[0]);
+    if(place[1]<0 || place[1]>home->nGrains)Fatal("%s: place[1] = %d",__func__, place[1]);
+#endif    
+    Grain_t *grain = home->grainKeys[place[1]];
+    real8 dis, vec[3];
+    int i; for(i=0; i<grain->nFaces; i++){
+        face=grain->faces[i];
+        PointPlaneIntersection(pos, face->n, face->p, vec, &dis);
+        dis *= grain->sign[i];
+        if(dis>-FACE_ERROR)break;
+    }
+    if(i<grain->nFaces){
+        state=false;
+        pos[0] = vec[0] - (grain->sign[i]*face->n[0]*SAFE_FACE_ERROR);
+        pos[1] = vec[1] - (grain->sign[i]*face->n[1]*SAFE_FACE_ERROR);
+        pos[2] = vec[2] - (grain->sign[i]*face->n[2]*SAFE_FACE_ERROR);
+        
+    }
+    
+#if DEBUG
+    if(place[2]<0||place[2]>grain->nIBs)Fatal("%s: no sub-grain %d in grain %d",__func__,place[2], place[1]);
+#endif
+    if(place[2]<grain->nIBs){
+        PointPlaneIntersection(pos, grain->ibN, grain->ibPs[place[2]], vec, &dis);
+        if(dis > -FACE_ERROR){
+            pos[0] = vec[0] - grain->ibN[0]*SAFE_FACE_ERROR;
+            pos[1] = vec[1] - grain->ibN[1]*SAFE_FACE_ERROR;
+            pos[2] = vec[2] - grain->ibN[2]*SAFE_FACE_ERROR;
+            state=false;
+        }
+    }
+
+    if(place[2]>0){
+        PointPlaneIntersection(pos, grain->ibN, grain->ibPs[place[2]-1], vec, &dis);
+        if(dis < FACE_ERROR){
+            pos[0] = vec[0] + grain->ibN[0]*SAFE_FACE_ERROR;
+            pos[1] = vec[1] + grain->ibN[1]*SAFE_FACE_ERROR;
+            pos[2] = vec[2] + grain->ibN[2]*SAFE_FACE_ERROR;
+            state=false;
+        }
+    }
+
+#if DEBUG
+    VECTOR_MINUS(bakPos, pos);
+    if(Normal(bakPos) > home->param->maxSeg){
+        Fatal("%s: the new position is far away from original position. distance = %f",__func__,Normal(bakPos));
+    }
+#endif
+    return state;
+}
+
+bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z)
+{   real8 pos[3]={x,y,z};
+    return InGrain(home, place, pos);
+}
+
+bool SegmentGrainIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
+{
+    Face_t *face;
+    bool state=false;
+
+#if DEBUG
+    if(place[0]!=IN_GRAIN)Fatal("%s: place[0] = %d",__func__, place[0]);
+    if(place[1]<0 || place[1]>home->nGrains)Fatal("%s: place[1] = %d",__func__, place[1]);
+    if(!InGrain(home, place, pos1))Fatal("%s: the position 1 is not in corrected grain.");
+#endif    
+    Grain_t *grain = home->grainKeys[place[1]];
+    real8 t;
+    int i; for(i=0; i<grain->nFaces; i++){
+        face=grain->faces[i];
+        if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, face->n, face->p, t)){
+            state = true;
+            pos2[0] = pos1[0] + t*(pos2[0]-pos1[0]);
+            pos2[1] = pos1[1] + t*(pos2[1]-pos1[1]);
+            pos2[2] = pos1[2] + t*(pos2[2]-pos1[2]);
+            newPlace[0] = face->type==FREE_SURFACE?ON_FREE_SURFACE:ON_GB;
+            newPlace[1] = face->id;
+            for(auto j=0; j<2; j++){
+                if(face->nbrGrain[j]<0){newPlace[2+j]=face->nbrGrain[j]; continue;}
+                if(face->nbrGrain[j]==grain->id){
+                    newPlace[2+j]=place[2];
+                    if(place[2]<grain->nIBs){
+                        // upper boundary
+                        if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[place[2]], t)){
+                            pos2[0] = pos1[0] + t*(pos2[0]-pos1[0]);
+                            pos2[1] = pos1[1] + t*(pos2[1]-pos1[1]);
+                            pos2[2] = pos1[2] + t*(pos2[2]-pos1[2]);
+                        }
+                        newPlace[0] = ON_IB_EDGE; 
+                        IBFaceID(grain->id, place[2], newPlace[2+j]);
+                    }
+    
+                    if(place[2]>0){
+                        // lower boundary
+                        if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[place[2]-1], t)){
+                            pos2[0] = pos1[0] + t*(pos2[0]-pos1[0]);
+                            pos2[1] = pos1[1] + t*(pos2[1]-pos1[1]);
+                            pos2[2] = pos1[2] + t*(pos2[2]-pos1[2]);
+                        }
+                        newPlace[0] = ON_IB_EDGE; 
+                        IBFaceID(grain->id, place[2], newPlace[2+j]);
+                    }
+                }else{
+                    real8 vec[3], dis;
+                    Grain_t *nbrGrain = home->grainKeys[face->nbrGrain[j]];
+                    newPlace[2+j] = nbrGrain->nIBs;
+                    for(auto k=0; k<nbrGrain->nIBs; k++){
+                        PointPlaneIntersection(pos2, nbrGrain->ibN, nbrGrain->ibPs[k], vec, &dis);
+                        if(dis<0){newPlace[2+j]=k; break;}
+                        if(dis==0){newPlace[0]=ON_IB_EDGE;IBFaceID(nbrGrain->id, k, newPlace[2+j]);break;}
+                    }
+                }
+            }
+            return state;
+        }
+    }
+    
+#if DEBUG
+    if(place[2]<0||place[2]>grain->nIBs)Fatal("%s: no sub-grain %d in grain %d",__func__,place[2], place[1]);
+#endif
+    if(place[2]<grain->nIBs){
+        // upper boundary
+        if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[place[2]], t)){
+            state = true;
+            pos2[0] = pos1[0] + t*(pos2[0]-pos1[0]);
+            pos2[1] = pos1[1] + t*(pos2[1]-pos1[1]);
+            pos2[2] = pos1[2] + t*(pos2[2]-pos1[2]);
+            newPlace[0]=ON_IB; newPlace[1]=grain->id; newPlace[2]=place[2];
+        }
+    }
+
+    if(place[2]>0){
+        // lower boundary
+        if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[place[2]-1], t)){
+            state = true;
+            pos2[0] = pos1[0] + t*(pos2[0]-pos1[0]);
+            pos2[1] = pos1[1] + t*(pos2[1]-pos1[1]);
+            pos2[2] = pos1[2] + t*(pos2[2]-pos1[2]);
+            newPlace[0]=ON_IB; newPlace[1]=grain->id; newPlace[2]=place[2]-1;
+        }
+    }
+    return state;
+}
+bool SegmentGrainIntersection(Home_t *home, int *place, real8 x1, real8 y1, real8 z1, real8 x2, real8 y2, real8 z2, int *newPlace)
+{
+    real8 pos1[3]={x1, y1, z1}; real8 pos2[3]={x2, y2, z2};
+    return SegmentGrainIntersection(home, place, pos1, pos2, newPlace);
+}
+
+bool OnFace(Home_t *home, int *place, real8 *pos)
+{
+    bool state=true;
+#if DEBUG
+    real8 bakPos[3] = {pos[0], pos[1], pos[2]};
+    if(place[1]<0 || place[1]>home->nFaces)Fatal("%s: wrong face ID", __func__);
+#endif
+    Face_t *face = home->faces[place[1]];
+    real8 interPos[3], dis;
+#if DEBUG
+    PointPlaneIntersection(pos,face->n, face->p, interPos, &dis);
+    if(fabs(dis) > SAFE_FACE_ERROR)Fatal("%s: position (%f,%f,%f) is not on the face, error is %e", __func__, 
+        pos[0], pos[1], pos[2], dis);
+#endif
+    
+    int edgeID;
+    if(POINT_INTERSECTION==SegmentPolygonIntersection2D(face->p, pos, face->edges, face->nEdges, interPos, edgeID)){
+        state = false;
+        pos[0] = interPos[0] - face->edges[6*edgeID+0]*SAFE_FACE_ERROR;
+        pos[1] = interPos[1] - face->edges[6*edgeID+1]*SAFE_FACE_ERROR;
+        pos[2] = interPos[2] - face->edges[6*edgeID+2]*SAFE_FACE_ERROR;
+    }
+
+    Grain_t *grain;
+    for(auto i=0; i<2; i++){
+        if(*(place+2+i)<0)continue;
+        grain = home->grainKeys[face->nbrGrain[i]];
+        if(*(place+2+i)<grain->nIBs){
+            PointPlaneIntersection(pos, grain->ibN, grain->ibPs[place[2+i]], interPos, &dis);
+            if(dis > -FACE_ERROR){
+                state = false;
+                pos[0] = interPos[0] - grain->ibN[0]*SAFE_FACE_ERROR;
+                pos[1] = interPos[1] - grain->ibN[1]*SAFE_FACE_ERROR;
+                pos[2] = interPos[2] - grain->ibN[2]*SAFE_FACE_ERROR;
+            }
+        }
+        if(place[2+i]>0){
+            PointPlaneIntersection(pos, grain->ibN, grain->ibPs[place[2+i]-1], interPos, &dis);
+            if(dis < FACE_ERROR){
+                state = false;
+                pos[0] = interPos[0] + grain->ibN[0]*SAFE_FACE_ERROR;
+                pos[1] = interPos[1] + grain->ibN[1]*SAFE_FACE_ERROR;
+                pos[2] = interPos[2] + grain->ibN[2]*SAFE_FACE_ERROR;
+            }
+        }
+    }
+#if DEBUG
+    VECTOR_MINUS(bakPos, pos);
+    if(Normal(bakPos) > home->param->maxSeg){
+        Fatal("%s: the new position is far away from original position. distance = %f",__func__,Normal(bakPos));
+    }
+#endif
+    return state;
+}
+bool OnFace(Home_t *home, int *place, real8 x, real8 y, real8 z)
+{
+    real8 pos[3]={x,y,z}; return OnFace(home, place, pos);
+}
+
+bool SegmentFaceIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
+{  
+    bool state = false;
+
+#if DEBUG
+    if(place[1]<0 || place[1]>home->nFaces)Fatal("%s: wrong face ID", __func__);
+#endif
+    Face_t *face = home->faces[place[1]];
+    real8 interPos[3], dis, t;
+#if DEBUG
+    PointPlaneIntersection(pos1, face->n, face->p, interPos, &dis);
+    if(fabs(dis) > SAFE_FACE_ERROR)Fatal("%s: position (%f,%f,%f) is not on the face, error is %e", __func__, 
+        pos1[0], pos1[1], pos1[2], dis);
+
+    if(!OnFace(home, place, pos1[0], pos1[1], pos1[2]))Fatal("%s: the first position (%f,%f,%f) is not on the face.",
+        __func__, pos1[0], pos1[1], pos1[2]);
+#endif
+    
+    int edgeID;
+    if(POINT_INTERSECTION==SegmentPolygonIntersection2D(pos1, pos2, face->edges, face->nEdges, interPos, edgeID)){
+        state = true;
+        newPlace[0] = ON_GB_EDGE; newPlace[1]=face->id;
+        pos2[0] = interPos[0];
+        pos2[1] = interPos[1];
+        pos2[2] = interPos[2];
+    }
+
+    Grain_t *grain;
+    for(auto i=0; i<2; i++){
+        if(*(place+2+i)<0)continue;
+        grain = home->grainKeys[face->nbrGrain[i]];
+        if(*(place+2+i)<grain->nIBs){
+            if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[place[2+i]], t)){
+                state = true;
+                newPlace[0]
+                IBFaceID(grain->id, place[2+i], newPlace[2+i]
+                pos2[0] = pos1[0] + t*(pos2[0]-pos1[0]);
+                pos2[1] = pos1[1] + t*(pos2[1]-pos1[1]);
+                pos2[2] = pos1[2] + t*(pos2[2]-pos1[2]);
+            }
+        }
+        if(place[2+i]>0){
+            if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[place[2+i]-1], t)){
+                state = true;
+                pos2[0] = pos1[0] + t*(pos2[0]-pos1[0]);
+                pos2[1] = pos1[1] + t*(pos2[1]-pos1[1]);
+                pos2[2] = pos1[2] + t*(pos2[2]-pos1[2]);
+            }
+        }
+    }
+    return state;
+}
+
+bool SegmentFaceIntersection(Home_t *home, int *place, real8 x1, real8 y1, real8 z1, real8 x2, real8 y2, real8 z2, int *newPlace)
+{
+    real8 pos1[3]={x1, y1, z1}; real8 pos2[3]={x2, y2, z2};
+    return SegmentFaceIntersection(home, place, pos1, pos2, newPlace);
+}
+
+bool CorrectedLocation(Home_t *home, int *place, real8 *pos)
+{
+    switch(*place){
+        case IN_GRAIN:
+            
+            break;
+    }
+} 
+inline bool IBFaceID(const int &grainID, const int &ibID, int &faceID)
+{
+    if(grainID>=0&&ibID>=0){
+        faceID = IB_START_ID+GRAIN_ID_FACTOR*grainID+ibID;
+        return true;
+    }else return false;
+}
+
+inline bool IBGrainID(const int faceID, int &grainID, int &ibID)
+{
+    if(faceID>=IB_START_ID){
+        grainID = (faceID-IB_START_ID)/GRAIN_ID_FACTOR;
+        ibID = (faceID-IB_START_ID)%GRAIN_ID_FACTOR;
+        return true;
+    }else return false;
+}
+
+void GetArmLocation(Home_t *home, Node_t *node1, Node_t *node2, int *place){
+    int *place1, *place2;
+    if(node1->place[0] <= node2->place[0]){
+        place1=node1->place; place2=node2->place;
+    }else{
+        place1=node2->place; place2=node1->place;
+    }
+    for(auto i=0; i<PLACE_LEN; i++)place[i]=place1[i];
+
+    try{
+        int i, grainID, ibID;
+        Grain_t *grain; Face_t *face;
+        switch(place1[0]){
+            case IN_GRAIN:
+            if(place1[1]<0 || place1[1]>home->nGrains)throw "wrong grain ID of place1";
+            grain = home->grainKeys[place1[1]];
+            switch(place2[0]){
+                case IN_GRAIN:
+                    if(place1[1]!=place2[1] || place1[2]!=place2[2])throw "IN_GRAIN != INGRAIN";break;
+                case ON_FREE_SURFACE:
+                    if(place2[1]>=home->nFaces || place2[1]<0)throw "wrong face ID of place2";
+                    face = home->faces[place2[1]];
+                    if(face->nbrGrain[0] != grain->id) throw "can not match free surface of grain";
+                    if(place1[2] != place2[2])throw "can not match sub-grains of the grain and free surface";break;
+                case ON_IB:
+                    if(place1[1]!=place2[1] || place1[2]<place2[2] || place1[2] > place2[2]+1)throw "IN_GRAIN  ON_IB";break;
+                case ON_GB:
+                    if(place2[1]>=home->nFaces || place2[2]<0)throw "wrong face ID of place2";
+                    face = home->faces[place2[1]]; 
+                    for(i=0; i<2; i++){
+                        if(face->nbrGrain[i]==place1[1])break;
+                    }
+                    if(i==2)throw "can not find grain of the face";
+                    if(place1[2] != *(place2+2+i)) throw "can not match subGrain ID"; break;
+                case ON_IB_EDGE:
+                    if(place2[1]>=home->nFaces || place2[2]<0)throw "wrong face ID of place2";
+                    face = home->faces[place2[1]];
+                    for(i=0;i<2;i++)
+                        if(IBGrainID(*(place2+2+i), grainID, ibID)){
+                            if(grainID!=face->nbrGrain[i])throw "grainID!=face->nbrGrain[i]";
+                            if(place1[1]==grainID && (ibID==place1[2]||ibID+1==place1[2]))break;
+                        }else{
+                            if(place1[1]==face->nbrGrain[i]&&place1[2]==place2[2+i])break;
+                        }
+                    if(i==2)throw "can not find the face ID of IN_GRAIN and ON_IB_EDGE";break;
+                case ON_FACE_EDGE:
+                    for(i=0; i<2; i++){
+                        if(*(place+2+i)<0)continue;
+                        if(IBGrainID(*(place2+2+i), grainID, ibID)){
+                            if(grainID==place1[1]&&ibID==place1[2])break;
+                        }else{
+                            if(*(place2+2+i)==place1[1])break;
+                        }
+                    }
+                    if(i==2)throw "can not match the grain ID and subgrain ID of IN_GRAIN and ON_FACE_EDGE";
+                    break; 
+                case AT_VERTICE:
+                    
+                    break;
+            }
+            break;
+            case ON_FREE_SURFACE:
+            switch(place2[0]){
+ 
+            }break;
+            case ON_IB:
+            switch(place2[0]){
+ 
+            }break;
+            case ON_GB:
+            switch(place2[0]){
+ 
+            }break;
+            case ON_IB_EDGE:
+            switch(place2[0]){
+ 
+            }break;
+            case ON_FACE_EDGE:
+            switch(place2[0]){
+ 
+            }break;
+            case AT_VERTICE:
+            switch(place2[0]){
+ 
+            }break;
+            default:
+                Fatal("GetArmLocation: not support type %d", place1[0]);
+                break;
+        }
+    }catch(const char *msg){
+
+    }
+    return;
+}
+
+void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3])
+{
+        int         i;
+
+        burgData->numBurgVectors = NUM_BURGS_IN_FCC;
+        burgData->numPlanes   = NUM_PLANES_IN_FCC;
+        burgData->numKeyLines = NUM_KEY_LINES_IN_FCC;
+
+        burgData->burgList = (real8 (*)[3])calloc(3*burgData->numBurgVectors, sizeof(real8));
+        burgData->burgType = (int *)calloc(burgData->numBurgVectors, sizeof(int));
+        burgData->planeList = (real8 (*)[3])calloc(3*burgData->numPlanes, sizeof(real8));
+        burgData->planeType = (int *)calloc(burgData->numPlanes, sizeof(int));
+        burgData->cutNormals = (real8 (*)[3])calloc(3*burgData->numPlanes, sizeof(real8));
+        burgData->keyLineList = (real8 (*)[3])calloc(3*burgData->numKeyLines, sizeof(real8));
+
+        burgData->numPlanesPerBurg = (int *)calloc(burgData->numBurgVectors, sizeof(int));        
+        burgData->numBurgsPerPlane = (int *)calloc(burgData->numPlanes, sizeof(int));        
+        burgData->numPlanesPerKeyLine = (int *)calloc(burgData->numKeyLines, sizeof(int));        
+        
+
+        real8 burgList[NUM_BURGS_IN_FCC][3] = {
+/* 
+ *          basic Roman-Roman burgers vectors       (6)
+ *          magnitude: 1.0
+ */
+           { 0.7071067811865475,       0.7071067811865475,        0.0e+00            },      // DC -- 0
+           { 0.7071067811865475,      -0.7071067811865475,        0.0e+00            },      // BA -- 1
+           { 0.7071067811865475,       0.0e+00,                   0.7071067811865475 },      // DA -- 2
+           { 0.7071067811865475,       0.0e+00,                  -0.7071067811865475 },      // BC -- 3
+           { 0.0e+00,                  0.7071067811865475,        0.7071067811865475 },      // DB -- 4
+           { 0.0e+00,                  0.7071067811865475,       -0.7071067811865475 },      // AC -- 5
+/* 
+ *          Shocklay Roman-Greek burgers vectors    (12)
+ *          magnitude: 1/Sqrt(3)
+ */
+           { 0.4714045207910317,       0.2357022603955158,        0.2357022603955158 },      // Db -- 6
+           {-0.4714045207910317,       0.2357022603955158,        0.2357022603955158 },      // dB -- 7
+           { 0.4714045207910317,      -0.2357022603955158,        0.2357022603955158 },      // gA -- 8
+           { 0.4714045207910317,       0.2357022603955158,       -0.2357022603955158 },      // aC -- 9
+           { 0.2357022603955158,       0.4714045207910317,        0.2357022603955158 },      // Da -- 10
+           {-0.2357022603955158,       0.4714045207910317,        0.2357022603955158 },      // gB -- 11
+           { 0.2357022603955158,      -0.4714045207910317,        0.2357022603955158 },      // dA -- 12
+           { 0.2357022603955158,       0.4714045207910317,       -0.2357022603955158 },      // bC -- 13
+           { 0.2357022603955158,       0.2357022603955158,        0.4714045207910317 },      // Dg -- 14
+           {-0.2357022603955158,       0.2357022603955158,        0.4714045207910317 },      // aB -- 15
+           { 0.2357022603955158,      -0.2357022603955158,        0.4714045207910317 },      // bA -- 16
+           { 0.2357022603955158,       0.2357022603955158,       -0.4714045207910317 },      // dC -- 17
+/* 
+ *          compound Roman-Roman burgers vectors    (3) 
+ *          magnitude: Sqrt(2)
+ */
+           { 1.414213562373095,        0.0e+00,                   0.0e+00            },      // DC+BA -- 18
+           { 0.0e+00,                  1.414213562373095,         0.0e+00            },      // DC+AB -- 19
+           { 0.0e+00,                  0.0e+00,                   1.414213562373095  }       // CA+DB -- 20
+        };
+
+        for(i=0; i<NUM_BURGS_IN_FCC; i++){
+            Matrix33Vector3Multiply(rotMatrix, burgList[i], burgData->burgList[i]);
+        }
+
+        int burgType[NUM_BURGS_IN_FCC] = {EDGE_BURG, EDGE_BURG, EDGE_BURG, EDGE_BURG, EDGE_BURG, EDGE_BURG,
+                PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, 
+                PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG,
+                JUNCTION_BURG, JUNCTION_BURG, JUNCTION_BURG};
+        memcpy(burgData->burgType, burgType, sizeof(int [NUM_BURGS_IN_FCC]));
+
+
+        int numPlanesPerBurg[NUM_BURGS_IN_FCC] = { 3, 3, 3, 3, 3, 3, 
+                                                   2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                                                   4, 4, 4 }; 
+        memcpy(burgData->numPlanesPerBurg,numPlanesPerBurg,sizeof(int [NUM_BURGS_IN_FCC]));
+
+        int burgFirstPlaneIndex[NUM_BURGS_IN_FCC] = { 0, 3, 6, 9, 12, 15, 
+                                                     18,20,22,24,26,28,30,32,34,36,38,40,
+                                                     42,46,50};
+
+        real8 planeList[NUM_PLANES_IN_FCC][3] = {
+            {-0.5773502691896258,       0.5773502691896258,       -0.5773502691896258 },    // a plane  ID: 0
+            { 0.5773502691896258,      -0.5773502691896258,       -0.5773502691896258 },    // b plane  ID: 1
+            {-0.5773502691896258,      -0.5773502691896258,        0.5773502691896258 },    // g plane  ID: 2
+            { 0.5773502691896258,       0.5773502691896258,        0.5773502691896258 },    // d plane  ID: 3
+                                                                                      
+            { 1.0e+00,                  0.0e+00,                   0.0e+00            },    // (100) junction plane     ID: 4
+            { 0.0e+00,                  1.0e+00,                   0.0e+00            },    // (010) junction plane     ID: 5
+            { 0.0e+00,                  0.0e+00,                   1.0e+00            },    // (001) junction plane     ID: 6
+                                                                                      
+            { 0.0e+00,                  0.7071067811865475,        0.7071067811865475 },    // (011) junction plane     ID: 7
+            { 0.0e+00,                 -0.7071067811865475,        0.7071067811865475 },    // (0-11) junction plane    ID: 8
+                                                                                      
+            { 0.7071067811865475,       0.0e+00,                   0.7071067811865475 },    // (101) junction plane     ID: 9
+            {-0.7071067811865475,       0.0e+00,                   0.7071067811865475 },    // (-101) junction plane    ID: 10
+                                                                                      
+            { 0.7071067811865475,       0.7071067811865475,        0.0e+00            },    // (110) junction plane     ID: 11
+            {-0.7071067811865475,       0.7071067811865475,        0.0e+00            }     // (-110) junction plane    ID: 12
+        };
+
+        for(i=0; i<NUM_PLANES_IN_FCC; i++){
+            Matrix33Vector3Multiply(rotMatrix, planeList[i], burgData->planeList[i]);
+            VECTOR_ZERO(burgData->cutNormals[i]);
+        }
+        
+        int planeType[NUM_PLANES_IN_FCC] = { GLIDE_PLANE, GLIDE_PLANE, GLIDE_PLANE, GLIDE_PLANE,
+            JUNCTION_PLANE1, JUNCTION_PLANE1, JUNCTION_PLANE1, JUNCTION_PLANE2, 
+            JUNCTION_PLANE2, JUNCTION_PLANE2, JUNCTION_PLANE2, JUNCTION_PLANE2, JUNCTION_PLANE2 }; 
+
+        memcpy(burgData->planeType,planeType,NUM_PLANES_IN_FCC*sizeof(int));
+
+        int numBurgsPerPlane[NUM_PLANES_IN_FCC] = { 6, 6, 6, 6,                    // basic glide planes
+                                                    4, 4, 4,                       // Junction plane 1 
+                                                    3, 3, 3, 3, 3, 3               // Junction plane 2
+                                                  }; 
+
+        memcpy(burgData->numBurgsPerPlane, numBurgsPerPlane,sizeof(int [NUM_PLANES_IN_FCC]));
+
+        int planeFirstBurgIndex[NUM_PLANES_IN_FCC] = { 0, 6, 12, 18,
+                                                       24,28,32,
+                                                       36,39,42,45,48,51 };  
+
+        real8 keyLineList[NUM_KEY_LINES_IN_FCC][3] = {
+           { 0.7071067811865475,       0.7071067811865475,        0.0e+00            },      // DC -- 0
+           { 0.7071067811865475,      -0.7071067811865475,        0.0e+00            },      // BA -- 1
+           { 0.7071067811865475,       0.0e+00,                   0.7071067811865475 },      // DA -- 2
+           { 0.7071067811865475,       0.0e+00,                  -0.7071067811865475 },      // BC -- 3
+           { 0.0e+00,                  0.7071067811865475,        0.7071067811865475 },      // DB -- 4
+           { 0.0e+00,                  0.7071067811865475,       -0.7071067811865475 }       // AC -- 5
+        };
+
+        for(i=0; i<NUM_KEY_LINES_IN_FCC; i++){
+            Matrix33Vector3Multiply(rotMatrix, keyLineList[i], burgData->keyLineList[i]);
+        }
+
+        int numPlanesPerKeyLine[NUM_KEY_LINES_IN_FCC] = { 3, 3, 3, 3, 3, 3};
+ 
+        memcpy(burgData->numPlanesPerKeyLine,numPlanesPerKeyLine,sizeof(int [NUM_KEY_LINES_IN_FCC]));
+
+        int keyLineFirstPlaneIndex[NUM_BURGS_IN_FCC] = { 0, 3, 6, 9, 12, 15 }; 
+
+        int burgOnPlaneID[54] = {
+                                  0,  1,  6,       /* DC (0) on plane  */
+                                  2,  3,  6,       /* BA (1) on plane  */
+                                  1,  2,  5,       /* DA (2) on plane  */
+                                  0,  3,  5,       /* BC (3) on plane  */
+                                  0,  2,  4,       /* DB (4) on plane  */
+                                  1,  3,  4,       /* AC (5) on plane  */
+                                  1,  8,           /* Db (6) */
+                                  3,  8,           /* dB (7) */
+                                  2,  7,           /* gA (8) */
+                                  0,  7,           /* aC (9) */
+                                  0, 10,           /* Da (10) */
+                                  2,  9,           /* gB (11) */
+                                  3, 10,           /* dA (12) */
+                                  1,  9,           /* bC (13) */
+                                  2, 12,           /* Dg (14) */
+                                  0, 11,           /* aB (15) */
+                                  1, 11,           /* bA (16) */
+                                  3, 12,           /* dC (17) */
+                                  5,  6,  7,  8,   /* [100] (18) */
+                                  4,  6,  9, 10,   /* [010] (19) */
+                                  4,  5, 11, 12    /* [001] (20) */
+                                };
+        burgData->burgOnPlaneID = (int **)calloc(NUM_BURGS_IN_FCC, sizeof(int *));       
+        for(i=0; i<NUM_BURGS_IN_FCC; i++){
+            burgData->burgOnPlaneID[i] = (int *)calloc(numPlanesPerBurg[i], sizeof(int));
+            memcpy(burgData->burgOnPlaneID[i], burgOnPlaneID+burgFirstPlaneIndex[i], 
+                   sizeof(int [numPlanesPerBurg[i]]));
+        }
+        
+        int planeOnBurgID[54] = {  0,  3,  4,  9, 10, 15,     // plane (0)
+                                   0,  2,  5,  6, 13, 16,     // plane (1)
+                                   1,  2,  4,  8, 11, 14,     //    .
+                                   1,  3,  5,  7, 12, 17,     //    .
+                                   4,  5, 19, 20,             //  
+                                   2,  3, 18, 20,             //
+                                   0,  1, 18, 19,             //
+                                   8,  9, 18,                 //
+                                   6,  7, 18,                 //
+                                  11, 13, 19,                 //
+                                  10, 12, 19,                 //
+                                  15, 16, 20,                 //
+                                  14, 17, 20                  //
+                                 };
+
+        burgData->planeOnBurgID = (int **)calloc(NUM_PLANES_IN_FCC, sizeof(int *));       
+        for(i=0; i<NUM_PLANES_IN_FCC; i++){
+            burgData->planeOnBurgID[i] = (int *)calloc(numBurgsPerPlane[i], sizeof(int));
+            memcpy(burgData->planeOnBurgID[i], planeOnBurgID+planeFirstBurgIndex[i], 
+                   sizeof(int [numBurgsPerPlane[i]]));
+        }
+
+        int keyLineOnPlaneID[18] = {
+                                     0, 1, 6,
+                                     2, 3, 6,
+                                     1, 2, 5,
+                                     0, 3, 5,
+                                     0, 2, 4,
+                                     1, 3, 4
+                                   };
+        burgData->keyLineOnPlaneID = (int **)calloc(NUM_KEY_LINES_IN_FCC, sizeof(int *));       
+        for(i=0; i<NUM_KEY_LINES_IN_FCC; i++){
+            burgData->keyLineOnPlaneID[i] = (int *)calloc(numPlanesPerKeyLine[i], sizeof(int));
+            memcpy(burgData->keyLineOnPlaneID[i], keyLineOnPlaneID+keyLineFirstPlaneIndex[i], 
+                   sizeof(int [numPlanesPerKeyLine[i]]));
+        }
+        return;
+}
+
+
+void CompressBurgListWithType(std::vector<std::vector<real8> >& burgList,
+                              std::vector<int>& burgType)
+{
+    int     i, j, nRows;
+    real8   crossProdt[3], vec1[3], vec2[3];
+    int     newNRows = 0;
+    std::vector< std::vector<real8> >::iterator  it;
+    std::vector<int>::iterator  it2;
+
+    nRows = burgList.size();
+    if(nRows != burgType.size())Fatal("in %s at %d", __FILE__, __LINE__);
+    for(i=0; i<nRows; i++){
+        for(j=0; j<newNRows; j++){
+            VECTOR_COPY(vec1, burgList[i]);
+            VECTOR_COPY(vec2, burgList[j]);
+            cross(vec1, vec2, crossProdt);
+            if(Normal(crossProdt) < 1.0E-2 && fabs(Normal(burgList[i]) - 
+               Normal(burgList[j])) < 1.0E-4 &&  burgType[i] == burgType[j])break;
+
+        }
+        if(j == newNRows){
+            VECTOR_COPY(burgList[newNRows], burgList[i])
+            burgType[newNRows] = burgType[i];
+            newNRows++;
+        }
+    }
+    
+    for(it = burgList.end(); it != burgList.begin()+newNRows; it--){
+        burgList.erase(it);
+    }
+//    for(it2 = burgType.end(); it2 != burgType.begin()+newNRows; it2--){
+//        burgType.erase(it2);
+//    }
+        burgType.resize(newNRows);
+
+    return;
+}
+
+void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, BurgInfo_t *bInf2)
+{
+    /** Assign plane Information and key line Info
+     */
+    bInf->numPlanes = bInf1->numPlanes + bInf2->numPlanes;
+    bInf->planeList = (real8 (*)[3])malloc(3*bInf->numPlanes*sizeof(real8));
+    memcpy(bInf->planeList, bInf1->planeList, bInf1->numPlanes*sizeof(real8 [3]));
+    memcpy(bInf->planeList + bInf1->numPlanes, bInf2->planeList, bInf2->numPlanes*sizeof(real8 [3]));
+
+    bInf->planeType = (int *)malloc(bInf->numPlanes*sizeof(int));
+    memcpy(bInf->planeType, bInf1->planeType, bInf1->numPlanes*sizeof(int));
+    memcpy(bInf->planeType + bInf1->numPlanes, bInf2->planeType, bInf2->numPlanes*sizeof(int));
+
+    real8 crossProdt[3], dot;
+    std::vector<std::vector<double> >   keyLineList; 
+    std::vector<real8> keyLineDir(3); 
+    std::vector<std::vector<int> > keyLineOnPlaneID;
+    bInf->cutNormals = (real8 (*)[3])malloc(3*bInf->numPlanes*sizeof(real8));
+    for(auto i=0; i<bInf->numPlanes; i++){
+        cross(bInf->planeList[i], GBNormal, crossProdt); NormalizeVec(crossProdt);
+        if(Normal(crossProdt) < 1.0E-2){
+            bInf->planeType[i] |= GB_PLANE; VECTOR_ZERO(bInf->cutNormals[i]);
+        }else{
+            // if the GB cut the plane, we record the info.
+            cross(bInf->planeList[i], crossProdt, bInf->cutNormals[i]); NormalizeVec(bInf->cutNormals[i]);
+            dot = DotProduct(bInf->cutNormals[i], GBNormal);
+            if(dot>0&&i<bInf1->numPlanes || dot<0&&i>=bInf1->numPlanes){
+                bInf->cutNormals[i][0] = -bInf->cutNormals[i][0];
+                bInf->cutNormals[i][1] = -bInf->cutNormals[i][1];
+                bInf->cutNormals[i][2] = -bInf->cutNormals[i][2];
+            }
+            // if the plane is glide plane, record the intersection line
+            if((bInf->planeType[i] & GLIDE_PLANE)> 0){
+                int j; for(j=0;j<keyLineList.size();j++){
+                    if(fabs(DotProduct(keyLineList[j],crossProdt))>0.99)break;
+                }
+                if(j==keyLineList.size()){
+                    VECTOR_COPY(keyLineDir, crossProdt);
+                    keyLineList.push_back(keyLineDir);
+                    keyLineOnPlaneID.resize(j+1);
+                }
+                keyLineOnPlaneID[j].push_back(i);
+            }
+        }
+    }
+
+    bInf->numKeyLines = keyLineList.size();
+    bInf->keyLineList = (real8 (*)[3])malloc(3*bInf->numKeyLines*sizeof(real8));
+    bInf->numPlanesPerKeyLine = (int *)malloc(bInf->numKeyLines*sizeof(int));
+    bInf->keyLineOnPlaneID = (int **)malloc(bInf->numKeyLines*sizeof(int*));
+    for(auto i=0; i<keyLineList.size(); i++){
+        VECTOR_COPY(bInf->keyLineList[i], keyLineList[i]);
+        bInf->numPlanesPerKeyLine[i]=(int)keyLineOnPlaneID[i].size();
+        bInf->keyLineOnPlaneID[i] = (int *)malloc(bInf->numPlanesPerKeyLine[i]*sizeof(int));
+        for(auto j=0; j<bInf->numPlanesPerKeyLine[i]; j++){
+            bInf->keyLineOnPlaneID[i][j]=keyLineOnPlaneID[i][j];
+        }
+    }
+    keyLineList.clear(); keyLineOnPlaneID.clear();
+    
+    /** Assign burg Information and compress the burg data
+     */
+    std::vector<int>    burgType(bInf1->numBurgVectors+bInf2->numBurgVectors); 
+    std::vector<std::vector<real8> > burgList(bInf1->numBurgVectors+bInf2->numBurgVectors);
+    for(auto i=0;i<bInf1->numBurgVectors;i++){
+        burgList[i].resize(3); 
+        burgList[i][0]=bInf1->burgList[i][0];
+        burgList[i][1]=bInf1->burgList[i][1];
+        burgList[i][2]=bInf1->burgList[i][2];
+        burgType[i]=bInf1->burgType[i];
+    }
+    for(auto i=0;i<bInf2->numBurgVectors;i++){
+        int j=i+bInf1->numBurgVectors;
+        burgList[j].resize(3); 
+        burgList[j][0]=bInf2->burgList[i][0];
+        burgList[j][1]=bInf2->burgList[i][1];
+        burgList[j][2]=bInf2->burgList[i][2];
+        burgType[j]=bInf2->burgType[i];
+    }
+    CompressBurgListWithType(burgList, burgType);
+
+    bInf->numBurgVectors = (int)burgList.size();
+    bInf->burgList = (real8 (*)[3])malloc(3*bInf->numBurgVectors*sizeof(real8));
+    bInf->burgType = (int *)malloc(bInf->numBurgVectors*sizeof(int));
+    bInf->numPlanesPerBurg = (int *)malloc(bInf->numBurgVectors*sizeof(int));
+    std::vector<std::vector<int> >        burgOnPlaneID(bInf->numBurgVectors);
+
+    // copy stl vectors to list count burgOnPlaneID
+    real8 burgNormalized[3];
+    for(auto i=0; i<bInf->numBurgVectors; i++){
+        VECTOR_COPY(bInf->burgList[i], burgList[i]);
+        bInf->burgType[i] = burgType[i];
+        bInf->numPlanesPerBurg[i] = 0;
+        VECTOR_COPY(burgNormalized, burgList[i]);
+        NormalizeVec(burgNormalized);
+        for(auto j=0; j<bInf->numPlanes; j++){
+            if(fabs(DotProduct(burgNormalized, bInf->planeList[j])) < 1.0E-2){
+                bInf->numPlanesPerBurg[i]++;
+                burgOnPlaneID[i].push_back(j);
+            }
+        }
+    }
+    burgList.clear(); burgType.clear();
+    
+    // Copy burgOnPlaneID and assembly planeOnBurgID
+    std::vector<std::vector<int> >      planeOnBurgID(bInf->numPlanes);
+    bInf->burgOnPlaneID = (int **)malloc(bInf->numBurgVectors*sizeof(int *));
+    for(auto i=0; i<bInf->numBurgVectors; i++){
+        bInf->burgOnPlaneID[i] = (int *)malloc(bInf->numPlanesPerBurg[i]*sizeof(int));
+        for(auto j=0; j<bInf->numPlanesPerBurg[i]; j++){
+            bInf->burgOnPlaneID[i][j] = burgOnPlaneID[i][j];
+            planeOnBurgID[burgOnPlaneID[i][j]].push_back(i);
+        }
+    }
+    burgOnPlaneID.clear();
+
+    // Copy planeOnBurgID
+    bInf->numBurgsPerPlane = (int *)malloc(bInf->numPlanes*sizeof(int));
+    bInf->planeOnBurgID = (int **)malloc(bInf->numPlanes*sizeof(int *));
+    for(auto i=0; i<bInf->numPlanes; i++){
+        bInf->numBurgsPerPlane[i] = planeOnBurgID[i].size();
+        bInf->planeOnBurgID[i] = (int *)malloc(bInf->numBurgsPerPlane[i]*sizeof(int));
+        for(auto j=0; j<bInf->numBurgsPerPlane[i]; j++){
+            bInf->planeOnBurgID[i][j] = planeOnBurgID[i][j];
+        }
+    }
+    planeOnBurgID.clear();
+    
+    return;
+}
+
+//------------------------------------------------------------------------------
+
+bool IsOnGB(Node_t *node)
+{
+    return(node->onGB > -1);
+}
+
+
+
+void InitGrainStructure(Grain_t *grain, int nGBs){
+	grain->nGBs = nGBs;
+    grain->GB = (GB_t **)malloc(nGBs*sizeof(GB_t *));	
+    grain->sign = (real8 *)malloc(nGBs*sizeof(real8));
+    return;
+}
+
+
+bool cmp3(SlipSys_t p, SlipSys_t q){
+    return(p.schmid > q.schmid);
+}
+
+
 
 void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB){
     int         i, j, nGrains, type, breakLoop = 0;
@@ -2054,211 +2776,6 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
     return(canMerge);
 }
 
-void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3])
-{
-        int         i;
-
-        burgData->numBurgVectors = NUM_BURGS_IN_FCC;
-        burgData->numPlanes   = NUM_PLANES_IN_FCC;
-        burgData->numKeyLines = NUM_KEY_LINES_IN_FCC;
-
-        burgData->burgList = (real8 (*)[3])calloc(3*burgData->numBurgVectors, sizeof(real8));
-        burgData->burgType = (int *)calloc(burgData->numBurgVectors, sizeof(int));
-        burgData->planeList = (real8 (*)[3])calloc(3*burgData->numPlanes, sizeof(real8));
-        burgData->planeType = (int *)calloc(burgData->numPlanes, sizeof(int));
-        burgData->cutNormals = (real8 (*)[3])calloc(3*burgData->numPlanes, sizeof(real8));
-        burgData->keyLineList = (real8 (*)[3])calloc(3*burgData->numKeyLines, sizeof(real8));
-
-        burgData->numPlanesPerBurg = (int *)calloc(burgData->numBurgVectors, sizeof(int));        
-        burgData->numBurgsPerPlane = (int *)calloc(burgData->numPlanes, sizeof(int));        
-        burgData->numPlanesPerKeyLine = (int *)calloc(burgData->numKeyLines, sizeof(int));        
-        
-
-        real8 burgList[NUM_BURGS_IN_FCC][3] = {
-/* 
- *          basic Roman-Roman burgers vectors       (6)
- *          magnitude: 1.0
- */
-           { 0.7071067811865475,       0.7071067811865475,        0.0e+00            },      // DC -- 0
-           { 0.7071067811865475,      -0.7071067811865475,        0.0e+00            },      // BA -- 1
-           { 0.7071067811865475,       0.0e+00,                   0.7071067811865475 },      // DA -- 2
-           { 0.7071067811865475,       0.0e+00,                  -0.7071067811865475 },      // BC -- 3
-           { 0.0e+00,                  0.7071067811865475,        0.7071067811865475 },      // DB -- 4
-           { 0.0e+00,                  0.7071067811865475,       -0.7071067811865475 },      // AC -- 5
-/* 
- *          Shocklay Roman-Greek burgers vectors    (12)
- *          magnitude: 1/Sqrt(3)
- */
-           { 0.4714045207910317,       0.2357022603955158,        0.2357022603955158 },      // Db -- 6
-           {-0.4714045207910317,       0.2357022603955158,        0.2357022603955158 },      // dB -- 7
-           { 0.4714045207910317,      -0.2357022603955158,        0.2357022603955158 },      // gA -- 8
-           { 0.4714045207910317,       0.2357022603955158,       -0.2357022603955158 },      // aC -- 9
-           { 0.2357022603955158,       0.4714045207910317,        0.2357022603955158 },      // Da -- 10
-           {-0.2357022603955158,       0.4714045207910317,        0.2357022603955158 },      // gB -- 11
-           { 0.2357022603955158,      -0.4714045207910317,        0.2357022603955158 },      // dA -- 12
-           { 0.2357022603955158,       0.4714045207910317,       -0.2357022603955158 },      // bC -- 13
-           { 0.2357022603955158,       0.2357022603955158,        0.4714045207910317 },      // Dg -- 14
-           {-0.2357022603955158,       0.2357022603955158,        0.4714045207910317 },      // aB -- 15
-           { 0.2357022603955158,      -0.2357022603955158,        0.4714045207910317 },      // bA -- 16
-           { 0.2357022603955158,       0.2357022603955158,       -0.4714045207910317 },      // dC -- 17
-/* 
- *          compound Roman-Roman burgers vectors    (3) 
- *          magnitude: Sqrt(2)
- */
-           { 1.414213562373095,        0.0e+00,                   0.0e+00            },      // DC+BA -- 18
-           { 0.0e+00,                  1.414213562373095,         0.0e+00            },      // DC+AB -- 19
-           { 0.0e+00,                  0.0e+00,                   1.414213562373095  }       // CA+DB -- 20
-        };
-
-        for(i=0; i<NUM_BURGS_IN_FCC; i++){
-            Matrix33Vector3Multiply(rotMatrix, burgList[i], burgData->burgList[i]);
-        }
-
-        int burgType[NUM_BURGS_IN_FCC] = {EDGE_BURG, EDGE_BURG, EDGE_BURG, EDGE_BURG, EDGE_BURG, EDGE_BURG,
-                PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, 
-                PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG,
-                JUNCTION_BURG, JUNCTION_BURG, JUNCTION_BURG};
-        memcpy(burgData->burgType, burgType, sizeof(int [NUM_BURGS_IN_FCC]));
-
-
-        int numPlanesPerBurg[NUM_BURGS_IN_FCC] = { 3, 3, 3, 3, 3, 3, 
-                                                   2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                                                   4, 4, 4 }; 
-        memcpy(burgData->numPlanesPerBurg,numPlanesPerBurg,sizeof(int [NUM_BURGS_IN_FCC]));
-
-        int burgFirstPlaneIndex[NUM_BURGS_IN_FCC] = { 0, 3, 6, 9, 12, 15, 
-                                                     18,20,22,24,26,28,30,32,34,36,38,40,
-                                                     42,46,50};
-
-        real8 planeList[NUM_PLANES_IN_FCC][3] = {
-            {-0.5773502691896258,       0.5773502691896258,       -0.5773502691896258 },    // a plane  ID: 0
-            { 0.5773502691896258,      -0.5773502691896258,       -0.5773502691896258 },    // b plane  ID: 1
-            {-0.5773502691896258,      -0.5773502691896258,        0.5773502691896258 },    // g plane  ID: 2
-            { 0.5773502691896258,       0.5773502691896258,        0.5773502691896258 },    // d plane  ID: 3
-                                                                                      
-            { 1.0e+00,                  0.0e+00,                   0.0e+00            },    // (100) junction plane     ID: 4
-            { 0.0e+00,                  1.0e+00,                   0.0e+00            },    // (010) junction plane     ID: 5
-            { 0.0e+00,                  0.0e+00,                   1.0e+00            },    // (001) junction plane     ID: 6
-                                                                                      
-            { 0.0e+00,                  0.7071067811865475,        0.7071067811865475 },    // (011) junction plane     ID: 7
-            { 0.0e+00,                 -0.7071067811865475,        0.7071067811865475 },    // (0-11) junction plane    ID: 8
-                                                                                      
-            { 0.7071067811865475,       0.0e+00,                   0.7071067811865475 },    // (101) junction plane     ID: 9
-            {-0.7071067811865475,       0.0e+00,                   0.7071067811865475 },    // (-101) junction plane    ID: 10
-                                                                                      
-            { 0.7071067811865475,       0.7071067811865475,        0.0e+00            },    // (110) junction plane     ID: 11
-            {-0.7071067811865475,       0.7071067811865475,        0.0e+00            }     // (-110) junction plane    ID: 12
-        };
-
-        for(i=0; i<NUM_PLANES_IN_FCC; i++){
-            Matrix33Vector3Multiply(rotMatrix, planeList[i], burgData->planeList[i]);
-            VECTOR_ZERO(burgData->cutNormals[i]);
-        }
-        
-        int planeType[NUM_PLANES_IN_FCC] = { GLIDE_PLANE, GLIDE_PLANE, GLIDE_PLANE, GLIDE_PLANE,
-            JUNCTION_PLANE1, JUNCTION_PLANE1, JUNCTION_PLANE1, JUNCTION_PLANE2, 
-            JUNCTION_PLANE2, JUNCTION_PLANE2, JUNCTION_PLANE2, JUNCTION_PLANE2, JUNCTION_PLANE2 }; 
-
-        memcpy(burgData->planeType,planeType,NUM_PLANES_IN_FCC*sizeof(int));
-
-        int numBurgsPerPlane[NUM_PLANES_IN_FCC] = { 6, 6, 6, 6,                    // basic glide planes
-                                                    4, 4, 4,                       // Junction plane 1 
-                                                    3, 3, 3, 3, 3, 3               // Junction plane 2
-                                                  }; 
-
-        memcpy(burgData->numBurgsPerPlane, numBurgsPerPlane,sizeof(int [NUM_PLANES_IN_FCC]));
-
-        int planeFirstBurgIndex[NUM_PLANES_IN_FCC] = { 0, 6, 12, 18,
-                                                       24,28,32,
-                                                       36,39,42,45,48,51 };  
-
-        real8 keyLineList[NUM_KEY_LINES_IN_FCC][3] = {
-           { 0.7071067811865475,       0.7071067811865475,        0.0e+00            },      // DC -- 0
-           { 0.7071067811865475,      -0.7071067811865475,        0.0e+00            },      // BA -- 1
-           { 0.7071067811865475,       0.0e+00,                   0.7071067811865475 },      // DA -- 2
-           { 0.7071067811865475,       0.0e+00,                  -0.7071067811865475 },      // BC -- 3
-           { 0.0e+00,                  0.7071067811865475,        0.7071067811865475 },      // DB -- 4
-           { 0.0e+00,                  0.7071067811865475,       -0.7071067811865475 }       // AC -- 5
-        };
-
-        for(i=0; i<NUM_KEY_LINES_IN_FCC; i++){
-            Matrix33Vector3Multiply(rotMatrix, keyLineList[i], burgData->keyLineList[i]);
-        }
-
-        int numPlanesPerKeyLine[NUM_KEY_LINES_IN_FCC] = { 3, 3, 3, 3, 3, 3};
- 
-        memcpy(burgData->numPlanesPerKeyLine,numPlanesPerKeyLine,sizeof(int [NUM_KEY_LINES_IN_FCC]));
-
-        int keyLineFirstPlaneIndex[NUM_BURGS_IN_FCC] = { 0, 3, 6, 9, 12, 15 }; 
-
-        int burgOnPlaneID[54] = {
-                                  0,  1,  6,       /* DC (0) on plane  */
-                                  2,  3,  6,       /* BA (1) on plane  */
-                                  1,  2,  5,       /* DA (2) on plane  */
-                                  0,  3,  5,       /* BC (3) on plane  */
-                                  0,  2,  4,       /* DB (4) on plane  */
-                                  1,  3,  4,       /* AC (5) on plane  */
-                                  1,  8,           /* Db (6) */
-                                  3,  8,           /* dB (7) */
-                                  2,  7,           /* gA (8) */
-                                  0,  7,           /* aC (9) */
-                                  0, 10,           /* Da (10) */
-                                  2,  9,           /* gB (11) */
-                                  3, 10,           /* dA (12) */
-                                  1,  9,           /* bC (13) */
-                                  2, 12,           /* Dg (14) */
-                                  0, 11,           /* aB (15) */
-                                  1, 11,           /* bA (16) */
-                                  3, 12,           /* dC (17) */
-                                  5,  6,  7,  8,   /* [100] (18) */
-                                  4,  6,  9, 10,   /* [010] (19) */
-                                  4,  5, 11, 12    /* [001] (20) */
-                                };
-        burgData->burgOnPlaneID = (int **)calloc(NUM_BURGS_IN_FCC, sizeof(int *));       
-        for(i=0; i<NUM_BURGS_IN_FCC; i++){
-            burgData->burgOnPlaneID[i] = (int *)calloc(numPlanesPerBurg[i], sizeof(int));
-            memcpy(burgData->burgOnPlaneID[i], burgOnPlaneID+burgFirstPlaneIndex[i], 
-                   sizeof(int [numPlanesPerBurg[i]]));
-        }
-        
-        int planeOnBurgID[54] = {  0,  3,  4,  9, 10, 15,     // plane (0)
-                                   0,  2,  5,  6, 13, 16,     // plane (1)
-                                   1,  2,  4,  8, 11, 14,     //    .
-                                   1,  3,  5,  7, 12, 17,     //    .
-                                   4,  5, 19, 20,             //  
-                                   2,  3, 18, 20,             //
-                                   0,  1, 18, 19,             //
-                                   8,  9, 18,                 //
-                                   6,  7, 18,                 //
-                                  11, 13, 19,                 //
-                                  10, 12, 19,                 //
-                                  15, 16, 20,                 //
-                                  14, 17, 20                  //
-                                 };
-
-        burgData->planeOnBurgID = (int **)calloc(NUM_PLANES_IN_FCC, sizeof(int *));       
-        for(i=0; i<NUM_PLANES_IN_FCC; i++){
-            burgData->planeOnBurgID[i] = (int *)calloc(numBurgsPerPlane[i], sizeof(int));
-            memcpy(burgData->planeOnBurgID[i], planeOnBurgID+planeFirstBurgIndex[i], 
-                   sizeof(int [numBurgsPerPlane[i]]));
-        }
-
-        int keyLineOnPlaneID[18] = {
-                                     0, 1, 6,
-                                     2, 3, 6,
-                                     1, 2, 5,
-                                     0, 3, 5,
-                                     0, 2, 4,
-                                     1, 3, 4
-                                   };
-        burgData->keyLineOnPlaneID = (int **)calloc(NUM_KEY_LINES_IN_FCC, sizeof(int *));       
-        for(i=0; i<NUM_KEY_LINES_IN_FCC; i++){
-            burgData->keyLineOnPlaneID[i] = (int *)calloc(numPlanesPerKeyLine[i], sizeof(int));
-            memcpy(burgData->keyLineOnPlaneID[i], keyLineOnPlaneID+keyLineFirstPlaneIndex[i], 
-                   sizeof(int [numPlanesPerKeyLine[i]]));
-        }
-        return;
-}
 
 void FreeBurgInfoStr(BurgInfo_t *burgData)
 {
@@ -2348,174 +2865,7 @@ void CompressDirectionList(std::vector< std::vector<real8> >& dirList)
     return;
 }
 
-void CompressBurgListWithType(std::vector<std::vector<real8> >& burgList,
-                              std::vector<int>& burgType)
-{
-    int     i, j, nRows;
-    real8   crossProdt[3], vec1[3], vec2[3];
-    int     newNRows = 0;
-    std::vector< std::vector<real8> >::iterator  it;
-    std::vector<int>::iterator  it2;
 
-    nRows = burgList.size();
-    if(nRows != burgType.size())Fatal("in %s at %d", __FILE__, __LINE__);
-    for(i=0; i<nRows; i++){
-        for(j=0; j<newNRows; j++){
-            VECTOR_COPY(vec1, burgList[i]);
-            VECTOR_COPY(vec2, burgList[j]);
-            cross(vec1, vec2, crossProdt);
-            if(Normal(crossProdt) < 1.0E-2 && fabs(Normal(burgList[i]) - 
-               Normal(burgList[j])) < 1.0E-4 &&  burgType[i] == burgType[j])break;
-
-        }
-        if(j == newNRows){
-            VECTOR_COPY(burgList[newNRows], burgList[i])
-            burgType[newNRows] = burgType[i];
-            newNRows++;
-        }
-    }
-    
-    for(it = burgList.end(); it != burgList.begin()+newNRows; it--){
-        burgList.erase(it);
-    }
-//    for(it2 = burgType.end(); it2 != burgType.begin()+newNRows; it2--){
-//        burgType.erase(it2);
-//    }
-        burgType.resize(newNRows);
-
-    return;
-}
-
-void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, BurgInfo_t *bInf2)
-{
-    /** Assign plane Information and key line Info
-     */
-    bInf->numPlanes = bInf1->numPlanes + bInf2->numPlanes;
-    bInf->planeList = (real8 (*)[3])malloc(3*bInf->numPlanes*sizeof(real8));
-    memcpy(bInf->planeList, bInf1->planeList, bInf1->numPlanes*sizeof(real8 [3]));
-    memcpy(bInf->planeList + bInf1->numPlanes, bInf2->planeList, bInf2->numPlanes*sizeof(real8 [3]));
-
-    bInf->planeType = (int *)malloc(bInf->numPlanes*sizeof(int));
-    memcpy(bInf->planeType, bInf1->planeType, bInf1->numPlanes*sizeof(int));
-    memcpy(bInf->planeType + bInf1->numPlanes, bInf2->planeType, bInf2->numPlanes*sizeof(int));
-
-    real8 crossProdt[3], dot;
-    std::vector<std::vector<double> >   keyLineList; 
-    std::vector<real8> keyLineDir(3); 
-    std::vector<std::vector<int> > keyLineOnPlaneID;
-    bInf->cutNormals = (real8 (*)[3])malloc(3*bInf->numPlanes*sizeof(real8));
-    for(auto i=0; i<bInf->numPlanes; i++){
-        cross(bInf->planeList[i], GBNormal, crossProdt); NormalizeVec(crossProdt);
-        if(Normal(crossProdt) < 1.0E-2){
-            bInf->planeType[i] |= GB_PLANE; VECTOR_ZERO(bInf->cutNormals[i]);
-        }else{
-            // if the GB cut the plane, we record the info.
-            cross(bInf->planeList[i], crossProdt, bInf->cutNormals[i]); NormalizeVec(bInf->cutNormals[i]);
-            dot = DotProduct(bInf->cutNormals[i], GBNormal);
-            if(dot>0&&i<bInf1->numPlanes || dot<0&&i>=bInf1->numPlanes){
-                bInf->cutNormals[i][0] = -bInf->cutNormals[i][0];
-                bInf->cutNormals[i][1] = -bInf->cutNormals[i][1];
-                bInf->cutNormals[i][2] = -bInf->cutNormals[i][2];
-            }
-            // if the plane is glide plane, record the intersection line
-            if((bInf->planeType[i] & GLIDE_PLANE)> 0){
-                int j; for(j=0;j<keyLineList.size();j++){
-                    if(fabs(DotProduct(keyLineList[j],crossProdt))>0.99)break;
-                }
-                if(j==keyLineList.size()){
-                    VECTOR_COPY(keyLineDir, crossProdt);
-                    keyLineList.push_back(keyLineDir);
-                    keyLineOnPlaneID.resize(j+1);
-                }
-                keyLineOnPlaneID[j].push_back(i);
-            }
-        }
-    }
-
-    bInf->numKeyLines = keyLineList.size();
-    bInf->keyLineList = (real8 (*)[3])malloc(3*bInf->numKeyLines*sizeof(real8));
-    bInf->numPlanesPerKeyLine = (int *)malloc(bInf->numKeyLines*sizeof(int));
-    bInf->keyLineOnPlaneID = (int **)malloc(bInf->numKeyLines*sizeof(int*));
-    for(auto i=0; i<keyLineList.size(); i++){
-        VECTOR_COPY(bInf->keyLineList[i], keyLineList[i]);
-        bInf->numPlanesPerKeyLine[i]=(int)keyLineOnPlaneID[i].size();
-        bInf->keyLineOnPlaneID[i] = (int *)malloc(bInf->numPlanesPerKeyLine[i]*sizeof(int));
-        for(auto j=0; j<bInf->numPlanesPerKeyLine[i]; j++){
-            bInf->keyLineOnPlaneID[i][j]=keyLineOnPlaneID[i][j];
-        }
-    }
-    keyLineList.clear(); keyLineOnPlaneID.clear();
-    
-    /** Assign burg Information and compress the burg data
-     */
-    std::vector<int>    burgType(bInf1->numBurgVectors+bInf2->numBurgVectors); 
-    std::vector<std::vector<real8> > burgList(bInf1->numBurgVectors+bInf2->numBurgVectors);
-    for(auto i=0;i<bInf1->numBurgVectors;i++){
-        burgList[i].resize(3); 
-        burgList[i][0]=bInf1->burgList[i][0];
-        burgList[i][1]=bInf1->burgList[i][1];
-        burgList[i][2]=bInf1->burgList[i][2];
-        burgType[i]=bInf1->burgType[i];
-    }
-    for(auto i=0;i<bInf2->numBurgVectors;i++){
-        int j=i+bInf1->numBurgVectors;
-        burgList[j].resize(3); 
-        burgList[j][0]=bInf2->burgList[i][0];
-        burgList[j][1]=bInf2->burgList[i][1];
-        burgList[j][2]=bInf2->burgList[i][2];
-        burgType[j]=bInf2->burgType[i];
-    }
-    CompressBurgListWithType(burgList, burgType);
-
-    bInf->numBurgVectors = (int)burgList.size();
-    bInf->burgList = (real8 (*)[3])malloc(3*bInf->numBurgVectors*sizeof(real8));
-    bInf->burgType = (int *)malloc(bInf->numBurgVectors*sizeof(int));
-    bInf->numPlanesPerBurg = (int *)malloc(bInf->numBurgVectors*sizeof(int));
-    std::vector<std::vector<int> >        burgOnPlaneID(bInf->numBurgVectors);
-
-    // copy stl vectors to list count burgOnPlaneID
-    real8 burgNormalized[3];
-    for(auto i=0; i<bInf->numBurgVectors; i++){
-        VECTOR_COPY(bInf->burgList[i], burgList[i]);
-        bInf->burgType[i] = burgType[i];
-        bInf->numPlanesPerBurg[i] = 0;
-        VECTOR_COPY(burgNormalized, burgList[i]);
-        NormalizeVec(burgNormalized);
-        for(auto j=0; j<bInf->numPlanes; j++){
-            if(fabs(DotProduct(burgNormalized, bInf->planeList[j])) < 1.0E-2){
-                bInf->numPlanesPerBurg[i]++;
-                burgOnPlaneID[i].push_back(j);
-            }
-        }
-    }
-    burgList.clear(); burgType.clear();
-    
-    // Copy burgOnPlaneID and assembly planeOnBurgID
-    std::vector<std::vector<int> >      planeOnBurgID(bInf->numPlanes);
-    bInf->burgOnPlaneID = (int **)malloc(bInf->numBurgVectors*sizeof(int *));
-    for(auto i=0; i<bInf->numBurgVectors; i++){
-        bInf->burgOnPlaneID[i] = (int *)malloc(bInf->numPlanesPerBurg[i]*sizeof(int));
-        for(auto j=0; j<bInf->numPlanesPerBurg[i]; j++){
-            bInf->burgOnPlaneID[i][j] = burgOnPlaneID[i][j];
-            planeOnBurgID[burgOnPlaneID[i][j]].push_back(i);
-        }
-    }
-    burgOnPlaneID.clear();
-
-    // Copy planeOnBurgID
-    bInf->numBurgsPerPlane = (int *)malloc(bInf->numPlanes*sizeof(int));
-    bInf->planeOnBurgID = (int **)malloc(bInf->numPlanes*sizeof(int *));
-    for(auto i=0; i<bInf->numPlanes; i++){
-        bInf->numBurgsPerPlane[i] = planeOnBurgID[i].size();
-        bInf->planeOnBurgID[i] = (int *)malloc(bInf->numBurgsPerPlane[i]*sizeof(int));
-        for(auto j=0; j<bInf->numBurgsPerPlane[i]; j++){
-            bInf->planeOnBurgID[i][j] = planeOnBurgID[i][j];
-        }
-    }
-    planeOnBurgID.clear();
-    
-    return;
-}
 
 
 void SumOfValuesIsConstant(int n, int sum, std::vector<int>& valueList, int tot, 

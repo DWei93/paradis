@@ -16,8 +16,8 @@ using namespace voro;
 #endif
 
 typedef struct{
-    int type; // 0: Grain boundary edge
-             // 1: Inner boubdary edge
+    int type;   // 0: Grain boundary edge
+                // 1: Inner boubdary edge
     int vertID1, vertID2;
     std::vector<int> ofFaces;
     int ofIB[2];
@@ -33,8 +33,8 @@ typedef struct {
  * 	Mesh number used for output of plastic strain field.
  */
 
-#define TWIN_LAYER_RADIUS			1e-3 
-#define	SAFE_LAYER_RADIUS			2e-3
+#define FACE_ERROR			1e-3 
+#define	SAFE_FACE_ERROR	    2e-3
 #define IB_START_ID                 10000000
 #define GRAIN_ID_FACTOR             1000
 
@@ -230,15 +230,19 @@ struct _penetration{
 void InitGrain(Home_t *home, Param_t *param);
 void NodeLocation(Home_t *home, real8 *pos, int *place);
 void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place);
+bool CorrectedLocation(Home_t *home, int *place, real8 *pos);
+bool InGrain(Home_t *home, int *place, real8 *pos);
+bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z);
+bool SegmentGrainIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2);
+bool SegmentGrainIntersection(Home_t *home, int *place, real8 x1, real8 y1, real8 z1, real8 x2, real8 y2, real8 z2);
+inline bool IBFaceID(const int &grainID, const int &ibID, int &faceID);
+inline bool IBGrainID(const int faceID, int &grainID, int &ibID);
+void GetArmLocation(Home_t *home, Node_t *node1, Node_t *node2, int *place);
 void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3]);
 void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, BurgInfo_t *bInf2);
 
-
+//-----------------------------------------------------------------------------------------------
 Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int globalOp, int opClass);
-void PrintNeighbor(Home_t *home, Node_t *node);
-void FormatMatrix(real8 M[3][3], const char *msg);
-void FormatMatrix66(real8 M[6][6], const char *msg);
-void FormatVector(real8 vec[3], const char *msg);
 void InitOrientation(real8 MatrixOrientation[3][3], real8 TwinOrientation[3][3]);
 void FreeGrainStructure(Grain_t *grain);
 void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB);

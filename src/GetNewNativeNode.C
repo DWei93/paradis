@@ -42,8 +42,7 @@ Node_t *GetNewNativeNode(Home_t *home)
         newNode->flags = 0;
 		newNode->inGrain = -1;
 		newNode->onGB = -1;
-        newNode->place[0]=-1;
-        newNode->place[1]=-1;newNode->place[2]=-1;newNode->place[3]=-1;
+        for(auto i=0; i<PLACE_LEN; i++)newNode->place[i]=-1;
 
 #ifdef DEBUG_LOG_MULTI_NODE_SPLITS
         newNode->multiNodeLife = 0;

@@ -9,6 +9,7 @@
 #define _Util_h
 
 #include "Home.h"
+#include <vector>
 
 #define DotProduct(vec1,vec2)       \
             ((vec1[0])*(vec2[0]) +  \
@@ -58,6 +59,7 @@ void   InterpolateL(real8 *xa, real8 *ya, int numPoints, real8 x, real8 *y);
 int    InterpolateBL(real8 *x, real8 *y, real8 *val, int numElem,
           real8 targetX, real8 targetY, real8 *result);
 real8  Normal(real8 a[3]);
+real8 Normal(std::vector<real8>& a);
 void   Normalize(real8 *ax, real8 *ay, real8 *az);
 void   NormalizeVec(real8 vec[3]);
 void   NormalizedCrossVector(real8 a[3], real8 b[3], real8 c[3]);
@@ -86,7 +88,7 @@ void   MarkNodeNoCollisions(Home_t *home, Node_t *node);
 real8 NodeDistance(Home_t *home, Node_t *node1, Node_t *node2);
 void   PrintNode(Node_t *node);
 void   PrintNode(Home_t *home, Node_t *node);
-void PrintNbr(Home_t *home, Node_t *node);
+void   PrintNeighbor(Home_t *home, Node_t *node);
 void   ReallocNodeArms(Node_t *node, int n);
 void   RemoveNode(Home_t *home, Node_t *node, int Log);
 void   RepositionNode(Home_t *home, real8 newPos[3], Tag_t *tag, int globalOp);
@@ -211,4 +213,11 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
 
 bool DifferentGlidePlane(Node_t *node);
 real8 NodeLength(Home_t *home, Node_t *node);
+
+/*
+ * Print Msgs
+ */
+void FormatMatrix(real8 M[3][3], const char *msg);
+void FormatMatrix66(real8 M[6][6], const char *msg);
+void FormatVector(real8 vec[3], const char *msg);
 #endif

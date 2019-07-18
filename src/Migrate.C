@@ -37,7 +37,7 @@
 #ifdef _FEM
 #define VALS_PER_MIG_NODE  19
 #else
-#define VALS_PER_MIG_NODE  18  // increase 4 for place[4]
+#define VALS_PER_MIG_NODE  18  // increase 4 for place[PLACE_LEN]
 #endif
 
 #define VALS_PER_MIG_ARM       12 // increase 1 for signSF
@@ -234,10 +234,7 @@ static void PackMigrators(Home_t *home, int remDomID, int *migList,
             buf[bufIndex++] = (real8)node->sgnv;
             buf[bufIndex++] = (real8)node->flags;
 
-			buf[bufIndex++] = (real8)node->place[0];
-			buf[bufIndex++] = (real8)node->place[1];
-			buf[bufIndex++] = (real8)node->place[2];
-			buf[bufIndex++] = (real8)node->place[3];
+            for(j=0;j<PLACE_LEN;j++)buf[bufIndex++] = (real8)node->place[j];
 
             buf[bufIndex++] = node->x;
             buf[bufIndex++] = node->y;
@@ -350,11 +347,8 @@ static void UnpackMigrators(Home_t *home, real8 *buf, int remDomID)
             numNbrs           = (int)buf[bufIndex++];
             node->sgnv        = (int)buf[bufIndex++];
             node->flags       = (int)buf[bufIndex++];
-
-			node->place[0] = (int)buf[bufIndex++];
-			node->place[1] = (int)buf[bufIndex++];
-			node->place[2] = (int)buf[bufIndex++];
-			node->place[3] = (int)buf[bufIndex++];
+            
+            for(j=0;j<PLACE_LEN;j++)node->place[j] = (int)buf[bufIndex++];
 
             node->x = buf[bufIndex++];
             node->y = buf[bufIndex++];

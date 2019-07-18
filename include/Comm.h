@@ -13,8 +13,8 @@
     #define FLTS_PER_GHOST_NODE      21
     #define FLTS_PER_GHOST2_NODE     23
 #else
-    #define FLTS_PER_GHOST_NODE      20		//increased by 2 for place[4]
-    #define FLTS_PER_GHOST2_NODE     22		//increased by 2 for place[4]
+    #define FLTS_PER_GHOST_NODE      20		//increased by 2 for place[PLACE_LEN]
+    #define FLTS_PER_GHOST2_NODE     22		//increased by 2 for place[PLACE_LEN]
 #endif
 
 #define FLTS_PER_GHOST_ARM       12     //increased by 1 for signSF
@@ -22,7 +22,7 @@
 #define EXTRA_GHOST_FLTS          4
 
 #define INIT_PARAMS         1
-#define INIT_VALS_PER_NODE  11        // increased by 4  place[4]
+#define INIT_VALS_PER_NODE  11        // increased by 4  place[PLACE_LEN]
 #define INIT_VALS_PER_ARM   9           // increased by 1 for signSF
 
 #define INTS_PER_TAG        2
@@ -31,7 +31,7 @@
  *	Used for various plotting functions and writing text
  * 	restart files.
  */
-#define INTS_PER_MIRROR_NODE 8          //increased by 4 for place[4]
+#define INTS_PER_MIRROR_NODE 8          //increased by 4 for place[PLACE_LEN]
 #define INTS_PER_MIRROR_ARM  2
 #define FLTS_PER_MIRROR_NODE 6		
 #define FLTS_PER_MIRROR_ARM  9

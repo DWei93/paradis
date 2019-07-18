@@ -200,11 +200,7 @@ static void CommPackGhosts(Home_t *home)
                     outBuf[bufIndex++] = (real8)node->constraint;
                     outBuf[bufIndex++] = (real8)node->flags;
 
-					outBuf[bufIndex++] = (real8)node->place[0];
-					outBuf[bufIndex++] = (real8)node->place[1];
-					outBuf[bufIndex++] = (real8)node->place[2];
-					outBuf[bufIndex++] = (real8)node->place[3];
-
+                    for(auto i=0; i<PLACE_LEN; i++) outBuf[bufIndex++] = (real8)node->place[i];
 #ifdef _FEM
                     outBuf[bufIndex++] = (real8)node->fem_Surface[0];
                     outBuf[bufIndex++] = (real8)node->fem_Surface[1];
@@ -374,10 +370,7 @@ static void CommUnpackGhosts(Home_t *home)
         
                     node->constraint = (int)inBuf[bufIndex++];
                     node->flags = (int)inBuf[bufIndex++];
-                    node->place[0] = (int)inBuf[bufIndex++];
-                    node->place[1] = (int)inBuf[bufIndex++];
-                    node->place[2] = (int)inBuf[bufIndex++];
-                    node->place[3] = (int)inBuf[bufIndex++];
+                    for(i=0;i<PLACE_LEN;i++)node->place[i] = (int)inBuf[bufIndex++];
 #ifdef _FEM
                     node->fem_Surface[0] = (int)inBuf[bufIndex++];
                     node->fem_Surface[1] = (int)inBuf[bufIndex++];

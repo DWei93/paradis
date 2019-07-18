@@ -1340,8 +1340,7 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
                                     inArgs.seed, &totDislocLen, inArgs.type);
                 break;
         case FTYPE_FRANK_READ:
-                CreateFRSource(&home, &inData, &inArgs,
-                               &totDislocLen);
+                CreateFRSource(&home, &inData, &inArgs, &totDislocLen);
                 break;
         case FTYPE_FCC:
 			CreateFCCConfig(&home, &inData, &inArgs,

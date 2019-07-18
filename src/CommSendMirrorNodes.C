@@ -342,10 +342,8 @@ static void PackMirrorNodes(Home_t *home, int *numNodes)
 		intBuf[iIdx++] = node->numNbrs;
 		intBuf[iIdx++] = node->sgnv;
 
-		intBuf[iIdx++] = node->place[0];
-		intBuf[iIdx++] = node->place[1];
-		intBuf[iIdx++] = node->place[2];
-		intBuf[iIdx++] = node->place[3];
+        for(i=0; i<PLACE_LEN; i++) intBuf[iIdx++] = node->place[i];
+
 		for (iNbr = 0; iNbr < node->numNbrs; iNbr++) {
 			intBuf[iIdx++] = node->nbrTag[iNbr].domainID;
 			intBuf[iIdx++] = node->nbrTag[iNbr].index;
@@ -489,10 +487,7 @@ static void UnpackMirrorNodes(Home_t *home, int domIndex)
 		node->constraint         = intBuf[iIdx++];
 		numNbrs                  = intBuf[iIdx++];
 		node->sgnv               = intBuf[iIdx++];
-        node->place[0]           = intBuf[fIdx++]; 
-        node->place[1]           = intBuf[fIdx++]; 
-        node->place[2]           = intBuf[fIdx++]; 
-        node->place[3]           = intBuf[fIdx++]; 
+        for(i=0; i<PLACE_LEN; i++)node->place[i]=intBuf[fIdx++];
 
 		AllocNodeArms(node, numNbrs);
 		node->armCoordIndex = (int *)malloc(sizeof(int) * numNbrs);

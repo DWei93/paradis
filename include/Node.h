@@ -35,16 +35,19 @@
 #define NO_COLLISIONS        0x04
 #define NO_MESH_COARSEN      0x08
 #define NODE_CHK_DBL_LINK    0x10
+
+#define PLACE_LEN           4
 /*
  *      Define the nodal plane
  */
-typedef	enum{
-    IN_GRAIN,
-    ON_GB,
-    ON_IB,
-    ON_FREE_SURFACE,
-    ON_FACE_EDGE,
-    ON_FACES_INTERSECTION
+typedef	enum{               // place:
+    IN_GRAIN,               // grain id, sub-grain id
+    ON_FREE_SURFACE,        // grain id, sub-grain id
+    ON_IB,                  // grain id, inner boundary id
+    ON_GB,                  // face id, sub-grain id in nbrGrain[0], sub-grain id in bbrGrain[1]
+    ON_IB_EDGE,             // face id , IB id of nbrGrain[0], IB id of nbrGrain[1]
+    ON_FACE_EDGE,           // edge id, glbal sub-grain id1, global sub-grain id 2
+    AT_VERTICE              // ...
 }NodeLocation_t;
 
 /*
@@ -60,7 +63,7 @@ struct _node {
 	int	flags;
         
 	real8	x, y, z;		/* nodal position */
-    int     place[4];
+    int     place[PLACE_LEN];
 	real8	fX, fY, fZ;		/* nodal force: units=Pa*b^2) */
 	real8	vX, vY, vZ;		/* nodal velocity: units=burgMag/sec */
    
