@@ -1675,6 +1675,8 @@ void PredictiveCollisions(Home_t *home)
                                oldTag1 = mergenode1->myTag;
                                oldTag2 = mergenode2->myTag;
                     
+                               inGrain1 = -1;
+                               onGB1 = -1;
                                if(param->polycrystal){
 #if ENABLE_COMPLICATED_REACTION
                                     inGrain1 = splitInGrain;
@@ -1692,8 +1694,6 @@ void PredictiveCollisions(Home_t *home)
                                     }
 #else
 
-                                    inGrain1 = -1;
-                                    onGB1 = -1;
                                     if(mergenode1->inGrain != mergenode2->inGrain){
                                         if(IsOnGB(mergenode1) && IsOnGB(mergenode2) 
                                            && mergenode1->onGB != mergenode2->onGB){
@@ -1900,13 +1900,13 @@ void PredictiveCollisions(Home_t *home)
                     node3 = GetNodeFromTag(home, node1->nbrTag[j]);
                     node4 = GetNodeFromTag(home, node1->nbrTag[k]);
 
+                    splitInGrain = -1;
+                    splitOnGB = -1;
                     if(home->param->polycrystal){
                         GetArmGrain(home, node1, node3, inGrain1, onGB1);
                         GetArmGrain(home, node1, node4, inGrain2, onGB2);
                                 
 #if ENABLE_COMPLICATED_REACTION
-                        splitInGrain = -1;
-                        splitOnGB = -1;
                         if(onGB1 > -1 || onGB2 > -1){
                             if(onGB1 == onGB2){
                                 splitOnGB = onGB1;

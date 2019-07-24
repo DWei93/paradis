@@ -618,6 +618,20 @@ void InitGrain(Home_t *home, Param_t *param){
         GenerateGBBurgInfo(&grain->ibBurgInfs[1], &grain->bInfs[1], grain->ibN, &grain->bInfs[0]);
     }
 
+    home->edgeMap = new std::map<std::string, int>; 
+    std::map<std::string, int> &map = *(home->edgeMap);
+    for(auto i=0; i<edges.size(); i++){
+        char key[108];
+        snprintf(key, sizeof(key), FORMAT_EDGE_COORD, 
+             gloVertices[edges[i].vertID1*3],gloVertices[edges[i].vertID1*3+1],gloVertices[edges[i].vertID1*3+2], 
+             gloVertices[edges[i].vertID2*3],gloVertices[edges[i].vertID2*3+1],gloVertices[edges[i].vertID2*3+2]); 
+        map[std::string(key)] = int(i);
+    }
+
+    for(auto &pair:map){
+        printf("%d: %s\n", pair.second, pair.first.c_str());
+    }
+
     if(home->myDomain == 0){
         if ((fp = fopen("lines.plt", "w")) == (FILE *)NULL) {
              Fatal("tec_plot: Open error %d on %s\n", errno, "lines.plt");
@@ -817,6 +831,11 @@ bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z)
     return InGrain(home, place, pos);
 }
 
+/** Find the intersection between segment and grain (if has) and return the neew place of intersection point.
+ * \param[in] place the location of the segment.
+ * \param[in] pos1 the position of first end point of the segnent, it has to be in the place.
+ * \param[in,out] pos2 the position of second end point, moved to intersection if it was outside of the place. 
+ * \param[out] newPlace the new place of intersection (if has) */
 bool SegmentGrainIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
 {
     Face_t *face;
@@ -969,15 +988,21 @@ bool OnFace(Home_t *home, int *place, real8 x, real8 y, real8 z)
     real8 pos[3]={x,y,z}; return OnFace(home, place, pos);
 }
 
+/** Find the intersection between segment and face (if has) and return the neew place of intersection point.
+ * \param[in] place the location of the segment.
+ * \param[in] pos1 the position of first end point of the segnent, it has to be in the place.
+ * \param[in,out] pos2 the position of second end point, moved to intersection if it was outside of the place. 
+ * \param[out] newPlace the new place of intersection (if has) */
 bool SegmentFaceIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
 {  
     bool state = false;
+    int edgeID;
+    real8 interPos[3], dis, t;
 
 #if DEBUG
     if(place[1]<0 || place[1]>home->nFaces)Fatal("%s: wrong face ID", __func__);
 #endif
     Face_t *face = home->faces[place[1]];
-    real8 interPos[3], dis, t;
 #if DEBUG
     PointPlaneIntersection(pos1, face->n, face->p, interPos, &dis);
     if(fabs(dis) > SAFE_FACE_ERROR)Fatal("%s: position (%f,%f,%f) is not on the face, error is %e", __func__, 
@@ -986,11 +1011,11 @@ bool SegmentFaceIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2,
     if(!OnFace(home, place, pos1[0], pos1[1], pos1[2]))Fatal("%s: the first position (%f,%f,%f) is not on the face.",
         __func__, pos1[0], pos1[1], pos1[2]);
 #endif
-    
-    int edgeID;
+   
+    // check if the segment has crossed the face boundary 
     if(POINT_INTERSECTION==SegmentPolygonIntersection2D(pos1, pos2, face->edges, face->nEdges, interPos, edgeID)){
         state = true;
-        newPlace[0] = ON_GB_EDGE; newPlace[1]=face->id;
+        newPlace[0] = ON_FACE_EDGE; newPlace[1]=face->id;
         pos2[0] = interPos[0];
         pos2[1] = interPos[1];
         pos2[2] = interPos[2];
@@ -1003,8 +1028,8 @@ bool SegmentFaceIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2,
         if(*(place+2+i)<grain->nIBs){
             if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[place[2+i]], t)){
                 state = true;
-                newPlace[0]
-                IBFaceID(grain->id, place[2+i], newPlace[2+i]
+//                newPlace[0]
+//                IBFaceID(grain->id, place[2+i], newPlace[2+i]
                 pos2[0] = pos1[0] + t*(pos2[0]-pos1[0]);
                 pos2[1] = pos1[1] + t*(pos2[1]-pos1[1]);
                 pos2[2] = pos1[2] + t*(pos2[2]-pos1[2]);

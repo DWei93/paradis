@@ -65,6 +65,8 @@
 
 #ifdef VORO
 #include "voro++.hh"
+#include <map>
+#include <string>
 using namespace voro;
 #endif
 
@@ -453,6 +455,7 @@ struct _home {
         int         nLines, *lines;
         int         nEdges;
         Edge_t      *edges;
+        std::map<std::string, int>  *edgeMap;
 #endif
 
 };

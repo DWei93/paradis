@@ -44,6 +44,7 @@ typedef struct {
 #define GB_PLANE            0x0008
 #define UNKOWN_PLANE        0x0010
 
+#define FORMAT_EDGE_COORD        "(%.8f,%.8f,%.8f)-(%.8f,%.8f,%.8f)"
 //------------------------------------------------
 #define	FOLDED_GRAIN		0
 #define ODINARY_GRAIN		1
