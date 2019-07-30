@@ -40,12 +40,12 @@
  *      in this module, so we explicitly prototype any
  *      functions that may be called.
  */
-void Fatal(const char *format, ...);
+extern void Fatal(const char *format, ...);
 void ParadisMemCheck(void);
-void ParadisFree(char *fileName, int lineNum, void *ptr);
-void *ParadisMalloc(char *fileName, int lineNum, size_t size);
-void *ParadisCalloc(char *fileName, int lineNum, size_t numElem, size_t size);
-void *ParadisRealloc(char *fileName, int lineNum, void *ptr, size_t size);
+void ParadisFree(char const *fileName, int lineNum, void *ptr);
+void *ParadisMalloc(char const *fileName, int lineNum, size_t size);
+void *ParadisCalloc(char const *fileName, int lineNum, size_t numElem, size_t size);
+void *ParadisRealloc(char const *fileName, int lineNum, void *ptr, size_t size);
 
 /*
  *      Define a structure of info stored for each allocated
@@ -148,7 +148,7 @@ void ParadisMemCheck(void)
  *          ptr         pointer to memory block to be freed
  *
  *-------------------------------------------------------------------------*/
-void ParadisFree(char *fileName, int lineNum, void *ptr)
+void ParadisFree(char const *fileName, int lineNum, void *ptr)
 {
         int i, found = 0;
 
@@ -219,7 +219,7 @@ void ParadisFree(char *fileName, int lineNum, void *ptr)
  *                      the caller.
  *
  *-------------------------------------------------------------------------*/
-void *ParadisMalloc(char *fileName, int lineNum, size_t size)
+void *ParadisMalloc(char const *fileName, int lineNum, size_t size)
 {
         size_t newSize, adjustedSize;
 
@@ -264,8 +264,7 @@ void *ParadisMalloc(char *fileName, int lineNum, size_t size)
         memBlocks[memBlocksUsed].userAddr =
                     (char *)memBlocks[memBlocksUsed].realAddr +
                     PARADIS_MEM_HEADER_LEN;
-        char* temp1 = (char* )memBlocks[memBlocksUsed].realAddr;
-        strcpy(memBlocks[memBlocksUsed].header, temp1);
+        memBlocks[memBlocksUsed].header = (char* )memBlocks[memBlocksUsed].realAddr;
         memBlocks[memBlocksUsed].trailer =
                     (char *)memBlocks[memBlocksUsed].realAddr +
                     PARADIS_MEM_HEADER_LEN + size;
@@ -304,7 +303,7 @@ void *ParadisMalloc(char *fileName, int lineNum, size_t size)
  *          size        size of each element to be allocated
  *
  *-------------------------------------------------------------------------*/
-void *ParadisCalloc(char *fileName, int lineNum, size_t numElem, size_t size)
+void *ParadisCalloc(char const *fileName, int lineNum, size_t numElem, size_t size)
 {
         size_t newSize, adjustedSize;
 
@@ -351,8 +350,7 @@ void *ParadisCalloc(char *fileName, int lineNum, size_t numElem, size_t size)
         memBlocks[memBlocksUsed].userAddr =
                     (char *)memBlocks[memBlocksUsed].realAddr +
                     PARADIS_MEM_HEADER_LEN;
-        char* temp2 = (char* )memBlocks[memBlocksUsed].realAddr;
-        strcpy(memBlocks[memBlocksUsed].header, temp2);
+        memBlocks[memBlocksUsed].header = (char* )memBlocks[memBlocksUsed].realAddr;
         memBlocks[memBlocksUsed].trailer =
                     (char *)memBlocks[memBlocksUsed].realAddr +
                     PARADIS_MEM_HEADER_LEN + size;
@@ -392,7 +390,7 @@ void *ParadisCalloc(char *fileName, int lineNum, size_t numElem, size_t size)
  *                      the caller.
  *
  *-------------------------------------------------------------------------*/
-void *ParadisRealloc(char *fileName, int lineNum, void *ptr, size_t size)
+void *ParadisRealloc(char const *fileName, int lineNum, void *ptr, size_t size)
 {
         int  i, newBlock, copySize, found = 0;
         void *userAddr;

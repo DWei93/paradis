@@ -33,6 +33,7 @@
 #include "hdf5.h"
 #endif
 
+#include "Math.h"
 #include "Constants.h"
 #include "ParadisThread.h"
 #include "Typedefs.h"
@@ -54,7 +55,6 @@
 #include "DebugFunctions.h"
 #include "Force.h"
 #include "Grain.h"
-#include "Math.h"
 #include "CppFunctions.h"
 
 #include  <mcheck.h>
@@ -94,22 +94,13 @@ using namespace voro;
 #define calloc(a, b)   ParadisCalloc(__FILE__, __LINE__, (a), (b))
 #define realloc(a, b)  ParadisRealloc(__FILE__, __LINE__, (a), (b))
 
-#ifdef __cplusplus
-extern "C" void ParadisMemCheck(void);
-extern "C" void ParadisFree(char *fileName, int lineNum, void *ptr);
-extern "C" void *ParadisMalloc(char *fileName, int lineNum, size_t size);
-extern "C" void *ParadisCalloc(char *fileName, int lineNum, size_t numElem,
-                    size_t size);
-extern "C" void *ParadisRealloc(char *fileName, int lineNum, void *ptr,
-                    size_t size);
-#else
 void ParadisMemCheck(void);
-void ParadisFree(char *fileName, int lineNum, void *ptr);
-void *ParadisMalloc(char *fileName, int lineNum, size_t size);
-void *ParadisCalloc(char *fileName, int lineNum, size_t numElem, size_t size);
-void *ParadisRealloc(char *fileName, int lineNum, void *ptr, size_t size);
-#endif
-
+void ParadisFree(char const *fileName, int lineNum, void *ptr);
+void *ParadisMalloc(char const *fileName, int lineNum, size_t size);
+void *ParadisCalloc(char const *fileName, int lineNum, size_t numElem,
+         size_t size);
+void *ParadisRealloc(char const *fileName, int lineNum, void *ptr,
+                    size_t size);
 #endif /* ifdef DEBUG_MEM */
 
 
@@ -455,7 +446,6 @@ struct _home {
         int         nLines, *lines;
         int         nEdges;
         Edge_t      *edges;
-        std::map<std::string, int>  *edgeMap;
 #endif
 
 };
