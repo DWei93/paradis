@@ -1150,13 +1150,16 @@ HDF_LIB.gcc           =
 HDF_INCS.gcc          = 
 
 GEOS_LIBDIR.gcc       =  
-# GEOS_LIB.gcc          = -L/home/DeAn_Wei/LIB/geos/lib -lgeos_c -rdynamic -Wl,-rpath,/home/DeAn_Wei/LIB/geos/lib
-# GEOS_INCS.gcc         = -I/home/DeAn_Wei/LIB/geos/include
+GEOS_LIB.gcc          = -L/home/DeAn_Wei/LIB/geos/lib -lgeos_c -rdynamic -Wl,-rpath,/home/DeAn_Wei/LIB/geos/lib
+GEOS_INCS.gcc         = -I/home/DeAn_Wei/LIB/geos/include
 
 VORO_LIBDIR.gcc       =  
-#VORO_LIB.gcc          = -L${HOME}/LIB/voro++/lib -lvoro++ -static-libstdc++
 VORO_LIB.gcc          = -L${HOME}/LIB/voro++/lib -lvoro++ 
 VORO_INCS.gcc         = -I${HOME}/LIB/voro++/include/voro++
+
+GSL_LIBDIR.gcc       =  
+GSL_LIB.gcc          = -L${HOME}/LIB/lib -lgsl -lgslcblas  
+GSL_INCS.gcc         = -I${HOME}/LIB/include
 
 OPENMP_FLAG.gcc       = -fopenmp  
 
