@@ -991,25 +991,8 @@ int InterpolateBL(real8 *x, real8 *y, real8 *val, int numElem,
 }
 
 
-/*-------------------------------------------------------------------------
- *
- *      Function:     Normal
- *      Description:  Calculate and return to the caller the normal of
- *                    vector <a>
- *
- *      Arguments:
- *          a   Array containing the three element vector.
- *
- *------------------------------------------------------------------------*/
-real8 Normal(real8 a[3])
-{
-        return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]) );
-}
 real8 Normal(std::vector<real8>& a)
-{
-    return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]) );
-}
-
+{return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]));}
 
 /*-------------------------------------------------------------------------
  *

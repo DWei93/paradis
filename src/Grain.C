@@ -24,7 +24,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-
+#include "Math.h"
 
 #ifdef GEOS
 #include <cstdarg>
@@ -211,11 +211,12 @@ void EdgeCopy(Edge_t &a, Edge_t &b){
     for(auto i=0;i<a.ofFaces.size();i++)a.ofFaces[i]=b.ofFaces[i];
     return;
 }
-void InitBurgInfo(BurgInfo_t *bInf)
+inline void InitBurgInfo(BurgInfo_t *bInf)
 {
     bInf->numPlanes = 0; bInf->numBurgVectors=0; bInf->numKeyLines; return;
 }
-void InitGrain(Home_t *home, Param_t *param){
+void InitGrain(Home_t *home, Param_t *param)
+{
 
     /** allocate and construct the container
      */
@@ -268,7 +269,7 @@ void InitGrain(Home_t *home, Param_t *param){
     MPI_Bcast((char*)dataList, home->nGrains*(con->ps+1)*sizeof(real8), MPI_CHAR, 0, MPI_COMM_WORLD);
 #endif
 
-#if DEBUG
+#ifdef DEBUG
     if(home->myDomain ==1){
         printf("nGrains %d\n", home->nGrains);
         for(int i=0; i<home->nGrains*(con->ps+1); i++)printf("%lg ",dataList[i]);
@@ -301,8 +302,8 @@ void InitGrain(Home_t *home, Param_t *param){
 
     /** Initialize home->grainKeys
      */
-    home->grainKeys = new Grain_t *[home->nGrains];
-    for(int i=0; i<home->nGrains; i++)home->grainKeys[i] = new Grain_t;
+    home->grainKeys = (Grain_t **)malloc(home->nGrains*sizeof(Grain_t*));
+    for(int i=0; i<home->nGrains; i++)home->grainKeys[i] = (Grain_t *)malloc(sizeof(Grain_t));
 
     /** open the file polygons.plt
      */
@@ -363,14 +364,14 @@ void InitGrain(Home_t *home, Param_t *param){
         if(!cl.inc())break;
     }
 
-
     /** alloccate home=>faces
      */
     home->nFaces = nFaces;
-    home->faces = new Face_t *[home->nFaces];
+    home->faces = (Face_t **)malloc(home->nFaces*sizeof(Face_t*));
     std::vector<Edge_t> edges;
-    for(auto i=0; i<home->nFaces; i++)home->faces[i] = new Face_t; 
+    for(auto i=0; i<home->nFaces; i++)home->faces[i] = (Face_t *)malloc(sizeof(Face_t)); 
     if(cl.start()) for(int i=0, nFaces =0; i<home->nGrains; i++, ibRsq.clear()){
+    ParadisMemCheck(49);
         int k =0; std::vector<int> info(3);
         real8   dis; int segID;
         Grain_t *grain = home->grainKeys[i];
@@ -405,6 +406,7 @@ void InitGrain(Home_t *home, Param_t *param){
         cl.rotMatrix(grain->rotMatrixs[0]);
         NormalizeVec(grain->rotMatrixs[0][0]);NormalizeVec(grain->rotMatrixs[0][1]);NormalizeVec(grain->rotMatrixs[0][2]);
 	    Matrix33Invert(grain->rotMatrixs[0], grain->rotMatrixsInv[0]);
+
         // Generate Burgers Info
         GenerateFCCBurgInfo(&(grain->bInfs[0]), grain->rotMatrixs[0]);
 
@@ -425,7 +427,8 @@ void InitGrain(Home_t *home, Param_t *param){
             
             /** Assembly inner interfaces of grain
              */
-            grain->nIBs = (int)ibRsq.size(); grain->ibPs = new real8 [grain->nIBs][3];
+            grain->nIBs = (int)ibRsq.size();
+            grain->ibPs = (real8 (*)[3])malloc(grain->nIBs*3*sizeof(real8));
             for(auto j=0; j<ibRsq.size(); j++){
                 grain->ibPs[j][0] = grain->pos[0] + 0.5*grain->ibN[0]*ibRsq[j];
                 grain->ibPs[j][1] = grain->pos[1] + 0.5*grain->ibN[1]*ibRsq[j];
@@ -435,8 +438,8 @@ void InitGrain(Home_t *home, Param_t *param){
             /** allocate face pointers of the grain
              */
             grain->nFaces = (int)neigh.size();
-            grain->faces = new Face_t *[grain->nFaces];
-            grain->sign = new real8 [grain->nFaces];
+            grain->faces = (Face_t **)malloc(grain->nFaces*sizeof(Face_t *));
+            grain->sign = (real8*)malloc(grain->nFaces*sizeof(real8));
         }else grain->nIBs=0;
 
 		for(auto j=0, k=0; j<neigh.size();j++) {
@@ -445,13 +448,17 @@ void InitGrain(Home_t *home, Param_t *param){
             for(auto l=k+1; l<k+f_vert[k]+1; l++)f_vert[l]=convertList[f_vert[l]];
 
             if(neigh[j] > grain->id || neigh[j] < 0){
+                grain->faces[j] = home->faces[nFaces]; grain->sign[j]=1.0;
+                Face_t *face = home->faces[nFaces]; face->id = nFaces;
+                face->nEdges = f_vert[k];
+                face->edgesID = (int *)malloc(face->nEdges*sizeof(int));
+
                 for(auto l=k+1; l<k+f_vert[k]+1; l++){
                     if(l==k+f_vert[k])segID = AddAndSearchEdge(edges, f_vert[l],f_vert[k+1], nFaces, 0);
                     else segID = AddAndSearchEdge(edges, f_vert[l],f_vert[l+1], nFaces, 0);
+                    face->edgesID[l-k-1] = segID;
                 }
             
-                grain->faces[j] = home->faces[nFaces]; grain->sign[j]=1.0;
-                Face_t *face = home->faces[nFaces]; face->id = nFaces;
                 face->n[0] = normals[j*3]; face->n[1] = normals[j*3+1]; face->n[2] = normals[j*3+2];
                 face->p[0] = gloVertices[3*f_vert[k+1]];
                 face->p[1] = gloVertices[1+3*f_vert[k+1]];
@@ -460,8 +467,7 @@ void InitGrain(Home_t *home, Param_t *param){
                 face->type = (neigh[j]>=0)?GB_FACE:FREE_SURFACE;
                 PointPlaneIntersection(grain->pos, face->n, face->p, face->p, &dis);
 
-                face->nEdges = f_vert[k];
-                face->edges = new real8 [face->nEdges*6];
+                face->edges = (real8*)malloc(face->nEdges*6*sizeof(real8));
                 for(auto l=0; l<face->nEdges; l++){
                     int next = (l<face->nEdges-1)?l+1:0; 
                     real8 gDir[3], lDir[3], p[3], crpd[3];
@@ -479,6 +485,7 @@ void InitGrain(Home_t *home, Param_t *param){
                         crpd[0] = -crpd[0];crpd[1] = -crpd[1];crpd[2] = -crpd[2];
                     }
                     VECTOR_COPY(&(face->edges[l*6]), crpd); VECTOR_COPY(&(face->edges[l*6+3]), p);
+                    
 #if 0
                     real8 vec1[3], vec2[3];
                     if(LINE_INTERSECTION != LinePlaneIntersection(&(face->edges[l*6]), &(face->edges[l*6+3]),
@@ -499,9 +506,9 @@ void InitGrain(Home_t *home, Param_t *param){
             
 			k+=f_vert[k]+1;
         }
-
-        grain->ibsID = new int [grain->nIBs];
-        grain->ibsNumEdges = new int [grain->nIBs]; grain->ibsEdges = new real8 *[grain->nIBs];
+        grain->ibsID = (int *)malloc(grain->nIBs*sizeof(int));
+        grain->ibsNumEdges = (int*)malloc(grain->nIBs*sizeof(int));
+        grain->ibsEdges = (real8**)malloc(grain->nIBs*sizeof(real8*));
         for(auto m=0; m<grain->nIBs; m++){
             grain->ibsID[m] = IB_START_ID+GRAIN_ID_FACTOR*grain->id+m;
             std::vector<Edge_t> ibEdges;
@@ -530,18 +537,19 @@ void InitGrain(Home_t *home, Param_t *param){
 
                 k+=f_vert[k]+1;
             }
+            grain->ibsNumEdges[m]=(int)ibEdges.size();
             std::vector<int> polygon; real8 centroid[3],dis;
             EdgeListToPolygon(ibEdges,polygon); polygon.insert(polygon.begin(), (int)polygon.size());
             CentroidOfPolygon(polygon,gloVertices,0, centroid);
             PointPlaneIntersection(centroid, grain->ibN, grain->ibPs[m], grain->ibPs[m], &dis);
         
             real8 gDir[3], lDir[3], crpd[3];
-            grain->ibsNumEdges[m] = (int)ibEdges.size(); grain->ibsEdges[m] = new real8 [grain->ibsNumEdges[m]*6];
+            grain->ibsEdges[m] = (real8*)malloc(grain->ibsNumEdges[m]*6*sizeof(real8));
             for(auto n=0; n<grain->ibsNumEdges[m]; n++){
                 lDir[0] = gloVertices[ibEdges[n].vertID2*3] - gloVertices[ibEdges[n].vertID1*3];
                 lDir[1] = gloVertices[ibEdges[n].vertID2*3+1] - gloVertices[ibEdges[n].vertID1*3+1];
                 lDir[2] = gloVertices[ibEdges[n].vertID2*3+2] - gloVertices[ibEdges[n].vertID1*3+2];
-                if(Normal(lDir) < 1E-10)Fatal("the two vertices are too close");NormalizeVec(lDir);
+                if(Normal(lDir) < 1E-11)Fatal("the two vertices are too close");NormalizeVec(lDir);
                 p[0] = 0.5*(gloVertices[ibEdges[n].vertID2*3] + gloVertices[ibEdges[n].vertID1*3]);
                 p[1] = 0.5*(gloVertices[ibEdges[n].vertID2*3+1] + gloVertices[ibEdges[n].vertID1*3+1]);
                 p[2] = 0.5*(gloVertices[ibEdges[n].vertID2*3+2] + gloVertices[ibEdges[n].vertID1*3+2]);
@@ -556,7 +564,6 @@ void InitGrain(Home_t *home, Param_t *param){
             if(home->myDomain ==0){
                 char zoneName[256];std::vector<int> info(3);
                 snprintf(zoneName,sizeof(zoneName),"IB.%d.%d",grain->id, m);
-        
                 info[0] = 2; info[1] = grain->id; info[2] = m;
                 DrawPolygon(fp, polygon, gloVertices, 0, zoneName, info);
             }
@@ -586,9 +593,11 @@ void InitGrain(Home_t *home, Param_t *param){
 
     /*  copy vertices into home
      */
-    home->nVertices = (int)gloVertices.size()/3; home->vertices = new real8 [3*home->nVertices];
+    home->nVertices = (int)gloVertices.size()/3; 
+    home->vertices = (real8*)malloc(3*home->nVertices*sizeof(real8));
     for(auto i=0; i<3*home->nVertices; i++)home->vertices[i]=gloVertices[i];
-    home->nEdges = (int)edges.size(); home->edges = new Edge_t [home->nEdges];
+    home->nEdges = (int)edges.size();
+    home->edges = new Edge_t [home->nEdges];
     for(auto i=0;i<home->nEdges;i++)EdgeCopy(home->edges[i], edges[i]);
    
     /** Assembly burg informations of GBs
@@ -616,20 +625,6 @@ void InitGrain(Home_t *home, Param_t *param){
         if(grain->nIBs==0)continue;
         GenerateGBBurgInfo(&grain->ibBurgInfs[0], &grain->bInfs[0], grain->ibN, &grain->bInfs[1]);
         GenerateGBBurgInfo(&grain->ibBurgInfs[1], &grain->bInfs[1], grain->ibN, &grain->bInfs[0]);
-    }
-
-    home->edgeMap = new std::map<std::string, int>; 
-    std::map<std::string, int> &map = *(home->edgeMap);
-    for(auto i=0; i<edges.size(); i++){
-        char key[108];
-        snprintf(key, sizeof(key), FORMAT_EDGE_COORD, 
-             gloVertices[edges[i].vertID1*3],gloVertices[edges[i].vertID1*3+1],gloVertices[edges[i].vertID1*3+2], 
-             gloVertices[edges[i].vertID2*3],gloVertices[edges[i].vertID2*3+1],gloVertices[edges[i].vertID2*3+2]); 
-        map[std::string(key)] = int(i);
-    }
-
-    for(auto &pair:map){
-        printf("%d: %s\n", pair.second, pair.first.c_str());
     }
 
     if(home->myDomain == 0){
@@ -672,158 +667,161 @@ void InitGrain(Home_t *home, Param_t *param){
         int place[PLACE_LEN]; real8 pos[3];
         for(auto i=0; i<home->nVertices; i++){
             pos[0]=home->vertices[i*3];pos[1]=home->vertices[i*3+1];pos[2]=home->vertices[i*3+2];
-            NodeLocation(home, pos, place);
+            NodeLocation(home, pos, place, FACE_ERROR);
             fprintf(fp, "%g %g %g %d %d %d %d\n",pos[0],pos[1],pos[2],place[0],place[1],place[2],place[3]);
         }
 #endif
     }
     
+#ifdef GSL
+    GSLTest();
+#endif
     return;
 }
 
-void NodeLocation(Home_t *home, real8 *pos, int *place)
+/** According to the current node coordinates, roughly judge the node position.
+  * \param[in] pos: the coordinates of node
+  * \param[out] place: the rough location of the node
+  * \param[in] error: the error, absoule margin of face and edge*/
+void NodeLocation(Home_t *home, real8 *pos, int *place, real8 error)
 {
-    *place = -1; place[1]=0; place[2]=0; place[3]=0;
-    
-    int i, j, k, l;
-    bool breakLoop=0; int type; real8 vec[3], dis, interPos[3];
+    int i, j, k, l, edgeID;
+    bool breakLoop=false; real8 vec[3], dis, interPos[3];
     Grain_t *grain; Face_t *face;
+
+    // initialize the location type
+    *place = -1;
+    // Loop through all grains
     for(i=0; i<home->nGrains; i++){
         grain = home->grainKeys[i];
+        // Loop through all faces of the grain
         for(j=0; j<grain->nFaces; j++){
             face=grain->faces[j];
-            type = PointPlaneIntersection(pos, face->n, face->p, vec, &dis);
+            PointPlaneDistance(pos, face->n, face->p, dis);
             dis *= grain->sign[j];
-            if(type == POINT_INTERSECTION){
+
+            // if the displacement to face is lager than tolerance, check if the position is inside of the face
+            if(fabs(dis) < error){
                 breakLoop=true;
-                if(POINT_INTERSECTION==SegmentPolygonIntersection2D(face->p, pos, face->edges, face->nEdges, interPos)){
+                // if we find the intersection bewteen the segment and face boundary within the margin of error,
+                // the node is rough on the face edge.
+                if(POINT_INTERSECTION==ClipSementInConcavePolyhedron(face->p, pos, face->edges, face->nEdges, edgeID, interPos)){
+                    // if the node is at one end of edge, the node should be at vertice and return func.
+                    Edge_t &edge = home->edges[face->edgesID[edgeID]];
+                    vec[0] = home->vertices[edge.vertID1*3]-pos[0]; 
+                    vec[1] = home->vertices[edge.vertID1*3+1]-pos[1]; 
+                    vec[2] = home->vertices[edge.vertID1*3+2]-pos[2]; 
+                    if(Normal(vec)<error){place[0]=AT_VERTICE; place[1]=edge.vertID1; return;}
+                    vec[0] = home->vertices[edge.vertID2*3]-pos[0]; 
+                    vec[1] = home->vertices[edge.vertID2*3+1]-pos[1]; 
+                    vec[2] = home->vertices[edge.vertID2*3+2]-pos[2]; 
+                    if(Normal(vec)<error){place[0]=AT_VERTICE; place[1]=edge.vertID2; return;}
+
                     interPos[0] -= pos[0];interPos[1] -= pos[1];interPos[2] -= pos[2];
-                    if(Normal(interPos) > FACE_ERROR)breakLoop=false;
+                    // if the node is outside the face polygon, we should continue to loop through grains.
+                    if(Normal(interPos) > error)breakLoop=false;
+                    // if the distance of intersection and the node is within the margin of error, the position is on face edge.
+                    else {place[0]=ON_FACE_EDGE; place[1]=face->edgesID[edgeID]; return;}
                 }
-                if(breakLoop){
-                    place[0] = face->type==FREE_SURFACE?ON_FREE_SURFACE:ON_GB; place[1]=face->id;
-                }
+
+                // if the face is found, assign place[0] and place[1]
+                if(breakLoop){place[0] = face->type==FREE_SURFACE?ON_FREE_SURFACE:ON_GB; place[1]=face->id;}
             }
+            // if the distance between the node and plane is positive or the face which the node located on has been found, 
+            // break out the inner loop.
             if(dis > 0 || breakLoop)break;
         }
+        // if the face is found, break out the outer loop
         if(breakLoop)break;
-        if(j==grain->nFaces){
-            place[0] = IN_GRAIN; place[1]=grain->id; break;
-        }
+        // if the node is in the cutting space, place[0] and place[1] can be defined.
+        if(j==grain->nFaces){place[0] = IN_GRAIN; place[1]=grain->id; break;}
     }
+
 #ifdef DEBUG
     if(i==home->nGrains)Fatal("NodeLocation: can not find location of (%g,%g,%g)",*pos,pos[1], pos[2]);
 #endif
+
+    // Depending on the location type, continue to determine the subgrain or IB ID
     switch(place[0]){
         case IN_GRAIN:
             grain=home->grainKeys[place[1]];
             for(i=0; i<grain->nIBs; i++){
-                if(PointPlaneIntersection(pos, grain->ibN, grain->ibPs[i], vec, &dis)==POINT_INTERSECTION){
-                    place[0]=ON_IB; break;
-                }
+                PointPlaneIntersection(pos, grain->ibN, grain->ibPs[i], vec, &dis);
+                //if the distance is within the margin of error, determine IB index.
+                if(fabs(dis)<error){place[0]=ON_IB; place[2]= i; break;}
                 if(dis<0)break;
             }
-            place[2]=i;break;
-        case ON_GB:
+            if(place[0]==IN_GRAIN)place[2]=IndexIBToSubgrain(i);
+            break;
+        case ON_GB|ON_FREE_SURFACE:
             face=home->faces[place[1]];
             for(i=0; i<2; i++){
-#ifdef DEBUG
-                if(face->nbrGrain[i] < 0)Fatal("nbrGrain[%d]=%d of face %d < 0",i, face->nbrGrain[i], face->id);
-#endif
+                // skip the second neighbor grain that the node on free surface
+                if(face->nbrGrain[i]<0){place[2+i]=face->nbrGrain[i]; continue;}
                 grain=home->grainKeys[face->nbrGrain[i]];
+                
+                place[2+i]=0; // initialize place[2+i] to zero
                 for(j=0; j<grain->nIBs; j++){
-                    if(PointPlaneIntersection(pos, grain->ibN, grain->ibPs[j], vec, &dis)==POINT_INTERSECTION){
-                        place[0]=ON_IB; place[1]=grain->id; place[2]=j; place[3]=0; break;
-                    }
+                    PointPlaneIntersection(pos, grain->ibN, grain->ibPs[j], vec, &dis);
+                    //if the node is both on face and on IB, it is on inner boundary edge.
+                    if(fabs(dis)<error){place[0]=ON_IB_EDGE; place[2+i]=j; break;}
                     if(dis<0)break;
                 }
-
-                if(place[0]==ON_IB)break;
-                else *(place+2+i)=j;
-            }break;
-        case ON_FREE_SURFACE:
-            face=home->faces[place[1]]; grain=home->grainKeys[face->nbrGrain[0]];
-#ifdef DEBUG
-                if(face->nbrGrain[0] < 0)Fatal("nbrGrain[%d]=%d of face %d < 0",0, face->nbrGrain[0], face->id);
-#endif
-            for(i=0; i<grain->nIBs; i++){
-                if(PointPlaneIntersection(pos, grain->ibN, grain->ibPs[i], vec, &dis)==POINT_INTERSECTION){
-                    place[0]=ON_IB; place[1]=grain->id; place[2]=i; place[3]=0; break;
-                }
-                if(dis<0)break;
+                // if the type is not changed, the node is in subgrain 
+                if(place[0]!=ON_IB_EDGE)place[2+i]=IndexIBToSubgrain(j);
             }
-            if(place[0]==ON_IB)break;
-            else {
-                place[2]=i;
-            }break;
+            break;
         default:
             Fatal("can not supose this location type %d", place[0]);break;
     }
     return;
 }
-void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place)
-{
-    real8 pos[3] = {x, y, z};
-    NodeLocation(home, pos, place); 
-    return;
-}
 
+/** According to the current node coordinates, roughly judge the node position.
+ * \param[in] (x,y,z): the coordinates of node
+ * \param[out] place: the rough location of the node
+ * \param[in] error: the error, if FACE_ERROR, expect in bulk; if SAFE_FACE_ERROR, expecte on
+ *            edge or face. */
+void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place, real8 error)
+{ real8 pos[3] = {x, y, z};NodeLocation(home, pos, place, error); return;}
+
+/** According to the current node coordinates, judge if the node is the grain and subgrain
+ * \param[in] pos: the coordinates of node
+ * \param[in] place: the location of the node
+ * \return false if the original position are not at the location, true otherwise. */
 bool InGrain(Home_t *home, int *place, real8 *pos)
 {
+    int i;
     Face_t *face;
-    bool state=true;
+    real8 dis;
 
-#if DEBUG
-    real8 bakPos[3] = {pos[0], pos[1], pos[2]};
+#ifdef DEBUG
     if(place[0]!=IN_GRAIN)Fatal("%s: place[0] = %d",__func__, place[0]);
     if(place[1]<0 || place[1]>home->nGrains)Fatal("%s: place[1] = %d",__func__, place[1]);
 #endif    
+    // make sure the node is in the grain
     Grain_t *grain = home->grainKeys[place[1]];
-    real8 dis, vec[3];
-    int i; for(i=0; i<grain->nFaces; i++){
+    for(i=0; i<grain->nFaces; i++){
         face=grain->faces[i];
-        PointPlaneIntersection(pos, face->n, face->p, vec, &dis);
+        PointPlaneDistance(pos, face->n, face->p, dis);
         dis *= grain->sign[i];
-        if(dis>-FACE_ERROR)break;
-    }
-    if(i<grain->nFaces){
-        state=false;
-        pos[0] = vec[0] - (grain->sign[i]*face->n[0]*SAFE_FACE_ERROR);
-        pos[1] = vec[1] - (grain->sign[i]*face->n[1]*SAFE_FACE_ERROR);
-        pos[2] = vec[2] - (grain->sign[i]*face->n[2]*SAFE_FACE_ERROR);
-        
+        if(dis>-FACE_ERROR)return false;
     }
     
-#if DEBUG
+#ifdef DEBUG
     if(place[2]<0||place[2]>grain->nIBs)Fatal("%s: no sub-grain %d in grain %d",__func__,place[2], place[1]);
 #endif
     if(place[2]<grain->nIBs){
-        PointPlaneIntersection(pos, grain->ibN, grain->ibPs[place[2]], vec, &dis);
-        if(dis > -FACE_ERROR){
-            pos[0] = vec[0] - grain->ibN[0]*SAFE_FACE_ERROR;
-            pos[1] = vec[1] - grain->ibN[1]*SAFE_FACE_ERROR;
-            pos[2] = vec[2] - grain->ibN[2]*SAFE_FACE_ERROR;
-            state=false;
-        }
+        PointPlaneDistance(pos, grain->ibN, grain->ibPs[place[2]], dis);
+        if(dis > -FACE_ERROR)return false;
     }
 
     if(place[2]>0){
-        PointPlaneIntersection(pos, grain->ibN, grain->ibPs[place[2]-1], vec, &dis);
-        if(dis < FACE_ERROR){
-            pos[0] = vec[0] + grain->ibN[0]*SAFE_FACE_ERROR;
-            pos[1] = vec[1] + grain->ibN[1]*SAFE_FACE_ERROR;
-            pos[2] = vec[2] + grain->ibN[2]*SAFE_FACE_ERROR;
-            state=false;
-        }
+        PointPlaneDistance(pos, grain->ibN, grain->ibPs[place[2]-1], dis);
+        if(dis < FACE_ERROR)return false;
     }
 
-#if DEBUG
-    VECTOR_MINUS(bakPos, pos);
-    if(Normal(bakPos) > home->param->maxSeg){
-        Fatal("%s: the new position is far away from original position. distance = %f",__func__,Normal(bakPos));
-    }
-#endif
-    return state;
+    return true;
 }
 
 bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z)
@@ -831,7 +829,7 @@ bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z)
     return InGrain(home, place, pos);
 }
 
-/** Find the intersection between segment and grain (if has) and return the neew place of intersection point.
+/** Find the intersection between segment and grain (if has) and return the new place of intersection point.
  * \param[in] place the location of the segment.
  * \param[in] pos1 the position of first end point of the segnent, it has to be in the place.
  * \param[in,out] pos2 the position of second end point, moved to intersection if it was outside of the place. 
@@ -839,9 +837,9 @@ bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z)
 bool SegmentGrainIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
 {
     Face_t *face;
-    bool state=false;
+    bool status=false;
 
-#if DEBUG
+#ifdef DEBUG
     if(place[0]!=IN_GRAIN)Fatal("%s: place[0] = %d",__func__, place[0]);
     if(place[1]<0 || place[1]>home->nGrains)Fatal("%s: place[1] = %d",__func__, place[1]);
     if(!InGrain(home, place, pos1))Fatal("%s: the position 1 is not in corrected grain.");
@@ -851,7 +849,7 @@ bool SegmentGrainIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2
     int i; for(i=0; i<grain->nFaces; i++){
         face=grain->faces[i];
         if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, face->n, face->p, t)){
-            state = true;
+            status = true;
             pos2[0] = pos1[0] + t*(pos2[0]-pos1[0]);
             pos2[1] = pos1[1] + t*(pos2[1]-pos1[1]);
             pos2[2] = pos1[2] + t*(pos2[2]-pos1[2]);
@@ -893,17 +891,17 @@ bool SegmentGrainIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2
                     }
                 }
             }
-            return state;
+            return status;
         }
     }
     
-#if DEBUG
+#ifdef DEBUG
     if(place[2]<0||place[2]>grain->nIBs)Fatal("%s: no sub-grain %d in grain %d",__func__,place[2], place[1]);
 #endif
     if(place[2]<grain->nIBs){
         // upper boundary
         if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[place[2]], t)){
-            state = true;
+            status = true;
             pos2[0] = pos1[0] + t*(pos2[0]-pos1[0]);
             pos2[1] = pos1[1] + t*(pos2[1]-pos1[1]);
             pos2[2] = pos1[2] + t*(pos2[2]-pos1[2]);
@@ -914,14 +912,14 @@ bool SegmentGrainIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2
     if(place[2]>0){
         // lower boundary
         if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[place[2]-1], t)){
-            state = true;
+            status = true;
             pos2[0] = pos1[0] + t*(pos2[0]-pos1[0]);
             pos2[1] = pos1[1] + t*(pos2[1]-pos1[1]);
             pos2[2] = pos1[2] + t*(pos2[2]-pos1[2]);
             newPlace[0]=ON_IB; newPlace[1]=grain->id; newPlace[2]=place[2]-1;
         }
     }
-    return state;
+    return status;
 }
 bool SegmentGrainIntersection(Home_t *home, int *place, real8 x1, real8 y1, real8 z1, real8 x2, real8 y2, real8 z2, int *newPlace)
 {
@@ -931,22 +929,22 @@ bool SegmentGrainIntersection(Home_t *home, int *place, real8 x1, real8 y1, real
 
 bool OnFace(Home_t *home, int *place, real8 *pos)
 {
-    bool state=true;
-#if DEBUG
+    bool status=true;
+#ifdef DEBUG
     real8 bakPos[3] = {pos[0], pos[1], pos[2]};
     if(place[1]<0 || place[1]>home->nFaces)Fatal("%s: wrong face ID", __func__);
 #endif
     Face_t *face = home->faces[place[1]];
     real8 interPos[3], dis;
-#if DEBUG
+#ifdef DEBUG
     PointPlaneIntersection(pos,face->n, face->p, interPos, &dis);
     if(fabs(dis) > SAFE_FACE_ERROR)Fatal("%s: position (%f,%f,%f) is not on the face, error is %e", __func__, 
         pos[0], pos[1], pos[2], dis);
 #endif
     
     int edgeID;
-    if(POINT_INTERSECTION==SegmentPolygonIntersection2D(face->p, pos, face->edges, face->nEdges, interPos, edgeID)){
-        state = false;
+    if(POINT_INTERSECTION==ClipSementInConcavePolyhedron(face->p, pos, face->edges, face->nEdges, edgeID, interPos)){
+        status = false;
         pos[0] = interPos[0] - face->edges[6*edgeID+0]*SAFE_FACE_ERROR;
         pos[1] = interPos[1] - face->edges[6*edgeID+1]*SAFE_FACE_ERROR;
         pos[2] = interPos[2] - face->edges[6*edgeID+2]*SAFE_FACE_ERROR;
@@ -959,7 +957,7 @@ bool OnFace(Home_t *home, int *place, real8 *pos)
         if(*(place+2+i)<grain->nIBs){
             PointPlaneIntersection(pos, grain->ibN, grain->ibPs[place[2+i]], interPos, &dis);
             if(dis > -FACE_ERROR){
-                state = false;
+                status = false;
                 pos[0] = interPos[0] - grain->ibN[0]*SAFE_FACE_ERROR;
                 pos[1] = interPos[1] - grain->ibN[1]*SAFE_FACE_ERROR;
                 pos[2] = interPos[2] - grain->ibN[2]*SAFE_FACE_ERROR;
@@ -968,42 +966,43 @@ bool OnFace(Home_t *home, int *place, real8 *pos)
         if(place[2+i]>0){
             PointPlaneIntersection(pos, grain->ibN, grain->ibPs[place[2+i]-1], interPos, &dis);
             if(dis < FACE_ERROR){
-                state = false;
+                status = false;
                 pos[0] = interPos[0] + grain->ibN[0]*SAFE_FACE_ERROR;
                 pos[1] = interPos[1] + grain->ibN[1]*SAFE_FACE_ERROR;
                 pos[2] = interPos[2] + grain->ibN[2]*SAFE_FACE_ERROR;
             }
         }
     }
-#if DEBUG
+#ifdef DEBUG
     VECTOR_MINUS(bakPos, pos);
     if(Normal(bakPos) > home->param->maxSeg){
         Fatal("%s: the new position is far away from original position. distance = %f",__func__,Normal(bakPos));
     }
 #endif
-    return state;
+    return status;
 }
 bool OnFace(Home_t *home, int *place, real8 x, real8 y, real8 z)
 {
     real8 pos[3]={x,y,z}; return OnFace(home, place, pos);
 }
 
-/** Find the intersection between segment and face (if has) and return the neew place of intersection point.
+/** Find the intersection between segment and face (if has) and return the new place of intersection point.
  * \param[in] place the location of the segment.
  * \param[in] pos1 the position of first end point of the segnent, it has to be in the place.
  * \param[in,out] pos2 the position of second end point, moved to intersection if it was outside of the place. 
  * \param[out] newPlace the new place of intersection (if has) */
 bool SegmentFaceIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
 {  
-    bool state = false;
-    int edgeID;
+    bool status = false;
+    int edgeID, faceID;
     real8 interPos[3], dis, t;
+    Grain_t *grain;
 
-#if DEBUG
+#ifdef DEBUG
     if(place[1]<0 || place[1]>home->nFaces)Fatal("%s: wrong face ID", __func__);
 #endif
     Face_t *face = home->faces[place[1]];
-#if DEBUG
+#ifdef DEBUG
     PointPlaneIntersection(pos1, face->n, face->p, interPos, &dis);
     if(fabs(dis) > SAFE_FACE_ERROR)Fatal("%s: position (%f,%f,%f) is not on the face, error is %e", __func__, 
         pos1[0], pos1[1], pos1[2], dis);
@@ -1013,40 +1012,89 @@ bool SegmentFaceIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2,
 #endif
    
     // check if the segment has crossed the face boundary 
-    if(POINT_INTERSECTION==SegmentPolygonIntersection2D(pos1, pos2, face->edges, face->nEdges, interPos, edgeID)){
-        state = true;
-        newPlace[0] = ON_FACE_EDGE; newPlace[1]=face->id;
+    if(POINT_INTERSECTION==ClipSementInConcavePolyhedron(pos1, pos2, face->edges, face->nEdges, edgeID,interPos)){
+        status = true;
+        newPlace[0] = ON_FACE_EDGE;
+        newPlace[1] = face->edgesID[edgeID];
+#ifdef DEBUG
+        if(newPlace[1] < 0 || newPlace[1]>home->nEdges)Fatal("%s line %d: wrong global edge ID",__func__, __LINE__);
+#endif
         pos2[0] = interPos[0];
         pos2[1] = interPos[1];
         pos2[2] = interPos[2];
     }
 
-    Grain_t *grain;
     for(auto i=0; i<2; i++){
-        if(*(place+2+i)<0)continue;
+        newPlace[2+i] = place[2+i]; if(*(place+2+i)<0)continue;
         grain = home->grainKeys[face->nbrGrain[i]];
         if(*(place+2+i)<grain->nIBs){
             if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[place[2+i]], t)){
-                state = true;
-//                newPlace[0]
-//                IBFaceID(grain->id, place[2+i], newPlace[2+i]
                 pos2[0] = pos1[0] + t*(pos2[0]-pos1[0]);
                 pos2[1] = pos1[1] + t*(pos2[1]-pos1[1]);
                 pos2[2] = pos1[2] + t*(pos2[2]-pos1[2]);
+                
+                IBFaceID(grain->id, place[2+i], faceID);
+                if(status){
+                    newPlace[0] = AT_VERTICE; for(auto j=1; j<PLACE_LEN; j++) newPlace[j]=-1; return status;
+                }else{
+                    status=true; newPlace[0] = ON_IB_EDGE; newPlace[1]=face->id; newPlace[2+i] = faceID;
+                }
             }
         }
         if(place[2+i]>0){
             if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[place[2+i]-1], t)){
-                state = true;
                 pos2[0] = pos1[0] + t*(pos2[0]-pos1[0]);
                 pos2[1] = pos1[1] + t*(pos2[1]-pos1[1]);
                 pos2[2] = pos1[2] + t*(pos2[2]-pos1[2]);
+
+                IBFaceID(grain->id, place[2+i]-1, faceID);
+                if(status){
+                    newPlace[0] = AT_VERTICE; for(auto j=1; j<PLACE_LEN; j++) newPlace[j]=-1; return status;
+                }else{
+                    status=true; newPlace[0] = ON_IB_EDGE; newPlace[1]=face->id; newPlace[2+i] = faceID;
+                }
             }
         }
     }
-    return state;
+    return status;
 }
 
+bool OnFaceEdge(Home_t *home, int *place, real8 *pos)
+{
+#ifdef DEBUG
+    if(place[0] != ON_FACE_EDGE)Fatal("%s line %d: place[0]=%d",__func__,__LINE__,place[0]);
+    if(place[1]<0 || place[1]>home->nEdges)Fatal("%s line %d: place[1]=%d", __func__,__LINE__,place[1]);
+#endif
+    Edge_t &edge = home->edges[place[1]];
+    real8  pos1[3]={home->vertices[3*edge.vertID1],home->vertices[3*edge.vertID1+1],home->vertices[3*edge.vertID1+2]};
+    real8  pos2[3]={home->vertices[3*edge.vertID2],home->vertices[3*edge.vertID2+1],home->vertices[3*edge.vertID2+2]};
+#ifdef DEBUG
+    real8 vec[3], dis;
+    real8 lDir[3]={pos2[0]-pos1[0],pos2[1]-pos1[1],pos2[2]-pos1[2]}; NormalizeVec(lDir);
+    PointLineIntersection(pos, lDir, pos1, vec, &dis); 
+    if(fabs(dis)>SAFE_FACE_ERROR)Fatal("%s line %d: the position is not on line,", __func__, __LINE__);
+#endif
+    
+    for(auto i=0; i<2; i++){
+        if(place[2+i]<0)continue;
+    }
+    
+    
+}
+
+bool OnFaceEdge(Home_t *home, int *place, real8 x, real8 y, real8 z)
+{ real8 pos[3]={x,y,z}; return OnFaceEdge(home, place, pos); }
+
+/** Find the intersection between segment and face edge(if has) and return the new place of intersection point.
+ * \param[in] place the location of the segment.
+ * \param[in] pos1 the position of first end point of the segnent, it has to be in the place.
+ * \param[in,out] pos2 the position of second end point, moved to intersection if it was outside of the place. 
+ * \param[out] newPlace the new place of intersection (if has) */
+bool SegmentFaceEdgeIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
+{  
+    bool status = false;
+    return status;
+}
 bool SegmentFaceIntersection(Home_t *home, int *place, real8 x1, real8 y1, real8 z1, real8 x2, real8 y2, real8 z2, int *newPlace)
 {
     real8 pos1[3]={x1, y1, z1}; real8 pos2[3]={x2, y2, z2};
@@ -1055,12 +1103,15 @@ bool SegmentFaceIntersection(Home_t *home, int *place, real8 x1, real8 y1, real8
 
 bool CorrectedLocation(Home_t *home, int *place, real8 *pos)
 {
+    bool status = false;
     switch(*place){
         case IN_GRAIN:
             
             break;
     }
+    return status;
 } 
+
 inline bool IBFaceID(const int &grainID, const int &ibID, int &faceID)
 {
     if(grainID>=0&&ibID>=0){
@@ -1181,16 +1232,16 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3])
         burgData->numPlanes   = NUM_PLANES_IN_FCC;
         burgData->numKeyLines = NUM_KEY_LINES_IN_FCC;
 
-        burgData->burgList = (real8 (*)[3])calloc(3*burgData->numBurgVectors, sizeof(real8));
-        burgData->burgType = (int *)calloc(burgData->numBurgVectors, sizeof(int));
-        burgData->planeList = (real8 (*)[3])calloc(3*burgData->numPlanes, sizeof(real8));
-        burgData->planeType = (int *)calloc(burgData->numPlanes, sizeof(int));
-        burgData->cutNormals = (real8 (*)[3])calloc(3*burgData->numPlanes, sizeof(real8));
-        burgData->keyLineList = (real8 (*)[3])calloc(3*burgData->numKeyLines, sizeof(real8));
+        burgData->burgList = (real8 (*)[3])malloc(3*burgData->numBurgVectors*sizeof(real8));
+        burgData->burgType = (int *)malloc(burgData->numBurgVectors*sizeof(int));
+        burgData->planeList = (real8 (*)[3])malloc(3*burgData->numPlanes*sizeof(real8));
+        burgData->planeType = (int *)malloc(burgData->numPlanes*sizeof(int));
+        burgData->cutNormals = (real8 (*)[3])malloc(3*burgData->numPlanes*sizeof(real8));
+        burgData->keyLineList = (real8 (*)[3])malloc(3*burgData->numKeyLines*sizeof(real8));
 
-        burgData->numPlanesPerBurg = (int *)calloc(burgData->numBurgVectors, sizeof(int));        
-        burgData->numBurgsPerPlane = (int *)calloc(burgData->numPlanes, sizeof(int));        
-        burgData->numPlanesPerKeyLine = (int *)calloc(burgData->numKeyLines, sizeof(int));        
+        burgData->numPlanesPerBurg = (int *)malloc(burgData->numBurgVectors*sizeof(int));        
+        burgData->numBurgsPerPlane = (int *)malloc(burgData->numPlanes*sizeof(int));        
+        burgData->numPlanesPerKeyLine = (int *)malloc(burgData->numKeyLines*sizeof(int));        
         
 
         real8 burgList[NUM_BURGS_IN_FCC][3] = {
@@ -1333,9 +1384,9 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3])
                                   4,  6,  9, 10,   /* [010] (19) */
                                   4,  5, 11, 12    /* [001] (20) */
                                 };
-        burgData->burgOnPlaneID = (int **)calloc(NUM_BURGS_IN_FCC, sizeof(int *));       
+        burgData->burgOnPlaneID = (int **)malloc(NUM_BURGS_IN_FCC*sizeof(int *));       
         for(i=0; i<NUM_BURGS_IN_FCC; i++){
-            burgData->burgOnPlaneID[i] = (int *)calloc(numPlanesPerBurg[i], sizeof(int));
+            burgData->burgOnPlaneID[i] = (int *)malloc(numPlanesPerBurg[i]*sizeof(int));
             memcpy(burgData->burgOnPlaneID[i], burgOnPlaneID+burgFirstPlaneIndex[i], 
                    sizeof(int [numPlanesPerBurg[i]]));
         }
@@ -1355,9 +1406,9 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3])
                                   14, 17, 20                  //
                                  };
 
-        burgData->planeOnBurgID = (int **)calloc(NUM_PLANES_IN_FCC, sizeof(int *));       
+        burgData->planeOnBurgID = (int **)malloc(NUM_PLANES_IN_FCC* sizeof(int *));       
         for(i=0; i<NUM_PLANES_IN_FCC; i++){
-            burgData->planeOnBurgID[i] = (int *)calloc(numBurgsPerPlane[i], sizeof(int));
+            burgData->planeOnBurgID[i] = (int *)malloc(numBurgsPerPlane[i]* sizeof(int));
             memcpy(burgData->planeOnBurgID[i], planeOnBurgID+planeFirstBurgIndex[i], 
                    sizeof(int [numBurgsPerPlane[i]]));
         }
@@ -1370,9 +1421,9 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3])
                                      0, 2, 4,
                                      1, 3, 4
                                    };
-        burgData->keyLineOnPlaneID = (int **)calloc(NUM_KEY_LINES_IN_FCC, sizeof(int *));       
+        burgData->keyLineOnPlaneID = (int **)malloc(NUM_KEY_LINES_IN_FCC* sizeof(int *));       
         for(i=0; i<NUM_KEY_LINES_IN_FCC; i++){
-            burgData->keyLineOnPlaneID[i] = (int *)calloc(numPlanesPerKeyLine[i], sizeof(int));
+            burgData->keyLineOnPlaneID[i] = (int *)malloc(numPlanesPerKeyLine[i]* sizeof(int));
             memcpy(burgData->keyLineOnPlaneID[i], keyLineOnPlaneID+keyLineFirstPlaneIndex[i], 
                    sizeof(int [numPlanesPerKeyLine[i]]));
         }
@@ -1396,8 +1447,8 @@ void CompressBurgListWithType(std::vector<std::vector<real8> >& burgList,
             VECTOR_COPY(vec1, burgList[i]);
             VECTOR_COPY(vec2, burgList[j]);
             cross(vec1, vec2, crossProdt);
-            if(Normal(crossProdt) < 1.0E-2 && fabs(Normal(burgList[i]) - 
-               Normal(burgList[j])) < 1.0E-4 &&  burgType[i] == burgType[j])break;
+            if(Normal(crossProdt) < 1.0E-2 && fabs(Normal(vec1) - 
+               Normal(vec2)) < 1.0E-4 &&  burgType[i] == burgType[j])break;
 
         }
         if(j == newNRows){
@@ -2232,7 +2283,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
 
     NormalizeVec(vec);
     type = LinePlaneIntersection(vec, pos, plane.normal, plane.point, vec1, vec2);
-    if(type == NO_INTERSECTION){
+    if((type&NO_INTERSECTION)>0){
 #if 0
         printf("Warning: NewPosToGB, Line {%f,%f,%f}--{%f,%f,%f}; ", 
                vec[0], vec[1], vec[2], pos[0], pos[1], pos[2]);
@@ -2752,6 +2803,8 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
         case NO_INTERSECTION:
             canMerge = 0;
             break;
+        case NO_INTERSECTION|OUTSIDE_SPACE: canMerge=0; break;
+        case NO_INTERSECTION|INSIDE_SPACE: canMerge=0; break;
         case POINT_INTERSECTION:
             if(POINT_INTERSECTION != PointPointIntersection(pos, vec2, vec3, dis)){
                 VECTOR_COPY(pos, vec2);

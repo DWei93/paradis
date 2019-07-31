@@ -9,14 +9,6 @@
  *
  **************************************************************************/
 
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <errno.h>
-#include <math.h>
-#include <vector>
 #include "Math.h"
 
 #ifdef PARALLEL
@@ -43,19 +35,6 @@
              (vec1[1])*(vec2[1]) +  \
              (vec1[2])*(vec2[2]))
 
-/* normal of vector*/
-extern double  Normal(double a[3]);
-extern double  Normal(std::vector<double>& a);
-
-/* Normalize the vector*/
-extern void   Normalize(double *ax, double *ay, double *az);
-extern void   NormalizeVec(double vec[3]);
-
-/* cross production of vectors*/
-extern void   cross(double a[3], double b[3], double c[3]);
-
-/* Abort the program */
-extern void Fatal(const char *format, ...);
 
 #ifdef GSL
 void GSLTest()
@@ -68,54 +47,6 @@ void GSLTest()
 #endif
 
 
-/** Check if the variable is numerical. */
-inline bool Numerical(double v){return (!isnan(v) && !isinf(v));}
-inline bool Numerical(double *vec){
-    return (!isnan(vec[0]) && !isinf(vec[0]) &&
-            !isnan(vec[1]) && !isinf(vec[1]) &&
-            !isnan(vec[2]) && !isinf(vec[2]));
-}
-
-/** Determine the vector if is nomalized */
-inline bool IsNormalized(double *vec, double error){
-    double dot=DotProduct(vec, vec);
-    return (dot>error && dot <2-error);
-}
-inline bool IsNormalized(double x, double y, double z, double error){
-    double vec[3]={x,y,z};
-    return IsNormalized(vec,error);
-}
-
-/** Determine if two directions are in the same direction. */
-inline bool SameDirection(double *vec1, double *vec2, double error){
-    double dot=DotProduct(vec1, vec2);
-    return (dot>error && dot <2-error);
-}
-inline bool SameDirection(double x1, double y1, double z1, double x2, double y2, double z2, double error){
-    double vec1[3]={x1,y1,z1}, vec2[3]={x2,y2,z2};
-    return SameDirection(vec1, vec2, error);
-}
-
-/** Determine if the two directions are aligned. */
-inline bool AlignedDirection(double *vec1, double *vec2, double error){
-    double dot=fabs(DotProduct(vec1, vec2));
-    return (dot>error && dot <2-error);
-}
-inline bool AlignedDirection(double x1, double y1, double z1, double x2, double y2, double z2, double error){
-    double vec1[3]={x1,y1,z1}, vec2[3]={x2,y2,z2};
-    return AlignedDirection(vec1, vec2, error);
-}
-
-/** Determine whether two directions are perpendicular to each other. */
-inline bool PerpendicularDirection(double *vec1, double *vec2, double error){
-    double dot=fabs(DotProduct(vec1, vec2));
-    return dot<error;
-}
-inline bool PerpendicularDirection(double x1, double y1, double z1, double x2, double y2, double z2, double error){
-    double vec1[3]={x1,y1,z1}, vec2[3]={x2,y2,z2};
-    return PerpendicularDirection(vec1, vec2, error);
-}
-
 /** Find intersection of two planes, plane2 is the default reference plane.
  *  \param[in] n1[3] normlized normal of plane1
  *  \param[in] p1[3] a point on plane1
@@ -125,7 +56,7 @@ inline bool PerpendicularDirection(double x1, double y1, double z1, double x2, d
  *  \param[in] err2  error for length
  *  \param[out] vec1[3] normalized vector that stores intersection info (if has)
  *  \param[out] vec2[3] second vector that stores intersection info (if has)
- *  \return intersection type: PLANE_INTERSECTION, NO_INTERSECTION and LINE_INTERSECTION */
+ *  \return intersection type: PLANE_INTERSECTION, NO_INTERSECTION, LINE_INTERSECTION, OUTSIDE_SPACE and INSIDE_SPACE */
 int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2, double *vec1, double *vec2, double err1, double err2)
 {
     double  n1x = n1[0], n1y = n1[1], n1z = n1[2];
@@ -142,11 +73,13 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2, double
     // if the two normals are aligned with each other, the intersection can not be line
     if(AlignedDirection(n1,n2,1-err1)){
         VECTOR_COPY(vec1,n2); VECTOR_COPY(vec2,p2);
-        if(fabs(n1x*(p1x - p2x) + n1y*(p1y - p2y) + n1z*(p1z - p2z)) < err2) return(PLANE_INTERSECTION);
-        else return(NO_INTERSECTION);
+        double dot=n2x*(p1x - p2x) + n2y*(p1y - p2y) + n2z*(p1z - p2z);
+        if(fabs(dot) < err2) return(PLANE_INTERSECTION);
+        else if(dot > 0) return (NO_INTERSECTION|INSIDE_SPACE);
+        else return (NO_INTERSECTION|OUTSIDE_SPACE);
     } 
 
-    // the direction of intersection line is the cross vector of the two normals
+    // the direction of intersection line is the cross product vector of the two normals
     vec1[0] = -(n1z*n2y) + n1y*n2z;
     vec1[1] = n1z*n2x - n1x*n2z;
     vec1[2] = -(n1y*n2x) + n1x*n2y;
@@ -160,14 +93,14 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2, double
     // the glide direction from point1 to plane2 is defined by the cross production of normal1 and intersection line direction
     cross(vec1, n1, vec3);
 #ifdef DEBUG 
-    if(Normal(vec3)< 1.0E-4)Fatal("PlanePlaneIntersection in %s at %d\n", __FILE__, __LINE__);
+    if(Normal(vec3)< 1.0E-4)Fatal("%s: cross porducet vector is zero\n", __func__);
 #endif
     NormalizeVec(vec3);
 
     // the key point of inetrsection line can be defined by the intersection point of glide line and plane2
     type = LinePlaneIntersection(vec3, p1, n2, p2, vec4, vec2, err1, err2);
 #ifdef DEBUG
-    if(type == NO_INTERSECTION)Fatal("PlanePlaneIntersection in %s at %d\n", __FILE__, __LINE__);
+    if((type&NO_INTERSECTION)>0)Fatal("%s: can not find the intersection of line and plane", __func__);
 #endif
     return(LINE_INTERSECTION);
 } 
@@ -181,7 +114,7 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2, double
  *  \param[in] err2  error for length
  *  \param[out] vec1[3] normalized vector that stores intersection info (if has)
  *  \param[out] vec2[3] second vector that stores intersection info (if has)
- *  \return intersection type: POINT_INTERSECTION, NO_INTERSECTION and LINE_INTERSECTION */
+ *  \return intersection type: POINT_INTERSECTION, NO_INTERSECTION, LINE_INTERSECTION, OUTSIDE_SPACE, and INSIDE_SPACE*/
 int LinePlaneIntersection(double *d, double *p1, double *n, double *p2, double *vec1, double *vec2, double err1, double err2)
 {
     double  dx = d[0], dy = d[1], dz = d[2];
@@ -196,25 +129,24 @@ int LinePlaneIntersection(double *d, double *p1, double *n, double *p2, double *
 #endif
     // if the line direction is perpendicular to the normal of plane, the intersection can not be a point
     if(PerpendicularDirection(d, n, err1)){
-        PointPlaneIntersection(p1, n, p2, vec2, &dis);
+        int type = PointPlaneIntersection(p1, n, p2, vec2, &dis);
         VECTOR_COPY(vec1, d); VECTOR_COPY(vec2, p1);
         if(fabs(dis) < err2) return(LINE_INTERSECTION);
-        else return(NO_INTERSECTION);
+        else return(type);
     }
 
     double t = (-(nx*p1x) - ny*p1y - nz*p1z + nx*p2x + ny*p2y + nz*p2z)/
                 (dx*nx + dy*ny + dz*nz);
 
 #ifdef DEBUG
-    if(isinf(t) || isnan(t))Fatal("%s: %f",__func__,t);
+    if(!Numerical(t))Fatal("%s: %f",__func__,t);
 #endif
     vec2[0] = p1x + t*dx;    
     vec2[1] = p1y + t*dy;    
     vec2[2] = p1z + t*dz;
 
 #ifdef DEBUG
-    if(isnan(vec2[0]) || isinf(vec2[0]) || isnan(vec2[1]) || isinf(vec2[1]) ||
-       isnan(vec2[2]) || isinf(vec2[2])){
+    if(!Numerical(vec2)){
         Fatal("%s: %f,%f,%f\n",__func__,vec2[0], vec2[1], vec2[2]);
     }
 #endif
@@ -311,7 +243,7 @@ int LineLineIntersection(double *d1, double *p1, double *d2, double *p2,
                   4*(SQUARE(d1x) + SQUARE(d1y) + SQUARE(d1z))*
                   (SQUARE(d2x) + SQUARE(d2y) + SQUARE(d2z)));        
 #ifdef DEBUG
-    if(isnan(denominator) || isinf(denominator))Fatal("%s: the denominator is %f",__func__,denominator);
+    if(!Numerical(denominator))Fatal("%s: the denominator is %f",__func__,denominator);
 #endif
 
     vec1[0] = p1x - (d1x*(-4*(SQUARE(d2x) + SQUARE(d2y) + SQUARE(d2z))*
@@ -338,7 +270,7 @@ int LineLineIntersection(double *d1, double *p1, double *d2, double *p2,
                   SQUARE(d1y)*(SQUARE(d2x) + SQUARE(d2z)) + 
                   SQUARE(d1x)*(SQUARE(d2y) + SQUARE(d2z)));
 #ifdef DEBUG
-    if(isnan(denominator) || isinf(denominator))Fatal("%s: the denominator is %f",__func__,denominator);
+    if(!Numerical(denominator))Fatal("%s: the denominator is %f",__func__,denominator);
 #endif
 
     vec2[0] = p2x + (d2x*(SQUARE(d1z)*
@@ -377,7 +309,7 @@ int LineLineIntersection(double *d1, double *p1, double *d2, double *p2,
            SQUARE(d1x)*(SQUARE(d2y) + SQUARE(d2z)));
 
 #ifdef DEBUG
-    if(isnan(*dis) || isinf(*dis))Fatal("%s: *dis=%f",__func__, *dis);
+    if(!Numerical(*dis))Fatal("%s: *dis=%f",__func__, *dis);
 #endif
 
     *dis = sqrt(*dis); if(isnan(*dis))*dis=0.0;
@@ -394,9 +326,14 @@ int LineLineIntersection(double *d1, double *p1, double *d2, double *p2,
  *  \param[out] *dis distance of point 1 and projection point
  *  \param[in] err1  error for angle
  *  \param[in] err2  error for length
- *  \return intersection type: POINT_INTERSECTION and NO_INTERSECTION */
+ *  \return intersection type: POINT_INTERSECTION, NO_INTERSECTION, INSIDE_SPACE and OUTSIDE_SPACE */
 int PointPlaneIntersection(double *p1, double *n, double *p2, double *vec, double *dis, double err1, double err2)
 {
+#if 1
+    double distance;
+    PointPlaneDistance(p1, n, p2, distance, vec);
+    *dis = distance;
+#else
     double  p1x = p1[0], p1y = p1[1], p1z = p1[2];
     double  p2x = p2[0], p2y = p2[1], p2z = p2[2];
     double  nx = n[0], ny = n[1], nz = n[2];
@@ -429,10 +366,11 @@ int PointPlaneIntersection(double *p1, double *n, double *p2, double *vec, doubl
     temVec[1] = p1y - vec[1];
     temVec[2] = p1z - vec[2];
     NormalizeVec(temVec);
-    if(DotProduct(temVec, n) < 0)*dis *= -1.0;
-    
+    if(DotProduct(temVec, n) < 0)*dis *= -1.0; 
+#endif 
     if(fabs(*dis) < err2) return(POINT_INTERSECTION);
-    else return(NO_INTERSECTION);
+    else if(*dis>0)return(NO_INTERSECTION|INSIDE_SPACE);
+    else return (NO_INTERSECTION|OUTSIDE_SPACE);
 }
 
 /** Find intersection of two points, the second point is reference
@@ -456,24 +394,28 @@ int PointPointIntersection(double *p1, double *p2, double *vec, double *dis, dou
     else return(NO_INTERSECTION);
 }
 
+
 /** Find a intersection of segment and plane (if has) 
  *  \param[in] p1[3] coordinates of the first end of segment
  *  \param[in] p2[3] coordinates of the second  end of segment
  *  \param[in] nDir[3] normal of plane
  *  \param[in] point[3] coordinate of point on pkane
- *  \param[out] t normalized position of intersection pointi
- *  \return intersection type : NO_INTERSECTION and POINT_INTERSECTION */ 
+ *  \param[in] plane[6] contains plane info. of the plae
+ *  \param[in] margin margin (if has)
+ *  \param[out] t normalized position of intersection point
+ *  \param[out] intersection[3] position of intersection point
+ *  \return intersection type: NO_INTERSECTION, POINT_INTERSECTION, INSIDE_SPACE and OUTSIDE_SPACE */ 
 int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double &t){
 
     double dot1 = nDir[0]*(p1[0]-point[0]) + nDir[1]*(p1[1]-point[1]) + nDir[2]*(p1[2]-point[2]);
     double dot2 = nDir[0]*(p2[0]-point[0]) + nDir[1]*(p2[1]-point[1]) + nDir[2]*(p2[2]-point[2]);
-    
 #ifdef DEBUG
-    if(!IsNormalized(nDir))Fatal("%s: normal (%g,%g,%g) is not normalized");
+    if(!IsNormalized(nDir))Fatal("%s: normal (%g,%g,%g) is not normalized",__func__, nDir[0], nDir[1],nDir[2]);
     if(!Numerical(dot1))Fatal("%s: dot1=%f",__func__,dot1);
     if(!Numerical(dot2))Fatal("%s: dot2=%f",__func__,dot2);
 #endif
-    if(dot1*dot2 > 0)return(NO_INTERSECTION);
+    if(dot1 > 0 && dot2>0)return(NO_INTERSECTION|INSIDE_SPACE);
+    if(dot1 < 0 && dot2<0)return(NO_INTERSECTION|OUTSIDE_SPACE);
     double tot = fabs(dot1)+fabs(dot2);
     if(tot > 1.0E-80) t = fabs(dot1)/tot;
     else t = 0.0;
@@ -482,37 +424,140 @@ int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point
 #endif
     return(POINT_INTERSECTION);
 }
-
-/** Find a intersection of segment and concave polygon (if has) 
- *  \param[in] p1[3] coordinates of the first end of segment
- *  \param[in] p2[3] coordinates of the second  end of segment
- *  \param[in] edges[6*nEdges] planes that containning concave polygon edges,
- *             each plane has normals and coodinates of point on the plane
- *  \param[in] nEdges # of edges of the concave polygon
- *  \param[out] interPos[3] the position of intersection point
- *  \param[out] interEdgeID index of edge which intersects with the segment
- *  \return intersection type : NO_INTERSECTION and POINT_INTERSECTION */ 
-int SegmentConcavePolygonIntersection(double *p1, double *p2, double *edge, int nEdges, double *interPos, int &interEdgeID){
-    int i, type; double t;
-    for(i=0; i<nEdges; i++){
-        if((type=SegmentPlaneIntersection(p1, p2, &(edge[i*6]), &(edge[i*6+3]), t))==POINT_INTERSECTION){
-            interPos[0] = (1.0-t)*p1[0]+t*p2[0];
-            interPos[1] = (1.0-t)*p1[1]+t*p2[1];
-            interPos[2] = (1.0-t)*p1[2]+t*p2[2];
-            break;
-        }
+int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double *intersection){
+    int type; double t;
+    if((type=SegmentPlaneIntersection(p1,p2,nDir,point,t))==POINT_INTERSECTION){
+        intersection[0] = (1.0-t)*p1[0]+t*p2[0];
+        intersection[1] = (1.0-t)*p1[1]+t*p2[1];
+        intersection[2] = (1.0-t)*p1[2]+t*p2[2];
     }
-    interEdgeID = i;
     return type;
 }
-int SegmentConcavePolygonIntersection(double *p1, double *p2, double *edge, int nEdges, double *interPos){
-    int interEdgeID;
-    return SegmentConcavePolygonIntersection(p1, p2, edge, nEdges, interPos, interEdgeID);
+int SegmentPlaneIntersection(double *p1, double *p2, double *plane, double margin, double &t){
+
+    double mPoint[3]={plane[3]+plane[0]*margin,plane[4]+plane[1]*margin,plane[5]+plane[2]*margin};
+
+    double dot1 = plane[0]*(p1[0]-mPoint[0]) + plane[1]*(p1[1]-mPoint[1]) + plane[2]*(p1[2]-mPoint[2]);
+    double dot2 = plane[0]*(p2[0]-mPoint[0]) + plane[1]*(p2[1]-mPoint[1]) + plane[2]*(p2[2]-mPoint[2]);
+#ifdef DEBUG
+    if(!IsNormalized(plane))Fatal("%s: normal (%g,%g,%g) is not normalized",__func__, plane[0], plane[1],plane[2]);
+    if(!Numerical(dot1))Fatal("%s: dot1=%f",__func__,dot1);
+    if(!Numerical(dot2))Fatal("%s: dot2=%f",__func__,dot2);
+#endif
+    if(dot1 > 0 && dot2>0)return(NO_INTERSECTION|INSIDE_SPACE);
+    if(dot1 < 0 && dot2<0)return(NO_INTERSECTION|OUTSIDE_SPACE);
+    double tot = fabs(dot1)+fabs(dot2);
+    if(tot > 1.0E-80) t = fabs(dot1)/tot;
+    else t = 0.0;
+#ifdef DEBUG
+    if(!Numerical(t))Fatal("%s: t=%f", __func__, t);
+#endif
+    return(POINT_INTERSECTION);
 }
-int SegmentConcavePolygonIntersection(double *p1, double *p2, double *edge, int nEdges){
-    int interEdgeID; double interPos[3];
-    return SegmentConcavePolygonIntersection(p1, p2, edge, nEdges, interPos, interEdgeID);
+int SegmentPlaneIntersection(double *p1, double *p2, double *plane, double margin, double *intersection){
+    int type; double t;
+    if((type=SegmentPlaneIntersection(p1,p2,plane,margin,t))==POINT_INTERSECTION){
+        intersection[0] = (1.0-t)*p1[0]+t*p2[0];
+        intersection[1] = (1.0-t)*p1[1]+t*p2[1];
+        intersection[2] = (1.0-t)*p1[2]+t*p2[2];
+    }
+    return type;
+}
+int SegmentPlaneIntersection(double *p1, double *p2, double *plane, double &t){
+
+    double dot1 = plane[0]*(p1[0]-plane[3]) + plane[1]*(p1[1]-plane[4]) + plane[2]*(p1[2]-plane[5]);
+    double dot2 = plane[0]*(p2[0]-plane[3]) + plane[1]*(p2[1]-plane[4]) + plane[2]*(p2[2]-plane[5]);
+#ifdef DEBUG
+    if(!IsNormalized(plane))Fatal("%s: normal (%g,%g,%g) is not normalized",__func__, plane[0], plane[1],plane[2]);
+    if(!Numerical(dot1))Fatal("%s: dot1=%f",__func__,dot1);
+    if(!Numerical(dot2))Fatal("%s: dot2=%f",__func__,dot2);
+#endif
+    if(dot1 > 0 && dot2>0)return(NO_INTERSECTION|INSIDE_SPACE);
+    if(dot1 < 0 && dot2<0)return(NO_INTERSECTION|OUTSIDE_SPACE);
+    double tot = fabs(dot1)+fabs(dot2);
+    if(tot > 1.0E-80) t = fabs(dot1)/tot;
+    else t = 0.0;
+#ifdef DEBUG
+    if(!Numerical(t))Fatal("%s: t=%f", __func__, t);
+#endif
+    return(POINT_INTERSECTION);
+}
+int SegmentPlaneIntersection(double *p1, double *p2, double *plane, double *intersection){
+    int type; double t;
+    if((type=SegmentPlaneIntersection(p1,p2,plane,t))==POINT_INTERSECTION){
+        intersection[0] = (1.0-t)*p1[0]+t*p2[0];
+        intersection[1] = (1.0-t)*p1[1]+t*p2[1];
+        intersection[2] = (1.0-t)*p1[2]+t*p2[2];
+    }
+    return type;
 }
 
 
+/** Determines whether the node is inside a convex polyhedron
+ *  \param[in] p[3] coordinates of the point
+ *  \param[in] bounds boundary info. contains all plane normals and points on each plane
+ *  \param[in] nBounds # of boundaries
+ *  \param[in] margin margin of the boundaries
+ *  \return true or false */
+bool InConcavePolyhedron(double *p, double **bounds, int nBounds, double margin)
+{
+    double dis;
+    for(auto i=0; i<nBounds; i++){
+        PointPlaneDistance(p, bounds[i], dis);
+        if(dis>margin)return false;
+    }
+    return true;
+}
+bool InConcavePolyhedron(double *p, double *bounds, int nBounds, double margin)
+{
+    double dis;
+    for(auto i=0; i<nBounds; i++){
+        PointPlaneDistance(p, &bounds[i*6], dis);
+        if(dis>margin)return false;
+    }
+    return true;
+}
+
+/** Clip a segment in a concave polyhedron
+ *  \param[in] p1[3] coordinates of point 1, this point is default in the polyhedron
+ *  \param[in,out] p2[3] coordinates of point 2, and return the intersection point (if has)
+ *  \param[in] bounds boundaries info. contains nromals and points of the polyhedron
+ *  \param[in] nBounds # of boundaries
+ *  \param[in] margin margin of the polyhedron
+ *  \param[out] i ith boundary that has the intersection 
+ *  \return NO_INTERSECTION|OUTSIDE_SPACE, POINT_INTERSECTION */
+int ClipSementInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, int &i)
+{
+    int type;
+    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,&bounds[6*i],p2))==POINT_INTERSECTION)break;
+    return type;
+}
+int ClipSementInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, double margin, int &i)
+{
+    int type;
+    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,&bounds[6*i],margin,p2))==POINT_INTERSECTION)break;
+    return type;
+}
+
+/** Clip a segment in a concave polyhedron
+ *  \param[in] p1[3] coordinates of point 1, this point is default in the polyhedron
+ *  \param[in] p2[3] coordinates of point 2
+ *  \param[in] bounds boundaries info. contains nromals and points of the polyhedron
+ *  \param[in] nBounds # of boundaries
+ *  \param[in] margin margin of the polyhedron
+ *  \param[out] i ith boundary that has the intersection 
+ *  \param[out] clipPos[3], clipping position
+ *  \return NO_INTERSECTION|OUTSIDE_SPACE, POINT_INTERSECTION */
+int ClipSementInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, int &i, double *clipPos)
+{
+    int type;
+    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,&bounds[6*i],clipPos))==POINT_INTERSECTION)break;
+    return type;
+}
+int ClipSementInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, double margin, int &i, double *clipPos)
+{
+    int type;
+    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,&bounds[6*i],margin,clipPos))==POINT_INTERSECTION)break;
+    return type;
+}
 

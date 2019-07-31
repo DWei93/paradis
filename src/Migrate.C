@@ -37,7 +37,7 @@
 #ifdef _FEM
 #define VALS_PER_MIG_NODE  19
 #else
-#define VALS_PER_MIG_NODE  18  // increase 4 for place[PLACE_LEN]
+#define VALS_PER_MIG_NODE  18  // PLACE_LEN+14
 #endif
 
 #define VALS_PER_MIG_ARM       12 // increase 1 for signSF

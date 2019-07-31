@@ -23,12 +23,6 @@ typedef struct{
     int ofIB[2];
 }Edge_t;
 
-typedef struct {
-    int     planeID;
-    int     burgID;
-    
-    real8   energyFactor;
-}Dislocation_t;
 /*
  * 	Mesh number used for output of plastic strain field.
  */
@@ -44,7 +38,6 @@ typedef struct {
 #define GB_PLANE            0x0008
 #define UNKOWN_PLANE        0x0010
 
-#define FORMAT_EDGE_COORD        "(%.8f,%.8f,%.8f)-(%.8f,%.8f,%.8f)"
 //------------------------------------------------
 #define	FOLDED_GRAIN		0
 #define ODINARY_GRAIN		1
@@ -138,6 +131,7 @@ typedef struct{
     BurgInfo_t  bInfs[2][2];
     int         nEdges;
     real8       *edges;
+    int         *edgesID;
 }Face_t;
 
 typedef struct {
@@ -227,13 +221,32 @@ struct _penetration{
 	int		nSets;          // num of posible penetration sets
     Res_t   *res;           // results list of penentration sets
 };
+typedef struct {
+    int     planeID;
+    int     burgID;
+    
+    real8   energyFactor;
+}Dislocation_t;
 
+/*Initialize geomety and lattice*/
 void InitGrain(Home_t *home, Param_t *param);
-void NodeLocation(Home_t *home, real8 *pos, int *place);
-void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place);
-bool CorrectedLocation(Home_t *home, int *place, real8 *pos);
+
+/** Convert inner boundary index to subgrain index */
+inline int IndexIBToSubgrain(int IBIndex){ return -IBIndex-1; }
+/** Convert subgrain index to inner boundary index */
+inline int IndexSubgrainToIB(int subgrainIndex){ return -subgrainIndex+1;}
+
+void NodeLocation(Home_t *home, real8 *pos, int *place, real8 error);
+void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place, real8 error);
+
+/** According to the current node coordinates, judge if the node is the grain and subgrain
+ * \param[in] pos: the coordinates of node
+ * \param[in] place: the location of the node
+ * \return false if the original position are not at the location, true otherwise. */
 bool InGrain(Home_t *home, int *place, real8 *pos);
 bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z);
+
+bool CorrectedLocation(Home_t *home, int *place, real8 *pos);
 bool SegmentGrainIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2);
 bool SegmentGrainIntersection(Home_t *home, int *place, real8 x1, real8 y1, real8 z1, real8 x2, real8 y2, real8 z2);
 inline bool IBFaceID(const int &grainID, const int &ibID, int &faceID);

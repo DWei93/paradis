@@ -1617,7 +1617,7 @@ void AdjustBoundaryNodes(Home_t *home)
     int thisDomain = home->myDomain;
     Grain_t **grains = home->grainKeys;
 
-#if DEBUG
+#ifdef DEBUG
     int     oldInGrain, oldOnGB;
 #endif
 
@@ -1634,7 +1634,7 @@ void AdjustBoundaryNodes(Home_t *home)
         nodePos[0] = node->x;   nodePos[1] = node->y;   nodePos[2] = node->z;
         oldPos[0] = node->oldx;   oldPos[1] = node->oldy;   oldPos[2] = node->oldz;
 
-#if DEBUG
+#ifdef DEBUG
         NodeLocation(home, node->oldx, node->oldy, node->oldz, oldInGrain, oldOnGB);
         try{
             if(node->inGrain > 0){

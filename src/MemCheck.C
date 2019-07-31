@@ -41,7 +41,7 @@
  *      functions that may be called.
  */
 extern void Fatal(const char *format, ...);
-void ParadisMemCheck(void);
+void ParadisMemCheck(int flag=0);
 void ParadisFree(char const *fileName, int lineNum, void *ptr);
 void *ParadisMalloc(char const *fileName, int lineNum, size_t size);
 void *ParadisCalloc(char const *fileName, int lineNum, size_t numElem, size_t size);
@@ -106,7 +106,7 @@ int        doMemCheck = 0;
  *                      bytes
  *
  *-------------------------------------------------------------------------*/
-void ParadisMemCheck(void)
+void ParadisMemCheck(int flag)
 {
         int   i;
         char  hdr[PARADIS_MEM_HEADER_LEN];
@@ -117,11 +117,13 @@ void ParadisMemCheck(void)
 
         for (i = 0; i < memBlocksUsed; i++) {
             if (memcmp(memBlocks[i].header, hdr, PARADIS_MEM_HEADER_LEN) != 0) {
-                Fatal("ERROR! memBlock[%d] header corruption!\n", i);
+                Fatal("ERROR! Flag %d: memBlock[%d](file %s line %d) header corruption!\n",
+                    flag,i, memBlocks[i].fileName, memBlocks[i].lineNum);
             }
             if (memcmp(memBlocks[i].trailer, trlr,
                        PARADIS_MEM_TRAILER_LEN) != 0) {
-                Fatal("ERROR! memBlock[%d] trailer corruption!\n", i);
+                Fatal("ERROR! Flag %d: memBlock[%d](file %s line %d) trailer corruption!\n",
+                    flag,i, memBlocks[i].fileName, memBlocks[i].lineNum);
             }
         }
 

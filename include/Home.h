@@ -94,7 +94,7 @@ using namespace voro;
 #define calloc(a, b)   ParadisCalloc(__FILE__, __LINE__, (a), (b))
 #define realloc(a, b)  ParadisRealloc(__FILE__, __LINE__, (a), (b))
 
-void ParadisMemCheck(void);
+void ParadisMemCheck(int flag=0);
 void ParadisFree(char const *fileName, int lineNum, void *ptr);
 void *ParadisMalloc(char const *fileName, int lineNum, size_t size);
 void *ParadisCalloc(char const *fileName, int lineNum, size_t numElem,
@@ -436,16 +436,16 @@ struct _home {
  *      Voronoicell 
  */
         char        voroFile[256];
-        container   *con;
-        c_loop_all  *cl;
-        voronoicell_neighbor **cells;
+        container   *con; // memory-managed by "New" and "Delete"
+        c_loop_all  *cl;  // memory-managed by "New" and "Delete"
+        voronoicell_neighbor **cells;  // memory-managed by "New" and "Delete"
         int         nFaces;
         Face_t      **faces;
         int         nVertices;
         real8       *vertices;
         int         nLines, *lines;
         int         nEdges;
-        Edge_t      *edges;
+        Edge_t      *edges;   // Because this structure contains object, it must be memory-managed by "new" and "delete".
 #endif
 
 };

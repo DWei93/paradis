@@ -58,8 +58,6 @@ int   GetUnitVector(int unitFlag, real8 vx0, real8 vy0, real8 vz0,
 void   InterpolateL(real8 *xa, real8 *ya, int numPoints, real8 x, real8 *y);
 int    InterpolateBL(real8 *x, real8 *y, real8 *val, int numElem,
           real8 targetX, real8 targetY, real8 *result);
-real8  Normal(real8 a[3]);
-real8 Normal(std::vector<real8>& a);
 void   Normalize(real8 *ax, real8 *ay, real8 *az);
 void   NormalizeVec(real8 vec[3]);
 void   NormalizedCrossVector(real8 a[3], real8 b[3], real8 c[3]);
@@ -68,7 +66,17 @@ void   Orthogonalize(real8 *ax, real8 *ay, real8 *az,
 void   xvector(real8 ax, real8 ay, real8 az,
           real8 bx, real8 by, real8 bz,
           real8 *cx, real8 *cy, real8 *cz);
-
+/*-------------------------------------------------------------------------
+ *      Function:     Normal
+ *      Description:  Calculate and return to the caller the normal of
+ *                    vector <a>
+ *
+ *      Arguments:
+ *          a   Array containing the three element vector.
+ *
+ *------------------------------------------------------------------------*/
+inline real8 Normal(real8 a[3])
+{ return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]) );}
 
 /*
  *      Nodal manipulations and operations

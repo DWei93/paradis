@@ -37,9 +37,25 @@
 #define NODE_CHK_DBL_LINK    0x10
 
 #define PLACE_LEN           4
-/*
- *      Define the nodal plane
- */
+
+/** Table: define the location or arm
+ *  grain ID: range [0,home->nGrains)
+ *  sub-grain (SG) ID: range [-grain->nIBs-1,-1]
+ *  inner boundary (IB) ID: range [0,grain->nIBs)
+ *  face ID: range [0,home->nFaces)
+ *  free surface (FS) ID: range [-6,-1]
+ *  edge ID: range [0, home->nEdges)
+ *  -------------------------------------------------------------------------------------------
+ *  TYPE (place[0])   | place[1]   | place[2]       | place[3]          | note
+ *  ------------------|------------|----------------|-------------------|----------------------
+ *  IN_GRAIN          | grain ID   | SG ID          |                   |
+ *  ON_FREE_SURFACE   | face ID    | SG ID1         | FS ID             |
+ *  ON_IB             | grain ID   | IB ID1         |                   |
+ *  ON_GB             | face ID    | SG ID1         | SG ID2            | 
+ *  ON_IB_EDGE        | face ID    | IB or SG ID    | IB or SG ID       | 
+ *  ON_FACE_EDGE      | edge ID    |                |                   | immoveable if it has any arm in bulk
+ *  AT_VERTICE        |            |                |                   | immoveable
+ *  -------------------------------------------------------------------------------------------*/
 typedef	enum{               // place:
     IN_GRAIN,               // grain id, sub-grain id
     ON_FREE_SURFACE,        // grain id, sub-grain id
