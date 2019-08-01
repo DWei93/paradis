@@ -239,16 +239,63 @@ inline void PointPlaneDistance(double *p, double *normal, double *point,  double
  *  \param[in] nDir[3] normal of plane
  *  \param[in] point[3] coordinate of point on plane
  *  \param[in] plane[6] normal and a point of the plane
+ *  \param[out] t normalized position of intersection point
+ *  \param[out] intersection[3] position of intersection point
+ *  \return intersection type: NO_INTERSECTION|INSIDE_SPACE, NO_INTERSECTION|OUTSIDE_SPACE, and POINT_INTERSECTION */ 
+inline int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double &t){
+
+    double dot1 = nDir[0]*(p1[0]-point[0]) + nDir[1]*(p1[1]-point[1]) + nDir[2]*(p1[2]-point[2]);
+    double dot2 = nDir[0]*(p2[0]-point[0]) + nDir[1]*(p2[1]-point[1]) + nDir[2]*(p2[2]-point[2]);
+#ifdef DEBUG
+    if(!IsNormalized(nDir))Fatal("%s: normal (%g,%g,%g) is not normalized",__func__, nDir[0], nDir[1],nDir[2]);
+    if(!Numerical(dot1))Fatal("%s: dot1=%f",__func__,dot1);
+    if(!Numerical(dot2))Fatal("%s: dot2=%f",__func__,dot2);
+#endif
+    if(dot1 > 0 && dot2>0)return(NO_INTERSECTION|INSIDE_SPACE);
+    if(dot1 < 0 && dot2<0)return(NO_INTERSECTION|OUTSIDE_SPACE);
+    double tot = fabs(dot1)+fabs(dot2);
+    if(tot > 1.0E-80) t = fabs(dot1)/tot;
+    else t = 0.0;
+#ifdef DEBUG
+    if(!Numerical(t))Fatal("%s: t=%f", __func__, t);
+#endif
+    return(POINT_INTERSECTION);
+}
+inline int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double *intersection){
+    int type; double t;
+    if((type=SegmentPlaneIntersection(p1,p2,nDir,point,t))==POINT_INTERSECTION){
+        intersection[0] = (1.0-t)*p1[0]+t*p2[0];
+        intersection[1] = (1.0-t)*p1[1]+t*p2[1];
+        intersection[2] = (1.0-t)*p1[2]+t*p2[2];
+    }
+    return type;
+}
+inline int SegmentPlaneIntersection(double *p1, double *p2, double *plane, double *intersection){
+    return SegmentPlaneIntersection(p1,p2,plane,plane+3,intersection);
+}
+
+/** Find a intersection of segment and plane (if has) 
+ *  \param[in] p1[3] coordinates of the first end of segment
+ *  \param[in] p2[3] coordinates of the second  end of segment
+ *  \param[in] nDir[3] normal of plane
+ *  \param[in] point[3] coordinate of point on plane
+ *  \param[in] plane[6] normal and a point of the plane
  *  \param[in] margin margin of the plane
  *  \param[out] t normalized position of intersection point
  *  \param[out] intersection[3] position of intersection point
- *  \return intersection type: NO_INTERSECTION, POINT_INTERSECTION, INSIDE_SPACE and OUTSIDE_SPACE */ 
-int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double &t);
-int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double *intersection);
-int SegmentPlaneIntersection(double *p1, double *p2, double *plane, double margin, double &t);
-int SegmentPlaneIntersection(double *p1, double *p2, double *plane, double margin, double *intersection);
-int SegmentPlaneIntersection(double *p1, double *p2, double *plane, double &t);
-int SegmentPlaneIntersection(double *p1, double *p2, double *plane, double *intersection);
+ *  \return intersection type: NO_INTERSECTION|INSIDE_SPACE, NO_INTERSECTION|OUTSIDE_SPACE, and POINT_INTERSECTION */ 
+inline int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double margin, double &t){
+    double mPoint[3]={point[0]+margin*nDir[0],point[1]+margin*nDir[1],point[2]+margin*nDir[2]};
+    return SegmentPlaneIntersection(p1, p2, nDir, mPoint, t);
+}
+inline int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double margin, double *intersection){
+    double mPoint[3]={point[0]+margin*nDir[0],point[1]+margin*nDir[1],point[2]+margin*nDir[2]};
+    return SegmentPlaneIntersection(p1, p2, nDir, mPoint, intersection);
+}
+inline int SegmentPlaneIntersection(double *p1, double *p2, double *plane, double margin, double *intersection){
+    double mPoint[3]={plane[3]+margin*plane[0],plane[4]+margin*plane[1],plane[5]+margin*plane[2]};
+    return SegmentPlaneIntersection(p1, p2, plane, mPoint, intersection);
+}
 
 /** Determines whether the node is inside a convex polyhedron
  *  \param[in] p[3] coordinates of the point
@@ -256,9 +303,34 @@ int SegmentPlaneIntersection(double *p1, double *p2, double *plane, double *inte
  *  \param[in] nBounds # of boundaries
  *  \param[in] margin margin of the boundaries
  *  \return true or false */
-bool InConcavePolyhedron(double *p, double **bounds, int nBounds, double margin);
-bool InConcavePolyhedron(double *p, double *bounds, int nBounds, double margin);
+inline bool InConcavePolyhedron(double *p, double **bounds, int nBounds, double margin);
+inline bool InConcavePolyhedron(double *p, double *bounds, int nBounds, double margin);
 
+
+/** Determines whether the node is inside a convex polyhedron
+ *  \param[in] p[3] coordinates of the point
+ *  \param[in] bounds boundary info. contains all plane normals and points on each plane
+ *  \param[in] nBounds # of boundaries
+ *  \param[in] margin margin of the boundaries
+ *  \return true or false */
+inline bool InConcavePolyhedron(double *p, double **bounds, int nBounds, double margin)
+{
+    double dis;
+    for(auto i=0; i<nBounds; i++){
+        PointPlaneDistance(p, bounds[i], dis);
+        if(dis>margin)return false;
+    }
+    return true;
+}
+inline bool InConcavePolyhedron(double *p, double *bounds, int nBounds, double margin)
+{
+    double dis;
+    for(auto i=0; i<nBounds; i++){
+        PointPlaneDistance(p, &bounds[i*6], dis);
+        if(dis>margin)return false;
+    }
+    return true;
+}
 
 /** Clip a segment in a concave polyhedron
  *  \param[in] p1[3] coordinates of point 1, this point is default in the polyhedron
@@ -268,8 +340,18 @@ bool InConcavePolyhedron(double *p, double *bounds, int nBounds, double margin);
  *  \param[in] margin margin of the polyhedron
  *  \param[out] i ith boundary that has the intersection 
  *  \return NO_INTERSECTION|OUTSIDE_SPACE, POINT_INTERSECTION */
-int ClipSementInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, int &i);
-int ClipSementInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, double margin, int &i);
+inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, int &i)
+{
+    int type;
+    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,p2))==POINT_INTERSECTION)break;
+    return type;
+}
+inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, double margin, int &i)
+{
+    int type;
+    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,margin,p2))==POINT_INTERSECTION)break;
+    return type;
+}
 
 /** Clip a segment in a concave polyhedron
  *  \param[in] p1[3] coordinates of point 1, this point is default in the polyhedron
@@ -280,7 +362,17 @@ int ClipSementInConcavePolyhedron(double *p1, double *p2, double *bounds, int nB
  *  \param[out] i ith boundary that has the intersection 
  *  \param[out] clipPos[3], clipping position
  *  \return NO_INTERSECTION|OUTSIDE_SPACE, POINT_INTERSECTION */
-int ClipSementInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, int &i, double *clipPos);
-int ClipSementInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, double margin, int &i, double *clipPos);
+inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, int &i, double *clipPos)
+{
+    int type;
+    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,clipPos))==POINT_INTERSECTION)break;
+    return type;
+}
+inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, double margin, int &i, double *clipPos)
+{
+    int type;
+    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,margin,clipPos))==POINT_INTERSECTION)break;
+    return type;
+}
 
 #endif

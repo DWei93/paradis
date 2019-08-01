@@ -38,6 +38,10 @@ typedef struct{
 #define GB_PLANE            0x0008
 #define UNKOWN_PLANE        0x0010
 
+/** Convert inner boundary index to subgrain index or
+    Convert subgrain index to inner boundary index */
+#define InverseIndex(a) (-1-(a))
+
 //------------------------------------------------
 #define	FOLDED_GRAIN		0
 #define ODINARY_GRAIN		1
@@ -231,24 +235,43 @@ typedef struct {
 /*Initialize geomety and lattice*/
 void InitGrain(Home_t *home, Param_t *param);
 
-/** Convert inner boundary index to subgrain index */
-inline int IndexIBToSubgrain(int IBIndex){ return -IBIndex-1; }
-/** Convert subgrain index to inner boundary index */
-inline int IndexSubgrainToIB(int subgrainIndex){ return -subgrainIndex+1;}
 
-void NodeLocation(Home_t *home, real8 *pos, int *place, real8 error);
-void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place, real8 error);
+/** According to the current node coordinates, roughly judge the node position.
+  * \param[in] pos: the coordinates of node
+  * \param[out] place: the rough location of the node
+  * \param[in] error: the error, absoule margin of face and edge
+  * Note that the point should not be outside of the geometry */
+void NodeLocation(Home_t *home, real8 *pos, int *place, real8 error=FACE_ERROR);
+inline void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place, real8 error=FACE_ERROR);
+void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place, real8 error)
+{ real8 pos[3] = {x, y, z}; return NodeLocation(home, pos, place, error);}
 
 /** According to the current node coordinates, judge if the node is the grain and subgrain
  * \param[in] pos: the coordinates of node
  * \param[in] place: the location of the node
  * \return false if the original position are not at the location, true otherwise. */
 bool InGrain(Home_t *home, int *place, real8 *pos);
-bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z);
+inline bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z)
+{   real8 pos[3]={x,y,z};
+    return InGrain(home, place, pos);
+}
+
+/** Find the intersection between segment and grain (if has) and return the new place of intersection point.
+ * \param[in] place the location of the segment.
+ * \param[in] pos1 the position of first end point of the segnent, it has to be in the place.
+ * \param[in] (x1,y1,z1) the position of first end point of the segnent, it has to be in the place.
+ * \param[in,out] pos2 the position of second end point, moved to intersection if it was outside of the place. 
+ * \param[in] (x2,y2,z2) the position of second end point of the segnent
+ * \param[out] newPlace the new place of intersection (if has) 
+ * return true if the intersection is found, otherwise false */
+bool ClipSegmentInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
+inline bool ClipSegmentInGrain(Home_t *home, int *place, real8 x1, real8 y1, real8 z1, real8 x2, real8 y2, real8 z2, int *newPlace)
+{
+    real8 pos1[3]={x1, y1, z1}; real8 pos2[3]={x2, y2, z2};
+    return ClipSegmentInGrain(home, place, pos1, pos2, newPlace);
+}
 
 bool CorrectedLocation(Home_t *home, int *place, real8 *pos);
-bool SegmentGrainIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2);
-bool SegmentGrainIntersection(Home_t *home, int *place, real8 x1, real8 y1, real8 z1, real8 x2, real8 y2, real8 z2);
 inline bool IBFaceID(const int &grainID, const int &ibID, int &faceID);
 inline bool IBGrainID(const int faceID, int &grainID, int &ibID);
 void GetArmLocation(Home_t *home, Node_t *node1, Node_t *node2, int *place);
