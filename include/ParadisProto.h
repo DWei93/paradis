@@ -36,7 +36,6 @@
 #define VECTOR_ZERO(a)   {(a)[0] = 0; (a)[1]  = 0; (a)[2] = 0;}
 #define VECTOR_MULTIPLY(a,x)	{(a)[0] *= (x);    (a)[1] *= (x);    (a)[2] *= (x);}
 
-
 #ifdef __cplusplus
 extern "C" void Getline(char *string, int len, FILE *fp);
 #else

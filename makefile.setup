@@ -111,7 +111,7 @@ OPENMP_MODE = ON
 #    Set the GSL to ON  to enable compilation with GSL support
 #    for scientific computation
 #
-#GSL = ON
+GSL = ON
 
 #
 #    Set the GEOS to ON  to enable compilation with GEOS support

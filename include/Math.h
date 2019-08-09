@@ -297,15 +297,6 @@ inline int SegmentPlaneIntersection(double *p1, double *p2, double *plane, doubl
     return SegmentPlaneIntersection(p1, p2, plane, mPoint, intersection);
 }
 
-/** Determines whether the node is inside a convex polyhedron
- *  \param[in] p[3] coordinates of the point
- *  \param[in] bounds boundary info. contains all plane normals and points on each plane
- *  \param[in] nBounds # of boundaries
- *  \param[in] margin margin of the boundaries
- *  \return true or false */
-inline bool InConcavePolyhedron(double *p, double **bounds, int nBounds, double margin);
-inline bool InConcavePolyhedron(double *p, double *bounds, int nBounds, double margin);
-
 
 /** Determines whether the node is inside a convex polyhedron
  *  \param[in] p[3] coordinates of the point

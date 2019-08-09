@@ -232,9 +232,14 @@ typedef struct {
     real8   energyFactor;
 }Dislocation_t;
 
+                
+template<class v>
+inline void VectorCopy(v *dest, v *source){dest[0] = source[0];dest[1] = source[1];dest[2] = source[2];}
+template<class v>
+inline void LongVectorCopy(v *dest, v *source, int num){memcpy(dest, source, num*sizeof(v));}
+
 /*Initialize geomety and lattice*/
 void InitGrain(Home_t *home, Param_t *param);
-
 
 /** According to the current node coordinates, roughly judge the node position.
   * \param[in] pos: the coordinates of node
@@ -252,9 +257,7 @@ void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place, real8 err
  * \return false if the original position are not at the location, true otherwise. */
 bool InGrain(Home_t *home, int *place, real8 *pos);
 inline bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z)
-{   real8 pos[3]={x,y,z};
-    return InGrain(home, place, pos);
-}
+{real8 pos[3]={x,y,z}; return InGrain(home, place, pos);}
 
 /** Find the intersection between segment and grain (if has) and return the new place of intersection point.
  * \param[in] place the location of the segment.
@@ -265,15 +268,32 @@ inline bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z)
  * \param[out] newPlace the new place of intersection (if has) 
  * return true if the intersection is found, otherwise false */
 bool ClipSegmentInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
-inline bool ClipSegmentInGrain(Home_t *home, int *place, real8 x1, real8 y1, real8 z1, real8 x2, real8 y2, real8 z2, int *newPlace)
-{
-    real8 pos1[3]={x1, y1, z1}; real8 pos2[3]={x2, y2, z2};
-    return ClipSegmentInGrain(home, place, pos1, pos2, newPlace);
-}
+
+/** According to the current position of the node, determine whether the node 
+ *  is on the face, on the subface or on the IB edge.
+ * \param[in] pos: the coordinates of node
+ * \param[in] place: the location of the node
+ * \return false if the original position are not at the location, true otherwise. */
+bool OnFace(Home_t *home, int *place, real8 *pos);
+inline bool OnFace(Home_t *home, int *place, real8 x, real8 y, real8 z)
+{real8 pos[3]={x,y,z}; return OnFace(home, place, pos);}
+
+/** Find the intersection between segment and face (if has) and return the new place of intersection point.
+ * \param[in] place the location of the segment.
+ * \param[in] pos1 the position of first end point of the segnent, it has to be in the place.
+ * \param[in,out] pos2 the position of second end point, moved to intersection if it was outside of the place. 
+ * \param[out] newPlace the new place of intersection (if has) 
+ * \return true if the place is changed, otherwise false */
+bool ClipSegmentOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
+
+/** According to the current position of the node, determine whether the node 
+ *  is on the face edge
+ * \param[in] pos: the coordinates of node
+ * \param[in] place: the location of the node
+ * \return false if the original position are not at the location, true otherwise. */
+bool OnFaceEdge(Home_t *home, int *place, real8 *pos);
 
 bool CorrectedLocation(Home_t *home, int *place, real8 *pos);
-inline bool IBFaceID(const int &grainID, const int &ibID, int &faceID);
-inline bool IBGrainID(const int faceID, int &grainID, int &ibID);
 void GetArmLocation(Home_t *home, Node_t *node1, Node_t *node2, int *place);
 void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3]);
 void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, BurgInfo_t *bInf2);

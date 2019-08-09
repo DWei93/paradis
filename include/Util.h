@@ -66,17 +66,11 @@ void   Orthogonalize(real8 *ax, real8 *ay, real8 *az,
 void   xvector(real8 ax, real8 ay, real8 az,
           real8 bx, real8 by, real8 bz,
           real8 *cx, real8 *cy, real8 *cz);
-/*-------------------------------------------------------------------------
- *      Function:     Normal
- *      Description:  Calculate and return to the caller the normal of
- *                    vector <a>
- *
- *      Arguments:
- *          a   Array containing the three element vector.
- *
- *------------------------------------------------------------------------*/
 inline real8 Normal(real8 a[3])
 { return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]) );}
+inline void VectorSubtract(real8 *a, real8 *b, real8 *c)
+{c[0]=a[0]-b[0];c[1]=a[1]-b[1];c[2]=a[2]-b[2];return;}
+
 
 /*
  *      Nodal manipulations and operations
