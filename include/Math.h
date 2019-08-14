@@ -35,11 +35,32 @@ void GSLTest();
 #endif
 
 extern void Fatal(const char *format, ...);
-extern double  Normal(double a[3]);
-extern double  Normal(std::vector<double>& a);
-extern void   Normalize(double *ax, double *ay, double *az);
-extern void   NormalizeVec(double vec[3]);
-extern void   cross(double a[3], double b[3], double c[3]);
+
+/** Normalize vector 
+ *  \param[in,out] vec vector to be normalized */
+inline void normalize_vec(double *vec)
+{
+   double a2, a;
+   a2 = (vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
+   if (a2 > 0.0) {
+       a = sqrt(a2);
+       vec[0] /= a;
+       vec[1] /= a;
+       vec[2] /= a;
+   }
+   return;
+}
+
+/** Cross product of vector
+ *  \param[in] a first vector 
+ *  \param[in] b second vector
+ *  \param[out] c coross product vector */
+inline void cross_product(double *a, double *b, double *c)
+{
+    c[0]=a[1]*b[2]-a[2]*b[1];
+    c[1]=a[2]*b[0]-a[0]*b[2];
+    c[2]=a[0]*b[1]-a[1]*b[0];
+}
 
 /** Check if the variable is numerical. */
 inline bool Numerical(double v){return (!isnan(v) && !isinf(v));}

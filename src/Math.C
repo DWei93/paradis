@@ -83,7 +83,7 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2, double
     vec1[0] = -(n1z*n2y) + n1y*n2z;
     vec1[1] = n1z*n2x - n1x*n2z;
     vec1[2] = -(n1y*n2x) + n1x*n2y;
-    NormalizeVec(vec1);
+    normalize_vec(vec1);
 
     // if the two points are too closed, point2 is chosed to be the point on intersection line
     if(SQUARE(p1x - p2x) + SQUARE(p1y - p2y) + SQUARE(p1z - p2z) < err2*err2){
@@ -91,11 +91,11 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2, double
     }
 
     // the glide direction from point1 to plane2 is defined by the cross production of normal1 and intersection line direction
-    cross(vec1, n1, vec3);
+    cross_product(vec1, n1, vec3);
 #ifdef DEBUG 
-    if(Normal(vec3)< 1.0E-4)Fatal("%s: cross porducet vector is zero\n", __func__);
+    if(vec3[0]*vec3[0]+vec3[1]*vec3[1]+vec3[2]*vec3[2]< 1.0E-8)Fatal("%s: cross porducet vector is zero\n", __func__);
 #endif
-    NormalizeVec(vec3);
+    normalize_vec(vec3);
 
     // the key point of inetrsection line can be defined by the intersection point of glide line and plane2
     type = LinePlaneIntersection(vec3, p1, n2, p2, vec4, vec2, err1, err2);
@@ -365,7 +365,7 @@ int PointPlaneIntersection(double *p1, double *n, double *p2, double *vec, doubl
     temVec[0] = p1x - vec[0];
     temVec[1] = p1y - vec[1];
     temVec[2] = p1z - vec[2];
-    NormalizeVec(temVec);
+    normalize_vec(temVec);
     if(DotProduct(temVec, n) < 0)*dis *= -1.0; 
 #endif 
     if(fabs(*dis) < err2) return(POINT_INTERSECTION);
