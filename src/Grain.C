@@ -779,10 +779,11 @@ void NodeLocation(Home_t *home, real8 *pos, int *place, real8 error)
 
 
 /** According to the current node coordinates, judge if the node is the grain and subgrain
- * \param[in] pos: the coordinates of node
- * \param[in] place: the location of the node
- * \return false if the original position are not at the location, true otherwise. */
-bool InGrain(Home_t *home, int *place, real8 *pos)
+ * \param[in] pos the coordinates of node
+ * \param[in] place the location of the node
+ * \param[in] margin inner margin of grain
+ * \return false if the position are not at the location, true otherwise. */
+bool InGrain(Home_t *home, int *place, real8 *pos, real8 margin)
 {
     int i;
     Face_t *face;
@@ -798,7 +799,7 @@ bool InGrain(Home_t *home, int *place, real8 *pos)
         face=grain->faces[i];
         PointPlaneDistance(pos, face->n, face->p, dis);
         dis *= grain->sign[i];
-        if(dis>-FACE_ERROR)return false;
+        if(dis>-margin)return false;
     }
     
 #ifdef DEBUG
@@ -808,136 +809,25 @@ bool InGrain(Home_t *home, int *place, real8 *pos)
     int ibID = InverseIndex(place[2]);
     if(ibID<grain->nIBs){
         PointPlaneDistance(pos, grain->ibN, grain->ibPs[ibID], dis);
-        if(dis > -FACE_ERROR)return false;
+        if(dis > -margin)return false;
     }
 
     if(ibID>0){
         PointPlaneDistance(pos, grain->ibN, grain->ibPs[ibID-1], dis);
-        if(dis < FACE_ERROR)return false;
+        if(dis < margin)return false;
     }
 
     return true;
 }
 
-/** Find the intersection between segment and grain (if has) and return the new place of intersection point.
- * \param[in] place the location of the segment.
- * \param[in] pos1 the position of first end point of the segnent, it has to be in the place.
- * \param[in,out] pos2 the position of second end point, moved to intersection if it was outside of the place. 
- * \param[out] newPlace the new place of intersection (if has) 
- * \return true if the place is changed, otherwise false */
-bool ClipSegmentInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
-{
-    Face_t *face;
-    bool status=false;
-    real8 nFace[3], ibPoint[3];
-
-#ifdef DEBUG
-    if(place[0]!=IN_GRAIN)Fatal("%s: place[0] = %d",__func__, place[0]);
-    if(place[1]<0 || place[1]>=home->nGrains)Fatal("%s: place[1] = %d",__func__, place[1]);
-    if(!InGrain(home, place, pos1))Fatal("%s: the position 1 is not in corrected grain.");
-#endif    
-    Grain_t *grain = home->grainKeys[place[1]];
-    int i, ibID;
-    for(i=0; i<grain->nFaces; i++){
-        face=grain->faces[i];
-        if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, face->n, face->p, pos2)){
-            status = true;
-            newPlace[0] = ON_FACE;;
-            newPlace[1] = face->id;
-            // loop through two neighbor grains of the face
-            for(auto j=0; j<2; j++){
-                // if the face is free surface (no second neighbor grain), save the surface ID intp newPlace and continue
-                if(face->nbrGrain[j]<0){newPlace[2+j]=face->nbrGrain[j]; continue;}
-
-                // if the neighbor grain is current grain, determine whether the segment crosses the two inner boundaries
-                if(face->nbrGrain[j]==grain->id){
-#ifdef DEBUG
-                    if(place[2]<-grain->nIBs-1||place[2]>-1)Fatal("%s: no sub-grain %d in grain %d",__func__,place[2], place[1]);
-#endif
-                    newPlace[2+j]=place[2]; //the default is old subgrain index
-                    ibID = InverseIndex(place[2]);
-                    
-                    if(ibID<grain->nIBs){ // if has upper innner boundary
-                        if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], pos2)){
-                            // if the segment is clipped on inner boundary now, there are two posibilities: on IB or on IB edge
-                            int localEdgeID;
-                            if(ClipSegmentInConcavePolyhedron(grain->ibPs[ibID], pos2, grain->ibsEdges[ibID], 
-                               grain->ibsNumEdges[ibID], localEdgeID)==POINT_INTERSECTION){
-                                // if there is a intersection to IB edge, the point 2 is on IB edge
-                                newPlace[2+j]=ibID; continue;
-                            }else{
-                                newPlace[0]=ON_IB; newPlace[1]=grain->id; newPlace[2]=ibID; return status;
-                            }
-                        }
-                    }
-    
-                    if(ibID>0){ // if has lower boundary
-                        ibID--;
-                        if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], pos2)){
-                            // if the segment is clipped on inner boundary now, there are two posibilities: on IB or on IB edge
-                            int localEdgeID;
-                            if(ClipSegmentInConcavePolyhedron(grain->ibPs[ibID], pos2, grain->ibsEdges[ibID], 
-                               grain->ibsNumEdges[ibID], localEdgeID)==POINT_INTERSECTION){
-                                // if there is a intersection to IB edge, the point 2 is on IB edge
-                                newPlace[2+j]=ibID; continue;
-                            }else{
-                                newPlace[0]=ON_IB; newPlace[1]=grain->id; newPlace[2]=ibID; return status;
-                            }
-                        }
-                    }
-                } /*if the neighbor is the adjacent grain*/ else {
-                    real8 vec[3], dis;
-                    Grain_t *nbrGrain = home->grainKeys[face->nbrGrain[j]];
-                    newPlace[2+j] = InverseIndex(nbrGrain->nIBs);
-                    for(auto k=0; k<nbrGrain->nIBs; k++){
-                        PointPlaneDistance(pos2, nbrGrain->ibN, nbrGrain->ibPs[k], dis);
-                        if(dis<0){newPlace[2+j]=InverseIndex(k); break;}
-                    }
-                }
-            }
-            return status;
-        }else{
-            // if there is no intersection on the face, keep looking for intersection on inner margin with -SAFE_FACE_ERROR
-            // and then clip the segment and make sure that point 2 is not too close to the face.
-            nFace[0] = grain->sign[i]*face->n[0]; nFace[1] = grain->sign[i]*face->n[1]; nFace[2] = grain->sign[i]*face->n[2];
-            SegmentPlaneIntersection(pos1, pos2, nFace, face->p, -SAFE_FACE_ERROR, pos2);
-        }
-    }
-    
-    ibID = InverseIndex(place[2]); 
-#ifdef DEBUG
-    if(ibID<0||ibID>grain->nIBs)Fatal("%s: no subgrain %d in grain %d",__func__,place[2], place[1]);
-#endif
-    if(ibID<grain->nIBs){ // if has upper boundary
-        if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], pos2)){
-            newPlace[0]=ON_IB; newPlace[1]=grain->id; newPlace[2]=ibID;
-            return true; 
-        }
-        // if ther is an intersection point on inner plane of subgrain with a margin of -SAFE_FACE_ERROR
-        // clip the segment without changing place
-        SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], -SAFE_FACE_ERROR, pos2);
-    }
-
-    if(ibID>0){ // if has lower boundary
-        ibID--;
-        if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], pos2)){
-            newPlace[0]=ON_IB; newPlace[1]=grain->id; newPlace[2]=ibID;
-            return true; 
-        }
-
-        // if ther is an intersection point on inner plane of subgrain with a margin of SAFE_FACE_ERROR
-        // clip the segment without changing place
-        SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], SAFE_FACE_ERROR, pos2);
-    }
-    return status;
-}
 
 /** According to the current position of the node, determine whether the node 
  *  is on the face, on the subface or on the IB edge.
- * \param[in] pos: the coordinates of node
- * \param[in] place: the location of the node
- * \return false if the original position are not at the location, true otherwise. */
-bool OnFace(Home_t *home, int *place, real8 *pos)
+ * \param[in] pos the coordinates of node
+ * \param[in] place the location of the node
+ * \param[in] margin inner margin of the face
+ * \return false if the position are not at the location, true otherwise. */
+bool OnFace(Home_t *home, int *place, real8 *pos, real8 margin)
 {
 #ifdef DEBUG
     if(place[1]<0 || place[1]>=home->nFaces)Fatal("%s: wrong face ID", __func__);
@@ -950,7 +840,7 @@ bool OnFace(Home_t *home, int *place, real8 *pos)
     if(fabs(dis)>FACE_ERROR)return false;
 
     // if the point is outside of inner edges of the face, false
-    if(!InConcavePolyhedron(pos, face->edges, face->nEdges, -FACE_ERROR))return false;
+    if(!InConcavePolyhedron(pos, face->edges, face->nEdges, -margin))return false;
 
     int ibID;  Grain_t *grain;
     for(auto i=0; i<2; i++){
@@ -960,138 +850,29 @@ bool OnFace(Home_t *home, int *place, real8 *pos)
         // If on a IB, locate IB directly and check if it is on that IB.
         if(place[2+i]>=0){
             PointPlaneDistance(pos, grain->ibN, grain->ibPs[place[2+i]], dis);
-            if(dis>FACE_ERROR)return false;
+            if(fabs(dis)>FACE_ERROR)return false;
         }else{
             ibID = InverseIndex(place[2+i]);
             if(ibID<grain->nIBs){  // if has upper boundary
                 PointPlaneDistance(pos, grain->ibN, grain->ibPs[ibID], dis);
-                if(dis>-FACE_ERROR)return false;
+                if(dis>-margin)return false;
             }
             if(ibID>0){ // if has lower boundary
-                ibID--; PointPlaneDistance(pos, grain->ibN, grain->ibPs[ibID], dis);
-                if(dis<FACE_ERROR)return false;
+                PointPlaneDistance(pos, grain->ibN, grain->ibPs[ibID-1], dis);
+                if(dis<margin)return false;
             }
         }
     }
     return true;
 }
 
-/** Find the intersection between segment and face (if has) and return the new place of intersection point.
- * \param[in] place the location of the segment.
- * \param[in] pos1 the position of first end point of the segnent, it has to be in the place.
- * \param[in,out] pos2 the position of second end point, moved to intersection if it was outside of the place. 
- * \param[out] newPlace the new place of intersection (if has) 
- * \return true if the place is changed, otherwise false */
-bool ClipSegmentOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
-{  
-    int edgeID, faceID, ibID;
-    real8 interPos[3], dis, t;
-    Grain_t *grain;
-
-#ifdef DEBUG
-    if(place[1]<0 || place[1]>=home->nFaces)Fatal("%s: wrong face ID", __func__);
-#endif
-    Face_t *face = home->faces[place[1]];
-#ifdef DEBUG
-    if(!OnFace(home, place, pos1[0], pos1[1], pos1[2]))Fatal("%s: the first position (%f,%f,%f) is not on the face.",
-        __func__, pos1[0], pos1[1], pos1[2]);
-#endif
-
-    // Make sure point 2 is on the face, clip the segment if point is not.
-    if(SegmentPlaneIntersection(pos1, pos2, face->n, face->p, pos2)!=POINT_INTERSECTION){
-        PointPlaneDistance(pos2, face->n, face->p, dis, pos2);
-#ifdef DEBUG
-        if(fabs(dis) > SAFE_FACE_ERROR)Fatal("%s: the point 2 is far away to the face, distance %e", __func__, dis);
-#endif
-    }
-   
-    bool status = false;
-    // check if the segment has crossed the face boundary 
-    if(POINT_INTERSECTION==ClipSegmentInConcavePolyhedron(pos1, pos2, face->edges, face->nEdges, edgeID, pos2)){
-#ifdef DEBUG
-        if(face->edgesID[edgeID] < 0 || face->edgesID[edgeID]>=home->nEdges)Fatal("%s line %d: wrong global edge ID",__func__, __LINE__);
-#endif
-        // the clipping point may be on the face edge or at the vertice of the edge
-        Edge_t &edge = home->edges[face->edgesID[edgeID]];
-        real8  p1[3]={home->vertices[3*edge.vertID1],home->vertices[3*edge.vertID1+1],home->vertices[3*edge.vertID1+2]};
-        real8  p2[3]={home->vertices[3*edge.vertID2],home->vertices[3*edge.vertID2+1],home->vertices[3*edge.vertID2+2]};
-
-        real8 v[3];
-        VectorSubtract(p1,pos2,v);
-        dis=DotProduct(v,v);
-        if(dis==0){newPlace[0]=AT_VERTICE; newPlace[1]=edge.vertID1; return true;}
-        // if the clipping point is close to vectice 1 of the edge, pull to safe place
-        else if(dis < FACE_ERROR*FACE_ERROR){
-            real8 lDir[3] = {p2[0]-p1[0], p2[1]-p1[1], p2[2]-p1[2]}; NormalizeVec(lDir);            
-            pos2[0] = p1[0]+lDir[0]*SAFE_FACE_ERROR;
-            pos2[1] = p1[1]+lDir[1]*SAFE_FACE_ERROR;
-            pos2[2] = p1[2]+lDir[2]*SAFE_FACE_ERROR;
-        }
-        
-        VectorSubtract(p2,pos2,v);
-        dis=DotProduct(v,v);
-        if(dis==0){newPlace[0]=AT_VERTICE; newPlace[1]=edge.vertID2; return true;}
-        // if the clipping point is close to vectice 2 of the edge, pull to safe place
-        else if(dis < FACE_ERROR*FACE_ERROR){
-            real8 lDir[3] = {p2[0]-p1[0], p2[1]-p1[1], p2[2]-p1[2]}; NormalizeVec(lDir);            
-            pos2[0] = p2[0]-lDir[0]*SAFE_FACE_ERROR;
-            pos2[1] = p2[1]-lDir[1]*SAFE_FACE_ERROR;
-            pos2[2] = p2[2]-lDir[2]*SAFE_FACE_ERROR;
-        }
-        newPlace[0] = ON_FACE_EDGE;
-        newPlace[1] = face->edgesID[edgeID];
-        status = true;
-    }else {
-        // if there has no intersection on face edges, clip the segment by inner margins to ensure there is 
-        // no misunderstanding of the place.
-        ClipSegmentInConcavePolyhedron(pos1, pos2, face->edges, face->nEdges,-SAFE_FACE_ERROR, edgeID, pos2);
-    }
-
-    // if the point 2 is not on face edge, initialize newPlace
-    if(!status){newPlace[0] = ON_FACE; newPlace[1]=face->id;};
-    // loop through grains on both side of the face, clip the segment acoording to the place of point 2
-    for(auto i=0; i<2; i++){
-        // if no neighbor grain on this side (face is free surface), copy the surface ID and continue
-        if(face->nbrGrain[i]<0){newPlace[2+i]=face->nbrGrain[i]; continue;}
-
-        grain = home->grainKeys[face->nbrGrain[i]];
-        // if the index is IB index already, clip the sgement by the inner boundary
-        if(place[2+i]>=0){
-            SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[place[2+i]], pos2);
-        }else /* if the segment is also in subgrain of the neighbor */{
-            ibID = InverseIndex(place[2+i]);
-
-            if(ibID<grain->nIBs){ // if has upper boundary
-                if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], pos2)){
-                    newPlace[2+i] = ibID; status=true; continue;
-                }
-                // if ther is an intersection point on inner plane of subgrain with a margin of -SAFE_FACE_ERROR
-                // clip the segment without changing place
-                else SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], -SAFE_FACE_ERROR, pos2);
-            }
-  
-            if(ibID>0){ // if has lower boundary
-                ibID--;
-                if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], pos2)){
-                    newPlace[2+i] = ibID; status=true; continue;
-                }
-  
-                // if ther is an intersection point on inner plane of subgrain with a margin of SAFE_FACE_ERROR
-                // clip the segment without changing place
-                else SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], SAFE_FACE_ERROR, pos2);
-            }
-            newPlace[2+i] = place[2+i];
-        }
-    }/*end for(i=0;i<2;i++) */
-    return status;
-}
-
-/** According to the current position of the node, determine whether the node 
+/** According to the current position of the node, determine whether the position
  *  is on the face edge
- * \param[in] pos: the coordinates of node
- * \param[in] place: the location of the node
- * \return false if the original position are not at the location, true otherwise. */
-bool OnFaceEdge(Home_t *home, int *place, real8 *pos)
+ * \param[in] pos the coordinates of node
+ * \param[in] place the location of the node
+ * \param[in] margin inner margin of the edge
+ * \return false if the position are not at the location, true otherwise. */
+bool OnFaceEdge(Home_t *home, int *place, real8 *pos, real8 margin)
 {
 #ifdef DEBUG
     if(place[0] != ON_FACE_EDGE)Fatal("%s line %d: place[0]=%d",__func__,__LINE__,place[0]);
@@ -1107,39 +888,37 @@ bool OnFaceEdge(Home_t *home, int *place, real8 *pos)
     if(Normal(lDir)<FACE_ERROR)Fatal("%s: two vertice are too close",__func__);
 #endif
     // if the point is not in range of the segment, it is definitely not on the edge.
-    real8 len=Normal(lDir), dotRatio=DotProduct(lDir, vec)/len;
-    if(dotRatio < FACE_ERROR || dotRatio > len-FACE_ERROR)return false;
+    real8 len=normal(lDir), dotRatio=DotProduct(lDir, vec)/len;
+    if(dotRatio < margin || dotRatio > len-margin)return false;
 
     // if the point is not at the line, it is definitely not on the edge. 
     NormalizeVec(lDir);
     PointLineIntersection(pos, lDir, pos1, vec, &dis); 
-    if(fabs(dis)>FACE_ERROR)return false;
+    if(fabs(dis)>fabs(margin))return false;
     return true;
 }
 
-
-/** Find the intersection between segment and face edge(if has) and return the new place of intersection point.
- * \param[in] place the location of the segment.
- * \param[in] pos1 the position of first end point of the segnent, it has to be in the place.
- * \param[in,out] pos2 the position of second end point, moved to intersection if it was outside of the place. 
- * \param[out] newPlace the new place of intersection (if has) 
- * \return true if the place is changed, otherwise false */
-bool SegmentFaceEdgeIntersection(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
-{  
-    bool status = false;
-    return status;
-}
-
-bool CorrectedLocation(Home_t *home, int *place, real8 *pos)
+/** According to current position of the node and neighbor place, determin wheter the node
+ *  is on the face edge
+ *  \param[in] place the nodal place
+ *  \param[in] pos the nodal position
+ *  \param[in] node the node
+ *  \param[in] margin inner margin of the edge
+ * \return false if the position are not at the location, true otherwise. */
+bool OnFaceEdge(Home_t *home, int *place, real8 *pos, Node_t *node, real8 margin)
 {
-    bool status = false;
-    switch(*place){
-        case IN_GRAIN:
-            
-            break;
+    bool state=OnFaceEdge(home, place, pos, margin); if(!state)return false;
+    
+    Node_t *nbr;
+    for(auto i=0; i<node->numNbrs; i++){
+        nbr = GetNeighborNode(home, node, i);
+#ifdef DEBUG
+        if(nbr == (Node_t *)NULL)Fatal("%s: can not find the neighbor.",__func__);
+#endif
+
     }
-    return status;
-} 
+    return true;
+}
 
 
 void GetArmLocation(Home_t *home, Node_t *node1, Node_t *node2, int *place){

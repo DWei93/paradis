@@ -36,19 +36,17 @@ void GSLTest();
 
 extern void Fatal(const char *format, ...);
 
+/** normal of a vector */
+inline double normal(double *a)
+{return sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);}
+
 /** Normalize vector 
  *  \param[in,out] vec vector to be normalized */
-inline void normalize_vec(double *vec)
-{
-   double a2, a;
-   a2 = (vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
-   if (a2 > 0.0) {
-       a = sqrt(a2);
-       vec[0] /= a;
-       vec[1] /= a;
-       vec[2] /= a;
-   }
-   return;
+inline void normalize_vec(double *vec){
+    double a2, a;
+    a2 = (vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
+    if (a2 > 0.0) {a = sqrt(a2);vec[0] /= a;vec[1] /= a;vec[2] /= a;}
+    return;
 }
 
 /** Cross product of vector

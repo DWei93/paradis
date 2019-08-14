@@ -252,48 +252,34 @@ void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place, real8 err
 { real8 pos[3] = {x, y, z}; return NodeLocation(home, pos, place, error);}
 
 /** According to the current node coordinates, judge if the node is the grain and subgrain
- * \param[in] pos: the coordinates of node
- * \param[in] place: the location of the node
- * \return false if the original position are not at the location, true otherwise. */
-bool InGrain(Home_t *home, int *place, real8 *pos);
-inline bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z)
-{real8 pos[3]={x,y,z}; return InGrain(home, place, pos);}
-
-/** Find the intersection between segment and grain (if has) and return the new place of intersection point.
- * \param[in] place the location of the segment.
- * \param[in] pos1 the position of first end point of the segnent, it has to be in the place.
- * \param[in] (x1,y1,z1) the position of first end point of the segnent, it has to be in the place.
- * \param[in,out] pos2 the position of second end point, moved to intersection if it was outside of the place. 
- * \param[in] (x2,y2,z2) the position of second end point of the segnent
- * \param[out] newPlace the new place of intersection (if has) 
- * return true if the intersection is found, otherwise false */
-bool ClipSegmentInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
+ * \param[in] pos the coordinates of node
+ * \param[in] place the location of the node
+ * \param[in] margin inner margin of grain
+ * \return false if the position are not at the location, true otherwise. */
+bool InGrain(Home_t *home, int *place, real8 *pos, real8 margin=FACE_ERROR);
+inline bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 margin=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return InGrain(home, place, pos, margin);}
 
 /** According to the current position of the node, determine whether the node 
  *  is on the face, on the subface or on the IB edge.
- * \param[in] pos: the coordinates of node
- * \param[in] place: the location of the node
- * \return false if the original position are not at the location, true otherwise. */
-bool OnFace(Home_t *home, int *place, real8 *pos);
-inline bool OnFace(Home_t *home, int *place, real8 x, real8 y, real8 z)
-{real8 pos[3]={x,y,z}; return OnFace(home, place, pos);}
+ * \param[in] pos the coordinates of node
+ * \param[in] place the location of the node
+ * \param[in] margin inner margin of the face
+ * \return false if the position are not at the location, true otherwise. */
+bool OnFace(Home_t *home, int *place, real8 *pos, real8 margin=FACE_ERROR);
+inline bool OnFace(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 margin=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return OnFace(home, place, pos, margin);}
 
-/** Find the intersection between segment and face (if has) and return the new place of intersection point.
- * \param[in] place the location of the segment.
- * \param[in] pos1 the position of first end point of the segnent, it has to be in the place.
- * \param[in,out] pos2 the position of second end point, moved to intersection if it was outside of the place. 
- * \param[out] newPlace the new place of intersection (if has) 
- * \return true if the place is changed, otherwise false */
-bool ClipSegmentOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
-
-/** According to the current position of the node, determine whether the node 
+/** According to the current position of the node, determine whether the position
  *  is on the face edge
- * \param[in] pos: the coordinates of node
- * \param[in] place: the location of the node
- * \return false if the original position are not at the location, true otherwise. */
-bool OnFaceEdge(Home_t *home, int *place, real8 *pos);
+ * \param[in] pos the coordinates of node
+ * \param[in] place the location of the node
+ * \param[in] margin inner margin of the edge
+ * \return false if the position are not at the location, true otherwise. */
+bool OnFaceEdge(Home_t *home, int *place, real8 *pos, real8 margin=FACE_ERROR);
+inline bool OnFaceEdge(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 margin=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return OnFaceEdge(home, place, pos, margin);}
 
-bool CorrectedLocation(Home_t *home, int *place, real8 *pos);
 void GetArmLocation(Home_t *home, Node_t *node1, Node_t *node2, int *place);
 void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3]);
 void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, BurgInfo_t *bInf2);
