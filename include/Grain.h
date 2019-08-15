@@ -16,9 +16,11 @@ using namespace voro;
 #endif
 
 typedef struct{
-    int type;   // 0: Grain boundary edge
-                // 1: Inner boubdary edge
-    int vertID1, vertID2;
+    int     type;   // 0: Grain boundary edge
+                    // 1: Inner boubdary edge
+    int     vertID1, vertID2;
+    int     nIBs, *ibInGrain, *ibID;
+
     std::vector<int> ofFaces;
     int ofIB[2];
 }Edge_t;

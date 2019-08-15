@@ -40,8 +40,8 @@
 
 /** Table: define the location or arm
  *  grain ID: range [0,home->nGrains)
- *  sub-grain (SG) ID: range [-grain->nIBs-1,-1]
- *  inner boundary (IB) ID: range [0,grain->nIBs)
+ *  sub-grain (SG) ID: range [-grain->nIBs-1,-1] in grain, [-edge.nIBs-1,-1] on face edge
+ *  inner boundary (IB) ID: range [0,grain->nIBs) in grain, [0,edge.nIBs) on face edge
  *  face ID: range [0,home->nFaces)
  *  free surface (FS) ID: range [-6,-1]
  *  edge ID: range [0, home->nEdges)
@@ -51,7 +51,7 @@
  *  IN_GRAIN          | grain ID   | SG ID          |                       |
  *  ON_FACE           | face ID    | SG (IB) ID1    | SG (IB) ID2 (if has)  | 
  *  ON_IB             | grain ID   | IB ID1         |                       |
- *  ON_FACE_EDGE      | edge ID    |                |                       | immoveable if it has any arm in bulk
+ *  ON_FACE_EDGE      | edge ID    | SG (IB) ID1    | SG (IB) ID2 (if has)  | immoveable if it has any arm in bulk
  *  AT_VERTICE        | vertice ID |                |                       | immoveable
  *  -------------------------------------------------------------------------------------------*/
 typedef	enum{               
