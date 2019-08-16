@@ -445,7 +445,7 @@ struct _home {
         real8       *vertices;
         int         nLines, *lines;
         int         nEdges;
-        Edge_t      *edges;   // Because this structure contains object, it must be memory-managed by "new" and "delete".
+        Edge_t      **edges;   // Because this structure contains object, it must be memory-managed by "new" and "delete".
 #endif
 
 };

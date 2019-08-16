@@ -191,6 +191,11 @@ int PointPlaneIntersection(double *p1, double *n, double *p2, double *vec, doubl
 int PointPointIntersection(double *p1, double *p2, double *vec, double *dis,
                             double err1=ANGLE_ERROR1, double err2=LENGTH_ERROR);
                            
+/** Return the distance between two ponts
+ *  \param[in] p1,p2 two node
+ *  \return  distance */
+inline double PointPointDistance(double *p1, double *p2)
+{return sqrt((p1[0]-p2[0])*(p1[0]-p2[0])+(p1[1]-p2[1])*(p1[1]-p2[1])+ (p1[2]-p2[2])*(p1[2]-p2[2]));} 
 
 /** Return the distance to plane 
  *  \param[in] p[3] coordinates of point

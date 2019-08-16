@@ -38,7 +38,8 @@
 
 #define PLACE_LEN           4
 
-/** Table: define the location or arm
+/** -----------------------------------------------------------------------------------------------------
+ *  Table: define the location or arm
  *  grain ID: range [0,home->nGrains)
  *  sub-grain (SG) ID: range [-grain->nIBs-1,-1] in grain, [-edge.nIBs-1,-1] on face edge
  *  inner boundary (IB) ID: range [0,grain->nIBs) in grain, [0,edge.nIBs) on face edge
@@ -51,9 +52,9 @@
  *  IN_GRAIN          | grain ID   | SG ID          |                       |
  *  ON_FACE           | face ID    | SG (IB) ID1    | SG (IB) ID2 (if has)  | 
  *  ON_IB             | grain ID   | IB ID1         |                       |
- *  ON_FACE_EDGE      | edge ID    | SG (IB) ID1    | SG (IB) ID2 (if has)  | immoveable if it has any arm in bulk
+ *  ON_FACE_EDGE      | edge ID    | SG (IB) ID     |                       | immoveable if it has any arm in bulk
  *  AT_VERTICE        | vertice ID |                |                       | immoveable
- *  -------------------------------------------------------------------------------------------*/
+ *  -------------------------------------------------------------------------------------------------------*/
 typedef	enum{               
     IN_GRAIN,              
     ON_FACE,
@@ -74,15 +75,15 @@ typedef	enum{
 struct _node {
 	int	flags;
         
-	real8	x, y, z;		/* nodal position */
+	real8	x, y, z;		            /* nodal position */
     int     place[PLACE_LEN];
-	real8	fX, fY, fZ;		/* nodal force: units=Pa*b^2) */
-	real8	vX, vY, vZ;		/* nodal velocity: units=burgMag/sec */
+	real8	fX, fY, fZ;		            /* nodal force: units=Pa*b^2) */
+	real8	vX, vY, vZ;		            /* nodal velocity: units=burgMag/sec */
    
         
-	real8	oldx, oldy, oldz;	/* for strain increment, Moono.Rhee */
-	real8	oldvX, oldvY, oldvZ;	/* nodal velocity at previous step */
-    real8   currvX, currvY, currvZ; /* nodal velocity at beginning of the */
+	real8	oldx, oldy, oldz;	        /* for strain increment, Moono.Rhee */
+	real8	oldvX, oldvY, oldvZ;	    /* nodal velocity at previous step */
+    real8   currvX, currvY, currvZ;     /* nodal velocity at beginning of the */
                                         /* current step.  Only used during    */
                                         /* timestep integration while vX, vY  */
                                         /* and vZ are being determined.       */
@@ -104,44 +105,44 @@ struct _node {
  */
 	real8	*armfx, *armfy, *armfz;	/* arm specific force contribution */
 	real8	*burgX, *burgY, *burgZ;	/* burgers vector */        
-	real8	*nx, *ny, *nz;		/* glide plane */        
+	real8	*nx, *ny, *nz;		    /* glide plane */        
     real8   *signSF;
 
 	real8	*sigbLoc;		/* sig.b on arms (numNbr*3) */
 	real8	*sigbRem;		/* sig.b on arms (numNbr*3) */
 
 	int	*armCoordIndex;		/* Array of indices (1 per arm) into */
-					/* the mirror domain's arrays of     */
-					/* coordinates (armX, armY, armZ)    */
-					/* of nodes' neighbors.  This array  */
-					/* is only present and useful while  */
-					/* task zero is downloading the data */
-					/* from the remote domain for        */
-					/* generating output                 */
+					        /* the mirror domain's arrays of     */
+					        /* coordinates (armX, armY, armZ)    */
+					        /* of nodes' neighbors.  This array  */
+					        /* is only present and useful while  */
+					        /* task zero is downloading the data */
+					        /* from the remote domain for        */
+					        /* generating output                 */
 
 	int	constraint;     /* constraint =  1 : any surface node   */
-				/* constraint =  7 : Frank-Read end	*/
-				/*                   points, fixed	*/
-				/* constraint =  9 : Jog		*/
-				/* constraint = 10 : Junction		*/
-				/* constraint = 20 : cross slip(default)*/
-				/*                   2-nodes non-deletable*/
+				        /* constraint =  7 : Frank-Read end	*/
+				        /*                   points, fixed	*/
+				        /* constraint =  9 : Jog		*/
+				        /* constraint = 10 : Junction		*/
+				        /* constraint = 20 : cross slip(default)*/
+				        /*                   2-nodes non-deletable*/
 
-	int	cellIdx;	/* cell node is currently sorted into */
-	int	cell2Idx;	/* cell2 node is currently sorted into */
+	int	cellIdx;	    /* cell node is currently sorted into */
+	int	cell2Idx;	    /* cell2 node is currently sorted into */
 	int	cell2QentIdx;	/* Index of this node's entry in the */
-				/* home->cell2QentArray.             */
+				        /* home->cell2QentArray.             */
 
-	int	native;		/* 1 = native node, 0 = ghost node */
+	int	native;		    /* 1 = native node, 0 = ghost node */
 
 	Node_t	*next;		/* pointer to the next node in the queue */
-				/* (ghost or free)			 */
+				        /* (ghost or free)			 */
 
 	Node_t	*nextInCell;	/* used to queue node onto the current */
-				/* containing cell		       */
+				            /* containing cell		       */
 
 	int	sgnv;		/* +1: if contribute to strain rate,	*/
-				/* -1: if moving in opposite direction	*/
+				    /* -1: if moving in opposite direction	*/
 
 #ifdef DEBUG_LOG_MULTI_NODE_SPLITS
         int     multiNodeLife;

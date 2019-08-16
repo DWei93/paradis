@@ -171,14 +171,14 @@ bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *new
         if(face->edgesID[edgeID] < 0 || face->edgesID[edgeID]>=home->nEdges)Fatal("%s line %d: wrong global edge ID",__func__, __LINE__);
 #endif
         // the clipping point may be on the face edge or at the vertice of the edge
-        Edge_t &edge = home->edges[face->edgesID[edgeID]];
-        real8  p1[3]={home->vertices[3*edge.vertID1],home->vertices[3*edge.vertID1+1],home->vertices[3*edge.vertID1+2]};
-        real8  p2[3]={home->vertices[3*edge.vertID2],home->vertices[3*edge.vertID2+1],home->vertices[3*edge.vertID2+2]};
+        Edge_t *edge = home->edges[face->edgesID[edgeID]];
+        real8  p1[3]={home->vertices[3*edge->vertID1],home->vertices[3*edge->vertID1+1],home->vertices[3*edge->vertID1+2]};
+        real8  p2[3]={home->vertices[3*edge->vertID2],home->vertices[3*edge->vertID2+1],home->vertices[3*edge->vertID2+2]};
 
         real8 v[3];
         VectorSubtract(p1,pos2,v);
         dis=DotProduct(v,v);
-        if(dis==0){newPlace[0]=AT_VERTICE; newPlace[1]=edge.vertID1; return true;}
+        if(dis==0){newPlace[0]=AT_VERTICE; newPlace[1]=edge->vertID1; return true;}
         // if the clipping point is close to vectice 1 of the edge, pull to safe place
         else if(dis < FACE_ERROR*FACE_ERROR){
             real8 lDir[3] = {p2[0]-p1[0], p2[1]-p1[1], p2[2]-p1[2]}; NormalizeVec(lDir);            
@@ -189,7 +189,7 @@ bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *new
         
         VectorSubtract(p2,pos2,v);
         dis=DotProduct(v,v);
-        if(dis==0){newPlace[0]=AT_VERTICE; newPlace[1]=edge.vertID2; return true;}
+        if(dis==0){newPlace[0]=AT_VERTICE; newPlace[1]=edge->vertID2; return true;}
         // if the clipping point is close to vectice 2 of the edge, pull to safe place
         else if(dis < FACE_ERROR*FACE_ERROR){
             real8 lDir[3] = {p2[0]-p1[0], p2[1]-p1[1], p2[2]-p1[2]}; NormalizeVec(lDir);            
