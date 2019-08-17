@@ -41,8 +41,8 @@
 /** -----------------------------------------------------------------------------------------------------
  *  Table: define the location or arm
  *  grain ID: range [0,home->nGrains)
- *  sub-grain (SG) ID: range [-grain->nIBs-1,-1] in grain, [-edge.nIBs-1,-1] on face edge
- *  inner boundary (IB) ID: range [0,grain->nIBs) in grain, [0,edge.nIBs) on face edge
+ *  sub-grain (SG) ID: range [-grain->nIBs-1,-1] in grain, [-edge->nIBs-1,-1] on face edge
+ *  inner boundary (IB) ID: range [0,grain->nIBs) in grain, [0,edge->nIBs) on face edge
  *  face ID: range [0,home->nFaces)
  *  free surface (FS) ID: range [-6,-1]
  *  edge ID: range [0, home->nEdges)

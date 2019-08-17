@@ -26,8 +26,8 @@ typedef struct{
  * 	Mesh number used for output of plastic strain field.
  */
 
-#define FACE_ERROR			1e-3 
-#define	SAFE_FACE_ERROR	    2e-3
+#define FACE_ERROR			1e-11 
+#define	SAFE_FACE_ERROR	    2e-11
 #define IB_START_ID                 10000000
 #define GRAIN_ID_FACTOR             1000
 
@@ -231,11 +231,6 @@ typedef struct {
     real8   energyFactor;
 }Dislocation_t;
 
-                
-template<class v>
-inline void VectorCopy(v *dest, v *source){dest[0] = source[0];dest[1] = source[1];dest[2] = source[2];}
-template<class v>
-inline void LongVectorCopy(v *dest, v *source, int num){memcpy(dest, source, num*sizeof(v));}
 
 /*Initialize geomety and lattice*/
 void InitGrain(Home_t *home, Param_t *param);

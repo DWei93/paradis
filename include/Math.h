@@ -60,6 +60,28 @@ inline void cross_product(double *a, double *b, double *c)
     c[2]=a[0]*b[1]-a[1]*b[0];
 }
 
+/* Copy Vectors*/                
+template<class v>
+inline void VectorCopy(v *dest, v *source){dest[0] = source[0];dest[1] = source[1];dest[2] = source[2];}
+template<class v>
+inline void LongVectorCopy(v *dest, v *source, int num){memcpy(dest, source, num*sizeof(v));}
+
+/* Two opearations of Coodinate*/
+template<class v> 
+inline void CoordAdd(v *a, v *b, v*c){c[0]=a[0]+b[0]; c[1]=a[1]+b[1]; c[2]=a[2]+b[2];}
+template<class v, class q> 
+inline void CoordAdd(q f1, v *a, q f2, v *b, v*c){
+c[0]=f1*a[0]+f2*b[0]; c[1]=f1*a[1]+f2*b[1]; c[2]=f1*a[2]+f2*b[2];}
+template<class v> 
+inline void CoordMinus(v *a, v *b, v*c){c[0]=a[0]-b[0]; c[1]=a[1]-b[1]; c[2]=a[2]-b[2];}
+
+/*return a coordinate from a vector*/
+template<class v>
+inline v *Coordinate(v *vector, int element){return (vector+3*element);}
+template<class v>
+inline void Coordinate(std::vector<v> &vector, int element, v p[3])
+{p[0] = vector[3*element]; p[1] = vector[3*element+1]; p[2] = vector[3*element+2];}
+
 /** Check if the variable is numerical. */
 inline bool Numerical(double v){return (!isnan(v) && !isinf(v));}
 inline bool Numerical(double *vec){
@@ -279,7 +301,12 @@ inline int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double
     if(dot1 < 0 && dot2<0)return(NO_INTERSECTION|OUTSIDE_SPACE);
     double tot = fabs(dot1)+fabs(dot2);
     if(tot > 1.0E-80) t = fabs(dot1)/tot;
-    else t = 0.0;
+    else {
+#ifdef DEBUG
+        printf("Warning in %s: dot1 %e, dot2 %e\n",__func__, dot1, dot2);
+#endif
+        t = 0.0;
+    }
 #ifdef DEBUG
     if(!Numerical(t))Fatal("%s: t=%f", __func__, t);
 #endif
@@ -352,7 +379,7 @@ inline bool InConcavePolyhedron(double *p, double *bounds, int nBounds, double m
  *  \param[in,out] p2[3] coordinates of point 2, and return the intersection point (if has)
  *  \param[in] bounds boundaries info. contains nromals and points of the polyhedron
  *  \param[in] nBounds # of boundaries
- *  \param[in] margin margin of the polyhedron
+ *  \param[in] margin outer margin of the polyhedron
  *  \param[out] i ith boundary that has the intersection 
  *  \return NO_INTERSECTION|OUTSIDE_SPACE, POINT_INTERSECTION */
 inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, int &i)
