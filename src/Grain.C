@@ -53,8 +53,8 @@ void DrawLine(FILE *fp, real8 *pos1, real8 *pos2, real8 meshSize, std::vector<in
 {
     real8 vec[3], length, nums;
     vec[0] = pos2[0]-pos1[0];vec[1] = pos2[1]-pos1[1];vec[2] = pos2[2]-pos1[2];
-    if((length = Normal(vec))<1E-10)return;
-    NormalizeVec(vec);
+    if((length = normal(vec))<1E-10)return;
+    normalize_vec(vec);
     nums = floor(length/meshSize);
     meshSize = length/nums;
 
@@ -112,7 +112,7 @@ void CentroidOfPolygon(std::vector<int> &f_vert,std::vector<double> &v,int start
         pos0[0] = (pos1[0]+pos2[0])/3.0;
         pos0[1] = (pos1[1]+pos2[1])/3.0;
         pos0[2] = (pos1[2]+pos2[2])/3.0;
-        cross(pos1, pos2, cpd);area = Normal(cpd);
+        cross_product(pos1, pos2, cpd);area = normal(cpd);
         areas += area;
         centroid[0] += area*pos0[0]; 
         centroid[1] += area*pos0[1]; 
@@ -272,8 +272,9 @@ void EdgeCopy(Edge_t *a, EdgeVec_t &b){
 
 inline void InitBurgInfo(BurgInfo_t *bInf)
 {
-    bInf->numPlanes = 0; bInf->numBurgVectors=0; bInf->numKeyLines; return;
+    bInf->numPlanes = 0; bInf->numBurgVectors=0; bInf->numKeyLines=0; return;
 }
+
 void InitGrain(Home_t *home, Param_t *param)
 {
 
@@ -283,6 +284,10 @@ void InitGrain(Home_t *home, Param_t *param)
                     param->yBoundMax, param->zBoundMin, param->zBoundMax, 1, 1, 1,
                     false, false, false, 8);
     container *con = home->con;
+
+    /* Only support FCC material at present*/
+    home->param->materialType = MAT_TYPE_FCC;
+    param->materialType = MAT_TYPE_FCC;
 
     /** import the voro++ input file in domain 0 and boardcast it.
      */
@@ -459,11 +464,11 @@ void InitGrain(Home_t *home, Param_t *param)
         // Get the thickness and the normal of inner boundary of the grain and normalize the normal
         ibThick = cl.ib_thick();
         ibNormal[0] = cl.ib_nx(); ibNormal[1] = cl.ib_ny(); ibNormal[2] = cl.ib_nz();
-        NormalizeVec(ibNormal); VECTOR_COPY(grain->ibN, ibNormal);
+        normalize_vec(ibNormal); VECTOR_COPY(grain->ibN, ibNormal);
 
         // Get the first initial rotation matrix and normalize it
         cl.rotMatrix(grain->rotMatrixs[0]);
-        NormalizeVec(grain->rotMatrixs[0][0]);NormalizeVec(grain->rotMatrixs[0][1]);NormalizeVec(grain->rotMatrixs[0][2]);
+        normalize_vec(grain->rotMatrixs[0][0]);normalize_vec(grain->rotMatrixs[0][1]);normalize_vec(grain->rotMatrixs[0][2]);
 	    Matrix33Invert(grain->rotMatrixs[0], grain->rotMatrixsInv[0]);
 
         // Generate Burgers Info
@@ -541,13 +546,13 @@ void InitGrain(Home_t *home, Param_t *param)
                     lDir[0] = gloVertices[f_vert[k+1+next]*3] - gloVertices[f_vert[k+1+l]*3];
                     lDir[1] = gloVertices[f_vert[k+1+next]*3+1] - gloVertices[f_vert[k+1+l]*3+1];
                     lDir[2] = gloVertices[f_vert[k+1+next]*3+2] - gloVertices[f_vert[k+1+l]*3+2];
-                    if(Normal(lDir) < 1E-10)Fatal("the two vertices are too close %e",Normal(lDir));
-                    NormalizeVec(lDir);
+                    if(normal(lDir) < 1E-10)Fatal("the two vertices are too close %e",normal(lDir));
+                    normalize_vec(lDir);
                     p[0] = 0.5*(gloVertices[f_vert[k+1+next]*3] + gloVertices[f_vert[k+1+l]*3]);
                     p[1] = 0.5*(gloVertices[f_vert[k+1+next]*3+1] + gloVertices[f_vert[k+1+l]*3+1]);
                     p[2] = 0.5*(gloVertices[f_vert[k+1+next]*3+2] + gloVertices[f_vert[k+1+l]*3+2]);
                     
-                    cross(face->n, lDir, crpd); NormalizeVec(crpd);
+                    cross_product(face->n, lDir, crpd); normalize_vec(crpd);
                     if(crpd[0]*(face->p[0]-p[0])+crpd[1]*(face->p[1]-p[1])+crpd[2]*(face->p[2]-p[2])>0){
                         crpd[0] = -crpd[0];crpd[1] = -crpd[1];crpd[2] = -crpd[2];
                     }
@@ -703,14 +708,14 @@ void InitGrain(Home_t *home, Param_t *param)
                 lDir[0] = vertices[ibEdges[n].vertID2*3] - vertices[ibEdges[n].vertID1*3];
                 lDir[1] = vertices[ibEdges[n].vertID2*3+1] - vertices[ibEdges[n].vertID1*3+1];
                 lDir[2] = vertices[ibEdges[n].vertID2*3+2] - vertices[ibEdges[n].vertID1*3+2];
-                if(Normal(lDir) < 1E-11)Fatal("the two vertices are too close");NormalizeVec(lDir);
+                if(normal(lDir) < 1E-11)Fatal("the two vertices are too close");normalize_vec(lDir);
                 p[0] = 0.5*(vertices[ibEdges[n].vertID2*3] +   vertices[ibEdges[n].vertID1*3]);
                 p[1] = 0.5*(vertices[ibEdges[n].vertID2*3+1] + vertices[ibEdges[n].vertID1*3+1]);
                 p[2] = 0.5*(vertices[ibEdges[n].vertID2*3+2] + vertices[ibEdges[n].vertID1*3+2]);
                 
                 // We comsider a plane which is both perpendicular to inner boundary and line sense of the edge,
                 // and cacualte the normal of plane (point to outside of the inner boundary)
-                cross(grain->ibN, lDir, crpd); NormalizeVec(crpd);
+                cross_product(grain->ibN, lDir, crpd); normalize_vec(crpd);
                 if(crpd[0]*(grain->ibPs[m][0]-p[0])+crpd[1]*(grain->ibPs[m][1]-p[1])+crpd[2]*(grain->ibPs[m][2]-p[2])>0){
                     crpd[0] = -crpd[0];crpd[1] = -crpd[1];crpd[2] = -crpd[2];
                 }
@@ -915,7 +920,9 @@ void NodeLocation(Home_t *home, real8 *pos, int *place, real8 error)
                         real8 len=PointPointDistance(Coordinate(home->vertices,edge->vertID2), Coordinate(home->vertices,edge->vertID1));
                         real8 localError=error/len;
                         real8 dis=PointPointDistance(pos, Coordinate(home->vertices,edge->vertID1))/len;
-
+#ifdef  DEBUG
+                        if(!Numerical(dis))Fatal("%s, variable dis is not numerical.",__func__);
+#endif
                         if(dis<localError){place[0]=AT_VERTICE; place[1]=edge->vertID1;} // at vertice 1 of the edge
                         else if(dis>1.0-localError){place[0]=AT_VERTICE; place[1]=edge->vertID1;} // at vertice 2 of the edge
                         else {
@@ -1092,14 +1099,14 @@ bool OnFaceEdge(Home_t *home, int *place, real8 *pos, real8 margin)
     real8  lDir[3]={pos2[0]-pos1[0],pos2[1]-pos1[1],pos2[2]-pos1[2]}; 
     
 #ifdef DEBUG
-    if(Normal(lDir)<FACE_ERROR)Fatal("%s: two vertice are too close",__func__);
+    if(normal(lDir)<FACE_ERROR)Fatal("%s: two vertice are too close",__func__);
 #endif
     // if the point is not in range of the segment, it is definitely not on the edge.
     real8 len=normal(lDir), dotRatio=DotProduct(lDir, vec)/len;
     if(dotRatio < margin || dotRatio > len-margin)return false;
 
     // if the point is not at the line, it is definitely not on the edge. 
-    NormalizeVec(lDir);
+    normalize_vec(lDir);
     PointLineIntersection(pos, lDir, pos1, vec, &dis); 
     if(fabs(dis)>fabs(margin))return false;
     return true;
@@ -1400,9 +1407,9 @@ void CompressBurgListWithType(std::vector<std::vector<real8> >& burgList,
         for(j=0; j<newNRows; j++){
             VECTOR_COPY(vec1, burgList[i]);
             VECTOR_COPY(vec2, burgList[j]);
-            cross(vec1, vec2, crossProdt);
-            if(Normal(crossProdt) < 1.0E-2 && fabs(Normal(vec1) - 
-               Normal(vec2)) < 1.0E-4 &&  burgType[i] == burgType[j])break;
+            cross_product(vec1, vec2, crossProdt);
+            if(normal(crossProdt) < 1.0E-2 && fabs(normal(vec1) - 
+               normal(vec2)) < 1.0E-4 &&  burgType[i] == burgType[j])break;
 
         }
         if(j == newNRows){
@@ -1442,12 +1449,12 @@ void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, Bu
     std::vector<std::vector<int> > keyLineOnPlaneID;
     bInf->cutNormals = (real8 (*)[3])malloc(3*bInf->numPlanes*sizeof(real8));
     for(auto i=0; i<bInf->numPlanes; i++){
-        cross(bInf->planeList[i], GBNormal, crossProdt); NormalizeVec(crossProdt);
-        if(Normal(crossProdt) < 1.0E-2){
+        cross_product(bInf->planeList[i], GBNormal, crossProdt); normalize_vec(crossProdt);
+        if(normal(crossProdt) < 1.0E-2){
             bInf->planeType[i] |= GB_PLANE; VECTOR_ZERO(bInf->cutNormals[i]);
         }else{
             // if the GB cut the plane, we record the info.
-            cross(bInf->planeList[i], crossProdt, bInf->cutNormals[i]); NormalizeVec(bInf->cutNormals[i]);
+            cross_product(bInf->planeList[i], crossProdt, bInf->cutNormals[i]); normalize_vec(bInf->cutNormals[i]);
             dot = DotProduct(bInf->cutNormals[i], GBNormal);
             if(dot>0&&i<bInf1->numPlanes || dot<0&&i>=bInf1->numPlanes){
                 bInf->cutNormals[i][0] = -bInf->cutNormals[i][0];
@@ -1456,7 +1463,7 @@ void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, Bu
             }
             // if the plane is glide plane, record the intersection line
             if((bInf->planeType[i] & GLIDE_PLANE)> 0){
-                int j; for(j=0;j<keyLineList.size();j++){
+                int j=0; for(;j<keyLineList.size();j++){
                     if(fabs(DotProduct(keyLineList[j],crossProdt))>0.99)break;
                 }
                 if(j==keyLineList.size()){
@@ -1517,7 +1524,7 @@ void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, Bu
         bInf->burgType[i] = burgType[i];
         bInf->numPlanesPerBurg[i] = 0;
         VECTOR_COPY(burgNormalized, burgList[i]);
-        NormalizeVec(burgNormalized);
+        normalize_vec(burgNormalized);
         for(auto j=0; j<bInf->numPlanes; j++){
             if(fabs(DotProduct(burgNormalized, bInf->planeList[j])) < 1.0E-2){
                 bInf->numPlanesPerBurg[i]++;
@@ -1777,8 +1784,8 @@ int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3])
         real8   crossProd[3];
         
         for(i=0; i<burgData->numBurgVectors; i++){
-            cross(burgData->burgList[i], burg, crossProd);
-            if(Normal(crossProd) < 1.0E-3)break;
+            cross_product(burgData->burgList[i], burg, crossProd);
+            if(normal(crossProd) < 1.0E-3)break;
         }
 #if 0
         if(i == burgData->numBurgVectors){
@@ -1794,8 +1801,8 @@ int PlaneID_FCC(BurgInfo_t *burgData, real8 plane[3])
         real8   crossProd[3];
         
         for(i=0; i<burgData->numPlanes; i++){
-            cross(burgData->planeList[i], plane, crossProd);
-            if(Normal(crossProd) < 1.0E-3)break;
+            cross_product(burgData->planeList[i], plane, crossProd);
+            if(normal(crossProd) < 1.0E-3)break;
         }
 #if 0
         if(i == burgData->numPlanes){
@@ -1811,8 +1818,8 @@ int KeyLineID_FCC(BurgInfo_t *burgData, real8 line[3])
         real8   crossProd[3];
         
         for(i=0; i<burgData->numKeyLines; i++){
-            cross(burgData->keyLineList[i], line, crossProd);
-            if(Normal(crossProd) < 1.0E-3)break;
+            cross_product(burgData->keyLineList[i], line, crossProd);
+            if(normal(crossProd) < 1.0E-3)break;
         }
         
         if(i == burgData->numKeyLines){
@@ -1826,7 +1833,7 @@ int	BurgType_FCC(real8 burg[3]){
 	real8 eps = 1e-2;
 	real8 burgMag;
 
-	burgMag = Normal(burg);
+	burgMag = normal(burg);
 
 /*	
  *	0: zero burgers
@@ -2204,7 +2211,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
     vec[1] = newPos[1] - pos[1];
     vec[2] = newPos[2] - pos[2];
 
-    if(Normal(vec) < 1E-10){
+    if(normal(vec) < 1E-10){
         PrintNode(home, node);
         printf("Warning in NewPosToGB: {%f,%f,%f} too short of the vector\n",
                 vec[0], vec[1], vec[2]);
@@ -2213,29 +2220,29 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
         return(rval);
     }
 
-    NormalizeVec(vec);
+    normalize_vec(vec);
     VECTOR_COPY(vec1, vec);
 	GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc, 0, 
                            plane.normal[0], plane.normal[1],
                            plane.normal[2]);
 	ApplyConstraintsToVelocity(NM, GC, vec);
 
-    if(Normal(vec) < 1.0E-6 && node->constraint != 7){
+    if(normal(vec) < 1.0E-6 && node->constraint != 7){
         while(NM >= 0){
             NM--;
             VECTOR_COPY(vec, vec1);
             ApplyConstraintsToVelocity(NM, GC, vec);
-            if(Normal(vec) >= 1.0E-6)break;
+            if(normal(vec) >= 1.0E-6)break;
         }
     }
 
-    if(Normal(vec) < 1.0E-6){
+    if(normal(vec) < 1.0E-6){
         VECTOR_COPY(newPos, pos);
         FoldBox(param, newPos, newPos+1, newPos+2);
         return(rval);
     }
 
-    NormalizeVec(vec);
+    normalize_vec(vec);
     type = LinePlaneIntersection(vec, pos, plane.normal, plane.point, vec1, vec2);
     if((type&NO_INTERSECTION)>0){
 #if 0
@@ -2277,7 +2284,7 @@ real8 Distance(Home_t *home,real8 *p1,real8 *p2){
 
 	ZImage(home->param,&vec[0],&vec[1],&vec[2]);
 
-	return(Normal(vec));
+	return(normal(vec));
 }
 
 real8 PointPlaneDistance(real8 *point, Plane_t *plane){
@@ -2326,7 +2333,7 @@ int NodeOnLine(real8 *p, Line_t *line){
 	vec[1] = p[1] - line->point[1];
 	vec[2] = p[2] - line->point[2];
 	
-	NormalizeVec(vec);
+	normalize_vec(vec);
 	dot = DotProduct(vec,line->direction);
 	
 	if(1-fabs(dot) < eps)return(1);
@@ -2343,7 +2350,7 @@ int LineOnPlane(Line_t *line, Plane_t *plane){
 	vec1[0] = line->point[0] - plane->point[0];
 	vec1[1] = line->point[1] - plane->point[1];
 	vec1[2] = line->point[2] - plane->point[2];
-	NormalizeVec(vec1);
+	normalize_vec(vec1);
 	dot2 = DotProduct(vec1, plane->normal);
 	
 	if(fabs(dot1) < eps && fabs(dot2) <eps){
@@ -2467,7 +2474,7 @@ void PrintTag(Node_t *node){
 
 void RotateWithAxis(real8 a[3], real8 theta, real8 R[3][3]){
     
-    NormalizeVec(a);
+    normalize_vec(a);
     R[0][0] = (1.0 - cos(theta))*a[0]*a[0] + cos(theta);
     R[0][1] = a[0]*a[1]*(1.0 - cos(theta)) - a[2]*sin(theta);
     R[0][2] = a[0]*a[2]*(1.0 - cos(theta)) + a[1]*sin(theta);
@@ -2572,8 +2579,8 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     nor[1] = node1->ny[armID];
     nor[2] = node1->nz[armID];
 
-    burgMag = Normal(burg);
-    NormalizeVec(burg);
+    burgMag = normal(burg);
+    normalize_vec(burg);
     if(fabs(DotProduct(burg, param->TBNormal)) < 1.0E-2)return;
 
     vec[0] = node2->x - node1->x;
@@ -2581,7 +2588,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     vec[2] = node2->z - node1->z;
     ZImage(param, vec, vec+1, vec+2);
 
-    length = Normal(vec);
+    length = normal(vec);
     if(length < 1.0E-2)return;
 
     segCentor[0] = node1->x + 0.5*vec[0];
@@ -2592,10 +2599,10 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 	dis =  ClosedGB(home, segCentor, &gb);
     if(fabs(dis) > 100 || fabs(dis) < 1.0E-3)return;
 
-    NormalizeVec(vec);
-    cross(nor, vec, gDir);
-    if(Normal(gDir) < 1E-3)return;
-    NormalizeVec(gDir);
+    normalize_vec(vec);
+    cross_product(nor, vec, gDir);
+    if(normal(gDir) < 1E-3)return;
+    normalize_vec(gDir);
 
     gbNormal[0] = ((real8)Sign(dis)) * gb->n[0];
     gbNormal[1] = ((real8)Sign(dis)) * gb->n[1];
@@ -2881,8 +2888,8 @@ void CompressDirectionList(std::vector< std::vector<real8> >& dirList)
         for(j=0; j<newNRows; j++){
             VECTOR_COPY(vec1, dirList[i]);
             VECTOR_COPY(vec2, dirList[j]);
-            cross(vec1, vec2, crossProdt);
-            if(Normal(crossProdt) < 1.0E-2)break;
+            cross_product(vec1, vec2, crossProdt);
+            if(normal(crossProdt) < 1.0E-2)break;
 
         }
         if(j == newNRows){
@@ -3144,7 +3151,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         planeID.push_back(nPlanes);
         if((bd->planeType[i] & GLIDE_PLANE) == 0)continue;
         if(fabs(DotProduct(lDir,bd->planeList[i])) < 1.0E-2){
-            cross(bd->planeList[i], plane, crossProd);
+            cross_product(bd->planeList[i], plane, crossProd);
             switch(flag){
                 case 0:
                     VECTOR_COPY(vector, bd->planeList[i]);
@@ -3153,7 +3160,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                     nPlanes++;
                     break;
                 case 1:
-                    if(Normal(crossProd) > 1.0E-2){
+                    if(normal(crossProd) > 1.0E-2){
                         VECTOR_COPY(vector, bd->planeList[i]);
                         planeList.push_back(vector);
                         planeIDList.push_back(i);
@@ -3161,7 +3168,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                     }
                     break;
                 case 2:
-                    if(Normal(crossProd) < 1.0E-2){
+                    if(normal(crossProd) < 1.0E-2){
                         VECTOR_COPY(vector, bd->planeList[i]);
                         planeList.push_back(vector);
                         planeIDList.push_back(i);
@@ -3237,11 +3244,11 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
             resiBurg[2] -= ((real8)setLists[i][j] * burgList[j][2]); 
         }
         
-        resiBurgMag = Normal(resiBurg);
+        resiBurgMag = normal(resiBurg);
         for(j=0; j<setLists[i].size(); j++){
             VECTOR_COPY(vec, burgList[j]);
-            cross(resiBurg, vec, crossProd);
-            if(Normal(crossProd) < 1.0E-2 && 
+            cross_product(resiBurg, vec, crossProd);
+            if(normal(crossProd) < 1.0E-2 && 
                BurgType_FCC(resiBurg) == SHOCKLEY_BURG){
                 break;    
             }
@@ -3396,7 +3403,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                 disList[k].burgID = disOnBurgIDList[i][k];
                 disList[k].planeID = disOnPlaneIDArray[i][j][k];
                 VECTOR_COPY(vec, burgList[disList[k].burgID]);
-                disList[k].energyFactor = Normal(vec)/Normal(burg);
+                disList[k].energyFactor = normal(vec)/normal(burg);
                 disList[k].energyFactor = disList[k].energyFactor*
                                             disList[k].energyFactor;
             }
@@ -3456,7 +3463,7 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
     GetArmGrain(home, node1, node2, inGrain, onGB);
     burgType = BurgType_FCC(burg);
 
-    if(Normal(lDir) < 1.0E-4){
+    if(normal(lDir) < 1.0E-4){
         interType = NodesIntersection(home, node1, node2, vec1, vec2);   
         switch(interType){
             case LINE_INTERSECTION:
@@ -3468,7 +3475,7 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
                 break;
             case POINT_INTERSECTION:
                 VECTOR_COPY(glidePlane, burg);
-                NormalizeVec(glidePlane);
+                normalize_vec(glidePlane);
                 return;
                 break;
             default:
@@ -3477,7 +3484,7 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
         }
     }
 
-    if(Normal(lDir) < 1.0E-4){
+    if(normal(lDir) < 1.0E-4){
         if(burgID<bd->numBurgVectors){
             printf("Warning: define a palne with zero length, arm (%d,%d)\n", inGrain, onGB);
             times = 0;
@@ -3501,7 +3508,7 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
 
                 if(times >= 100){
                     VECTOR_COPY(glidePlane, burg);
-                    NormalizeVec(glidePlane);
+                    normalize_vec(glidePlane);
                     printf("Warning in %s at %d: chose a non-glide plane\n", __FILE__, __LINE__);
                     return;
                 }
@@ -3515,23 +3522,23 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
             PrintNeighbor(home, node2);
 #endif
             VECTOR_COPY(glidePlane, burg);
-            NormalizeVec(glidePlane);
+            normalize_vec(glidePlane);
             printf("Warning in %s at %d: chose a non-glide plane\n", __FILE__, __LINE__);
             return;
         }
     }
 
-    NormalizeVec(lDir);
+    normalize_vec(lDir);
     VECTOR_COPY(normBurg, burg);
-    NormalizeVec(normBurg);
+    normalize_vec(normBurg);
 
-    cross(normBurg, lDir, crossProdt);
-    if(Normal(crossProdt) < 1.0E-4){
+    cross_product(normBurg, lDir, crossProdt);
+    if(normal(crossProdt) < 1.0E-4){
         if(burgID >= bd->numBurgVectors){
             FormatVector(burg, "burg");
             FormatVector(lDir, "lDir");
             VECTOR_COPY(glidePlane, burg);
-            NormalizeVec(glidePlane);
+            normalize_vec(glidePlane);
             printf("Warning: can not find a glide plane without burgID\n");
             return;
         }else{
@@ -3554,7 +3561,7 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
                 }
                 if(times >= 100){
                     VECTOR_COPY(glidePlane, burg);
-                    NormalizeVec(glidePlane);
+                    normalize_vec(glidePlane);
                     printf("Warning in %s at %d: chose a non-glide plane\n", __FILE__, __LINE__);
                     return;
                 }
@@ -3562,7 +3569,7 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
             }
         }
     }else{
-        NormalizeVec(crossProdt);
+        normalize_vec(crossProdt);
         normalID = PlaneID_FCC(bd, crossProdt);
         if(normalID < bd->numPlanes){
             VECTOR_COPY(glidePlane, bd->planeList[normalID]);
@@ -3589,11 +3596,11 @@ void StackingFaultForce(Home_t *home, real8 dx, real8 dy, real8 dz, real8 sfEner
 
     length = Normal(vec);
     if(length < 1.0E-20)return;
-    NormalizeVec(vec);
+    normalize_vec(vec);
 
-    cross(normal, vec, dir);
+    cross_product(normal, vec, dir);
     if(Normal(dir) < 1.0E-4)return;
-    NormalizeVec(dir);
+    normalize_vec(dir);
 
     f1[0] = length*sfEnergy*0.5*dir[0]*signSF;
     f1[1] = length*sfEnergy*0.5*dir[1]*signSF;
@@ -3650,8 +3657,8 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
     xi[0] = dx;
     xi[1] = dy;
     xi[2] = dz;
-    length = Normal(vec);
-    NormalizeVec(xi);
+    length = normal(vec);
+    normalize_vec(xi);
 
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);
@@ -3758,7 +3765,7 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
         strb[i] = sigma[i][0]*burg[0]+sigma[i][1]*burg[1]+sigma[i][2]*burg[2];
     }
 
-    cross(strb, xi, f1);
+    cross_product(strb, xi, f1);
     
     f1[0] *= 0.5;
     f1[1] *= 0.5;

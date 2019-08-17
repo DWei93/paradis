@@ -2730,6 +2730,11 @@ void GetFreePath(Param_t *param, real8 pos1[3], real8 pos2[3], real8 n[0], Grain
     return;
 }
 
+void CreateFRSourceNew(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &totDislocLen)
+{
+        
+       return; 
+}
 void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 						 real8 *totDislocLen)
 {

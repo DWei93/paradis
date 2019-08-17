@@ -59,6 +59,12 @@ inline void cross_product(double *a, double *b, double *c)
     c[1]=a[2]*b[0]-a[0]*b[2];
     c[2]=a[0]*b[1]-a[1]*b[0];
 }
+#define CrossProduct(a,b,c) \
+{\
+    c[0]=a[1]*b[2]-a[2]*b[1]; \
+    c[1]=a[2]*b[0]-a[0]*b[2]; \
+    c[2]=a[0]*b[1]-a[1]*b[0];\
+}
 
 /* Copy Vectors*/                
 template<class v>
