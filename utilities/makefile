@@ -73,7 +73,7 @@ PARADISGEN_CPP_SRCS = ParadisGen.C   \
                Timer.C             \
                Util.C              \
       		   Math.C	           \
-			   Grain.C
+			   Grain.C             
 
 #PARADISGEN_CPP_SRCS = DisplayC.C   \
                    display.C 

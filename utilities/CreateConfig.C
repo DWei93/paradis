@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <memory.h>
+#include "Math.h"
 
 #include <vector>
 
@@ -2730,10 +2731,74 @@ void GetFreePath(Param_t *param, real8 pos1[3], real8 pos2[3], real8 n[0], Grain
     return;
 }
 
-void CreateFRSourceNew(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &totDislocLen)
+void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &totDislocLen)
 {
-        
-       return; 
+    Param_t *param = inData->param;
+
+    bool custom = inArgs->disList.empty();
+    real8 cubeLength = inArgs->cubeLength;
+	int srcLenType = inArgs->srcLenType;
+    real8 maxDensity = inArgs->maxDensity;
+    int numSources = inArgs->numFRSrcs;
+    real8 srcLenMin = inArgs->frLenMin;
+    real8 srcLenMax = inArgs->frLenMax;
+    int seed = inArgs->seed;
+    real8 maxSeg = (real8)inArgs->maxSegLen;
+    real8 lenRange = srcLenMax-srcLenMin;
+    
+    FILE *fp1, *fp2; std::vector<int> indexs(2);
+    if ((fp1 = fopen("debug-FR-lines.plt", "w")) == (FILE *)NULL) {
+        Fatal("%s: Open error %d on %s\n",__func__, errno, "debug-FR.plt");
+    }
+    fprintf(fp1,"variables = x, y, z, vx, vy, vz, place[1], place[2]\n");
+
+    if ((fp2 = fopen("debug-FR-scatters.plt", "w")) == (FILE *)NULL) {
+        Fatal("%s: Open error %d on %s\n",__func__, errno, "debug-FR.plt");
+    }
+    fprintf(fp2,"variables = x, y, z, place[0], place[1], place[2], place[3]\n");
+
+    Grain_t *grain; BurgInfo_t *bInf; 
+    real8   p[3],p1[3],p2[3],*lDir, *normal;
+    int     ibID, randomNum, numSlipSys, odd, keyLineID, planeID;
+    int     place[PLACE_LEN], newPlace[PLACE_LEN];
+    for(auto i=0; i<home->nGrains; i++){
+        grain = home->grainKeys[i];
+        numSlipSys = grain->nIBs>0?24:12;
+        place[0]=IN_GRAIN; place[1]=grain->id;
+        for(auto j=0; j<numSources; j++){
+            // distribute first point
+            while(true){
+                p[0]= grain->pos[0] + 2.0*(randm(&seed)-0.5)*grain->rMax;
+                p[1]= grain->pos[1] + 2.0*(randm(&seed)-0.5)*grain->rMax;
+                p[2]= grain->pos[2] + 2.0*(randm(&seed)-0.5)*grain->rMax;
+                if(!InGrain(grain, p, SAFE_FACE_ERROR))continue;
+                if((place[2]=WhichSubgrain(grain, p, SAFE_FACE_ERROR))>=0)continue;
+                ibID = InverseIndex(place[2]);
+                break;
+            }
+            randomNum = numSources<numSlipSys?int(10000*randm(&seed))%12:j%12;
+            odd=ibID%2; bInf = &grain->bInfs[odd];
+            keyLineID = randomNum%bInf->numKeyLines;
+            planeID = bInf->keyLineOnPlaneID[keyLineID][randomNum/bInf->numKeyLines];
+            lDir = bInf->keyLineList[keyLineID]; normal=bInf->planeList[planeID];
+
+            
+            CoordAdd(1.0,p,4*sqrt(3)*grain->rMax,lDir,p1);
+            CoordAdd(1.0,p,-4*sqrt(3)*grain->rMax,lDir,p2);
+
+            fprintf(fp2,"%g %g %g %d %d %d %d\n", p[0],p[1],p[2],place[0],place[1],place[2],place[3]);
+            ClipPathInGrain(home, place, p, p1, newPlace);
+            fprintf(fp2,"%g %g %g %d %d %d %d\n", p1[0],p1[1],p1[2],newPlace[0],newPlace[1],newPlace[2],newPlace[3]);
+            ClipPathInGrain(home, place, p, p2, newPlace);
+            fprintf(fp2,"%g %g %g %d %d %d %d\n", p2[0],p2[1],p2[2],newPlace[0],newPlace[1],newPlace[2],newPlace[3]);
+            indexs[0]=grain->id; indexs[1]=place[2]; DrawLine(fp1, p1, p2, 10, indexs);
+        }
+
+    }/* end for(auto i=0; i<home->nGrains; i++) */
+      
+    fclose(fp1); fclose(fp2);
+    Fatal("CreateRRSource!");
+    return; 
 }
 void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 						 real8 *totDislocLen)

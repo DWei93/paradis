@@ -62,7 +62,7 @@ typedef struct{
 #define NUM_BURGS_IN_FCC        21
 #define NUM_PLANES_IN_FCC       13
 #define NUM_KEY_LINES_IN_FCC    6
-
+#define NUM_SLIP_SYSTEMS_IN_FCC 12
 
 #define SHOCKLEY_BURG_MAG_FCC   0.5773502691896258
 #define JUNCTION1_BURG_MAG_FCC  1.414213562373095
@@ -169,8 +169,7 @@ struct _slipSys{
 struct _grain{
     int         id;
 
-	real8	    pos[3];
-
+	real8	    pos[3], rMax;
     BurgInfo_t  bInfs[2], ibBurgInfs[2];
 
     int         nIBs;
@@ -235,6 +234,9 @@ typedef struct {
 /*Initialize geomety and lattice*/
 void InitGrain(Home_t *home, Param_t *param);
 
+/** Format place information*/
+void FormatPlace(int *place);
+
 /** According to the current node coordinates, roughly judge the node position.
   * \param[in] pos: the coordinates of node
   * \param[out] place: the rough location of the node
@@ -245,7 +247,40 @@ inline void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place, re
 void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int *place, real8 error)
 { real8 pos[3] = {x, y, z}; return NodeLocation(home, pos, place, error);}
 
+/** Judge if the node is in the grain
+ *  \param[in] grain the grain
+ *  \param[in] pos position of the node
+ *  \param[in] margin inner margin
+ *  \return true if the node is in the grain, false otherwise*/
+inline bool InGrain(Grain_t *grain, real8 *pos, real8 margin=FACE_ERROR){
+    real8 dis;
+    // make sure the node is in the grain
+    for(auto i=0; i<grain->nFaces; i++){
+        PointPlaneDistance(pos, grain->faces[i]->n, grain->faces[i]->p, dis);
+        dis *= grain->sign[i];
+        if(dis>-margin)return false;
+    }
+    return true;
+}
+
+/** Judge which subgrain the node is in, but there is no guarantee that the node is in the grain
+ *  \param[in] grain the grain
+ *  \param[in] pos position of the node
+ *  \param[in] error inner boundary error
+ *  \return subgrain ID (<0) or inner boundary ID (>=0)*/
+inline int WhichSubgrain(Grain_t *grain, real8 *pos, real8 error=FACE_ERROR){
+    real8 dis;
+    for(auto i=0; i<grain->nIBs; i++){
+        PointPlaneDistance(pos, grain->ibN, grain->ibPs[i], dis);
+        if(fabs(dis)<error)return i;
+        else if (dis<0) return InverseIndex(i);
+        else continue;
+    }    
+    return InverseIndex(grain->nIBs);
+}
+
 /** According to the current node coordinates, judge if the node is the grain and subgrain
+ * \param[in] grainID grain index
  * \param[in] pos the coordinates of node
  * \param[in] place the location of the node
  * \param[in] margin inner margin of grain
@@ -274,9 +309,38 @@ bool OnFaceEdge(Home_t *home, int *place, real8 *pos, real8 margin=FACE_ERROR);
 inline bool OnFaceEdge(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 margin=FACE_ERROR)
 {real8 pos[3]={x,y,z}; return OnFaceEdge(home, place, pos, margin);}
 
-void GetArmLocation(Home_t *home, Node_t *node1, Node_t *node2, int *place);
-void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3]);
+/** Find the intersection between nodal path and grain (if has) and return the new place of intersection point.
+ * \param[in] place the location of the node.
+ * \param[in] pos1 the old position the node, it has to be in the place.
+ * \param[in,out] pos2 the current position of the, moved to intersection if it was outside of the place. 
+ * \param[out] newPlace the new place of the node (if has) 
+ * \return true if the place is changed, otherwise false */
+bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
+
+/** Find the intersection between nodal path and face (if has) and return the new place of intersection point.
+ * \param[in] place the location of the node.
+ * \param[in] pos1 the old position of the node, it has to be in the place.
+ * \param[in,out] pos2 the current position of the node, moved to intersection if it was outside of the place. 
+ * \param[out] newPlace the new place of intersection (if has) 
+ * \return true if the place is changed, otherwise false */
+bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
+
+/** Generate Burgers data information
+ *  \param[in] matType material type
+ *  \param[in] rotMatrix rotation matrix 
+ *  \param[out] burgData Burgers data */
+void GenerateBurgInfo(int matType, real8 rotMatrix[3][3], BurgInfo_t *burgData);
+
+/** Assemble GB Burgers information by bonding Burgers information of adjacent grains at grain boundary
+ *  \param[out] bInf Burgers informatiob of the GB
+ *  \param[in] bInf1 bInf2 two Burgers information of adjacent grains
+ *  \param[in] GBNormal normal of grain boundary for cacualte cutting plane */
 void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, BurgInfo_t *bInf2);
+
+void GetArmLocation(Home_t *home, Node_t *node1, Node_t *node2, int *place);
+
+/* Draw line between two points*/
+void DrawLine(FILE *fp, real8 *pos1, real8 *pos2, real8 meshSize, std::vector<int> &indexs);
 
 //-----------------------------------------------------------------------------------------------
 Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int globalOp, int opClass);

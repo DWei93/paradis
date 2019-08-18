@@ -1226,7 +1226,6 @@ int main(int argc, char *argv[])
         snprintf(home.voroFile, sizeof(home.voroFile), "%s", inArgs.voroFile);
 
 	    InitGrain(&home, param);
-        Fatal("Finish InitGrain");
 		
         strncpy(param->node_data_file, inArgs.outputFile,
             sizeof(param->node_data_file)-1);
@@ -1340,7 +1339,7 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
                                     inArgs.seed, &totDislocLen, inArgs.type);
                 break;
         case FTYPE_FRANK_READ:
-                CreateFRSourceNew(&home, &inData, &inArgs, totDislocLen);
+                CreateFRSource(&home, &inData, &inArgs, totDislocLen);
                 break;
         case FTYPE_FCC:
 			CreateFCCConfig(&home, &inData, &inArgs, &totDislocLen);
