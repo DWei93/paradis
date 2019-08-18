@@ -39,7 +39,7 @@
 #ifdef GSL
 void GSLTest()
 {
-  double x = 5.0;
+  double x = 1212.0;
   double y = gsl_sf_bessel_J0 (x);
   printf ("J0(%g) = %.18e\n", x, y);
   return ;

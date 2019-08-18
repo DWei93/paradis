@@ -656,6 +656,7 @@ void InitGrain(Home_t *home, Param_t *param)
 #ifdef DEBUG         
                         if(edgesSize == faceEdgeID)Fatal("%s: edges size changed during searching", __func__);
 #endif               
+                        // Avoid double counting key nodes on face edge
                         if(!edges[faceEdgeID].ibs.empty()){
                             int n; for(n=0; n<edges[faceEdgeID].ibs.size();n++){
                                 if(i==edges[faceEdgeID].ibs[n].inGrain && m==edges[faceEdgeID].ibs[n].ID)break;
@@ -663,12 +664,13 @@ void InitGrain(Home_t *home, Param_t *param)
                             if(n!=edges[faceEdgeID].ibs.size())continue;
                         }
 
+                        // assemble key nodes on face edge
                         KeyNode_t ib;
                         ib.inGrain = i; ib.ID=m; 
                         if(v1<v2)ib.dis=(PointPointDistance(p,p1)/PointPointDistance(p1,p2));
                         else ib.dis=(PointPointDistance(p,p2)/PointPointDistance(p1,p2)); 
 #ifdef DEBUG
-                        if(!Numerical(ib.dis))Fatal("a intersection node of inner boundary and face edge is not numerical");
+                        if(!Numerical(ib.dis))Fatal("%s: a intersection node of inner boundary and face edge is not numerical",__func__);
 #endif
                         edges[faceEdgeID].ibs.push_back(ib);
                         
@@ -786,12 +788,8 @@ void InitGrain(Home_t *home, Param_t *param)
         for(auto i=0; i<edges.size(); i++){
             real8 pos1[3], pos2[3]; std::vector<int> indexs(2);
             indexs[0]= (int)i; indexs[1]=(int)edges[i].ofFaces.size();
-            pos1[0] = gloVertices[edges[i].vertID1*3];
-            pos1[1] = gloVertices[edges[i].vertID1*3+1];
-            pos1[2] = gloVertices[edges[i].vertID1*3+2];
-            pos2[0] = gloVertices[edges[i].vertID2*3];
-            pos2[1] = gloVertices[edges[i].vertID2*3+1];
-            pos2[2] = gloVertices[edges[i].vertID2*3+2];
+            Coordinate(gloVertices, edges[i].vertID1, pos1);
+            Coordinate(gloVertices, edges[i].vertID2, pos2);
             DrawLine(fp1, pos1, pos2, 10, indexs);
         }   
         fclose(fp1);
@@ -830,7 +828,7 @@ void InitGrain(Home_t *home, Param_t *param)
 
         /** output all vertices with pointType 3 */
         for(auto i=0; i<home->nVertices; i++){
-            pos[0]=home->vertices[i*3];pos[1]=home->vertices[i*3+1];pos[2]=home->vertices[i*3+2];
+            Coordinate(home->vertices, i, pos);
             NodeLocation(home, pos, place, FACE_ERROR);
             fprintf(fp1, "%g %g %g %d %d %d %d %d\n", pos[0], pos[1], pos[2],
                     3, place[0], place[1], place[2], place[3]);
@@ -839,9 +837,8 @@ void InitGrain(Home_t *home, Param_t *param)
         for(auto i=0; i<home->nEdges; i++){
             Edge_t *edge = home->edges[i];
             for(auto j=0; j<edge->nIBs; j++){
-                pos[0]=(1.0-edge->dis[j])*home->vertices[edge->vertID1*3]+edge->dis[j]*home->vertices[edge->vertID2*3];
-                pos[1]=(1.0-edge->dis[j])*home->vertices[edge->vertID1*3+1]+edge->dis[j]*home->vertices[edge->vertID2*3+1];
-                pos[2]=(1.0-edge->dis[j])*home->vertices[edge->vertID1*3+2]+edge->dis[j]*home->vertices[edge->vertID2*3+2];
+                CoordAdd(1.0-edge->dis[j], Coordinate(home->vertices,edge->vertID1), 
+                             edge->dis[j], Coordinate(home->vertices,edge->vertID2), pos);
                 NodeLocation(home, pos, place, FACE_ERROR);
                 fprintf(fp1, "%g %g %g %d %d %d %d %d\n", pos[0], pos[1], pos[2],
                         4, place[0], place[1], place[2], place[3]);

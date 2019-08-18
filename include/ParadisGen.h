@@ -68,9 +68,9 @@ void  CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
 void  CreatePrismaticLoop(Home_t *home, InData_t *inData, int cubeLength,
           int loopType, int useinterstitial, int numSegs, real8 radius,
           int seed, real8 *totDislocLen, int dislocType);
+void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &totDislocLen);
 void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 					real8 *totDislocLen);
-void CreateFRSourceNew(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &totDislocLen);
 void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 						 real8 *totDislocLen);
 void  CreateFCCIrradConfig(Home_t *home, InData_t *inData, int cubeLength,

@@ -85,6 +85,9 @@ inline void CoordMinus(v *a, v *b, v*c){c[0]=a[0]-b[0]; c[1]=a[1]-b[1]; c[2]=a[2
 template<class v>
 inline v *Coordinate(v *vector, int element){return (vector+3*element);}
 template<class v>
+inline void Coordinate(v *vector, int element, v a[3])
+{a[0]=vector[3*element];a[1]=vector[3*element+1];a[2]=vector[3*element+2];}
+template<class v>
 inline void Coordinate(std::vector<v> &vector, int element, v p[3])
 {p[0] = vector[3*element]; p[1] = vector[3*element+1]; p[2] = vector[3*element+2];}
 
