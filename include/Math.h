@@ -324,9 +324,7 @@ inline int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double
 inline int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double *intersection){
     int type; double t;
     if((type=SegmentPlaneIntersection(p1,p2,nDir,point,t))==POINT_INTERSECTION){
-        intersection[0] = (1.0-t)*p1[0]+t*p2[0];
-        intersection[1] = (1.0-t)*p1[1]+t*p2[1];
-        intersection[2] = (1.0-t)*p1[2]+t*p2[2];
+        CoordAdd(1.0-t, p1, t, p2, intersection);
     }
     return type;
 }
@@ -362,7 +360,7 @@ inline int SegmentPlaneIntersection(double *p1, double *p2, double *plane, doubl
  *  \param[in] p[3] coordinates of the point
  *  \param[in] bounds boundary info. contains all plane normals and points on each plane
  *  \param[in] nBounds # of boundaries
- *  \param[in] margin margin of the boundaries
+ *  \param[in] margin outer margin of the boundaries
  *  \return true or false */
 inline bool InConcavePolyhedron(double *p, double **bounds, int nBounds, double margin)
 {

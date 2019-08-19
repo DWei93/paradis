@@ -2760,7 +2760,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
     Grain_t *grain; BurgInfo_t *bInf; 
     real8   p[3],p1[3],p2[3],*lDir, *normal;
     int     ibID, randomNum, numSlipSys, odd, keyLineID, planeID;
-    int     place[PLACE_LEN], newPlace[PLACE_LEN];
+    int     place[PLACE_LEN], place1[PLACE_LEN], place2[PLACE_LEN];
     for(auto i=0; i<home->nGrains; i++){
         grain = home->grainKeys[i];
         numSlipSys = grain->nIBs>0?24:12;
@@ -2782,15 +2782,15 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
             planeID = bInf->keyLineOnPlaneID[keyLineID][randomNum/bInf->numKeyLines];
             lDir = bInf->keyLineList[keyLineID]; normal=bInf->planeList[planeID];
 
-            
             CoordAdd(1.0,p,4*sqrt(3)*grain->rMax,lDir,p1);
             CoordAdd(1.0,p,-4*sqrt(3)*grain->rMax,lDir,p2);
+            ClipPathInGrain(home, place, p, p1, place1);
+            ClipPathInGrain(home, place, p, p2, place2);
 
             fprintf(fp2,"%g %g %g %d %d %d %d\n", p[0],p[1],p[2],place[0],place[1],place[2],place[3]);
-            ClipPathInGrain(home, place, p, p1, newPlace);
-            fprintf(fp2,"%g %g %g %d %d %d %d\n", p1[0],p1[1],p1[2],newPlace[0],newPlace[1],newPlace[2],newPlace[3]);
-            ClipPathInGrain(home, place, p, p2, newPlace);
-            fprintf(fp2,"%g %g %g %d %d %d %d\n", p2[0],p2[1],p2[2],newPlace[0],newPlace[1],newPlace[2],newPlace[3]);
+            fprintf(fp2,"%g %g %g %d %d %d %d\n", p1[0],p1[1],p1[2],place1[0],place1[1],place1[2],place1[3]);
+            fprintf(fp2,"%g %g %g %d %d %d %d\n", p2[0],p2[1],p2[2],place2[0],place2[1],place2[2],place2[3]);
+
             indexs[0]=grain->id; indexs[1]=place[2]; DrawLine(fp1, p1, p2, 10, indexs);
         }
 
