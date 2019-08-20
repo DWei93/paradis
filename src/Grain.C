@@ -125,6 +125,24 @@ void CentroidOfPolygon(std::vector<int> &f_vert,std::vector<double> &v,int start
     return;
 }
 
+real8 AreaOfPolygon(std::vector<int> &f_vert,std::vector<double> &v,int startID){
+	int n=f_vert[startID++];
+
+    real8 pos0[3], pos1[3], pos2[3], cpd[3], areas=0, area;
+    for(int i=startID+1; i<startID+n-1; i++){
+        pos1[0]=v[f_vert[i]*3]-v[f_vert[startID]*3];
+        pos1[1]=v[f_vert[i]*3+1]-v[f_vert[startID]*3+1];
+        pos1[2]=v[f_vert[i]*3+2]-v[f_vert[startID]*3+2];
+        pos2[0]=v[f_vert[i+1]*3]-v[f_vert[startID]*3];
+        pos2[1]=v[f_vert[i+1]*3+1]-v[f_vert[startID]*3+1];
+        pos2[2]=v[f_vert[i+1]*3+2]-v[f_vert[startID]*3+2];
+
+        cross_product(pos1, pos2, cpd);area = normal(cpd);
+        areas += area;
+    }
+    return 0.5*areas;
+}
+
 int AddAndSearchVertice(std::vector<real8> &vertices, real8 x, real8 y, real8 z)
 {
     if(vertices.size() > 0){
@@ -215,6 +233,7 @@ void EdgeListToPolygon(std::vector<EdgeVec_t> &edges, std::vector<int> &polygon)
     for(auto i=1; i<edges.size(); i++){
         edges[i].vertID1 = -edges[i].vertID1-1; edges[i].vertID2 = -edges[i].vertID2-1;
     }
+    polygon.insert(polygon.begin(), (int)polygon.size());
     return; 
 }
 
@@ -500,6 +519,7 @@ void InitGrain(Home_t *home, Param_t *param)
              */
             grain->nIBs = (int)ibRsq.size();
             grain->ibPs = (real8 (*)[3])malloc(grain->nIBs*3*sizeof(real8));
+            grain->ibAreas = (real8 *)malloc(grain->nIBs*sizeof(real8));
             for(auto j=0; j<ibRsq.size(); j++){
                 grain->ibPs[j][0] = grain->pos[0] + 0.5*grain->ibN[0]*ibRsq[j];
                 grain->ibPs[j][1] = grain->pos[1] + 0.5*grain->ibN[1]*ibRsq[j];
@@ -698,14 +718,15 @@ void InitGrain(Home_t *home, Param_t *param)
             std::vector<int> polygon; real8 centroid[3],dis;
             
             // Generate polygon for outputing
-            EdgeListToPolygon(ibEdges,polygon); polygon.insert(polygon.begin(), (int)polygon.size());
+            EdgeListToPolygon(ibEdges,polygon); 
 
-            // caculate centroid of polygon and copy it to grain->ibPs
+            // caculate centroid and areaof polygon and copy it to grain->ibPs
             CentroidOfPolygon(polygon, vertices, 0, centroid);
+            grain->ibAreas[m] = AreaOfPolygon(polygon, vertices, 0);
             PointPlaneDistance(centroid, grain->ibN, grain->ibPs[m], dis, grain->ibPs[m]);
 
 #ifdef DEBUG
-            if(fabs(dis)>1E-10)Fatal("%s at line %d, the distance to centorid (%e) is too large", dis);
+            if(fabs(dis)>1E-10)Fatal("%s at line %d, the distance to centorid (%e) is too large",__FILE__,__LINE__, dis);
 #endif
 
             real8 gDir[3], lDir[3], crpd[3];
@@ -1133,7 +1154,7 @@ bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *ne
 #ifdef DEBUG
     if(place[0]!=IN_GRAIN)Fatal("%s: place[0] = %d",__func__, place[0]);
     if(place[1]<0 || place[1]>=home->nGrains)Fatal("%s: place[1] = %d",__func__, place[1]);
-    if(!InGrain(home, place, pos1))Fatal("%s: the position 1 is not in corrected grain.");
+    if(!InGrain(home, place, pos1))Fatal("%s: the position 1 is not in corrected grain.",__func__);
 #endif    
     Grain_t *grain = home->grainKeys[place[1]];
     int i, ibID, edgeID, tempEdgeID;
@@ -1481,17 +1502,91 @@ void GetArmLocation(Home_t *home, Node_t *node1, Node_t *node2, int *place){
  *  \param[in] n the normal vector of plane
  *  \param[in] p a point on the plane, this point has to be in the grain.
  *  \param[in] place the grin location
+ *  \param[out] vertice coordinates of vertices
  *  \param[out] edges edge list     */
-void PlaneGrainIntersection(Home_t *home, real8 *n, real8 *p, int *place, std::vector<real8> &edges)
+void PlaneGrainIntersection(Home_t *home, real8 *n, real8 *p, int *place, std::vector<real8> &vertices, std::vector<EdgeVec_t> &edges)
 {
-    edges.clear();
-    Grain_t *grain=home->grainKeys[place[1]];
-    
-    for(auto i=0; i<grain->nFaces; i++){
-        
-    }
-}
+    vertices.clear(); edges.clear();
 
+    int ibID;
+    real8 *p1, *p2, interPos[3];
+    real8 pos1[3], pos2[3], pos[3], dot1, dot2, t;
+    Face_t *face; Edge_t *gloEdge;
+    Grain_t *grain=home->grainKeys[place[1]];
+    for(auto i=0; i<grain->nFaces; i++){
+        face = grain->faces[i];
+        EdgeVec_t itEdge; itEdge.vertID1=-1; itEdge.vertID2=-1; 
+        itEdge.ofFaces.push_back(face->id);
+        for(auto j=0; j<face->nEdges; j++){
+            gloEdge = home->edges[face->edgesID[j]];
+            p1 = Coordinate(home->vertices, gloEdge->vertID1);
+            p2 = Coordinate(home->vertices, gloEdge->vertID2);
+
+            if(POINT_INTERSECTION==SegmentPlaneIntersection(p1,p2,n,p,interPos)){
+                if(itEdge.vertID1==-1){
+                    itEdge.vertID1 = AddAndSearchVertice(vertices, interPos[0], interPos[1], interPos[2]);
+                }else if (itEdge.vertID2==-1){
+                    itEdge.vertID2 = AddAndSearchVertice(vertices, interPos[0], interPos[1], interPos[2]);
+                }else Fatal("There is third intersection point, too complicated, we don not like it.");
+            }
+        }
+
+        if(itEdge.vertID2!=-1){
+            if(grain->nIBs>0){
+                ibID=InverseIndex(place[2]);
+                Coordinate(vertices, itEdge.vertID1, pos1);
+                Coordinate(vertices, itEdge.vertID2, pos2);
+
+                if(ibID<grain->nIBs){ // if has upper boundary
+                    dot1 = grain->ibN[0]*(pos1[0]-grain->ibPs[ibID][0])+grain->ibN[1]*(pos1[1]-grain->ibPs[ibID][1])
+                          +grain->ibN[2]*(pos1[2]-grain->ibPs[ibID][2]);
+                    dot2 = grain->ibN[0]*(pos2[0]-grain->ibPs[ibID][0])+grain->ibN[1]*(pos2[1]-grain->ibPs[ibID][1])
+                          +grain->ibN[2]*(pos2[2]-grain->ibPs[ibID][2]);
+                    if(dot1>0 && dot2>0)continue;
+                    if(dot1*dot2<0){
+                        t=fabs(dot1)/(fabs(dot1)+fabs(dot2));
+                        CoordAdd(1.0-t, pos1, t, pos2, pos);
+                        if(dot1>0){VECTOR_COPY(pos1, pos);}
+                        else {VECTOR_COPY(pos2, pos);}
+                    }
+                }
+  
+                if(ibID>0){ // if has lower boundary
+                    ibID--;
+                    dot1 = grain->ibN[0]*(pos1[0]-grain->ibPs[ibID][0])+grain->ibN[1]*(pos1[1]-grain->ibPs[ibID][1])
+                          +grain->ibN[2]*(pos1[2]-grain->ibPs[ibID][2]);
+                    dot2 = grain->ibN[0]*(pos2[0]-grain->ibPs[ibID][0])+grain->ibN[1]*(pos2[1]-grain->ibPs[ibID][1])
+                          +grain->ibN[2]*(pos2[2]-grain->ibPs[ibID][2]);
+                    if(dot1<0 && dot2<0)continue;
+                    if(dot1*dot2<0){
+                        t=fabs(dot1)/(fabs(dot1)+fabs(dot2));
+                        CoordAdd(1.0-t, pos1, t, pos2, pos);
+                        if(dot1>0){VECTOR_COPY(pos1, pos);}
+                        else {VECTOR_COPY(pos2, pos);}
+                    }
+                }
+                vertices[3*itEdge.vertID1]=pos1[0];
+                vertices[3*itEdge.vertID1+1]=pos1[1];
+                vertices[3*itEdge.vertID1+2]=pos1[2];
+                vertices[3*itEdge.vertID2]=pos2[0];
+                vertices[3*itEdge.vertID2+1]=pos2[1];
+                vertices[3*itEdge.vertID2+2]=pos2[2];
+            }
+            edges.push_back(itEdge);
+        }
+    }
+
+    if(grain->nIBs>0){
+        ibID=InverseIndex(place[2]);
+        if(ibID<grain->nIBs){ // if has upper boundary
+        }
+  
+        if(ibID>0){ // if has lower boundary
+            ibID--;
+        }
+    }
+    return;
+}
 
 void GenerateFCCBurgInfo(real8 rotMatrix[3][3], BurgInfo_t *burgData)
 {

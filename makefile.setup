@@ -89,7 +89,7 @@ XLIB_MODE = OFF
 # OPT = -O 
 # OPT = -O1
 # OPT = -O2
-#OPT = -O3 
+OPT = -O3 
 # OPT = -O3
 
 #

@@ -173,7 +173,7 @@ struct _grain{
     BurgInfo_t  bInfs[2], ibBurgInfs[2];
 
     int         nIBs;
-    real8       ibN[3], (*ibPs)[3];
+    real8       ibN[3], (*ibPs)[3], *ibAreas;
     int         *ibsNumEdges, **ibsEdgesFaceID;
     real8       **ibsEdges;
 

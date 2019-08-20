@@ -394,14 +394,3 @@ int PointPointIntersection(double *p1, double *p2, double *vec, double *dis, dou
     else return(NO_INTERSECTION);
 }
 
-
-/** Find a intersection of segment and plane (if has) 
- *  \param[in] p1[3] coordinates of the first end of segment
- *  \param[in] p2[3] coordinates of the second  end of segment
- *  \param[in] nDir[3] normal of plane
- *  \param[in] point[3] coordinate of point on pkane
- *  \param[in] plane[6] contains plane info. of the plae
- *  \param[in] margin margin (if has)
- *  \param[out] t normalized position of intersection point
- *  \param[out] intersection[3] position of intersection point
- *  \return intersection type: NO_INTERSECTION, POINT_INTERSECTION, INSIDE_SPACE and OUTSIDE_SPACE */ 
