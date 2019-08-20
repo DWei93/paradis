@@ -424,4 +424,45 @@ inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds
     return type;
 }
 
+/** Get the distance between point and segment
+ *  \param[in] p the coordinate of the point
+ *  \param[in] p1,p2 the two end of the segment
+ *  \return distance       */
+double PointSegmentDistance(double *p, double *p1, double *p2);
+
+/** Get the distance between point and polygon
+ *  \param[in] p the coordinate of the point
+ *  \param[in] v coordinates lis of vertices
+ *  \param[in] polygon indexs of polygon vertices
+ *  \param[in] startID index of start
+ *  \return distance                    */
+double PointConcavePolygonDistance(double *p, std::vector<double> &v, std::vector<int> &polygon, int startID);
+
+/** find the intersection segment between plane and concave polygon
+ *  \param[in] n,p normal and point of the plane
+ *  \param[in] vertices coodinates list
+ *  \param[in] polygon index of polygon vertices
+ *  \param[in] nPoints number polygon vertices
+ *  \param[out]  intersections two coodinates of te intersection segment (if has)*/
+bool PlaneConcavePolygonIntersection(double *n, double *p, double *vertices, int *polygon, int nPoints, double intersections[6]);
+
+/** Caculate centroid of the polygon
+ *  \param[in] f_vert vertice indexs of polygons
+ *  \param[in] v coodinates of all vertices
+ *  \param[in] startID the index of polygon to be caculeted
+ *  \param[out] cnetroid the centroid */
+void CentroidOfPolygon(std::vector<int> &f_vert,std::vector<double> &v,int startID, double *centroid);
+
+/** Caculate area of the polygon
+ *  \param[in] f_vert vertice indexs of polygons
+ *  \param[in] v coodinates of all vertices
+ *  \param[in] startID the index of polygon to be caculeted
+ *  \return area of polygon */
+double AreaOfPolygon(std::vector<int> &f_vert,std::vector<double> &v,int startID);
+
+/** add and search vertices, used to assemble vertices list
+ *  \param[in,out] vertices the coordinates of vertice list
+ *  \param[in] x,y,z the coordinate to search or add
+ *  \return the index of the coordinate */
+int AddAndSearchVertice(std::vector<double> &vertices, double x, double y, double z);
 #endif

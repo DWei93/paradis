@@ -29,6 +29,11 @@
 
 #include <vector>
 
+#ifdef GSL
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_spline.h>
+#endif
+
 void ExtPKForce(real8 str[3][3],
                 real8 bx, real8 by, real8 bz,
                 real8 x1, real8 y1, real8 z1,
@@ -2746,19 +2751,25 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
     real8 maxSeg = (real8)inArgs->maxSegLen;
     real8 lenRange = srcLenMax-srcLenMin;
     
-    FILE *fp1, *fp2; std::vector<int> indexs(2);
+    FILE *fp1, *fp2, *fp3;
     if ((fp1 = fopen("debug-FR-lines.plt", "w")) == (FILE *)NULL) {
         Fatal("%s: Open error %d on %s\n",__func__, errno, "debug-FR.plt");
     }
     fprintf(fp1,"variables = x, y, z, vx, vy, vz, place[1], place[2]\n");
 
-    if ((fp2 = fopen("debug-FR-scatters.plt", "w")) == (FILE *)NULL) {
-        Fatal("%s: Open error %d on %s\n",__func__, errno, "debug-FR.plt");
+    if ((fp2 = fopen("glide-planes.plt", "w")) == (FILE *)NULL) {
+        Fatal("%s: Open error %d on %s\n",__func__, errno, "glide-planes.plt");
     }
-    fprintf(fp2,"variables = x, y, z, place[0], place[1], place[2], place[3]\n");
+    fprintf(fp2,"variables = x, y, z, grain, subgrain, planID\n");
+
+    if ((fp3 = fopen("coord-lammda-curves.plt", "w")) == (FILE *)NULL) {
+        Fatal("%s: Open error %d on %s\n",__func__, errno, "coord-lammda-curves.plt");
+    }
+    fprintf(fp3,"variables = x, y, z, vx, vy, vz, type\n");
 
     Grain_t *grain; BurgInfo_t *bInf; 
-    real8   p[3],p1[3],p2[3],*lDir, *normal;
+    const int  NPOINTS=41;
+    real8   p[3],p1[3],p2[3],*lDir, *normal, x[NPOINTS], y[NPOINTS], len, p3[3],p4[4];
     int     ibID, randomNum, numSlipSys, odd, keyLineID, planeID;
     int     place[PLACE_LEN], place1[PLACE_LEN], place2[PLACE_LEN];
     for(auto i=0; i<home->nGrains; i++){
@@ -2786,17 +2797,96 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
             CoordAdd(1.0,p,-4*sqrt(3)*grain->rMax,lDir,p2);
             ClipPathInGrain(home, place, p, p1, place1);
             ClipPathInGrain(home, place, p, p2, place2);
+            len = PointPointDistance(p,p1)-SAFE_FACE_ERROR;
+            CoordAdd(1.0,p,len,lDir,p1);
+            len = PointPointDistance(p,p2)-SAFE_FACE_ERROR;
+            CoordAdd(1.0,p,-len,lDir,p2);
 
-            fprintf(fp2,"%g %g %g %d %d %d %d\n", p[0],p[1],p[2],place[0],place[1],place[2],place[3]);
-            fprintf(fp2,"%g %g %g %d %d %d %d\n", p1[0],p1[1],p1[2],place1[0],place1[1],place1[2],place1[3]);
-            fprintf(fp2,"%g %g %g %d %d %d %d\n", p2[0],p2[1],p2[2],place2[0],place2[1],place2[2],place2[3]);
-
+            std::vector<int> indexs(2);
             indexs[0]=grain->id; indexs[1]=place[2]; DrawLine(fp1, p1, p2, 10, indexs);
+            
+            indexs.resize(3); indexs[0]=place[1], indexs[1]=place[2], indexs[2]=planeID;
+            char zoneName[56];
+            snprintf(zoneName,sizeof(zoneName),"gp-%d-%d",place[1], InverseIndex(place[2]));
+            std::vector<real8> vertices; std::vector<EdgeVec_t> edges; std::vector<int> polygon;
+            PlaneGrainIntersection(home, normal, p, place, vertices, edges);
+            EdgeListToPolygon(edges, polygon);
+            DrawPolygon(fp2, polygon, vertices,0, zoneName, indexs);
+#ifndef GSL
+            Fatal("we need gsl for interpolation");
+#endif
+            len = PointPointDistance(p1,p2);
+            for(int k=0; k<NPOINTS; k++){
+                x[k]=real8(k)/(NPOINTS-1.0);
+                CoordAdd(1.0-x[k],p2,x[k],p1,p);
+                y[k]=PointConcavePolygonDistance(p, vertices, edges);
+            }
+
+            std::vector<int> inc, plateau, dec; real8 delta;
+            for(auto k=0; k<NPOINTS-1; k++){
+                delta=y[k+1]-y[k];
+                if(delta>FACE_ERROR)inc.push_back(k);
+                else if(fabs(delta) <= 1.0E-3)plateau.push_back(k);
+                else dec.push_back(k);
+            }
+            dec.push_back(dec.back()+1);
+            plateau.push_back(dec[0]);
+            inc.push_back(plateau[0]);
+
+            indexs.resize(1);
+#if 0
+            for(auto k=0; k<inc.size()-1; k++){
+                indexs[0]=0;
+                p3[0]=x[inc[k]]*100, p3[1]=y[inc[k]], p3[2]=0.0;
+                p4[0]=x[inc[k+1]]*100, p4[1]=y[inc[k+1]], p4[2]=0.0;
+                DrawLine(fp3, p3, p4, 2, indexs);
+            }
+            for(auto k=0; k<plateau.size()-1; k++){
+                indexs[0]=1;
+                p3[0]=x[plateau[k]]*100, p3[1]=y[plateau[k]], p3[2]=0.0;
+                p4[0]=x[plateau[k+1]]*100, p4[1]=y[plateau[k+1]], p4[2]=0.0;
+                DrawLine(fp3, p3, p4, 2, indexs);
+            }
+            for(auto k=0; k<dec.size()-1; k++){
+                indexs[0]=2;
+                p3[0]=x[dec[k]]*100, p3[1]=y[dec[k]], p3[2]=0.0;
+                p4[0]=x[dec[k+1]]*100, p4[1]=y[dec[k+1]], p4[2]=0.0;
+                DrawLine(fp3, p3, p4, 2, indexs);
+            }
+#endif
+            gsl_interp_accel *acc = gsl_interp_accel_alloc();
+            gsl_spline *spline_steffen = gsl_spline_alloc(gsl_interp_steffen, int(inc.size()));
+
+            real8 *xx, *yy;
+            xx = (real8 *)malloc(int(inc.size())*sizeof(real8));for(auto k=0; k<int(inc.size());k++)xx[k]=y[k];
+            yy = (real8 *)malloc(int(inc.size())*sizeof(real8));for(auto k=0; k<int(inc.size());k++)yy[k]=x[k]*100;
+            gsl_spline_init(spline_steffen, xx, yy, int(inc.size()));
+
+            p3[2]=0.0; p4[2]=0.0; indexs[0]=0;
+            for(auto k=0; k<1; k++){
+                p3[0] = y[inc[0]]+real8(k)*(y[inc.back()]-y[inc[0]])/100;
+                if(p3[0]<y[inc[0]])p3[0]=y[inc[0]];
+                if(p3[0]>y[inc.back()])p3[0]=y[inc.back()];
+                p3[1] = gsl_spline_eval(spline_steffen, p3[0], acc);
+
+                p4[0] = y[inc[0]]+real8(k+1)*(y[inc.back()]-y[inc[0]])/100;
+                if(p4[0]<y[inc[0]])p4[0]=y[inc[0]];
+                if(p4[0]>y[inc.back()])p4[0]=y[inc.back()];
+                p4[1] = gsl_spline_eval(spline_steffen, p4[0], acc);
+                printf("%e,%e %e,%e\n",p3[0],p3[1],p4[0],p4[1]);
+                DrawLine(fp3, p3, p4, 2, indexs);
+            }
+
+            gsl_spline_free(spline_steffen);
+            gsl_interp_accel_free(acc);
+            
+            free(xx); free(yy); xx=NULL; yy=NULL;
+        
         }
 
     }/* end for(auto i=0; i<home->nGrains; i++) */
       
-    fclose(fp1); fclose(fp2);
+    fclose(fp1); fclose(fp2); fclose(fp3);
     Fatal("CreateRRSource!");
     return; 
 }

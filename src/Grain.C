@@ -37,17 +37,7 @@
 
 /**************************************************************InitGrain*************************************************************/
 //{
-typedef struct{
-    int     inGrain, ID;    
-    real8   dis;
-}KeyNode_t;
 bool CmpKeyNodeT(KeyNode_t &p, KeyNode_t &q){ return p.dis<q.dis;}
-
-typedef struct{
-    int     vertID1, vertID2;
-    std::vector<int> ofFaces;
-    std::vector<KeyNode_t> ibs;
-}EdgeVec_t;
 
 void DrawLine(FILE *fp, real8 *pos1, real8 *pos2, real8 meshSize, std::vector<int> &indexs)
 {
@@ -68,6 +58,13 @@ void DrawLine(FILE *fp, real8 *pos1, real8 *pos2, real8 meshSize, std::vector<in
     return;
 }
 
+/** Draw polygon with tecplot formart
+ *  \param[in] fp file pointer for output
+ *  \param[in] f_vert vertices index list
+ *  \param[in] v coordinates of vertices
+ *  \param[in] startID the start index in f_vert for output polygon
+ *  \param[in] zoneName the zone name of tecplot
+ *  \param[in] vec the variales of the polygon */
 void DrawPolygon(FILE *fp, std::vector<int> &f_vert,std::vector<double> &v,int startID, char *zoneName, std::vector<int> &vec){
 
 	int n=f_vert[startID++];
@@ -95,76 +92,6 @@ void DrawPolygon(FILE *fp, std::vector<int> &f_vert,std::vector<double> &v,int s
     return;
 }
 
-void CentroidOfPolygon(std::vector<int> &f_vert,std::vector<double> &v,int startID, real8 *centroid){
-
-	int n=f_vert[startID++];
-
-    real8 pos0[3], pos1[3], pos2[3], cpd[3], areas=0, area;
-    VECTOR_ZERO(centroid); 
-    for(int i=startID+1; i<startID+n-1; i++){
-        pos1[0]=v[f_vert[i]*3]-v[f_vert[startID]*3];
-        pos1[1]=v[f_vert[i]*3+1]-v[f_vert[startID]*3+1];
-        pos1[2]=v[f_vert[i]*3+2]-v[f_vert[startID]*3+2];
-        pos2[0]=v[f_vert[i+1]*3]-v[f_vert[startID]*3];
-        pos2[1]=v[f_vert[i+1]*3+1]-v[f_vert[startID]*3+1];
-        pos2[2]=v[f_vert[i+1]*3+2]-v[f_vert[startID]*3+2];
-
-        pos0[0] = (pos1[0]+pos2[0])/3.0;
-        pos0[1] = (pos1[1]+pos2[1])/3.0;
-        pos0[2] = (pos1[2]+pos2[2])/3.0;
-        cross_product(pos1, pos2, cpd);area = normal(cpd);
-        areas += area;
-        centroid[0] += area*pos0[0]; 
-        centroid[1] += area*pos0[1]; 
-        centroid[2] += area*pos0[2]; 
-    }
-    centroid[0] /= areas; centroid[1] /= areas; centroid[2] /= areas;
-    centroid[0] += v[f_vert[startID]*3];
-    centroid[1] += v[f_vert[startID]*3+1];
-    centroid[2] += v[f_vert[startID]*3+2];
-    return;
-}
-
-real8 AreaOfPolygon(std::vector<int> &f_vert,std::vector<double> &v,int startID){
-	int n=f_vert[startID++];
-
-    real8 pos0[3], pos1[3], pos2[3], cpd[3], areas=0, area;
-    for(int i=startID+1; i<startID+n-1; i++){
-        pos1[0]=v[f_vert[i]*3]-v[f_vert[startID]*3];
-        pos1[1]=v[f_vert[i]*3+1]-v[f_vert[startID]*3+1];
-        pos1[2]=v[f_vert[i]*3+2]-v[f_vert[startID]*3+2];
-        pos2[0]=v[f_vert[i+1]*3]-v[f_vert[startID]*3];
-        pos2[1]=v[f_vert[i+1]*3+1]-v[f_vert[startID]*3+1];
-        pos2[2]=v[f_vert[i+1]*3+2]-v[f_vert[startID]*3+2];
-
-        cross_product(pos1, pos2, cpd);area = normal(cpd);
-        areas += area;
-    }
-    return 0.5*areas;
-}
-
-int AddAndSearchVertice(std::vector<real8> &vertices, real8 x, real8 y, real8 z)
-{
-    if(vertices.size() > 0){
-        unsigned int i;
-        for(i=0; i<vertices.size(); i+=3){
-            if(fabs(vertices[i]-x)<1.0E-12 &&
-               fabs(vertices[i+1]-y)<1.0E-12 &&
-               fabs(vertices[i+2]-z)<1.0E-12)break;
-        }
-        if(i == vertices.size()){
-            vertices.push_back(x);
-            vertices.push_back(y);
-            vertices.push_back(z);
-        }
-        return int(i/3);
-    }else{
-        vertices.push_back(x);
-        vertices.push_back(y);
-        vertices.push_back(z);
-        return(0);
-    }
-}
 int AddAndSearchVertice(std::vector<real8> &vertices, std::vector<std::vector<int> > &verticesOnGrain, real8 x, real8 y, real8 z, int onGrain)
 {
 #ifdef DEBUG
@@ -190,7 +117,7 @@ int AddAndSearchVertice(std::vector<real8> &vertices, std::vector<std::vector<in
 #ifdef DEBUG
             if(verticesOnGrain[i].size()==0)Fatal("%s: the vertice was not defined location initially", __func__);
 #endif
-            unsigned j; for(j=0; j<verticesOnGrain[i].size(); j++){
+            unsigned int j; for(j=0; j<verticesOnGrain[i].size(); j++){
                 if(onGrain == verticesOnGrain[i][j])break;
             }
             if(j==verticesOnGrain[i].size())verticesOnGrain[i].push_back(onGrain);
@@ -207,10 +134,14 @@ int AddAndSearchVertice(std::vector<real8> &vertices, std::vector<std::vector<in
     }
 }
 
+/** Convert edge vector list to polygon vector list */
 void EdgeListToPolygon(std::vector<EdgeVec_t> &edges, std::vector<int> &polygon){
-    polygon.clear();
-    if(edges.empty())Fatal("empty edges");
-    polygon.push_back(edges[0].vertID1); 
+
+#ifdef DEBUG
+    if(edges.empty())Fatal("%s: empty edges",__func__);
+#endif
+
+    polygon.clear(); polygon.push_back(edges[0].vertID1); 
     if(edges.size()==1){
        polygon.push_back(edges[0].vertID2); return;
     }
@@ -233,6 +164,18 @@ void EdgeListToPolygon(std::vector<EdgeVec_t> &edges, std::vector<int> &polygon)
     for(auto i=1; i<edges.size(); i++){
         edges[i].vertID1 = -edges[i].vertID1-1; edges[i].vertID2 = -edges[i].vertID2-1;
     }
+
+    for(auto i=0; i<edges.size()-1; i++){
+        if(edges[i].vertID1==polygon[i] && edges[i].vertID2==polygon[i+1] ||
+           edges[i].vertID2==polygon[i] && edges[i].vertID1==polygon[i+1])continue;
+        unsigned int j; for(j=i+1; j<edges.size(); j++){
+            if(edges[j].vertID1==polygon[i] && edges[j].vertID2==polygon[i+1] ||
+               edges[j].vertID2==polygon[i] && edges[j].vertID1==polygon[i+1]){
+                std::swap(edges[i], edges[j]);break;}
+        }
+        if(j==edges.size())Fatal("%s: can not find the edge",__func__);
+    }
+
     polygon.insert(polygon.begin(), (int)polygon.size());
     return; 
 }
@@ -310,21 +253,21 @@ void InitGrain(Home_t *home, Param_t *param)
     /** import the voro++ input file in domain 0 and boardcast it.
      */
     const int MAXLINELENGTH = 1024;
-    FILE *fp1, *fp2;
+    FILE *fp;
     char *strp, str[MAXLINELENGTH];
     if(home->myDomain == 0){
-        if((fp1 = fopen(home->voroFile, "r+")) == NULL){
+        if((fp = fopen(home->voroFile, "r+")) == NULL){
             Fatal("Can not open voro++ file %s\n", home->voroFile);
         }
 
         home->nGrains = 0;
         while(1){
-            strp = fgets(str, MAXLINELENGTH, fp1);
-            if(feof(fp1))break;
+            strp = fgets(str, MAXLINELENGTH, fp);
+            if(feof(fp))break;
             if(str == "\n" || str == NULL)continue;
             home->nGrains++;
         }
-        fclose(fp1);
+        fclose(fp);
     }
 #if PARALLEL
     MPI_Bcast(&(home->nGrains), sizeof(int), MPI_INT, 0, MPI_COMM_WORLD);
@@ -332,20 +275,20 @@ void InitGrain(Home_t *home, Param_t *param)
 
     real8   *dataList = new real8[home->nGrains*(con->ps+1)];
     if(home->myDomain == 0){
-        if((fp1 = fopen(home->voroFile, "r+")) == NULL){
+        if((fp = fopen(home->voroFile, "r+")) == NULL){
             Fatal("Can not open voro++ file %s\n", home->voroFile);
         }
         
         char *strok; int i=0;
         while(1){
-            strp = fgets(str, MAXLINELENGTH, fp1);
-            if(feof(fp1))break;
+            strp = fgets(str, MAXLINELENGTH, fp);
+            if(feof(fp))break;
             if(str == "\n" || str == NULL)continue;
 
             dataList[i++] = atof(strtok(str, " "));
             for(int j=1; j<(con->ps+1); j++)dataList[i++] = atof(strtok(NULL, " "));
         }
-        fclose(fp1);
+        fclose(fp);
     }
 #if PARALLEL
     MPI_Bcast((char*)dataList, home->nGrains*(con->ps+1)*sizeof(real8), MPI_CHAR, 0, MPI_COMM_WORLD);
@@ -391,10 +334,10 @@ void InitGrain(Home_t *home, Param_t *param)
     /** open the file polygons.plt
      */
     if(home->myDomain ==0) {
-        if ((fp1 = fopen("polygons.plt", "w")) == (FILE *)NULL) {
+        if ((fp = fopen("polygons.plt", "w")) == (FILE *)NULL) {
             Fatal("%s: Open error %d on %s\n", __func__, errno, "polygons.plt");
         }
-        fprintf(fp1,"variables = x, y, z, type, grain, neiOrIBID\n");
+        fprintf(fp,"variables = x, y, z, type, grain, neiOrIBID\n");
     }
 
     /** compute voronoicells, cout all faces and draw them out.
@@ -445,7 +388,7 @@ void InitGrain(Home_t *home, Param_t *param)
                      snprintf(zoneName,sizeof(zoneName),"GB-%d",nFaces);
                 }
                  info[1] = grain->id; info[2] = neigh[j];
-                if(home->myDomain ==0)DrawPolygon(fp1, f_vert, vertices, k, zoneName, info);
+                if(home->myDomain ==0)DrawPolygon(fp, f_vert, vertices, k, zoneName, info);
 
                 nFaces++;
             }
@@ -608,14 +551,9 @@ void InitGrain(Home_t *home, Param_t *param)
         if(!cl.inc())break;
     }
 
-    if(home->myDomain==0){
-        if ((fp2 = fopen("ib-edges.plt", "w")) == (FILE *)NULL) {
-            Fatal("%s: Open error %d on %s\n",__func__, errno, "ib-edges.plt");
-        }
-        fprintf(fp2,"variables = x, y, z, vx, vy, vz, grain, ibID, faceID\n");
-    }
     if(cl.start()) for(int i=0, nFaces=0; i<home->nGrains; i++){
         int k; Face_t  *face;
+        std::vector<real8> grainVertices;
         voronoicell_neighbor *cell = cells[i];
         Grain_t *grain = home->grainKeys[i];
 
@@ -654,6 +592,7 @@ void InitGrain(Home_t *home, Param_t *param)
             grain->ibsNumEdges = (int*)malloc(grain->nIBs*sizeof(int));
             grain->ibsEdges = (real8**)malloc(grain->nIBs*sizeof(real8*));
             grain->ibsEdgesFaceID = (int **)malloc(grain->nIBs*sizeof(int*));
+            grain->ibPolygons = (int **)malloc(grain->nIBs*sizeof(int*));
         }
         for(auto m=0; m<grain->nIBs; m++){
             real8 p1[3], p2[3], p[3], t; int v1,v2;
@@ -671,9 +610,9 @@ void InitGrain(Home_t *home, Param_t *param)
                     // if find the intersection, add intersection to IB edge as vertice and face edge as node
                     if(POINT_INTERSECTION == SegmentPlaneIntersection(p1, p2, grain->ibN, grain->ibPs[m], p)){
                         if(edge.vertID1 == -1){
-                            edge.vertID1 = AddAndSearchVertice(vertices,p[0],p[1],p[2]);
+                            edge.vertID1 = AddAndSearchVertice(grainVertices,p[0],p[1],p[2]);
                         }else if(edge.vertID2 == -1){
-                            edge.vertID2 = AddAndSearchVertice(vertices,p[0],p[1],p[2]);
+                            edge.vertID2 = AddAndSearchVertice(grainVertices,p[0],p[1],p[2]);
                         }else Fatal("There is third intersection point, too complicated, we don not like it.");
 #ifdef DEBUG
                         int edgesSize = int(edges.size());
@@ -704,14 +643,8 @@ void InitGrain(Home_t *home, Param_t *param)
                 }
 
                 // if the edge is found, store it and draw edge line
-                if(edge.vertID2 != -1){
-                    ibEdges.push_back(edge);
-                    if(home->myDomain==0){
-                        std::vector<int> indexs(3); indexs[0]=i; indexs[1]=m; indexs[2]=edge.ofFaces[0];
-                        Coordinate(vertices, edge.vertID1, p1); Coordinate(vertices, edge.vertID2, p2);
-                        DrawLine(fp2, p1, p2, 10, indexs);
-                    }
-                }
+                if(edge.vertID2 != -1)ibEdges.push_back(edge);
+
                 k+=glo_f_vert[k]+1;
             }
             grain->ibsNumEdges[m]=(int)ibEdges.size();
@@ -721,8 +654,8 @@ void InitGrain(Home_t *home, Param_t *param)
             EdgeListToPolygon(ibEdges,polygon); 
 
             // caculate centroid and areaof polygon and copy it to grain->ibPs
-            CentroidOfPolygon(polygon, vertices, 0, centroid);
-            grain->ibAreas[m] = AreaOfPolygon(polygon, vertices, 0);
+            CentroidOfPolygon(polygon, grainVertices, 0, centroid);
+            grain->ibAreas[m] = AreaOfPolygon(polygon, grainVertices, 0);
             PointPlaneDistance(centroid, grain->ibN, grain->ibPs[m], dis, grain->ibPs[m]);
 
 #ifdef DEBUG
@@ -732,15 +665,16 @@ void InitGrain(Home_t *home, Param_t *param)
             real8 gDir[3], lDir[3], crpd[3];
             grain->ibsEdges[m] = (real8*)malloc(grain->ibsNumEdges[m]*6*sizeof(real8));
             grain->ibsEdgesFaceID[m] = (int *)malloc(grain->ibsNumEdges[m]*sizeof(int));
+            grain->ibPolygons[m] = (int *)malloc(grain->ibsNumEdges[m]*sizeof(int));
 
             for(auto n=0; n<grain->ibsNumEdges[m]; n++){
-                lDir[0] = vertices[ibEdges[n].vertID2*3] - vertices[ibEdges[n].vertID1*3];
-                lDir[1] = vertices[ibEdges[n].vertID2*3+1] - vertices[ibEdges[n].vertID1*3+1];
-                lDir[2] = vertices[ibEdges[n].vertID2*3+2] - vertices[ibEdges[n].vertID1*3+2];
-                if(normal(lDir) < 1E-11)Fatal("the two vertices are too close");normalize_vec(lDir);
-                p[0] = 0.5*(vertices[ibEdges[n].vertID2*3] +   vertices[ibEdges[n].vertID1*3]);
-                p[1] = 0.5*(vertices[ibEdges[n].vertID2*3+1] + vertices[ibEdges[n].vertID1*3+1]);
-                p[2] = 0.5*(vertices[ibEdges[n].vertID2*3+2] + vertices[ibEdges[n].vertID1*3+2]);
+                lDir[0] = grainVertices[ibEdges[n].vertID2*3] - grainVertices[ibEdges[n].vertID1*3];
+                lDir[1] = grainVertices[ibEdges[n].vertID2*3+1] - grainVertices[ibEdges[n].vertID1*3+1];
+                lDir[2] = grainVertices[ibEdges[n].vertID2*3+2] - grainVertices[ibEdges[n].vertID1*3+2];
+                if(normal(lDir) < 1E-11)Fatal("the two grainVertices are too close");normalize_vec(lDir);
+                p[0] = 0.5*(grainVertices[ibEdges[n].vertID2*3] +   grainVertices[ibEdges[n].vertID1*3]);
+                p[1] = 0.5*(grainVertices[ibEdges[n].vertID2*3+1] + grainVertices[ibEdges[n].vertID1*3+1]);
+                p[2] = 0.5*(grainVertices[ibEdges[n].vertID2*3+2] + grainVertices[ibEdges[n].vertID1*3+2]);
                 
                 // We comsider a plane which is both perpendicular to inner boundary and line sense of the edge,
                 // and cacualte the normal of plane (point to outside of the inner boundary)
@@ -758,13 +692,31 @@ void InitGrain(Home_t *home, Param_t *param)
                 char zoneName[256];std::vector<int> info(3);
                 snprintf(zoneName,sizeof(zoneName),"IB-%d-%d",grain->id, m);
                 info[0] = 2; info[1] = grain->id; info[2] = m;
-                DrawPolygon(fp1, polygon, vertices, 0, zoneName, info);
+                DrawPolygon(fp, polygon, grainVertices, 0, zoneName, info);
             }
+            
+            // store inner boundary polygon
+            for(auto n=0; n<grain->ibsNumEdges[m]; n++)grain->ibPolygons[m][n]=polygon[n+1];
         }
 
+        if(!grainVertices.empty()){
+            grain->nIBVertices=int(grainVertices.size()/3);
+            grain->ibVertices = (real8 *)malloc(3*grain->nIBVertices*sizeof(real8));
+            grain->ibVertOnEdge = (int *)malloc(grain->nIBVertices*sizeof(int));
+            grain->ibVertOnSubedge = (int *)malloc(grain->nIBVertices*sizeof(int));
+            for(auto j=0; j<grain->nIBVertices;j++){
+                grain->ibVertices[3*j]=grainVertices[3*j];
+                grain->ibVertices[3*j+1]=grainVertices[3*j+1];
+                grain->ibVertices[3*j+2]=grainVertices[3*j+2];
+                grain->ibVertOnEdge[j]=-1;
+                grain->ibVertOnSubedge[j]=-1;
+            }
+        }else grain->nIBVertices=0;
+
+        grainVertices.clear();
         if(!cl.inc())break;
     }
-    if(home->myDomain ==0){fclose(fp1); fclose(fp2);}
+    if(home->myDomain ==0){fclose(fp);}
 
     /*  copy vertices into home
      */
@@ -777,7 +729,30 @@ void InitGrain(Home_t *home, Param_t *param)
         home->edges[i] = (Edge_t *)malloc(sizeof(Edge_t));
         sort(edges[i].ibs.begin(), edges[i].ibs.end(), CmpKeyNodeT);
         EdgeCopy(home->edges[i], edges[i]);
+
+        real8 pos[3]; Edge_t *edge=home->edges[i];
+        for(auto j=0; j<edge->nIBs; j++){
+            CoordAdd(1.0-edge->dis[j], Coordinate(home->vertices, edge->vertID1),
+                      edge->dis[j], Coordinate(home->vertices, edge->vertID2), pos);
+            Grain_t *grain=home->grainKeys[edge->ibInGrain[j]];
+            int k; for(k=0; k<grain->nIBVertices; k++){
+                if(PointPointDistance(Coordinate(grain->ibVertices,k), pos)<FACE_ERROR)break;
+            }
+            if(k==grain->nIBVertices)Fatal("%s: can not claim the sub edge node", __func__);
+            grain->ibVertOnEdge[k]=i; grain->ibVertOnSubedge[k]=j;
+        }
     }
+
+#ifdef DEBUG
+    for(auto i=0; i<home->nGrains; i++){
+        Grain_t *grain=home->grainKeys[i];
+        for(auto j=0; j<grain->nIBVertices; j++){
+            if(grain->ibVertOnEdge[j]==-1 || grain->ibVertOnSubedge[j]==-1){
+                Fatal("%s: ibVertOnEdge and ibVertOnSubedge not defineded",__func__);
+            }
+        }
+    }
+#endif
    
     /** Assembly burg informations of GBs
      */ 
@@ -807,28 +782,43 @@ void InitGrain(Home_t *home, Param_t *param)
     }
 
     if(home->myDomain == 0){
-        if ((fp1 = fopen("face-edges.plt", "w")) == (FILE *)NULL) {
+        if ((fp = fopen("face-edges.plt", "w")) == (FILE *)NULL) {
              Fatal("%s: Open error %d on %s\n",__func__, errno, "face-edges.plt");
         }
-        fprintf(fp1,"variables = x, y, z, vx, vy, vz, segID, nFaces\n");
-
+        fprintf(fp,"variables = x, y, z, vx, vy, vz, edge-type\n");
+        std::vector<int> indexs(1);
         for(auto i=0; i<edges.size(); i++){
-            real8 pos1[3], pos2[3]; std::vector<int> indexs(2);
-            indexs[0]= (int)i; indexs[1]=(int)edges[i].ofFaces.size();
+            real8 pos1[3], pos2[3];
+            indexs[0]= 0;
             Coordinate(gloVertices, edges[i].vertID1, pos1);
             Coordinate(gloVertices, edges[i].vertID2, pos2);
-            DrawLine(fp1, pos1, pos2, 10, indexs);
+            DrawLine(fp, pos1, pos2, 10, indexs);
         }   
-        fclose(fp1);
+
+        for(auto i=0; i<home->nGrains; i++){
+            Grain_t *grain = home->grainKeys[i];
+            real8 *p1, *p2; indexs[0]=1;
+            for(auto j=0; j<grain->nIBs; j++){
+                for(auto k=0; k<grain->ibsNumEdges[j]; k++){
+                    p1=Coordinate(grain->ibVertices, grain->ibPolygons[j][k]);
+                    p2=(k<grain->ibsNumEdges[j]-1)?
+                        Coordinate(grain->ibVertices, grain->ibPolygons[j][k+1]):
+                        Coordinate(grain->ibVertices, grain->ibPolygons[j][0]);
+                    DrawLine(fp, p1, p2, 10, indexs);
+                }
+            }
+        }
+
+        fclose(fp);
 
 #ifdef DEBUG
         int place[PLACE_LEN]; real8 pos[3];
 
-        if ((fp1 = fopen("keypoints.plt", "w")) == (FILE *)NULL) {
+        if ((fp = fopen("keypoints.plt", "w")) == (FILE *)NULL) {
             Fatal("%s: Open error %d on %s\n", __func__,errno, "keypoints.plt");
         }
 
-        fprintf(fp1,"variables = x, y, z, pointType, place[0], place[1], place[2], place[3]\n");
+        fprintf(fp,"variables = x, y, z, pointType, place[0], place[1], place[2], place[3]\n");
 
         /** output centroid of grain, face, inner boundary with pointType 0, 1, 2, respectivetly */
         for(auto i=0; i<home->nGrains; i++){
@@ -836,19 +826,19 @@ void InitGrain(Home_t *home, Param_t *param)
 
             VECTOR_COPY(pos,  grain->pos);
             NodeLocation(home, pos, place, FACE_ERROR);
-            fprintf(fp1, "%g %g %g %d %d %d %d %d\n", pos[0], pos[1], pos[2],
+            fprintf(fp, "%g %g %g %d %d %d %d %d\n", pos[0], pos[1], pos[2],
                     0, place[0], place[1], place[2], place[3]);
 
             for(auto j=0; j<grain->nFaces; j++){
                 VECTOR_COPY(pos,  grain->faces[j]->p);
                 NodeLocation(home, pos, place, FACE_ERROR);
-                fprintf(fp1, "%g %g %g %d %d %d %d %d\n", pos[0], pos[1], pos[2],
+                fprintf(fp, "%g %g %g %d %d %d %d %d\n", pos[0], pos[1], pos[2],
                         1, place[0], place[1], place[2], place[3]);
             }
             for(auto j=0; j<grain->nIBs; j++){
                 VECTOR_COPY(pos, grain->ibPs[j]);
                 NodeLocation(home, pos, place, FACE_ERROR);
-                fprintf(fp1, "%g %g %g %d %d %d %d %d\n", pos[0], pos[1], pos[2],
+                fprintf(fp, "%g %g %g %d %d %d %d %d\n", pos[0], pos[1], pos[2],
                         2, place[0], place[1], place[2], place[3]);
             }
         }
@@ -857,7 +847,7 @@ void InitGrain(Home_t *home, Param_t *param)
         for(auto i=0; i<home->nVertices; i++){
             Coordinate(home->vertices, i, pos);
             NodeLocation(home, pos, place, FACE_ERROR);
-            fprintf(fp1, "%g %g %g %d %d %d %d %d\n", pos[0], pos[1], pos[2],
+            fprintf(fp, "%g %g %g %d %d %d %d %d\n", pos[0], pos[1], pos[2],
                     3, place[0], place[1], place[2], place[3]);
         }
 
@@ -867,11 +857,11 @@ void InitGrain(Home_t *home, Param_t *param)
                 CoordAdd(1.0-edge->dis[j], Coordinate(home->vertices,edge->vertID1), 
                              edge->dis[j], Coordinate(home->vertices,edge->vertID2), pos);
                 NodeLocation(home, pos, place, FACE_ERROR);
-                fprintf(fp1, "%g %g %g %d %d %d %d %d\n", pos[0], pos[1], pos[2],
+                fprintf(fp, "%g %g %g %d %d %d %d %d\n", pos[0], pos[1], pos[2],
                         4, place[0], place[1], place[2], place[3]);
             }
         }
-        fclose(fp1);
+        fclose(fp);
 #endif
     }
 
@@ -1448,6 +1438,23 @@ bool OnFaceEdge(Home_t *home, int *place, real8 *pos, Node_t *node, real8 margin
 }
 
 
+/** Get the distance between point and polygon
+ *  \param[in] p the coordinate of the point
+ *  \param[in] v coordinates lis of vertices
+ *  \param[in edges indexs and factor of polygon vertices
+ *  \return distance                    */
+double PointConcavePolygonDistance(double *p, std::vector<double> &v, std::vector<EdgeVec_t> &edges){
+    real8 p1[3],p2[3], min=1E50, dis;
+    for(auto i=0; i<edges.size(); i++){
+        Coordinate(v, edges[i].vertID1, p1);
+        Coordinate(v, edges[i].vertID2, p2);
+
+        dis = PointSegmentDistance(p, p1, p2)*edges[i].factor;
+        min = (min>dis)?dis:min;
+    }
+    return min;
+}
+
 void GetArmLocation(Home_t *home, Node_t *node1, Node_t *node2, int *place){
     int *place1, *place2;
     if(node1->place[0] <= node2->place[0]){
@@ -1516,6 +1523,7 @@ void PlaneGrainIntersection(Home_t *home, real8 *n, real8 *p, int *place, std::v
     for(auto i=0; i<grain->nFaces; i++){
         face = grain->faces[i];
         EdgeVec_t itEdge; itEdge.vertID1=-1; itEdge.vertID2=-1; 
+        itEdge.factor= (face->type==FREE_SURFACE)?1.0:0.5;
         itEdge.ofFaces.push_back(face->id);
         for(auto j=0; j<face->nEdges; j++){
             gloEdge = home->edges[face->edgesID[j]];
@@ -1561,7 +1569,7 @@ void PlaneGrainIntersection(Home_t *home, real8 *n, real8 *p, int *place, std::v
                     if(dot1*dot2<0){
                         t=fabs(dot1)/(fabs(dot1)+fabs(dot2));
                         CoordAdd(1.0-t, pos1, t, pos2, pos);
-                        if(dot1>0){VECTOR_COPY(pos1, pos);}
+                        if(dot1<0){VECTOR_COPY(pos1, pos);}
                         else {VECTOR_COPY(pos2, pos);}
                     }
                 }
@@ -1577,12 +1585,27 @@ void PlaneGrainIntersection(Home_t *home, real8 *n, real8 *p, int *place, std::v
     }
 
     if(grain->nIBs>0){
+        real8 intersection[6];
         ibID=InverseIndex(place[2]);
         if(ibID<grain->nIBs){ // if has upper boundary
+            if(PlaneConcavePolygonIntersection(n,p,grain->ibVertices,
+                grain->ibPolygons[ibID],grain->ibsNumEdges[ibID],intersection)){
+                EdgeVec_t itEdge;  itEdge.factor=0.5;
+                itEdge.vertID1=AddAndSearchVertice(vertices, intersection[0], intersection[1], intersection[2]);
+                itEdge.vertID2=AddAndSearchVertice(vertices, intersection[3], intersection[4], intersection[5]);
+                edges.push_back(itEdge);
+            }
         }
   
         if(ibID>0){ // if has lower boundary
             ibID--;
+            if(PlaneConcavePolygonIntersection(n,p,grain->ibVertices,
+                grain->ibPolygons[ibID],grain->ibsNumEdges[ibID],intersection)){
+                EdgeVec_t itEdge; itEdge.factor=0.5; 
+                itEdge.vertID1=AddAndSearchVertice(vertices, intersection[0], intersection[1], intersection[2]);
+                itEdge.vertID2=AddAndSearchVertice(vertices, intersection[3], intersection[4], intersection[5]);
+                edges.push_back(itEdge);
+            }
         }
     }
     return;

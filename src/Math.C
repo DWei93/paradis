@@ -394,3 +394,148 @@ int PointPointIntersection(double *p1, double *p2, double *vec, double *dis, dou
     else return(NO_INTERSECTION);
 }
 
+/** Get the distance between point and segment
+ *  \param[in] p the coordinate of the point
+ *  \param[in] p1,p2 the two end of the segment
+ *  \return distance       */
+double PointSegmentDistance(double *p, double *p1, double *p2){
+    double lDir[3], vec2[3], dis, len;
+    CoordMinus(p2,p1,lDir);
+    len=normal(lDir);
+#ifdef DEBUG
+    if(len<LENGTH_ERROR)Fatal("%s: the segments is too short",__func__);
+#endif
+    normalize_vec(lDir);
+    PointLineIntersection(p, lDir, p1, vec2, &dis);
+    vec2[0]-=p1[0]; vec2[1]-=p1[1]; vec2[2]-=p1[2]; 
+    
+    if(Dot(vec2,lDir)<0)return PointPointDistance(p,p1);
+    else if (normal(vec2)>len) return PointPointDistance(p,p2);
+    else return dis;
+}
+
+/** Get the distance between point and polygon
+ *  \param[in] p the coordinate of the point
+ *  \param[in] v coordinates lis of vertices
+ *  \param[in] polygon indexs of polygon vertices
+ *  \param[in] startID index of start
+ *  \return distance                    */
+double PointConcavePolygonDistance(double *p, std::vector<double> &v, std::vector<int> &polygon, int startID){
+    double p1[3], p2[3], dis, min=1E50;
+    for(auto i=startID+1; i<startID+1+polygon[startID]; i++){
+        Coordinate(v,polygon[i],p1);
+        if(i<startID+polygon[startID])Coordinate(v,polygon[i+1],p2);
+        else Coordinate(v,polygon[startID+1],p2);
+        
+        dis = PointSegmentDistance(p, p1, p2);
+        min = (min>dis)?dis:min;
+    }
+    return min;
+}
+
+/** Find the intersection segment between plane and concave polygon`
+ *  \param[in] n,p normal and point of the plane
+ *  \param[in] vertices coodinates list
+ *  \param[in] polygon index of polygon vertices
+ *  \param[in] nPoints number polygon vertices
+ *  \param[out]  intersections two coodinates of te intersection segment (if has)*/
+bool PlaneConcavePolygonIntersection(double *n, double *p, double *vertices, int *polygon, int nPoints, double intersections[6])
+{
+    int next, j=0;
+    double *v1, *v2, pos[3];
+    for(auto i=0; i<nPoints; i++){
+        next = (i<nPoints-1)?i+1:0;
+        if(POINT_INTERSECTION==SegmentPlaneIntersection(Coordinate(vertices, polygon[i]), Coordinate(vertices,polygon[next]),n, p, pos)){
+            intersections[3*j]=pos[0];intersections[3*j+1]=pos[1];intersections[3*j+2]=pos[2]; j++;
+        }
+        if(j==2)break;
+    }
+    if(j==2)return true;
+    else return false;
+}
+
+/** Caculate centroid of the polygon
+ *  \param[in] f_vert vertice indexs of polygons
+ *  \param[in] v coodinates of all vertices
+ *  \param[in] startID the index of polygon to be caculeted
+ *  \param[out] cnetroid the centroid */
+void CentroidOfPolygon(std::vector<int> &f_vert,std::vector<double> &v,int startID, double *centroid){
+
+	int n=f_vert[startID++];
+
+    double pos0[3], pos1[3], pos2[3], cpd[3], areas=0, area;
+    VECTOR_ZERO(centroid); 
+    for(int i=startID+1; i<startID+n-1; i++){
+        pos1[0]=v[f_vert[i]*3]-v[f_vert[startID]*3];
+        pos1[1]=v[f_vert[i]*3+1]-v[f_vert[startID]*3+1];
+        pos1[2]=v[f_vert[i]*3+2]-v[f_vert[startID]*3+2];
+        pos2[0]=v[f_vert[i+1]*3]-v[f_vert[startID]*3];
+        pos2[1]=v[f_vert[i+1]*3+1]-v[f_vert[startID]*3+1];
+        pos2[2]=v[f_vert[i+1]*3+2]-v[f_vert[startID]*3+2];
+
+        pos0[0] = (pos1[0]+pos2[0])/3.0;
+        pos0[1] = (pos1[1]+pos2[1])/3.0;
+        pos0[2] = (pos1[2]+pos2[2])/3.0;
+        cross_product(pos1, pos2, cpd);area = normal(cpd);
+        areas += area;
+        centroid[0] += area*pos0[0]; 
+        centroid[1] += area*pos0[1]; 
+        centroid[2] += area*pos0[2]; 
+    }
+    centroid[0] /= areas; centroid[1] /= areas; centroid[2] /= areas;
+    centroid[0] += v[f_vert[startID]*3];
+    centroid[1] += v[f_vert[startID]*3+1];
+    centroid[2] += v[f_vert[startID]*3+2];
+    return;
+}
+
+/** Caculate area of the polygon
+ *  \param[in] f_vert vertice indexs of polygons
+ *  \param[in] v coodinates of all vertices
+ *  \param[in] startID the index of polygon to be caculeted
+ *  \return area of polygon */
+double AreaOfPolygon(std::vector<int> &f_vert,std::vector<double> &v,int startID){
+	int n=f_vert[startID++];
+
+    double pos0[3], pos1[3], pos2[3], cpd[3], areas=0, area;
+    for(int i=startID+1; i<startID+n-1; i++){
+        pos1[0]=v[f_vert[i]*3]-v[f_vert[startID]*3];
+        pos1[1]=v[f_vert[i]*3+1]-v[f_vert[startID]*3+1];
+        pos1[2]=v[f_vert[i]*3+2]-v[f_vert[startID]*3+2];
+        pos2[0]=v[f_vert[i+1]*3]-v[f_vert[startID]*3];
+        pos2[1]=v[f_vert[i+1]*3+1]-v[f_vert[startID]*3+1];
+        pos2[2]=v[f_vert[i+1]*3+2]-v[f_vert[startID]*3+2];
+
+        cross_product(pos1, pos2, cpd);area = normal(cpd);
+        areas += area;
+    }
+    return 0.5*areas;
+}
+
+/** add and search vertices, used to assemble vertices list
+ *  \param[in,out] vertices the coordinates of vertice list
+ *  \param[in] x,y,z the coordinate to search or add
+ *  \return the index of the coordinate */
+int AddAndSearchVertice(std::vector<double> &vertices, double x, double y, double z)
+{
+    if(vertices.size() > 0){
+        unsigned int i;
+        for(i=0; i<vertices.size(); i+=3){
+            if(fabs(vertices[i]-x)<1.0E-12 &&
+               fabs(vertices[i+1]-y)<1.0E-12 &&
+               fabs(vertices[i+2]-z)<1.0E-12)break;
+        }
+        if(i == vertices.size()){
+            vertices.push_back(x);
+            vertices.push_back(y);
+            vertices.push_back(z);
+        }
+        return int(i/3);
+    }else{
+        vertices.push_back(x);
+        vertices.push_back(y);
+        vertices.push_back(z);
+        return(0);
+    }
+}
+

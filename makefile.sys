@@ -1158,7 +1158,7 @@ VORO_LIB.gcc          = -L${HOME}/LIB/voro++/lib -lvoro++
 VORO_INCS.gcc         = -I${HOME}/LIB/voro++/include/voro++
 
 GSL_LIBDIR.gcc       =  
-GSL_LIB.gcc          = -L${HOME}/LIB/lib -lgsl -lgslcblas  
+GSL_LIB.gcc          = -L${HOME}/LIB/lib -lgsl -lgslcblas
 GSL_INCS.gcc         = -I${HOME}/LIB/include
 
 OPENMP_FLAG.gcc       = -fopenmp  

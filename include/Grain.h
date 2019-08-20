@@ -137,6 +137,18 @@ typedef struct{
     int         *edgesID;
 }Face_t;
 
+typedef struct{
+    int     inGrain, ID;    
+    real8   dis;
+}KeyNode_t;
+
+typedef struct{
+    int     vertID1, vertID2;
+    double  factor;
+    std::vector<int> ofFaces;
+    std::vector<KeyNode_t> ibs;
+}EdgeVec_t;
+
 typedef struct {
     int         GBID;
     int         type;
@@ -168,11 +180,12 @@ struct _slipSys{
 
 struct _grain{
     int         id;
-
 	real8	    pos[3], rMax;
     BurgInfo_t  bInfs[2], ibBurgInfs[2];
 
-    int         nIBs;
+    int         nIBs, nIBVertices, **ibPolygons;
+    int         *ibVertOnEdge, *ibVertOnSubedge;
+    real8       *ibVertices;
     real8       ibN[3], (*ibPs)[3], *ibAreas;
     int         *ibsNumEdges, **ibsEdgesFaceID;
     real8       **ibsEdges;
@@ -339,8 +352,35 @@ void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, Bu
 
 void GetArmLocation(Home_t *home, Node_t *node1, Node_t *node2, int *place);
 
-/* Draw line between two points*/
+/** Get edges of intersection between plane and grain
+ *  \param[in] n the normal vector of plane
+ *  \param[in] p a point on the plane, this point has to be in the grain.
+ *  \param[in] place the grin location
+ *  \param[out] vertice coordinates of vertices
+ *  \param[out] edges edge list     */
+void PlaneGrainIntersection(Home_t *home, real8 *n, real8 *p, int *place, std::vector<real8> &vertices, std::vector<EdgeVec_t> &edges);
+
+/** Draw polygon with tecplot formart
+ *  \param[in] fp file pointer for output
+ *  \param[in] f_vert vertices index list
+ *  \param[in] v coordinates of vertices
+ *  \param[in] startID the start index in f_vert for output polygon
+ *  \param[in] zoneName the zone name of tecplot
+ *  \param[in] vec the variales of the polygon */
+void DrawPolygon(FILE *fp, std::vector<int> &f_vert,std::vector<double> &v,int startID, char *zoneName, std::vector<int> &vec);
+/** Draw line between two points*/
 void DrawLine(FILE *fp, real8 *pos1, real8 *pos2, real8 meshSize, std::vector<int> &indexs);
+/** Convert edge vector list to polygon vector list */
+void EdgeListToPolygon(std::vector<EdgeVec_t> &edges, std::vector<int> &polygon);
+
+/** Get the distance between point and polygon
+ *  \param[in] p the coordinate of the point
+ *  \param[in] v coordinates lis of vertices
+ *  \param[in edges indexs and factor of polygon vertices
+ *  \return distance                    */
+double PointConcavePolygonDistance(double *p, std::vector<double> &v, std::vector<EdgeVec_t> &edges);
+
+
 
 //-----------------------------------------------------------------------------------------------
 Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int globalOp, int opClass);
