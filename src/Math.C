@@ -521,9 +521,9 @@ int AddAndSearchVertice(std::vector<double> &vertices, double x, double y, doubl
     if(vertices.size() > 0){
         unsigned int i;
         for(i=0; i<vertices.size(); i+=3){
-            if(fabs(vertices[i]-x)<1.0E-12 &&
-               fabs(vertices[i+1]-y)<1.0E-12 &&
-               fabs(vertices[i+2]-z)<1.0E-12)break;
+            if(fabs(vertices[i]-x)<LENGTH_ERROR &&
+               fabs(vertices[i+1]-y)<LENGTH_ERROR &&
+               fabs(vertices[i+2]-z)<LENGTH_ERROR)break;
         }
         if(i == vertices.size()){
             vertices.push_back(x);

@@ -465,4 +465,18 @@ double AreaOfPolygon(std::vector<int> &f_vert,std::vector<double> &v,int startID
  *  \param[in] x,y,z the coordinate to search or add
  *  \return the index of the coordinate */
 int AddAndSearchVertice(std::vector<double> &vertices, double x, double y, double z);
+
+inline void BubbleSort2D(double *x, double *y, int n){
+    double temp;
+    for(auto i=n-1; i>0; i--){
+        for( auto j=0; j<i; j++){
+            if(x[j]>x[j+1]){
+                temp=x[j]; x[j]=x[j+1]; x[j+1]=temp; 
+                temp=y[j]; y[j]=y[j+1]; y[j+1]=temp; 
+            }
+        }
+    }
+    return;
+}
+
 #endif

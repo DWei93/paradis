@@ -42,8 +42,8 @@ bool CmpKeyNodeT(KeyNode_t &p, KeyNode_t &q){ return p.dis<q.dis;}
 void DrawLine(FILE *fp, real8 *pos1, real8 *pos2, real8 meshSize, std::vector<int> &indexs)
 {
     real8 vec[3], length, nums;
-    vec[0] = pos2[0]-pos1[0];vec[1] = pos2[1]-pos1[1];vec[2] = pos2[2]-pos1[2];
-    if((length = normal(vec))<1E-10)return;
+    CoordMinus(pos2, pos1, vec);
+    if((length = normal(vec))<1E-20)return;
     normalize_vec(vec);
     nums = floor(length/meshSize);
     meshSize = length/nums;
@@ -100,9 +100,9 @@ int AddAndSearchVertice(std::vector<real8> &vertices, std::vector<std::vector<in
     if(vertices.size() > 0){
         unsigned int i;
         for(i=0; i<vertices.size(); i+=3){
-            if(fabs(vertices[i]-x)<1.0E-12 &&
-               fabs(vertices[i+1]-y)<1.0E-12 &&
-               fabs(vertices[i+2]-z)<1.0E-12)break;
+            if(fabs(vertices[i]-x)<LENGTH_ERROR &&
+               fabs(vertices[i+1]-y)<LENGTH_ERROR &&
+               fabs(vertices[i+2]-z)<LENGTH_ERROR)break;
         }
         if(i == vertices.size()){
             vertices.push_back(x);
@@ -1449,7 +1449,7 @@ double PointConcavePolygonDistance(double *p, std::vector<double> &v, std::vecto
         Coordinate(v, edges[i].vertID1, p1);
         Coordinate(v, edges[i].vertID2, p2);
 
-        dis = PointSegmentDistance(p, p1, p2)*edges[i].factor;
+        dis = (PointSegmentDistance(p, p1, p2)*edges[i].factor);
         min = (min>dis)?dis:min;
     }
     return min;
