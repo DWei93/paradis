@@ -180,7 +180,7 @@ struct _slipSys{
 
 struct _grain{
     int         id;
-	real8	    pos[3], rMax;
+	real8	    pos[3], rMax, volume;
     BurgInfo_t  bInfs[2], ibBurgInfs[2];
 
     int         nIBs, nIBVertices, **ibPolygons;

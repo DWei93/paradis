@@ -383,7 +383,7 @@ static void InitDefaultValues(InArgs_t *inArgs)
 	    inArgs->zMatDir[2] =  2;
 
 	    inArgs->TBAngle = 0;
-	    inArgs->maxDensity = 5.0E14;
+	    inArgs->maxDensity = 1.0E13; 
 
         inArgs->burgID = -1;
         inArgs->planeID = -1;

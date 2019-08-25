@@ -359,9 +359,9 @@ void InitGrain(Home_t *home, Param_t *param)
 
         /** Now, what we should construct in Grain_t are:
          *      int         id; 
-	     *      real8	    pos[3]; 
+	     *      real8	    pos[3], volume, rMax; 
          */
-        grain->id = cl.pid();
+        grain->id = cl.pid(); grain->volume=cell->volume();
         grain->pos[0] = cl.x(); grain->pos[1] = cl.y(); grain->pos[2] = cl.z();
 
 		// Gather information about the computed Voronoi cell

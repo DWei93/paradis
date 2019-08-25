@@ -44,7 +44,7 @@ typedef struct {
 	    real8   zMatDir[3];
 	    real8	TBAngle;
 	    int	    srcLenType;
-	    real8	maxDensity;
+	    real8	maxDensity; // l_tot/volume, unit=1/b^2
         int     extended;
 	    int     burgID, planeID;
         real8   TBCryst[3];

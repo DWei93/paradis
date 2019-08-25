@@ -2744,6 +2744,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
     real8 cubeLength = inArgs->cubeLength;
 	int srcLenType = inArgs->srcLenType;
     real8 maxDensity = inArgs->maxDensity;
+    real8 meanSpa = 1.0/sqrt(maxDensity);
     int numSources = inArgs->numFRSrcs;
     real8 srcLen = inArgs->frLenMin;
     int seed = inArgs->seed;
@@ -2762,126 +2763,247 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
 
     Grain_t *grain; BurgInfo_t *bInf; 
     const int  NPOINTS=101;
-    real8   angle, ymax;
+    bool    firstDistribution;
+    real8   angle, ymax, maxLen, totLen;
     real8   p[3],p1[3],p2[3], pBak[3], *burg, *normal, gDir[3], lDir[3], t1, t2, x[NPOINTS], y[NPOINTS], len, p3[3],p4[4], delta;
-    int     ibID, randomNum, numSlipSys, odd, burgID, planeID, joint[4];
+    int     ibID, numSlipSys, burgID, planeID, joint[4];
     int     place[PLACE_LEN], place1[PLACE_LEN], place2[PLACE_LEN];
+    int     newNodeIndex, numPoints, baseNodeID, startRemeshIndex;
+    Node_t  *node;
     std::vector<int> indexs1(3), indexs2(2);
     for(auto i=0; i<home->nGrains; i++){
         grain = home->grainKeys[i];
-        numSlipSys = grain->nIBs>0?24:12;
+        if(param->materialType == MAT_TYPE_FCC)numSlipSys = 12;
+        else Fatal("%s: the # slip systems of material type %d is not defineded, please defined it\n",__func__,param->materialType);
+
         place[0]=IN_GRAIN; place[1]=grain->id;
-        for(auto j=0; j<numSources; j++){
-            // distribute first point
-            distribution:
-            while(true){
-                p[0]= grain->pos[0] + 2.0*(randm(&seed)-0.5)*grain->rMax;
-                p[1]= grain->pos[1] + 2.0*(randm(&seed)-0.5)*grain->rMax;
-                p[2]= grain->pos[2] + 2.0*(randm(&seed)-0.5)*grain->rMax;
-                if(!InGrain(grain, p, SAFE_FACE_ERROR))continue;
-                if((place[2]=WhichSubgrain(grain, p, SAFE_FACE_ERROR))>=0)continue;
-                ibID = InverseIndex(place[2]);
-                break;
-            }
-            randomNum = numSources<numSlipSys?int(10000*randm(&seed))%12:j%12;
-            odd=ibID%2; bInf = &grain->bInfs[odd];
-            burgID = randomNum%bInf->numKeyLines;
-            planeID = bInf->keyLineOnPlaneID[burgID][randomNum/bInf->numKeyLines];
-            normal=bInf->planeList[planeID];
+        maxLen = maxDensity*grain->volume;
 
-            burg = bInf->keyLineList[burgID]; 
-            cross_product(normal, burg, gDir); normalize_vec(gDir);
-
-            character:
-            angle = randm(&seed)*2*M_PI; 
-            CoordAdd(cos(angle),burg,sin(angle),gDir,lDir);
-            normalize_vec(lDir);
-            VECTOR_COPY(pBak,p);
-            CoordAdd(1.0,p,4*sqrt(3)*grain->rMax,lDir,p1);
-            CoordAdd(1.0,p,-4*sqrt(3)*grain->rMax,lDir,p2);
-            ClipPathInGrain(home, place, p, p1, place1);
-            ClipPathInGrain(home, place, p, p2, place2);
-
-            len = PointPointDistance(p,p1)-SAFE_FACE_ERROR;
-            CoordAdd(1.0,p,len,lDir,p1);
-            len = PointPointDistance(p,p2)-SAFE_FACE_ERROR;
-            CoordAdd(1.0,p,-len,lDir,p2);
-            CoordAdd(0.5,p1,0.5,p2,p);
-
-            len = PointPointDistance(p1,p2);
-
-            std::vector<real8> vertices; std::vector<EdgeVec_t> edges; std::vector<int> polygon;
-            PlaneGrainIntersection(home, normal, p, place, vertices, edges);
-            EdgeListToPolygon(edges, polygon);
-
-            if(len > 2*srcLen){
-                ymax = -1.0E50;
-                for(int k=0; k<NPOINTS; k++){
-                    x[k]=real8(k)/(NPOINTS-1.0);
-                    CoordAdd(1.0-x[k],p2,x[k],p1,p);
-                    y[k]=PointConcavePolygonDistance(p, vertices, edges);
-                    ymax = (ymax>y[k])?ymax:y[k];
+        /** we would like to distribute srcs equally in each slip systems of each matrix and twin grain
+         **/
+        for(totLen=0.0, firstDistribution=true; totLen < maxLen; ){
+            for(int j=0; j<(grain->nIBs>0?2:1); j++)for(auto k=0; k<numSlipSys; k++){
+                // distribute first point
+                distribution:
+                while(true){
+                    p[0]= grain->pos[0] + 2.0*(randm(&seed)-0.5)*grain->rMax;
+                    p[1]= grain->pos[1] + 2.0*(randm(&seed)-0.5)*grain->rMax;
+                    p[2]= grain->pos[2] + 2.0*(randm(&seed)-0.5)*grain->rMax;
+                    if(!InGrain(grain, p, SAFE_FACE_ERROR))continue;
+                    if((place[2]=WhichSubgrain(grain, p, SAFE_FACE_ERROR))>=0)continue;
+                    ibID = InverseIndex(place[2]);
+                    if(ibID%2!=j)continue;
+                    break;
                 }
                 
-                joint[0]=0; joint[3]=NPOINTS-1;
-                for(auto k=1; k<NPOINTS-1; k++){
-                    delta=y[k+1]-y[k]; if(delta<1.0E-3){joint[1]=k; break;}
-                }
-                for(auto k=joint[1]; k<NPOINTS-1; k++){
-                    delta=y[k+1]-y[k]; if(delta<-1.0E-3){joint[2]=k; break;}
-                }
-
-                if(ymax>srcLen){
-#ifndef GSL
-                    for(auto k=joint[0]+1; k<joint[1]+1; k++){
-                        if((y[k]-srcLen)*(y[k-1]-srcLen)<0){
-                            t1=x[k-1]+(x[k]-x[k-1])*(srcLen-y[k-1])/(y[k]-y[k-1]);
-                            break;
-                        }   
+                bInf = &grain->bInfs[j];
+                burgID = k%bInf->numKeyLines;
+                planeID = bInf->keyLineOnPlaneID[burgID][k/bInf->numKeyLines];
+                normal=bInf->planeList[planeID];
+                
+                burg = bInf->keyLineList[burgID]; 
+                cross_product(normal, burg, gDir); normalize_vec(gDir);
+                
+                character:
+                angle = randm(&seed)*2*M_PI; 
+                CoordAdd(cos(angle),burg,sin(angle),gDir,lDir);
+                normalize_vec(lDir);
+                VECTOR_COPY(pBak,p);
+                CoordAdd(1.0,p,4*sqrt(3)*grain->rMax,lDir,p1);
+                CoordAdd(1.0,p,-4*sqrt(3)*grain->rMax,lDir,p2);
+                ClipPathInGrain(home, place, p, p1, place1);
+                ClipPathInGrain(home, place, p, p2, place2);
+                
+                len = PointPointDistance(p,p1)-SAFE_FACE_ERROR;
+                CoordAdd(1.0,p,len,lDir,p1);
+                len = PointPointDistance(p,p2)-SAFE_FACE_ERROR;
+                CoordAdd(1.0,p,-len,lDir,p2);
+                CoordAdd(0.5,p1,0.5,p2,p);
+                
+                len = PointPointDistance(p1,p2);
+                
+                std::vector<real8> vertices; std::vector<EdgeVec_t> edges; std::vector<int> polygon;
+                PlaneGrainIntersection(home, normal, p, place, vertices, edges);
+                EdgeListToPolygon(edges, polygon);
+                
+                if(len > 2*srcLen){
+                    ymax = -1.0E50;
+                    for(int k=0; k<NPOINTS; k++){
+                        x[k]=real8(k)/(NPOINTS-1.0);
+                        CoordAdd(1.0-x[k],p2,x[k],p1,p);
+                        y[k]=PointConcavePolygonDistance(p, vertices, edges);
+                        ymax = (ymax>y[k])?ymax:y[k];
                     }
-                    for(auto k=joint[3]-1; k>0; k--){
-                        if((y[k]-srcLen)*(y[k+1]-srcLen)<0){
-                            t2=x[k+1]+(x[k]-x[k+1])*(srcLen-y[k+1])/(y[k]-y[k+1]);
-                            break;
+                    
+                    joint[0]=0; joint[3]=NPOINTS-1;
+                    for(auto k=1; k<NPOINTS-1; k++){
+                        delta=y[k+1]-y[k]; if(delta<1.0E-3){joint[1]=k; break;}
+                    }
+                    for(auto k=joint[1]; k<NPOINTS-1; k++){
+                        delta=y[k+1]-y[k]; if(delta<-1.0E-3){joint[2]=k; break;}
+                    }
+                
+                    if(ymax>srcLen){
+#ifndef GSL    
+                        for(auto k=joint[0]+1; k<joint[1]+1; k++){
+                            if((y[k]-srcLen)*(y[k-1]-srcLen)<0){
+                                t1=x[k-1]+(x[k]-x[k-1])*(srcLen-y[k-1])/(y[k]-y[k-1]);
+                                break;
+                            }   
                         }
-                    }
-#else 
-                    gsl_interp_accel *acc = gsl_interp_accel_alloc();
-                    gsl_spline *spline_linear = gsl_spline_alloc(gsl_interp_linear, joint[1]-joint[0]+1);
-                    gsl_spline_init(spline_linear, &y[joint[0]], &x[joint[0]], joint[1]-joint[0]+1);
-                    t1 = gsl_spline_eval(spline_linear, srcLen, acc);
-                    gsl_spline_free(spline_linear);
-                    gsl_interp_accel_free(acc);
-                    
-                    BubbleSort2D(&y[joint[2]],&x[joint[2]], joint[3]-joint[2]+1);
-                    
-                    acc = gsl_interp_accel_alloc();
-                    spline_linear = gsl_spline_alloc(gsl_interp_linear, joint[3]-joint[2]+1);
-                    gsl_spline_init(spline_linear, &y[joint[2]], &x[joint[2]], joint[3]-joint[2]+1);
-                    t2 = gsl_spline_eval(spline_linear, srcLen, acc); 
-                    gsl_spline_free(spline_linear);
-                    gsl_interp_accel_free(acc);
-#endif
-                    CoordAdd(1.0-t1,p2,t1,p1,p3);
-                    CoordAdd(1.0-t2,p2,t2,p1,p4);
-
-                    printf("max %f, distance %f,%e %f,%e\n",ymax, t1, PointConcavePolygonDistance(p3, vertices, edges),
-                           t2, PointConcavePolygonDistance(p4, vertices, edges));
-                    if(PointPointDistance(p3,p4)>2*srcLen){VECTOR_COPY(p2,p4);  VECTOR_COPY(p1,p3);}
-                    else if (PointPointDistance(p2,p4)>2*srcLen){VECTOR_COPY(p1,p4);}
-                    else if (PointPointDistance(p1,p3)>2*srcLen){VECTOR_COPY(p2,p3);}
-                }
-            }
-
-            char zoneName[56];
-            snprintf(zoneName,sizeof(zoneName),"gp-%d-%d",place[1], InverseIndex(place[2]));
-            indexs1[0]=place[1], indexs1[1]=place[2], indexs1[2]=planeID;
-            DrawPolygon(fp2, polygon, vertices,0, zoneName, indexs1);
+                        for(auto k=joint[3]-1; k>0; k--){
+                            if((y[k]-srcLen)*(y[k+1]-srcLen)<0){
+                                t2=x[k+1]+(x[k]-x[k+1])*(srcLen-y[k+1])/(y[k]-y[k+1]);
+                                break;
+                            }
+                        }
+#else           
+                        gsl_interp_accel *acc = gsl_interp_accel_alloc();
+                        gsl_spline *spline_linear = gsl_spline_alloc(gsl_interp_linear, joint[1]-joint[0]+1);
+                        gsl_spline_init(spline_linear, &y[joint[0]], &x[joint[0]], joint[1]-joint[0]+1);
+                        printf("1: [%e,%e]-->[%e,%e]\n",y[joint[0]], y[joint[1]], len, srcLen);
+                        t1 = gsl_spline_eval(spline_linear, srcLen, acc);
+                        gsl_spline_free(spline_linear);
+                        gsl_interp_accel_free(acc);
+                        
+                        BubbleSort2D(&y[joint[2]],&x[joint[2]], joint[3]-joint[2]+1);
+                        
+                        acc = gsl_interp_accel_alloc();
+                        spline_linear = gsl_spline_alloc(gsl_interp_linear, joint[3]-joint[2]+1);
+                        gsl_spline_init(spline_linear, &y[joint[2]], &x[joint[2]], joint[3]-joint[2]+1);
+                        printf("2: [%e,%e]-->[%e,%e]\n",y[joint[2]], y[joint[3]], len,srcLen);
+                        t2 = gsl_spline_eval(spline_linear, srcLen, acc); 
+                        gsl_spline_free(spline_linear);
+                        gsl_interp_accel_free(acc);
+#endif          
+                        CoordAdd(1.0-t1,p2,t1,p1,p3);
+                        CoordAdd(1.0-t2,p2,t2,p1,p4);
                 
-            indexs2[0]=grain->id; indexs2[1]=place2[2]; DrawLine(fp1, p1, p2, 10, indexs2);
+//                      printf("max %f, distance %f,%e %f,%e\n",ymax, t1, PointConcavePolygonDistance(p3, vertices, edges),
+//                             t2, PointConcavePolygonDistance(p4, vertices, edges));
+                        if(PointPointDistance(p3,p4)>2*srcLen){VECTOR_COPY(p2,p4);  VECTOR_COPY(p1,p3);}
+                        else if (PointPointDistance(p2,p4)>2*srcLen){VECTOR_COPY(p1,p4);}
+                        else if (PointPointDistance(p1,p3)>2*srcLen){VECTOR_COPY(p2,p3);}
 
-        }
+                    }else if(firstDistribution) goto distribution;
+                } else if(firstDistribution) goto distribution;
+                
+                char zoneName[56];
+                snprintf(zoneName,sizeof(zoneName),"gp-%d-%d-%d-%d",place[1], InverseIndex(place[2]),burgID, planeID);
+                indexs1[0]=place[1], indexs1[1]=place[2], indexs1[2]=planeID;
+                DrawPolygon(fp2, polygon, vertices,0, zoneName, indexs1);
+                    
+                indexs2[0]=grain->id; indexs2[1]=place2[2]; DrawLine(fp1, p1, p2, 10, indexs2);
 
+                totLen += PointPointDistance(p1,p2);
+                CoordAdd(0.5,p1,0.5,p2,p);
+
+/*           
+ *              Reallocate the node array with sufficient size to add
+ *              all the new nodes defining this chain.
+ */          
+                numPoints = 3;
+                newNodeIndex = inData->nodeCount;
+                inData->nodeCount += numPoints;
+                inData->node = (Node_t *)realloc(inData->node, inData->nodeCount*sizeof(Node_t));
+                memset(&inData->node[newNodeIndex], 0, sizeof(Node_t) * numPoints);
+		 	   
+                if(inArgs->extended == 0){
+/*           
+ *                  Set up the 3 nodes we're using to define the dislocation line.
+ *                  First do point p0.
+ */               
+                    node = &inData->node[baseNodeID];
+                  
+                    node->myTag.domainID = 0;
+                    node->myTag.index    = baseNodeID;
+                    node->x = p[0];
+                    node->y = p[1];
+                    node->z = p[2];
+		 	        
+                    node->constraint = UNCONSTRAINED;
+                    for(auto l=0; l<PLACE_LEN; l++)node->place[l]=place[l];
+                  
+                    AllocNodeArms(node, 2);
+		 	        
+                    node->nbrTag[0].domainID = 0;
+                    node->nbrTag[0].index    = baseNodeID + 1;
+                    node->nbrTag[1].domainID = 0;
+                    node->nbrTag[1].index    = baseNodeID + 2;
+                    node->burgX[0] = burg[0];
+                    node->burgY[0] = burg[1];
+                    node->burgZ[0] = burg[2];
+                    node->burgX[1] = -burg[0];
+                    node->burgY[1] = -burg[1];
+                    node->burgZ[1] = -burg[2];
+                    node->nx[0] = normal[0];
+                    node->ny[0] = normal[1];
+                    node->nz[0] = normal[2];
+                    node->nx[1] = normal[0];
+                    node->ny[1] = normal[1];
+                    node->nz[1] = normal[2];
+                  
+/*                
+ *                  Now point p1...
+ */               
+                    node = &inData->node[baseNodeID+1];
+                    node->myTag.domainID = 0;
+                    node->myTag.index    = baseNodeID+1;
+                    node->x = p1[0];
+                    node->y = p1[1];
+                    node->z = p1[2];
+                    node->constraint = PINNED_NODE;
+                    for(auto l=0; l<PLACE_LEN; l++)node->place[l]=place[l];
+
+                    AllocNodeArms(node, 1);
+                    node->nbrTag[0].domainID = 0;
+                    node->nbrTag[0].index    = baseNodeID;
+                  
+                    node->burgX[0] = -burg[0];
+                    node->burgY[0] = -burg[1];
+                    node->burgZ[0] = -burg[2];
+                    node->nx[0] = normal[0];
+                    node->ny[0] = normal[1];
+                    node->nz[0] = normal[2];
+                  
+/*                
+ *                  Now point p2...
+ */               
+                    node = &inData->node[baseNodeID+2];
+                    node->myTag.domainID = 0;
+                    node->myTag.index    = baseNodeID+2;
+                    node->x = p2[0];
+                    node->y = p2[1];
+                    node->z = p2[2];
+                    node->constraint = PINNED_NODE;
+                    AllocNodeArms(node, 1);
+                  
+                    node->nbrTag[0].domainID = 0;
+                    node->nbrTag[0].index    = baseNodeID;
+                  
+                    node->burgX[0] = burg[0];
+                    node->burgY[0] = burg[1];
+                    node->burgZ[0] = burg[2];
+                    node->nx[0] = normal[0];
+                    node->ny[0] = normal[1];
+                    node->nz[0] = normal[2];
+                }
+/*           
+ *              The initial segments created are not necessarily limited to
+ *              param->maxSegLen, so a call to InitRemesh() is needed to
+ *              chop any excessively long segments into proper lengths.
+ *              When we've generated the nodal data for the final chain,
+ *              write the block of nodal data to the file.
+ */	         
+//                InitRemesh(inData, 0, startRemeshIndex);
+                baseNodeID = inData->nodeCount;
+                startRemeshIndex = baseNodeID;
+
+            }/*for(totLen=0.0; totLen < maxLen; )for(int j=0; j<(grain->nIBs>0?1:2); j++)for(auto k=0; k<numSlipSys; k++)*/
+            firstDistribution=false;
+        }/* for(totLen=0.0; totLen < maxLen; )*/
+
+        printf("Grain %d, total dislocation density %e\n",grain->id,totLen/grain->volume);
     }/* end for(auto i=0; i<home->nGrains; i++) */
       
     fclose(fp1); fclose(fp2);
@@ -3810,3 +3932,4 @@ void CreateEdges(Home_t *home, InData_t *inData, int cubeLength,
         }
         return;
 }
+
