@@ -348,6 +348,7 @@ void InitGrain(Home_t *home, Param_t *param)
     std::vector<std::vector<int> > verticesOnGrain;
     real8   ibThick, ibNormal[3], testPoint[3], testRsq;
     std::vector<real8>  ibRsq;
+    param->volume = 0;
     if(cl.start()) for(int i=0; i<home->nGrains; i++, ibRsq.clear()){
         int k =0; std::vector<int> info(3);
         Grain_t *grain = home->grainKeys[i];
@@ -361,7 +362,7 @@ void InitGrain(Home_t *home, Param_t *param)
          *      int         id; 
 	     *      real8	    pos[3], volume, rMax; 
          */
-        grain->id = cl.pid(); grain->volume=cell->volume();
+        grain->id = cl.pid(); grain->volume=cell->volume(); param->volume += grain->volume;
         grain->pos[0] = cl.x(); grain->pos[1] = cl.y(); grain->pos[2] = cl.z();
 
 		// Gather information about the computed Voronoi cell

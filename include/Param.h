@@ -506,6 +506,8 @@ struct _param {
 
         real8       maxSchmid;
         clock_t     timestart;
+        
+        real8       volume;
 
 #ifdef VELOCITY_STATISTICS
         real8       delAccumulation[8], accumulation[8], disLength[3], cumulativeTime;

@@ -2828,6 +2828,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
                 
                 if(len > 2*srcLen){
                     ymax = -1.0E50;
+                    joint[0]=0; joint[3]=NPOINTS-1;
                     for(int k=0; k<NPOINTS; k++){
                         x[k]=real8(k)/(NPOINTS-1.0);
                         CoordAdd(1.0-x[k],p2,x[k],p1,p);
@@ -2835,16 +2836,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
                         ymax = (ymax>y[k])?ymax:y[k];
                     }
                     
-                    joint[0]=0; joint[3]=NPOINTS-1;
-                    for(auto k=1; k<NPOINTS-1; k++){
-                        delta=y[k+1]-y[k]; if(delta<1.0E-3){joint[1]=k; break;}
-                    }
-                    for(auto k=joint[1]; k<NPOINTS-1; k++){
-                        delta=y[k+1]-y[k]; if(delta<-1.0E-3){joint[2]=k; break;}
-                    }
-                
                     if(ymax>srcLen){
-#ifndef GSL    
+#if 1    
                         for(auto k=joint[0]+1; k<joint[1]+1; k++){
                             if((y[k]-srcLen)*(y[k-1]-srcLen)<0){
                                 t1=x[k-1]+(x[k]-x[k-1])*(srcLen-y[k-1])/(y[k]-y[k-1]);
@@ -2858,6 +2851,13 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
                             }
                         }
 #else           
+                        for(auto k=1; k<NPOINTS-1; k++){
+                            delta=y[k+1]-y[k]; if(delta<1.0E-2 && fabs(ymax-y[k]) < 1.0E-2){joint[1]=k; break;}
+                        }
+                        for(auto k=joint[3]; k>=joint[1]; k--){
+                            delta=y[k]-y[k-1]; if(delta>-1.0E-2 && fabs(ymax-y[k]) < 1.0E-2){joint[2]=k; break;}
+                        }
+                
                         gsl_interp_accel *acc = gsl_interp_accel_alloc();
                         gsl_spline *spline_linear = gsl_spline_alloc(gsl_interp_linear, joint[1]-joint[0]+1);
                         gsl_spline_init(spline_linear, &y[joint[0]], &x[joint[0]], joint[1]-joint[0]+1);
@@ -2995,9 +2995,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
  *              When we've generated the nodal data for the final chain,
  *              write the block of nodal data to the file.
  */	         
-//                InitRemesh(inData, 0, startRemeshIndex);
-                baseNodeID = inData->nodeCount;
                 startRemeshIndex = baseNodeID;
+                InitRemesh(inData, 0, startRemeshIndex);
+                baseNodeID = inData->nodeCount;
 
             }/*for(totLen=0.0; totLen < maxLen; )for(int j=0; j<(grain->nIBs>0?1:2); j++)for(auto k=0; k<numSlipSys; k++)*/
             firstDistribution=false;
@@ -3007,7 +3007,12 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
     }/* end for(auto i=0; i<home->nGrains; i++) */
       
     fclose(fp1); fclose(fp2);
-    Fatal("CreateRRSource!");
+
+    IncDislocationDensity(inData, &totDislocLen);
+    param->nodeCount = inData->nodeCount;
+    WriteInitialNodeData(home, inData, 1);
+    FreeInNodeArray(inData, inData->nodeCount);
+    inData->nodeCount = 0;
     return; 
 }
 void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,

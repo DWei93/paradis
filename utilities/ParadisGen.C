@@ -967,7 +967,6 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
         Param_t         *param;
         static int      totalNodeCount = 0;
         static FILE     *fp = (FILE *)NULL;
-	    static FILE     *fpTecplot = (FILE *)NULL;
     	Node_t	        *nbr;
 	    Tag_t	        nbrTag;
 	    real8	        v1, v2, v3;
@@ -1027,22 +1026,13 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
             fprintf(fp, "domainDecomposition = \n");
             WriteDecompBounds(home, fp);
 
-			
-
-			
             fprintf(fp, "nodalData = \n");
             fprintf(fp, "#  Primary lines: node_tag, x, y, z, "
-                    "num_arms, constraint, inGrain, onGB\n");
+                    "num_arms, constraint, place[0], place[1], place[2], place[3]\n");
             fprintf(fp, "#  Secondary lines: arm_tag, burgx, burgy, "
                     "burgz, nx, ny, nz signSF\n");
         }
 		
-		if(fpTecplot == (FILE *)NULL){
-			fpTecplot = fopen("DDInitial.plt","w");
-			fprintf(fpTecplot,"variables = X,Y,Z,V1,V2,V3,inGrain,onGB,burgID,planeID,constraint,numNbrs,signSF\n");
-			
-		}
-
 /*
  *      Dump all the nodal data in this block to the file
  */
@@ -1054,42 +1044,20 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
 				numSeg++;
 			}
 		}
-		fprintf(fpTecplot,"zone i=%d  F=POINT\n",numSeg);
 
         for (i = 0; i < inData->nodeCount; i++) {
 
             node = &inData->node[i];
 
             fprintf(fp,
-                    " %d,%d %.4f %.4f %.4f %d %d %d %d\n",
+                    " %d,%d %.4f %.4f %.4f %d %d",
                     node->myTag.domainID, node->myTag.index, 
                     node->x, node->y, node->z, node->numNbrs,
-                    node->constraint,node->inGrain, node->onGB);
+                    node->constraint);
+            for(auto j=0; j<PLACE_LEN; j++)fprintf(fp," %d",node->place[j]);
+            fprintf(fp,"\n");
 
             for (iArm = 0; iArm < node->numNbrs; iArm++) {
-	            if(home->param->materialType == MAT_TYPE_FCC){
-                    real8 burg[3], plane[3];
-                
-                    if(home->param->polycrystal){
-                        burgData = &(home->grainKeys[node->inGrain]->burgData);
-                    }else{
-                        burgData = &(home->burgData);
-                    }
-
-                    burg[0] = node->burgX[iArm];          
-                    burg[1] = node->burgY[iArm];          
-                    burg[2] = node->burgZ[iArm];          
-
-                    plane[0] = node->nx[iArm];
-                    plane[1] = node->ny[iArm];
-                    plane[2] = node->nz[iArm];
-
-                    burgID = BurgID_FCC(burgData, burg);
-                    planeID = PlaneID_FCC(burgData, plane);
-	            }else{
-	                Fatal("The burgers ID of non-FCC material has not defined\n");
-	            }
-
                 fprintf(fp, "%d,%d %.15e %.15e %.15e\n"
 			                "%.15e %.15e %.15e %2.0f\n",
                         node->nbrTag[iArm].domainID,
@@ -1106,12 +1074,6 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
 				v1 = 0.5 * (nbr->x - node->x);
 				v2 = 0.5 * (nbr->y - node->y);	
 				v3 = 0.5 * (nbr->z - node->z);	
-				fprintf(fpTecplot, "%16.10e %16.10e %16.10e "
-								   "%16.10e %16.10e %16.10e "
-						           "%d %d %d %d %d %d %2.0f\n",
-						node->x, node->y, node->z, v1, v2, v3,
-						node->inGrain,node->onGB,burgID, planeID,
-					    node->constraint, node->numNbrs, node->signSF[iArm]); 		
             }
         }
 
@@ -1124,7 +1086,6 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
 		
         if (lastBlock) {
             fclose(fp);
-	    fclose(fpTecplot);
             fp = (FILE *)NULL;
             printf("\nTotal node count:         %d\n", totalNodeCount);
         }
@@ -1366,7 +1327,7 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
 /*
  *      Calculate the total dislocation density and print it.
  */
-        cellVolume       = param->Lx * param->Ly * param->Lz;
+        cellVolume       = param->volume;
         bMag2            = 2.556e-10 * 2.556e-10;
         burgVolFactor    = 1.0 / (bMag2 * cellVolume);
         totDislocDensity = totDislocLen * burgVolFactor;

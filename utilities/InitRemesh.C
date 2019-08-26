@@ -64,7 +64,7 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 	int		idxNew, ncount, found, armPrev, inew;
 	real8		maxSeg2, r2, r, xa, ya, za, frac;
 	real8		Lx, Ly, Lz, dx, dy, dz;
-	Node_t          *nodeA, *nodeB, *prevNewNode, *newNode;
+	Node_t      *nodeA, *nodeB, *prevNewNode, *newNode;
 	Param_t		*param;
 
 	param = inData->param;
@@ -192,9 +192,8 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 					newNode->y = ya + inew*frac*dy;
 					newNode->z = za + inew*frac*dz;
 					newNode->constraint = UNCONSTRAINED;
-					newNode->inGrain = nodeA->inGrain;
-					newNode->onGB = nodeA->onGB;
 
+                    for(auto i=0; i<PLACE_LEN; i++)newNode->place[i] = nodeA->place[i];
 					AllocNodeArms(newNode, 2);
 	
 /*
