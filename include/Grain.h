@@ -15,13 +15,6 @@
 using namespace voro;
 #endif
 
-typedef struct{
-    int     vertID1, vertID2;
-    int     nFaces, *ofFaces;
-    int     nIBs, *ibInGrain, *ibID;
-    real8   *dis;
-}Edge_t;
-
 /*
  * 	Mesh number used for output of plastic strain field.
  */
@@ -41,36 +34,12 @@ typedef struct{
     Convert subgrain index to inner boundary index */
 #define InverseIndex(a) (-1-(a))
 
-//------------------------------------------------
-#define	FOLDED_GRAIN		0
-#define ODINARY_GRAIN		1
-#define MATRIX_BOUNDARY		0
-#define TWIN_BOUNDARY		1
-
-/*	define some node types	*/
-#define INGRAIN_NODE	    0x0001	
-#define INTERSECT_NODE	    0x0002	
-#define GB_NODE		        0x0004	
-#define	JUNCTION_NODE	    0x0008
-#define	UNKNOWN_NODE	    0x0010
-
-#define INBOX   0x0000
-#define EXCEEDX 0x0001
-#define EXCEEDY 0x0002
-#define EXCEEDZ 0x0004
-
-#define NUM_BURGS_IN_FCC        21
-#define NUM_PLANES_IN_FCC       13
-#define NUM_KEY_LINES_IN_FCC    6
-#define NUM_SLIP_SYSTEMS_IN_FCC 12
-
-#define SHOCKLEY_BURG_MAG_FCC   0.5773502691896258
-#define JUNCTION1_BURG_MAG_FCC  1.414213562373095
-#define JUNCTION2_BURG_MAG_FCC  1.732050807568877
-
-#define EDGE_BURG       0x0001
-#define PARTIAL_BURG    0x0002
-#define JUNCTION_BURG   0x0004
+typedef struct{
+    int     vertID1, vertID2;
+    int     nFaces, *ofFaces;
+    int     nIBs, *ibInGrain, *ibID;
+    real8   *dis;
+}Edge_t;
 
 typedef	enum{
     ZERO_BURG,
@@ -148,6 +117,37 @@ typedef struct{
     std::vector<int> ofFaces;
     std::vector<KeyNode_t> ibs;
 }EdgeVec_t;
+
+//------------------------------------------------
+#define	FOLDED_GRAIN		0
+#define ODINARY_GRAIN		1
+#define MATRIX_BOUNDARY		0
+#define TWIN_BOUNDARY		1
+
+/*	define some node types	*/
+#define INGRAIN_NODE	    0x0001	
+#define INTERSECT_NODE	    0x0002	
+#define GB_NODE		        0x0004	
+#define	JUNCTION_NODE	    0x0008
+#define	UNKNOWN_NODE	    0x0010
+
+#define INBOX   0x0000
+#define EXCEEDX 0x0001
+#define EXCEEDY 0x0002
+#define EXCEEDZ 0x0004
+
+#define NUM_BURGS_IN_FCC        21
+#define NUM_PLANES_IN_FCC       13
+#define NUM_KEY_LINES_IN_FCC    6
+#define NUM_SLIP_SYSTEMS_IN_FCC 12
+
+#define SHOCKLEY_BURG_MAG_FCC   0.5773502691896258
+#define JUNCTION1_BURG_MAG_FCC  1.414213562373095
+#define JUNCTION2_BURG_MAG_FCC  1.732050807568877
+
+#define EDGE_BURG       0x0001
+#define PARTIAL_BURG    0x0002
+#define JUNCTION_BURG   0x0004
 
 typedef struct {
     int         GBID;
@@ -296,31 +296,61 @@ inline int WhichSubgrain(Grain_t *grain, real8 *pos, real8 error=FACE_ERROR){
  * \param[in] grainID grain index
  * \param[in] pos the coordinates of node
  * \param[in] place the location of the node
- * \param[in] margin inner margin of grain
+ * \param[in] error inner error of grain
  * \return false if the position are not at the location, true otherwise. */
-bool InGrain(Home_t *home, int *place, real8 *pos, real8 margin=FACE_ERROR);
-inline bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 margin=FACE_ERROR)
-{real8 pos[3]={x,y,z}; return InGrain(home, place, pos, margin);}
+bool InGrain(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
+inline bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return InGrain(home, place, pos, error);}
 
 /** According to the current position of the node, determine whether the node 
  *  is on the face, on the subface or on the IB edge.
  * \param[in] pos the coordinates of node
  * \param[in] place the location of the node
- * \param[in] margin inner margin of the face
+ * \param[in] error inner error of the face
  * \return false if the position are not at the location, true otherwise. */
-bool OnFace(Home_t *home, int *place, real8 *pos, real8 margin=FACE_ERROR);
-inline bool OnFace(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 margin=FACE_ERROR)
-{real8 pos[3]={x,y,z}; return OnFace(home, place, pos, margin);}
+bool OnFace(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
+inline bool OnFace(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return OnFace(home, place, pos, error);}
+
+/** According to the current position of the node, determine whether the position
+ *  is on the inner boundary
+ * \param[in] pos the coordinates of node
+ * \param[in] place the location of the node
+ * \param[in] error error for determination of inner boundary
+ * \return false if the position are not at the location, true otherwise. */
+bool OnIB(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
+inline bool OnIB(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return OnIB(home, place, pos, error);}
 
 /** According to the current position of the node, determine whether the position
  *  is on the face edge
  * \param[in] pos the coordinates of node
  * \param[in] place the location of the node
- * \param[in] margin inner margin of the edge
+ * \param[in] error error for determination of edge and joint
  * \return false if the position are not at the location, true otherwise. */
-bool OnFaceEdge(Home_t *home, int *place, real8 *pos, real8 margin=FACE_ERROR);
-inline bool OnFaceEdge(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 margin=FACE_ERROR)
-{real8 pos[3]={x,y,z}; return OnFaceEdge(home, place, pos, margin);}
+bool OnFaceEdge(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
+inline bool OnFaceEdge(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return OnFaceEdge(home, place, pos, error);}
+
+/** According to the current position of the node, determine whether the position
+ *  is at the vertice
+ * \param[in] pos the coordinates of node
+ * \param[in] place the location of the node
+ * \param[in] error error for determination of edge and joint
+ * \return false if the position are not at the location, true otherwise. */
+bool AtVertice(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
+inline bool AtVertice(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return AtVertice(home,place,pos,error); }
+
+/** According to the current position of the node, determine whether the position
+ *  is at the location
+ * \param[in] pos the coordinates of node
+ * \param[in] place the location of the node
+ * \param[in] error error for determination of edge and joint
+ * \return false if the position are not at the location, true otherwise. */
+bool AtLocation(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
+inline bool AtLocation(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return AtLocation(home,place,pos,error); }
 
 /** Find the intersection between nodal path and grain (if has) and return the new place of intersection point.
  * \param[in] place the location of the node.

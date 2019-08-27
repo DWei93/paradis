@@ -74,12 +74,12 @@ inline void LongVectorCopy(v *dest, v *source, int num){memcpy(dest, source, num
 
 /* Two opearations of Coodinate*/
 template<class v> 
-inline void CoordAdd(v *a, v *b, v*c){c[0]=a[0]+b[0]; c[1]=a[1]+b[1]; c[2]=a[2]+b[2];}
+inline void CoordAdd(v *a, v *b, v c[3]){c[0]=a[0]+b[0]; c[1]=a[1]+b[1]; c[2]=a[2]+b[2];}
 template<class v, class q> 
-inline void CoordAdd(q f1, v *a, q f2, v *b, v*c){
+inline void CoordAdd(q f1, v *a, q f2, v *b, v c[3]){
 c[0]=f1*a[0]+f2*b[0]; c[1]=f1*a[1]+f2*b[1]; c[2]=f1*a[2]+f2*b[2];}
 template<class v> 
-inline void CoordMinus(v *a, v *b, v*c){c[0]=a[0]-b[0]; c[1]=a[1]-b[1]; c[2]=a[2]-b[2];}
+inline void CoordMinus(v *a, v *b, v c[3]){c[0]=a[0]-b[0]; c[1]=a[1]-b[1]; c[2]=a[2]-b[2];}
 
 /*return a coordinate from a vector*/
 template<class v>
@@ -387,19 +387,19 @@ inline bool InConcavePolyhedron(double *p, double *bounds, int nBounds, double m
  *  \param[in] bounds boundaries info. contains nromals and points of the polyhedron
  *  \param[in] nBounds # of boundaries
  *  \param[in] margin outer margin of the polyhedron
- *  \param[out] i ith boundary that has the intersection 
+ *  \param[out] edgeID the edge index that has the intersection 
  *  \return NO_INTERSECTION|OUTSIDE_SPACE, POINT_INTERSECTION */
-inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, int &i)
+inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, int &edgeID)
 {
-    int type;
-    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,p2))==POINT_INTERSECTION)break;
-    return type;
+    int type, ftype=-1;
+    for(auto i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,p2))==POINT_INTERSECTION){ftype=type;edgeID=i;}
+    return (ftype==-1)?type:ftype;
 }
-inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, double margin, int &i)
+inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, double margin, int &edgeID)
 {
-    int type;
-    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,margin,p2))==POINT_INTERSECTION)break;
-    return type;
+    int type, ftype=-1;
+    for(auto i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,margin,p2))==POINT_INTERSECTION){ftype=type;edgeID=i;}
+    return (ftype==-1)?type:ftype;
 }
 
 /** Clip a segment in a concave polyhedron
@@ -408,20 +408,20 @@ inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds
  *  \param[in] bounds boundaries info. contains nromals and points of the polyhedron
  *  \param[in] nBounds # of boundaries
  *  \param[in] margin margin of the polyhedron
- *  \param[out] i ith boundary that has the intersection 
+ *  \param[out] edgeID the edge index that has the intersection 
  *  \param[out] clipPos[3], clipping position
  *  \return NO_INTERSECTION|OUTSIDE_SPACE, POINT_INTERSECTION */
-inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, int &i, double *clipPos)
+inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, int &edgeID, double *clipPos)
 {
-    int type;
-    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,clipPos))==POINT_INTERSECTION)break;
-    return type;
+    int type, ftype=-1;
+    for(auto i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,clipPos))==POINT_INTERSECTION){ftype=type;edgeID=i;}
+    return (ftype==-1)?type:ftype;
 }
-inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, double margin, int &i, double *clipPos)
+inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, double margin, int &edgeID, double *clipPos)
 {
-    int type;
-    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,margin,clipPos))==POINT_INTERSECTION)break;
-    return type;
+    int type, ftype=-1;
+    for(auto i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,margin,clipPos))==POINT_INTERSECTION){ftype=type;edgeID=i;}
+    return (ftype==-1)?type:ftype;
 }
 
 /** Get the distance between point and segment

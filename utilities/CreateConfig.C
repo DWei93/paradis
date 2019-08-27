@@ -3005,7 +3005,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
 
         printf("Grain %d, total dislocation density %e\n",grain->id,totLen/grain->volume);
     }/* end for(auto i=0; i<home->nGrains; i++) */
-      
+
     fclose(fp1); fclose(fp2);
 
     IncDislocationDensity(inData, &totDislocLen);
