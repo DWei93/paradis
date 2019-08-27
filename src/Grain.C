@@ -217,25 +217,41 @@ int AddAndSearchEdge(std::vector<EdgeVec_t> &edges, int vertID1, int vertID2, in
 void EdgeCopy(Edge_t *a, EdgeVec_t &b){
     a->vertID1 = b.vertID1; a->vertID2 = b.vertID2; 
     a->nFaces = int(b.ofFaces.size());
-    a->ofFaces = (int *)malloc(a->nFaces*sizeof(int));
+    if(a->nFaces>0)a->ofFaces = (int *)malloc(a->nFaces*sizeof(int));
     for(auto i=0; i<a->nFaces; i++)a->ofFaces[i] = b.ofFaces[i];
 
     a->nIBs = int(b.ibs.size());
-    a->ibInGrain = (int *)malloc(a->nIBs*sizeof(int));
-    a->ibID = (int *)malloc(a->nIBs*sizeof(int));
-    a->dis = (real8 *)malloc(a->nIBs*sizeof(real8));
-    for(auto i=0; i<a->nIBs; i++){
-        a->ibInGrain[i] = b.ibs[i].inGrain;
-        a->ibID[i] = b.ibs[i].ID;
-        a->dis[i] = b.ibs[i].dis;
+    if(a->nIBs>0){
+        a->ibInGrain = (int *)malloc(a->nIBs*sizeof(int));
+        a->ibID = (int *)malloc(a->nIBs*sizeof(int));
+        a->dis = (real8 *)malloc(a->nIBs*sizeof(real8));
+        for(auto i=0; i<a->nIBs; i++){
+            a->ibInGrain[i] = b.ibs[i].inGrain;
+            a->ibID[i] = b.ibs[i].ID;
+            a->dis[i] = b.ibs[i].dis;
+        }
     }
     return;
 }
 
 inline void InitBurgInfo(BurgInfo_t *bInf)
+{bInf->numPlanes = 0; bInf->numBurgVectors=0; bInf->numKeyLines=0; return;}
+
+#ifdef DEBUG
+inline void NodeLocationDebug(Home_t *home, real8 *pos, int *place, real8 error=FACE_ERROR)
 {
-    bInf->numPlanes = 0; bInf->numBurgVectors=0; bInf->numKeyLines=0; return;
+    NodeLocation(home, pos, place, error);
+    if(!AtLocation(home, place, pos, error)){
+        FormatPlace(place);
+        Fatal("%s: position (%g,%g,%g) at wrong place [%d,%d,%d,%d]",
+             __func__, pos[0],pos[1],pos[2],place[0],place[1],place[2],place[3]);
+    }
 }
+#endif
+
+#ifdef DEBUG
+    #define NodeLocation(a,b,c,d) NodeLocationDebug(a,b,c,d)
+#endif
 
 void InitGrain(Home_t *home, Param_t *param)
 {
@@ -781,7 +797,6 @@ void InitGrain(Home_t *home, Param_t *param)
         GenerateGBBurgInfo(&grain->ibBurgInfs[0], &grain->bInfs[0], grain->ibN, &grain->bInfs[1]);
         GenerateGBBurgInfo(&grain->ibBurgInfs[1], &grain->bInfs[1], grain->ibN, &grain->bInfs[0]);
     }
-
     if(home->myDomain == 0){
         if ((fp = fopen("face-edges.plt", "w")) == (FILE *)NULL) {
              Fatal("%s: Open error %d on %s\n",__func__, errno, "face-edges.plt");
@@ -871,6 +886,9 @@ void InitGrain(Home_t *home, Param_t *param)
 #endif
     return;
 }
+#ifdef DEBUG
+    #undef NodeLocation(a,b,c,d) NodeLocationDebug(a,b,c,d) 
+#endif
 //}
 /*******************************************************End of InitGrain*************************************************************/
 
@@ -903,6 +921,10 @@ void FormatPlace(int *place){
             }printf("\n");break;
         case ON_IB:
             printf("On inner boundary, in grain %d, IB index %d\n", place[1], place[2]); break;
+        case ON_FACE_EDGE:
+            printf("on face edge %d, sub edge id %d\n", place[1], place[2]); break;
+        case AT_VERTICE:
+            printf("at vertice %d\n", place[1]); break;
         default:
             printf("Warning for format place\n");break;
     }
@@ -975,7 +997,7 @@ void NodeLocation(Home_t *home, real8 *pos, int *place, real8 error)
                         if(!Numerical(dis))Fatal("%s, variable dis is not numerical.",__func__);
 #endif
                         if(dis<localError){place[0]=AT_VERTICE; place[1]=edge->vertID1;} // at vertice 1 of the edge
-                        else if(dis>1.0-localError){place[0]=AT_VERTICE; place[1]=edge->vertID1;} // at vertice 2 of the edge
+                        else if(dis>1.0-localError){place[0]=AT_VERTICE; place[1]=edge->vertID2;} // at vertice 2 of the edge
                         else {
                             place[0]=ON_FACE_EDGE; place[1]=face->edgesID[edgeID]; place[2]=InverseIndex(edge->nIBs); // at the face edge
                             for(k=0; k<edge->nIBs; k++){
@@ -1045,9 +1067,9 @@ void NodeLocation(Home_t *home, real8 *pos, int *place, real8 error)
 /** According to the current node coordinates, judge if the node is the grain and subgrain
  * \param[in] pos the coordinates of node
  * \param[in] place the location of the node
- * \param[in] margin inner margin of grain
+ * \param[in] error inner error of grain
  * \return false if the position are not at the location, true otherwise. */
-bool InGrain(Home_t *home, int *place, real8 *pos, real8 margin)
+bool InGrain(Home_t *home, int *place, real8 *pos, real8 error)
 {
     int i;
     Face_t *face;
@@ -1063,7 +1085,7 @@ bool InGrain(Home_t *home, int *place, real8 *pos, real8 margin)
         face=grain->faces[i];
         PointPlaneDistance(pos, face->n, face->p, dis);
         dis *= grain->sign[i];
-        if(dis>-margin)return false;
+        if(dis>-error)return false;
     }
     
 #ifdef DEBUG
@@ -1073,12 +1095,12 @@ bool InGrain(Home_t *home, int *place, real8 *pos, real8 margin)
     int ibID = InverseIndex(place[2]);
     if(ibID<grain->nIBs){
         PointPlaneDistance(pos, grain->ibN, grain->ibPs[ibID], dis);
-        if(dis > -margin)return false;
+        if(dis > -error)return false;
     }
 
     if(ibID>0){
         PointPlaneDistance(pos, grain->ibN, grain->ibPs[ibID-1], dis);
-        if(dis < margin)return false;
+        if(dis < error)return false;
     }
 
     return true;
@@ -1089,9 +1111,9 @@ bool InGrain(Home_t *home, int *place, real8 *pos, real8 margin)
  *  is on the face, on the subface or on the IB edge.
  * \param[in] pos the coordinates of node
  * \param[in] place the location of the node
- * \param[in] margin inner margin of the face
+ * \param[in] error inner error of the face
  * \return false if the position are not at the location, true otherwise. */
-bool OnFace(Home_t *home, int *place, real8 *pos, real8 margin)
+bool OnFace(Home_t *home, int *place, real8 *pos, real8 error)
 {
 #ifdef DEBUG
     if(place[1]<0 || place[1]>=home->nFaces)Fatal("%s: wrong face ID", __func__);
@@ -1104,7 +1126,7 @@ bool OnFace(Home_t *home, int *place, real8 *pos, real8 margin)
     if(fabs(dis)>FACE_ERROR)return false;
 
     // if the point is outside of inner edges of the face, false
-    if(!InConcavePolyhedron(pos, face->edges, face->nEdges, -margin))return false;
+    if(!InConcavePolyhedron(pos, face->edges, face->nEdges, -error))return false;
 
     int ibID;  Grain_t *grain;
     for(auto i=0; i<2; i++){
@@ -1119,15 +1141,118 @@ bool OnFace(Home_t *home, int *place, real8 *pos, real8 margin)
             ibID = InverseIndex(place[2+i]);
             if(ibID<grain->nIBs){  // if has upper boundary
                 PointPlaneDistance(pos, grain->ibN, grain->ibPs[ibID], dis);
-                if(dis>-margin)return false;
+                if(dis>-error)return false;
             }
             if(ibID>0){ // if has lower boundary
                 PointPlaneDistance(pos, grain->ibN, grain->ibPs[ibID-1], dis);
-                if(dis<margin)return false;
+                if(dis<error)return false;
             }
         }
     }
     return true;
+}
+
+
+/** According to the current position of the node, determine whether the position
+ *  is on the inner boundary
+ * \param[in] pos the coordinates of node
+ * \param[in] place the location of the node
+ * \param[in] error error for determination of inner boundary
+ * \return false if the position are not at the location, true otherwise. */
+bool OnIB(Home_t *home, int *place, real8 *pos, real8 error)
+{
+#ifdef DEBUG
+    if(place[0]!=ON_IB)Fatal("%s: wrong place",__func__);
+    if(place[1]<0 || place[1]>=home->nGrains)Fatal("%s: the grain index %d is not correct", __func__, place[1]);
+#endif
+    Grain_t *grain = home->grainKeys[place[1]];
+#ifdef DEBUG
+    if(place[2]<0 || place[2]>=grain->nIBs)Fatal("%s: the IB index %d is not correct",__func__, place[2]);
+#endif    
+    
+    int &ibID=place[2]; real8 dis;
+    PointPlaneDistance(pos, grain->ibN, grain->ibPs[ibID], dis);
+    if(fabs(dis) > error)return false;
+
+    if(!InConcavePolyhedron(pos, grain->ibsEdges[ibID], grain->ibsNumEdges[ibID], -error)) return false;
+
+    return true;
+}
+
+/** According to the current position of the node, determine whether the position
+ *  is on the face edge
+ * \param[in] pos the coordinates of node
+ * \param[in] place the location of the node
+ * \param[in] error error for determination of edge and joint
+ * \return false if the position are not at the location, true otherwise. */
+bool OnFaceEdge(Home_t *home, int *place, real8 *pos, real8 error)
+{
+#ifdef DEBUG
+    if(place[0] != ON_FACE_EDGE)Fatal("%s line %d: place[0]=%d",__func__,__LINE__,place[0]);
+    if(place[1]<0 || place[1]>home->nEdges)Fatal("%s line %d: place[1]=%d", __func__,__LINE__,place[1]); 
+#endif
+    Edge_t *edge = home->edges[place[1]];
+    real8  *p1, *p2, vec[3], lDir[3], dis;
+    p1=Coordinate(home->vertices, edge->vertID1);
+    p2=Coordinate(home->vertices, edge->vertID2); 
+    CoordMinus(pos, p1, vec); CoordMinus(p2, p1, lDir);
+    
+#ifdef DEBUG
+    if(normal(lDir)<FACE_ERROR)Fatal("%s: two vertice are too close",__func__);
+#endif
+    // if the point is not in range of the segment, it is definitely not on the edge.
+    real8 len=normal(lDir), dotRatio=DotProduct(lDir, vec)/len;
+    if(dotRatio < error || dotRatio > len-error)return false;
+
+    // if the point is not at the line, it is definitely not on the edge. 
+    normalize_vec(lDir);
+    PointLineIntersection(pos, lDir, p1, vec, &dis); 
+    if(fabs(dis)>fabs(error))return false;
+
+#ifdef DEBUG
+    if(place[2] >= edge->nIBs || place[2]<-edge->nIBs-1)Fatal("%s: the id %d is not in the range of edge subindexs",__func__, place[2]);
+#endif
+    if(place[2]>-1)return (fabs(dotRatio-edge->dis[place[2]]*len)<error);
+    else {
+        int ibID=InverseIndex(place[2]);
+        if(ibID<edge->nIBs)if(edge->dis[ibID]*len-dotRatio > error)return false;
+        if(ibID>0)if(edge->dis[ibID-1]*len-dotRatio < -error)return false;
+    }
+    return true;
+}
+
+/** According to the current position of the node, determine whether the position
+ *  is at the vertice
+ * \param[in] pos the coordinates of node
+ * \param[in] place the location of the node
+ * \param[in] error error for determination of edge and joint
+ * \return false if the position are not at the location, true otherwise. */
+bool AtVertice(Home_t *home, int *place, real8 *pos, real8 error)
+{
+#ifdef DEBUG
+    if(place[0] != AT_VERTICE)Fatal("%s: wrong place %d",__func__, place[0]);
+    if(place[1]<0 || place[1]>= home->nVertices)Fatal("%s: wrong vertice ID %s",__func__, place[1]);
+#endif
+    return (PointPointDistance(Coordinate(home->vertices, place[1]), pos)<error);
+}
+
+/** According to the current position of the node, determine whether the position
+ *  is at the location
+ * \param[in] pos the coordinates of node
+ * \param[in] place the location of the node
+ * \param[in] error error for determination of edge and joint
+ * \return false if the position are not at the location, true otherwise. */
+bool AtLocation(Home_t *home, int *place, real8 *pos, real8 error)
+{
+    switch (place[0]){
+        case IN_GRAIN: return InGrain(home, place, pos, error);
+        case ON_FACE: return OnFace(home, place, pos, error); 
+        case ON_IB: return OnIB(home, place, pos, error); 
+        case ON_FACE_EDGE: return OnFaceEdge(home, place, pos, error); 
+        case AT_VERTICE: return AtVertice(home, place, pos, error);  
+        default: Fatal("%s: there is no location type %d",__func__, place[0]);
+    }
+    return false;
 }
 
 /** Find the intersection between nodal path and grain (if has) and return the new place of intersection point.
@@ -1211,11 +1336,12 @@ bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *ne
                     }
                 }
                 return status;
-            }/* if there is an intersection on inner face edge*/ else {
+            }
+            /* if there is an intersection on inner face edge*/ 
+            else {
                 VECTOR_COPY(tempPos, pos2);
+                // if no intersection outer face edge, it means that position 2 is on the edge already
                 if(POINT_INTERSECTION != ClipSegmentInConcavePolyhedron(face->p, tempPos, face->edges, face->nEdges, FACE_ERROR, tempEdgeID)){
-                    // if no intersection outer face edge, it means that position 2 is on the edge already
-                    
                     Edge_t *edge = home->edges[face->edgesID[edgeID]];
                     real8 len=PointPointDistance(Coordinate(home->vertices,edge->vertID2), Coordinate(home->vertices,edge->vertID1));
                     real8 localError=FACE_ERROR/len;
@@ -1224,7 +1350,7 @@ bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *ne
                     if(!Numerical(dis))Fatal("%s, variable dis is not numerical.",__func__);
 #endif
                     if(dis<localError){newPlace[0]=AT_VERTICE; newPlace[1]=edge->vertID1;} // at vertice 1 of the edge
-                    else if(dis>1.0-localError){newPlace[0]=AT_VERTICE; newPlace[1]=edge->vertID1;} // at vertice 2 of the edge
+                    else if(dis>1.0-localError){newPlace[0]=AT_VERTICE; newPlace[1]=edge->vertID2;} // at vertice 2 of the edge
                     else {
                         newPlace[0]=ON_FACE_EDGE; newPlace[1]=face->edgesID[edgeID]; newPlace[2]=InverseIndex(edge->nIBs); // at the face edge
                         for(auto k=0; k<edge->nIBs; k++){
@@ -1311,34 +1437,27 @@ bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *new
 #endif
         // the clipping point may be on the face edge or at the vertice of the edge
         Edge_t *edge = home->edges[face->edgesID[edgeID]];
-        real8  p1[3]={home->vertices[3*edge->vertID1],home->vertices[3*edge->vertID1+1],home->vertices[3*edge->vertID1+2]};
-        real8  p2[3]={home->vertices[3*edge->vertID2],home->vertices[3*edge->vertID2+1],home->vertices[3*edge->vertID2+2]};
+        real8  *p1, *p2, len; 
+        p1=Coordinate(home->vertices, edge->vertID1); 
+        p2=Coordinate(home->vertices, edge->vertID2);
+        len=PointPointDistance(p1,p2);
+        real8 localError=FACE_ERROR/len;
+        real8 dis=PointPointDistance(pos2,p1)/len;
 
-        real8 v[3];
-        VectorSubtract(p1,pos2,v);
-        dis=DotProduct(v,v);
-        if(dis==0){newPlace[0]=AT_VERTICE; newPlace[1]=edge->vertID1; return true;}
-        // if the clipping point is close to vectice 1 of the edge, pull to safe place
-        else if(dis < FACE_ERROR*FACE_ERROR){
-            real8 lDir[3] = {p2[0]-p1[0], p2[1]-p1[1], p2[2]-p1[2]}; NormalizeVec(lDir);            
-            pos2[0] = p1[0]+lDir[0]*SAFE_FACE_ERROR;
-            pos2[1] = p1[1]+lDir[1]*SAFE_FACE_ERROR;
-            pos2[2] = p1[2]+lDir[2]*SAFE_FACE_ERROR;
+#ifdef  DEBUG
+        if(!Numerical(dis))Fatal("%s, variable dis is not numerical.",__func__);
+#endif
+        if(dis<localError){newPlace[0]=AT_VERTICE; newPlace[1]=edge->vertID1;} // at vertice 1 of the edge
+        else if(dis>1.0-localError){newPlace[0]=AT_VERTICE; newPlace[1]=edge->vertID2;} // at vertice 2 of the edge
+        else {
+            newPlace[0]=ON_FACE_EDGE; newPlace[1]=face->edgesID[edgeID]; newPlace[2]=InverseIndex(edge->nIBs); // at the face edge
+            for(auto k=0; k<edge->nIBs; k++){
+                if(fabs(dis-edge->dis[k])<localError){newPlace[2]=k; break;} //at node k of the face edge
+                else if(dis<edge->dis[k]){newPlace[2]=InverseIndex(k); break;} // at subedge -1-k of the face edge
+                else continue;
+            }
         }
-        
-        VectorSubtract(p2,pos2,v);
-        dis=DotProduct(v,v);
-        if(dis==0){newPlace[0]=AT_VERTICE; newPlace[1]=edge->vertID2; return true;}
-        // if the clipping point is close to vectice 2 of the edge, pull to safe place
-        else if(dis < FACE_ERROR*FACE_ERROR){
-            real8 lDir[3] = {p2[0]-p1[0], p2[1]-p1[1], p2[2]-p1[2]}; NormalizeVec(lDir);            
-            pos2[0] = p2[0]-lDir[0]*SAFE_FACE_ERROR;
-            pos2[1] = p2[1]-lDir[1]*SAFE_FACE_ERROR;
-            pos2[2] = p2[2]-lDir[2]*SAFE_FACE_ERROR;
-        }
-        newPlace[0] = ON_FACE_EDGE;
-        newPlace[1] = face->edgesID[edgeID];
-        status = true;
+        return true;
     }else {
         // if there has no intersection on face edges, clip the path by inner margins to ensure there is 
         // no misunderstanding of the place.
@@ -1383,61 +1502,6 @@ bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *new
     }/*end for(i=0;i<2;i++) */
     return status;
 }
-
-/** According to the current position of the node, determine whether the position
- *  is on the face edge
- * \param[in] pos the coordinates of node
- * \param[in] place the location of the node
- * \param[in] margin inner margin of the edge
- * \return false if the position are not at the location, true otherwise. */
-bool OnFaceEdge(Home_t *home, int *place, real8 *pos, real8 margin)
-{
-#ifdef DEBUG
-    if(place[0] != ON_FACE_EDGE)Fatal("%s line %d: place[0]=%d",__func__,__LINE__,place[0]);
-    if(place[1]<0 || place[1]>home->nEdges)Fatal("%s line %d: place[1]=%d", __func__,__LINE__,place[1]);
-#endif
-    Edge_t *edge = home->edges[place[1]];
-    real8  pos1[3]={home->vertices[3*edge->vertID1],home->vertices[3*edge->vertID1+1],home->vertices[3*edge->vertID1+2]};
-    real8  pos2[3]={home->vertices[3*edge->vertID2],home->vertices[3*edge->vertID2+1],home->vertices[3*edge->vertID2+2]};
-    real8  vec[3]={pos2[0]-pos[0],pos2[1]-pos[1],pos2[2]-pos[2]}, dis;
-    real8  lDir[3]={pos2[0]-pos1[0],pos2[1]-pos1[1],pos2[2]-pos1[2]}; 
-    
-#ifdef DEBUG
-    if(normal(lDir)<FACE_ERROR)Fatal("%s: two vertice are too close",__func__);
-#endif
-    // if the point is not in range of the segment, it is definitely not on the edge.
-    real8 len=normal(lDir), dotRatio=DotProduct(lDir, vec)/len;
-    if(dotRatio < margin || dotRatio > len-margin)return false;
-
-    // if the point is not at the line, it is definitely not on the edge. 
-    normalize_vec(lDir);
-    PointLineIntersection(pos, lDir, pos1, vec, &dis); 
-    if(fabs(dis)>fabs(margin))return false;
-    return true;
-}
-
-/** According to current position of the node and neighbor place, determin wheter the node
- *  is on the face edge
- *  \param[in] place the nodal place
- *  \param[in] pos the nodal position
- *  \param[in] node the node
- *  \param[in] margin inner margin of the edge
- * \return false if the position are not at the location, true otherwise. */
-bool OnFaceEdge(Home_t *home, int *place, real8 *pos, Node_t *node, real8 margin)
-{
-    bool state=OnFaceEdge(home, place, pos, margin); if(!state)return false;
-    
-    Node_t *nbr;
-    for(auto i=0; i<node->numNbrs; i++){
-        nbr = GetNeighborNode(home, node, i);
-#ifdef DEBUG
-        if(nbr == (Node_t *)NULL)Fatal("%s: can not find the neighbor.",__func__);
-#endif
-
-    }
-    return true;
-}
-
 
 /** Get the distance between point and polygon
  *  \param[in] p the coordinate of the point

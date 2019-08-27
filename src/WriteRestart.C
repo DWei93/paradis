@@ -196,7 +196,7 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
 
                 fprintf(fp, "nodalData = \n");
                 fprintf(fp, "#  Primary lines: node_tag, x, y, z, "
-                        "num_arms, constraint\n");
+                        "num_arms, constraint, palce[0], place[1], place[2], place[3]\n");
                 fprintf(fp, "#  Secondary lines: arm_tag, burgx, burgy, "
                              "burgz, nx, ny, nz signSF\n");
             }
@@ -237,10 +237,12 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
             }
 
             fprintf(fp,
-                    " %d,%d %lf %lf %lf %d %d %d %d\n",
+                    " %d,%d %lf %lf %lf %d %d ",
                     node->myTag.domainID, node->myTag.index,
                     node->x, node->y, node->z, node->numNbrs,
-                    node->constraint, node->inGrain, node->onGB);
+                    node->constraint);
+            for(auto j=0; j<PLACE_LEN; j++)fprintf(fp," %d",node->place[j]);
+            fprintf(fp,"\n");
         
 /*
  *          Write the segment specific data
