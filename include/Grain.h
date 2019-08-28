@@ -292,81 +292,43 @@ inline int WhichSubgrain(Grain_t *grain, real8 *pos, real8 error=FACE_ERROR){
     return InverseIndex(grain->nIBs);
 }
 
-/** According to the current node coordinates, judge if the node is the grain and subgrain
- * \param[in] grainID grain index
- * \param[in] pos the coordinates of node
- * \param[in] place the location of the node
- * \param[in] error inner error of grain
- * \return false if the position are not at the location, true otherwise. */
-bool InGrain(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
-inline bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
-{real8 pos[3]={x,y,z}; return InGrain(home, place, pos, error);}
-
-/** According to the current position of the node, determine whether the node 
- *  is on the face, on the subface or on the IB edge.
- * \param[in] pos the coordinates of node
- * \param[in] place the location of the node
- * \param[in] error inner error of the face
- * \return false if the position are not at the location, true otherwise. */
-bool OnFace(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
-inline bool OnFace(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
-{real8 pos[3]={x,y,z}; return OnFace(home, place, pos, error);}
-
-/** According to the current position of the node, determine whether the position
- *  is on the inner boundary
- * \param[in] pos the coordinates of node
- * \param[in] place the location of the node
- * \param[in] error error for determination of inner boundary
- * \return false if the position are not at the location, true otherwise. */
-bool OnIB(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
-inline bool OnIB(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
-{real8 pos[3]={x,y,z}; return OnIB(home, place, pos, error);}
-
-/** According to the current position of the node, determine whether the position
- *  is on the face edge
- * \param[in] pos the coordinates of node
- * \param[in] place the location of the node
- * \param[in] error error for determination of edge and joint
- * \return false if the position are not at the location, true otherwise. */
-bool OnFaceEdge(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
-inline bool OnFaceEdge(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
-{real8 pos[3]={x,y,z}; return OnFaceEdge(home, place, pos, error);}
-
-/** According to the current position of the node, determine whether the position
- *  is at the vertice
- * \param[in] pos the coordinates of node
- * \param[in] place the location of the node
- * \param[in] error error for determination of edge and joint
- * \return false if the position are not at the location, true otherwise. */
-bool AtVertice(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
-inline bool AtVertice(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
-{real8 pos[3]={x,y,z}; return AtVertice(home,place,pos,error); }
-
 /** According to the current position of the node, determine whether the position
  *  is at the location
  * \param[in] pos the coordinates of node
  * \param[in] place the location of the node
  * \param[in] error error for determination of edge and joint
  * \return false if the position are not at the location, true otherwise. */
+bool InGrain(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
+inline bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return InGrain(home, place, pos, error);}
+bool OnFace(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
+inline bool OnFace(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return OnFace(home, place, pos, error);}
+bool OnIB(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
+inline bool OnIB(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return OnIB(home, place, pos, error);}
+bool OnFaceEdge(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
+inline bool OnFaceEdge(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return OnFaceEdge(home, place, pos, error);}
+bool AtVertice(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
+inline bool AtVertice(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return AtVertice(home,place,pos,error); }
 bool AtLocation(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
 inline bool AtLocation(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
 {real8 pos[3]={x,y,z}; return AtLocation(home,place,pos,error); }
 
-/** Find the intersection between nodal path and grain (if has) and return the new place of intersection point.
- * \param[in] place the location of the node.
- * \param[in] pos1 the old position the node, it has to be in the place.
- * \param[in,out] pos2 the current position of the, moved to intersection if it was outside of the place. 
- * \param[out] newPlace the new place of the node (if has) 
- * \return true if the place is changed, otherwise false */
-bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
-
-/** Find the intersection between nodal path and face (if has) and return the new place of intersection point.
+/** Find the intersection between nodal path and place (if has) and return the new place of intersection point.
  * \param[in] place the location of the node.
  * \param[in] pos1 the old position of the node, it has to be in the place.
  * \param[in,out] pos2 the current position of the node, moved to intersection if it was outside of the place. 
  * \param[out] newPlace the new place of intersection (if has) 
  * \return true if the place is changed, otherwise false */
+bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
 bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
+bool ClipPathOnIB(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
+bool ClipPathOnFaceEdge(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
+bool ClipPathAtVertice(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
+bool ClipPathAtLocation(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
 
 /** Generate Burgers data information
  *  \param[in] matType material type

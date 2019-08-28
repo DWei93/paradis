@@ -183,7 +183,7 @@ int PointLineIntersection(double *p1, double *d, double *p2, double *vec, double
     normal2=dx*dx+dy*dy+dz*dz;
     t = (dx*(p1x - p2x) + dy*(p1y - p2y) + dz*(p1z - p2z))/normal2;
 #ifdef DEBUG
-    if(isinf(t) || isnan(t))Fatal("%s: %f",__func__,t);
+    if(!Numerical(t))Fatal("%s: %f",__func__,t);
 #endif
     vec[0] = p2x + dx*t;
     vec[1] = p2y + dy*t;

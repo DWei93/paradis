@@ -220,7 +220,7 @@ void EdgeCopy(Edge_t *a, EdgeVec_t &b){
     if(a->nFaces>0)a->ofFaces = (int *)malloc(a->nFaces*sizeof(int));
     for(auto i=0; i<a->nFaces; i++)a->ofFaces[i] = b.ofFaces[i];
 
-    a->nIBs = int(b.ibs.size());
+    a->nIBs = (b.ibs.empty()?0:int(b.ibs.size()));
     if(a->nIBs>0){
         a->ibInGrain = (int *)malloc(a->nIBs*sizeof(int));
         a->ibID = (int *)malloc(a->nIBs*sizeof(int));
@@ -1422,14 +1422,11 @@ bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *new
 #endif
 
     // Make sure the current position is on the face, clip the path if point is not.
-    if(SegmentPlaneIntersection(pos1, pos2, face->n, face->p, pos2)!=POINT_INTERSECTION){
-        PointPlaneDistance(pos2, face->n, face->p, dis, pos2);
+    PointPlaneDistance(pos2, face->n, face->p, dis, pos2);
 #ifdef DEBUG
-        if(fabs(dis) > SAFE_FACE_ERROR)Fatal("%s: the point 2 is far away to the face, distance %e", __func__, dis);
+    if(fabs(dis) > SAFE_FACE_ERROR)Fatal("%s: the point 2 is far away to the face, distance %e", __func__, dis);
 #endif
-    }
    
-    bool status = false;
     // check if the path has crossed the face boundary 
     if(POINT_INTERSECTION==ClipSegmentInConcavePolyhedron(pos1, pos2, face->edges, face->nEdges, edgeID, pos2)){
 #ifdef DEBUG
@@ -1458,14 +1455,15 @@ bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *new
             }
         }
         return true;
-    }else {
-        // if there has no intersection on face edges, clip the path by inner margins to ensure there is 
-        // no misunderstanding of the place.
-        ClipSegmentInConcavePolyhedron(pos1, pos2, face->edges, face->nEdges,-SAFE_FACE_ERROR, edgeID, pos2);
     }
+    // if there has no intersection on face edges, clip the path by inner margins to ensure there is 
+    // no misunderstanding of the place.
+    else ClipSegmentInConcavePolyhedron(pos1, pos2, face->edges, face->nEdges,-SAFE_FACE_ERROR, edgeID, pos2);
+    
+    // if the node is neither on face edge nor at vertice, initialize newPlace, it may not be used here, but we have to plan for it
+    newPlace[0] = ON_FACE; newPlace[1]=face->id;
 
-    // if the node is not on face edge, initialize newPlace, it may not be used here, but we have to plan for it
-    if(!status){newPlace[0] = ON_FACE; newPlace[1]=face->id;};
+    bool status = false;
     // loop through grains on both side of the face, clip the path acoording to the nodal place
     for(auto i=0; i<2; i++){
         // if no neighbor grain on this side (face is free surface), copy the surface ID and continue
@@ -1486,13 +1484,12 @@ bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *new
                 // clip the place without changing place
                 else SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], -SAFE_FACE_ERROR, pos2);
             }
-  
+
             if(ibID>0){ // if has lower boundary
-                ibID--;
+                ibID--; 
                 if(POINT_INTERSECTION == SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], pos2)){
                     newPlace[2+i] = ibID; status=true; continue;
                 }
-  
                 // if ther is an intersection point on inner plane of subgrain with a margin of SAFE_FACE_ERROR
                 // clip the path without changing place
                 else SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], SAFE_FACE_ERROR, pos2);
@@ -1501,6 +1498,154 @@ bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *new
         }
     }/*end for(i=0;i<2;i++) */
     return status;
+}
+
+/** Find the intersection between nodal path and inner boundary (if has) and return the new place of intersection point.
+ * \param[in] place the location of the node.
+ * \param[in] pos1 the old position of the node, it has to be in the place.
+ * \param[in,out] pos2 the current position of the node, moved to intersection if it was outside of the place. 
+ * \param[out] newPlace the new place of intersection (if has) 
+ * \return true if the place is changed, otherwise false */
+bool ClipPathOnIB(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
+{
+#ifdef DEBUG
+    if(place[0] != ON_IB)Fatal("%s: wrong place type %d",__func__, place[0]);
+    if(place[1]<0 || place[1]>= home->nGrains)Fatal("%s: can not find grain %d",__func__, place[1]);
+    if(!OnIB(home, place, pos1, FACE_ERROR))Fatal("%s: the position 1 is not on the IB",__func__);
+#endif
+    Grain_t *grain = home->grainKeys[place[1]];
+#ifdef DEBUG
+    if(place[2]<0 || place[2]>=grain->nIBs)Fatal("%s: can not find ib %d in grain %d",__func__, place[2], place[1]);
+#endif    
+    real8 dis;
+    int edgeID, ibID=place[2];
+    PointPlaneDistance(pos2, grain->ibN, grain->ibPs[ibID], dis, pos2);
+#ifdef DEBUG
+    if(fabs(dis) > SAFE_FACE_ERROR)Fatal("%s: the point 2 is far away to the inner boundary, distance %e", __func__, dis);
+#endif
+
+    // if there is an intersection on edge of inner boundary
+    if(POINT_INTERSECTION==ClipSegmentInConcavePolyhedron(pos1, pos2, grain->ibsEdges[ibID], grain->ibsNumEdges[ibID], edgeID, pos2)){
+        int vertID1=grain->ibPolygons[ibID][edgeID];
+        int vertID2 = (edgeID==grain->ibsNumEdges[ibID]-1)?grain->ibPolygons[ibID][0]:grain->ibPolygons[ibID][edgeID+1];
+        int vertID = -1;
+        if(PointPointDistance(pos2, Coordinate(grain->ibVertices, vertID1))<FACE_ERROR)vertID = vertID1;
+        if(PointPointDistance(pos2, Coordinate(grain->ibVertices, vertID2))<FACE_ERROR)vertID = vertID2;
+        if(vertID != -1){
+            newPlace[0] = ON_FACE_EDGE; newPlace[1] = grain->ibVertOnEdge[vertID]; 
+            newPlace[2]=grain->ibVertOnSubedge[vertID]; newPlace[3]=-1;
+        }else {
+            newPlace[0]=ON_FACE; 
+            newPlace[1]=grain->ibsEdgesFaceID[ibID][edgeID];
+            Face_t *face=home->faces[newPlace[1]];
+            for(auto i=0; i<2; i++){
+                if(face->nbrGrain[i]<0){newPlace[2+i]=face->nbrGrain[i]; continue;}
+                newPlace[i+2] = WhichSubgrain(home->grainKeys[face->nbrGrain[i]], pos2, FACE_ERROR);
+            }
+        }
+        return true;
+    }
+    // else, clip the path to make sure that pos is on the IB
+    else ClipSegmentInConcavePolyhedron(pos1, pos2, grain->ibsEdges[ibID], grain->ibsNumEdges[ibID],-SAFE_FACE_ERROR, edgeID, pos2);
+    return false;
+}
+
+/** Find the intersection between nodal path and face edge (if has) and return the new place of intersection point.
+ * \param[in] place the location of the node.
+ * \param[in] pos1 the old position of the node, it has to be in the place.
+ * \param[in,out] pos2 the current position of the node, moved to intersection if it was outside of the place. 
+ * \param[out] newPlace the new place of intersection (if has) 
+ * \return true if the place is changed, otherwise false */
+bool ClipPathOnFaceEdge(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
+{
+#ifdef DEBUG
+    if(place[0] != ON_FACE_EDGE)Fatal("%s: wrong location type %d", __func__, place[0]);
+    if(place[1]<0 || place[1]>=home->nEdges)Fatal("%s: wrong edge ID %d", __func__, place[1]);
+    if(!OnFaceEdge(home,place,pos1,FACE_ERROR))Fatal("%s: the position 1 is not on face edge",__func__);
+#endif
+    Edge_t *edge = home->edges[place[1]];
+    real8 *p1 = Coordinate(home->vertices, edge->vertID1); 
+    real8 *p2 = Coordinate(home->vertices, edge->vertID2); 
+    real8 lDir[3], len; CoordMinus(p2,p1,lDir); len=normal(lDir);
+    normalize_vec(lDir);
+
+    real8 dis; PointLineIntersection(pos2, lDir, p1, pos2, &dis);
+#ifdef DEBUG
+    if(dis>SAFE_FACE_ERROR)Fatal("%s: the position 2 is far away from the edge (%e)",__func__, dis);
+#endif
+    dis = PointPointDistance(p1, pos2)/len;
+
+    // if the place is at the joint of edge
+    if(place[2]<0){
+        int jointID = InverseIndex(place[2]);
+        real8 localErr=FACE_ERROR/len, upperDis = 1.0, lowerDis=0.0;
+        if(jointID < edge->nIBs)upperDis = edge->dis[jointID];
+        else if(jointID > 0)lowerDis = edge->dis[jointID-1];
+
+        if(dis-upperDis>-localErr){
+            if(jointID==edge->nIBs){newPlace[0]=AT_VERTICE; newPlace[1]=edge->vertID2;}
+            else {newPlace[0]=ON_FACE_EDGE; newPlace[1]=place[1]; newPlace[2]=jointID; newPlace[3]=-1;}
+            CoordAdd(1.0-upperDis, p1, upperDis, p2, pos2);
+            return true;
+        }
+
+        if(dis-lowerDis<localErr){
+            if(jointID==0){newPlace[0]==AT_VERTICE; newPlace[1]=edge->vertID1;}
+            else {newPlace[0]=ON_FACE_EDGE; newPlace[1]=place[1]; newPlace[2]=jointID-1;newPlace[3]=-1;}
+            CoordAdd(1.0-lowerDis, p1, lowerDis, p2, pos2);
+            return true;
+        }
+        
+    }else{
+        if(fabs(dis-edge->dis[place[2]])>FACE_ERROR){
+            Fatal("%s: joint on edge can not is inmoveable, move distance %e",__func__, dis-edge->dis[place[2]]);
+        }
+    }
+
+    return false;
+}
+
+/** Find the intersection between nodal path and vertice (if has) and return the new place of intersection point.
+ * \param[in] place the location of the node.
+ * \param[in] pos1 the old position of the node, it has to be in the place.
+ * \param[in,out] pos2 the current position of the node, moved to intersection if it was outside of the place. 
+ * \param[out] newPlace the new place of intersection (if has) 
+ * \return true if the place is changed, otherwise false */
+bool ClipPathAtVertice(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
+{
+#ifdef DEBUG
+    if(place[0]!=AT_VERTICE)Fatal("%s: wrong location type %d",__func__,place[0]);
+    if(place[1]<0 || place[1]>=home->nVertices)Fatal("%s: can not find vertice %d",__func__,place[1]);
+    if(!AtVertice(home, place, pos1, FACE_ERROR))Fatal("%s: position 1 is not at vertice",__func__);
+#endif
+
+    real8 dis, *p=Coordinate(home->vertices, place[1]);
+    if((dis=PointPointDistance(p, pos2))>FACE_ERROR){
+#ifdef DEBUG
+        if(dis>SAFE_FACE_ERROR)Fatal("%s: distance of the path is %e", __func__, dis);
+#endif
+        VECTOR_COPY(pos2,p);
+    }
+    return true;
+}
+
+/** Find the intersection between nodal path and place (if has) and return the new place of intersection point.
+ * \param[in] place the location of the node.
+ * \param[in] pos1 the old position of the node, it has to be in the place.
+ * \param[in,out] pos2 the current position of the node, moved to intersection if it was outside of the place. 
+ * \param[out] newPlace the new place of intersection (if has) 
+ * \return true if the place is changed, otherwise false */
+bool ClipPathAtLocation(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
+{
+    switch(place[0]){
+        case IN_GRAIN: return ClipPathInGrain(home, place, pos1, pos2, newPlace); break;
+        case ON_FACE: return ClipPathOnFace(home, place, pos1, pos2, newPlace); break;
+        case ON_IB: return ClipPathOnIB(home, place, pos1, pos2, newPlace); break;
+        case ON_FACE_EDGE: return ClipPathOnFaceEdge(home, place, pos1, pos2, newPlace); break;
+        case AT_VERTICE: return ClipPathAtVertice(home, place, pos1, pos2, newPlace); break;
+        default: Fatal("%s: not support type %d",__func__, place[0]); break;
+    }
+    return false;
 }
 
 /** Get the distance between point and polygon
