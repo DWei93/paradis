@@ -2768,7 +2768,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
     real8   p[3],p1[3],p2[3], pBak[3], *burg, *normal, gDir[3], lDir[3], t1, t2, x[NPOINTS], y[NPOINTS], len, p3[3],p4[4], delta;
     int     ibID, numSlipSys, burgID, planeID, joint[4];
     int     place[PLACE_LEN], place1[PLACE_LEN], place2[PLACE_LEN];
-    int     newNodeIndex, numPoints, baseNodeID, startRemeshIndex;
+    int     newNodeIndex, numPoints, baseNodeID=0, startRemeshIndex;
     Node_t  *node;
     std::vector<int> indexs1(3), indexs2(2);
     for(auto i=0; i<home->nGrains; i++){
@@ -2885,6 +2885,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
                         if(PointPointDistance(p3,p4)>2*srcLen){VECTOR_COPY(p2,p4);  VECTOR_COPY(p1,p3);}
                         else if (PointPointDistance(p2,p4)>2*srcLen){VECTOR_COPY(p1,p4);}
                         else if (PointPointDistance(p1,p3)>2*srcLen){VECTOR_COPY(p2,p3);}
+                        else {VECTOR_COPY(p2,p4);  VECTOR_COPY(p1,p3);}
 
                     }else if(firstDistribution) goto distribution;
                 } else if(firstDistribution) goto distribution;
