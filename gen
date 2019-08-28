@@ -25,14 +25,14 @@
 
 
 #frlen=1800
-frlen=2000
+frlen=60
 cubel=2000
 #frlen=1980
 #cubel=2000
 maxSeg=133
 nfrs=8
-maxDensity=1E14
-
+maxDensity=1E-6
+#seed="-seed 1566393598"
 polycrystal=1
 single=2
 
