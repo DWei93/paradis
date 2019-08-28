@@ -2833,7 +2833,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
                         x[k]=real8(k)/(NPOINTS-1.0);
                         CoordAdd(1.0-x[k],p2,x[k],p1,p);
                         y[k]=PointConcavePolygonDistance(p, vertices, edges);
-                        ymax = (ymax>y[k])?ymax:y[k];
+                        if(ymax<y[k]){ymax=y[k]; joint[1]=k;}
                     }
                     
                     if(ymax>srcLen){
@@ -2844,6 +2844,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
                                 break;
                             }   
                         }
+                        
                         for(auto k=joint[3]-1; k>0; k--){
                             if((y[k]-srcLen)*(y[k+1]-srcLen)<0){
                                 t2=x[k+1]+(x[k]-x[k+1])*(srcLen-y[k+1])/(y[k]-y[k+1]);
