@@ -301,12 +301,12 @@ inline int WhichSubgrain(Grain_t *grain, real8 *pos, real8 error=FACE_ERROR){
 bool InGrain(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
 inline bool InGrain(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
 {real8 pos[3]={x,y,z}; return InGrain(home, place, pos, error);}
-bool OnFace(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
-inline bool OnFace(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
-{real8 pos[3]={x,y,z}; return OnFace(home, place, pos, error);}
 bool OnIB(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
 inline bool OnIB(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
 {real8 pos[3]={x,y,z}; return OnIB(home, place, pos, error);}
+bool OnFace(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
+inline bool OnFace(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
+{real8 pos[3]={x,y,z}; return OnFace(home, place, pos, error);}
 bool OnFaceEdge(Home_t *home, int *place, real8 *pos, real8 error=FACE_ERROR);
 inline bool OnFaceEdge(Home_t *home, int *place, real8 x, real8 y, real8 z, real8 error=FACE_ERROR)
 {real8 pos[3]={x,y,z}; return OnFaceEdge(home, place, pos, error);}
@@ -324,8 +324,8 @@ inline bool AtLocation(Home_t *home, int *place, real8 x, real8 y, real8 z, real
  * \param[out] newPlace the new place of intersection (if has) 
  * \return true if the place is changed, otherwise false */
 bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
-bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
 bool ClipPathOnIB(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
+bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
 bool ClipPathOnFaceEdge(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
 bool ClipPathAtVertice(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
 bool ClipPathAtLocation(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
@@ -342,7 +342,7 @@ void GenerateBurgInfo(int matType, real8 rotMatrix[3][3], BurgInfo_t *burgData);
  *  \param[in] GBNormal normal of grain boundary for cacualte cutting plane */
 void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, BurgInfo_t *bInf2);
 
-void GetArmLocation(Home_t *home, Node_t *node1, Node_t *node2, int *place);
+void ArmLocation(Home_t *home, int *place1, int *place2, int *place);
 
 /** Get edges of intersection between plane and grain
  *  \param[in] n the normal vector of plane

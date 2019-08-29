@@ -887,7 +887,7 @@ void InitGrain(Home_t *home, Param_t *param)
     return;
 }
 #ifdef DEBUG
-    #undef NodeLocation(a,b,c,d) NodeLocationDebug(a,b,c,d) 
+    #undef NodeLocation
 #endif
 //}
 /*******************************************************End of InitGrain*************************************************************/
@@ -904,8 +904,8 @@ void InitGrain(Home_t *home, Param_t *param)
  *  TYPE (place[0])   | place[1]   | place[2]       | place[3]              | note
  *  ------------------|------------|----------------|-----------------------|---------------------
  *  IN_GRAIN          | grain ID   | SG ID          |                       |
- *  ON_FACE           | face ID    | SG (IB) ID1    | SG (IB) ID2 (if has)  | 
  *  ON_IB             | grain ID   | IB ID1         |                       |
+ *  ON_FACE           | face ID    | SG (IB) ID1    | SG (IB) ID2 (if has)  | 
  *  ON_FACE_EDGE      | edge ID    | SG (IB) ID     |                       | immoveable if it has any arm in bulk
  *  AT_VERTICE        | vertice ID |                |                       | immoveable
  *  -------------------------------------------------------------------------------------------------------*/
@@ -913,14 +913,14 @@ void FormatPlace(int *place){
     switch(place[0]){
         case IN_GRAIN:
             printf("In grain %d, sub grain %d\n", place[1], place[2]); break;
+        case ON_IB:
+            printf("On inner boundary, in grain %d, IB index %d\n", place[1], place[2]); break;
         case ON_FACE:
             printf("On face %d", place[1]);
             for(auto i=2; i<4; i++){
                 if(place[i]<0)printf(", in neighbor grain %d's subgrain %d",i-2,place[i]);
                 else printf(", on neghbor grain %d's inner edge %d", i-2,place[i]);
             }printf("\n");break;
-        case ON_IB:
-            printf("On inner boundary, in grain %d, IB index %d\n", place[1], place[2]); break;
         case ON_FACE_EDGE:
             printf("on face edge %d, sub edge id %d\n", place[1], place[2]); break;
         case AT_VERTICE:
@@ -1246,8 +1246,8 @@ bool AtLocation(Home_t *home, int *place, real8 *pos, real8 error)
 {
     switch (place[0]){
         case IN_GRAIN: return InGrain(home, place, pos, error);
-        case ON_FACE: return OnFace(home, place, pos, error); 
         case ON_IB: return OnIB(home, place, pos, error); 
+        case ON_FACE: return OnFace(home, place, pos, error); 
         case ON_FACE_EDGE: return OnFaceEdge(home, place, pos, error); 
         case AT_VERTICE: return AtVertice(home, place, pos, error);  
         default: Fatal("%s: there is no location type %d",__func__, place[0]);
@@ -1639,13 +1639,242 @@ bool ClipPathAtLocation(Home_t *home, int *place, real8 *pos1, real8 *pos2, int 
 {
     switch(place[0]){
         case IN_GRAIN: return ClipPathInGrain(home, place, pos1, pos2, newPlace); break;
-        case ON_FACE: return ClipPathOnFace(home, place, pos1, pos2, newPlace); break;
         case ON_IB: return ClipPathOnIB(home, place, pos1, pos2, newPlace); break;
+        case ON_FACE: return ClipPathOnFace(home, place, pos1, pos2, newPlace); break;
         case ON_FACE_EDGE: return ClipPathOnFaceEdge(home, place, pos1, pos2, newPlace); break;
         case AT_VERTICE: return ClipPathAtVertice(home, place, pos1, pos2, newPlace); break;
         default: Fatal("%s: not support type %d",__func__, place[0]); break;
     }
     return false;
+}
+
+/** Get adjucent grains of the face
+ *  \param[in] faceID face index
+ *  \param[in] id1,id2 subface indexs
+ *  \param[out] grains index list of grains and subgrains */
+void AdjacentGrainsOfFace(Home_t *home, int faceID, int id1, int id2, std::vector<int> &grains)
+{   
+#ifdef DEBUG
+    if(faceID<0 || faceID>= home->nFaces)Fatal("%s: can not find face %d",__func__, faceID);
+#endif
+    grains.clear(); int place[2]={id1,id2};
+    Face_t *face = home->faces[faceID];
+    for(int i=0;i<2;i++){
+        if(face->nbrGrain[i]<0)continue;
+        if(place[i]<0){
+            grains.push_back(face->nbrGrain[i]); grains.push_back(InverseIndex(place[i]));
+        }else{
+            grains.push_back(face->nbrGrain[i]); grains.push_back(place[i]);
+            grains.push_back(face->nbrGrain[i]); grains.push_back(place[i]+1);
+        }
+    }
+    return;
+}
+
+/** Get adjucent faces of the face edge
+ *  \param[in] edgeID edge index
+ *  \param[in] subEdgeID subedge index
+ *  \param[out] faces index list of faces and subfaces */
+void AdjacentFacesOfFaceEdges(Home_t *home, int edgeID, int subEdgeID, std::vector<int> &faces)
+{
+#ifdef DEBUG
+    if(edgeID<0 || edgeID>=home->nEdges)Fatal("%s: can not find edge %d",__func__, edgeID);
+#endif
+    faces.clear();
+    Edge_t *edge = home->edges[edgeID];
+#ifdef DEBUG
+    if(subEdgeID<edge->nIBs-1 || subEdgeID>=edge->nIBs)
+        Fatal("%s: can not find sub edge %d in edge %d",__func__,subEdgeID, edgeID);
+#endif
+
+
+    if(subEdgeID>=0){
+        int ibInGrain = edge->ibInGrain[subEdgeID];
+        int ibID = edge->ibID[subEdgeID];
+        real8 p[3]; int j,k,ids[2];
+        CoordAdd(1.0-edge->dis[subEdgeID],Coordinate(home->vertices, edge->vertID1),
+                     edge->dis[subEdgeID],Coordinate(home->vertices, edge->vertID2), p);                
+        Face_t *face;
+        for(int i=0; i<edge->nFaces; i++){
+            face = home->faces[edge->ofFaces[i]];
+            for(j=0; j<2; j++){
+                if(face->nbrGrain[i]==ibInGrain){
+                    ids[j]=ibID; k=(j==0)?1:0;
+                    if(face->nbrGrain[k]<0)ids[k]=face->nbrGrain[k];
+                    else ids[k]=WhichSubgrain(home->grainKeys[face->nbrGrain[k]], p, FACE_ERROR);
+                    faces.push_back(face->id); faces.push_back(ids[0]); faces.push_back(ids[1]);
+                    break;
+                }
+            }
+        }
+    }else{
+        int ibID = InverseIndex(edge->ibID[subEdgeID]);
+        real8 upperDis = (ibID<edge->nIBs)?edge->dis[ibID]:1.0;
+        real8 lowerDis = (ibID>0)?edge->dis[ibID-1]:0.0;
+        
+    }
+    return;
+}
+
+inline void ArmLocationGrainGrain(Home_t *home, int *p1, int *p2, int *p)
+{
+#ifdef DEBUG
+    char msg[256]; 
+    if(p1[1]!=p2[1]){snprintf(msg,sizeof(msg),"%s: the arm intersects grain boundary",__func__); throw msg;}
+    if(p1[2]!=p2[2]){snprintf(msg,sizeof(msg),"%s: the arm intersects inner boundary",__func__); throw msg;}
+#endif
+    return;
+}
+inline void ArmLocationGrainIB(Home_t *home, int *p1, int *p2, int *p)
+{
+#ifdef DEBUG
+    char msg[256]; 
+    if(p1[1]!=p2[1]){snprintf(msg,sizeof(msg),"%s: the arm intersects grain boundary",__func__); throw msg;}
+    int ibID=InverseIndex(p1[2]);
+    if(ibID<p2[2] || ibID>p2[2]+1){snprintf(msg,sizeof(msg),"%s: the arm intersects inner boundary",__func__); throw msg;} 
+#endif
+    return;
+}
+inline void ArmLocationGrainFace(Home_t *home, int *p1, int *p2, int *p)
+{
+#ifdef DEBUG
+    char msg[256]; std::vector<int> grains;
+    AdjacentGrainsOfFace(home, p2[1], p2[2], p2[3], grains);
+    unsigned int i=0; for(; i<grains.size(); i=i+2){
+        if(grains[i]==p1[1] && grains[i+1]==p1[2])break;
+    }
+    if(i==grains.size()){
+        snprintf(msg,sizeof(msg),"%s: can not find grain (%d,%d) in adjacent grain list of face (%d,%d,%d)",
+                 __func__, p1[1],p1[2],p2[1],p2[2],p2[3]);
+        throw msg;
+    }
+#endif
+    return;
+}
+inline void ArmLocationGrainFaceEdge(Home_t *home, int *p1, int *p2, int *p)
+{
+    
+    return;
+}
+inline void ArmLocationGrainVertice(Home_t *home, int *p1, int *p2, int *p)
+{
+    return;
+}
+
+inline void ArmLocationIBIB(Home_t *home, int *p1, int *p2, int *p)
+{
+#ifdef DEBUG
+    if(p1[1]!=p2[1] || p1[2]!=p2[2]){
+        char msg[256];
+        snprintf(msg,sizeof(msg),"%s: two inner boundaries (%d,%d,%d,%d) are not same",
+                 __func__, p1[1],p1[2],p2[1],p2[2]);
+        throw msg;
+    }
+#endif
+    return;
+}
+inline void ArmLocationIBFace(Home_t *home, int *p1, int *p2, int *p)
+{
+    return;
+}
+inline void ArmLocationIBFaceEdge(Home_t *home, int *p1, int *p2, int *p)
+{
+    return;
+}
+inline void ArmLocationIBVertice(Home_t *home, int *p1, int *p2, int *p)
+{
+    return;
+}
+
+
+inline void ArmLocationFaceFace(Home_t *home, int *p1, int *p2, int *p)
+{
+#ifdef DEBUG
+    char msg[256];
+    if(p1[1]!=p2[1]){
+        snprintf(msg,sizeof(msg),"%s: two different face %d %d",__func__,p1[1],p2[1]);
+        throw msg;
+    }
+#endif
+
+    return;
+}
+inline void ArmLocationFaceFaceEdge(Home_t *home, int *p1, int *p2, int *p)
+{
+    return;
+}
+inline void ArmLocationFaceVertice(Home_t *home, int *p1, int *p2, int *p)
+{
+    return;
+}
+
+
+inline void ArmLocationFaceEdgeFaceEdge(Home_t *home, int *p1, int *p2, int *p)
+{
+    return;
+}
+inline void ArmLocationFaceEdgeVertice(Home_t *home, int *p1, int *p2, int *p)
+{
+    return;
+}
+
+inline void ArmLocationVerticeVertice(Home_t *home, int *p1, int *p2, int *p)
+{
+    return;
+}
+
+void ArmLocation(Home_t *home, int *place1, int *place2, int *place)
+{
+    int *p1, *p2;
+    if(place1[0]<=place2[0]){p1=place1; p2=place2;}else{p1=place2; p2=place1;}
+    for(auto i=0; i<PLACE_LEN; i++)place[i]=p1[i];
+
+    try{
+        switch(p1[0]){
+            case IN_GRAIN:
+                switch(p2[0]){
+                    case IN_GRAIN: ArmLocationGrainGrain(home,p1,p2,place); break;
+                    case ON_IB: ArmLocationGrainIB(home,p1,p2,place); break;
+                    case ON_FACE: ArmLocationGrainFace(home,p1,p2,place); break;
+                    case ON_FACE_EDGE: ArmLocationGrainFaceEdge(home,p1,p2,place); break;
+                    case AT_VERTICE: ArmLocationGrainVertice(home,p1,p2,place); break;
+                    default: Fatal("%s: not support location type %d",__func__, p2[0]); break;
+                }
+            case ON_IB:
+                switch(p2[0]){
+                    case ON_IB: ArmLocationIBIB(home,p1,p2,place); break;
+                    case ON_FACE: ArmLocationIBFace(home,p1,p2,place); break;
+                    case ON_FACE_EDGE: ArmLocationIBFaceEdge(home,p1,p2,place); break;
+                    case AT_VERTICE: ArmLocationIBVertice(home,p1,p2,place); break;
+                    default: Fatal("%s: not support location type %d",__func__, p2[0]); break;
+                }
+        
+            case ON_FACE:
+                switch(p2[0]){
+                    case ON_FACE: ArmLocationFaceFace(home,p1,p2,place); break;
+                    case ON_FACE_EDGE: ArmLocationFaceFaceEdge(home,p1,p2,place); break;
+                    case AT_VERTICE: ArmLocationFaceVertice(home,p1,p2,place); break;
+                    default: Fatal("%s: not support location type %d",__func__, p2[0]); break;
+                }
+        
+            case ON_FACE_EDGE:
+                switch(p2[0]){
+                    case ON_FACE_EDGE: ArmLocationFaceEdgeFaceEdge(home,p1,p2,place); break;
+                    case AT_VERTICE: ArmLocationFaceEdgeVertice(home,p1,p2,place); break;
+                    default: Fatal("%s: not support location type %d",__func__, p2[0]); break;
+                }
+            case AT_VERTICE:
+                switch(p2[0]){
+                    case AT_VERTICE: ArmLocationVerticeVertice(home,p1,p2,place); break;
+                    default: Fatal("%s: not support location type %d",__func__, p2[0]); break;
+                }
+            default: Fatal("%s: not support location type %d",__func__, p1[0]); break;
+                
+        }
+    }catch(const char *msg){ 
+
+    }
+    return;
 }
 
 /** Get the distance between point and polygon
@@ -1663,56 +1892,6 @@ double PointConcavePolygonDistance(double *p, std::vector<double> &v, std::vecto
         min = (min>dis)?dis:min;
     }
     return min;
-}
-
-void GetArmLocation(Home_t *home, Node_t *node1, Node_t *node2, int *place){
-    int *place1, *place2;
-    if(node1->place[0] <= node2->place[0]){
-        place1=node1->place; place2=node2->place;
-    }else{
-        place1=node2->place; place2=node1->place;
-    }
-    for(auto i=0; i<PLACE_LEN; i++)place[i]=place1[i];
-
-    try{
-        int i, grainID, ibID;
-        Grain_t *grain; Face_t *face;
-        switch(place1[0]){
-            case IN_GRAIN:
-            if(place1[1]<0 || place1[1]>home->nGrains)throw "wrong grain ID of place1";
-            grain = home->grainKeys[place1[1]];
-            switch(place2[0]){
-                case IN_GRAIN:
-                    if(place1[1]!=place2[1] || place1[2]!=place2[2])throw "IN_GRAIN != INGRAIN";break;
-                case ON_IB:
-                    if(place1[1]!=place2[1] || place1[2]<place2[2] || place1[2] > place2[2]+1)throw "IN_GRAIN  ON_IB";break;
-                case ON_FACE_EDGE:
-                    break; 
-                case AT_VERTICE:
-                    
-                    break;
-            }
-            break;
-            case ON_IB:
-            switch(place2[0]){
- 
-            }break;
-            case ON_FACE_EDGE:
-            switch(place2[0]){
- 
-            }break;
-            case AT_VERTICE:
-            switch(place2[0]){
- 
-            }break;
-            default:
-                Fatal("GetArmLocation: not support type %d", place1[0]);
-                break;
-        }
-    }catch(const char *msg){
-
-    }
-    return;
 }
 
 /** Get edges of intersection between plane and grain

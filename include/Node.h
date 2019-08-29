@@ -50,15 +50,15 @@
  *  TYPE (place[0])   | place[1]   | place[2]       | place[3]              | note
  *  ------------------|------------|----------------|-----------------------|---------------------
  *  IN_GRAIN          | grain ID   | SG ID          |                       |
- *  ON_FACE           | face ID    | SG (IB) ID1    | SG (IB) ID2 (if has)  | 
  *  ON_IB             | grain ID   | IB ID1         |                       |
+ *  ON_FACE           | face ID    | SG (IB) ID1    | SG (IB) ID2 (if has)  | 
  *  ON_FACE_EDGE      | edge ID    | SG (IB) ID     |                       | immoveable if it has any arm in bulk
  *  AT_VERTICE        | vertice ID |                |                       | immoveable
  *  -------------------------------------------------------------------------------------------------------*/
 typedef	enum{               
     IN_GRAIN,              
-    ON_FACE,
     ON_IB,                
+    ON_FACE,
     ON_FACE_EDGE,        
     AT_VERTICE         
 }NodeLocation_t;
