@@ -37,7 +37,7 @@
 
 /**************************************************************InitGrain*************************************************************/
 //{
-bool CmpKeyNodeT(KeyNode_t &p, KeyNode_t &q){ return p.dis<q.dis;}
+bool CmpKeyNodeT(EdgeJoint_t &p, EdgeJoint_t &q){ return p.dis<q.dis;}
 
 void DrawLine(FILE *fp, real8 *pos1, real8 *pos2, real8 meshSize, std::vector<int> &indexs)
 {
@@ -225,10 +225,12 @@ void EdgeCopy(Edge_t *a, EdgeVec_t &b){
         a->ibInGrain = (int *)malloc(a->nIBs*sizeof(int));
         a->ibID = (int *)malloc(a->nIBs*sizeof(int));
         a->dis = (real8 *)malloc(a->nIBs*sizeof(real8));
+        a->ibSign = (real8 *)malloc(a->nIBs*sizeof(real8));
         for(auto i=0; i<a->nIBs; i++){
             a->ibInGrain[i] = b.ibs[i].inGrain;
             a->ibID[i] = b.ibs[i].ID;
             a->dis[i] = b.ibs[i].dis;
+            a->ibSign[i] = b.ibs[i].sign; 
         }
     }
     return;
@@ -236,6 +238,25 @@ void EdgeCopy(Edge_t *a, EdgeVec_t &b){
 
 inline void InitBurgInfo(BurgInfo_t *bInf)
 {bInf->numPlanes = 0; bInf->numBurgVectors=0; bInf->numKeyLines=0; return;}
+
+/** Rotation matrix about axis in current coordinate system
+ *  \param[in] a rotation axis
+ *  \param[in] theta rotation angle
+ *  \param[out] R rotation matrix     */
+void RotateWithAxis(real8 a[3], real8 theta, real8 R[3][3]){
+    
+    normalize_vec(a);
+    R[0][0] = (1.0 - cos(theta))*a[0]*a[0] + cos(theta);
+    R[0][1] = a[0]*a[1]*(1.0 - cos(theta)) - a[2]*sin(theta);
+    R[0][2] = a[0]*a[2]*(1.0 - cos(theta)) + a[1]*sin(theta);
+    R[1][0] = a[0]*a[1]*(1.0 - cos(theta)) + a[2]*sin(theta);
+    R[1][1] = (1.0 - cos(theta))*a[1]*a[1] + cos(theta);
+    R[1][2] = a[1]*a[2]*(1.0 - cos(theta)) - a[0]*sin(theta);
+    R[2][0] = a[0]*a[2]*(1.0 - cos(theta)) - a[1]*sin(theta);
+    R[2][1] = a[1]*a[2]*(1.0 - cos(theta)) + a[0]*sin(theta);
+    R[2][2] = (1.0 - cos(theta))*a[2]*a[2] + cos(theta);
+    return;
+}
 
 #ifdef DEBUG
 inline void NodeLocationDebug(Home_t *home, real8 *pos, int *place, real8 error=FACE_ERROR)
@@ -647,13 +668,19 @@ void InitGrain(Home_t *home, Param_t *param)
                         }
 
                         // assemble key nodes on face edge
-                        KeyNode_t ib;
+                        EdgeJoint_t ib; real8 dir[3];
                         ib.inGrain = i; ib.ID=m; 
-                        if(v1<v2)ib.dis=(PointPointDistance(p,p1)/PointPointDistance(p1,p2));
-                        else ib.dis=(PointPointDistance(p,p2)/PointPointDistance(p1,p2)); 
+                        if(v1<v2){
+                            CoordMinus(p,p1,dir);
+                            ib.dis=(PointPointDistance(p,p1)/PointPointDistance(p1,p2));
+                        }else{ 
+                            CoordMinus(p,p2,dir);
+                            ib.dis=(PointPointDistance(p,p2)/PointPointDistance(p1,p2)); 
+                        }
 #ifdef DEBUG
                         if(!Numerical(ib.dis))Fatal("%s: a intersection node of inner boundary and face edge is not numerical",__func__);
 #endif
+                        ib.sign = DotProduct(dir, grain->ibN)<0?-1.0:1.0;
                         edges[faceEdgeID].ibs.push_back(ib);
                         
                     }
@@ -775,11 +802,11 @@ void InitGrain(Home_t *home, Param_t *param)
      */ 
     for(auto i=0; i<home->nFaces; i++){
         Face_t *face=home->faces[i]; 
+        if(face->type == FREE_SURFACE)continue;
         InitBurgInfo(&face->bInfs[0][0]);
         InitBurgInfo(&face->bInfs[0][1]);
         InitBurgInfo(&face->bInfs[1][0]);
         InitBurgInfo(&face->bInfs[1][1]);
-        if(face->type==FREE_SURFACE)continue;
         Grain_t *grain1=home->grainKeys[face->nbrGrain[0]];
         Grain_t *grain2=home->grainKeys[face->nbrGrain[1]];
         GenerateGBBurgInfo(&face->bInfs[0][0], &grain1->bInfs[0], face->n, &grain2->bInfs[0]);
@@ -797,6 +824,7 @@ void InitGrain(Home_t *home, Param_t *param)
         GenerateGBBurgInfo(&grain->ibBurgInfs[0], &grain->bInfs[0], grain->ibN, &grain->bInfs[1]);
         GenerateGBBurgInfo(&grain->ibBurgInfs[1], &grain->bInfs[1], grain->ibN, &grain->bInfs[0]);
     }
+
     if(home->myDomain == 0){
         if ((fp = fopen("face-edges.plt", "w")) == (FILE *)NULL) {
              Fatal("%s: Open error %d on %s\n",__func__, errno, "face-edges.plt");
@@ -1648,6 +1676,7 @@ bool ClipPathAtLocation(Home_t *home, int *place, real8 *pos1, real8 *pos2, int 
     return false;
 }
 
+/*-------------------------------------ArmLocation Functions ---------------------------------*/
 /** Get adjucent grains of the face
  *  \param[in] faceID face index
  *  \param[in] id1,id2 subface indexs
@@ -1786,7 +1815,6 @@ inline void ArmLocationIBVertice(Home_t *home, int *p1, int *p2, int *p)
     return;
 }
 
-
 inline void ArmLocationFaceFace(Home_t *home, int *p1, int *p2, int *p)
 {
 #ifdef DEBUG
@@ -1827,13 +1855,19 @@ inline void ArmLocationFaceVertice(Home_t *home, int *p1, int *p2, int *p)
 inline void ArmLocationFaceEdgeFaceEdge(Home_t *home, int *p1, int *p2, int *p)
 {
 #ifdef DEBUG
-    if(p1[1]!=p2[1] || p1[2] != p2[2]){
-        char msg[256];
+    char msg[256];
+    if(p1[1]!=p2[1]){
         snprintf(msg,sizeof(msg),"%s: the arms (%d,%d)--(%d,%d) intersects two edges",
             __func__,p1[1],p1[2],p1[2],p2[2]);
         throw msg;
     }
+    if(p1[2]>-1 && p2[2]>-1){
+        snprintf(msg,sizeof(msg),"%s: the ends of arm (%d--%d) is on subedges",
+                 __func__,p1[2],p2[2]);
+        throw msg;
+    }
 #endif
+    p[2]=p1[2]<=p2[2]?p1[2]:p2[2];
     return;
 }
 inline void ArmLocationFaceEdgeVertice(Home_t *home, int *p1, int *p2, int *p)
@@ -1852,6 +1886,9 @@ inline void ArmLocationVerticeVertice(Home_t *home, int *p1, int *p2, int *p)
     return;
 }
 
+/** Get Arm location 
+ *  \param[in] place1, place2 two locations of the arm ends
+ *  \param[out] place arm location*/
 void ArmLocation(Home_t *home, int *place1, int *place2, int *place)
 {
     int *p1, *p2;
@@ -1904,6 +1941,64 @@ void ArmLocation(Home_t *home, int *place1, int *place2, int *place)
 
     }
     return;
+}
+/*---------------------------------End of ArmLocation Functions ---------------------------------*/
+
+/** Get Burgers information of arm
+ * \param[in] place arm location
+ * \return burg information pointer */
+BurgInfo_t *BurgInformation(Home_t *home, int *place)
+{
+    int ibID, subgrainID;
+    Grain_t *grain; Face_t *face; Edge_t *edge;
+    switch(place[0]){
+        case IN_GRAIN: return &(home->grainKeys[place[1]]->bInfs[InverseIndex(place[2])%2]); break;
+        case ON_IB: return &(home->grainKeys[place[1]]->ibBurgInfs[place[2]%2]); break;
+        case ON_FACE:
+            face = home->faces[place[1]]; 
+            if(face->type==FREE_SURFACE){
+                grain = home->grainKeys[face->nbrGrain[0]];
+                if(place[2]>-1) return &(grain->ibBurgInfs[place[2]%2]);
+                else return &(grain->bInfs[InverseIndex(place[2])%2]);
+            }else{
+                if(place[2]>-1 || place[3]>-1){
+                    return (place[2]>-1?&(home->grainKeys[face->nbrGrain[0]]->ibBurgInfs[place[2]%2]):
+                            &(home->grainKeys[face->nbrGrain[1]]->ibBurgInfs[place[3]%2]));
+                } else return &(face->bInfs[InverseIndex(place[2])%2][InverseIndex(place[3])%2]);
+            }
+            break;
+        case ON_FACE_EDGE:
+            edge=home->edges[place[1]];
+#ifdef DEBUG 
+            if(place[2]>-1)Fatal("%s: arm location can not at edge joint", __func__);
+#endif
+            ibID = InverseIndex(place[3]);
+            if(ibID == edge->nIBs){
+                grain = home->grainKeys[edge->ibInGrain[ibID-1]];
+                subgrainID = edge->ibSign[ibID-1]==1.0?edge->ibID[ibID-1]+1:edge->ibID[ibID-1];
+            }else{
+                grain = home->grainKeys[edge->ibInGrain[ibID]];
+                subgrainID = edge->ibSign[ibID]==1.0?edge->ibID[ibID]:edge->ibID[ibID]+1;
+            }
+            return &grain->bInfs[subgrainID%2];
+    }
+    return (BurgInfo_t *)NULL;
+}
+/** get glide constraint list of the node
+ *  \param[in] node the node to be caculated
+ *  \param[out] list constraint List constraint list
+ *  \return 0: no constraint; 1: plane constraint; 2: line constraint; 3: fixed*/
+int GlideConstraintList(Home_t *home, Node_t *node, real8 list[3][3])
+{
+    int j=0, k;
+    for(int i=0; i<node->numNbrs && j<3; i++){
+        list[j][0]=node->nx[i]; list[j][1]=node->ny[i]; list[j][2]=node->nz[i];
+        for(k=0; k<j; k++){
+            
+        }
+    }  
+
+    return 0;
 }
 
 /** Get the distance between point and polygon
@@ -2956,10 +3051,8 @@ int AdjustNodeDirection(Home_t *home, Node_t *node, real8 *vec){
     bool    zeroLenJunc;
 
 	NM = 0;
-
 	GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc);
 	ApplyConstraintsToVelocity(NM, GC, vec);
-
 	return(NM);
 }
 
@@ -3331,20 +3424,6 @@ void PrintTag(Node_t *node){
     return;
 }
 
-void RotateWithAxis(real8 a[3], real8 theta, real8 R[3][3]){
-    
-    normalize_vec(a);
-    R[0][0] = (1.0 - cos(theta))*a[0]*a[0] + cos(theta);
-    R[0][1] = a[0]*a[1]*(1.0 - cos(theta)) - a[2]*sin(theta);
-    R[0][2] = a[0]*a[2]*(1.0 - cos(theta)) + a[1]*sin(theta);
-    R[1][0] = a[0]*a[1]*(1.0 - cos(theta)) + a[2]*sin(theta);
-    R[1][1] = (1.0 - cos(theta))*a[1]*a[1] + cos(theta);
-    R[1][2] = a[1]*a[2]*(1.0 - cos(theta)) - a[0]*sin(theta);
-    R[2][0] = a[0]*a[2]*(1.0 - cos(theta)) - a[1]*sin(theta);
-    R[2][1] = a[1]*a[2]*(1.0 - cos(theta)) + a[0]*sin(theta);
-    R[2][2] = (1.0 - cos(theta))*a[2]*a[2] + cos(theta);
-    return;
-}
 
 int SurfaceNode(Node_t *node){
 	if(node->constraint >= 1 && node->constraint <= 3)return(1);

@@ -38,8 +38,20 @@ typedef struct{
     int     vertID1, vertID2;
     int     nFaces, *ofFaces;
     int     nIBs, *ibInGrain, *ibID;
-    real8   *dis;
+    real8   *dis, *ibSign;
 }Edge_t;
+
+typedef struct{
+    int     inGrain, ID;    
+    real8   dis, sign;
+}EdgeJoint_t;
+
+typedef struct{
+    int     vertID1, vertID2;
+    double  factor;
+    std::vector<int> ofFaces;
+    std::vector<EdgeJoint_t> ibs;
+}EdgeVec_t;
 
 typedef	enum{
     ZERO_BURG,
@@ -106,50 +118,17 @@ typedef struct{
     int         *edgesID;
 }Face_t;
 
-typedef struct{
-    int     inGrain, ID;    
-    real8   dis;
-}KeyNode_t;
-
-typedef struct{
-    int     vertID1, vertID2;
-    double  factor;
-    std::vector<int> ofFaces;
-    std::vector<KeyNode_t> ibs;
-}EdgeVec_t;
-
-//------------------------------------------------
-#define	FOLDED_GRAIN		0
-#define ODINARY_GRAIN		1
-#define MATRIX_BOUNDARY		0
-#define TWIN_BOUNDARY		1
-
-/*	define some node types	*/
-#define INGRAIN_NODE	    0x0001	
-#define INTERSECT_NODE	    0x0002	
-#define GB_NODE		        0x0004	
-#define	JUNCTION_NODE	    0x0008
-#define	UNKNOWN_NODE	    0x0010
-
-#define INBOX   0x0000
-#define EXCEEDX 0x0001
-#define EXCEEDY 0x0002
-#define EXCEEDZ 0x0004
-
-#define NUM_BURGS_IN_FCC        21
-#define NUM_PLANES_IN_FCC       13
-#define NUM_KEY_LINES_IN_FCC    6
-#define NUM_SLIP_SYSTEMS_IN_FCC 12
-
-#define SHOCKLEY_BURG_MAG_FCC   0.5773502691896258
-#define JUNCTION1_BURG_MAG_FCC  1.414213562373095
-#define JUNCTION2_BURG_MAG_FCC  1.732050807568877
-
-#define EDGE_BURG       0x0001
-#define PARTIAL_BURG    0x0002
-#define JUNCTION_BURG   0x0004
+typedef struct {
+	real8 normal[3];
+	real8 point[3];
+} Plane_t; 
 
 typedef struct {
+	real8 direction[3];
+	real8 point[3];
+} Line_t;
+
+typedef struct { 
     int         GBID;
     int         type;
     int         nbrGrain[2];
@@ -162,21 +141,6 @@ typedef struct {
     int         *boundgb;
     real8       **boundn, **boundp;
 } GB_t;
-
-
-typedef struct {
-	real8 normal[3];
-	real8 point[3];
-} Plane_t; 
-
-struct _slipSys{
-     real8  burg[3];
-     real8  normal[3];
-     real8  schmid;
-     int    inGrain;
-     int    burgID;
-     int    planeID;
-}; 
 
 struct _grain{
     int         id;
@@ -209,11 +173,48 @@ struct _grain{
     std::vector<SlipSys_t>      slipSys;
     std::vector<Plane_t>        surface;
 };
+//------------------------------------------------
+#define	FOLDED_GRAIN		0
+#define ODINARY_GRAIN		1
+#define MATRIX_BOUNDARY		0
+#define TWIN_BOUNDARY		1
 
-typedef struct {
-	real8 direction[3];
-	real8 point[3];
-} Line_t;
+/*	define some node types	*/
+#define INGRAIN_NODE	    0x0001	
+#define INTERSECT_NODE	    0x0002	
+#define GB_NODE		        0x0004	
+#define	JUNCTION_NODE	    0x0008
+#define	UNKNOWN_NODE	    0x0010
+
+#define INBOX   0x0000
+#define EXCEEDX 0x0001
+#define EXCEEDY 0x0002
+#define EXCEEDZ 0x0004
+
+#define NUM_BURGS_IN_FCC        21
+#define NUM_PLANES_IN_FCC       13
+#define NUM_KEY_LINES_IN_FCC    6
+#define NUM_SLIP_SYSTEMS_IN_FCC 12
+
+#define SHOCKLEY_BURG_MAG_FCC   0.5773502691896258
+#define JUNCTION1_BURG_MAG_FCC  1.414213562373095
+#define JUNCTION2_BURG_MAG_FCC  1.732050807568877
+
+#define EDGE_BURG       0x0001
+#define PARTIAL_BURG    0x0002
+#define JUNCTION_BURG   0x0004
+
+
+struct _slipSys{
+     real8  burg[3];
+     real8  normal[3];
+     real8  schmid;
+     int    inGrain;
+     int    burgID;
+     int    planeID;
+}; 
+
+
 
 
 typedef struct {
@@ -243,6 +244,12 @@ typedef struct {
     real8   energyFactor;
 }Dislocation_t;
 
+
+/** Rotation matrix about axis in current coordinate system
+ *  \param[in] a rotation axis
+ *  \param[in] theta rotation angle
+ *  \param[out] R rotation matrix     */
+void RotateWithAxis(real8 a[3], real8 theta, real8 R[3][3]);
 
 /*Initialize geomety and lattice*/
 void InitGrain(Home_t *home, Param_t *param);
@@ -342,7 +349,25 @@ void GenerateBurgInfo(int matType, real8 rotMatrix[3][3], BurgInfo_t *burgData);
  *  \param[in] GBNormal normal of grain boundary for cacualte cutting plane */
 void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, BurgInfo_t *bInf2);
 
+/** Get Arm location 
+ *  \param[in] place1, place2 two locations of the arm ends
+ *  \param[out] place arm location*/
 void ArmLocation(Home_t *home, int *place1, int *place2, int *place);
+
+/** Get Burgers information of arm
+ * \param[in] place arm location
+ * \return burg information pointer */
+BurgInfo_t *BurgInformation(Home_t *home, int *place);
+inline BurgInfo_t *BurgInformation(Home_t *home, int *place1, int *place2){
+    int place[PLACE_LEN]; ArmLocation(home, place1, place2, place);
+    return BurgInformation(home, place);
+}
+
+/** get glide constraint list of the node
+ *  \param[in] node the node to be caculated
+ *  \param[out] constraintList constraint list
+ *  \return 0: no constraint; 1: plane constraint; 2: line constraint; 3: fixed*/
+int GlideConstraintList(Home_t *home, Node_t *node, real8 constraintList[3][3]);
 
 /** Get edges of intersection between plane and grain
  *  \param[in] n the normal vector of plane
@@ -371,7 +396,6 @@ void EdgeListToPolygon(std::vector<EdgeVec_t> &edges, std::vector<int> &polygon)
  *  \param[in edges indexs and factor of polygon vertices
  *  \return distance                    */
 double PointConcavePolygonDistance(double *p, std::vector<double> &v, std::vector<EdgeVec_t> &edges);
-
 
 
 //-----------------------------------------------------------------------------------------------
@@ -435,7 +459,6 @@ int  Coor2EleNum(Home_t *home,real8 position[3]);
 void AdjustSurfaceNode(Home_t *home);
 int SameTag(Tag_t *tag1, Tag_t *tag2);
 
-void RotateWithAxis(real8 a[3], real8 theta, real8 R[3][3]);
 void DoResistance(Home_t *home, Node_t *node, real8 *nForce);
 int SurfaceNode(Node_t *node);
 int AdjustNodeDirection(Home_t *home, Node_t *node, real8 *vec);

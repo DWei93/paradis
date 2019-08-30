@@ -19,13 +19,17 @@
  *      Define the various node 'constraints' available.  Note: these
  *      constraints are mutually exclusive.
  */
-#define UNCONSTRAINED  0
-#define SURFACE_NODE   1
-#define X_SURFACE_NODE   1
-#define Y_SURFACE_NODE   2
-#define Z_SURFACE_NODE   3
-#define PINNED_NODE    7
+#define UNCONSTRAINED    0  /* constraint =  1 : any surface node      */
+#define SURFACE_NODE     1  
+#define X_SURFACE_NODE   1  
+#define Y_SURFACE_NODE   2  
+#define Z_SURFACE_NODE   3  
+#define PINNED_NODE      7  /* constraint =  7 : Frank-Read end	 points, fixed */
+                            /* constraint =  9 : Jog */
+                            /* constraint = 10 : Junction */
+                            /* constraint = 20 : cross slip(default) 2-nodes non-deletable  */
 
+                            
 /*
  *      Define the bit flags that can be set for the node.  Note: these
  *      flags may be OR'ed together.
@@ -97,7 +101,7 @@ struct _node {
  *	nbrTag and burgID are dynamically allocated to size numNbrs, when the
  *	node is allocated.
  */
-	int	numNbrs;
+	int     numNbrs;
 	Tag_t	*nbrTag;
 
 /*
@@ -120,13 +124,13 @@ struct _node {
 					        /* from the remote domain for        */
 					        /* generating output                 */
 
-	int	constraint;     /* constraint =  1 : any surface node   */
-				        /* constraint =  7 : Frank-Read end	*/
-				        /*                   points, fixed	*/
-				        /* constraint =  9 : Jog		*/
-				        /* constraint = 10 : Junction		*/
-				        /* constraint = 20 : cross slip(default)*/
-				        /*                   2-nodes non-deletable*/
+	int	constraint;     /* constraint =  1 : any surface node      */
+				        /* constraint =  7 : Frank-Read end	       */
+				        /*                   points, fixed	       */
+				        /* constraint =  9 : Jog		           */
+				        /* constraint = 10 : Junction		       */
+				        /* constraint = 20 : cross slip(default)   */
+				        /*                   2-nodes non-deletable */
 
 	int	cellIdx;	    /* cell node is currently sorted into */
 	int	cell2Idx;	    /* cell2 node is currently sorted into */
@@ -161,7 +165,6 @@ struct _node {
 struct _nodeblock {
 	NodeBlock_t	*next;
 	Node_t		*nodes;
-
 };
 
 #endif
