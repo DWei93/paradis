@@ -1795,7 +1795,22 @@ inline void ArmLocationFaceFace(Home_t *home, int *p1, int *p2, int *p)
         snprintf(msg,sizeof(msg),"%s: two different face %d %d",__func__,p1[1],p2[1]);
         throw msg;
     }
+    if(p1[1]<0 || p1[1]>=home->nFaces){
+        snprintf(msg,sizeof(msg),"%s: no face %d",__func__,p1[1]);
+        throw msg;
+    }
 #endif
+    if(p1[2]==p2[2] && p1[3]==p2[3])return;
+#ifdef DEBUG
+    for(int i=2; i<4; i++){
+        if(p2[i]<0 && p1[i]>-1)if(InverseIndex(p2[i])<p1[i]+1 && InverseIndex(p2[i])>=p1[i])continue;
+        if(p1[i]<0 && p2[i]>-1)if(InverseIndex(p1[i])<p2[i]+1 && InverseIndex(p1[i])>=p2[i])continue;
+        snprintf(msg,sizeof(msg),"%s: the arm interscts inner boundary %d %d",__func__,p1[i],p2[i]);
+        throw msg;
+    }
+#endif
+    p[2] = p1[2]<=p2[2]?p1[2]:p2[2];
+    p[3] = p1[3]<=p2[3]?p1[3]:p2[3];
 
     return;
 }
@@ -1811,6 +1826,14 @@ inline void ArmLocationFaceVertice(Home_t *home, int *p1, int *p2, int *p)
 
 inline void ArmLocationFaceEdgeFaceEdge(Home_t *home, int *p1, int *p2, int *p)
 {
+#ifdef DEBUG
+    if(p1[1]!=p2[1] || p1[2] != p2[2]){
+        char msg[256];
+        snprintf(msg,sizeof(msg),"%s: the arms (%d,%d)--(%d,%d) intersects two edges",
+            __func__,p1[1],p1[2],p1[2],p2[2]);
+        throw msg;
+    }
+#endif
     return;
 }
 inline void ArmLocationFaceEdgeVertice(Home_t *home, int *p1, int *p2, int *p)
@@ -1820,6 +1843,12 @@ inline void ArmLocationFaceEdgeVertice(Home_t *home, int *p1, int *p2, int *p)
 
 inline void ArmLocationVerticeVertice(Home_t *home, int *p1, int *p2, int *p)
 {
+#ifdef DEBUG
+    char msg[256];
+    snprintf(msg,sizeof(msg),"%s: the arms (%d,%d)--(%d,%d) at vertice",
+        __func__,p1[1],p1[2],p1[2],p2[2]);
+    throw msg;
+#endif
     return;
 }
 
