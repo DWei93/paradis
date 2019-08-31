@@ -9,6 +9,7 @@
 #define _Util_h
 
 #include "Home.h"
+#include "Grain.h"
 #include <vector>
 
 #define DotProduct(vec1,vec2)       \

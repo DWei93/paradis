@@ -349,11 +349,15 @@ void GenerateBurgInfo(int matType, real8 rotMatrix[3][3], BurgInfo_t *burgData);
  *  \param[in] GBNormal normal of grain boundary for cacualte cutting plane */
 void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, BurgInfo_t *bInf2);
 
+/** Free Burgers information structure */
+void FreeBurgInfoStr(BurgInfo_t *burgData);
+
 /** Get Arm location 
  *  \param[in] place1, place2 two locations of the arm ends
  *  \param[out] place arm location*/
 void ArmLocation(Home_t *home, int *place1, int *place2, int *place);
 
+/*------------------------------------------Burgers Information Functions----------------------------*/
 /** Get Burgers information of arm
  * \param[in] place arm location
  * \return burg information pointer */
@@ -362,6 +366,97 @@ inline BurgInfo_t *BurgInformation(Home_t *home, int *place1, int *place2){
     int place[PLACE_LEN]; ArmLocation(home, place1, place2, place);
     return BurgInformation(home, place);
 }
+
+/** Get Burgers index from Burgers information */
+inline int BurgID(BurgInfo_t *bInf, real8 burg[3]){
+    real8   crossProd[3];
+    for(int i=0; i<bInf->numBurgVectors; i++){
+        cross_product(bInf->burgList[i], burg, crossProd);
+        if(normal(crossProd) < 1.0E-3)return i;
+    }
+    return bInf->numBurgVectors;
+}
+inline int BurgID(Home_t *home, Node_t *node, Node_t *nbr){
+    real8       burg[3];
+    BurgInfo_t  *burgData = BurgInformation(home, node->place, nbr->place);
+    int armID = GetArmID(home, node, nbr);
+#ifdef DEBUG
+    if(armID == -1 )Fatal("%s: wrong connection", __func__);
+#endif
+    burg[0] = node->burgX[armID];
+    burg[1] = node->burgY[armID];
+    burg[2] = node->burgZ[armID];
+    return(BurgID(burgData, burg)); 
+}
+
+/** Get plane index from Burgers information */
+inline int PlaneID(BurgInfo_t *burgData, real8 plane[3]){
+   real8   crossProd[3];
+   for(int i=0; i<burgData->numPlanes; i++){
+       cross_product(burgData->planeList[i], plane, crossProd);
+       if(normal(crossProd) < 1.0E-3)return i;
+   }
+   return burgData->numPlanes;
+}
+inline int PlaneID(Home_t *home, Node_t *node, Node_t *nbr){
+    real8       plane[3];
+    BurgInfo_t  *burgData = BurgInformation(home, node->place, nbr->place);
+    int armID = GetArmID(home, node, nbr);
+#ifdef DEBUG
+    if(armID == -1 )Fatal("%s: wrong connection", __func__);
+#endif
+    plane[0] = node->nx[armID];
+    plane[1] = node->ny[armID];
+    plane[2] = node->nz[armID];
+    return(PlaneID(burgData, plane)); 
+}
+
+/** Get plane type from Burgers information */
+inline int PlaneType(BurgInfo_t *burgData, real8 plane[3]){
+    int planeID = PlaneID(burgData, plane);
+    if(planeID >= NUM_PLANES_IN_FCC) return(UNKOWN_PLANE);
+    return(burgData->planeType[planeID]);
+}
+
+inline int PlaneType(Home_t *home, Node_t *node, Node_t *nbr){
+    real8       plane[3];
+    BurgInfo_t *burgData = BurgInformation(home, node->place, nbr->place);
+    int armID = GetArmID(home, node, nbr);
+#ifdef DEBUG
+    if(armID == -1 )Fatal("%s: wrong connection", __func__);
+#endif
+    plane[0] = node->nx[armID];
+    plane[1] = node->ny[armID];
+    plane[2] = node->nz[armID];
+    return(PlaneType(burgData, plane)); 
+}
+
+inline int KeyLineID_FCC(BurgInfo_t *burgData, real8 line[3]){
+   real8   crossProd[3];
+   for(int i=0; i<burgData->numKeyLines; i++){
+       cross_product(burgData->keyLineList[i], line, crossProd);
+       if(normal(crossProd) < 1.0E-3)return i;
+   }
+   return burgData->numKeyLines;
+}
+
+/* Return type of Burgers vector based on magnintude of the Burgers vector */
+int	BurgType_FCC(real8 burg[3]);
+
+/** Convert crystallographic (local) vector to labortorial (global) vector */
+void VectorCrystalToLab(Home_t *home, int *place, real8 *cryst, real8 *lab);
+inline void VectorCrystalToLab(Home_t *home, Node_t *node1, Node_t *node2, real8 *cryst, real8 *lab){
+    int place[PLACE_LEN]; ArmLocation(home, node1->place, node2->place, place);
+    return VectorCrystalToLab(home, place, cryst, lab);
+}
+
+/** Convert labortorial (global) vector to crystallographic (local) vector */
+void VectorLabToCrystal(Home_t *home, int *place, real8 *lab, real8 *cryst);
+inline void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2, real8 *lab, real8 *cryst){
+    int place[PLACE_LEN]; ArmLocation(home, node1->place, node2->place, place);
+    return VectorLabToCrystal(home, place, lab, cryst);
+}
+/*-------------------------------------End of Burgers Information Functions-------------------------*/
 
 /** get glide constraint list of the node
  *  \param[in] node the node to be caculated
@@ -397,7 +492,6 @@ void EdgeListToPolygon(std::vector<EdgeVec_t> &edges, std::vector<int> &polygon)
  *  \return distance                    */
 double PointConcavePolygonDistance(double *p, std::vector<double> &v, std::vector<EdgeVec_t> &edges);
 
-
 //-----------------------------------------------------------------------------------------------
 Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int globalOp, int opClass);
 void InitOrientation(real8 MatrixOrientation[3][3], real8 TwinOrientation[3][3]);
@@ -406,13 +500,6 @@ void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& on
 Node_t *GetinDataNodeFromTag(InData_t *inData, Tag_t tag);
 BurgInfo_t* GetBurgData(Home_t *home, Node_t *node1, Node_t *node2);
 BurgInfo_t* GetBurgData(Home_t *home, int inGrain, int onGB);
-int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3]);
-int	BurgType_FCC(real8 burg[3]);
-int PlaneID_FCC(BurgInfo_t *burgData, real8 plane[3]);
-int PlaneType_FCC(BurgInfo_t *burgData, int planeID);
-int GetBurgID_FCC(Home_t *home, Node_t *node, Node_t *nbr);
-int GetPlaneID_FCC(Home_t *home, Node_t *node, Node_t *nbr);
-int GetPlaneType_FCC(Home_t *home, Node_t *node, Node_t *nbr);
 int HasShortSeg(Home_t *home, Node_t *node, real8 shortSegLenSq);
 void AssignGrain (Home_t *home, Node_t *node, int inGrain, int onGB);
 void AssignConstraint(Home_t *home, Node_t *node, int constraint) ;
@@ -420,10 +507,6 @@ int GetGBIndexOfGrain(Grain_t *grain, int onGB);
 bool GetPublicGB(Grain_t *grain1, Grain_t *grain2, GB_t **GB);
 void AddOpGB (Home_t *home, OpType_t type, int dom1, int idx1, int inGrain, int onGB);
 int NodeOnGB(Home_t *home, Node_t *node);
-void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2, 
-                        real8 lab[3], real8 *cryst);
-void VectorCrystalToLab(Home_t *home, Node_t *node1, Node_t *node2, 
-                        real8 cryst[3], real8 *lab);
 real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB);
 bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3], real8 *newPos);
 void PullBack(Home_t *home, Node_t *node);
@@ -467,7 +550,6 @@ int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]);
 void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f2[3]);
 bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, real8* dis, int &type);
 bool IsOnGB(Node_t *node);
-void FreeBurgInfoStr(BurgInfo_t *burgData);
 int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                        real8 *plane, int flag, 
                        std::vector< std::vector<double> >&       burgList, 

@@ -1,5 +1,6 @@
 #include "Home.h"
 #include "Util.h"
+#include "Grain.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -275,12 +276,12 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 }
 
                 if(home->param->materialType == MAT_TYPE_FCC){
-                    burgID = GetBurgID_FCC(home, node, nbrNode);
+                    burgID = BurgID(home, node, nbrNode);
                 }else{
                     Fatal("The burgers ID of non-FCC material has not defined\n");
                 }
 				
-                normalID = GetPlaneID_FCC(home, node, nbrNode);
+                normalID = PlaneID(home, node, nbrNode);
 
                 x2o = nbrNode->x;
                 y2o = nbrNode->y;
@@ -412,10 +413,10 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 	                continue;
 	            }
 				
-                normalID = GetPlaneID_FCC(home, node, nbrNode);
+                normalID = PlaneID(home, node, nbrNode);
 
 	            if(home->param->materialType == MAT_TYPE_FCC){
-	                burgID = GetBurgID_FCC(home, node, nbrNode);
+	                burgID = BurgID(home, node, nbrNode);
 	            }else{
 	                Fatal("The burgers ID of non-FCC material has not defined\n");
 	            }

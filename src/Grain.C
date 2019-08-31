@@ -802,11 +802,11 @@ void InitGrain(Home_t *home, Param_t *param)
      */ 
     for(auto i=0; i<home->nFaces; i++){
         Face_t *face=home->faces[i]; 
-        if(face->type == FREE_SURFACE)continue;
         InitBurgInfo(&face->bInfs[0][0]);
         InitBurgInfo(&face->bInfs[0][1]);
         InitBurgInfo(&face->bInfs[1][0]);
         InitBurgInfo(&face->bInfs[1][1]);
+        if(face->type == FREE_SURFACE)continue;
         Grain_t *grain1=home->grainKeys[face->nbrGrain[0]];
         Grain_t *grain2=home->grainKeys[face->nbrGrain[1]];
         GenerateGBBurgInfo(&face->bInfs[0][0], &grain1->bInfs[0], face->n, &grain2->bInfs[0]);
@@ -1904,37 +1904,36 @@ void ArmLocation(Home_t *home, int *place1, int *place2, int *place)
                     case ON_FACE: ArmLocationGrainFace(home,p1,p2,place); break;
                     case ON_FACE_EDGE: ArmLocationGrainFaceEdge(home,p1,p2,place); break;
                     case AT_VERTICE: ArmLocationGrainVertice(home,p1,p2,place); break;
-                    default: Fatal("%s: not support location type %d",__func__, p2[0]); break;
-                }
+                    default: Fatal("%s at line %d: not support location type %d",__func__,__LINE__, p2[0]); break;
+                }break;
             case ON_IB:
                 switch(p2[0]){
                     case ON_IB: ArmLocationIBIB(home,p1,p2,place); break;
                     case ON_FACE: ArmLocationIBFace(home,p1,p2,place); break;
                     case ON_FACE_EDGE: ArmLocationIBFaceEdge(home,p1,p2,place); break;
                     case AT_VERTICE: ArmLocationIBVertice(home,p1,p2,place); break;
-                    default: Fatal("%s: not support location type %d",__func__, p2[0]); break;
-                }
+                    default: Fatal("%s at line %d: not support location type %d",__func__,__LINE__, p2[0]); break;
+                }break;
         
             case ON_FACE:
                 switch(p2[0]){
                     case ON_FACE: ArmLocationFaceFace(home,p1,p2,place); break;
                     case ON_FACE_EDGE: ArmLocationFaceFaceEdge(home,p1,p2,place); break;
                     case AT_VERTICE: ArmLocationFaceVertice(home,p1,p2,place); break;
-                    default: Fatal("%s: not support location type %d",__func__, p2[0]); break;
-                }
-        
+                    default: Fatal("%s at line %d: not support location type %d",__func__,__LINE__, p2[0]); break;
+                }break;
             case ON_FACE_EDGE:
                 switch(p2[0]){
                     case ON_FACE_EDGE: ArmLocationFaceEdgeFaceEdge(home,p1,p2,place); break;
                     case AT_VERTICE: ArmLocationFaceEdgeVertice(home,p1,p2,place); break;
-                    default: Fatal("%s: not support location type %d",__func__, p2[0]); break;
-                }
+                    default: Fatal("%s at line %d: not support location type %d",__func__,__LINE__, p2[0]); break;
+                }break;
             case AT_VERTICE:
                 switch(p2[0]){
                     case AT_VERTICE: ArmLocationVerticeVertice(home,p1,p2,place); break;
-                    default: Fatal("%s: not support location type %d",__func__, p2[0]); break;
-                }
-            default: Fatal("%s: not support location type %d",__func__, p1[0]); break;
+                    default: Fatal("%s at line %d: not support location type %d",__func__,__LINE__, p2[0]); break;
+                }break;
+            default: Fatal("%s at line %d: not support location type %d",__func__,__LINE__, p1[0]); break;
                 
         }
     }catch(const char *msg){ 
@@ -1981,6 +1980,8 @@ BurgInfo_t *BurgInformation(Home_t *home, int *place)
                 subgrainID = edge->ibSign[ibID]==1.0?edge->ibID[ibID]:edge->ibID[ibID]+1;
             }
             return &grain->bInfs[subgrainID%2];
+        default:
+            Fatal("%s: can not support arm location type %d",__func__,place[0]); break;
     }
     return (BurgInfo_t *)NULL;
 }
@@ -2515,6 +2516,144 @@ void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, Bu
     return;
 }
 
+/** Free Burgers information structure */
+void FreeBurgInfoStr(BurgInfo_t *burgData)
+{
+    
+    int     i;
+
+    free(burgData->burgList); 
+    free(burgData->planeList); 
+    free(burgData->cutNormals); 
+    free(burgData->planeType); 
+    free(burgData->burgType); 
+    free(burgData->keyLineList);
+
+    if(burgData->burgOnPlaneID != (int **)NULL){
+        for(i=0; i<burgData->numBurgVectors; i++){
+            free(*(burgData->burgOnPlaneID+i)); 
+        }
+    }
+
+    if(burgData->planeOnBurgID != (int **)NULL){
+        for(i=0; i<burgData->numPlanes; i++){
+            free(*(burgData->planeOnBurgID+i));
+        }
+    }
+
+    if(burgData->keyLineOnPlaneID != (int **)NULL){
+        for(i=0; i<burgData->numKeyLines; i++){
+            free(*(burgData->keyLineOnPlaneID+i));
+        }
+    }
+
+    if(burgData->numPlanesPerBurg != (int *)NULL){
+        free(burgData->numPlanesPerBurg); 
+    }
+
+    if(burgData->numBurgsPerPlane != (int *)NULL){
+        free(burgData->numBurgsPerPlane); 
+    }
+
+    if(burgData->numPlanesPerKeyLine != (int *)NULL){
+        free(burgData->numPlanesPerKeyLine); 
+    }
+
+    burgData->burgList = NULL;
+    burgData->planeList = NULL;
+    burgData->planeType = NULL;
+    burgData->burgType = NULL;
+    burgData->cutNormals = NULL;
+    burgData->keyLineList = NULL;
+
+    burgData->numPlanesPerBurg = NULL;
+    burgData->numPlanesPerKeyLine = NULL;
+    burgData->numBurgsPerPlane = NULL;
+
+    burgData->burgOnPlaneID = NULL;
+    burgData->planeOnBurgID = NULL;
+    burgData->keyLineOnPlaneID = NULL;
+
+    return;
+}
+
+/* Return type of Burgers vector based on magnintude of the Burgers vector */
+int	BurgType_FCC(real8 burg[3]){
+	real8 eps = 1e-2;
+	real8 burgMag;
+	burgMag = normal(burg);
+
+    //	0: zero burgers
+    if(burgMag < eps) return(ZERO_BURG);
+
+    // 	1: basic Burgers vector
+	if(fabs(burgMag - 1.0) < eps) return(BASIC_BURG);
+	
+    //	2: Shockley burgers
+	if(fabs(burgMag - SHOCKLEY_BURG_MAG_FCC) < eps) return(SHOCKLEY_BURG);
+	
+    //	3: junction 1 burgers, like [Sqrt(2),0,0]
+	if(fabs(burgMag - JUNCTION1_BURG_MAG_FCC) < eps) return(JUNCTION1_BURG);
+	
+    //	3: junction 2 Burgers, like DA+DB
+	if(fabs(burgMag - JUNCTION2_BURG_MAG_FCC) < eps) return(JUNCTION2_BURG);
+
+	return(UNKNOWN_BURG);
+}
+
+/** Convert crystallographic (local) vector to labortorial (global) vector */
+void VectorCrystalToLab(Home_t *home, int *place, real8 *cryst, real8 *lab)
+{
+    Face_t *face; Edge_t *edge; int jointID;
+    switch(place[0]){
+        case IN_GRAIN:
+            Matrix33Vector3Multiply(home->grainKeys[place[1]]->rotMatrixs[InverseIndex(place[2])%2], cryst, lab); break;
+        case ON_IB:
+            Matrix33Vector3Multiply(home->grainKeys[place[1]]->rotMatrixs[place[2]%2],cryst,lab); break;
+        case ON_FACE:
+            face = home->faces[place[1]];
+            if(place[2]<0) Matrix33Vector3Multiply(home->grainKeys[face->nbrGrain[0]]->rotMatrixs[InverseIndex(place[2])%2],cryst, lab);
+            else Matrix33Vector3Multiply(home->grainKeys[face->nbrGrain[0]]->rotMatrixs[place[2]%2],cryst,lab);
+            break;
+        case ON_FACE_EDGE:
+            edge = home->edges[place[1]];
+#ifdef DEBUG
+            if(place[2]>-1)Fatal("arm location can not at joint of edge");
+#endif
+            jointID = InverseIndex(place[2]);
+            if(jointID==edge->nIBs)jointID--;
+            Matrix33Vector3Multiply(home->grainKeys[edge->ibInGrain[jointID]]->rotMatrixs[edge->ibID[jointID]%2],cryst,lab);
+            break;
+        default: Fatal("%s: can not support arm location %d",__func__,place[0]);
+    }
+}
+
+/** Convert labortorial (global) vector to crystallographic (local) vector */
+void VectorLabToCrystal(Home_t *home, int *place, real8 *lab, real8 *cryst)
+{
+    Face_t *face; Edge_t *edge; int jointID;
+    switch(place[0]){
+        case IN_GRAIN:
+            Matrix33Vector3Multiply(home->grainKeys[place[1]]->rotMatrixsInv[InverseIndex(place[2])%2], lab,cryst); break;
+        case ON_IB:
+            Matrix33Vector3Multiply(home->grainKeys[place[1]]->rotMatrixsInv[place[2]%2],lab,cryst); break;
+        case ON_FACE:
+            face = home->faces[place[1]];
+            if(place[2]<0) Matrix33Vector3Multiply(home->grainKeys[face->nbrGrain[0]]->rotMatrixsInv[InverseIndex(place[2])%2],lab,cryst);
+            else Matrix33Vector3Multiply(home->grainKeys[face->nbrGrain[0]]->rotMatrixsInv[place[2]%2],lab,cryst);
+            break;
+        case ON_FACE_EDGE:
+            edge = home->edges[place[1]];
+#ifdef DEBUG
+            if(place[2]>-1)Fatal("arm location can not at joint of edge");
+#endif
+            jointID = InverseIndex(place[2]);
+            if(jointID==edge->nIBs)jointID--;
+            Matrix33Vector3Multiply(home->grainKeys[edge->ibInGrain[jointID]]->rotMatrixsInv[edge->ibID[jointID]%2],lab,cryst);
+            break;
+        default: Fatal("%s: can not support arm location %d",__func__,place[0]);
+    }
+}
 //------------------------------------------------------------------------------
 
 bool IsOnGB(Node_t *node)
@@ -2535,7 +2674,6 @@ void InitGrainStructure(Grain_t *grain, int nGBs){
 bool cmp3(SlipSys_t p, SlipSys_t q){
     return(p.schmid > q.schmid);
 }
-
 
 
 void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB){
@@ -2678,212 +2816,6 @@ BurgInfo_t* GetBurgData(Home_t *home, int inGrain, int onGB)
         return((BurgInfo_t *)NULL);
 }
 
-void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2, 
-                        real8 lab[3], real8 *cryst)
-{
-        if(home->param->polycrystal){
-            int     inGrain, onGB;
-            Grain_t *grain;
-            GB_t    *GB;
-
-            GetArmGrain(home, node1, node2, inGrain, onGB);
-            if(onGB > -1){
-                GB = home->GBKeys[onGB];
-                grain = home->grainKeys[GB->nbrGrain[0]];
-            }else{
-                grain = home->grainKeys[inGrain];    
-            }
-            Matrix33Vector3Multiply(grain->orientationInv, lab, cryst);
-        }else{
-            if(!home->param->useLabFrame){
-                VECTOR_COPY(cryst, lab);
-            }else{
-                Matrix33Vector3Multiply(home->rotMatrixInverse, 
-                                        lab, cryst);
-            }
-        }
-        return;
-}
-
-void VectorCrystalToLab(Home_t *home, Node_t *node1, Node_t *node2, 
-                        real8 cryst[3], real8 *lab)
-{
-        if(home->param->polycrystal){
-            int     inGrain, onGB;
-            Grain_t *grain;
-            GB_t    *GB;
-
-            GetArmGrain(home, node1, node2, inGrain, onGB);
-            if(onGB > -1){
-                GB = home->GBKeys[onGB];
-                grain = home->grainKeys[GB->nbrGrain[0]];
-            }else{
-                grain = home->grainKeys[inGrain];    
-            }
-            Matrix33Vector3Multiply(grain->orientation, cryst, lab);
-        }else{
-            if(!home->param->useLabFrame){
-                VECTOR_COPY(lab, cryst);
-            }else{
-                Matrix33Vector3Multiply(home->rotMatrix, 
-                                        cryst, lab);
-            }
-        }
-        return;
-}
-
-int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3])
-{
-        int     i;
-        real8   crossProd[3];
-        
-        for(i=0; i<burgData->numBurgVectors; i++){
-            cross_product(burgData->burgList[i], burg, crossProd);
-            if(normal(crossProd) < 1.0E-3)break;
-        }
-#if 0
-        if(i == burgData->numBurgVectors){
-            printf("Warning: in %s at %d\n", __FILE__, __LINE__);
-        }
-#endif        
-        return(i);
-}
-
-int PlaneID_FCC(BurgInfo_t *burgData, real8 plane[3])
-{
-        int     i;
-        real8   crossProd[3];
-        
-        for(i=0; i<burgData->numPlanes; i++){
-            cross_product(burgData->planeList[i], plane, crossProd);
-            if(normal(crossProd) < 1.0E-3)break;
-        }
-#if 0
-        if(i == burgData->numPlanes){
-            printf("Warning: in %s at %d\n", __FILE__, __LINE__);
-        }
-#endif        
-        return(i);
-}
-
-int KeyLineID_FCC(BurgInfo_t *burgData, real8 line[3])
-{
-        int     i;
-        real8   crossProd[3];
-        
-        for(i=0; i<burgData->numKeyLines; i++){
-            cross_product(burgData->keyLineList[i], line, crossProd);
-            if(normal(crossProd) < 1.0E-3)break;
-        }
-        
-        if(i == burgData->numKeyLines){
-            printf("Warning: in %s at %d\n", __FILE__, __LINE__);
-        }
-        return(i);
-}
-
-int	BurgType_FCC(real8 burg[3]){
-
-	real8 eps = 1e-2;
-	real8 burgMag;
-
-	burgMag = normal(burg);
-
-/*	
- *	0: zero burgers
- */
-    if(burgMag < eps)return(ZERO_BURG);
-
-/*
- * 	1: basic Burgers vector
- */		
-	if(fabs(burgMag - 1.0E0) < eps){
-		return(BASIC_BURG);
-	}
-/*	
- *	2: Shockley burgers
- */
-
-	
-	if(fabs(burgMag - SHOCKLEY_BURG_MAG_FCC) < eps) {
-		return(SHOCKLEY_BURG);
-	}
-
-/*	
- *	3: junction 1 burgers, like [Sqrt(2),0,0]
- */
-	if(fabs(burgMag - JUNCTION1_BURG_MAG_FCC) < eps) {
-		return(JUNCTION1_BURG);
-	}
-
-/*	
- *	3: junction 2 burgers, like DA+DB
- */
-	if(fabs(burgMag - JUNCTION2_BURG_MAG_FCC) < eps) {
-		return(JUNCTION2_BURG);
-	}
-	return(UNKNOWN_BURG);
-
-}
-
-
-int PlaneType_FCC(BurgInfo_t *burgData, real8 plane[3])
-{
-    int planeID;
-
-    planeID = PlaneID_FCC(burgData, plane);
-
-    if(planeID >= NUM_PLANES_IN_FCC) return(UNKOWN_PLANE);
- 
-    return(burgData->planeType[planeID]);
-}
-
-int GetBurgID_FCC(Home_t *home, Node_t *node, Node_t *nbr){
-       
-    int         armID;
-    real8       burg[3];
-    BurgInfo_t  *burgData;
-    burgData = GetBurgData(home, node, nbr);
-
-    armID = GetArmID(home, node, nbr);
-    burg[0] = node->burgX[armID];
-    burg[1] = node->burgY[armID];
-    burg[2] = node->burgZ[armID];
-        
-    return(BurgID_FCC(burgData, burg)); 
-}
-
-int GetPlaneID_FCC(Home_t *home, Node_t *node, Node_t *nbr){
-       
-    int         armID;
-    real8       plane[3];
-    BurgInfo_t  *burgData;
-    burgData = GetBurgData(home, node, nbr);
-
-    armID = GetArmID(home, node, nbr);
-    if(armID == -1 )Fatal("in %s at %d", __FILE__, __LINE__);
-    plane[0] = node->nx[armID];
-    plane[1] = node->ny[armID];
-    plane[2] = node->nz[armID];
-        
-    return(PlaneID_FCC(burgData, plane)); 
-}
-
-int GetPlaneType_FCC(Home_t *home, Node_t *node, Node_t *nbr){
-       
-    int         armID;
-    real8       plane[3];
-    BurgInfo_t  *burgData;
-    burgData = GetBurgData(home, node, nbr);
-
-    armID = GetArmID(home, node, nbr);
-    if(armID == -1 )Fatal("in %s at %d", __FILE__, __LINE__);
-    plane[0] = node->nx[armID];
-    plane[1] = node->ny[armID];
-    plane[2] = node->nz[armID];
-        
-    return(PlaneType_FCC(burgData, plane)); 
-}
 
 /*-------------------------------------------------------------------------
  *
@@ -3754,65 +3686,6 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
 }
 
 
-void FreeBurgInfoStr(BurgInfo_t *burgData)
-{
-    
-    int     i;
-
-    free(burgData->burgList); 
-    free(burgData->planeList); 
-    free(burgData->cutNormals); 
-    free(burgData->planeType); 
-    free(burgData->burgType); 
-    free(burgData->keyLineList);
-
-    if(burgData->burgOnPlaneID != (int **)NULL){
-        for(i=0; i<burgData->numBurgVectors; i++){
-            free(*(burgData->burgOnPlaneID+i)); 
-        }
-    }
-
-    if(burgData->planeOnBurgID != (int **)NULL){
-        for(i=0; i<burgData->numPlanes; i++){
-            free(*(burgData->planeOnBurgID+i));
-        }
-    }
-
-    if(burgData->keyLineOnPlaneID != (int **)NULL){
-        for(i=0; i<burgData->numKeyLines; i++){
-            free(*(burgData->keyLineOnPlaneID+i));
-        }
-    }
-
-    if(burgData->numPlanesPerBurg != (int *)NULL){
-        free(burgData->numPlanesPerBurg); 
-    }
-
-    if(burgData->numBurgsPerPlane != (int *)NULL){
-        free(burgData->numBurgsPerPlane); 
-    }
-
-    if(burgData->numPlanesPerKeyLine != (int *)NULL){
-        free(burgData->numPlanesPerKeyLine); 
-    }
-
-    burgData->burgList = NULL;
-    burgData->planeList = NULL;
-    burgData->planeType = NULL;
-    burgData->burgType = NULL;
-    burgData->cutNormals = NULL;
-    burgData->keyLineList = NULL;
-
-    burgData->numPlanesPerBurg = NULL;
-    burgData->numPlanesPerKeyLine = NULL;
-    burgData->numBurgsPerPlane = NULL;
-
-    burgData->burgOnPlaneID = NULL;
-    burgData->planeOnBurgID = NULL;
-    burgData->keyLineOnPlaneID = NULL;
-
-    return;
-}
 
 void CompressDirectionList(std::vector< std::vector<real8> >& dirList)
 {
@@ -4397,7 +4270,7 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
 
     srand(time(NULL));
 
-    burgID = BurgID_FCC(bd, burg);
+    burgID = BurgID(bd, burg);
     GetArmGrain(home, node1, node2, inGrain, onGB);
     burgType = BurgType_FCC(burg);
 
@@ -4508,7 +4381,7 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
         }
     }else{
         normalize_vec(crossProdt);
-        normalID = PlaneID_FCC(bd, crossProdt);
+        normalID = PlaneID(bd, crossProdt);
         if(normalID < bd->numPlanes){
             VECTOR_COPY(glidePlane, bd->planeList[normalID]);
         }else{

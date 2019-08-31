@@ -81,8 +81,6 @@ void  CreateFCCPerfectLoop(Home_t *home, InData_t *inData, int cubeLength,
 void  InitRemesh(InData_t *inData, int domValue, int startIndex);
 real8 randm(int *seed);
 void  WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock);
-int GetBurgID_FCCFromArm(Home_t *home, Node_t *node, int segID);
-
 
 /*
  *      For each type of nodal configuration that can be created

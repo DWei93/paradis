@@ -530,7 +530,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 
                 vtau = ((disLen < 1.0E-5) ? 0.0 : fabs(DotProduct(vec1, vec2)/1E6/param->maxSeg)); // units MPa.m/s
 
-                if((GetPlaneType_FCC(home, node, nbr) & GLIDE_PLANE) > 0 && fabs(burgMag - 1.0) < 1.0E-2){
+                if((PlaneType(home, node, nbr) & GLIDE_PLANE) > 0 && fabs(burgMag - 1.0) < 1.0E-2){
                     real8 zaxis[3] = {0.0, 0.0, 1.0};
                     
                     burg[0] = node->burgX[segIndex];
@@ -557,8 +557,8 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                 dot = DotProduct(f1, vec1);
                 positive = ((dot >= 0) ? 1 : 0);           
 
-//                    printf("%d %d %d: %f %f %f\n", (int)active, GetBurgID_FCC(home, node, nbr),
-//                            GetPlaneID_FCC(home, node, nbr), Normal(vec1),Normal(vec2), vtau);
+//                    printf("%d %d %d: %f %f %f\n", (int)active, BurgID(home, node, nbr),
+//                            PlaneID(home, node, nbr), Normal(vec1),Normal(vec2), vtau);
                 if(active){
                     thread_delAccumulation[2] += (DotProduct(vec1, vec1)*disLen);
                     thread_delAccumulation[6] += vtau;

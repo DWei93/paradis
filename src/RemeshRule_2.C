@@ -126,7 +126,7 @@ static void MeshCoarsen(Home_t *home)
                     }
                     if(SurfaceNode(node) && SurfaceNode(nbr1))continue;
 
-                    planeType = GetPlaneType_FCC(home, node, nbr1);
+                    planeType = PlaneType(home, node, nbr1);
 
                     if(!((planeType & GLIDE_PLANE) > 0 && (planeType & GB_PLANE) == 0))continue;
 
@@ -1111,7 +1111,7 @@ static void MeshRefine(Home_t *home)
                         burg[1] = node->burgY[armID];
                         burg[2] = node->burgZ[armID];
 
-                        planeType = GetPlaneType_FCC(home, node, nbr);
+                        planeType = PlaneType(home, node, nbr);
 
                         if((planeType & GLIDE_PLANE) > 0 && (planeType & GB_PLANE) == 0 &&
                            fabs(dis) < 5 && BurgType_FCC(burg) == BASIC_BURG)continue;
@@ -1211,7 +1211,7 @@ static void MeshRefine(Home_t *home)
                             burg[1] = node->burgY[armIndex];
                             burg[2] = node->burgZ[armIndex];
 
-                            planeType = GetPlaneType_FCC(home, node, nbr1);
+                            planeType = PlaneType(home, node, nbr1);
 
                             if((planeType & GLIDE_PLANE) > 0 && (planeType & GB_PLANE) == 0 &&
                                fabs(dis) < 5 && BurgType_FCC(burg) == BASIC_BURG){

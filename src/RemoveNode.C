@@ -8,8 +8,9 @@
  *
  **************************************************************************/
 
-#include "Util.h"
 #include "Home.h"
+#include "Util.h"
+#include "Grain.h"
 
 /*
  *	Modified by Wei Cai 9/7/2001, so that the neighbor nodes

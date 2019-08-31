@@ -2750,16 +2750,16 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
     int seed = inArgs->seed;
     real8 maxSeg = (real8)inArgs->maxSegLen;
     
-    FILE *fp1, *fp2, *fp3;
+    FILE *fp1, *fp2;
     if ((fp1 = fopen("debug-FR-lines.plt", "w")) == (FILE *)NULL) {
         Fatal("%s: Open error %d on %s\n",__func__, errno, "debug-FR.plt");
     }
-    fprintf(fp1,"variables = x, y, z, vx, vy, vz, place[1], place[2]\n");
+    fprintf(fp1,"variables = x, y, z, vx, vy, vz, place[1], place[2], planID, burgID\n");
 
     if ((fp2 = fopen("glide-planes.plt", "w")) == (FILE *)NULL) {
         Fatal("%s: Open error %d on %s\n",__func__, errno, "glide-planes.plt");
     }
-    fprintf(fp2,"variables = x, y, z, grain, subgrain, planID\n");
+    fprintf(fp2,"variables = x, y, z, place[1], place[2], planID, burgID\n");
 
     Grain_t *grain; BurgInfo_t *bInf; 
     const int  NPOINTS=101;
@@ -2769,8 +2769,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
     int     ibID, numSlipSys, burgID, planeID, joint[4];
     int     place[PLACE_LEN], place1[PLACE_LEN], place2[PLACE_LEN];
     int     newNodeIndex, numPoints, baseNodeID=0, startRemeshIndex;
-    Node_t  *node;
-    std::vector<int> indexs1(3), indexs2(2);
+    Node_t  *node; 
+    std::vector<int> indexs(4);
     for(auto i=0; i<home->nGrains; i++){
         grain = home->grainKeys[i];
         if(param->materialType == MAT_TYPE_FCC)numSlipSys = 12;
@@ -2837,7 +2837,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
                     }
                     
                     if(ymax>srcLen){
-#if 1    
                         for(auto k=joint[0]+1; k<joint[1]+1; k++){
                             if((y[k]-srcLen)*(y[k-1]-srcLen)<0){
                                 t1=x[k-1]+(x[k]-x[k-1])*(srcLen-y[k-1])/(y[k]-y[k-1]);
@@ -2851,32 +2850,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
                                 break;
                             }
                         }
-#else           
-                        for(auto k=1; k<NPOINTS-1; k++){
-                            delta=y[k+1]-y[k]; if(delta<1.0E-2 && fabs(ymax-y[k]) < 1.0E-2){joint[1]=k; break;}
-                        }
-                        for(auto k=joint[3]; k>=joint[1]; k--){
-                            delta=y[k]-y[k-1]; if(delta>-1.0E-2 && fabs(ymax-y[k]) < 1.0E-2){joint[2]=k; break;}
-                        }
-                
-                        gsl_interp_accel *acc = gsl_interp_accel_alloc();
-                        gsl_spline *spline_linear = gsl_spline_alloc(gsl_interp_linear, joint[1]-joint[0]+1);
-                        gsl_spline_init(spline_linear, &y[joint[0]], &x[joint[0]], joint[1]-joint[0]+1);
-                        printf("1: [%e,%e]-->[%e,%e]\n",y[joint[0]], y[joint[1]], len, srcLen);
-                        t1 = gsl_spline_eval(spline_linear, srcLen, acc);
-                        gsl_spline_free(spline_linear);
-                        gsl_interp_accel_free(acc);
-                        
-                        BubbleSort2D(&y[joint[2]],&x[joint[2]], joint[3]-joint[2]+1);
-                        
-                        acc = gsl_interp_accel_alloc();
-                        spline_linear = gsl_spline_alloc(gsl_interp_linear, joint[3]-joint[2]+1);
-                        gsl_spline_init(spline_linear, &y[joint[2]], &x[joint[2]], joint[3]-joint[2]+1);
-                        printf("2: [%e,%e]-->[%e,%e]\n",y[joint[2]], y[joint[3]], len,srcLen);
-                        t2 = gsl_spline_eval(spline_linear, srcLen, acc); 
-                        gsl_spline_free(spline_linear);
-                        gsl_interp_accel_free(acc);
-#endif          
                         CoordAdd(1.0-t1,p2,t1,p1,p3);
                         CoordAdd(1.0-t2,p2,t2,p1,p4);
                 
@@ -2891,12 +2864,15 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
                 } else if(firstDistribution) goto distribution;
                 
                 char zoneName[56];
-                snprintf(zoneName,sizeof(zoneName),"gp-%d-%d-%d-%d",place[1], InverseIndex(place[2]),burgID, planeID);
-                indexs1[0]=place[1], indexs1[1]=place[2], indexs1[2]=planeID;
-                DrawPolygon(fp2, polygon, vertices,0, zoneName, indexs1);
-                    
-                indexs2[0]=grain->id; indexs2[1]=place2[2]; DrawLine(fp1, p1, p2, 10, indexs2);
+                snprintf(zoneName,sizeof(zoneName),"gp-%d-%d-%d-%d",place[1], InverseIndex(place[2]), burgID, planeID);
 
+                indexs[0]=place[1], indexs[1]=place[2], indexs[2]=planeID, indexs[3]=burgID;
+                DrawPolygon(fp2, polygon, vertices,0, zoneName, indexs);
+                    
+                bInf=BurgInformation(home, place, place); 
+                indexs[2]=PlaneID(bInf, normal);
+                indexs[3]=BurgID(bInf, burg);
+                DrawLine(fp1, p1, p2, 10, indexs);
                 totLen += PointPointDistance(p1,p2);
                 CoordAdd(0.5,p1,0.5,p2,p);
 

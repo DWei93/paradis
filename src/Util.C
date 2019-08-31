@@ -117,6 +117,7 @@
 #include "InData.h"
 #include "Home.h"
 #include "QueueOps.h"
+#include "Grain.h"
 #include <vector>
 
 #ifdef PARALLEL
@@ -1686,7 +1687,7 @@ void PrintNode(Home_t *home, Node_t *node)
             if(nbr == (Node_t *)NULL){
                 printf("null nbr\n");
             }else{
-                printf("%d\n", GetBurgID_FCC(home, node, nbr));
+                printf("%d\n", BurgID(home, node, nbr));
             }
         }
 
@@ -1704,7 +1705,7 @@ void PrintNode(Home_t *home, Node_t *node)
             if(nbr == (Node_t *)NULL){
                 printf("null nbr\n");
             }else{
-                printf("%d\n", GetPlaneID_FCC(home, node, nbr));
+                printf("%d\n", PlaneID(home, node, nbr));
             }
         }
 
@@ -4363,7 +4364,7 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 
 	            nbr = GetNeighborNode(home, node, i);
                 if(nbr != (Node_t *)NULL){
-                    planeType = GetPlaneType_FCC(home, node, nbr);
+                    planeType = PlaneType(home, node, nbr);
                     if((planeType & JUNCTION_PLANE1) > 0 ||
                        (planeType & JUNCTION_PLANE2) > 0 ||
                        (planeType & UNKOWN_PLANE) > 0){

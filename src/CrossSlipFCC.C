@@ -19,6 +19,7 @@
 #include <math.h>
 #include "Home.h"
 #include "Util.h"
+#include "Grain.h"
 
 static int dbgDom;
 
@@ -159,7 +160,7 @@ void CrossSlipFCC(Home_t *home)
  *          a [1 1 0] type, ignore it.
  */
             burgData = GetBurgData(home, node, nbr1);
-            burgID = BurgID_FCC(burgData, burgLab);
+            burgID = BurgID(burgData, burgLab);
             if(burgID >= burgData->numBurgVectors)continue;
             if((burgData->burgType[burgID] & EDGE_BURG) == 0)continue;
 /*

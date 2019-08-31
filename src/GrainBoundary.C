@@ -2272,7 +2272,7 @@ void GBCrossSlip(Home_t *home)
             PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2],
                         nbr2Pos, nbr2Pos+1, nbr2Pos+2);
 
-//            if(GetPlaneID_FCC(home, node, nbr1) != GetPlaneID_FCC(home, node, nbr2))continue;
+//            if(PlaneID(home, node, nbr1) != PlaneID(home, node, nbr2))continue;
 
             vec1[0] = nbr1Pos[0] - nodePos[0];
             vec1[1] = nbr1Pos[1] - nodePos[1];

@@ -262,8 +262,8 @@ struct _param {
 
         real8 YoungsModulus;
 		
-	real8  elasticConstantMatrix[6][6];
-	real8  elasticConstantMatrixInv[6][6];
+	    real8  elasticConstantMatrix[6][6];
+	    real8  elasticConstantMatrixInv[6][6];
 
         real8 rc;     /* core radius in elastic interaction calculation */ 
 
@@ -283,7 +283,6 @@ struct _param {
         real8 MobClimb;
         real8 MobGlide;  /* floor on mobility for glide dislocations */
         real8 MobLine;
-
 /*
  *      Allow for specifying that dislocations with certain types
  *      of burgers vectors or line directions are immobile.
