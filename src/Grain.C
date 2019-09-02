@@ -1985,21 +1985,93 @@ BurgInfo_t *BurgInformation(Home_t *home, int *place)
     }
     return (BurgInfo_t *)NULL;
 }
-/** get glide constraint list of the node
- *  \param[in] node the node to be caculated
- *  \param[out] list constraint List constraint list
- *  \return 0: no constraint; 1: plane constraint; 2: line constraint; 3: fixed*/
-int GlideConstraintList(Home_t *home, Node_t *node, real8 list[3][3])
-{
-    int j=0, k;
-    for(int i=0; i<node->numNbrs && j<3; i++){
-        list[j][0]=node->nx[i]; list[j][1]=node->ny[i]; list[j][2]=node->nz[i];
-        for(k=0; k<j; k++){
-            
-        }
-    }  
 
-    return 0;
+/** get glide constraint of the node
+ *  \param[in] node the node to be caculated
+ *  \param[out] vec constraint normal (plane constraint) or direction (line direction)
+ *  \return constrain type 0: no constraint; 1: plane constraint; 2: line constraint; 3: fixed*/
+inline int AddToPlaneConstraint(real8 *v, real8 nx, real8 ny, real8 nz){
+    if(!AlignedDirection(v[0],v[1],v[2],nx,ny,nz)){
+        real8 cpd[3]; cross_product(v[0],v[1],v[2],nx,ny,nz,v);
+        normalize_vec(v); return 2;
+    }else return 1;
+}
+inline int AddToLineConstraint(real8 *v, real8 nx, real8 ny, real8 nz){
+    return PerpendicularDirection(v[0],v[1],v[2],nx,ny,nz)==true?2:3;
+}
+int GlideConstraint(Home_t *home, Node_t *node, real8 *vec)
+{
+    if(node->constraint == PINNED_NODE)return 3;
+
+    int i, j;
+    if((node->constraint/JUNCTION_NODE)>=1){
+        int jArm=node->constraint-JUNCTION_NODE;
+        Node_t *nbr = GetNeighborNode(home, node, jArm);
+#ifdef DEBUG
+        if(nbr == (Node_t *)NULL)
+            Fatal("%s: can not get junction nbr %d of node (%d,%d)",
+                  __func__,jArm,node->myTag.domainID, node->myTag.index);
+#endif
+        vec[0]=node->x-nbr->x; vec[1]=node->y-nbr->y; vec[2]=node->z-nbr->z;
+
+        for(i=0; i<jArm; i++)
+            if(AddToLineConstraint(vec, node->nx[i], node->ny[i], node->nz[i])==3)return 3;
+
+#ifdef DEBUG
+        if(fabs(dot_product(node->nx[jArm],node->ny[jArm],node->nz[jArm],vec[0],vec[1],vec[2]))>1.0E-2){
+            PrintNode(home, node);
+            Fatal("%s: the glide direction (%g,%g,%g) is not prependicular to (%g,%g,%g)",
+                   __func__, vec[0], vec[1], vec[2], node->nx[jArm],node->ny[jArm],node->nz[jArm]);
+        }
+#endif
+        for(i=jArm+1; i<node->numNbrs; i++)
+            if(AddToLineConstraint(vec, node->nx[i], node->ny[i], node->nz[i])==3)return 3;
+        j=2; 
+    }else{
+#ifdef DEBUG
+        if(node->numNbrs==0)Fatal("%s: something wrong with the arm",__func__);
+#endif
+        j=1; vec[0]=node->nx[0]; vec[1]=node->ny[0]; vec[2]=node->nz[0];
+        for(i=1; i<node->numNbrs; i++){
+            if(AddToPlaneConstraint(vec, node->nx[i], node->ny[i], node->nz[i])==2){j=2; i++; break;}
+        }
+        if(j==2)for(;i<node->numNbrs;i++)
+            if(!PerpendicularDirection(vec[0],vec[1],vec[2],node->nx[i],node->ny[i],node->nz[i]))return 3;
+    }
+
+    Grain_t *grain; Face_t *face; Edge_t *edge; real8 lDir[3]; int *place = node->place;
+    switch(place[0]){
+        case IN_GRAIN: break;
+        case ON_IB: 
+#ifdef DEBUG
+            if(place[1]<0 || place[1]>=home->nGrains)Fatal("%s: can not find grain %d", __func__, place[1]);
+#endif
+            grain=home->grainKeys[place[1]];
+            if(j==1) j=AddToPlaneConstraint(vec, grain->ibN[0], grain->ibN[1], grain->ibN[2]);
+            else j = AddToLineConstraint(vec, grain->ibN[0], grain->ibN[1], grain->ibN[2]);
+            break;
+        case ON_FACE:
+#ifdef DEBUG
+            if(place[1]<0 || place[1]>=home->nFaces)Fatal("%s: can not find face %d", __func__, place[1]);
+#endif
+            face=home->faces[place[1]];
+            if(j==1) j=AddToPlaneConstraint(vec, face->n[0], face->n[1], face->n[1]);
+            else j = AddToLineConstraint(vec, face->n[0], face->n[1], face->n[1]);
+            break;
+        case ON_FACE_EDGE:
+#ifdef DEBUG
+            if(place[1]<0 || place[1]>=home->nEdges)Fatal("%s: can not find edge %d", __func__, place[1]);
+#endif
+            edge = home->edges[place[1]];
+            CoordMinus(Coordinate(home->vertices, edge->vertID2), Coordinate(home->vertices, edge->vertID1), lDir);
+            normalize_vec(lDir);
+            if(j==1){if(!PerpendicularDirection(lDir, vec))return 3; else{j=2; VECTOR_COPY(vec,lDir);}}
+            else return (AlignedDirection(lDir,vec)==true)?2:3;
+            break;
+        case AT_VERTICE: return 3; break;
+        default: Fatal("%s: not support location type %d",__func__, place[0]); break;
+    }
+    return j;
 }
 
 /** Get the distance between point and polygon

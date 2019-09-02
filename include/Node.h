@@ -25,11 +25,8 @@
 #define Y_SURFACE_NODE   2  
 #define Z_SURFACE_NODE   3  
 #define PINNED_NODE      7  /* constraint =  7 : Frank-Read end	 points, fixed */
-                            /* constraint =  9 : Jog */
-                            /* constraint = 10 : Junction */
-                            /* constraint = 20 : cross slip(default) 2-nodes non-deletable  */
+#define JUNCTION_NODE    10 /* constraint = 10 : Junction */
 
-                            
 /*
  *      Define the bit flags that can be set for the node.  Note: these
  *      flags may be OR'ed together.

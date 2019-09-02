@@ -183,7 +183,6 @@ struct _grain{
 #define INGRAIN_NODE	    0x0001	
 #define INTERSECT_NODE	    0x0002	
 #define GB_NODE		        0x0004	
-#define	JUNCTION_NODE	    0x0008
 #define	UNKNOWN_NODE	    0x0010
 
 #define INBOX   0x0000
@@ -369,10 +368,8 @@ inline BurgInfo_t *BurgInformation(Home_t *home, int *place1, int *place2){
 
 /** Get Burgers index from Burgers information */
 inline int BurgID(BurgInfo_t *bInf, real8 burg[3]){
-    real8   crossProd[3];
     for(int i=0; i<bInf->numBurgVectors; i++){
-        cross_product(bInf->burgList[i], burg, crossProd);
-        if(normal(crossProd) < 1.0E-3)return i;
+        if(AlignedVector(bInf->burgList[i], burg))return i;
     }
     return bInf->numBurgVectors;
 }
@@ -391,11 +388,9 @@ inline int BurgID(Home_t *home, Node_t *node, Node_t *nbr){
 
 /** Get plane index from Burgers information */
 inline int PlaneID(BurgInfo_t *burgData, real8 plane[3]){
-   real8   crossProd[3];
-   for(int i=0; i<burgData->numPlanes; i++){
-       cross_product(burgData->planeList[i], plane, crossProd);
-       if(normal(crossProd) < 1.0E-3)return i;
-   }
+    for(int i=0; i<burgData->numPlanes; i++){
+        if(AlignedDirection(burgData->planeList[i], plane))return i;
+    }
    return burgData->numPlanes;
 }
 inline int PlaneID(Home_t *home, Node_t *node, Node_t *nbr){
@@ -432,12 +427,10 @@ inline int PlaneType(Home_t *home, Node_t *node, Node_t *nbr){
 }
 
 inline int KeyLineID_FCC(BurgInfo_t *burgData, real8 line[3]){
-   real8   crossProd[3];
-   for(int i=0; i<burgData->numKeyLines; i++){
-       cross_product(burgData->keyLineList[i], line, crossProd);
-       if(normal(crossProd) < 1.0E-3)return i;
-   }
-   return burgData->numKeyLines;
+    for(int i=0; i<burgData->numKeyLines; i++){
+        if(AlignedDirection(burgData->keyLineList[i], line))return i;
+    }
+    return burgData->numKeyLines;
 }
 
 /* Return type of Burgers vector based on magnintude of the Burgers vector */

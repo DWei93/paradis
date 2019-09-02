@@ -1541,7 +1541,7 @@ void PrintNode(Node_t *node)
         int     i;
 
         if (node == (Node_t *)NULL) {
-	    printf("node is NULL\n");
+	        printf("node is NULL\n");
             return;
 	    }
 

@@ -16,3 +16,4 @@ utilities/*.C
 *.phy
 *.out
 *.lay
+*.swp

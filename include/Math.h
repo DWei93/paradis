@@ -27,7 +27,7 @@
 
 #define LENGTH_ERROR 1.0E-11
 #define ONE_DEGREE 0.0174532925199432958
-#define ANGLE_ERROR1 0.0003045864904521350  // Sin[ONE_DEGREE]^2
+#define ANGLE_ERROR1 0.00030458649045213  // Sin[ONE_DEGREE]^2
 #define ANGLE_ERROR2 0.9996954135095479 // Cos[ONE_DEGREE]^2
 
 #ifdef GSL
@@ -59,11 +59,20 @@ inline void cross_product(double *a, double *b, double *c)
     c[1]=a[2]*b[0]-a[0]*b[2];
     c[2]=a[0]*b[1]-a[1]*b[0];
 }
+inline void cross_product(double a0, double a1, double a2, double b0, double b1, double b2, double *c)
+{
+    c[0]=a1*b2-a2*b1;
+    c[1]=a2*b0-a0*b2;
+    c[2]=a0*b1-a1*b0;
+}
 #define CrossProduct(a,b,c) \
 {\
     c[0]=a[1]*b[2]-a[2]*b[1]; \
     c[1]=a[2]*b[0]-a[0]*b[2]; \
     c[2]=a[0]*b[1]-a[1]*b[0];\
+}
+inline double dot_product(double a0, double a1, double a2, double b0, double b1, double b2){
+    return a0*b0+a1*b1+a2*b2;
 }
 
 /* Copy Vectors*/                
@@ -119,8 +128,8 @@ inline bool SameDirection(double *vec1, double *vec2, double error){
     return (dot>error && dot <2-error);
 }
 inline bool SameDirection(double x1, double y1, double z1, double x2, double y2, double z2, double error){
-    double vec1[3]={x1,y1,z1}, vec2[3]={x2,y2,z2};
-    return SameDirection(vec1, vec2, error);
+    double dot=x1*x2+y1*y2+z1*z2;
+    return (dot>error && dot <2-error);
 }
 
 /** Determine if the two directions are aligned. */
@@ -131,8 +140,8 @@ inline bool AlignedDirection(double *vec1, double *vec2, double error){
     return (dot>error && dot <2-error);
 }
 inline bool AlignedDirection(double x1, double y1, double z1, double x2, double y2, double z2, double error){
-    double vec1[3]={x1,y1,z1}, vec2[3]={x2,y2,z2};
-    return AlignedDirection(vec1, vec2, error);
+    double dot=fabs(x1*x2+y1*y2+z1*z2);
+    return (dot>error && dot <2-error);
 }
 
 /** Determine whether two directions are perpendicular to each other. */
@@ -143,8 +152,18 @@ inline bool PerpendicularDirection(double *vec1, double *vec2, double error){
     return dot<error;
 }
 inline bool PerpendicularDirection(double x1, double y1, double z1, double x2, double y2, double z2, double error){
-    double vec1[3]={x1,y1,z1}, vec2[3]={x2,y2,z2};
-    return PerpendicularDirection(vec1, vec2, error);
+    double dot=fabs(x1*x2+y1*y2+z1*z2);
+    return dot<error;
+}
+
+/** Dertimne whether two vectors are aligned with each other and have same nagnitude */
+inline bool AlignedVector(double *v1, double *v2, double error1=ANGLE_ERROR2, double error2=ANGLE_ERROR1){
+    double dot=fabs(Dot(v1, v2)); double s1=Dot(v1,v1), s2=Dot(v2,v2);
+    return (dot>error1 && dot <2-error1 && fabs(s1-s2) < error2);
+}
+inline bool AlignedVector(double x1, double y1, double z1, double x2, double y2, double z2, double error1=ANGLE_ERROR2, double error2=ANGLE_ERROR1){
+    double dot=fabs(x1*x2+y1*y2+z1*z2); double s1=x1*x1+y1*y1+z1*z1; double s2=x2*x2+y2*y2+z2*z2;
+    return (dot>error1 && dot <2-error1 && fabs(s1-s2) < error2);
 }
 
 /** Find intersection of two planes, plane2 is the default reference plane.
