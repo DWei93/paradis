@@ -71,8 +71,28 @@ inline void cross_product(double a0, double a1, double a2, double b0, double b1,
     c[1]=a[2]*b[0]-a[0]*b[2]; \
     c[2]=a[0]*b[1]-a[1]*b[0];\
 }
+
+/* Dot production */
 inline double dot_product(double a0, double a1, double a2, double b0, double b1, double b2){
     return a0*b0+a1*b1+a2*b2;
+}
+
+/** Parallel component of vector a along the direction dir
+ *  \param[in] a vector
+ *  \param[in] dir direction (should be normalized)
+ *  \param[out] vec parallel component  */
+inline void ParallelComponent(double *a, double *dir, double *vec){
+    double dot = Dot(a,dir); 
+    vec[0] = dot*dir[0]; vec[1]=dot*dir[1]; vec[2]=dot*dir[2];
+}
+
+/** Normal component of vector a along the direction dir
+ *  \param[in] a vector
+ *  \param[in] dir direction (should be normalized)
+ *  \param[out] vec normal component  */
+inline void NormalComponent(double *a, double *dir, double *vec){
+    double dot = Dot(a,dir); 
+    vec[0] = a[0]-dot*dir[0]; vec[1]=a[1]-dot*dir[1]; vec[2]=a[2]-dot*dir[2];
 }
 
 /* Copy Vectors*/                

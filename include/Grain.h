@@ -253,8 +253,35 @@ void RotateWithAxis(real8 a[3], real8 theta, real8 R[3][3]);
 /*Initialize geomety and lattice*/
 void InitGrain(Home_t *home, Param_t *param);
 
+/** -----------------------------------------------------------------------------------------------------
+ *  Table: define the location or arm
+ *  grain ID: range [0,home->nGrains)
+ *  sub-grain (SG) ID: range [-grain->nIBs-1,-1] in grain, [-edge->nIBs-1,-1] on face edge
+ *  inner boundary (IB) ID: range [0,grain->nIBs) in grain, [0,edge->nIBs) on face edge
+ *  face ID: range [0,home->nFaces)
+ *  free surface (FS) ID: range [-6,-1]
+ *  edge ID: range [0, home->nEdges)
+ *  ----------------------------------------------------------------------------------------------
+ *  TYPE (place[0])   | place[1]   | place[2]       | place[3]              | note
+ *  ------------------|------------|----------------|-----------------------|---------------------
+ *  IN_GRAIN          | grain ID   | SG ID          |                       |
+ *  ON_IB             | grain ID   | IB ID1         |                       |
+ *  ON_FACE           | face ID    | SG (IB) ID1    | SG (IB) ID2 (if has)  | 
+ *  ON_FACE_EDGE      | edge ID    | SG (IB) ID     |                       | immoveable if it has any arm in bulk
+ *  AT_VERTICE        | vertice ID |                |                       | immoveable
+ *  -------------------------------------------------------------------------------------------------------*/
+
 /** Format place information*/
 void FormatPlace(int *place);
+
+/** Determine if p1 and p2 are the same place */
+inline bool SamePlace(int *p1, int *p2){
+    if(p1[0] == IN_GRAIN || p1[0] == ON_IB || p1[0]==ON_FACE_EDGE ||
+       p2[0] == IN_GRAIN || p2[0] == ON_IB || p2[0]==ON_FACE_EDGE )return p1[0]==p2[0] && p1[1]==p2[1] && p1[2] == p2[2];
+    else if(p1[0] == ON_FACE || p2[0] == ON_FACE) return p1[0]==p2[0] && p1[1]==p2[1] && p1[2] == p2[2] && p1[3] == p2[3];
+    else if(p1[0] == AT_VERTICE || p1[0] == AT_VERTICE) return p1[0]==p2[0] && p1[1]==p2[1];
+    else  Fatal("%s: can not support location type %d",__func__,__LINE__);
+}
 
 /** According to the current node coordinates, roughly judge the node position.
   * \param[in] pos: the coordinates of node
@@ -412,6 +439,8 @@ inline int PlaneType(BurgInfo_t *burgData, real8 plane[3]){
     if(planeID >= NUM_PLANES_IN_FCC) return(UNKOWN_PLANE);
     return(burgData->planeType[planeID]);
 }
+inline int PlaneType(BurgInfo_t *burgData, real8 nx, real8 ny, real8 nz)
+{ real8 n[3]={nx, ny, nz}; return PlaneType(burgData, n);}
 
 inline int PlaneType(Home_t *home, Node_t *node, Node_t *nbr){
     real8       plane[3];
@@ -451,11 +480,26 @@ inline void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2, real8
 }
 /*-------------------------------------End of Burgers Information Functions-------------------------*/
 
-/** get glide constraint list of the node
+
+/** get glide constraint of the node
  *  \param[in] node the node to be caculated
- *  \param[out] constraintList constraint list
- *  \return 0: no constraint; 1: plane constraint; 2: line constraint; 3: fixed*/
-int GlideConstraintList(Home_t *home, Node_t *node, real8 constraintList[3][3]);
+ *  \param[out] vec constraint normal (plane constraint) or direction (line direction)
+ *  \return constrain type 0: no constraint; 1: plane constraint; 2: line constraint; 3: fixed*/
+int GlideConstraint(Home_t *home, Node_t *node, real8 *vec);
+
+/** Get the vector of nodal movement under the constraint type 
+ *  \param[in] node the node pointer to be caculated 
+ *  \param[in,out] velocity the velocity to be corrected along the constraint
+ *  \return constraint type   */
+inline int ApplyConstraintsToVelocity(Home_t *home, Node_t *node, real8 *velocity){
+    real8 vec[3];
+    int type=GlideConstraint(home, node, vec);
+    if(type == 1)NormalComponent(velocity, vec, velocity);
+    else if(type == 2)ParallelComponent(velocity,vec, velocity);
+    else if(type == 3){VECTOR_ZERO(velocity);}
+    else Fatal("%s: wrong constraint type %d", __func__, type);
+    return type;
+}
 
 /** Get edges of intersection between plane and grain
  *  \param[in] n the normal vector of plane

@@ -25,7 +25,6 @@
 #define Y_SURFACE_NODE   2  
 #define Z_SURFACE_NODE   3  
 #define PINNED_NODE      7  /* constraint =  7 : Frank-Read end	 points, fixed */
-#define JUNCTION_NODE    10 /* constraint = 10 : Junction */
 
 /*
  *      Define the bit flags that can be set for the node.  Note: these

@@ -73,8 +73,6 @@ void FixRemesh(Home_t *home, const char flag[256])
 #endif				
 				if (node1 == NULL) break;
 				
-				
-
 				tag2.domainID = op->dom2;
 				tag2.index    = op->idx2;
 				tag3.domainID = op->dom3;
@@ -88,8 +86,7 @@ void FixRemesh(Home_t *home, const char flag[256])
  */
 			case INSERT_ARM:
 				
-				node1 = GetNodeFromIndex(home, op->dom1,
-							 op->idx1);
+				node1 = GetNodeFromIndex(home, op->dom1, op->idx1);
 				
 #if CHECK_FIXREMESH		
 				printf("FR %s: Task %d, ", flag, home->myDomain);
@@ -131,8 +128,7 @@ void FixRemesh(Home_t *home, const char flag[256])
 				if (node1 == (Node_t *)NULL) break;
 #endif
 				
-				node2 = GetNewGhostNode(home, op->dom2,
-							op->idx2);
+				node2 = GetNewGhostNode(home, op->dom2, op->idx2);
 				FreeNodeArms(node2);
 				
 				node2->constraint = op->dom3;
@@ -148,8 +144,7 @@ void FixRemesh(Home_t *home, const char flag[256])
 				
 #if CHECK_FIXREMESH
 				printf("FR %s: Task %d, ", flag, home->myDomain);
-				printf("SN (%d,%d), (%d,%d) ",op->dom1,op->idx1,
-					  op->dom2,op->idx2);
+				printf("SN (%d,%d), (%d,%d) ",op->dom1,op->idx1, op->dom2,op->idx2);
 
 				node1 = GetNodeFromIndex(home, op->dom1,
 	                                op->idx1);
@@ -207,75 +202,43 @@ void FixRemesh(Home_t *home, const char flag[256])
  *			affected this node.
  */
 			case(MARK_FORCES_OBSOLETE):
-				
-
-				node1 = GetNodeFromIndex(home, op->dom1,
-							 op->idx1);
-
+				node1 = GetNodeFromIndex(home, op->dom1, op->idx1);
 				if (node1 == (Node_t *)NULL) break;
-
 				node1->flags |= NODE_RESET_FORCES;
-
 				break;
 
 			case(MARK_NO_MESH_COARSEN):
-				
-
-				node1 = GetNodeFromIndex(home, op->dom1,
-							 op->idx1);
-
+				node1 = GetNodeFromIndex(home, op->dom1, op->idx1);
 				if (node1 == (Node_t *)NULL) break;
-
 				node1->flags |= NO_MESH_COARSEN;
-
 				break;
 
 			case(MARK_NO_COLLISIONS):
-				
-
-				node1 = GetNodeFromIndex(home, op->dom1,
-							 op->idx1);
-
+				node1 = GetNodeFromIndex(home, op->dom1, op->idx1);
 				if (node1 == (Node_t *)NULL) break;
-
 				node1->flags |= NO_COLLISIONS;
-
 				break;
 /*
  *			Reset the forces on the specified segment of node1.
- *                      The op structure x,y,z values are loaded here with
+ *          The op structure x,y,z values are loaded here with
  *			force values.
  */
 			case(RESET_SEG_FORCES):
-			
-
-				node1 = GetNodeFromIndex(home, op->dom1,
-							 op->idx1);
-
+				node1 = GetNodeFromIndex(home, op->dom1, op->idx1);
 				if (node1 == (Node_t *)NULL) break;
-
 				tag2.domainID = op->dom2;
 				tag2.index    = op->idx2;
-
-				ResetSegForces(home, node1, &tag2, op->x,
-					       op->y, op->z, 0);
-
+				ResetSegForces(home, node1, &tag2, op->x, op->y, op->z, 0);
 				break;
 
 			case(RESET_SEG_FORCES2):
-			
-
-				node1 = GetNodeFromIndex(home, op->dom1,
-							 op->idx1);
-
+				node1 = GetNodeFromIndex(home, op->dom1, op->idx1);
 				if (node1 == (Node_t *)NULL) break;
-
 				tag2.domainID = op->dom2;
 				tag2.index    = op->idx2;
-
 				ResetSegForces2(home, node1, &tag2,
-                                               op->x, op->y, op->z,
-                                               op->nx, op->ny, op->nz, 0);
+                                op->x, op->y, op->z,
+                                op->nx, op->ny, op->nz, 0);
 
 				break;
 
@@ -284,13 +247,11 @@ void FixRemesh(Home_t *home, const char flag[256])
  */
 			case(RESET_COORD):
 
-				node1 = GetNodeFromIndex(home, op->dom1,
-							 op->idx1);
+				node1 = GetNodeFromIndex(home, op->dom1, op->idx1);
 #if CHECK_FIXREMESH				
 				printf("FR %s: Task %d, ", flag, home->myDomain);
 				printf("RC (%d,%d), (%f,%f,%f) ",op->dom1,op->idx1,
 					  op->x,op->y,op->z);
-
 				PrintTag(node1);
 				printf("\n");
 #endif				
@@ -299,22 +260,15 @@ void FixRemesh(Home_t *home, const char flag[256])
 				node1->x = op->x;
 				node1->y = op->y;
 				node1->z = op->z;
-
 				break;
 
 /*
  * 			Update the grain of node. 
  */				
 				case(UPDATE_GRAIN):
-
-				node1 = GetNodeFromIndex(home, op->dom1,
-							 op->idx1);
-				if (node1 == (Node_t *)NULL) {
-					break;
-				}
-
+				node1 = GetNodeFromIndex(home, op->dom1, op->idx1);
+				
 				if (node1 == (Node_t *)NULL) break;
-
                 if(node1->inGrain == op->inGrain &&
                    node1->onGB == op->onGB)break;
 				
@@ -322,7 +276,6 @@ void FixRemesh(Home_t *home, const char flag[256])
 				printf("FR %s: Task %d, ", flag, home->myDomain);
 				printf("UG (%d,%d), %d %d ",op->dom1,op->idx1,
 					  op->inGrain, op->onGB);
-
 				PrintTag(node1);
 				printf("\n");
 #endif				
@@ -353,7 +306,6 @@ void FixRemesh(Home_t *home, const char flag[256])
 #endif
 				node1->inGrain = op->inGrain;
 				node1->onGB = op->onGB;
-
 
 				break;
 				

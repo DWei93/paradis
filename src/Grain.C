@@ -2001,45 +2001,85 @@ inline int AddToLineConstraint(real8 *v, real8 nx, real8 ny, real8 nz){
 }
 int GlideConstraint(Home_t *home, Node_t *node, real8 *vec)
 {
+    // Pinned node 
     if(node->constraint == PINNED_NODE)return 3;
 
-    int i, j;
-    if((node->constraint/JUNCTION_NODE)>=1){
-        int jArm=node->constraint-JUNCTION_NODE;
-        Node_t *nbr = GetNeighborNode(home, node, jArm);
+    real8 lDir[3];
+    int i, j=1, *nbrPlace;
+    Node_t *nbr; BurgInfo_t *bInf;
+    bool jDefined=false;
+
 #ifdef DEBUG
-        if(nbr == (Node_t *)NULL)
-            Fatal("%s: can not get junction nbr %d of node (%d,%d)",
-                  __func__,jArm,node->myTag.domainID, node->myTag.index);
+    if(node->numNbrs==0)Fatal("%s: something wrong with the arm",__func__);
 #endif
-        vec[0]=node->x-nbr->x; vec[1]=node->y-nbr->y; vec[2]=node->z-nbr->z;
 
-        for(i=0; i<jArm; i++)
-            if(AddToLineConstraint(vec, node->nx[i], node->ny[i], node->nz[i])==3)return 3;
-
+    // Loop through arms, find the first junction arm (if has)
+    for(i=0; i<node->numNbrs; i++){
+        nbr = GetNeighborNode(home, node, i);
+        nbrPlace = (nbr!=(Node_t *)NULL)?nbr->place:node->place;
+        bInf = BurgInformation(home, node->place, nbrPlace);
+        if(GLIDE_PLANE != PlaneType(bInf, node->nx[i], node->ny[i], node->nz[i])){
+            j=2;  
+            if(nbr != (Node_t *)NULL){
+                lDir[0]=nbr->x-node->x; lDir[1]=nbr->y-node->y; lDir[2]=nbr->z-node->z; 
+                if(DotProduct(lDir,lDir) > 1.0E-10){
+                    jDefined = true; normalize_vec(lDir);
+                    VECTOR_COPY(vec, lDir);
 #ifdef DEBUG
-        if(fabs(dot_product(node->nx[jArm],node->ny[jArm],node->nz[jArm],vec[0],vec[1],vec[2]))>1.0E-2){
-            PrintNode(home, node);
-            Fatal("%s: the glide direction (%g,%g,%g) is not prependicular to (%g,%g,%g)",
-                   __func__, vec[0], vec[1], vec[2], node->nx[jArm],node->ny[jArm],node->nz[jArm]);
+                    if(fabs(dot_product(lDir[0], lDir[1], lDir[2], node->nx[i], node->ny[i], node->nz[i]))>1.0E-2){
+                        PrintNode(home, node);
+                        Fatal("%s: the junction arm %d of the node is not perpendicular to the normal", __func__, i);
+                    }
+#endif
+                }
+            }
         }
-#endif
-        for(i=jArm+1; i<node->numNbrs; i++)
-            if(AddToLineConstraint(vec, node->nx[i], node->ny[i], node->nz[i])==3)return 3;
-        j=2; 
-    }else{
-#ifdef DEBUG
-        if(node->numNbrs==0)Fatal("%s: something wrong with the arm",__func__);
-#endif
-        j=1; vec[0]=node->nx[0]; vec[1]=node->ny[0]; vec[2]=node->nz[0];
+    }
+    
+    // if the junction was not found, we loop through all arms.
+    if(j==1){
+        vec[0]=node->nx[0]; vec[1]=node->ny[0]; vec[2]=node->nz[0];
         for(i=1; i<node->numNbrs; i++){
-            if(AddToPlaneConstraint(vec, node->nx[i], node->ny[i], node->nz[i])==2){j=2; i++; break;}
+            j=AddToPlaneConstraint(vec, node->nx[i], node->ny[i], node->nz[i]); 
+            if(j==2){
+                for(auto k=i+1; k<node->numNbrs; k++){
+                    j=AddToLineConstraint(vec,node->nx[k], node->ny[k], node->nz[k]);
+                    if(j==3)return 3;
+                }
+                break;
+            }
         }
-        if(j==2)for(;i<node->numNbrs;i++)
-            if(!PerpendicularDirection(vec[0],vec[1],vec[2],node->nx[i],node->ny[i],node->nz[i]))return 3;
+    }else{
+        // if junction is found and defined, the problem is much simple, just add plane constraints
+        if(jDefined){
+            for(i=0; i<node->numNbrs; i++){
+                j=AddToLineConstraint(vec,node->nx[i],node->ny[i],node->nz[i]);
+                if(j==3)return 3;
+            }
+        }
+        // if the junction is found but not defined, by default, there is no more constraints. 
+        // the constraint is reset to plane constraint and recaculate constraint.
+        else{
+            j=1;
+            vec[0]=node->nx[0]; vec[1]=node->ny[0]; vec[2]=node->nz[0];
+            for(i=1; i<node->numNbrs; i++){
+                j=AddToPlaneConstraint(vec, node->nx[i], node->ny[i], node->nz[i]); 
+                if(j==2){
+                    for(auto k=i+1; k<node->numNbrs; k++){
+                        j=AddToLineConstraint(vec,node->nx[k], node->ny[k], node->nz[k]);
+                        if(j==3)return 3;
+                    }
+                    break;
+                }
+            }
+#ifdef DEBUG
+            if(j==1)Fatal("%s: can not find the undefined junction arm direction",__func__);
+#endif
+        }
     }
 
-    Grain_t *grain; Face_t *face; Edge_t *edge; real8 lDir[3]; int *place = node->place;
+    // Add extra location constraint to glide constraint
+    Grain_t *grain; Face_t *face; Edge_t *edge; int *place = node->place;
     switch(place[0]){
         case IN_GRAIN: break;
         case ON_IB: 
@@ -2074,17 +2114,17 @@ int GlideConstraint(Home_t *home, Node_t *node, real8 *vec)
     return j;
 }
 
+
 /** Get the distance between point and polygon
  *  \param[in] p the coordinate of the point
  *  \param[in] v coordinates lis of vertices
  *  \param[in edges indexs and factor of polygon vertices
  *  \return distance                    */
 double PointConcavePolygonDistance(double *p, std::vector<double> &v, std::vector<EdgeVec_t> &edges){
-    real8 p1[3],p2[3], min=1E50, dis;
+    real8 p1[3], p2[3], min=1E50, dis;
     for(auto i=0; i<edges.size(); i++){
         Coordinate(v, edges[i].vertID1, p1);
         Coordinate(v, edges[i].vertID2, p2);
-
         dis = (PointSegmentDistance(p, p1, p2)*edges[i].factor);
         min = (min>dis)?dis:min;
     }
