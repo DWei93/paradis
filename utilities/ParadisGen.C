@@ -354,6 +354,7 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->nGrain		= 2;
         inArgs->twinRatio	= 0.5;
         inArgs->extended     = 0;
+        inArgs->d0 = 40;
         	
         inArgs->deltaNums	= 0;
         inArgs->nLayers		= 1;
@@ -772,10 +773,10 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	                token = strtok(argValue,",");
 	                inArgs->zMatDir[0] = atof(token);
 	                token = strtok(NULL,",");
-                        if (token == (char *)NULL) Fatal("orientation wrong");
+                    if (token == (char *)NULL) Fatal("orientation wrong");
 	                inArgs->zMatDir[1] = atof(token);
 	                token = strtok(NULL,",");
-                        if (token == (char *)NULL) Fatal("orientation wrong");
+                    if (token == (char *)NULL) Fatal("orientation wrong");
 	                inArgs->zMatDir[2] = atof(token);
 	                NormalizeVec(inArgs->zMatDir);
 	                existDir[2] = 1;
@@ -792,7 +793,14 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	                inArgs->maxDensity = atof(argValue);
 	                    break;
                 case OPT_EXTENDED:
-                    inArgs->extended = atoi(argValue);
+	                token = strtok(argValue,",");
+                    inArgs->extended = atoi(token);
+	                token = strtok(NULL,",");
+                    if (token == (char *)NULL){
+                        if(inArgs->extended)printf("Initial separation of extended is default - 40b.\n");
+                    }else{
+                        inArgs->d0 = atof(token);
+                    }
                         break;
                 case OPT_BURGID:
                     inArgs->burgID = atoi(argValue);

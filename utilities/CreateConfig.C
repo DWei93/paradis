@@ -1211,7 +1211,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         real8	 rotMatrix[3][3],rotLine[3],rotBurg[3],rotPlane[3], btemp[3];
         int      intID, inGrain4, onGB4, inGrain5, onGB5;
         real8    pi = 3.1415926535897932385, totSrcLen;
-        real8    separateLength = 40.0;
+        real8    separateLength = inArgs->d0;
 
         bool        finished;
         BurgInfo_t  *bd;
@@ -2718,7 +2718,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         real8	 rotMatrix[3][3],rotLine[3],rotBurg[3],rotPlane[3], btemp[3];
         int      intID, burgID, planeID;
         real8    pi = 3.1415926535897932385, totSrcLen;
-        real8    separateLength = 40.0;
+        real8    separateLength = inArgs->d0;
         bool        finished, singleSrcTest = 0;
         BurgInfo_t  *bd;
         	

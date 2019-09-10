@@ -537,13 +537,15 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
  *            time to dump files, no check of the current
  *            cycle against the dump frequency will be done.
  */
-        if (param->saveprop && (stage == STAGE_CYCLE)) {
+        if (param->saveprop) {
             if (param->savepropdt > 0.0) {
                 dumpTime = param->saveproptime + param->savepropdt;
                 if (timeNow >= dumpTime) {
                     param->saveproptime = timeNow;
                     *outputTypes |= GEN_PROPERTIES_DATA;
                 }
+            }else if(stage == STAGE_DEBUG){
+                *outputTypes |= GEN_PROPERTIES_DATA;
             } else if ((home->cycle % param->savepropfreq) == 0) {
                 *outputTypes |= GEN_PROPERTIES_DATA;
             }

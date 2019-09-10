@@ -64,7 +64,7 @@ SYS = gcc
 #    Set the execution MODE to PARALLEL to enable compile-time support
 #    for MPI and multi-cpu support, or SERIAL for single-cpu compilation
 #
- #MODE = SERIAL
+# MODE = SERIAL
 
 MODE = PARALLEL
 

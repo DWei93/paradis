@@ -2328,6 +2328,7 @@ void LocalSegForces(Home_t *home, int reqType)
         sendDomCnt = 0;
         sendDomList = (int *)NULL;
 
+        DebugGB(home,1601);
 /*
  *      Allocate and initialize some temporary arrays we'll be needing.
  *
@@ -2767,6 +2768,7 @@ void LocalSegForces(Home_t *home, int reqType)
  *            of the nodal segment forces wehn we update them because
  *            there is no chance of a race condition. 
  */
+        DebugGB(home,1602);
 #pragma omp parallel for private(node1, node2, cell, cellID)
         for (i = 0; i < nativeSegListCnt; i++) {
             int   j;
@@ -2984,6 +2986,7 @@ void LocalSegForces(Home_t *home, int reqType)
 
         }  /* end for (i = 0; i < nativeSegCnt; i++) */
 
+        DebugGB(home,1603);
 /*
  *      Now loop through every segment pair for which forces must
  *      be calculated.  Note: it may be that we only update forces

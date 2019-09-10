@@ -44,6 +44,7 @@ typedef struct {
 	    int	    srcLenType;
 	    real8	maxDensity;
         int     extended;
+        real8   d0;
 	    int     burgID, planeID;
         real8   TBCryst[3];
 }InArgs_t;

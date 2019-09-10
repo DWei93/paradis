@@ -145,7 +145,7 @@ int main(int argc,char** argv)
     double  burgMag, (*potParams)[3];
     double  potExpection, potVariance, sigma;
     double  *localArray, *globalArray;
-    double  radius, dx, dy, l1, l2;
+    double  radius, dx, dy, l1, l2, cubel, rsize;
     int     i, j, k, myDomain, nDomains;
     int     nPotParams, nMeshPoints;
     int     numX1, numY1;
@@ -156,7 +156,7 @@ int main(int argc,char** argv)
     int     seed;
     double  e = 2.718281828459045;
     double  f, fx, fy, fxy;
-    double  bli;
+    double  bli, turePot, tauPin, trueTauPin;
     
     string  str;
     char    name[20];
@@ -170,29 +170,39 @@ int main(int argc,char** argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &myDomain);
     MPI_Comm_size(MPI_COMM_WORLD, &nDomains);
 
+    rsize=4;
+    sigma = 20.0; // correlation length
+    trueTauPin=sigma*200E6;
+    param.burgMag = 2.556e-10;
+    tauPin = trueTauPin/sigma; // magnitude of pinning stress
+    potExpection = tauPin*param.burgMag;
+    if(myDomain==0){
+        printf("True maginitude of shear pinning stress: %f MPa\n", trueTauPin/1E6);
+        printf("correlation length %f b\n", sigma);
+        printf("scaled potential maginitued %f \n", potExpection);
+    }
+    cubel=1000*sigma;
+    param.radius = 5*sigma;
+    potVariance = 0.0;
 
-    param.xBoundMax = 10000.0;
-    param.yBoundMax = 10000.0;
+    nPotParams = ((int)cubel*cubel/sigma/sigma);
+
+    param.xBoundMax = cubel/2.0;
+    param.yBoundMax = cubel/2.0;
     xBoundMax = param.xBoundMax;
     yBoundMax = param.yBoundMax;
 
-    param.xBoundMin = -10000.0;
-    param.yBoundMin = -10000.0;
+    param.xBoundMin = -cubel/2.0;
+    param.yBoundMin = -cubel/2.0;
     xBoundMin = param.xBoundMin;
     yBoundMin = param.yBoundMin;
 
-    param.meshSizeX = 4.0;
-    param.meshSizeY = 4.0;
-    param.radius = 100.0;
+    param.meshSizeX = rsize;
+    param.meshSizeY = rsize;
     meshSizeX = param.meshSizeX;
     meshSizeY = param.meshSizeY;
     radius = param.radius;
 
-    nPotParams = 1000000;
-    potVariance = 0.0;
-    sigma = 20.0;
-    potExpection = 1;
-    param.burgMag = 2.556e-10;
     burgMag = param.burgMag;
 
     nXs = floor((xBoundMax-xBoundMin)/meshSizeX);
@@ -258,7 +268,7 @@ int main(int argc,char** argv)
                 if(jj < 0) jj += param.meshNumY;
                 if(jj >= param.meshNumY) jj -= param.meshNumY;        
             
-                f = -potential*(yi-y0)/sigma/sigma*pow(e,-((xi-x0)*(xi-x0)+(yi-y0)*(yi-y0))/(2.0*sigma*sigma));
+                f = -potential*(yi-y0)/sigma*pow(e,-((xi-x0)*(xi-x0)+(yi-y0)*(yi-y0))/(2.0*sigma*sigma));
                 fx = -(xi-x0)*f/(sigma*sigma);
                 fy = -(yi-y0)*f/(sigma*sigma) + f/(yi-y0);
                 fxy = (xi-x0)*(yi-y0)*f/(sigma*sigma*sigma*sigma) - (xi-x0)*f/(yi-y0)/(sigma*sigma);
@@ -308,10 +318,12 @@ int main(int argc,char** argv)
     if(myDomain == 0){
         ofstream outfile("Tec.plt");
         double ave = 0;
-        ofstream out2("Refine.plt");
+        bool    refine = 0;
+
+//        ofstream out2("Refine.plt");
         outfile << numY1*numX1*4 << " " << meshSizeX <<
                 " " << meshSizeY << " " << numX1 << " " << numY1 <<endl;
-        out2 << "variables = x, y, tau, tau_x, tau_y, tau_xy " <<endl;
+//        out2 << "variables = x, y, tau, tau_x, tau_y, tau_xy " <<endl;
         for(i=0; i<numX1; i++){
             for(j=0; j<numY1; j++){
 //                outfile << scientific << param.xBoundMin + ((double)i)*meshSizeX << " ";
@@ -322,6 +334,7 @@ int main(int argc,char** argv)
                 outfile << scientific << globalArray[1+4*j+4*numY1*i] << " ";
                 outfile << scientific << globalArray[2+4*j+4*numY1*i] << " ";
                 outfile << scientific << globalArray[3+4*j+4*numY1*i] << endl;
+#if 0
 
                 out2 << scientific << param.xBoundMin + ((double)i)*meshSizeX << " ";
                 out2 << scientific << param.yBoundMin + ((double)j)*meshSizeY << " ";
@@ -330,12 +343,13 @@ int main(int argc,char** argv)
                 out2 << scientific << globalArray[1+4*j+4*numY1*i] << " ";
                 out2 << scientific << globalArray[2+4*j+4*numY1*i] << " ";
                 out2 << scientific << globalArray[3+4*j+4*numY1*i] << endl;
+#endif
             } 
         }
         ave /= ((nXs+1)*(nYs+1));
         printf("avrage size %f %e\n", ave, ave);
         outfile.close();
-        out2.close();
+//        out2.close();
 #if 0
         meshSizeX /= 40.0;
         meshSizeY /= 40.0;

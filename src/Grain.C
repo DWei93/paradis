@@ -3038,8 +3038,24 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
                           globalArray[2+c]*l2, globalArray[3+c]*l1*l2,
                  
                           globalArray[0+d],    globalArray[1+d]*l1,
-                          globalArray[2+d]*l2, globalArray[3+d]*l1*l2,
+                          globalArray[2+d]*l2, globalArray[3+d]*l1*l2,        
                           norX, norY); 
+
+        
+        if(isinf(f)|| isnan(f))Fatal("task %d: f %f: %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g", home->myDomain,f,
+                          globalArray[0+a],    globalArray[1+a]*l1,
+                          globalArray[2+a]*l2, globalArray[3+a]*l1*l2,
+                 
+                          globalArray[0+b],    globalArray[1+b]*l1,
+                          globalArray[2+b]*l2, globalArray[3+b]*l1*l2,
+                 
+                          globalArray[0+c],    globalArray[1+c]*l1,
+                          globalArray[2+c]*l2, globalArray[3+c]*l1*l2,
+                 
+                          globalArray[0+d],    globalArray[1+d]*l1,
+                          globalArray[2+d]*l2, globalArray[3+d]*l1*l2,        
+                          norX, norY); 
+
         totForce += f;
     }
 #if 0

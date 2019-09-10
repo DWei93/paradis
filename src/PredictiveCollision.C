@@ -1794,6 +1794,7 @@ void PredictiveCollisions(Home_t *home)
           }
         }  /* for (i = 0 ...) */
 
+//      DebugGB(home, 301);
 /*
  *      Now we have to loop for collisions on hinge joints (i.e zipping)
  */
@@ -2218,6 +2219,7 @@ void PredictiveCollisions(Home_t *home)
             }  /* for (j = 0...) */
         }  /* for (i = 0...) */
 
+//      DebugGB(home, 302);
 
 #ifdef DEBUG_LOG_COLLISIONS
 #ifdef PARALLEL

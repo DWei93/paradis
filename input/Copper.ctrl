@@ -30,9 +30,6 @@ numZcells = 4
 #
 # Mesh size for tecmesh
 #
-meshSizeX = 4000
-meshSizeY = 4000
-meshSizeZ = 4000
 
 #  Dynamic load balancing
 #
@@ -41,7 +38,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.5611075"
+dirname = "res.5984689"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip = 1
@@ -58,15 +55,9 @@ maxPst = 1.0E-2
 maxStr = 1.2621E8
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
-rTol = 1.0
-rc = 10
 #
 #  Fast Multipole Method controls
 #  
-fmEnabled =   1  
-fmMPOrder =   2  
-fmTaylorOrder =   5  
-fmCorrectionTbl =   "input/fm-ctab-Cu.m2.t5.px.dat"
 #
 #  Loading conditions
 #  
@@ -104,12 +95,10 @@ appliedStress = [
 #  
 mobilityLaw =   "FCC_0"  
 #shearModulus =   54.6e9  # Voight Average
-shearModulus =  46.554e9  # in jin paper
 limitDisplacement = 0
 GBStrength = 5.0e8
 #GBStrength = 0.0e0
-burgMag =   2.55600e-10 
-pois = 3.240000e-01
+burgMag =   2.48902e-10 # Random "Real" Alloy
 fricStress = 0.0e0
 
 #fricStress = 3.46e7
@@ -117,16 +106,34 @@ fricStress = 0.0e0
 MobScrew =   1.000000e+04
 MobEdge =    1.000000e+04  
 MobTwinning = 5.000000e+04
-sfEnergy =   0.001          # Jm^-2
-# Radom Interal stree field
+
+#shearModulus =  135.0E9  # Random "Real" Alloy, provided by Aviral
+shearModulus =  54.6E9  # Random "toy" Copper
+pois = 0.324
+sfEnergy =   0.005       # Jm^-2 "Real" Alloy
+correLength = 20
+targetStress = 300E6
+criticalEff = 5
+position=-200
 randomInternalForce = 1
+rTol = 1
+rc = 10
+meshSizeX = 4000
+meshSizeY = 4000
+meshSizeZ = 4000
+fmEnabled =   1  
+fmMPOrder =   2  
+fmTaylorOrder =   5  
+fmCorrectionTbl =   "input/fm-ctab-Cu.m2.t5.px.dat"
+#fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
+# Radom Interal stree field
 
 #
 #  I/O controls and parameters
 #  
 #
 tecplot = 1
-tecplotfreq = 200
+tecplotfreq = 20000
 saveprop = 1
 savepropfreq = 100
 tecmesh = 0
@@ -134,6 +141,6 @@ tecmeshfreq = 50000
 velfile = 0
 velfilefreq = 1000
 savecn = 1
-savecnfreq = 50000
+savecnfreq = 10000
 savetimers = 0
 savetimersfreq = 1000

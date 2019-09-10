@@ -93,7 +93,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 		real8   dpstn[6], dsig[6], destn[6];
         real8   tmpdSig[6];
 		real8   (*C)[6], (*Sij)[6];
-        real8   effPlaRate;
+        real8   effPlaRate, stepStr;
         Param_t *param;
         int     maxDirID = -1;
         real8   maxDirVal = -1E50;
@@ -681,7 +681,6 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                         snprintf(name, 50, "-%05.0fMPa-%d", 
                                  param->appliedStress[maxDirID]/1.0E6, home->cycle);
                         GenerateOutput(home, STAGE_DEBUG, name);
-                        WriteProp(home, EPS);      /* Resultant plastic strain (scalar) */
                     }
                 }
 
@@ -726,7 +725,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                     vec[1] = node->y - param->position;
                     ZImage(param, vec, vec+1, vec+2);
     
-                    locVal &= (fabs(vec[1]) >= 2000);
+                    locVal &= int(fabs(vec[1]) >= 2000);
 
                     if(node->y > 0.25*param->Ly){
                         py = node->y - param->Ly;
@@ -748,21 +747,25 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 #endif
 
                 locVal = 0;
-                if(fabs(effPlaRate) <= 1 || gloVal == 1){
+                if((fabs(effPlaRate) <= param->criticalEff && param->disRule == 0) 
+                   || gloVal == 1){
                     locVal = 1;
-                    dsig[0] = 10.0E6*param->loadDir[0];
-                    dsig[1] = 10.0E6*param->loadDir[1];
-                    dsig[2] = 10.0E6*param->loadDir[2];
-                    dsig[3] = 10.0E6*param->loadDir[3];
-                    dsig[4] = 10.0E6*param->loadDir[4];
-                    dsig[5] = 10.0E6*param->loadDir[5];
+                    
+                    stepStr = param->targetStress/30.0;
+
+                    dsig[0] = stepStr*param->loadDir[0];
+                    dsig[1] = stepStr*param->loadDir[1];
+                    dsig[2] = stepStr*param->loadDir[2];
+                    dsig[3] = stepStr*param->loadDir[3];
+                    dsig[4] = stepStr*param->loadDir[4];
+                    dsig[5] = stepStr*param->loadDir[5];
                     
                     if(gloVal == 1){
                         vec[1] = param->position + 2000;
                         FoldBox(param, vec, vec+1, vec+2);
                         param->position = vec[1];
-                    }
-                    if(fabs(effPlaRate) <= 1){
+                        param->disRule = 1;
+                    }else{
                         vec[1] = gloMin;
                         FoldBox(param, vec, vec+1, vec+2);
                         param->position = vec[1];
@@ -779,12 +782,11 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 #endif
 
                 if(gloVal==1){
-                    snprintf(name, 50, "-%05.0fMPa", param->appliedStress[3]/1.0E6);
+                    snprintf(name, 50, "-%07.2fMPa", param->appliedStress[3]/1.0E6);
                     GenerateOutput(home, STAGE_DEBUG, name);
-                    WriteProp(home, EPS);      /* Resultant plastic strain (scalar) */
                 }
 
-                if(param->appliedStress[3] > 3.0E8)param->finish = 1;
+                if(param->appliedStress[3] > param->targetStress)param->finish = 1;
 
                 for(i=0; i<6; i++){
                     for(j=0; j<6; j++){
