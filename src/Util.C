@@ -2035,8 +2035,6 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
             node2 = GetNodeFromIndex(home, tag2->domainID, tag2->index);
         }
 		
-		
-
 /*
  *      If we're not removing the link (i.e. provided burgers vector
  *      is non-zero) and the glide plane is zero, calculate the glide

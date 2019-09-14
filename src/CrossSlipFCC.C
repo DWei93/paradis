@@ -74,6 +74,7 @@ void CrossSlipFCC(Home_t *home)
 
         param = home->param;
         thisDom = home->myDomain;
+        shearModulus = param->shearModulus;
 
         eps = 1.0e-06;
         thetacrit = 2.0 / 180.0 * M_PI;

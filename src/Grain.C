@@ -1986,7 +1986,21 @@ BurgInfo_t *BurgInformation(Home_t *home, int *place)
     return (BurgInfo_t *)NULL;
 }
 
-/** get glide constraint of the node
+/** Match Burgers vector that have aligned direction 
+ *  \return return matched Burgers vector index*/
+int MatchBurgID(BurgInfo_t *bInf, real8 *burg)
+{
+    real8 mBurg[3], b[3]={burg[0],burg[1],burg[2]};
+    normalize_vec(b);
+    for(int i=0; i<bInf->numBurgVectors; i++){
+        VECTOR_COPY(mBurg, bInf->burgList[i]);
+        normalize_vec(mBurg);
+        if(AlignedDirection(mBurg, b))return i;
+    }
+    return bInf->numBurgVectors;
+}
+
+/** Get glide constraint of the node
  *  \param[in] node the node to be caculated
  *  \param[out] vec constraint normal (plane constraint) or direction (line direction)
  *  \return constrain type 0: no constraint; 1: plane constraint; 2: line constraint; 3: fixed*/
@@ -1999,15 +2013,23 @@ inline int AddToPlaneConstraint(real8 *v, real8 nx, real8 ny, real8 nz){
 inline int AddToLineConstraint(real8 *v, real8 nx, real8 ny, real8 nz){
     return PerpendicularDirection(v[0],v[1],v[2],nx,ny,nz)==true?2:3;
 }
+inline bool FindKeyLine(BurgInfo_t *bInf, real8 nx, real8 ny, real8 nz, real8 *kDir)
+{
+    for(auto i=0; i<bInf->numKeyLines; i++)
+        if(PerpendicularDirection(bInf->keyLineList[i][0],bInf->keyLineList[i][1],bInf->keyLineList[i][2],
+                                  nx, ny, nz)){VECTOR_COPY(kDir, bInf->keyLineList[i]); return true;}
+    return false;
+}
 int GlideConstraint(Home_t *home, Node_t *node, real8 *vec)
 {
     // Pinned node 
     if(node->constraint == PINNED_NODE)return 3;
 
-    real8 lDir[3];
-    int i, j=1, *nbrPlace;
+    real8 lDir[3], kDir[3];
+    int i, j, jArm = -1;
     Node_t *nbr; BurgInfo_t *bInf;
-    bool jDefined=false;
+    bool jDefined = false;
+    Param_t *param=home->param;
 
 #ifdef DEBUG
     if(node->numNbrs==0)Fatal("%s: something wrong with the arm",__func__);
@@ -2015,29 +2037,71 @@ int GlideConstraint(Home_t *home, Node_t *node, real8 *vec)
 
     // Loop through arms, find the first junction arm (if has)
     for(i=0; i<node->numNbrs; i++){
-        nbr = GetNeighborNode(home, node, i);
-        nbrPlace = (nbr!=(Node_t *)NULL)?nbr->place:node->place;
-        bInf = BurgInformation(home, node->place, nbrPlace);
-        if(GLIDE_PLANE != PlaneType(bInf, node->nx[i], node->ny[i], node->nz[i])){
-            j=2;  
-            if(nbr != (Node_t *)NULL){
-                lDir[0]=nbr->x-node->x; lDir[1]=nbr->y-node->y; lDir[2]=nbr->z-node->z; 
-                if(DotProduct(lDir,lDir) > 1.0E-10){
-                    jDefined = true; normalize_vec(lDir);
-                    VECTOR_COPY(vec, lDir);
 #ifdef DEBUG
-                    if(fabs(dot_product(lDir[0], lDir[1], lDir[2], node->nx[i], node->ny[i], node->nz[i]))>1.0E-2){
-                        PrintNode(home, node);
-                        Fatal("%s: the junction arm %d of the node is not perpendicular to the normal", __func__, i);
-                    }
+        /* Make sure that normal is always perpendicular to Burgers*/
+        if(!PerpendicularDirection(node->nx[i],node->ny[i],node->nz[i],
+            node->burgX[i],node->burgY[i],node->burgZ[i])){
+            PrintNode(home, node);
+            Fatal("%s: arm %d, the Burgers vector is not perpendicular to the normal",__func__,i);
+        }
 #endif
-                }
+        /* We need neighbor node to get the Burgers information, if we can not find the neighbor, 
+         * what might come up something unexpected.*/
+        if((nbr = GetNeighborNode(home, node, i))==(Node_t *)NULL){
+            PrintNode(home,node); 
+            if(node->myTag.domainID==home->myDomain){
+                Fatal("%s: can not find the neighbor %d of the native node",__func__,i);
+            }
+            /* FIXME: If node is ghost, the unfounded neighbor should be ghost or secondary ghost node.
+             * To avoid more serious problems, completlely constraint the node*/
+            else{
+                printf("Task %d, Warning in %s, can not find the secondary ghost neighbor node (%d)\n",
+                        home->myDomain,__func__,i);
+                return 3;
             }
         }
-    }
+        
+        // Get the Burgers information
+        bInf = BurgInformation(home, node->place, nbr->place);
+
+        // if the plane is not glide plane, the arm should b a junction, but we are not sure
+        // that the line sense of this arm can be defined
+        if(GLIDE_PLANE != PlaneType(bInf, node->nx[i], node->ny[i], node->nz[i])){
+            
+            // loop through all key lines in the data base, find the key line on the junction plane
+            if(FindKeyLine(bInf, node->nx[i], node->ny[i], node->nz[i], kDir)){
+#ifdef DEBUG
+                if(param->allowFuzzyGlidePlanes==0){
+                    lDir[0]=nbr->x-node->x; lDir[1]=nbr->y-node->y; lDir[2]=nbr->z-node->z;
+                    if(DotProduct(lDir,lDir)>1E-15){
+                        normalize_vec(lDir);
+                        if(!AlignedDirection(lDir, kDir)){
+                            Fatal("%s: the junction has climbed without allowing fuzzy glide planes",__func__);
+                        }
+                    }
+                }
+#endif
+                // if the line constraint is found, the junction can be defined.
+                if(jDefined==false){VECTOR_COPY(vec, kDir); jDefined=true; jArm=i;}
+
+                // if there has more than 2 junctions with different line constraints, means that
+                // the node is fixed.
+                else if(!AlignedDirection(kDir,vec))return 3;
+
+            } /* if the key line has been found */  else jArm = i;
+        } /*if the junction plane has been found */
+    }/* for(i=0; i<node->numNbrs; i++) */
     
-    // if the junction was not found, we loop through all arms.
-    if(j==1){
+#ifdef DEBUG
+    if(jDefined==false && jArm >= 0){
+        PrintNode(home, node);
+        Fatal("%s: can not define junction plane");
+    } 
+#endif
+
+    // if there is no junction 
+    if(jArm<0){
+        // assign first normal as initial plane constraint
         vec[0]=node->nx[0]; vec[1]=node->ny[0]; vec[2]=node->nz[0];
         for(i=1; i<node->numNbrs; i++){
             j=AddToPlaneConstraint(vec, node->nx[i], node->ny[i], node->nz[i]); 
@@ -2049,34 +2113,18 @@ int GlideConstraint(Home_t *home, Node_t *node, real8 *vec)
                 break;
             }
         }
-    }else{
-        // if junction is found and defined, the problem is much simple, just add plane constraints
-        if(jDefined){
-            for(i=0; i<node->numNbrs; i++){
-                j=AddToLineConstraint(vec,node->nx[i],node->ny[i],node->nz[i]);
-                if(j==3)return 3;
-            }
-        }
-        // if the junction is found but not defined, by default, there is no more constraints. 
-        // the constraint is reset to plane constraint and recaculate constraint.
-        else{
-            j=1;
-            vec[0]=node->nx[0]; vec[1]=node->ny[0]; vec[2]=node->nz[0];
-            for(i=1; i<node->numNbrs; i++){
-                j=AddToPlaneConstraint(vec, node->nx[i], node->ny[i], node->nz[i]); 
-                if(j==2){
-                    for(auto k=i+1; k<node->numNbrs; k++){
-                        j=AddToLineConstraint(vec,node->nx[k], node->ny[k], node->nz[k]);
-                        if(j==3)return 3;
-                    }
-                    break;
-                }
-            }
-#ifdef DEBUG
-            if(j==1)Fatal("%s: can not find the undefined junction arm direction",__func__);
-#endif
-        }
     }
+    // if junction has been found line constraint has been defined, just add other glide constraints to line constraint
+    else if(jDefined==true){
+        for(i=0; i<node->numNbrs; i++)
+            if(3==AddToLineConstraint(vec, node->nx[i], node->ny[i], node->nz[i])) return 3;
+        j=2;
+    }
+    // if the junction arm has been found that it intersects with surface (only one arm),
+    else if(jDefined==false && node->numNbrs==1){
+        return 3;
+    }
+    else Fatal("%s: there is fourth possiblities!",__func__);
 
     // Add extra location constraint to glide constraint
     Grain_t *grain; Face_t *face; Edge_t *edge; int *place = node->place;
@@ -2114,6 +2162,96 @@ int GlideConstraint(Home_t *home, Node_t *node, real8 *vec)
     return j;
 }
 
+/** Find plane of the arm, if there are several glide planes, we chose the glide plane with 
+ *  maximal Schmid factor if FEM is disabled, or chose the glide plane with highest local dissipation
+ *  if FEM is abled.
+ *  \param[in] burg Burgers vector of the arm
+ *  \param[in,out] lDir line direction of the arm. Note: no climb component in the line direction
+ *  \param[in] node1, node the ends node of the arm
+ *  \param[out] plane plane of the arm 
+ *  \param[out] found true is found, otherwise false*/
+void FindGlidePlane(Home_t *home, real8 *burg, real8 *lDir, Node_t *node1, Node_t *node2, real8 *plane, bool &found)
+{
+    found = false;
+    Param_t *param=home->param;
+    real8 burgNorm[3]={burg[0],burg[1],burg[2]}; normalize_vec(burgNorm);
+    BurgInfo_t  *bInf = BurgInformation(home, node1->place, node2->place); 
+
+    // check glide constraints
+    real8 v1[3], v2[3], *v; int t1, t2, t;
+    t1 = GlideConstraint(home, node1, v1);
+    t2 = GlideConstraint(home, node2, v2);
+    
+    char msg[256];
+    if(t1==t2){
+        if(t1==1){
+            if(!AlignedDirection(v1,v2)){
+                snprintf(msg, sizeof(msg),"%s at %d: two different glide planes",__func__,__LINE__); 
+                throw msg;
+            }
+        }else if(t1==2){
+            if(!AlignedDirection(v1,v2)){
+                snprintf(msg, sizeof(msg),"%s at %d: two different line constraints",__func__,__LINE__);
+                throw msg;
+            }
+        }else if(t1==3){
+            snprintf(msg, sizeof(msg),"%s at %d: the two nodes are both pinned",__func__,__LINE__);
+            throw msg;
+        }
+    }else if(t1==1&&t2==2 || t2==1&&t1==2){
+        if(!PerpendicularDirection(v1,v2)){
+            snprintf(msg, sizeof(msg),"%s at %d: line constraint is not perpendicular to glide plane",__func__,__LINE__);
+            throw msg;
+        }
+    }
+    
+    // the arm constraint type should be the minimum of the nodal constraints
+    if(t2<t1){ t=t2; v=v2; }else{t=t1; v=v1;}
+
+    /* If the line direction is defined */
+    if(IsNormalized(lDir)){
+        // if the plane constraint, just copy the plane
+        if(t==1){
+            VECTOR_COPY(plane, v);
+#ifdef DEBUG
+            if(!PerpendicularDirection(v, lDir)){
+                Fatal("%s: line direction does not match the plane constraint",__func__);
+            }
+            if(!PerpendicularDirection(v,burgNorm)){
+                Fatal("%s: Burgers direction does not match the plane constraint",__func__);
+            }
+#endif
+            found=true; return;
+        }
+        // if the line constraint (junction), just cross product to get the glide plane
+        else if(t==2){
+            cross_product(v, burgNorm, plane);
+#ifdef DEBUG
+            if(!AlignedDirection(v,lDir)){
+                Fatal("%s: line direction does not match the line constraint",__func__);
+            }
+
+            if(normal(plane)<1E-2){
+                Fatal("%s: a screw junction is occured",__func__);
+            }
+#endif
+            normalize_vec(plane);
+            int planeID = PlaneID(bInf, plane);
+            if(planeID < bInf->numPlanes){VECTOR_COPY(plane, bInf->planeList[planeID]);}
+#ifdef DEBUG
+            else printf("warning in %s: there is not junction plane (%g,%g,%g) in Burger data base\n",__func__,plane[0],plane[1],plane[2]);
+#endif
+            found=true; return;
+        }
+    }
+    
+    /** If the line direction is not defined due to separation process of node, we should 
+     *  find the line direction first */
+    else{
+
+    }
+    return;
+}
 
 /** Get the distance between point and polygon
  *  \param[in] p the coordinate of the point
@@ -2473,8 +2611,7 @@ void CompressBurgListWithType(std::vector<std::vector<real8> >& burgList, std::v
             VECTOR_COPY(vec1, burgList[i]);
             VECTOR_COPY(vec2, burgList[j]);
             cross_product(vec1, vec2, crossProdt);
-            if(normal(crossProdt) < 1.0E-2 && fabs(normal(vec1) - 
-               normal(vec2)) < 1.0E-4 &&  burgType[i] == burgType[j])break;
+            if(AlignedVector(vec1,vec2)==true &&  burgType[i] == burgType[j])break;
 
         }
         if(j == newNRows){
@@ -4358,12 +4495,10 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         }
     }
 
-
     return(1);
 }
 
-void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
-                    real8 glidePlane[3], Node_t *node1, Node_t *node2)
+void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3], real8 glidePlane[3], Node_t *node1, Node_t *node2)
 {
     int         armID, burgID, normalID=-1, lineID;
     int         inGrain, onGB;
@@ -4373,12 +4508,6 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
     real8       vec1[3], vec2[3];
     Param_t     *param = home->param;
     BurgInfo_t  *bd = GetBurgData(home, node1, node2);
-
-#if 1
-#else
-    FindPreciseGlidePlane(home, burg, lDir, glidePlane, node1, node2);
-    return;
-#endif
 
     srand(time(NULL));
 

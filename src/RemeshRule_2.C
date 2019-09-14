@@ -676,7 +676,6 @@ static void MeshCoarsen(Home_t *home)
  */
                 if (param->enforceGlidePlanes &&
                     param->allowFuzzyGlidePlanes) {
-
                     RecalcSegGlidePlane(home, nbr1, nbr2, 1);
                 }
             }
@@ -685,8 +684,7 @@ static void MeshCoarsen(Home_t *home)
         
 #ifdef DEBUG_LOG_MESH_COARSEN
 #ifdef PARALLEL
-        MPI_Reduce(&localCoarsenCnt, &globalCoarsenCnt, 1, MPI_INT, MPI_SUM,
-                   0, MPI_COMM_WORLD);
+        MPI_Reduce(&localCoarsenCnt, &globalCoarsenCnt, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 #else
         globalCoarsenCnt = localCoarsenCnt;
 #endif

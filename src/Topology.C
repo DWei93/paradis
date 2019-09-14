@@ -1813,7 +1813,7 @@ void SplitMultiNodes(Home_t *home)
 
 /*
  *			If it is necessary (and possible) to split the node,
- *                  armSet[setIndex] points to the array indicating which
+ *          armSet[setIndex] points to the array indicating which
  *			arms are to be split off and which are to remain with
  *			the original node.
  *          

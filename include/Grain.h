@@ -30,6 +30,11 @@ using namespace voro;
 #define GB_PLANE            0x0008
 #define UNKOWN_PLANE        0x0010
 
+#define EDGE_BURG       0x0001
+#define PARTIAL_BURG    0x0002
+#define JUNCTION_BURG   0x0004
+#define UNKOWN_BURG     0x0008
+
 /** Convert inner boundary index to subgrain index or
     Convert subgrain index to inner boundary index */
 #define InverseIndex(a) (-1-(a))
@@ -198,10 +203,6 @@ struct _grain{
 #define SHOCKLEY_BURG_MAG_FCC   0.5773502691896258
 #define JUNCTION1_BURG_MAG_FCC  1.414213562373095
 #define JUNCTION2_BURG_MAG_FCC  1.732050807568877
-
-#define EDGE_BURG       0x0001
-#define PARTIAL_BURG    0x0002
-#define JUNCTION_BURG   0x0004
 
 
 struct _slipSys{
@@ -413,6 +414,44 @@ inline int BurgID(Home_t *home, Node_t *node, Node_t *nbr){
     return(BurgID(burgData, burg)); 
 }
 
+/** Match Burgers vector that have aligned direction 
+ *  \return return matched Burgers vector index*/
+int MatchBurgID(BurgInfo_t *bInf, real8 burg[3]);
+inline int MatchBurgID(Home_t *home, Node_t *node, Node_t *nbr){
+    real8       burg[3];
+    BurgInfo_t  *burgData = BurgInformation(home, node->place, nbr->place);
+    int armID = GetArmID(home, node, nbr);
+#ifdef DEBUG
+    if(armID == -1 )Fatal("%s: wrong connection", __func__);
+#endif
+    burg[0] = node->burgX[armID];
+    burg[1] = node->burgY[armID];
+    burg[2] = node->burgZ[armID];
+    return(MatchBurgID(burgData, burg)); 
+}
+
+/** Get Burgers type from Burgers information */
+inline int BurgType(BurgInfo_t *burgData, real8 burg[3]){
+    int burgID = BurgID(burgData, burg);
+    if(burgID >= burgData->numBurgVectors) return(UNKOWN_BURG);
+    return(burgData->burgType[burgID]);
+}
+inline int BurgType(BurgInfo_t *burgData, real8 bx, real8 by, real8 bz)
+{ real8 b[3]={bx, by, bz}; return BurgType(burgData, b);}
+
+inline int BurgType(Home_t *home, Node_t *node, Node_t *nbr){
+    real8       burg[3];
+    BurgInfo_t *burgData = BurgInformation(home, node->place, nbr->place);
+    int armID = GetArmID(home, node, nbr);
+#ifdef DEBUG
+    if(armID == -1 )Fatal("%s: wrong connection", __func__);
+#endif
+    burg[0] = node->burgX[armID];
+    burg[1] = node->burgY[armID];
+    burg[2] = node->burgZ[armID];
+    return(BurgType(burgData, burg)); 
+}
+
 /** Get plane index from Burgers information */
 inline int PlaneID(BurgInfo_t *burgData, real8 plane[3]){
     for(int i=0; i<burgData->numPlanes; i++){
@@ -436,7 +475,7 @@ inline int PlaneID(Home_t *home, Node_t *node, Node_t *nbr){
 /** Get plane type from Burgers information */
 inline int PlaneType(BurgInfo_t *burgData, real8 plane[3]){
     int planeID = PlaneID(burgData, plane);
-    if(planeID >= NUM_PLANES_IN_FCC) return(UNKOWN_PLANE);
+    if(planeID >= burgData->numPlanes) return(UNKOWN_PLANE);
     return(burgData->planeType[planeID]);
 }
 inline int PlaneType(BurgInfo_t *burgData, real8 nx, real8 ny, real8 nz)
