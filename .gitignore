@@ -17,3 +17,4 @@ utilities/*.C
 *.out
 *.lay
 *.swp
+*.nfs00*

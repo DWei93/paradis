@@ -2208,48 +2208,45 @@ void FindGlidePlane(Home_t *home, real8 *burg, real8 *lDir, Node_t *node1, Node_
     // the arm constraint type should be the minimum of the nodal constraints
     if(t2<t1){ t=t2; v=v2; }else{t=t1; v=v1;}
 
-    /* If the line direction is defined */
-    if(IsNormalized(lDir)){
-        // if the plane constraint, just copy the plane
-        if(t==1){
-            VECTOR_COPY(plane, v);
+    // if the plane constraint, just copy the plane
+    if(t==1){
+        VECTOR_COPY(plane, v);
 #ifdef DEBUG
+        /* If the line direction is defined */
+        if(IsNormalized(lDir)){
             if(!PerpendicularDirection(v, lDir)){
                 Fatal("%s: line direction does not match the plane constraint",__func__);
             }
-            if(!PerpendicularDirection(v,burgNorm)){
-                Fatal("%s: Burgers direction does not match the plane constraint",__func__);
-            }
-#endif
-            found=true; return;
         }
-        // if the line constraint (junction), just cross product to get the glide plane
-        else if(t==2){
-            cross_product(v, burgNorm, plane);
+        if(!PerpendicularDirection(v,burgNorm)){
+            Fatal("%s: Burgers direction does not match the plane constraint",__func__);
+        }
+#endif
+        found=true; return;
+    }
+
+    // if the line constraint (junction), just cross product to get the glide plane
+    else if (t==2){
+        cross_product(v, burgNorm, plane);
 #ifdef DEBUG
+        if(IsNormalized(lDir)){
             if(!AlignedDirection(v,lDir)){
                 Fatal("%s: line direction does not match the line constraint",__func__);
             }
-
-            if(normal(plane)<1E-2){
-                Fatal("%s: a screw junction is occured",__func__);
-            }
-#endif
-            normalize_vec(plane);
-            int planeID = PlaneID(bInf, plane);
-            if(planeID < bInf->numPlanes){VECTOR_COPY(plane, bInf->planeList[planeID]);}
-#ifdef DEBUG
-            else printf("warning in %s: there is not junction plane (%g,%g,%g) in Burger data base\n",__func__,plane[0],plane[1],plane[2]);
-#endif
-            found=true; return;
         }
+        if(normal(plane)<1E-2){
+            Fatal("%s: a screw junction is occured",__func__);
+        }
+#endif
+        normalize_vec(plane);
+        int planeID = PlaneID(bInf, plane);
+        if(planeID < bInf->numPlanes){VECTOR_COPY(plane, bInf->planeList[planeID]);}
+#ifdef DEBUG
+        else printf("warning in %s: there is not junction plane (%g,%g,%g) in Burger data base\n",__func__,plane[0],plane[1],plane[2]);
+#endif
+        found=true; return;
     }
-    
-    /** If the line direction is not defined due to separation process of node, we should 
-     *  find the line direction first */
-    else{
 
-    }
     return;
 }
 

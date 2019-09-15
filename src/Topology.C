@@ -1596,27 +1596,14 @@ void SplitMultiNodes(Home_t *home)
                             dirvec[1] = diry;
                             dirvec[2] = dirz;
 
-                            FindGlidePlane(home, burg, dirvec,
-                                         nplane, splitNode1, splitNode2);
-
-/*
- *                          If the new segment is screw the glide
- *                          plane is undefined.  If that's the case, we
- *                          need to randomly select a glide plane
- *                          appropriate to the burgers vector.
- */
-                            if (DotProduct(nplane, nplane) < 1.0e-03) {
-                                PickScrewGlidePlane(home, burg, nplane, splitNode1, splitNode2);
-                            }
-
-                            Normalize(&nplane[0], &nplane[1], &nplane[2]);
+                            bool found; FindGlidePlane(home, burg, dirvec, splitNode1, splitNode2, nplane, found);
+                            if(!found)Fatal("%s at %d: can not find glide plane",__FILE__, __LINE__);
 
                             splitNode1->nx[armIndex] = nplane[0];
                             splitNode1->ny[armIndex] = nplane[1];
                             splitNode1->nz[armIndex] = nplane[2];
 
-                            armIndex = GetArmID(home, splitNode2,
-                                              splitNode1);
+                            armIndex = GetArmID(home, splitNode2, splitNode1);
 
                             splitNode2->nx[armIndex] = nplane[0];
                             splitNode2->ny[armIndex] = nplane[1];
@@ -2538,22 +2525,8 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                 NormalizeVec(dirVec);
                 NormalizeVec(burg);
 
-                FindGlidePlane(home, burg, dirVec, glidePlane, (*splitNode1), (*splitNode2));
-
-                if (DotProduct(glidePlane,glidePlane) < eps) {
-                    vel[0] = ((*splitNode1)->vX + (*splitNode2)->vX) * 0.5;
-                    vel[1] = ((*splitNode1)->vY + (*splitNode2)->vY) * 0.5;
-                    vel[2] = ((*splitNode1)->vZ + (*splitNode2)->vZ) * 0.5;
-
-                    if(Normal(dirVec) < 1.0E-4)printf("a zero length seg occured 3\n");
-                    FindGlidePlane(home, vel, dirVec, glidePlane, (*splitNode1), (*splitNode2));
-
-                    if (DotProduct(glidePlane,glidePlane) < eps) {
-                        PickScrewGlidePlane(home, burg, glidePlane, (*splitNode1), (*splitNode2));
-                    }
-                }
-
-                NormalizeVec(glidePlane);
+                bool found; FindGlidePlane(home, burg, dirVec, (*splitNode1), (*splitNode2), glidePlane, found);
+                if(!found)Fatal("%s at %d: can not find glide plane",__FILE__, __LINE__);
 
                 cx = glidePlane[0];
                 cy = glidePlane[1];

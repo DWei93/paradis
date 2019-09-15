@@ -324,15 +324,13 @@ static void MeshCoarsen(Home_t *home)
                         lineDir2[2] = vec2z;
 
 /*
- *                      FindGlidePlanes() just uses l cross b if fuzzy
+ *                      Just uses l cross b if fuzzy
  *                      planes are allowed, so we temporarily reset the value
  *                      as a quick kludge to find the closest precise plane.
  */
-                        param->allowFuzzyGlidePlanes = 0;
-                        FindGlidePlane(home, burg1, lineDir1, testPlane1, node, nbr1);
-                        FindGlidePlane(home, burg2, lineDir2, testPlane2, node, nbr2);
-                        param->allowFuzzyGlidePlanes = 1;
-
+                        cross_product(lineDir1, burg1, testPlane1);
+                        cross_product(lineDir2, burg2, testPlane2);
+                        normalize_vec(testPlane1); normalize_vec(testPlane2);
                         if (fabs(DotProduct(testPlane1, testPlane2)) > 0.99) {
                             violateGlidePlanesOK = 1;
                         }

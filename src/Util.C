@@ -763,7 +763,7 @@ int GetUnitVector(int unitFlag,
                  "    pointA = (%20.15f %20.15f %20.15f)\n"
                  "    pointB = (%20.15f %20.15f %20.15f)",
                  x1, y1, z1, x2, y2, z2);
-	return(0);
+	    return(0);
 
         } else {                                                
 
@@ -992,6 +992,16 @@ int InterpolateBL(real8 *x, real8 *y, real8 *val, int numElem,
 }
 
 
+/*-------------------------------------------------------------------------
+ *
+ *      Function:     Normal
+ *      Description:  Calculate and return to the caller the normal of
+ *                    vector <a>
+ *
+ *      Arguments:
+ *          a   Array containing the three element vector.
+ *
+ *------------------------------------------------------------------------*/
 real8 Normal(std::vector<real8>& a)
 {return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]));}
 
@@ -1429,18 +1439,14 @@ Node_t *GetNodeFromIndex(Home_t *home, int domID, int index)
             remDom = home->remoteDomainKeys[domID];
 
             if (remDom == (RemoteDomain_t *)NULL) {
-//				printf("GetNodeFromIndex (%d): remDom %d == (RemoteDomain_t *)NULL\n",home->myDomain,domID);
                 return((Node_t *)NULL);
             }
 
             if (index >= remDom->maxTagIndex) {
-//				printf("GetNodeFromIndex(%d): domain %d, index(%d) >= remDom->maxTagIndex\n",home->myDomain,domID,index);
                 return((Node_t *)NULL);
             }
 
             if ((node = remDom->nodeKeys[index]) == (Node_t *)NULL) {
-//				printf("GetNodeFromIndex(%d): domain %d, index(%d)node = remDom->nodeKeys[index]) == (Node_t *)NULL\n",
-//					   home->myDomain,domID,index);
                 return((Node_t *)NULL);
             }
 
@@ -1507,23 +1513,14 @@ Node_t *GetNodeFromTag (Home_t *home, Tag_t tag)
             remDom = home->remoteDomainKeys[tag.domainID];
 
             if (remDom == NULL) {
-//				printf("Task %d, GetNodeFromTag(%d,%d): remDom %d == NULL\n",home->myDomain,tag.domainID,tag.index,tag.domainID);
                 return((Node_t *)NULL);
             }
 
-			
             if (tag.index >= remDom->maxTagIndex) {
-//				printf("GetNodeFromTag(%d): tag domian %d, tag.index(%d) >= remDom->maxTagIndex(%d)\n",
-//					   home->myDomain,tag.domainID,tag.index,remDom->maxTagIndex);
                 return((Node_t *)NULL);
             }
       
             node = remDom->nodeKeys[tag.index];
-//			if(node == (Node_t *)NULL){
-//				printf("GetNodeFromTag(%d): tag domian %d, remDom->nodeKeys[tag.index](%d) == (Node_t *)NULL\n",
-//					   home->myDomain,tag.domainID,tag.index);
-//			}
-			
             return(node);
         }
 }
@@ -1539,15 +1536,14 @@ Node_t *GetNodeFromTag (Home_t *home, Tag_t tag)
 void PrintNode(Node_t *node)
 {
         int     i;
-
         if (node == (Node_t *)NULL) {
 	        printf("node is NULL\n");
             return;
 	    }
 
 #if 1
-        printf("  node(%d,%d) location (%d,%d) constraint %d arms %d,",
-               node->myTag.domainID, node->myTag.index, node->inGrain, node->onGB,
+        printf("  node(%d,%d) location (%d,%d,%d,%d) constraint %d arms %d,",
+               node->myTag.domainID, node->myTag.index, node->place[0], node->place[1], node->place[2], node->place[3],
                node->constraint, node->numNbrs);
 #if 1
         for (i = 0; i < node->numNbrs; i++) {
@@ -1633,8 +1629,8 @@ void PrintNode(Home_t *home, Node_t *node)
             return;
 	    }
 
-        printf("  node(%d,%d) location (%d,%d) constraint %d arms %d,",
-               node->myTag.domainID, node->myTag.index, node->inGrain, node->onGB,
+        printf("  node(%d,%d) location (%d,%d,%d,%d) constraint %d arms %d,",
+               node->myTag.domainID, node->myTag.index, node->place[0], node->place[1],node->place[2],node->place[3],
                node->constraint, node->numNbrs);
         for (i = 0; i < node->numNbrs; i++) {
             printf("(%d,%d) ", node->nbrTag[i].domainID,
@@ -2034,7 +2030,7 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
         if (log) {
             node2 = GetNodeFromIndex(home, tag2->domainID, tag2->index);
         }
-		
+
 /*
  *      If we're not removing the link (i.e. provided burgers vector
  *      is non-zero) and the glide plane is zero, calculate the glide
@@ -2049,8 +2045,8 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
             if (!log) {
                 node2 = GetNodeFromIndex(home, tag2->domainID, tag2->index);
 				if(GetArmID (home, node1, node2) == -1 ){
-					PrintNode(node1);
-					PrintNode(node2);
+					PrintNode(home, node1);
+					PrintNode(home, node2);
 					printf("Warning: log 0, Task %d, node1 <-|-> node2\n",home->myDomain);
 				}
             }
@@ -2076,33 +2072,14 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
                 burg[1] = by;
                 burg[2] = bz;
 
-                if(Normal(dir) < 1.0E-4)printf("a zero length seg occured 4\n");
-                FindGlidePlane(home, burg, dir, glidePlane,node1,node2);
-
-                gpDotgp = DotProduct(glidePlane, glidePlane);
-
-                if (gpDotgp < eps) {
-                    vel[0] = (node1->vX + node2->vX) * 0.5;
-                    vel[1] = (node1->vY + node2->vY) * 0.5;
-                    vel[2] = (node1->vZ + node2->vZ) * 0.5;
-
-                    if(Normal(dir) < 1.0E-4)printf("a zero length seg occured 5\n");
-                    FindGlidePlane(home, vel, dir, glidePlane,node1,node2);
-
-                    gpDotgp = DotProduct(glidePlane, glidePlane);
-
-                    if (gpDotgp < eps) {
-                        VECTOR_ZERO(glidePlane);
-                    }
-
-/*
- *                  If segment is screw, glide plane will still be undefined
- *                  so pick a plane appropriate to the burgers vector
- */
-                    if (DotProduct(glidePlane, glidePlane) < 1.0e-03) {
-                        PickScrewGlidePlane(home, burg, glidePlane,node1,node2);
-                    }
+                if(Normal(dir) < 1.0E-4)printf("File %s at line %d: a zero length seg occured \n",__FILE__, __LINE__);
+                bool found; FindGlidePlane(home, burg, dir,node1, node2, glidePlane, found);
+#ifdef DEBUG
+                if(!found){
+                    Fatal("%s at %d: can not the glide plane\n", __FILE__, __LINE__);
                 }
+#endif
+
 
                 nx = glidePlane[0];
                 ny = glidePlane[1];
@@ -2223,8 +2200,7 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
         return;
 }
 
-void ChangeArmStackingFault(Home_t *home, Node_t *node1, Tag_t *tag2,
-                   real8 signSF, int globalOp)
+void ChangeArmStackingFault(Home_t *home, Node_t *node1, Tag_t *tag2, real8 signSF, int globalOp)
 {
 
         int     armID;
@@ -2235,14 +2211,14 @@ void ChangeArmStackingFault(Home_t *home, Node_t *node1, Tag_t *tag2,
         node2 = GetNodeFromIndex(home, tag2->domainID, tag2->index);
         if(node2 == (Node_t *)NULL)return;
 		
-		
         armID = GetArmID(home, node1, node2);
+#ifdef DEBUG
 		if(armID == -1){
 			PrintNode(node1);
 			PrintNode(node2);
-			printf("Warning: Task %d, node1 <-|-> node2\n",home->myDomain);
+			Fatal("Warning: Task %d, node1 <-|-> node2\n",home->myDomain);
 		}
-
+#endif
         node1->signSF[armID] = signSF;
 
         if(globalOp){
@@ -2715,8 +2691,7 @@ real8 NodeDistance(Home_t *home, Node_t *node1, Node_t *node2)
  *                         an appropriate glide plane for the bugers vector
  *
  *------------------------------------------------------------------------*/
-void RecalcSegGlidePlane(Home_t *home, Node_t *node1, Node_t *node2,
-                         int ignoreIfScrew)
+void RecalcSegGlidePlane(Home_t *home, Node_t *node1, Node_t *node2, int ignoreIfScrew)
 {
         int node1SegID, node2SegID;
         real8 burg[3], lineDir[3], newPlane[3];
@@ -2755,14 +2730,11 @@ void RecalcSegGlidePlane(Home_t *home, Node_t *node1, Node_t *node2,
         ZImage(home->param, &lineDir[0], &lineDir[1], &lineDir[2]);
         NormalizeVec(lineDir);
 
-        FindGlidePlane(home, burg, lineDir, newPlane,node1,node2);
-
-        if (DotProduct(newPlane, newPlane) < 1.0e-03) {
-            if (ignoreIfScrew) return;
-            PickScrewGlidePlane(home, burg, newPlane,node1,node2);
+        bool found; FindGlidePlane(home, burg, lineDir, node1, node2, newPlane, found);
+        if(!found){
+            Fatal("%s at %d: can not find the glide plane.",__FILE__, __LINE__);
         }
 
-        Normalize(&newPlane[0], &newPlane[1], &newPlane[2]);
 
         node1->nx[node1SegID] = newPlane[0];
         node1->ny[node1SegID] = newPlane[1];
@@ -3122,9 +3094,8 @@ void RepositionNode(Home_t *home, real8 newPos[3], Tag_t *tag, int globalOp)
         node = GetNodeFromTag(home, *tag);
 
         if (node != (Node_t *)NULL) {
-
+#ifdef DEBUG
 	        real8	vec[3];
-
 	        vec[0] = node->x - newPos[0];
 	        vec[1] = node->y - newPos[1];
 	        vec[2] = node->z - newPos[2];
@@ -3136,11 +3107,10 @@ void RepositionNode(Home_t *home, real8 newPos[3], Tag_t *tag, int globalOp)
                 printf("Warning: task %d, the node new pos is {%f,%f,%f}, dis %f\n",
                       home->myDomain, newPos[0], newPos[1], newPos[2], Normal(vec));
             }
-
+#endif
             node->x = newPos[0];
             node->y = newPos[1];
             node->z = newPos[2];
-
         }
 
         return;
@@ -3989,6 +3959,7 @@ real8 randm(int *seed)
 
         return(*seed * 4.65661287308E-10);
 }
+
 
 /*-------------------------------------------------------------------------
  *

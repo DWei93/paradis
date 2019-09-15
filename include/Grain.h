@@ -526,6 +526,16 @@ inline void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2, real8
  *  \return constrain type 0: no constraint; 1: plane constraint; 2: line constraint; 3: fixed*/
 int GlideConstraint(Home_t *home, Node_t *node, real8 *vec);
 
+/** Find plane of the arm, if there are several glide planes, we chose the glide plane with 
+ *  maximal Schmid factor if FEM is disabled, or chose the glide plane with highest local dissipation
+ *  if FEM is abled.
+ *  \param[in] burg Burgers vector of the arm
+ *  \param[in,out] lDir line direction of the arm. Note: no climb component in the line direction
+ *  \param[in] node1, node the ends node of the arm
+ *  \param[out] plane plane of the arm 
+ *  \param[out] found true is found, otherwise false*/
+void FindGlidePlane(Home_t *home, real8 *burg, real8 *lDir, Node_t *node1, Node_t *node2, real8 *plane, bool &found);
+
 /** Get the vector of nodal movement under the constraint type 
  *  \param[in] node the node pointer to be caculated 
  *  \param[in,out] velocity the velocity to be corrected along the constraint
