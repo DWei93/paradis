@@ -3117,79 +3117,6 @@ int HasShortSeg(Home_t *home, Node_t *node, real8 shortSegLenSq)
         return(0);
 }
 
-/****************************************************************************  
-*
-*	Assign grain number to node then add this operation to 
-*	Oplist to send to other domains. 
-*
-****************************************************************************/  
-void AssignGrain(Home_t *home, Node_t *node, int inGrain, int onGB) 
-{
-	if(node == (Node_t *)NULL){
-		printf("Task %d: %s, line %d -- Node = NULL",
-			   home->myDomain, __FILE__, __LINE__);
-		return;
-	}
-
-	node->inGrain = inGrain;
-	node->onGB = onGB;
-
-	Operate_t *op;
-
-/*
- *   Make sure the buffer allocated for the operation list is
- *   large enough to contain another operation.  If not, increase
- *   the size of the buffer.
- */
-    if (home->OpCount >= home->OpListLen) {
-		ExtendOpList (home);
-	}
-        
-	op = &home->opList[home->OpCount];
-
-	op->type = UPDATE_GRAIN;
-	op->dom1 = node->myTag.domainID;
-	op->idx1 = node->myTag.index;
-	op->inGrain = inGrain;
-	op->onGB = onGB;
-
-	home->OpCount++;
-
-	return;
-}
-
-
-void AssignConstraint(Home_t *home, Node_t *node, int constraint) 
-{
-	if(node == (Node_t *)NULL){
-		printf("Task %d: %s, line %d -- Node = NULL",
-			   home->myDomain, __FILE__, __LINE__);
-		return;
-	}
-
-	node->constraint = constraint;
-
-	Operate_t *op;
-
-/*
- *   Make sure the buffer allocated for the operation list is
- *   large enough to contain another operation.  If not, increase
- *   the size of the buffer.
- */
-    if (home->OpCount >= home->OpListLen) {
-		ExtendOpList (home);
-	}
-        
-	op = &home->opList[home->OpCount];
-
-	op->type = UPDATE_CONSTRAINT;
-	op->dom1 = node->myTag.domainID;
-	op->idx1 = node->myTag.index;
-	op->inGrain = constraint;
-
-	home->OpCount++;
-	return;
-}
 
 
 int NodeOnGB(Home_t *home, Node_t *node){
@@ -3931,8 +3858,6 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
     return(canMerge);
 }
 
-
-
 void CompressDirectionList(std::vector< std::vector<real8> >& dirList)
 {
     int     i, j, nRows;
@@ -3960,8 +3885,6 @@ void CompressDirectionList(std::vector< std::vector<real8> >& dirList)
     }
     return;
 }
-
-
 
 
 void SumOfValuesIsConstant(int n, int sum, std::vector<int>& valueList, int tot, 

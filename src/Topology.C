@@ -52,6 +52,7 @@
 #include "Util.h"
 #include "Comm.h"
 #include "Mobility.h"
+#include "GrainBoundary.h"
 
 #include <vector>
 
@@ -1515,17 +1516,17 @@ void SplitMultiNodes(Home_t *home)
                             vec[1] = splitNode1->y;
                             vec[2] = splitNode1->z;
 
-                            if(AdjustSplitedNodePosition(home, splitNode1, vec, pos)){
-                                splitNode1->x = pos[0];
-                                splitNode1->y = pos[1];
-                                splitNode1->z = pos[2];
+//                          if(AdjustSplitedNodePosition(home, splitNode1, vec, pos)){
+//                              splitNode1->x = pos[0];
+//                              splitNode1->y = pos[1];
+//                              splitNode1->z = pos[2];
 
-                                if(node != splitNode1){
-                                    splitNode1->oldx = pos[0];
-                                    splitNode1->oldy = pos[1];
-                                    splitNode1->oldz = pos[2];
-                                }
-                            }
+//                              if(node != splitNode1){
+//                                  splitNode1->oldx = pos[0];
+//                                  splitNode1->oldy = pos[1];
+//                                  splitNode1->oldz = pos[2];
+//                              }
+//                          }
 /*
  *                          If the split node is a grain node, we should ensure
  *                          that it can not cross the grain.
@@ -1545,17 +1546,17 @@ void SplitMultiNodes(Home_t *home)
                             vec[1] = splitNode2->y;
                             vec[2] = splitNode2->z;
 
-                            if(AdjustSplitedNodePosition(home, splitNode2, vec, pos)){
-                                splitNode2->x = pos[0];
-                                splitNode2->y = pos[1];
-                                splitNode2->z = pos[2];
-                              
-                                if(node != splitNode2){
-                                    splitNode2->oldx = pos[0];
-                                    splitNode2->oldy = pos[1];
-                                    splitNode2->oldz = pos[2];
-                                }
-                            }
+//                          if(AdjustSplitedNodePosition(home, splitNode2, vec, pos)){
+//                              splitNode2->x = pos[0];
+//                              splitNode2->y = pos[1];
+//                              splitNode2->z = pos[2];
+//                            
+//                              if(node != splitNode2){
+//                                  splitNode2->oldx = pos[0];
+//                                  splitNode2->oldy = pos[1];
+//                                  splitNode2->oldz = pos[2];
+//                              }
+//                          }
 
                             FoldBox(param, &splitNode2->x, &splitNode2->y,
                                   &splitNode2->z);
@@ -2381,10 +2382,10 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                 0.0, 0.0, 0.0,          /* burgers vector unneeded */
                 node->x, node->y, node->z,
                 0.0, 0.0, 0.0);         /* plane normal not needed */
-
-            AssignGrain(home, node, node->inGrain, node->onGB);
-            AssignGrain(home, newNode, newNode->inGrain, newNode->onGB);
-            AssignConstraint(home, node, node->constraint);
+//
+////            AssignGrain(home, node, node->inGrain, node->onGB);
+////        AssignGrain(home, newNode, newNode->inGrain, newNode->onGB);
+            AssignConstraint(home, node, node->constraint, false);
         }
 
 /*
@@ -2425,25 +2426,25 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 
 	    free(tarmList);
 
-        if(AdjustSplitedNodePosition(home, (*splitNode1), pos1, pos)){
-            VECTOR_COPY(pos1, pos);
-            (*splitNode1)->x = pos1[0];
-            (*splitNode1)->y = pos1[1];
-            (*splitNode1)->z = pos1[2];
-            if(globalOp){
-                RepositionNode(home,pos1,&(*splitNode1)->myTag,globalOp);
-            }
-        }
- 
-        if(AdjustSplitedNodePosition(home, (*splitNode2), pos2, pos)){
-            VECTOR_COPY(pos2, pos);
-            (*splitNode2)->x = pos2[0];
-            (*splitNode2)->y = pos2[1];
-            (*splitNode2)->z = pos2[2];
-            if(globalOp){
-                RepositionNode(home,pos2,&(*splitNode2)->myTag,globalOp);
-            }
-        }
+//      if(AdjustSplitedNodePosition(home, (*splitNode1), pos1, pos)){
+//          VECTOR_COPY(pos1, pos);
+//          (*splitNode1)->x = pos1[0];
+//          (*splitNode1)->y = pos1[1];
+//          (*splitNode1)->z = pos1[2];
+//          if(globalOp){
+//              RepositionNode(home,pos1,&(*splitNode1)->myTag,globalOp);
+//          }
+//      }
+
+//      if(AdjustSplitedNodePosition(home, (*splitNode2), pos2, pos)){
+//          VECTOR_COPY(pos2, pos);
+//          (*splitNode2)->x = pos2[0];
+//          (*splitNode2)->y = pos2[1];
+//          (*splitNode2)->z = pos2[2];
+//          if(globalOp){
+//              RepositionNode(home,pos2,&(*splitNode2)->myTag,globalOp);
+//          }
+//      }
  
         newNode->oldx = newNode->x;
         newNode->oldy = newNode->y;
@@ -2813,7 +2814,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	              0.0, 0.0, 0.0,          /* burgers vector unneeded */
 	              targetNode->x, targetNode->y, targetNode->z,
 	              0.0, 0.0, 0.0);         /* plane normal not needed */
-            AssignGrain(home, targetNode, targetNode->inGrain, targetNode->onGB);
+////        AssignGrain(home, targetNode, targetNode->inGrain, targetNode->onGB);
 	    }
 	}else{
 	    *status |= MERGE_NO_REPOSITION;
@@ -2977,7 +2978,7 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
               (*newNodePtr)->vY,            /* but node velocity is, so we*/
               (*newNodePtr)->vZ);           /* commandeer the AddOp normal*/
                                         /* arguments for velocity data*/
-	    AssignGrain(home, (*newNodePtr), inGrain, onGB);
+/////   AssignGrain(home, (*newNodePtr), inGrain, onGB);
     }
 
 	AssignNodeToCell(home, (*newNodePtr));

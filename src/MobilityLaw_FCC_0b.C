@@ -322,7 +322,13 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
  *          FIX ME!  For now, we're assuming the matrix is invertable.
  */
 
-	    DoResistance(home, node, nForce);
+#if 0
+	DoResistance(home, node, nForce);
+#else
+    nForce[0] = node->fX;
+    nForce[1] = node->fY;
+    nForce[2] = node->fZ;
+#endif
 
             if (Matrix33Invert(Btotal, invBtotal) == 0) {
                 Fatal("Mobility_FCC_0b: Cannot invert 3X3 matrix!");

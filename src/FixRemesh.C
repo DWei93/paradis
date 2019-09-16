@@ -263,69 +263,44 @@ void FixRemesh(Home_t *home, const char flag[256])
 				break;
 
 /*
- * 			Update the grain of node. 
+ * 			    change the location of node. 
  */				
-				case(UPDATE_GRAIN):
+				case(CHANGE_LOCATION):
 				node1 = GetNodeFromIndex(home, op->dom1, op->idx1);
-				
 				if (node1 == (Node_t *)NULL) break;
-                if(node1->inGrain == op->inGrain &&
-                   node1->onGB == op->onGB)break;
 				
 #if CHECK_FIXREMESH				
 				printf("FR %s: Task %d, ", flag, home->myDomain);
-				printf("UG (%d,%d), %d %d ",op->dom1,op->idx1,
-					  op->inGrain, op->onGB);
+				printf("UG (%d,%d), %d %d %d %d",op->dom1,op->idx1,
+					  op->dom2, op->idx2, op->dom3, op->idx3);
 				PrintTag(node1);
 				printf("\n");
 #endif				
 
 				if(op->dom1 == home->myDomain){
 					PrintTag(node1);
-					printf("Task %d, Warning , the native node change inGrain %d %d\n",
-                           home->myDomain, op->inGrain, op->onGB);
+					printf("Task %d, Warning , the native node change location %d %d %d %d\n",
+                           home->myDomain, op->dom2, op->idx2, op->dom3, op->idx3);
 				}
-#if 0
-                if(op->inGrain > -1){
-                    for(i=0; i<node1->numNbrs; i++){
-                        if((nbr = GetNeighborNode(home,node1,i)) == (Node_t *)NULL)continue;
 
-                        if(!IsOnGB(nbr) && nbr->inGrain != op->inGrain){
-                            printf("Warning: task %d, flag %s, the node (%d,%d) change grain from ", 
-                                home->myDomain, flag, node1->myTag.domainID, node1->myTag.index);
-                            printf("(%d,%d) to (%d,%d).\n", node1->inGrain, node1->onGB,
-                                op->inGrain, op->onGB);
-                            PrintTag(node1);
-                            PrintTag(nbr);
-                            printf("\n");
-                        }
-                    }
-
-                }
-
-#endif
-				node1->inGrain = op->inGrain;
-				node1->onGB = op->onGB;
-
+                node1->place[0] = op->dom2;
+                node1->place[1] = op->idx2;
+                node1->place[2] = op->dom3;
+                node1->place[3] = op->idx3;
 				break;
 				
-			case(UPDATE_CONSTRAINT):
+			case(CHANGE_CONSTRAINT):
 				node1 = GetNodeFromIndex(home, op->dom1,op->idx1);
+				if (node1 == (Node_t *)NULL) break;
+
 #if CHECK_FIXREMESH				
 				printf("FR %s: Task %d, ", flag, home->myDomain);
-				printf("UC (%d,%d), %d ",op->dom1,op->idx1,
-					  op->inGrain);
+				printf("UC (%d,%d), %d ",op->dom1,op->idx1, op->dom2);
 				PrintTag(node1);
 				printf("\n");
 #endif				
 
-				if (node1 == (Node_t *)NULL) {
-					break;
-				}
-				if (node1 == (Node_t *)NULL) break;
-
-				node1->constraint = op->inGrain;
-				
+				node1->constraint = op->dom2;
 				break;
 
 /*
@@ -383,6 +358,10 @@ void FixRemesh(Home_t *home, const char flag[256])
 				tag2.domainID = op->dom2;
 				tag2.index    = op->idx2;
 
+#ifdef DEBUG
+                if(fabs(op->nx)<1E-3 && fabs(op->ny)<1E-3 && fabs(op->nz)<1E-3)
+                    Fatal("%s CHANGE_ARM_BURG: normal of node is not defined",__func__);
+#endif
 				ChangeArmBurg(home, node1, &tag2,
 					      op->bx, op->by, op->bz,
 					      op->nx, op->ny, op->nz,

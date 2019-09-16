@@ -366,7 +366,7 @@ void CrossSlip(Home_t *home)
  *                                                                   D.Wei
  */
     DebugGB(home, 301);
-    GBCrossSlip(home);
+//  GBCrossSlip(home);
     DebugGB(home, 302);
 #endif
 

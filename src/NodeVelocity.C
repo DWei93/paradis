@@ -220,7 +220,7 @@ int CalcNodeVelocities(Home_t *home, int zeroOnErr, int doAll)
 /*
  *              We also used the 'reset forces' flag to determine if we needed
  *              to recalculate velocity, but now it can be reset. If defined parallel
- *              we reset the nodal flag in CommSendVelocity.
+ *              we reset the nodal flag in CommSendVelocity. D. Wei
  */
                 threadNode->flags &= ~NODE_RESET_FORCES;
 #endif

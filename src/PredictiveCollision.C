@@ -1741,17 +1741,17 @@ void PredictiveCollisions(Home_t *home)
                                         newPos[2] = vec2[2] + 0.5*vec1[2];
                                     }else if(onGB1 == -1 && inGrain1 != inGrain2){
 
-                                        AdjustSplitedNodePosition(home, mergenode1, newPos, vec1);
-                                        AdjustSplitedNodePosition(home, mergenode2, newPos, vec2);
+//                                      AdjustSplitedNodePosition(home, mergenode1, newPos, vec1);
+//                                      AdjustSplitedNodePosition(home, mergenode2, newPos, vec2);
 
-                                        vec1[0] -= vec2[0];
-                                        vec1[1] -= vec2[1];
-                                        vec1[2] -= vec2[2];
-                                        ZImage(param, vec1, vec1+1, vec1+2);
+//                                      vec1[0] -= vec2[0];
+//                                      vec1[1] -= vec2[1];
+//                                      vec1[2] -= vec2[2];
+//                                      ZImage(param, vec1, vec1+1, vec1+2);
 
-                                        newPos[0] = vec2[0] + 0.5*vec1[0];
-                                        newPos[1] = vec2[1] + 0.5*vec1[1];
-                                        newPos[2] = vec2[2] + 0.5*vec1[2];
+//                                      newPos[0] = vec2[0] + 0.5*vec1[0];
+//                                      newPos[1] = vec2[1] + 0.5*vec1[1];
+//                                      newPos[2] = vec2[2] + 0.5*vec1[2];
                                     }
                                }else{
                                     inGrain1 = -1;
@@ -2125,18 +2125,18 @@ void PredictiveCollisions(Home_t *home)
  */
                              mergenode2 = splitNode2;
 
-                             if(AdjustSplitedNodePosition(home, mergenode2, newPos, pos)){
-                                 VECTOR_COPY(newPos, pos);
-                                 mergenode2->x = newPos[0];
-                                 mergenode2->y = newPos[1];
-                                 mergenode2->z = newPos[2];
-                
-                                 if(node1 != mergenode2){
-                                     mergenode2->oldx = newPos[0];
-                                     mergenode2->oldy = newPos[1];
-                                     mergenode2->oldz = newPos[2];
-                                 }
-                             }
+//                           if(AdjustSplitedNodePosition(home, mergenode2, newPos, pos)){
+//                               VECTOR_COPY(newPos, pos);
+//                               mergenode2->x = newPos[0];
+//                               mergenode2->y = newPos[1];
+//                               mergenode2->z = newPos[2];
+//              
+//                               if(node1 != mergenode2){
+//                                   mergenode2->oldx = newPos[0];
+//                                   mergenode2->oldy = newPos[1];
+//                                   mergenode2->oldz = newPos[2];
+//                               }
+//                           }
 
                              MarkNodeForceObsolete(home, splitNode1);
                              MarkNodeForceObsolete(home, splitNode2);
@@ -2297,19 +2297,19 @@ void PredictiveCollisions(Home_t *home)
                                  newPos[1] = vec2[1] + 0.5*vec1[1];
                                  newPos[2] = vec2[2] + 0.5*vec1[2];
                              }else{
-                                 if(onGB1 == -1 && inGrain1 != inGrain2){
-                                     AdjustSplitedNodePosition(home, mergenode1, newPos, vec1);
-                                     AdjustSplitedNodePosition(home, mergenode2, newPos, vec2);
+//                               if(onGB1 == -1 && inGrain1 != inGrain2){
+//                                   AdjustSplitedNodePosition(home, mergenode1, newPos, vec1);
+//                                   AdjustSplitedNodePosition(home, mergenode2, newPos, vec2);
 
-                                     vec1[0] -= vec2[0];
-                                     vec1[1] -= vec2[1];
-                                     vec1[2] -= vec2[2];
-                                     ZImage(param, vec1, vec1+1, vec1+2);
+//                                   vec1[0] -= vec2[0];
+//                                   vec1[1] -= vec2[1];
+//                                   vec1[2] -= vec2[2];
+//                                   ZImage(param, vec1, vec1+1, vec1+2);
 
-                                     newPos[0] = vec2[0] + 0.5*vec1[0];
-                                     newPos[1] = vec2[1] + 0.5*vec1[1];
-                                     newPos[2] = vec2[2] + 0.5*vec1[2];
-                                 }
+//                                   newPos[0] = vec2[0] + 0.5*vec1[0];
+//                                   newPos[1] = vec2[1] + 0.5*vec1[1];
+//                                   newPos[2] = vec2[2] + 0.5*vec1[2];
+//                               }
                              }
                         }else{
                             inGrain1 = -1;

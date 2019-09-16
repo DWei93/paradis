@@ -3180,9 +3180,6 @@ void AddOp (Home_t *home,
         op->nx = nx;
         op->ny = ny;
         op->nz = nz;
-		op->inGrain = -1;
-		op->onGB = -1;
-		
         home->OpCount++;
 
         return;

@@ -1142,7 +1142,7 @@ XLIB_LIB.gcc          =
 XLIB_INCS.gcc         =
 
 MPI_LIBDIR.gcc        =
-MPI_LIB.gcc           = -fopenmp
+MPI_LIB.gcc           = -fopenmp -static-libstdc++
 MPI_INCS.gcc          =
 
 HDF_LIBDIR.gcc        = 

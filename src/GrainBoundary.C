@@ -19,9 +19,19 @@
 #include <algorithm>
 #include <numeric>
 
+
+
+/** The main clipping function for clipping all nodes in parallel */
+void Clipping(Home_t *home)
+{
+    return;
+}
+
+
+
 #define ENERGY_RULER 1
 
-
+#if 0
 /****************************************************************************  
 *
 *	In order to avoid numerical error, we must ensure the node is pulled 
@@ -664,7 +674,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
                 if(Normal(vec1) > 1.0E-4){
                     Fatal("In file %s at line %d", __FILE__, __LINE__);
                 }
-            }
+            
 
             pene->res[i].pos[j][0] = centorPos[0] + vec[0]*eps*jth;
             pene->res[i].pos[j][1] = centorPos[1] + vec[1]*eps*jth;
@@ -1378,7 +1388,6 @@ void HandleGrainBoundary(Home_t *home)
 	return;
 
 }
-
 void DoResistance(Home_t *home, Node_t *node, real8 *nForce)
 {
 	real8 	distance, pos[3],dir[3], factor, burgMag;
@@ -1400,7 +1409,6 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce)
 	nForce[0] = node->fX;
 	nForce[1] = node->fY;
 	nForce[2] = node->fZ;
-
     if(param->polycrystal){
 	    rann = 3.0 * param->rann;
 
@@ -1568,7 +1576,6 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce)
     }
 
 	return;
-
 }
 
 void ApplyPosConstraint(Param_t *param, Node_t *node){
@@ -1748,7 +1755,7 @@ void AdjustSurfaceNode(Home_t *home)
             }
 		}
         if(surfaceNbr == node->numNbrs){
-            AssignConstraint(home, node, nbrConstraint);
+            AssignConstraint(home, node, nbrConstraint, true);
         }
 #endif
 
@@ -1925,8 +1932,8 @@ void AdjustSurfaceNode(Home_t *home)
 	        MarkNodeForceObsolete(home, node2);        
 	        MarkNodeNoCollisions(home, node2);        
 
-            AssignConstraint(home, node1, nodecst);
-            AssignConstraint(home, node2, constraint);
+            AssignConstraint(home, node1, nodecst, true);
+            AssignConstraint(home, node2, constraint, true);
 
 	    } /*for(j=0; j< ...)*/
 	}/*for(i=0; i< ...)*/	
@@ -2915,3 +2922,4 @@ bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8
     return(0);
 }
 
+#endif

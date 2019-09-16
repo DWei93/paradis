@@ -527,80 +527,6 @@ static void AdvanceAllNodes(Home_t *home, real8 oldDT)
 	return;    
 }
 
-
-/*------------------------------------------------------------------------
- *
- *      Function:       AdjustConstrictedNodeVelocity
- *      Description:    make sure all nodes move along the direction of 
- *                      constraint.
- *
- *      FIXME:          This problem occurs because nodal velocity is not updated
- *                      correctly when the topology changes.
- *-----------------------------------------------------------------------*/
-void AdjustConstrictedNodeVelocity(Home_t *home){
-	int	        i;
-	Node_t	    *node;
-    real8       vec[3];
-
-	for (i = 0; i < home->newNodeKeyPtr; i++) {
-
-		if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
-            if(SurfaceNode(node) || 
-               DifferentGlidePlane(node)){
-         
-            vec[0] = node->vX;
-            vec[1] = node->vY;
-            vec[2] = node->vZ;
-            AdjustNodeDirection(home, node, vec);
-            node->vX = vec[0];
-            node->vY = vec[1];
-            node->vZ = vec[2];
-          
-            vec[0] = node->oldvX;
-            vec[1] = node->oldvY;
-            vec[2] = node->oldvZ;
-            AdjustNodeDirection(home, node, vec);
-            node->oldvX = vec[0];
-            node->oldvY = vec[1];
-            node->oldvZ = vec[2];
-        }
-	}
-
-/*
- *	Also need to move Ghost nodes
- */
-	node = home->ghostNodeQ;
-
-	while (node) {
-        if(SurfaceNode(node) || 
-           DifferentGlidePlane(node)){
-         
-            vec[0] = node->vX;
-             vec[1] = node->vY;
-             vec[2] = node->vZ;
-             AdjustNodeDirection(home, node, vec);
-         
-             node->vX = vec[0];
-             node->vY = vec[1];
-             node->vZ = vec[2];
-         
-             vec[0] = node->oldvX;
-             vec[1] = node->oldvY;
-             vec[2] = node->oldvZ;
-             AdjustNodeDirection(home, node, vec);
-             node->oldvX = vec[0];
-             node->oldvY = vec[1];
-             node->oldvZ = vec[2];
-
-        }
-		node = node->next;
-	}
-
-	return;    
-
-}
-
-
 /*------------------------------------------------------------------------
  *
  *      Function:    TrapezoidIntegrator
@@ -637,7 +563,6 @@ void TrapezoidIntegrator(Home_t *home)
         if (newDT <= 0.0) newDT = param->maxDT;
         param->deltaTT = newDT;
 
-        AdjustConstrictedNodeVelocity(home);
 /*
  *      Preserve certain items of nodal data for later use.
  *      vx --> currV    x --> oldx

@@ -21,6 +21,7 @@
 #include "Mobility.h"
 #include "Decomp.h"
 #include "QueueOps.h"
+#include "GrainBoundary.h"
 #include <mcheck.h>
 #define MALLOC_TRACE mem.log 
 
@@ -270,12 +271,10 @@ void ParadisStep(Home_t *home)
             CalcNodeVelocities(home, 1, doAll);
             CommSendVelocity(home, doAll);
             firstTime = 0;
-
         } else {
             NodeForce(home, PARTIAL);
             CalcNodeVelocities(home, 0, doAll);
             CommSendVelocity(home, doAll);
-
         }
 
 
@@ -300,6 +299,9 @@ void ParadisStep(Home_t *home)
             TrapezoidIntegrator(home);
         }
         DebugGB(home,18);
+#if CHECK_GB_TOPO
+        GenerateOutput(home, STAGE_DEBUG, "-6-intergration");
+#endif
 
 /*
  *      Before doing topological changes, set flags indicating any
@@ -308,51 +310,23 @@ void ParadisStep(Home_t *home)
  *      function should be invoked before either of those items are done.
  */
         InitTopologyExemptions(home);
-        DebugGB(home,19);
+        ClearOpList(home);
 
-#if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-5Trap");
-#endif
+        Clipping(home);
 
-        DebugGB(home,20);
-
-        if(param->xBoundType == Free ||
-           param->yBoundType == Free ||
-           param->zBoundType == Free){
-            ClearOpList(home);
-
-            AdjustSurfaceNode(home);
-
-            TimerStart(home, SEND_FS);
-            CommSendRemesh(home);
-            TimerStop(home, SEND_FS);
+        TimerStart(home, SEND_FS);
+        CommSendRemesh(home);
+        TimerStop(home, SEND_FS);
 	
-            TimerStart(home, FIX_FS);
-            FixRemesh(home, "Surface");
-            TimerStop(home, FIX_FS);
-#if CHECK_GB_TOPO
-            GenerateOutput(home, STAGE_DEBUG, "-6FS");
-#endif
-        }
-
-        DebugGB(home,21);
-        if(param->polycrystal && param->nGrain>1){
-            ClearOpList(home);
-            HandleGrainBoundary(home);
-            DebugGB(home,22);
-
-            TimerStart(home, SEND_GB);
-            CommSendRemesh(home);
-            TimerStop(home, SEND_GB);
-	
-            TimerStart(home, FIX_GB);
-            FixRemesh(home, "GB");
-            TimerStop(home, FIX_GB);
-
-        }
+        TimerStart(home, FIX_FS);
+        FixRemesh(home, "Surface");
+        TimerStop(home, FIX_FS);
 
         DebugGB(home,23);
 
+        NodeForce(home, PARTIAL);
+        CalcNodeVelocities(home, 0, doAll);
+        CommSendVelocity(home, doAll);
 /*
  *      In some simulations, it is necessary to recalculate and distribute
  *      the glide plane infromation for segments after the nodes have been
@@ -382,7 +356,7 @@ void ParadisStep(Home_t *home)
  *      determine if any output needs to be generated at this stage, and
  *      call the appropriate I/O functions if necessary.
  */
-        GenerateOutput(home, STAGE_CYCLE,"-1cycle");
+        GenerateOutput(home, STAGE_CYCLE,"-1-cycle");
         DebugGB(home,1);
 
 /*
@@ -400,6 +374,10 @@ void ParadisStep(Home_t *home)
         SplitMultiNodes(home);
 
         DebugGB(home,2);
+#if CHECK_GB_TOPO
+        GenerateOutput(home, STAGE_DEBUG, "-2-RemoveConstraints");
+#endif
+
 #ifdef _FEM
         SplitSurfaceNodes(home);
 #endif
@@ -412,7 +390,7 @@ void ParadisStep(Home_t *home)
         CrossSlip(home);
         DebugGB(home,3);
 #if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-2CrossSlip");
+        GenerateOutput(home, STAGE_DEBUG, "-3-CrossSlip");
 #endif
 /*
  *      Search for dislocation segments in close proximity to each other
@@ -441,6 +419,9 @@ void ParadisStep(Home_t *home)
 		
         DebugGB(home,6);
 
+#if CHECK_GB_TOPO
+        GenerateOutput(home, STAGE_DEBUG, "-4-Collision");
+#endif
 #ifdef _FEM
 	AdjustNodePosition(home, 1); 
 #endif 
@@ -484,7 +465,7 @@ void ParadisStep(Home_t *home)
 
 
 #if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-4Remesh");
+        GenerateOutput(home, STAGE_DEBUG, "-5-Remesh");
 #endif
 /*
  *      Define load curve and calculate change in applied stress this cycle

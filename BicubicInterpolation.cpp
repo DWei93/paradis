@@ -296,12 +296,9 @@ int main(int argc,char** argv)
     }
 
 #if 0
-
-	MPI_Allreduce(localArray, globalArray, nMeshPoints*4, MPI_DOUBLE,
-			   MPI_SUM, MPI_COMM_WORLD);
+	MPI_Allreduce(localArray, globalArray, nMeshPoints*4, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #else
-	MPI_Reduce(localArray, globalArray, nMeshPoints*4, MPI_DOUBLE,
-			   MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(localArray, globalArray, nMeshPoints*4, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 #endif
     free(localArray);
 
