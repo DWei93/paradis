@@ -301,9 +301,8 @@ void CommSendSegments(Home_t *home, int numRecvBufs, int numSendBufs,
                       int *cellSegCnts)
 {
         int         i, recvIndex;
-        int         *recvBufEnts, *sendBufEnts;
-        real8       **sendBuf, **recvBuf;
-
+        int         *recvBufEnts=(int *)NULL, *sendBufEnts=(int *)NULL;
+        real8       **sendBuf=(real8 **)NULL, **recvBuf=(real8 **)NULL;
 
 #ifdef PARALLEL
 /*

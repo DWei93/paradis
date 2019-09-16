@@ -91,7 +91,6 @@ void MarkParamEnabled(ParamList_t *CPList, const char *name)
  *----------------------------------------------------------------------*/
 void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 {
-		int i;
 /*
  *      Note: Parameters need only be initialized if their
  *      default values are non-zero.

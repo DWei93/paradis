@@ -460,7 +460,7 @@ void *ParadisRealloc(char const *fileName, int lineNum, void *ptr, size_t size)
  
         if (found) {
 
-            if (size < memBlocks[i].userSize) {
+            if (int(size) < memBlocks[i].userSize) {
                 copySize = size;
             } else {
                 copySize = memBlocks[i].userSize;

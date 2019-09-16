@@ -666,14 +666,14 @@ void SetRemainingDefaults(Home_t *home)
  *          not within the primary bounding box, it's a problem.
  */
             if (((param->xBoundType == Free) &&
-                 (param->xBoundMin < param->minCoordinates[0]) ||
-                 (param->xBoundMax > param->maxCoordinates[0])) ||
+                 ((param->xBoundMin < param->minCoordinates[0]) ||
+                 (param->xBoundMax > param->maxCoordinates[0]))) ||
                 ((param->yBoundType == Free) &&
-                 (param->yBoundMin < param->minCoordinates[1]) ||
-                 (param->yBoundMax > param->maxCoordinates[1])) ||
+                 ((param->yBoundMin < param->minCoordinates[1]) ||
+                 (param->yBoundMax > param->maxCoordinates[1]))) ||
                 ((param->zBoundType == Free) &&
-                 (param->zBoundMin < param->minCoordinates[2]) ||
-                 (param->zBoundMax > param->maxCoordinates[2]))) {
+                 ((param->zBoundMin < param->minCoordinates[2]) ||
+                 (param->zBoundMax > param->maxCoordinates[2])))) {
                 Fatal("Free surfaces are not within main bounding box!\n"
                       "    Surface min coordinates (%lf %lf %lf)\n"
                       "    Surface max coordinates (%lf %lf %lf)\n",
@@ -1178,9 +1178,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
         char         *sep, *start;
         char         tmpDataFile[256], testFile[256], tmpTableFile[256];
         char         *ctrlFile, tmpGrainFile[256];
-        char         *dataFile, *tableFile, *voroFile;
+        char         *dataFile=(char *)NULL, *tableFile=(char *)NULL, *voroFile=(char *)NULL;
         const   char* temp;
-        Param_t      *param;
+        Param_t      *param=(Param_t *)NULL;
         InData_t     *inData;
         int          fd;
         int          totMeshNum;
@@ -1224,10 +1224,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
  */
 
         if (home->myDomain == 0) {
-            dataFile = (char *)NULL;
             ctrlFile = (char*)"control.script";
-            tableFile = (char *)NULL;
-            voroFile = (char *)NULL;
             
             for (i = 1; i < argc; i++) {
                 if (!strcmp(argv[i], "-r")) {

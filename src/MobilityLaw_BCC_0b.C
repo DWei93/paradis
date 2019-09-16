@@ -44,7 +44,7 @@ int Mobility_BCC_0b(Home_t *home, Node_t *node)
 {
         int     i, j, nbrs;
         int     numNonZeroLenSegs = 0;
-        real8   massMult, massMatrix[3][3];
+        real8   massMatrix[3][3];
         real8   totLength, tmp, vOld[3], tmp3[3];
         real8   bx, by, bz;
         real8   dx, dy, dz;
@@ -63,7 +63,10 @@ int Mobility_BCC_0b(Home_t *home, Node_t *node)
                                 {0.0, 0.0, 0.0}};
         real8   invBtotal[3][3];
         Node_t  *nbrNode;
-        Param_t *param;
+        Param_t *param=home->param;
+
+        const bool includeInertia = param->includeInertia>0;
+        real8 massMult=0;
 
 /*
  *      If the node is a "fixed" node, we cannot move it, so just zero
@@ -76,7 +79,6 @@ int Mobility_BCC_0b(Home_t *home, Node_t *node)
             return(0);
         }
 
-        param = home->param;
 
         Bscrew     = 1.0 / param->MobScrew;
         Bedge      = 1.0 / param->MobEdge;
@@ -111,7 +113,7 @@ int Mobility_BCC_0b(Home_t *home, Node_t *node)
 /*
  *      If we need to include inertial terms...
  */
-        if (param->includeInertia) {
+        if (includeInertia) {
             massMult   = 0.25 * param->massDensity *
                          (param->burgMag * param->burgMag);
 
@@ -312,7 +314,7 @@ int Mobility_BCC_0b(Home_t *home, Node_t *node)
 /*
  *      If we need to include inertial terms...
  */
-        if (param->includeInertia) {
+        if (includeInertia) {
 
             tmp = totLength * massMult / param->deltaTT;
 

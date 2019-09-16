@@ -349,7 +349,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         int    k, l;
         int    nodeIndex;
         int    threadID, threadIterStart, threadIterEnd;
-        real8  thread_disloDensity;
+        real8  thread_disloDensity=0.0;
         real8  *thread_partialDensity;
         real8  thread_dstn[3][3], thread_dspn[3][3], thread_dyad[3][3];
         real8  thread_dtstn[3][3];
@@ -567,14 +567,14 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                         thread_delAccumulation[0] += (DotProduct(vec1, vec1)*disLen);
                         thread_delAccumulation[4] += vtau;
                         GetBinID(param->velMin, param->baseVel, param->nVelBins, velocity, disLen, binID, coeff);
-#pragma opm critical
+#pragma omp critical (CRIT_DPS_FCC_A)
                         {
                             param->velTable[binID[0]][1] += coeff[0];
                             param->velTable[binID[1]][1] += coeff[1];
                         }
                         
                         GetBinID(param->dissMin, param->baseDiss, param->nDissBins, vtau, disLen, binID, coeff);
-#pragma opm critical
+#pragma omp critical (CRIT_DPS_FCC_A)
                         {
                             param->dissTable[binID[0]][1] += coeff[0];
                             param->dissTable[binID[1]][1] += coeff[1];
@@ -584,14 +584,14 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                         thread_delAccumulation[1] += (DotProduct(vec1, vec1)*disLen);
                         thread_delAccumulation[5] += vtau;
                         GetBinID(param->velMin, param->baseVel, param->nVelBins, velocity, disLen, binID, coeff);
-#pragma opm critical
+#pragma omp critical (CRIT_DPS_FCC_A)
                         {
                             param->velTable[binID[0]][2] += coeff[0];
                             param->velTable[binID[1]][2] += coeff[1];
                         }
 
                         GetBinID(param->dissMin, param->baseDiss, param->nDissBins, vtau, disLen, binID, coeff);
-#pragma opm critical
+#pragma omp critical (CRIT_DPS_FCC_A)
                         {
                             param->dissTable[binID[0]][2] += coeff[0];
                             param->dissTable[binID[1]][2] += coeff[1];
@@ -605,14 +605,14 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                     thread_delAccumulation[7] += vtau;
 
                     GetBinID(param->velMin, param->baseVel, param->nVelBins, velocity, disLen, binID, coeff);
-#pragma opm critical
+#pragma omp critical (CRIT_DPS_FCC_A)
                     {
                         param->velTable[binID[0]][3] += coeff[0];
                         param->velTable[binID[1]][3] += coeff[1];
                     }
 
                     GetBinID(param->dissMin, param->baseDiss, param->nDissBins, vtau, disLen, binID, coeff);
-#pragma opm critical
+#pragma omp critical (CRIT_DPS_FCC_A)
                     {
                         param->dissTable[binID[0]][3] += coeff[0];
                         param->dissTable[binID[1]][3] += coeff[1];
@@ -759,14 +759,14 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                     }
 			 	  
 	                if(l==k){
-#pragma opm critical
+#pragma omp critical (CRIT_DPS_FCC_A)
                         {
                             home->pstnEle[eleNum][l] += tmpDstn; // element
                         }
                     }
 
 	                if(l<k){
-#pragma opm critical
+#pragma omp critical (CRIT_DPS_FCC_A)
                         {
                             home->pstnEle[eleNum][l+k+2] += tmpDstn; // element
                         }

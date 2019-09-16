@@ -49,7 +49,7 @@
 #define BUF_PACK(buf, val, type) \
     {  \
         int offSet; \
-        for (offSet = 0; offSet < sizeof(type); offSet++) { \
+        for (offSet = 0; offSet < int(sizeof(type)); offSet++) { \
             (*buf++) = ((char *)(&val))[offSet]; \
         } \
     }
@@ -63,7 +63,7 @@
 #define BUF_UNPACK(buf, val, type) \
     {  \
         int offSet; \
-        for (offSet = 0; offSet < sizeof(type); offSet++) { \
+        for (offSet = 0; offSet < int(sizeof(type)); offSet++) { \
             ((char *)(&val))[offSet] = (*buf++); \
         } \
     }
@@ -482,7 +482,7 @@ static void WriteVisitNodesBinary(Home_t *home, char *baseFileName,
 
             if (bufNodeCnt == MAX_NODES_PER_BUF) {
                 writeLen = bufNodeCnt * BYTES_PER_NODE;
-                if (write(fdNode, buffer, writeLen) != writeLen) {
+                if (write(fdNode, buffer, writeLen) != int(writeLen)) {
                     Fatal("WriteVisitNodesBinary: write error %d -- %s",
                           errno, strerror(errno));
                 }
@@ -497,7 +497,7 @@ static void WriteVisitNodesBinary(Home_t *home, char *baseFileName,
  */
         if (bufNodeCnt > 0) {
             writeLen = bufNodeCnt * BYTES_PER_NODE;
-            if (write(fdNode, buffer, writeLen) != writeLen) {
+            if (write(fdNode, buffer, writeLen) != int(writeLen)) {
                 Fatal("WriteVisitNodesBinary: write error %d -- %s",
                       errno, strerror(errno));
             }
@@ -843,7 +843,7 @@ static void WriteVisitSegmentsBinary(Home_t *home, char *baseFileName,
 
                     if (bufSegCnt == MAX_SEGS_PER_BUF) {
                         writeLen = bufSegCnt * BYTES_PER_SEGMENT;
-                        if (write(fdSeg, buffer, writeLen) != writeLen) {
+                        if (write(fdSeg, buffer, writeLen) != int(writeLen)) {
                             Fatal("WriteVisitBinary: write error %d -- %s",
                                   errno, strerror(errno));
                         }
@@ -861,7 +861,7 @@ static void WriteVisitSegmentsBinary(Home_t *home, char *baseFileName,
  */
         if (bufSegCnt > 0) {
             writeLen = bufSegCnt * BYTES_PER_SEGMENT;
-            if (write(fdSeg, buffer, writeLen) != writeLen) {
+            if (write(fdSeg, buffer, writeLen) != int(writeLen)){
                 Fatal("WriteVisitBinary: write error %d -- %s",
                       errno, strerror(errno));
             }

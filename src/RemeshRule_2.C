@@ -189,8 +189,8 @@ static void MeshCoarsen(Home_t *home)
                        __FILE__, __LINE__);
                 continue;
             }
-            if(SurfaceNode(nbr1) && SurfaceNode(node) ||
-               SurfaceNode(nbr2) && SurfaceNode(node) ||
+            if((SurfaceNode(nbr1) && SurfaceNode(node)) ||
+               (SurfaceNode(nbr2) && SurfaceNode(node)) ||
                SurfaceNode(node) )continue;
 
 #if CROSS_SLIP_GB_MODEL

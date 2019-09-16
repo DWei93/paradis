@@ -417,7 +417,7 @@ static void GetDecompCnt(int xNumDoms, int yNumDoms, int zNumDoms,
                          int *totDecomps)
 {
         int  i;
-        int  xDoms[2], yDoms[2], zDoms[2];
+        int  xDoms[2]={0,0}, yDoms[2]={0,0}, zDoms[2]={0,0};
         int  cut[3], subDecompUsed[8];
 
         *totDecomps += 1;
@@ -1366,7 +1366,7 @@ static void InitRBDecomp(Home_t *home, RBDecomp_t *decomp,
                          int level)
 {
         int        i, cut[3], subDecompUsed[8];
-        int        xDoms[2], yDoms[2], zDoms[2];
+        int        xDoms[2]={0,0}, yDoms[2]={0,0}, zDoms[2]={0,0};
         RBDecomp_t *subDecomp;
         Param_t    *param;
 
@@ -1680,7 +1680,7 @@ void AllocRBDecomp(Home_t *home, RBDecomp_t *oldDecomp, RBDecomp_t **newDecomp,
 void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
               char *domDecompID, int currLevel, int startLevel)
 {
-        int          i, octant, thisSubpart;
+        int          i, octant, thisSubpart=0;
         int          skipLevel = 0, restrictMovement = 0, doAllBoundaries = 0;
         int          numSlices;
         int          cut[3];
@@ -1957,8 +1957,8 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
  *              Cut lower right quadrant in Z
  */
                 if ((subDecompList[LRF])  && (doAllBoundaries ||
-                     ((thisSubpart & X_BITMASK) == X_BITMASK) &&
-                     ((thisSubpart & Y_BITMASK) == 0))) {
+                    (((thisSubpart & X_BITMASK) == X_BITMASK) &&
+                     ((thisSubpart & Y_BITMASK) == 0)))){
 
                     sliceLoad[0] = octantLoad[LRF];
                     sliceLoad[1] = octantLoad[LRB];
@@ -1983,8 +1983,8 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
  *              Cut upper left quadrant in Z
  */
                 if ((subDecompList[ULF])  && (doAllBoundaries ||
-                     ((thisSubpart & X_BITMASK) == 0) &&
-                     ((thisSubpart & Y_BITMASK) == Y_BITMASK))) {
+                    (((thisSubpart & X_BITMASK) == 0) &&
+                     ((thisSubpart & Y_BITMASK) == Y_BITMASK)))) {
 
                     sliceLoad[0] = octantLoad[ULF];
                     sliceLoad[1] = octantLoad[ULB];
@@ -2009,8 +2009,8 @@ void RBDecomp(Home_t *home, RBDecomp_t *decomp, RBDecomp_t *oldDecomp,
  *              Cut upper right quadrant in Z
  */
                 if ((subDecompList[URF])  && (doAllBoundaries ||
-                     ((thisSubpart & X_BITMASK) == X_BITMASK) &&
-                     ((thisSubpart & Y_BITMASK) == Y_BITMASK))) {
+                    (((thisSubpart & X_BITMASK) == X_BITMASK) &&
+                     ((thisSubpart & Y_BITMASK) == Y_BITMASK)))) {
 
                     sliceLoad[0] = octantLoad[URF];
                     sliceLoad[1] = octantLoad[URB];

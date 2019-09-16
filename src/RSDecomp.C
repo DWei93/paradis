@@ -274,7 +274,7 @@ void ReadRSDecompBounds(void **filePtr, int numXDoms, int numYDoms,
                         int numZDoms, int saveDecomp, RSDecomp_t **oldDecomp)
 {
         int       i, j, k;
-        real8     *xBnd, **yBnd, ***zBnd;
+        real8     *xBnd=(real8 *)NULL, **yBnd=(real8 **)NULL, ***zBnd=(real8 ***)NULL;
         char      inLine[512];
         FILE      *fp = (FILE *)*filePtr;
         RSDecomp_t *decomp;

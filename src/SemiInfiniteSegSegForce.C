@@ -494,7 +494,7 @@ void SemiInfiniteSegSegForce(real8 p1x, real8 p1y, real8 p1z,
                  real8 *fp4x, real8 *fp4y, real8 *fp4z)
 {
         real8 x1[3], x2[3], x3[3], x4[3], b[3], bp[3];
-        real8 f1[3], f2[3], f3[3], f4[3];
+        real8 f3[3], f4[3];
         real8 vec1[3], vec2[3], t[3], tp[3], tctp[3];
         real8 R[2][3], tempa[2], tempb[2], y[2], z[2];
         int i, j , alt1[3]={1,2,0}, alt2[3]={2,0,1};
@@ -505,7 +505,8 @@ void SemiInfiniteSegSegForce(real8 p1x, real8 p1y, real8 p1z,
         real8 yv[2], zv[2], y2[2], z2[2], Ra[2], Rainv[2];
         real8 Ra_Rdot_tp[2], Ra_Rdot_t[2], log_Ra_Rdot_tp[2], log_Ra_Rdot_t[2];
         real8 Ra2_R_tpinv[2], Ra2_R_tinv[2];
-        real8 ylog_Ra_Rdot_tp[2], zlog_Ra_Rdot_t[2];
+//      real8 ylog_Ra_Rdot_tp[2];
+        real8 zlog_Ra_Rdot_t[2];
         real8 yRa2_R_tpinv[2], zRa2_R_tinv[2];
         real8 y2Ra2_R_tpinv[2], z2Ra2_R_tinv[2];
         real8 adf_003[2], commonf223[2], commonf225[2];
@@ -518,7 +519,7 @@ void SemiInfiniteSegSegForce(real8 p1x, real8 p1y, real8 p1z,
         real8 tf_113[2];
         real8 f_003v[2], f_103v[2], f_013v[2], f_113v[2];
         real8 f_203v[2], f_023v[2], f_005v[2], f_105v[2];
-        real8 f_003,  f_103,  f_013,  f_113,  f_203,  f_023,  f_005,  f_105;
+        real8 f_003,  f_103,  f_013,  f_113,  f_203, f_005,  f_105;  //f_023
         real8 f_015v[2], f_115v[2], f_205v[2], f_025v[2];
         real8 f_215v[2], f_125v[2], f_225v[2], f_305v[2];
         real8 f_015,  f_115,  f_205,  f_025,  f_215,  f_125,  f_225,  f_305;
@@ -534,7 +535,7 @@ void SemiInfiniteSegSegForce(real8 p1x, real8 p1y, real8 p1z,
         real8 Fint_105, Fint_115, Fint_125, Fint_205, Fint_215;
         real8 I_003[3], I_005[3], I_013[3], I_015[3], I_025[3], I_103[3];
         real8 I_105[3], I_115[3], I_125[3], I_205[3], I_215[3];
-        real8 I00a[3], I01a[3], I10a[3], I00b[3], I01b[3], I10b[3];
+        real8 I00a[3], I01a[3], I10a[3], I00b[3], I10b[3]; //I01b[3]
         real8 bctctp[3], bct[3], bpctpct[3], bpctp[3], tcbpct[3];
         real8 bctdbp, bpctpdb, tcbpdb, tcbpdtp, tpcbdbp;
         real8 tcbp[3], tctpcbpct[3], tctpcbp[3], tctpct[3], tpct[3];
@@ -695,7 +696,7 @@ void SemiInfiniteSegSegForce(real8 p1x, real8 p1y, real8 p1z,
             }
             
             for (j=0;j<2;j++) {
-                ylog_Ra_Rdot_tp[j] = yv[j]*log_Ra_Rdot_tp[j];
+//              ylog_Ra_Rdot_tp[j] = yv[j]*log_Ra_Rdot_tp[j];
                 yRa2_R_tpinv[j]    = yv[j]*   Ra2_R_tpinv[j];
                 yRa2_R_tpinvinf[j] = yv[j]*Ra2_R_tpinvinf[j];
                 zlog_Ra_Rdot_t[j]  = zv[j]*log_Ra_Rdot_t[j];
@@ -823,7 +824,7 @@ void SemiInfiniteSegSegForce(real8 p1x, real8 p1y, real8 p1z,
             f_013= (f_013v[0]+f_013vinf[0])-(f_013v[1]+f_013vinf[1]);
             f_103= (f_103v[0]+f_103vinf[0])-(f_103v[1]+f_103vinf[1]);
             f_113= (f_113v[0]+f_113vinf[0])-(f_113v[1]+f_113vinf[1]);
-            f_023= (f_023v[0]+f_023vinf[0])-(f_023v[1]+f_023vinf[1]);
+//          f_023= (f_023v[0]+f_023vinf[0])-(f_023v[1]+f_023vinf[1]);
             f_203= (f_203v[0]+f_203vinf[0])-(f_203v[1]+f_203vinf[1]);
             f_005= (f_005v[0]+f_005vinf[0])-(f_005v[1]+f_005vinf[1]);
             f_015= (f_015v[0]+f_015vinf[0])-(f_015v[1]+f_015vinf[1]);

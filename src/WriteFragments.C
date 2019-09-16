@@ -576,8 +576,11 @@ void WriteFragments(Home_t *home, char *baseFileName, int ioGroup,
         Frag_t     *fragment;
         FragPt_t   *interiorPt, *fragPt;
         FragList_t *fragList;
+#ifdef PARALLEL
+#ifdef DO_IO_TO_NFS
         struct stat statbuf;
-
+#endif
+#endif
         fragList = *((FragList_t **)fragmentList);
         param = home->param;
 

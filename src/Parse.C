@@ -99,8 +99,6 @@ void WriteParam(ParamList_t *list, int index, FILE *fp)
 {
         int  i, j, minIndex, maxIndex, type, count;
         const char *lineFeed, *lBracket, *rBracket;
-        char format[MAX_STRING_LEN];
-
 /*
  *      We'll be looping over all parameters to be printed.  If
  *      a single parameter is selected, set loop indices so we
@@ -702,14 +700,11 @@ void WriteArray(real8 **array, char *name, int nRows, int nCols, FILE *fp)
 #define MAXLINELENGTH 1024
 void ReadArray(real8 **array, char *name, int nRows, int nCols, FILE *fp)
 {
-    char str[MAXLINELENGTH], *rt;
-    while(1){
-        rt = fgets(str, MAXLINELENGTH, fp);
-        if(feof(fp))break;
-        if(str == "\n" || str == NULL)continue;
+    char str[MAXLINELENGTH];
+    for(fgets(str, MAXLINELENGTH, fp); feof(fp)!=true; fgets(str, MAXLINELENGTH, fp)){
         if(strstr(str, name) != NULL){
             for(int i=0; i<nRows; i++){
-                rt = fgets(str, MAXLINELENGTH, fp);
+                fgets(str, MAXLINELENGTH, fp);
                 array[i][0] = atof(strtok(str, " ")); 
                 for(int j=1; j<nCols; j++){
                     array[i][j] = atof(strtok(NULL, " \n"));

@@ -52,8 +52,8 @@ void FMSetTaylorExpansions(Home_t *home)
         int       *bMin, *bMax, *tMin, *tMax;
         int       skipX[3], skipY[3], skipZ[3];
         int       tmp1Min[3], tmp1Max[3], tmp2Min[3], tmp2Max[3];
-        int       mpOrder, tOrder, maxOrder;
-        int       numTaylorCoeff;
+        int       mpOrder=0, tOrder=0, maxOrder=0;
+        int       numTaylorCoeff=0;
         real8     MU, NU;
         real8     R[3], sourcePos[3];
         real8     *tCoeff;

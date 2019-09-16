@@ -62,7 +62,7 @@ static void fmsigma(real8 mu, real8 nu, int norder,
 	     real8 *R, real8 *Eeta, real8 sigmatot[3][3]) {
   int cyc[] = {0,1,2,0,1,2};
   real8 sigma[3][3],Gijmkl[3][3][3],Gmppkl[3][3][3];
-  int iorder,i,j,k,l,m,n,a,nx,ny,nz,pows[NTMAX][3],npows,nidx,idx[NTMAX];
+  int iorder,i,j,k,l,m,n,a,nx,ny,nz,pows[NTMAX][3],npows,nidx;
   int etaoff,etadis,etadis0;
   real8 t,t2,t11,t12,t3,terms[NTMAX],tvec[NTMAX];
 
@@ -169,7 +169,7 @@ static void fmsigma(real8 mu, real8 nu, int norder,
 	    if(nx>=0 && ny>=0 && nz>=0) {
 	      tvec[nidx] = terms[k] * fact[iorder] *
 		ifact[nx]*ifact[ny]*ifact[nz];
-	      idx[nidx++] = k;
+//	      idx[nidx++] = k;
 	    }
 	  }
 
@@ -436,9 +436,10 @@ void CreateCorrectionTable(Param_t *param, int numLevels, int pbc[3],
                     } else {
                       for(k = 0; k<nalpha; k++) 
                         for(m = 0; m<3; m++)
-                          for(n = 0; n<3; n++)
+                          for(n = 0; n<3; n++){
                             offset = (((i-i0)*(maxlevels-2)+j)*nalpha+k)*9;
                             leveldata[offset+m*3+n] += alphanew[k*9+m*3+n];
+                          }
                     }
                   }
                 }
@@ -446,10 +447,11 @@ void CreateCorrectionTable(Param_t *param, int numLevels, int pbc[3],
           if(leveldata != NULL) {
             for(k = 0; k<nalpha; k++)
               for(m = 0; m<3; m++)
-                for(n = 0; n<3; n++)
+                for(n = 0; n<3; n++){
                   offset=(((i-i0)*(maxlevels-2)+j)*nalpha+k)*9;
                   alpha[k*9+m*3+n] +=
                     leveldata[offset+m*3+n];
+                }
           }
 
         }
@@ -560,7 +562,6 @@ void CorrectionTableInit(Home_t *home)
         int     n, k, j, i;
         int     version;
         int     pbc[3], ctab_pbc[3];
-        int     status;
         real8   eps = 1.0e-06;
         real8   NU;
         char    *fileName;
@@ -637,7 +638,7 @@ void CorrectionTableInit(Home_t *home)
  *              Other values must be read from the file.
  */
                 sscanf(line,"%lf%lf%lf", &ctab_MU, &ctab_NU, &ctab_boxl);
-                status = fscanf(fp,"%d%d%d", &ctab_norder, &ctab_uorder, &ctab_levels);
+                fscanf(fp,"%d%d%d", &ctab_norder, &ctab_uorder, &ctab_levels);
                 break;
 
             case 1:
@@ -714,7 +715,7 @@ void CorrectionTableInit(Home_t *home)
 
         for (i = 0; i < n*k; i++) {
             for (j = 0; j < 6; j++) {
-                status = fscanf(fp, "%lf", &correctionTbl[i*6+j]);
+                fscanf(fp, "%lf", &correctionTbl[i*6+j]);
             }
         }
 
@@ -726,7 +727,7 @@ void CorrectionTableInit(Home_t *home)
 
 static void paxby(int uorder, int p[], int q[], real8 weight,
                   real8 *corrtab, real8 *alpha) {
-  int i,k,n,m,nx,ny,nz,ix,iy,iz,u,v,u1,v1,c[3];
+  int i,k,n,m,nx,ny,nz,iy,iz,u,v,u1,v1,c[3];
   int offsetA1, offsetA2;
   int nts[3][3] = { {0,1,2} ,
                     {1,3,4} ,
@@ -738,7 +739,8 @@ static void paxby(int uorder, int p[], int q[], real8 weight,
       for(ny = 0; ny<=i-nz; ny++) {
         nx = i-nz-ny;
         c[0] = nx; c[1] = ny; c[2] = nz;
-        ix = c[p[0]]; iy = c[p[1]]; iz = c[p[2]];
+//        ix = c[p[0]]; 
+        iy = c[p[1]]; iz = c[p[2]];
 
         m = iz*(i+1) + iy - (iz-1)*iz/2;
 
@@ -759,7 +761,7 @@ static void paxby(int uorder, int p[], int q[], real8 weight,
 
 void DoTableCorrection(Home_t *home)
 {
-        int       i, j, k, m, n, u, v, ix, iy, iz, u1, v1, ip;
+        int       i, j, k, m, n, u, v, iy, iz, u1, v1, ip;
         int       nx, ny, nz, idx, norder, uorder, nalpha;
         int       offset1, offset2;
         int       *p, c[3], q[3];
@@ -837,7 +839,8 @@ void DoTableCorrection(Home_t *home)
                         else s = 1.0;
                         p = ptab[ip];
                         for (j = 0; j<3; j++) q[p[j]] = j;
-                        ix = c[p[0]]; iy = c[p[1]]; iz = c[p[2]];
+//                        ix = c[p[0]]; 
+                        iy = c[p[1]]; iz = c[p[2]];
                         m = iz*(i+1) + iy - (iz-1)*iz/2;
         
                         if (flags[m] == 0) {

@@ -51,9 +51,11 @@ void WritePovray(Home_t *home, char *baseFileName, int ioGroup,
         Param_t *param;
         Node_t  *node, *nbrNode;
         FILE    *fp; 
-        struct stat statbuf;
-           
-        
+#ifdef PARALLEL
+#ifdef DO_IO_TO_NFS
+        struct stat statbuf; 
+#endif
+#endif        
         param=home->param;
         
 

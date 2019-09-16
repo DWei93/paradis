@@ -24,6 +24,13 @@
 /** The main clipping function for clipping all nodes in parallel */
 void Clipping(Home_t *home)
 {
+    Param_t *param = home->param;
+
+    int newNodeKeyPtr = home->newNodeKeyPtr;
+    for(auto i=0; i<newNodeKeyPtr; i++){
+
+    }
+
     return;
 }
 

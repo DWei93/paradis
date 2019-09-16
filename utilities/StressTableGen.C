@@ -41,10 +41,11 @@ static int DER3IND[10][3] = {{0,0,0}, {1,1,1}, {2,2,2},
                              {0,0,1}, {0,0,2}, {1,1,0},
                              {1,1,2}, {2,2,0}, {2,2,1},
                              {0,1,2} };
-
+#if 0
 static int DER3INVIND[3][3][3]={{{0,3,4}, {3,5,9}, {4,9,7}},
                                 {{3,5,9}, {5,1,6}, {9,6,8}},
                                 {{4,9,7}, {9,6,8}, {7,8,2}}};
+#endif
 /*
  *      Stress tables.
  */
@@ -541,9 +542,9 @@ static void InitArgs(InArgs_t *inArgs)
  *-------------------------------------------------------------------------*/
 static void GetArgs(int argc, char *argv[], InArgs_t *inArgs)
 {
-        int     i, j, k;
+        int     i, j;
         char    *argName;
-        char    *argValue;
+        char    *argValue = (char *)NULL;
         char    *token;
 
         for (i = 1; i < argc; i++) {

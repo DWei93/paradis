@@ -30,11 +30,11 @@
 
 int Mobility_FCC_0b(Home_t *home, Node_t *node)
 {
-	int     i, numNbrs, numNorms,grainNode; 
+    Fatal("%s: can not supprot this mobility now",__func__);
+	int     i, numNbrs, numNorms=0; 
 	int     numNonZeroLenSegs = 0, hasShortSeg = 0;
 	int	    numGlideConstraints;
 	real8   dx, dy, dz;
-	real8   nx, ny, nz, nx2, ny2, nz2; 
 	real8   temp;
 	real8   mag, mag2, halfMag, invMag;
 	real8   invbMag2, bMag2, costheta, costheta2;
@@ -44,7 +44,6 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 	real8   BlmBsc, BclmBsc, BglmBsc, BlmBecl;
 	real8   shortSegCutoff;
 	real8   eps = 1.0e-12;
-	real8   tor=1.e-5;
 	real8   shortSegRatio = 1.0;
 	real8   nForce[3], nVel[3];
 	real8   Btotal[3][3] = {{0.0, 0.0, 0.0},
@@ -53,12 +52,9 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 	real8   (*invDragMatrix)[3], glideConstraints[3][3];
 	real8   invDragpoArray[3][3];
 	real8   invBtotal[3][3];
-	real8   normCrystal[3][3];
 	
-	real8   velocity,directionV[3];
-	real8	forceGB[3];
+	real8   velocity;
 	Node_t  *nbrNode;
-	int	nodeType;
 	Param_t *param;
     bool    zeroLenJunc;
 

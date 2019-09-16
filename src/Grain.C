@@ -51,7 +51,7 @@ void DrawLine(FILE *fp, real8 *pos1, real8 *pos2, real8 meshSize, std::vector<in
     for(real8 i=0; i<nums; i++){
         fprintf(fp, "%g %g %g %g %g %g",pos1[0]+i*meshSize*vec[0], 
                 pos1[1]+i*meshSize*vec[1],pos1[2]+i*meshSize*vec[2], meshSize*vec[0], meshSize*vec[1], meshSize*vec[2]);
-        for(auto j=0; j<indexs.size(); j++)fprintf(fp," %d",indexs[j]);
+        for(auto j=0; j<int(indexs.size()); j++)fprintf(fp," %d",indexs[j]);
         fprintf(fp,"\n");
     }
 
@@ -149,7 +149,7 @@ void EdgeListToPolygon(std::vector<EdgeVec_t> &edges, std::vector<int> &polygon)
     int next=edges[0].vertID2;
     do{
         polygon.push_back(next); 
-        for(auto i=1; i<edges.size(); i++){
+        for(auto i=1; i<int(edges.size()); i++){
             if(edges[i].vertID1 == next){
                 next = edges[i].vertID2; 
                 edges[i].vertID1 = -edges[i].vertID1-1; edges[i].vertID2 = -edges[i].vertID2-1;
@@ -161,16 +161,16 @@ void EdgeListToPolygon(std::vector<EdgeVec_t> &edges, std::vector<int> &polygon)
             }
         }
     }while(next != edges[0].vertID1);
-    for(auto i=1; i<edges.size(); i++){
+    for(auto i=1; i<int(edges.size()); i++){
         edges[i].vertID1 = -edges[i].vertID1-1; edges[i].vertID2 = -edges[i].vertID2-1;
     }
 
-    for(auto i=0; i<edges.size()-1; i++){
-        if(edges[i].vertID1==polygon[i] && edges[i].vertID2==polygon[i+1] ||
-           edges[i].vertID2==polygon[i] && edges[i].vertID1==polygon[i+1])continue;
+    for(auto i=0; i<int(edges.size())-1; i++){
+        if((edges[i].vertID1==polygon[i] && edges[i].vertID2==polygon[i+1]) ||
+           (edges[i].vertID2==polygon[i] && edges[i].vertID1==polygon[i+1]) )continue;
         unsigned int j; for(j=i+1; j<edges.size(); j++){
-            if(edges[j].vertID1==polygon[i] && edges[j].vertID2==polygon[i+1] ||
-               edges[j].vertID2==polygon[i] && edges[j].vertID1==polygon[i+1]){
+            if((edges[j].vertID1==polygon[i] && edges[j].vertID2==polygon[i+1]) ||
+               (edges[j].vertID2==polygon[i] && edges[j].vertID1==polygon[i+1]) ){
                 std::swap(edges[i], edges[j]);break;}
         }
         if(j==edges.size())Fatal("%s: can not find the edge",__func__);
@@ -290,8 +290,8 @@ void InitGrain(Home_t *home, Param_t *param)
     /** import the voro++ input file in domain 0 and boardcast it.
      */
     const int MAXLINELENGTH = 1024;
-    FILE *fp;
-    char *strp, str[MAXLINELENGTH];
+    FILE *fp=(FILE *)NULL;
+    char str[MAXLINELENGTH];
     if(home->myDomain == 0){
         if((fp = fopen(home->voroFile, "r+")) == NULL){
             Fatal("Can not open voro++ file %s\n", home->voroFile);
@@ -299,9 +299,9 @@ void InitGrain(Home_t *home, Param_t *param)
 
         home->nGrains = 0;
         while(1){
-            strp = fgets(str, MAXLINELENGTH, fp);
-            if(feof(fp))break;
-            if(str == "\n" || str == NULL)continue;
+            fgets(str, MAXLINELENGTH, fp);
+            if(feof(fp))break; 
+            if(str == (char *)NULL){continue;} if(*str == '\n'){continue;}
             home->nGrains++;
         }
         fclose(fp);
@@ -316,11 +316,11 @@ void InitGrain(Home_t *home, Param_t *param)
             Fatal("Can not open voro++ file %s\n", home->voroFile);
         }
         
-        char *strok; int i=0;
+        int i=0;
         while(1){
-            strp = fgets(str, MAXLINELENGTH, fp);
+            fgets(str, MAXLINELENGTH, fp);
             if(feof(fp))break;
-            if(str == "\n" || str == NULL)continue;
+            if(str == (char *)NULL){continue;} if(*str == '\n'){continue;}
 
             dataList[i++] = atof(strtok(str, " "));
             for(int j=1; j<(con->ps+1); j++)dataList[i++] = atof(strtok(NULL, " "));
@@ -383,11 +383,11 @@ void InitGrain(Home_t *home, Param_t *param)
 	std::vector<int> neigh,f_vert, convertList;
     std::vector<double> vertices, normals, gloVertices;
     std::vector<std::vector<int> > verticesOnGrain;
-    real8   ibThick, ibNormal[3], testPoint[3], testRsq;
+    real8   ibThick, ibNormal[3], testRsq;
     std::vector<real8>  ibRsq;
     param->volume = 0;
     if(cl.start()) for(int i=0; i<home->nGrains; i++, ibRsq.clear()){
-        int k =0; std::vector<int> info(3);
+        std::vector<int> info(3);
         Grain_t *grain = home->grainKeys[i];
         voronoicell_neighbor *cell = cells[i];
          
@@ -408,12 +408,12 @@ void InitGrain(Home_t *home, Param_t *param)
 		cell->vertices(grain->pos[0],grain->pos[1],grain->pos[2],vertices);
 
         real8 pos[3]; grain->rMax=0;
-        for(auto j=0; j<vertices.size()/3; j++){
+        for(auto j=0; j<int(vertices.size())/3; j++){
             Coordinate(vertices,j,pos);
             grain->rMax=MAX(grain->rMax,PointPointDistance(grain->pos, pos));
         }
 
-		for(auto j=0, k=0; j<neigh.size();j++) {
+		for(auto j=0, k=0; j<int(neigh.size());j++) {
 			// Skip if the neighbor information is smaller than
 			// this grain ID, to avoid double counting.
             if(neigh[j] > grain->id || neigh[j] < 0){
@@ -442,7 +442,7 @@ void InitGrain(Home_t *home, Param_t *param)
     std::vector<EdgeVec_t> edges;
     for(auto i=0; i<home->nFaces; i++)home->faces[i] = (Face_t *)malloc(sizeof(Face_t)); 
     if(cl.start()) for(int i=0, nFaces =0; i<home->nGrains; i++, ibRsq.clear()){
-        int k =0; std::vector<int> info(3);
+        std::vector<int> info(3);
         real8   dis; int segID;
         Grain_t *grain = home->grainKeys[i];
         voronoicell_neighbor *cell = cells[i];
@@ -455,7 +455,7 @@ void InitGrain(Home_t *home, Param_t *param)
 
         // Generate convertion list and add local vertices into global vertices.
         convertList.resize(vertices.size()/3);
-        for(auto j=0; j<convertList.size(); j++)
+        for(auto j=0; j<int(convertList.size()); j++)
             convertList[j] = AddAndSearchVertice(gloVertices, verticesOnGrain, vertices[3*j], vertices[3*j+1], vertices[3*j+2], i);
 #if 0
         if(home->myDomain == 0){
@@ -501,7 +501,7 @@ void InitGrain(Home_t *home, Param_t *param)
             grain->nIBs = (int)ibRsq.size();
             grain->ibPs = (real8 (*)[3])malloc(grain->nIBs*3*sizeof(real8));
             grain->ibAreas = (real8 *)malloc(grain->nIBs*sizeof(real8));
-            for(auto j=0; j<ibRsq.size(); j++){
+            for(auto j=0; j<int(ibRsq.size()); j++){
                 grain->ibPs[j][0] = grain->pos[0] + 0.5*grain->ibN[0]*ibRsq[j];
                 grain->ibPs[j][1] = grain->pos[1] + 0.5*grain->ibN[1]*ibRsq[j];
                 grain->ibPs[j][2] = grain->pos[2] + 0.5*grain->ibN[2]*ibRsq[j];
@@ -516,10 +516,10 @@ void InitGrain(Home_t *home, Param_t *param)
 
         /** Assemble faces of grain i
          */
-		for(auto j=0, k=0; j<neigh.size();j++) {
+		for(auto j=0, k=0; j<int(neigh.size());j++) {
             /** convert to global and eliminate duplicate segments.
              */
-            for(auto l=k+1; l<k+f_vert[k]+1; l++)f_vert[l]=convertList[f_vert[l]];
+            for(auto l=k+1; l<k+int(f_vert[k])+1; l++)f_vert[l]=convertList[f_vert[l]];
 
             /** currentlt, all faces connnected neighbor grain lower than this grain have been constructed.
              *  so we just construt face with higher grain ID and free surface here */ 
@@ -546,7 +546,7 @@ void InitGrain(Home_t *home, Param_t *param)
                 face->edges = (real8*)malloc(face->nEdges*6*sizeof(real8));
                 for(auto l=0; l<face->nEdges; l++){
                     int next = (l<face->nEdges-1)?l+1:0; 
-                    real8 gDir[3], lDir[3], p[3], crpd[3];
+                    real8 lDir[3], p[3], crpd[3];
 #ifdef DEBUG
                     if(f_vert[k+1+next]==f_vert[k+1+l])Fatal("something wrong");
 #endif
@@ -589,8 +589,8 @@ void InitGrain(Home_t *home, Param_t *param)
         if(!cl.inc())break;
     }
 
-    if(cl.start()) for(int i=0, nFaces=0; i<home->nGrains; i++){
-        int k; Face_t  *face;
+    if(cl.start()) for(int i=0; i<home->nGrains; i++){
+        Face_t  *face=(Face_t *)NULL;
         std::vector<real8> grainVertices;
         voronoicell_neighbor *cell = cells[i];
         Grain_t *grain = home->grainKeys[i];
@@ -599,20 +599,20 @@ void InitGrain(Home_t *home, Param_t *param)
 		cell->neighbors(neigh);
 		cell->face_vertices(f_vert);
         std::vector<int> glo_f_vert(f_vert.size());
-        for(auto j=0; j<f_vert.size(); j++)glo_f_vert[j] = f_vert[j];
+        for(auto j=0; j<int(f_vert.size()); j++)glo_f_vert[j] = f_vert[j];
 		cell->vertices(grain->pos[0],grain->pos[1],grain->pos[2],vertices);
 
         // Generate convertion list and add local vertices into global vertices.
         convertList.resize(vertices.size()/3);
-        for(auto j=0; j<convertList.size(); j++)
+        for(auto j=0; j<int(convertList.size()); j++)
             convertList[j] = AddAndSearchVertice(gloVertices, verticesOnGrain, vertices[3*j], vertices[3*j+1], vertices[3*j+2], i);
 
         /** grain claims the face which is back to it
          */
-        for(auto j=0, k=0; j<neigh.size(); j++){
+        for(auto j=0, k=0; j<int(neigh.size()); j++){
             /** convert to global and eliminate duplicate segments.
              */
-            for(auto l=k+1; l<k+f_vert[k]+1; l++)glo_f_vert[l]=convertList[f_vert[l]];
+            for(auto l=k+1; l<k+int(f_vert[k])+1; l++)glo_f_vert[l]=convertList[f_vert[l]];
             if(neigh[j] < grain->id && neigh[j] >=0){
                 int l; for(l=0; l<home->nFaces; l++){
                     face = home->faces[l];
@@ -633,15 +633,15 @@ void InitGrain(Home_t *home, Param_t *param)
             grain->ibPolygons = (int **)malloc(grain->nIBs*sizeof(int*));
         }
         for(auto m=0; m<grain->nIBs; m++){
-            real8 p1[3], p2[3], p[3], t; int v1,v2;
+            real8 p1[3], p2[3], p[3]; int v1,v2;
     
             // assemble edges of inner boundary m
             std::vector<EdgeVec_t> ibEdges;
-            for(auto j=0, k=0; j<neigh.size();j++){
+            for(auto j=0, k=0; j<int(neigh.size());j++){
                 face = grain->faces[j];
                 EdgeVec_t edge; edge.vertID1=-1; edge.vertID2=-1; edge.ofFaces.push_back(face->id);
                 // loop through all edges of the face, find intersections between face and inner boundar m
-                for(auto l=k+1; l<k+glo_f_vert[k]+1; l++){
+                for(auto l=k+1; l<k+int(glo_f_vert[k])+1; l++){
                     v1=glo_f_vert[l]; v2=(l<k+glo_f_vert[k]?glo_f_vert[l+1]:glo_f_vert[k+1]);
                     Coordinate(gloVertices, v1, p1);  Coordinate(gloVertices, v2, p2);
                     
@@ -661,10 +661,10 @@ void InitGrain(Home_t *home, Param_t *param)
 #endif               
                         // Avoid double counting key nodes on face edge
                         if(!edges[faceEdgeID].ibs.empty()){
-                            int n; for(n=0; n<edges[faceEdgeID].ibs.size();n++){
+                            int n; for(n=0; n<int(edges[faceEdgeID].ibs.size());n++){
                                 if(i==edges[faceEdgeID].ibs[n].inGrain && m==edges[faceEdgeID].ibs[n].ID)break;
                             }
-                            if(n!=edges[faceEdgeID].ibs.size())continue;
+                            if(n!=int(edges[faceEdgeID].ibs.size()))continue;
                         }
 
                         // assemble key nodes on face edge
@@ -706,7 +706,7 @@ void InitGrain(Home_t *home, Param_t *param)
             if(fabs(dis)>1E-10)Fatal("%s at line %d, the distance to centorid (%e) is too large",__FILE__,__LINE__, dis);
 #endif
 
-            real8 gDir[3], lDir[3], crpd[3];
+            real8 lDir[3], crpd[3];
             grain->ibsEdges[m] = (real8*)malloc(grain->ibsNumEdges[m]*6*sizeof(real8));
             grain->ibsEdgesFaceID[m] = (int *)malloc(grain->ibsNumEdges[m]*sizeof(int));
             grain->ibPolygons[m] = (int *)malloc(grain->ibsNumEdges[m]*sizeof(int));
@@ -715,7 +715,7 @@ void InitGrain(Home_t *home, Param_t *param)
                 lDir[0] = grainVertices[ibEdges[n].vertID2*3] - grainVertices[ibEdges[n].vertID1*3];
                 lDir[1] = grainVertices[ibEdges[n].vertID2*3+1] - grainVertices[ibEdges[n].vertID1*3+1];
                 lDir[2] = grainVertices[ibEdges[n].vertID2*3+2] - grainVertices[ibEdges[n].vertID1*3+2];
-                if(normal(lDir) < 1E-11)Fatal("the two grainVertices are too close");normalize_vec(lDir);
+                if(normal(lDir) < 1E-11){Fatal("the two grainVertices are too close");} normalize_vec(lDir);
                 p[0] = 0.5*(grainVertices[ibEdges[n].vertID2*3] +   grainVertices[ibEdges[n].vertID1*3]);
                 p[1] = 0.5*(grainVertices[ibEdges[n].vertID2*3+1] + grainVertices[ibEdges[n].vertID1*3+1]);
                 p[2] = 0.5*(grainVertices[ibEdges[n].vertID2*3+2] + grainVertices[ibEdges[n].vertID1*3+2]);
@@ -831,7 +831,7 @@ void InitGrain(Home_t *home, Param_t *param)
         }
         fprintf(fp,"variables = x, y, z, vx, vy, vz, edge-type\n");
         std::vector<int> indexs(1);
-        for(auto i=0; i<edges.size(); i++){
+        for(auto i=0; i<int(edges.size()); i++){
             real8 pos1[3], pos2[3];
             indexs[0]= 0;
             Coordinate(gloVertices, edges[i].vertID1, pos1);
@@ -966,8 +966,8 @@ void FormatPlace(int *place){
   * Note that the point should not be outside of the geometry */
 void NodeLocation(Home_t *home, real8 *pos, int *place, real8 error)
 {
-    int i, j, k, l, edgeID;
-    bool breakLoop=false; real8 vec[3], dis, interPos[3];
+    int i, j, k, edgeID=0;
+    bool breakLoop=false; real8 dis, interPos[3];
     Grain_t *grain; Face_t *face;
 
     real8 rx, ry, rz; int grainID; Grain_t **grainList; int grainListSize, nGrains;
@@ -1147,7 +1147,7 @@ bool OnFace(Home_t *home, int *place, real8 *pos, real8 error)
     if(place[1]<0 || place[1]>=home->nFaces)Fatal("%s: wrong face ID", __func__);
 #endif
     Face_t *face = home->faces[place[1]];
-    real8 interPos[3], dis;
+    real8  dis;
 
     // if the point is not on face with error of FACE_ERROR, false
     PointPlaneDistance(pos, face->n, face->p, dis);
@@ -1293,7 +1293,7 @@ bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *ne
 {
     Face_t *face;
     bool status=false;
-    real8 nFace[3], ibPoint[3];
+    real8 nFace[3];
 
 #ifdef DEBUG
     if(place[0]!=IN_GRAIN)Fatal("%s: place[0] = %d",__func__, place[0]);
@@ -1354,7 +1354,7 @@ bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *ne
                             }
                         }
                     } /*if the neighbor is the adjacent grain*/ else {
-                        real8 vec[3], dis;
+                        real8 dis;
                         Grain_t *nbrGrain = home->grainKeys[face->nbrGrain[j]];
                         newPlace[2+j] = InverseIndex(nbrGrain->nIBs);
                         for(auto k=0; k<nbrGrain->nIBs; k++){
@@ -1436,8 +1436,8 @@ bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *ne
  * \return true if the place is changed, otherwise false */
 bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
 {  
-    int edgeID, faceID, ibID;
-    real8 interPos[3], dis, t;
+    int edgeID, ibID;
+    real8 dis;
     Grain_t *grain;
 
 #ifdef DEBUG
@@ -1736,11 +1736,12 @@ void AdjacentFacesOfFaceEdges(Home_t *home, int edgeID, int subEdgeID, std::vect
                 }
             }
         }
+#if 0 // unfinish
     }else{
         int ibID = InverseIndex(edge->ibID[subEdgeID]);
         real8 upperDis = (ibID<edge->nIBs)?edge->dis[ibID]:1.0;
         real8 lowerDis = (ibID>0)?edge->dis[ibID-1]:0.0;
-        
+#endif   
     }
     return;
 }
@@ -2006,7 +2007,7 @@ int MatchBurgID(BurgInfo_t *bInf, real8 *burg)
  *  \return constrain type 0: no constraint; 1: plane constraint; 2: line constraint; 3: fixed*/
 inline int AddToPlaneConstraint(real8 *v, real8 nx, real8 ny, real8 nz){
     if(!AlignedDirection(v[0],v[1],v[2],nx,ny,nz)){
-        real8 cpd[3]; cross_product(v[0],v[1],v[2],nx,ny,nz,v);
+        cross_product(v[0],v[1],v[2],nx,ny,nz,v);
         normalize_vec(v); return 2;
     }else return 1;
 }
@@ -2026,7 +2027,7 @@ int GlideConstraint(Home_t *home, Node_t *node, real8 *vec)
     if(node->constraint == PINNED_NODE)return 3;
 
     real8 lDir[3], kDir[3];
-    int i, j, jArm = -1;
+    int i, j=1, jArm = -1;
     Node_t *nbr; BurgInfo_t *bInf;
     bool jDefined = false;
     Param_t *param=home->param;
@@ -2173,7 +2174,6 @@ int GlideConstraint(Home_t *home, Node_t *node, real8 *vec)
 void FindGlidePlane(Home_t *home, real8 *burg, real8 *lDir, Node_t *node1, Node_t *node2, real8 *plane, bool &found)
 {
     found = false;
-    Param_t *param=home->param;
     real8 burgNorm[3]={burg[0],burg[1],burg[2]}; normalize_vec(burgNorm);
     BurgInfo_t  *bInf = BurgInformation(home, node1->place, node2->place); 
 
@@ -2198,7 +2198,7 @@ void FindGlidePlane(Home_t *home, real8 *burg, real8 *lDir, Node_t *node1, Node_
             snprintf(msg, sizeof(msg),"%s at %d: the two nodes are both pinned",__func__,__LINE__);
             throw msg;
         }
-    }else if(t1==1&&t2==2 || t2==1&&t1==2){
+    }else if((t1==1&&t2==2) || (t2==1&&t1==2)){
         if(!PerpendicularDirection(v1,v2)){
             snprintf(msg, sizeof(msg),"%s at %d: line constraint is not perpendicular to glide plane",__func__,__LINE__);
             throw msg;
@@ -2257,7 +2257,7 @@ void FindGlidePlane(Home_t *home, real8 *burg, real8 *lDir, Node_t *node1, Node_
  *  \return distance                    */
 double PointConcavePolygonDistance(double *p, std::vector<double> &v, std::vector<EdgeVec_t> &edges){
     real8 p1[3], p2[3], min=1E50, dis;
-    for(auto i=0; i<edges.size(); i++){
+    for(auto i=0; i<int(edges.size()); i++){
         Coordinate(v, edges[i].vertID1, p1);
         Coordinate(v, edges[i].vertID2, p2);
         dis = (PointSegmentDistance(p, p1, p2)*edges[i].factor);
@@ -2602,7 +2602,7 @@ void CompressBurgListWithType(std::vector<std::vector<real8> >& burgList, std::v
     std::vector<int>::iterator  it2;
 
     nRows = burgList.size();
-    if(nRows != burgType.size())Fatal("in %s at %d", __FILE__, __LINE__);
+    if(nRows != int(burgType.size()))Fatal("in %s at %d", __FILE__, __LINE__);
     for(i=0; i<nRows; i++){
         for(j=0; j<newNRows; j++){
             VECTOR_COPY(vec1, burgList[i]);
@@ -2657,17 +2657,17 @@ void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, Bu
             // if the GB cut the plane, we record the info.
             cross_product(bInf->planeList[i], crossProdt, bInf->cutNormals[i]); normalize_vec(bInf->cutNormals[i]);
             dot = DotProduct(bInf->cutNormals[i], GBNormal);
-            if(dot>0&&i<bInf1->numPlanes || dot<0&&i>=bInf1->numPlanes){
+            if((dot>0&&i<bInf1->numPlanes) || (dot<0&&i>=bInf1->numPlanes)){
                 bInf->cutNormals[i][0] = -bInf->cutNormals[i][0];
                 bInf->cutNormals[i][1] = -bInf->cutNormals[i][1];
                 bInf->cutNormals[i][2] = -bInf->cutNormals[i][2];
             }
             // if the plane is glide plane, record the intersection line
             if((bInf->planeType[i] & GLIDE_PLANE)> 0){
-                int j=0; for(;j<keyLineList.size();j++){
+                int j=0; for(;j<int(keyLineList.size());j++){
                     if(fabs(DotProduct(keyLineList[j],crossProdt))>0.99)break;
                 }
-                if(j==keyLineList.size()){
+                if(j==int(keyLineList.size())){
                     VECTOR_COPY(keyLineDir, crossProdt);
                     keyLineList.push_back(keyLineDir);
                     keyLineOnPlaneID.resize(j+1);
@@ -2681,7 +2681,7 @@ void GenerateGBBurgInfo(BurgInfo_t *bInf, BurgInfo_t *bInf1, real8 *GBNormal, Bu
     bInf->keyLineList = (real8 (*)[3])malloc(3*bInf->numKeyLines*sizeof(real8));
     bInf->numPlanesPerKeyLine = (int *)malloc(bInf->numKeyLines*sizeof(int));
     bInf->keyLineOnPlaneID = (int **)malloc(bInf->numKeyLines*sizeof(int*));
-    for(auto i=0; i<keyLineList.size(); i++){
+    for(auto i=0; i<int(keyLineList.size()); i++){
         VECTOR_COPY(bInf->keyLineList[i], keyLineList[i]);
         bInf->numPlanesPerKeyLine[i]=(int)keyLineOnPlaneID[i].size();
         bInf->keyLineOnPlaneID[i] = (int *)malloc(bInf->numPlanesPerKeyLine[i]*sizeof(int));
@@ -2924,7 +2924,7 @@ bool cmp3(SlipSys_t p, SlipSys_t q){
 
 void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB){
     int         i, j, nGrains, type, breakLoop = 0;
-    real8       vec[3], dis, pos[3], sign;
+    real8       vec[3], dis, pos[3];
 	Grain_t		*grain;
 	Param_t		*param;
 
@@ -3438,12 +3438,11 @@ void GetArmGrain(Home_t *home, Node_t *node1, Node_t *node2, int &inGrain, int &
                     if(found)break;
                     for(j=0; j<2; j++){
                         if(GB1->nbrGrain[i] == GB2->nbrGrain[j]){
-                            found = 1;
+                            found = 1; inGrain = GB1->nbrGrain[i];
                             break;
                         }
                     }
                 }
-                inGrain = GB1->nbrGrain[i];
                 if(!found)Fatal("file %s at line %d", __FILE__, __LINE__);
             }
         }else{
@@ -3599,7 +3598,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     real8       dis, burgMag, burg[3], segCentor[3];
     real8       vec[3], a = 5.8685446009;
     real8       coff, length, nor[3], gDir[3], gbNormal[3];
-    GB_t        *gb;
+    GB_t        *gb= (GB_t *)NULL;
     Param_t     *param;
     int         armID;
 
@@ -3685,7 +3684,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                              real8 *vec1, real8 *vec2)
 {
-    int     type, armID12, armID21;
+    int     type=-1, armID12, armID21;
     int     numGlideConstraintsNode1, numGlideConstraintsNode2;
     real8   glideConstraintsNode1[3][3], glideConstraintsNode2[3][3]; 
     bool    zeroLenJunc1, zeroLenJunc2;
@@ -3890,7 +3889,7 @@ void CompressDirectionList(std::vector< std::vector<real8> >& dirList)
 void SumOfValuesIsConstant(int n, int sum, std::vector<int>& valueList, int tot, 
                             std::vector<std::vector<int> >& valueLists, int maxVar)
 {
-    int i, j, nextSum;
+    int i, j, nextSum=0;
 
     if(n == 0)return;
     for(i=0; i<= maxVar && i<= sum; i++){
@@ -4629,7 +4628,7 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
     xi[0] = dx;
     xi[1] = dy;
     xi[2] = dz;
-    length = normal(vec);
+    length = normal(xi);
     normalize_vec(xi);
 
     VECTOR_ZERO(f1);

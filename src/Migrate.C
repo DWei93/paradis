@@ -90,7 +90,7 @@ static void BuildMigLists(Home_t *home, int *migCommList, int **migList,
         int          i, j;
         int          nodeCount, numDomains, thisDomain, destDom;
         int          allocatedValues, sendBufCnt, listLen;
-        int          *sendBufList;
+        int          *sendBufList=(int *)NULL;
         Node_t       *node;
 
         nodeCount = home->newNodeKeyPtr;
@@ -192,7 +192,7 @@ static void PackMigrators(Home_t *home, int remDomID, int *migList,
         int          i, j;
         int          migNodeCount, armCount, numVals;
         int          bufIndex;
-        real8        *buf;
+        real8        *buf=(real8 *)NULL;
         Node_t       *node;
 
         armCount = 0;
@@ -434,11 +434,11 @@ static void CommSendMigrators(Home_t *home, int *migCommList, int **migList,
 {
         int         i, numValues, numRecvBufs, recvIndex;
         int         numDomains, thisDomain, domID;
-        int         *glblMigCommList;
-        int         *sendBufLen, *recvBufLen;
-        char        **sendBuf, **recvBuf;
-        MPI_Request *sendRequest, *recvRequest;
-        MPI_Status  *sendStatus, *recvStatus;
+        int         *glblMigCommList=(int *)NULL;
+        int         *sendBufLen=(int *)NULL, *recvBufLen=(int *)NULL;
+        char        **sendBuf=(char **)NULL, **recvBuf=(char **)NULL;
+        MPI_Request *sendRequest=(MPI_Request *)NULL, *recvRequest=(MPI_Request *)NULL;
+        MPI_Status  *sendStatus=(MPI_Status *)NULL, *recvStatus=(MPI_Status *)NULL;
         
 
         numDomains = home->numDomains;
@@ -593,8 +593,8 @@ static void CommSendMigrators(Home_t *home, int *migCommList, int **migList,
 void Migrate(Home_t *home)
 {
         int    i, numDomains, numSendBufs;
-        int    *migCommList, **migList, *migListCnt;
-        int    *sendBufDest;
+        int    *migCommList=(int *)NULL, **migList=(int **)NULL, *migListCnt=(int *)NULL;
+        int    *sendBufDest=(int *)NULL;
 
         TimerStart(home, MIGRATION);
 

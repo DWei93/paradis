@@ -724,7 +724,7 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
  */
                 if ((fpSeg == (FILE *)NULL) && (nextFileSeg <= maxFileSeg)) {
                
-                    sprintf(tmpFileName, "%s.%d", baseFileName, nextFileSeg);
+                    snprintf(tmpFileName, sizeof(tmpFileName), "%s.%d", baseFileName, nextFileSeg);
                     fpSeg = fopen(tmpFileName, "r");
 
                     if (fpSeg == (FILE *)NULL) {

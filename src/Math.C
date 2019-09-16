@@ -63,7 +63,7 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2, double
     double  n2x = n2[0], n2y = n2[1], n2z = n2[2];
     double  p1x = p1[0], p1y = p1[1], p1z = p1[2];
     double  p2x = p2[0], p2y = p2[1], p2z = p2[2];
-    double  dir[3], dir1[3], dir2[3], dot, dis, vec3[3], vec4[4], vec5[3], vec6[3];
+    double  vec3[3], vec4[4];
     int     type;
 
 #ifdef DEBUG
@@ -442,7 +442,7 @@ double PointConcavePolygonDistance(double *p, std::vector<double> &v, std::vecto
 bool PlaneConcavePolygonIntersection(double *n, double *p, double *vertices, int *polygon, int nPoints, double intersections[6])
 {
     int next, j=0;
-    double *v1, *v2, pos[3];
+    double pos[3];
     for(auto i=0; i<nPoints; i++){
         next = (i<nPoints-1)?i+1:0;
         if(POINT_INTERSECTION==SegmentPlaneIntersection(Coordinate(vertices, polygon[i]), Coordinate(vertices,polygon[next]),n, p, pos)){
@@ -497,7 +497,7 @@ void CentroidOfPolygon(std::vector<int> &f_vert,std::vector<double> &v,int start
 double AreaOfPolygon(std::vector<int> &f_vert,std::vector<double> &v,int startID){
 	int n=f_vert[startID++];
 
-    double pos0[3], pos1[3], pos2[3], cpd[3], areas=0, area;
+    double pos1[3], pos2[3], cpd[3], areas=0, area;
     for(int i=startID+1; i<startID+n-1; i++){
         pos1[0]=v[f_vert[i]*3]-v[f_vert[startID]*3];
         pos1[1]=v[f_vert[i]*3+1]-v[f_vert[startID]*3+1];

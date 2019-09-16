@@ -591,7 +591,6 @@ void TrapezoidIntegrator(Home_t *home)
             mobIterError = 0;
             globalVals[0] = 0.0;
             globalVals[1] = 0.0;
-			globalVals[2] = 0.0;
 
             for (iter = 0; iter < maxIterations; iter++) {
 /*

@@ -37,9 +37,11 @@ void WritePoleFig(Home_t *home, char *baseFileName, int ioGroup,
         FILE    *fp;
         Node_t  *node, *nbrNode;
         Param_t *param;
-        struct stat statbuf;
-           
-        
+#ifdef PARALLEL
+#ifdef DO_IO_TO_NFS
+        struct stat statbuf; 
+#endif
+#endif        
         param=home->param;
         
 /*

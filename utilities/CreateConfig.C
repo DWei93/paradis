@@ -1184,8 +1184,8 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         int      lenRange,x0, d, nLayers, xn, layer;
         int      startRemeshIndex = 0;
         real8    srcLen, thickness;
-        real8    p0[3], p1[3], p2[3], p3[3], randomLine[3],k0[3];
-        real8    p4[3], p5[3];
+        real8    p0[3]={0,0,0}, p1[3]={0,0,0}, p2[3]={0,0,0}, p3[3]={0,0,0}, randomLine[3],k0[3];
+        real8    p4[3]={0,0,0}, p5[3]={0,0,0};
         real8	 randomAngle;
         int	     cubeLength, numSources, srcLenMin, srcLenMax, seed, dislocType;
         int	     polycrystal, nGrain, finish;
@@ -1198,7 +1198,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         real8	 n0[3], b[3], n1[3];	/* plane normal vector, burgers, normal vector*/
         Node_t   *node;
         Param_t  *param;
-        real8	 invsq2, basePos[3], b1[3], b2[3], f1[3], f2[3], f3[3], f4[3];
+        real8	 invsq2, basePos[3]={0,0,0}, b1[3]={-1,-1,-1}, b2[3]={-1,-1,-1}, f1[3], f2[3], f3[3], f4[3];
         real8	 rotMatrix[3][3],rotLine[3],rotBurg[3],rotPlane[3], btemp[3];
         int      intID, inGrain4, onGB4, inGrain5, onGB5;
         real8    pi = 3.1415926535897932385, totSrcLen;
@@ -1855,8 +1855,8 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, int cubeLength,
                           int dislocType)
 {
         int      nplane, indexplane, ic, np, ip, id0, i;
-        int      inds11, inds12, inds21, inds22;
-        int      indp, indp1, indp2, indb1, indb2, indr;
+        int      inds11=0, inds12=0, inds21=0, inds22=0;
+        int      indp=0, indp1=0, indp2=0, indb1=0, indb2=0, indr;
         int      newNodeIndex, lastBlock;
         int      startRemeshIndex = 0;
         real8    prisml, invsq2, cubeSize;
@@ -2156,7 +2156,7 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
         int      startRemeshIndex = 0;
         int      signFact; 
         int      nbr1Index, nbr2Index, numConnections, numSegs;
-        int      intersectIndex1, intersectIndex2;
+        int      intersectIndex1=0, intersectIndex2=0;
         int      pbc[3];
         real8    burgSign, vecLen;
         real8    surfCoord, len, minLen1, minLen2;
@@ -2804,7 +2804,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
                 burg = bInf->keyLineList[burgID]; 
                 cross_product(normal, burg, gDir); normalize_vec(gDir);
                 
-                character:
                 angle = randm(&seed)*2*M_PI; 
                 CoordAdd(cos(angle),burg,sin(angle),gDir,lDir);
                 normalize_vec(lDir);
@@ -2837,6 +2836,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
                     }
                     
                     if(ymax>srcLen){
+                        t1 = t2 =-1.0;
                         for(auto k=joint[0]+1; k<joint[1]+1; k++){
                             if((y[k]-srcLen)*(y[k-1]-srcLen)<0){
                                 t1=x[k-1]+(x[k]-x[k-1])*(srcLen-y[k-1])/(y[k]-y[k-1]);
@@ -2850,6 +2850,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 &tot
                                 break;
                             }
                         }
+                        if(t1==-1 || t2==-1)Fatal("%s: can not find mean free path at %d",__func__, __LINE__);
                         CoordAdd(1.0-t1,p2,t1,p1,p3);
                         CoordAdd(1.0-t2,p2,t2,p1,p4);
                 
@@ -3001,8 +3002,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         int      isScrew, gpIndex, gpBurgIndex;
         int      lenRange,x0, d, nLayers, xn, layer, time;
         int      startRemeshIndex = 0;
-        real8    srcLen, thickness;
-        real8    p0[3], p1[3], p2[3], p3[3], randomLine[3];
+        real8    srcLen=-1, thickness;
+        real8    p0[3]={0,0,0}, p1[3]={0,0,0}, p2[3]={0,0,0}, p3[3]={0,0,0}, randomLine[3];
         real8	 randomAngle;
         int	     cubeLength, numSources, srcLenMin, srcLenMax, seed, dislocType;
         int	     polycrystal, nGrain, finish;
@@ -3015,7 +3016,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         real8	 n0[3], b[3], n1[3];	/* plane normal vector, burgers, normal vector*/
         Node_t   *node;
         Param_t  *param;
-        real8	 invsq2, basePos[3], b1[3], b2[3], f1[3], f2[3], f3[3], f4[3];
+        real8	 invsq2, basePos[3]={0,0,0}, b1[3]={0,0,0}, b2[3]={0,0,0}, f1[3], f2[3], f3[3], f4[3];
         real8	 rotMatrix[3][3],rotLine[3],rotBurg[3],rotPlane[3], btemp[3];
         int      intID, burgID, planeID;
         real8    pi = 3.1415926535897932385, totSrcLen;

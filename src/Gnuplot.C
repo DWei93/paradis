@@ -28,19 +28,21 @@
 void Gnuplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
              int writePrologue, int writeEpilogue)
 {
-	int		i, j, index, thisDomain;
-	int		newNodeKeyPtr;
+	int		    i, j, index, thisDomain;
+	int		    newNodeKeyPtr;
 	real8		x, y, z, x2, y2, z2;
 	real8		prx, pry, prz;
-	real8	        Lx, Ly, Lz, x0, y0, z0, x1, y1, z1;
-        char            fileName[256], tmpName[256];
+	real8	    Lx, Ly, Lz, x0, y0, z0, x1, y1, z1;
+    char        fileName[256], tmpName[256];
 	Node_t		*node, *nbrNode;
 	Param_t		*param; /* Need this to plot box */
-	FILE	        *fp;
-        struct stat     statbuf;
-
-
-        thisDomain = home->myDomain;
+	FILE        *fp;
+#ifdef PARALLEL
+#ifdef DO_IO_TO_NFS
+        struct stat statbuf; 
+#endif
+#endif        
+    thisDomain = home->myDomain;
 	param      = home->param;
 
         x0 = param->minSideX;

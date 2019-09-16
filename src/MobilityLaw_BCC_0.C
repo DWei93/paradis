@@ -41,7 +41,7 @@ int  Mobility_BCC_0(Home_t *home, Node_t *node)
         int     i, j, nbrs;
         int     numNonZeroLenSegs = 0;
         real8   tmp, tmp3[3], vOld[3], totLength;
-        real8   massMult, massMatrix[3][3];
+        real8   massMult=0, massMatrix[3][3];
         real8   bx, by, bz;
         real8   dx, dy, dz;
         real8   mx, my, mz;

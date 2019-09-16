@@ -884,7 +884,7 @@ int InterpolateBL(real8 *x, real8 *y, real8 *val, int numElem,
                   real8 targetX, real8 targetY, real8 *result)
 {
         int    yLow, yHigh, i;
-        int    xLowMin, xLowMax, xHighMin, xHighMax;
+        int    xLowMin, xLowMax, xHighMin=-1, xHighMax;
         real8  t, u;
         real8  lowX, highX, lowY, highY;
         real8  val1, val2, val3, val4, tmpVal;
@@ -4282,7 +4282,7 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
         int     numConstraints, junctionConstraint = 0;
 	    real8   n1[3], nCryst[3], nLab[3], lDir[3];
         real8   eps = 1.0e-06;
-        real8   glidePlane[3], gpNormal, negPlane[3];
+        real8   glidePlane[3]={0,0,0}, gpNormal, negPlane[3];
         real8   temp, testVal, dpnnm;
         bool    neglectful = 0;
         Node_t  *nbr;

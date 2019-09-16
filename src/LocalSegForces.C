@@ -112,6 +112,7 @@ int NodeOwnsSeg(Home_t *home, Node_t *node1, Node_t *node2)
         int    cell2X, cell2Y, cell2Z;
         int    diffX, diffY, diffZ;
         Cell_t *cell;
+#ifdef DEBUG
         if(node1 == (Node_t *)NULL || node2 == (Node_t *)NULL){
             Fatal("NodeOwnsSeg (Node_t *)NULL");
         }
@@ -119,6 +120,7 @@ int NodeOwnsSeg(Home_t *home, Node_t *node1, Node_t *node2)
         if(node1->cellIdx < 0 || node2->cellIdx < 0){
             Fatal("NodeOwnsSeg: cellIdx < 0");
         }
+#endif
         if (node1->cellIdx == node2->cellIdx) {
             if (node1->myTag.domainID == node2->myTag.domainID) {
                 return(node1->myTag.index > node2->myTag.index);

@@ -57,8 +57,8 @@ static void GetConfigFromCtrlFile(Home_t *home, FILE *fp, Node_t **nodeConfig)
         char   inLine[256], oldTagStr[32];
         char   *separator;
         real8  boundary[6];
-        real8  *burgX, *burgY, *burgZ;
-        Node_t *nodeList, *node;
+        real8  *burgX=(real8 *)NULL, *burgY=(real8 *)NULL, *burgZ=(real8 *)NULL;
+        Node_t *nodeList=(Node_t*)NULL, *node;
         Param_t *param;
         ParamList_t *dataParamList;
 
@@ -264,7 +264,7 @@ static int CreateDataFileFromCtrl(Home_t *home, char *dataFileName,
         param = home->param;
         dataParamList = home->dataParamList;
 
-        sprintf(newFileName, "%s.new", dataFileName);
+        snprintf(newFileName, sizeof(newFileName), "%s.new", dataFileName);
 
         if ((fpData = fopen(newFileName, "w")) == (FILE *)NULL) {
             Fatal("Open error (%d) on file %s\n", errno, newFileName);
@@ -363,7 +363,7 @@ static int ConvertControlFile(Home_t *home, char *ctrlFileName,
 
         *doDataConvert = 1;
 
-        sprintf(newFileName, "%s.new", ctrlFileName);
+        snprintf(newFileName, sizeof(newFileName),"%s.new", ctrlFileName);
 
         fpOld = fopen(ctrlFileName, "r");
         fpNew = fopen(newFileName, "w");
@@ -609,13 +609,13 @@ static void ConvertDataFile(Home_t *home, char *baseDataFileName)
 
 /*      Figure out the name of the first data file segment */
 
-        sprintf(segmentName, "%s", baseDataFileName);
-        sprintf(newSegName, "%s.new", segmentName);
+        snprintf(segmentName,sizeof(segmentName), "%s", baseDataFileName);
+        snprintf(newSegName, sizeof(newSegName), "%s.new", segmentName);
         fpOld = fopen(segmentName, "r");
 
         if (fpOld == (FILE *)NULL) {
-            sprintf(segmentName, "%s.0", baseDataFileName);
-            sprintf(newSegName, "%s.0.new", baseDataFileName);
+            snprintf(segmentName, sizeof(segmentName), "%s.0", baseDataFileName);
+            snprintf(newSegName,sizeof(newSegName), "%s.0.new", baseDataFileName);
             fpOld = fopen(segmentName, "r");
         }
 
@@ -833,8 +833,8 @@ static void ConvertDataFile(Home_t *home, char *baseDataFileName)
  *          If necessary, open the next segment of the nodal data file
  */
             if ((fpOld == (FILE *)NULL)&&(nextSeqNum<param->numFileSegments)) {
-                sprintf(segmentName, "%s.%d", baseDataFileName, nextSeqNum);
-                sprintf(newSegName, "%s.%d.new", baseDataFileName, nextSeqNum);
+                snprintf(segmentName, sizeof(segmentName), "%s.%d", baseDataFileName, nextSeqNum);
+                snprintf(newSegName,sizeof(newSegName), "%s.%d.new", baseDataFileName, nextSeqNum);
                 fpOld = fopen(segmentName, "r");
                 fpNew = fopen(newSegName, "w");
                 nextSeqNum++;
@@ -923,8 +923,8 @@ static void RenameAllFiles(Home_t *home, char *ctrlFileName,
  *      Rename the original control file to be a backup and
  *      give the new file the original name.
  */
-        sprintf(bkupFileName, "%s.bkup", ctrlFileName);
-        sprintf(newFileName, "%s.new", ctrlFileName);
+        snprintf(bkupFileName, sizeof(bkupFileName), "%s.bkup", ctrlFileName);
+        snprintf(newFileName, sizeof(newFileName),"%s.new", ctrlFileName);
 
         if (rename(ctrlFileName, bkupFileName) < 0) {
             printf("Error %d renaming %s to %s.  Aborting\n",
@@ -944,13 +944,13 @@ static void RenameAllFiles(Home_t *home, char *ctrlFileName,
         for (i = 0; i < home->param->numFileSegments; i++) {
 
             if (home->param->numFileSegments > 1) {
-                sprintf(origFileName, "%s.%d", baseDataFileName, i);
-                sprintf(bkupFileName, "%s.%d.bkup", baseDataFileName, i);
-                sprintf(newFileName, "%s.%d.new", baseDataFileName, i);
+                snprintf(origFileName,sizeof(origFileName),"%s.%d", baseDataFileName, i);
+                snprintf(bkupFileName,sizeof(bkupFileName),"%s.%d.bkup", baseDataFileName, i);
+                snprintf(newFileName ,sizeof(newFileName ), "%s.%d.new", baseDataFileName, i);
             } else {
-                sprintf(origFileName, "%s", baseDataFileName);
-                sprintf(bkupFileName, "%s.bkup", baseDataFileName);
-                sprintf(newFileName, "%s.new", baseDataFileName);
+                snprintf(origFileName,sizeof(origFileName), "%s", baseDataFileName);
+                snprintf(bkupFileName,sizeof(bkupFileName), "%s.bkup", baseDataFileName);
+                snprintf(newFileName ,sizeof(newFileName ),"%s.new", baseDataFileName);
             }
 
 /*

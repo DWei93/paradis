@@ -33,8 +33,7 @@ Node_t *GetNewGhostNode(Home_t *home, int domain, int index)
             remDom->nodeKeys = (Node_t **)realloc(remDom->nodeKeys, 
                                                   (index+1)*sizeof(Node_t *));
 
-        for (i = remDom->maxTagIndex; i < index; i++)
-            remDom->nodeKeys[i] = 0;
+            for (i = remDom->maxTagIndex; i < index; i++) remDom->nodeKeys[i] = 0;
             remDom->maxTagIndex = index + 1;
         }
 

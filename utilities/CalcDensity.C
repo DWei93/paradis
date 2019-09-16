@@ -782,7 +782,7 @@ static void ProcessNodalData(Home_t *home, FILE *fpData, char *baseFileName,
                         Fatal("Unexpected EOF in nodal data file");
                     }
                     fclose(fpData);
-                    sprintf(segmentName, "%s.%d", baseFileName, fileSeqNum);
+                    snprintf(segmentName, sizeof(segmentName), "%s.%d", baseFileName, fileSeqNum);
                     fpData = fopen(segmentName, "r");
                     if (fpData == (FILE *)NULL) {
                         Fatal("Error %d opening node data file %s",
@@ -946,7 +946,7 @@ static void ProcessBinNodalData(Home_t *home, hid_t fileID, char *baseFileName,
  *      Find the range of tasks for which data is included in this
  *      first data file segment.
  */
-        sprintf(itemName, "/taskIDRange");
+        snprintf(itemName, sizeof(itemName), "/taskIDRange");
         status = ReadHDFDataset(fileID, itemName, H5T_NATIVE_INT,
                                 2, taskIDRange);
 
@@ -969,7 +969,7 @@ static void ProcessBinNodalData(Home_t *home, hid_t fileID, char *baseFileName,
  */
             if ((fileID < 0) && (nextFileSeg <= maxFileSeg)) {
 
-                sprintf(tmpFileName, "%s.%d", baseFileName, nextFileSeg);
+                snprintf(tmpFileName, sizeof(tmpFileName), "%s.%d", baseFileName, nextFileSeg);
                 fileID = H5Fopen(tmpFileName, H5F_ACC_RDONLY, H5P_DEFAULT);
 
                 if (fileID < 0) {
@@ -980,7 +980,7 @@ static void ProcessBinNodalData(Home_t *home, hid_t fileID, char *baseFileName,
  *              Find the min/max ID's of the tasks that wrote nodal
  *              data to this data file.
  */
-                sprintf(itemName, "/taskIDRange");
+                snprintf(itemName, sizeof(itemName), "/taskIDRange");
                 status = ReadHDFDataset(fileID, itemName, H5T_NATIVE_INT,
                                         2, taskIDRange);
 
@@ -1012,8 +1012,8 @@ static void ProcessBinNodalData(Home_t *home, hid_t fileID, char *baseFileName,
  *              nodal data in the task's directory, we don't need to
  *              read anything else here.
  */
-                sprintf(taskDir, "/task%d", nextTaskID);
-                sprintf(itemName, "%s/nodeCount", taskDir);
+                snprintf(taskDir, sizeof(taskDir), "/task%d", nextTaskID);
+                snprintf(itemName, sizeof(itemName), "%s/nodeCount", taskDir);
 
                 status = ReadHDFDataset(fileID, itemName, H5T_NATIVE_INT,
                                         1, &taskNodeCount);
@@ -1031,7 +1031,7 @@ static void ProcessBinNodalData(Home_t *home, hid_t fileID, char *baseFileName,
 /*
  *              Find out how much segment data is stored
  */
-                sprintf(itemName, "%s/segCount", taskDir);
+                snprintf(itemName, sizeof(itemName), "%s/segCount", taskDir);
                 status = ReadHDFDataset(fileID, itemName, H5T_NATIVE_INT,
                                             1, &taskSegCount);
                 if (status != 0) {
@@ -1066,19 +1066,19 @@ static void ProcessBinNodalData(Home_t *home, hid_t fileID, char *baseFileName,
                 segTags = (int *)malloc(taskSegCount * 3 * sizeof(int));
 
 
-                sprintf(itemName, "%s/nodeIndex", taskDir);
+                snprintf(itemName, sizeof(itemName), "%s/nodeIndex", taskDir);
                 status |= ReadHDFDataset(fileID, itemName, H5T_NATIVE_INT,
                                          taskNodeCount, nodeIndices);
 
-                sprintf(itemName, "%s/nodeNumSegs", taskDir);
+                snprintf(itemName, sizeof(itemName), "%s/nodeNumSegs", taskDir);
                 status |= ReadHDFDataset(fileID, itemName, H5T_NATIVE_INT,
                                          taskNodeCount, nodeNumSegs);
 
-                sprintf(itemName, "%s/nodePos", taskDir);
+                snprintf(itemName, sizeof(itemName), "%s/nodePos", taskDir);
                 status |= ReadHDFDataset(fileID, itemName, H5T_NATIVE_DOUBLE,
                                              taskNodeCount * 3, nodePos);
 
-                sprintf(itemName, "%s/segTags", taskDir);
+                snprintf(itemName, sizeof(itemName),"%s/segTags", taskDir);
                 status |= ReadHDFDataset(fileID, itemName, H5T_NATIVE_INT,
                                          taskSegCount * 3, segTags);
 
@@ -1290,7 +1290,7 @@ int main(int argc, char *argv[])
  *      the control file name with a '.dens' suffix appended.
  */
         if (outFile == (char *)NULL) {
-            sprintf(tmpOutFile, "%s%s", ctrlFile, DENSITY_FILE_SUFFIX);
+            snprintf(tmpOutFile, sizeof(tmpOutFile), "%s%s", ctrlFile, DENSITY_FILE_SUFFIX);
             outFile = tmpOutFile;
         }
 

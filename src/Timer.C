@@ -370,7 +370,7 @@ void TimeAtRestart(Home_t *home, int stage)
 	int	i;
 	int	count, numDoms, iTime, iDom, allIdx;
 	real8	balance;
-	real8	*localTimes, *allTimes, *minTimes, *maxTimes, *avgTimes;
+	real8	*localTimes, *allTimes=(real8 *)NULL, *minTimes, *maxTimes, *avgTimes;
 	char	tFile[16];
 	FILE	*file;
 	Param_t	*param;
@@ -378,6 +378,8 @@ void TimeAtRestart(Home_t *home, int stage)
 	param = home->param;
 	count = TIMER_BLOCK_SIZE;
 	numDoms = home->numDomains;
+
+    const bool zeroDomain = (home->myDomain == 0);
 
 /*
  *	Collect timing values from all processors
@@ -387,7 +389,7 @@ void TimeAtRestart(Home_t *home, int stage)
 	for (iTime = 0; iTime < count; iTime++) 
 		localTimes[iTime] = home->timers[iTime].accum;
 
-	if (home->myDomain == 0)
+	if (zeroDomain)
 		allTimes = (real8 *) malloc(count * numDoms * sizeof(real8));
 
 #ifdef PARALLEL
@@ -402,7 +404,7 @@ void TimeAtRestart(Home_t *home, int stage)
  *	from all other processors and compute minimum, maximum, and average
  *	times over all processors.
  */
-	if (home->myDomain == 0) {
+	if (zeroDomain) {
 
 		minTimes = (real8 *) malloc(count * sizeof(real8));
 		maxTimes = (real8 *) malloc(count * sizeof(real8));

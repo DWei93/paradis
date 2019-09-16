@@ -55,7 +55,7 @@ static void PackInitialNodeData(InData_t *inData, int *nodeList,
 {
         int    i, armCount, armID, numNbrs;
         int    bufIndex, maxIndex, nIndex;
-        real8  *dataBuf;
+        real8  *dataBuf=(real8 *)NULL;
    
 /*
  *      To calculate the buffer size we first need a count of all
@@ -406,8 +406,8 @@ void SendInitialNodeData(Home_t *home, InData_t *inData, int *msgCount,
         int         i, domID, numDomains, thisDomain;
         int         sendIndex, selfSendIndex;
         int         numSendBufs, numRecvBufs;
-        int         *sendBufEnts, *sendBufDest, *recvBufEnts;
-        real8       **sendBuf, **recvBuf;
+        int         *sendBufEnts=(int *)NULL, *sendBufDest=(int *)NULL, *recvBufEnts=(int *)NULL;
+        real8       **sendBuf=(real8 **)NULL, **recvBuf=(real8 **)NULL;
 #ifdef PARALLEL
         int         recvIndex;
 #endif

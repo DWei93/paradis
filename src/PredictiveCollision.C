@@ -389,6 +389,7 @@ static void FindCollisionPointAndTime(Home_t *home, real8 p1[3], real8 p2[3],
                                   real8 v2[3], real8 v3[3], real8 v4[3],
                                   real8 cPoint[3], real8 *cTime,
                                   real8 *minDist2, real8 *L1, real8 *L2)
+#if 0
 {
         int   i, j;
         int   planeDefined;
@@ -853,6 +854,363 @@ static void FindCollisionPointAndTime(Home_t *home, real8 p1[3], real8 p2[3],
 
         return;
 }
+#else
+{
+        int   i;
+        real8 A, B, C, D, E, F, G, H, J;
+        real8 dt, matDet, eps;
+        real8 L1a, L2a, L3, L3a;
+        real8 dist2, ddist2dt, minDist2Tol;
+        real8 tmpMat22[2][2], tmpMat22Inv[2][2];
+        real8 tmpVec2a[2], tmpVec2b[2];
+        real8 tmpVec3[3];
+        real8 R0[3], seg1[3], seg2[3], vDiff[3];
+        real8 uBar10[3], vBar10[3];
+        real8 rhs[3];
+        real8 mat[3][3], matInv[3][3];
+
+
+        eps = 1.0e-12;
+        dt = home->param->deltaTT;
+
+        for (i = 0; i < 3; i++) {
+            R0[i] = p1[i] - p3[i];
+            seg1[i] = p2[i] - p1[i];
+            seg2[i] = p4[i] - p3[i];
+            vBar10[i] = (v1[i] + v2[i]) * 5.0 * dt;
+            uBar10[i] = (v3[i] + v4[i]) * 5.0 * dt;
+            vDiff[i] = vBar10[i] - uBar10[i];
+        }
+
+        A =   DotProduct(seg1, seg1);
+        B = -(DotProduct(seg1, seg2));
+        C =   DotProduct(seg1, vDiff);
+        D =   DotProduct(seg2, seg2);
+        E = -(DotProduct(seg2, vDiff));
+        F =   DotProduct(vDiff, vDiff);
+        G =   DotProduct(R0, seg1);
+        H = -(DotProduct(R0, seg2));
+        J =   DotProduct(R0, vDiff);
+
+        mat[0][0] = A;  mat[0][1] = C;  mat[0][2] = B;
+        mat[1][0] = C;  mat[1][1] = F;  mat[1][2] = E;
+        mat[2][0] = B;  mat[2][1] = E;  mat[2][2] = D;
+
+        rhs[0] = -G;
+        rhs[1] = -J;
+        rhs[2] = -H;
+
+/*
+ *      Check the solution of all the faces, edges and corners.
+ */
+        L3 = 0.0;  /* Start with zero time */
+
+        GetMinDist(p1[0], p1[1], p1[2], v1[0], v1[1], v1[2],
+                   p2[0], p2[1], p2[2], v2[0], v2[1], v2[2],
+                   p3[0], p3[1], p3[2], v3[0], v3[1], v3[2],
+                   p4[0], p4[1], p4[2], v4[0], v4[1], v4[2],
+                   minDist2, &ddist2dt, L1, L2);
+
+/*
+ *      Check the end node pairs of the segments
+ */
+        if (F > eps) {
+
+            L1a = 0.0;  /* Check for this node 1 on seg1 */
+            L2a = 0.0;  /* Check for this node 1 on seg2 */
+            L3a = J / -F;
+
+            if (L3a > 0.0) {
+
+                for (i = 0; i < 3; i++) {
+                    tmpVec3[i] = R0[i] + vDiff[i] * L3a;
+                }
+
+                dist2 = DotProduct(tmpVec3, tmpVec3);
+              
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
+                    *minDist2 = dist2;
+                }
+            }
+
+            L1a = 1.0;  /* Check for this node 2 on seg1 */
+            L2a = 0.0;  /* Check for this node 1 on seg2 */
+            L3a = (J + C) / -F;
+
+            if (L3a > 0.0) {
+
+                for (i = 0; i < 3; i++) {
+                    tmpVec3[i] = R0[i] + seg1[i] + vDiff[i] * L3a;
+                }
+
+                dist2 = DotProduct(tmpVec3, tmpVec3);
+
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
+                    *minDist2 = dist2;
+                }
+            }
+
+            L1a = 0.0;  /* Check for this node 1 on seg1 */
+            L2a = 1.0;  /* Check for this node 2 on seg2 */
+            L3a = (J + E) / -F;
+
+            if (L3a > 0.0) {
+
+                for (i = 0; i < 3; i++) {
+                    tmpVec3[i] = R0[i] - seg2[i] + vDiff[i] * L3a;
+                }
+
+                dist2 = DotProduct(tmpVec3, tmpVec3);
+
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
+                    *minDist2 = dist2;
+                }
+            }
+
+            L1a = 1.0;  /* Check for this node 2 on seg1 */
+            L2a = 1.0;  /* Check for this node 2 on seg2 */
+            L3a = (J + C + E) / -F;
+
+            if (L3a > 0.0) {
+
+                for (i = 0; i < 3; i++) {
+                    tmpVec3[i] = R0[i] + seg1[i] - seg2[i] + vDiff[i] * L3a;
+                }
+
+                dist2 = DotProduct(tmpVec3, tmpVec3);
+
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
+                    *minDist2 = dist2;
+                }
+            }
+
+        } /* end if (F > eps) */
+
+/*
+ *      Check single end nodes on seg1
+ */
+        if (fabs(D*F - E*E) > eps) {
+            L1a = 0.0;
+            tmpMat22[0][0] = mat[1][1];
+            tmpMat22[0][1] = mat[1][2];
+            tmpMat22[1][0] = mat[2][1];
+            tmpMat22[1][1] = mat[2][2];
+
+            Matrix22Invert(tmpMat22, tmpMat22Inv);
+            Matrix22Vector2Mult(tmpMat22Inv, &rhs[1], tmpVec2a);
+
+            if ((tmpVec2a[1] >= 0.0) &&
+                (tmpVec2a[1] <= 1.0) &&
+                (tmpVec2a[0] >= 0.0)) {
+
+                L2a = tmpVec2a[1];
+                L3a = tmpVec2a[0];
+
+                for (i = 0; i < 3; i++) {
+                    tmpVec3[i] = R0[i] - (seg2[i] * L2a) + (vDiff[i] * L3a);
+                }
+
+                dist2 = DotProduct(tmpVec3, tmpVec3);
+
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
+                    *minDist2 = dist2;
+                }
+            }
+
+            L1a = 1.0;
+
+            tmpVec2a[0] = rhs[1] - mat[1][0];
+            tmpVec2a[1] = rhs[2] - mat[2][0];
+ 
+            /* note: tmpMat22Inv calculated above */
+            Matrix22Vector2Mult(tmpMat22Inv, tmpVec2a, tmpVec2b);
+
+            if ((tmpVec2b[1] >= 0.0) &&
+                (tmpVec2b[1] <= 1.0) &&
+                (tmpVec2b[0] >= 0.0)) {
+
+                L2a = tmpVec2b[1];
+                L3a = tmpVec2b[0];
+
+                for (i = 0; i < 3; i++) {
+                    tmpVec3[i] = R0[i] - (seg2[i] * L2a) + (vDiff[i] * L3a);
+                }
+
+                dist2 = DotProduct(tmpVec3, tmpVec3);
+
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
+                    *minDist2 = dist2;
+                }
+            }
+
+        } /* end if (fabs(D*F - E*E) > eps) */
+
+/*
+ *      Check single end nodes on seg2
+ */
+        if (fabs(A*F - C*C) > eps) {
+
+            L2a = 0.0;
+
+            tmpMat22[0][0] = mat[0][0];
+            tmpMat22[0][1] = mat[0][1];
+            tmpMat22[1][0] = mat[1][0];
+            tmpMat22[1][1] = mat[1][1];
+
+            Matrix22Invert(tmpMat22, tmpMat22Inv);
+            Matrix22Vector2Mult(tmpMat22Inv, rhs, tmpVec2a);
+
+            if ((tmpVec2a[0] >= 0.0) &&
+                (tmpVec2a[0] <= 1.0) &&
+                (tmpVec2a[1] >= 0.0)) {
+
+                L1a = tmpVec2a[0];
+                L3a = tmpVec2a[1];
+
+                for (i = 0; i < 3; i++) {
+                    tmpVec3[i] = R0[i] + (seg1[i] * L1a) + (vDiff[i] * L3a);
+                }
+
+                dist2 = DotProduct(tmpVec3, tmpVec3);
+
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
+                    *minDist2 = dist2;
+                }
+            }
+            
+            L2a = 1.0;
+
+            tmpVec2a[0] = rhs[0] - mat[0][2];
+            tmpVec2a[1] = rhs[1] - mat[1][2];
+ 
+            /* note: tmpMat22Inv calculated above */
+            Matrix22Vector2Mult(tmpMat22Inv, tmpVec2a, tmpVec2b);
+
+            if ((tmpVec2b[0] >= 0.0) &&
+                (tmpVec2b[0] <= 1.0) &&
+                (tmpVec2b[1] >= 0.0)) {
+
+                L1a = tmpVec2b[0];
+                L3a = tmpVec2b[1];
+
+                for (i = 0; i < 3; i++) {
+                    tmpVec3[i] = R0[i] + (seg1[i] * L1a) - seg2[i] +
+                                 (vDiff[i] * L3a);
+                }
+
+                dist2 = DotProduct(tmpVec3, tmpVec3);
+
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
+                    *minDist2 = dist2;
+                }
+            }
+
+        }  /* end if (fabs(A*F - C*C) > eps) */
+
+        matDet = Matrix33Det(mat);
+
+        if (fabs(matDet) > eps) {
+
+            if (!Matrix33Invert(mat, matInv)) {
+#if 0
+                Fatal("Unable to invert matrix in FindCollisionPointAndTime");
+#endif
+                *L1 = 0.0;
+                *L2 = 0.0;
+                *cTime = -1;
+
+                return;
+            }
+
+            Matrix33Vector3Multiply(matInv, rhs, tmpVec3);
+
+            if ((tmpVec3[0] >= 0.0) && (tmpVec3[0] <= 1.0) &&
+                (tmpVec3[2] >= 0.0) && (tmpVec3[2] <= 1.0) &&
+                (tmpVec3[1] >= 0.0)) {
+/*
+ *              An interior point has been found
+ */
+                *L1 = tmpVec3[0];
+                *L2 = tmpVec3[2];
+                L3 = tmpVec3[1];
+
+                for (i = 0; i < 3; i++) {
+                    tmpVec3[i] = R0[i] + (seg1[i] * *L1) - (seg2[i] * *L2) +
+                                 (vDiff[i] * L3);
+                }
+
+                *minDist2 = DotProduct(tmpVec3, tmpVec3);
+            }
+
+        } /* end if (fabs(matDet) > eps) */
+
+
+/*
+ *      In general, if the dislocation segments on their current
+ *      trajectories will not eventually intersect we don't want
+ *      to do a collision and set the collision time negative to
+ *      indicate no collision.  First, determine the tolerance for
+ *      deciding if the segments will be within collision distance in
+ *      the future.  Use a tight tolerance if strict glide planes
+ *      are enforced, loosen up the tolerance a little in all
+ *      other cases.
+ */
+        if (home->param->enforceGlidePlanes &&
+            (home->param->allowFuzzyGlidePlanes == 0)) {
+            minDist2Tol = eps;
+        } else {
+            minDist2Tol = 1.0;
+        }
+
+
+/*
+ *      If collision criteria is not met, set collision time to a
+ *      negative value.  Otherwise calculate the collision point and
+ *      time.
+ */
+        if (*minDist2 > minDist2Tol) {
+
+            *cTime = -1.0;
+
+        } else {
+
+            *cTime = 10.0 * L3;
+
+            for (i = 0; i < 3; i++) {
+                cPoint[i] = 0.5 * ((p1[i] + p3[i]) +
+                                   (*L1 * seg1[i]) +
+                                   (*L2 * seg2[i]) +
+                                   (vBar10[i] + uBar10[i]) * L3);
+            }
+        }
+
+        return;
+}
+#endif
 
 /*---------------------------------------------------------------------------
  *

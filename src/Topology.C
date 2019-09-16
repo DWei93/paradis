@@ -814,7 +814,7 @@ void GetForcesFromBkup(Home_t *home, Node_t *node, Node_t *bkupNodeList)
 {
         int    i, j, k;
         int    nbrDom, nbrIndex, nbrArm;
-        Node_t *nbr, *bkupNode, *bkupNbr;
+        Node_t *nbr, *bkupNode=(Node_t *)NULL, *bkupNbr=(Node_t *)NULL;
 
 /*
  *      Loop through all segments attached to the new node
@@ -1089,7 +1089,7 @@ void SplitMultiNodes(Home_t *home)
         int bkupNodeCount;
         int segIndex, mobError, skipSplits = 0;
 	    int	*armList, *currSet;
-	    int	**armSets;
+	    int	**armSets=(int**)NULL;
         int     localSplitVals[4], globalSplitVals[4];
 	    real8	powerMax, powerTest;
 	    real8	vd1, vd2, invvNorm;
@@ -1108,9 +1108,9 @@ void SplitMultiNodes(Home_t *home)
         SegData_t *segData = (SegData_t *)NULL;
 
 #if ENABLE_COMPLICATED_REACTION
-        int     splitInGrain, splitOnGB;
-        int     bakInGrain1, bakOnGB1;
-        int     bakInGrain2, bakOnGB2;
+        int     splitInGrain=-1, splitOnGB=-1;
+        int     bakInGrain1=-1, bakOnGB1=-1;
+        int     bakInGrain2=-1, bakOnGB2=-1;
 
         std::vector<int>    nbrInGrain;
 #endif
@@ -2095,7 +2095,7 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 	    real8	bx, by, bz;
 	    real8	cx, cy, cz;
 	    real8	nx, ny, nz, bakSignSF = 0.0;
-        real8   segPlaneX, segPlaneY, segPlaneZ;
+        real8   segPlaneX=0, segPlaneY=0, segPlaneZ=0;
 	    real8	eps = 1.0e-12;
 	    real8   ftmp[3];
         real8   burg[3], vel[3], dirVec[3], glidePlane[3], pos[3];

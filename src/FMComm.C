@@ -1437,7 +1437,7 @@ static void FMPackDownPassBufs(Home_t *home, int layerID, int sendCnt,
         int       *sendDomList;
         int       *bMin, *bMax, *packedMPCoeff, *packedTaylorCoeff;
         int       numTaylorCoeff, numMPCoeff;
-        real8     *buf;
+        real8     *buf = (real8 *)NULL;
         FMLayer_t *layer, *cLayer;
         FMCell_t  *cell, *cCell, *tCell;
         Param_t   *param;
@@ -1638,7 +1638,7 @@ static void FMPackDownPassBufs(Home_t *home, int layerID, int sendCnt,
 static void FMUnPackDownPassBuf(Home_t *home, int layerID, int bufSize,
                                 real8 *buf)
 {
-        int       i, type, tOrder;
+        int       i, type, tOrder=0;
         int       offset, maxOffset, cellID;
         int       x, y, z, cx, cy, cz, px, py, pz;
         int       *cMin, *cMax;
@@ -2148,18 +2148,18 @@ static int FMPackUpPassBuf(Home_t *home, int layerID, int domID, real8 *buf)
  *--------------------------------------------------------------------------*/
 void FMCommUpPass(Home_t *home, int layerID)
 {
-        int        i, packedLen, recvIndex, receivedCnt = 0;
+        int        i, packedLen, recvIndex=0, receivedCnt = 0;
         int        mySendListIndex = -1;
         int        myRecvListIndex = -1;
         int        sendDomCnt, recvDomCnt;
-        int        *sendDomList, *recvDomList;
-        int        *sendBufLen, *recvBufLen;
-        char       **sendBuf, **recvBuf;
+        int        *sendDomList=(int*)NULL, *recvDomList=(int*)NULL;
+        int        *sendBufLen=(int *)NULL, *recvBufLen=(int*)NULL;
+        char       **sendBuf=(char**)NULL, **recvBuf=(char **)NULL;
 #ifdef PARALLEL
         int         ret;
         MPI_Status  oneStat;
         MPI_Status  *sendStat, *recvStat;
-        MPI_Request *sendReq, *recvReq;
+        MPI_Request *sendReq, *recvReq=(MPI_Request*)NULL;
 #endif
 
 
@@ -2422,17 +2422,17 @@ void FMCommUpPass(Home_t *home, int layerID)
  *--------------------------------------------------------------------------*/
 void FMCommDownPass(Home_t *home, int layerID)
 {
-        int        i, recvIndex, receivedCnt = 0;
+        int        i, recvIndex=0, receivedCnt = 0;
         int        mySendListIndex = -1;
         int        myRecvListIndex = -1;
-        int        sendDomCnt, recvDomCnt;
-        int        *sendDomList, *recvDomList;
-        int        *sendBufLen, *recvBufLen;
-        char       **sendBuf, **recvBuf;
+        int        sendDomCnt=0, recvDomCnt=0;
+        int        *sendDomList=(int*)NULL, *recvDomList=(int*)NULL;
+        int        *sendBufLen=(int*)NULL, *recvBufLen=(int*)NULL;
+        char       **sendBuf=(char**)NULL, **recvBuf=(char**)NULL;
 #ifdef PARALLEL
         MPI_Status oneStat;
-        MPI_Status *sendStat, *recvStat;
-        MPI_Request *sendReq, *recvReq;
+        MPI_Status *sendStat=(MPI_Status *)NULL, *recvStat=(MPI_Status *)NULL;
+        MPI_Request *sendReq=(MPI_Request *)NULL, *recvReq=(MPI_Request *)NULL;
 #endif
 
 
@@ -2704,7 +2704,7 @@ static void FMPackTaylorCoeff(Home_t *home, int numCells, int *cellList,
             }
         }
 
-        if (offset*sizeof(real8) != bufSize) {
+        if (int(offset*sizeof(real8)) != bufSize) {
             Fatal("FMPackTaylorCoeff: Packed %d bytes into %d byte buffer",
                   offset*sizeof(real8), bufSize);
         }

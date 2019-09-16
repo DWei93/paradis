@@ -87,7 +87,7 @@ void _Synchronize(Home_t *home, char *msg)
  *------------------------------------------------------------------------*/
 static void ApplyDeltaStress(Home_t *home, real8 deltaStress[3][3])
 {
-        int     i, j, nbrArm, nbrIsLocal;
+        int     i, j, nbrArm=0, nbrIsLocal;
         real8   x1, y1, z1, x2, y2, z2;
         real8   bx1, by1, bz1, dx, dy, dz;
         real8   f1[3], f2[3];
@@ -285,8 +285,6 @@ void ParadisStep(Home_t *home)
  *      move nodes to their correct locations and communicate 
  *      the new nodal force/velocity data to neighboring domains.
  */
-
-		
         if (strcmp(param->timestepIntegrator, "forward-euler") == 0) {
             ForwardEulerIntegrator(home);
         } else if (strcmp(param->timestepIntegrator, "trapezoid") == 0) {
@@ -555,7 +553,5 @@ void ParadisStep(Home_t *home)
 #if DEBUG_CHECK_FOR_ZERO_SEG
         CheckForEmptySimulation(home);
 #endif
-
-	
         return;
 }

@@ -53,7 +53,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 {
         int      i, j, thisDomain, arm;
         int      newNodeKeyPtr, narm;
-        int      burgID, normalID; 
+        int      burgID=-1, normalID; 
         int	     armInGrain, armOnGB;
         real8    x,y,z, sfForce[3];
         real8    x2,y2,z2;
@@ -275,11 +275,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                     continue;
                 }
 
-                if(home->param->materialType == MAT_TYPE_FCC){
-                    burgID = BurgID(home, node, nbrNode);
-                }else{
-                    Fatal("The burgers ID of non-FCC material has not defined\n");
-                }
+                burgID = BurgID(home, node, nbrNode);
 				
                 normalID = PlaneID(home, node, nbrNode);
 
@@ -414,12 +410,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 	            }
 				
                 normalID = PlaneID(home, node, nbrNode);
-
-	            if(home->param->materialType == MAT_TYPE_FCC){
-	                burgID = BurgID(home, node, nbrNode);
-	            }else{
-	                Fatal("The burgers ID of non-FCC material has not defined\n");
-	            }
+	            burgID = BurgID(home, node, nbrNode);
 		
 	            x2o = nbrNode->x;
 	            y2o = nbrNode->y;
@@ -470,9 +461,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                     }else if(burgID == 17){
                         index =0;
                     }else{
-                        burg[0] = node->burgX[j];
-                        burg[1] = node->burgY[j];
-                        burg[2] = node->burgZ[j];
+                        burg[0] = node->burgX[arm];
+                        burg[1] = node->burgY[arm];
+                        burg[2] = node->burgZ[arm];
                         if(BurgType_FCC(burg) == BASIC_BURG){
                             index = 1;
                         }else{

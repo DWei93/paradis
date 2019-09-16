@@ -729,7 +729,7 @@ void Matrix33Init(real8 a[3][3])
 int Matrix66Invert(real8 a[6][6], real8 b[6][6])
 {
         int   i, j, k, l, m, n, ll;
-        int   icol, irow;
+        int   icol=0, irow=0;
         int   indxc[6], indxr[6], ipiv[6];
         real8 big, dum, pivinv, temp;
         real8 tmpMat[6][6];

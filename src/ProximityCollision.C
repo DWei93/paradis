@@ -647,7 +647,7 @@ void ProximityCollisions(Home_t *home)
         int     splitSeg1, splitSeg2;
         int     cell2Index, nbrCell2Index, nextIndex;
         int     cell2X, cell2Y, cell2Z, cx, cy, cz;
-        int     localCollisionCnt, globalCollisionCnt;
+        int     localCollisionCnt;
         real8   mindist2, dist2, ddist2dt, L1, L2, eps, half;
         real8   x1, y1, z1, vx1, vy1, vz1;
         real8   x2, y2, z2, vx2, vy2, vz2;
@@ -681,7 +681,9 @@ void ProximityCollisions(Home_t *home)
         half     = 0.5;
 
         localCollisionCnt = 0;
-        globalCollisionCnt = 0;
+#ifdef DEBUG_LOG_COLLISIONS
+        int globalCollisionCnt = 0;
+#endif
 
 #ifdef DEBUG_TOPOLOGY_DOMAIN
         dbgDom = DEBUG_TOPOLOGY_DOMAIN;

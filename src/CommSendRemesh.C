@@ -21,8 +21,8 @@ void CommSendRemesh(Home_t *home)
 {
         int            isrc, domainIdx, idst, outMsgLen;
         int            numRemoteDomains;
-        int            *sendBufLen;
-        char           **sendBuf;
+        int            *sendBufLen=(int *)NULL;
+        char           **sendBuf=(char **)NULL;
         RemoteDomain_t *remDom;
 
         numRemoteDomains = home->remoteDomainCount;

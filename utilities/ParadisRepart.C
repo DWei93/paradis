@@ -195,7 +195,7 @@ static void GetInArgs(int argc, char *argv[], Param_t *param,
                       char **baseFileName, char **outFileName)
 {
         int  i, j;
-        char *argName, *argValue, *token, *suffix;
+        char *argName, *argValue=(char*)NULL, *token, *suffix;
 
         *baseFileName = (char *)NULL;
         *outFileName  = (char *)NULL;
@@ -938,7 +938,7 @@ static void ReadDataFile(Home_t *home, char *fileName, CellData_t *cellList,
                         Fatal("Unexpected EOF in nodal data file");
                     }
                     fclose(fp);
-                    sprintf(segmentName, "%s.%d", baseFileName, fileSeqNum);
+                    snprintf(segmentName, sizeof(segmentName), "%s.%d", baseFileName, fileSeqNum);
                     fp = fopen(segmentName, "r");
                     if (fp == (FILE *)NULL) {
                         Fatal("Error %d opening node data file %s",
@@ -2070,7 +2070,7 @@ int main(int argc, char *argv[])
  *      a new file which will be a copy of the old file expect that
  *      the domain decomposition will be updated.
  */
-        strncpy(oldFileName, baseFileName, sizeof(oldFileName));
+        strncpy(oldFileName, baseFileName, sizeof(oldFileName)-1);
 
         if ((oldFP = fopen(oldFileName, "r")) == (FILE *)NULL) {
             strcat(oldFileName, ".0");
@@ -2082,7 +2082,7 @@ int main(int argc, char *argv[])
 
         snprintf(backupFileName, sizeof(backupFileName), "%s.bkup",
                  oldFileName);
-        sprintf(newFileName, "%s.decomptmp", oldFileName);
+        snprintf(newFileName, sizeof(newFileName),"%s.decomptmp", oldFileName);
 
 /*
  *      Open the new data file and write the version number,

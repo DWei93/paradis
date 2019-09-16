@@ -523,7 +523,7 @@ static void PrintArgs(InArgs_t *inArgs)
 	            printf("nLayers:                  %d\n",inArgs->nLayers);
                 if(inArgs->disList.size()>0){
                     printf("customized dislocations: burgID planID grain\n");
-                    for(int i=0; i<inArgs->disList.size(); i++){
+                    for(int i=0; i<int(inArgs->disList.size()); i++){
                         printf("                         %d    %d    %d\n", 
                         inArgs->disList[i][0], inArgs->disList[i][1], inArgs->disList[i][2]);
                     } 
@@ -572,7 +572,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	    int	existDir[3];
 	    int	orientationType, existCount;
         char    *argName;
-        char    *argValue;
+        char    *argValue=(char *)NULL;
         char    *token;
 
 	    VECTOR_ZERO(existDir);

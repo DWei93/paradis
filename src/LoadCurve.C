@@ -632,6 +632,9 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 C   = param->elasticConstantMatrix;
                 Sij = param->elasticConstantMatrixInv;
     
+				for (i = 0; i < 6; i++) {
+                    dpstn[i] = param->delpStrain[i];
+                }
                 effPlaRate = sqrt((dpstn[0]*dpstn[0]+ 
                                    dpstn[1]*dpstn[1]+ 
                                    dpstn[2]*dpstn[2]+ 
