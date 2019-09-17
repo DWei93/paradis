@@ -36,7 +36,7 @@ seed=""
 srctype=1
 burgMag=2.556
 #d0=`echo "28*${maxSeg}/${burgMag}" | bc -l`
-d0=75 # sf=0.005 J/m^2
+d0=120.5243669 # sf=0.005 J/m^2
 
 PI=3.1415926535897932385
 angle=`echo "scale=16; ${1}.0 * ${PI} / 180.0 " | bc -l`
@@ -50,7 +50,7 @@ case $srctype in
     1|I)
     echo "initial separation ${d0}"
     ./bin/paradisgen -type 4 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 0 -pbc 0 -extended 4,${d0} \
+   -polycrystal 0 -pbc 0 -extended 4,${d0} \
     -xMatDir -1,-1,2 -zMatDir 1,1,1 ;;
 
 #   -polycrystal 0 -pbc 0  \
@@ -63,8 +63,8 @@ case $srctype in
     2|II)
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 0 -pbc 7 \
-#    -polycrystal 0 -pbc 7 -extended 4\
     -xMatDir -1,-1,2 -zMatDir 1,1,1\
+#    -polycrystal 0 -pbc 7 -extended 4\
     -heightRatio 1 -deltaNums 0 -nLayers 1 ;;
 
 #    -xMatDir 1,0,0 -yMatDir 0,1,0 \

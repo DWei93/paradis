@@ -2976,7 +2976,6 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
     xi[0] = dx;
     xi[1] = dy;
     xi[2] = dz;
-    length = Normal(vec);
 
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);

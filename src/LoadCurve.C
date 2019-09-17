@@ -301,6 +301,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 printf("al=%e,am=%e,an=%e\n", al, am, an);
                 printf("erate=%e,dtt=%e,dpl_stn=%e\n", erate, dtt, dpl_stn);
                 printf("modulus=%e,dStress=%e\n", modulus, dStress);
+*/
 /*
  *              global (100)-(010)-(001) frame
  */

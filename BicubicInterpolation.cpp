@@ -13,6 +13,8 @@
 #include <numeric>
 #define PI  3.1415926535897932385
 
+#include <sys/types.h>
+#include <unistd.h>
 using namespace std;
 
 typedef struct {
@@ -140,13 +142,18 @@ double Interpolation(double f00, double fx00, double fy00, double fxy00,
 
 int main(int argc,char** argv)
 {
+    int myDomain, nDomains;
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &myDomain);
+    MPI_Comm_size(MPI_COMM_WORLD, &nDomains);
+
     double  xBoundMax, yBoundMax, xBoundMin, yBoundMin;    
     double  meshSizeX, meshSizeY, nXs, nYs;
     double  burgMag, (*potParams)[3];
     double  potExpection, potVariance, sigma;
     double  *localArray, *globalArray;
     double  radius, dx, dy, l1, l2, cubel, rsize;
-    int     i, j, k, myDomain, nDomains;
+    int     i, j, k; 
     int     nPotParams, nMeshPoints;
     int     numX1, numY1;
     int     percent;
@@ -163,29 +170,24 @@ int main(int argc,char** argv)
 
     Param_t param;
     
-    seed = time(0);
-    E = potExpection;
-    D = potVariance;
-    MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &myDomain);
-    MPI_Comm_size(MPI_COMM_WORLD, &nDomains);
-
     rsize=4;
     sigma = 20.0; // correlation length
-    trueTauPin=sigma*200E6;
+    trueTauPin=sigma*1.024E9;
     param.burgMag = 2.556e-10;
+    cubel = 1000.0*sigma;
     tauPin = trueTauPin/sigma; // magnitude of pinning stress
     potExpection = tauPin*param.burgMag;
+    nPotParams = ((int)cubel*cubel/sigma/sigma);
+    seed = time(0) + getpid();
     if(myDomain==0){
+        printf("seed value: %d\n", seed);
         printf("True maginitude of shear pinning stress: %f MPa\n", trueTauPin/1E6);
         printf("correlation length %f b\n", sigma);
         printf("scaled potential maginitued %f \n", potExpection);
+        printf("%d points will be distributed\n", nPotParams);
     }
-    cubel=1000*sigma;
     param.radius = 5*sigma;
     potVariance = 0.0;
-
-    nPotParams = ((int)cubel*cubel/sigma/sigma);
 
     param.xBoundMax = cubel/2.0;
     param.yBoundMax = cubel/2.0;
@@ -228,7 +230,7 @@ int main(int argc,char** argv)
         globalArray[i] = 0.0;
     }
 
-    seed = time(0) + myDomain;
+    seed +=10*myDomain;
     E = potExpection;
     D = potVariance;
 
@@ -248,13 +250,16 @@ int main(int argc,char** argv)
         x0 = randm(&seed)*(xBoundMax-xBoundMin) + xBoundMin;
         y0 = randm(&seed)*(yBoundMax-yBoundMin) + yBoundMin;
 
+//      x0 = (double(i)/8+0.11)*(xBoundMax-xBoundMin) + xBoundMin;
+//      y0 = (double(i)/10+0.11)*(yBoundMax-yBoundMin) + yBoundMin;
+
         Coor2EleNum(&param, x0-radius, y0-radius, imin, jmin);
         Coor2EleNum(&param, x0+radius, y0+radius, imax, jmax);
 
         out1 << x0 << " " << y0 << " " << potential << endl;
         
-        for(j=imin; j<imax; j++){
-            for(k=jmin; k<jmax; k++){
+        for(j=imin; j<=imax; j++){
+            for(k=jmin; k<=jmax; k++){
                 xi = (((double)j)*param.meshSizeX + param.xBoundMin);
                 yi = (((double)k)*param.meshSizeY + param.yBoundMin);
                 dx = x0 - xi;
@@ -273,14 +278,17 @@ int main(int argc,char** argv)
                 fy = -(yi-y0)*f/(sigma*sigma) + f/(yi-y0);
                 fxy = (xi-x0)*(yi-y0)*f/(sigma*sigma*sigma*sigma) - (xi-x0)*f/(yi-y0)/(sigma*sigma);
 
+                if(isnan(fx)|| isnan(fy) || isnan(fxy) || isnan(f)){
+                    printf("warining nan\n");
+                }
                 if(isnan(fx)) fx = 0.0;
                 if(isnan(fy)) fy = 0.0;
                 if(isnan(fxy)) fxy = 0.0;
 
-                localArray[0+4*jj+4*numY1*ii] = f;
-                localArray[1+4*jj+4*numY1*ii] = fx;
-                localArray[2+4*jj+4*numY1*ii] = fy;
-                localArray[3+4*jj+4*numY1*ii] = fxy;
+                localArray[0+4*jj+4*numY1*ii]+= f;
+                localArray[1+4*jj+4*numY1*ii]+= fx;
+                localArray[2+4*jj+4*numY1*ii]+= fy;
+                localArray[3+4*jj+4*numY1*ii]+= fxy;
                 
             }
         }
@@ -306,24 +314,22 @@ int main(int argc,char** argv)
     }
 
 #if 0
-
 	MPI_Allreduce(localArray, globalArray, nMeshPoints*4, MPI_DOUBLE,
 			   MPI_SUM, MPI_COMM_WORLD);
 #else
 	MPI_Reduce(localArray, globalArray, nMeshPoints*4, MPI_DOUBLE,
 			   MPI_SUM, 0, MPI_COMM_WORLD);
 #endif
-    free(localArray);
 
     if(myDomain == 0){
         ofstream outfile("Tec.plt");
         double ave = 0;
         bool    refine = 0;
 
-//        ofstream out2("Refine.plt");
+//      ofstream out2("Refine.plt");
         outfile << numY1*numX1*4 << " " << meshSizeX <<
                 " " << meshSizeY << " " << numX1 << " " << numY1 <<endl;
-//        out2 << "variables = x, y, tau, tau_x, tau_y, tau_xy " <<endl;
+//      out2 << "variables = x, y, tau " <<endl;
         for(i=0; i<numX1; i++){
             for(j=0; j<numY1; j++){
 //                outfile << scientific << param.xBoundMin + ((double)i)*meshSizeX << " ";
@@ -334,25 +340,25 @@ int main(int argc,char** argv)
                 outfile << scientific << globalArray[1+4*j+4*numY1*i] << " ";
                 outfile << scientific << globalArray[2+4*j+4*numY1*i] << " ";
                 outfile << scientific << globalArray[3+4*j+4*numY1*i] << endl;
-#if 0
 
+#if 0
                 out2 << scientific << param.xBoundMin + ((double)i)*meshSizeX << " ";
                 out2 << scientific << param.yBoundMin + ((double)j)*meshSizeY << " ";
 
-                out2 << scientific << globalArray[0+4*j+4*numY1*i] << " ";
-                out2 << scientific << globalArray[1+4*j+4*numY1*i] << " ";
-                out2 << scientific << globalArray[2+4*j+4*numY1*i] << " ";
-                out2 << scientific << globalArray[3+4*j+4*numY1*i] << endl;
+                out2 << scientific << globalArray[0+4*j+4*numY1*i] << endl;
+//              out2 << scientific << globalArray[1+4*j+4*numY1*i] << " ";
+//              out2 << scientific << globalArray[2+4*j+4*numY1*i] << " ";
+//              out2 << scientific << globalArray[3+4*j+4*numY1*i] << endl;
 #endif
             } 
         }
         ave /= ((nXs+1)*(nYs+1));
-        printf("avrage size %f %e\n", ave, ave);
+        printf("avrage size %f %e %f %f\n", ave, globalArray[0], nXs, nYs);
         outfile.close();
-//        out2.close();
+//      out2.close();
 #if 0
-        meshSizeX /= 40.0;
-        meshSizeY /= 40.0;
+        meshSizeX /= 10.0;
+        meshSizeY /= 10.0;
 
         nXs = floor((xBoundMax - xBoundMin)/meshSizeX);
         nYs = floor((yBoundMax - yBoundMin)/meshSizeY);
@@ -360,7 +366,8 @@ int main(int argc,char** argv)
         meshSizeX = (xBoundMax - xBoundMin)/nXs;
         meshSizeY = (yBoundMax - yBoundMin)/nYs;
 
-        ofstream out2("refine.plt");
+        ofstream out3("interpolation.plt");
+        out3 << "variables = x, y, tau, bli " <<endl;
         for(i=0; (double)i<nXs+1; i++){
             for(j=0; (double)j<nYs+1; j++){
                 x0 = ((double)i)*meshSizeX+xBoundMin;
@@ -368,8 +375,8 @@ int main(int argc,char** argv)
                 Coor2EleNum(&param, x0, y0, imin, jmin);
                 imax = imin + 1;
                 jmax = jmin + 1;
-                if(imax > param.meshNumX) imax -= param.meshNumX;
-                if(jmax > param.meshNumY) jmax -= param.meshNumY;
+                if(imax > param.meshNumX) imax -= (param.meshNumX+1);
+                if(jmax > param.meshNumY) jmax -= (param.meshNumY+1);
 
                 l1 = param.meshSizeX;
                 l2 = param.meshSizeY;
@@ -389,15 +396,16 @@ int main(int argc,char** argv)
                               (x0-(param.xBoundMin+((double)imin*param.meshSizeX)))/param.meshSizeX,
                               (y0-(param.yBoundMin+((double)jmin*param.meshSizeY)))/param.meshSizeY, bli);
 
-                out2 << x0 << " " << y0 << " " << f << " " << bli <<endl;
+                out3 << x0 << " " << y0 << " " << f << " " << bli <<endl;
             }
         }
-        out2.close();
+        out3.close();
      
 #endif   
     }
 
     
+    free(localArray);
     free(globalArray);
     MPI_Finalize();
 

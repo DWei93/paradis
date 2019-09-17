@@ -1516,7 +1516,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 numData = ReadRandomForceTable(&(home->randomForceTable), para);
             }
 #if PARALLEL
-            MPI_Bcast(&para, sizeof(real8), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+            MPI_Bcast((char *)para, sizeof(para), MPI_CHAR, 0, MPI_COMM_WORLD);
 #endif
             if(home->myDomain > 0){
                 numData = (int)para[0];

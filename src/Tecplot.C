@@ -188,7 +188,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 #else
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,fx,fy,fz\n");
 		    fprintf(fp, "zone T = \"%g\" i = %d  F=POINT\n", param->timeNow*1.0E9,numArms); 
-	
+            fprintf(fp, "AUXDATA tau_zy = \"%g\"\n", param->appliedStress[3]/1.0E6);	
 #endif
 	    }
 #endif	

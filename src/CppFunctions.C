@@ -34,7 +34,7 @@ int ReadRandomForceTable(double **randomForceTable, double para[5])
     
     string          str;
     vector<string>  line;
-    int             lineNo = 0, i = 0, numData;
+    int             lineNo = 0, i = 0, numData=0;
     ifstream        infile;
 
     printf("Reading roandom force table ...\n");

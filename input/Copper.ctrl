@@ -38,7 +38,7 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 #
-dirname = "res.5984689"
+dirname = "res.5987797"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip = 1
@@ -98,24 +98,21 @@ mobilityLaw =   "FCC_0"
 limitDisplacement = 0
 GBStrength = 5.0e8
 #GBStrength = 0.0e0
-burgMag =   2.48902e-10 # Random "Real" Alloy
+burgMag =   2.556e-10 
 fricStress = 0.0e0
 
 #fricStress = 3.46e7
 #  mobility values may be a little low for FCC
-MobScrew =   1.000000e+04
-MobEdge =    1.000000e+04  
+MobScrew =   2.000000e+05
+MobEdge =    2.000000e+05  
 MobTwinning = 5.000000e+04
-
-#shearModulus =  135.0E9  # Random "Real" Alloy, provided by Aviral
-shearModulus =  54.6E9  # Random "toy" Copper
-pois = 0.324
-sfEnergy =   0.005       # Jm^-2 "Real" Alloy
-correLength = 20
-targetStress = 300E6
-criticalEff = 5
-position=-200
 randomInternalForce = 1
+shearModulus =  54.6E9  # Cu
+pois = 0.324
+sfEnergy =   0.005       # Jm^-2
+correLength = 20
+targetStress = 2.048E9
+criticalEff = 30
 rTol = 1
 rc = 10
 meshSizeX = 4000
@@ -124,8 +121,7 @@ meshSizeZ = 4000
 fmEnabled =   1  
 fmMPOrder =   2  
 fmTaylorOrder =   5  
-fmCorrectionTbl =   "input/fm-ctab-Cu.m2.t5.px.dat"
-#fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
+fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 # Radom Interal stree field
 
 #
@@ -133,7 +129,7 @@ fmCorrectionTbl =   "input/fm-ctab-Cu.m2.t5.px.dat"
 #  
 #
 tecplot = 1
-tecplotfreq = 20000
+tecplotfreq = 100000
 saveprop = 1
 savepropfreq = 100
 tecmesh = 0
