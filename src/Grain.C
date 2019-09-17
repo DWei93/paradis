@@ -38,7 +38,6 @@
 /**************************************************************InitGrain*************************************************************/
 //{
 bool CmpKeyNodeT(EdgeJoint_t &p, EdgeJoint_t &q){ return p.dis<q.dis;}
-
 void DrawLine(FILE *fp, real8 *pos1, real8 *pos2, real8 meshSize, std::vector<int> &indexs)
 {
     real8 vec[3], length, nums;
@@ -1099,10 +1098,7 @@ void NodeLocation(Home_t *home, real8 *pos, int *place, real8 error)
  * \return false if the position are not at the location, true otherwise. */
 bool InGrain(Home_t *home, int *place, real8 *pos, real8 error)
 {
-    int i;
-    Face_t *face;
-    real8 dis;
-
+    int i; Face_t *face; real8 dis;
 #ifdef DEBUG
     if(place[0]!=IN_GRAIN)Fatal("%s: place[0] = %d",__func__, place[0]);
     if(place[1]<0 || place[1]>home->nGrains)Fatal("%s: place[1] = %d",__func__, place[1]);
@@ -1133,7 +1129,6 @@ bool InGrain(Home_t *home, int *place, real8 *pos, real8 error)
 
     return true;
 }
-
 
 /** According to the current position of the node, determine whether the node 
  *  is on the face, on the subface or on the IB edge.
@@ -1310,7 +1305,7 @@ bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *ne
             // if the position 2 is within the inner boundary, position 2 is on the face
             if(POINT_INTERSECTION != ClipSegmentInConcavePolyhedron(face->p, tempPos, face->edges, face->nEdges, -FACE_ERROR, edgeID)){
                 status = true;
-                newPlace[0] = ON_FACE;;
+                newPlace[0] = ON_FACE;
                 newPlace[1] = face->id;
                 // loop through two neighbor grains of the face
                 for(auto j=0; j<2; j++){
@@ -1436,10 +1431,7 @@ bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *ne
  * \return true if the place is changed, otherwise false */
 bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
 {  
-    int edgeID, ibID;
-    real8 dis;
-    Grain_t *grain;
-
+    int edgeID, ibID; real8 dis;Grain_t *grain;
 #ifdef DEBUG
     if(place[1]<0 || place[1]>=home->nFaces)Fatal("%s: wrong face ID", __func__);
 #endif
@@ -1655,25 +1647,6 @@ bool ClipPathAtVertice(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *
         VECTOR_COPY(pos2,p);
     }
     return true;
-}
-
-/** Find the intersection between nodal path and place (if has) and return the new place of intersection point.
- * \param[in] place the location of the node.
- * \param[in] pos1 the old position of the node, it has to be in the place.
- * \param[in,out] pos2 the current position of the node, moved to intersection if it was outside of the place. 
- * \param[out] newPlace the new place of intersection (if has) 
- * \return true if the place is changed, otherwise false */
-bool ClipPathAtLocation(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
-{
-    switch(place[0]){
-        case IN_GRAIN: return ClipPathInGrain(home, place, pos1, pos2, newPlace); break;
-        case ON_IB: return ClipPathOnIB(home, place, pos1, pos2, newPlace); break;
-        case ON_FACE: return ClipPathOnFace(home, place, pos1, pos2, newPlace); break;
-        case ON_FACE_EDGE: return ClipPathOnFaceEdge(home, place, pos1, pos2, newPlace); break;
-        case AT_VERTICE: return ClipPathAtVertice(home, place, pos1, pos2, newPlace); break;
-        default: Fatal("%s: not support type %d",__func__, place[0]); break;
-    }
-    return false;
 }
 
 /*-------------------------------------ArmLocation Functions ---------------------------------*/

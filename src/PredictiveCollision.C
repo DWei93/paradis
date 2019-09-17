@@ -389,7 +389,7 @@ static void FindCollisionPointAndTime(Home_t *home, real8 p1[3], real8 p2[3],
                                   real8 v2[3], real8 v3[3], real8 v4[3],
                                   real8 cPoint[3], real8 *cTime,
                                   real8 *minDist2, real8 *L1, real8 *L2)
-#if 0
+#ifdef ORIGIN
 {
         int   i, j;
         int   planeDefined;

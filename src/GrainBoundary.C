@@ -1,11 +1,11 @@
 /****************************************************************************
 * 
-*	Module:		GrainBoundary.c
+*	Module:		    GrainBoundary.c
 *
-*	Description:	This module contains subroutines needed in 
+*	Description:	This module contains topoligical subroutines needed in 
 *                  	grain/twin boundary model.
 *
-*	08/07/2016:	created by HD Fan, WLY 
+*	17/09/2019:	    Created by DeAn Wei
 *
 *****************************************************************************/
 #include <stdio.h>
@@ -19,17 +19,87 @@
 #include <algorithm>
 #include <numeric>
 
+#define ADD_NOTHING    0x0000
+#define ADD_MIDDLE1    0x0001
+#define ADD_MIDDLE2    0x0002
+#define ADD_MIDDLE3    0x0004
 
+/** Find the intersections between segement and grain (if has) and return the new place of intersection point.
+ *  Note that if the segment intersects with bound, the positions and locations of intersection nodes (middle 
+ *  node 1 and 2) will be stored in pos1/pos2 and place1/place2 according to the distance. 
+ *  If the segement can glide and has glided out of the grain,  
+ * \param[in] node1, node2 the two ends of segement
+ * \param[in,out] pos1 position of the node1, return position of middle node 1 closed to node1 (if has)
+ * \param[in,out] place1 location of the node1, return location of middle node 1 closed to node1 (if has)
+ * \param[in,out] pos2 position of the node2, return position of middle node 2 closed to node2 (if has)
+ * \param[in,out] place2 location of the node2, return location of middle node 2 closed to node2 (if has)
+ * \param[out] pos3 the positon of the middle node 3
+ * \param[out] place3 the location of the middle node 3
+ * \return: CHANGE_NOTHING (nothing need to be changed), CHANGE_NODE1 (node1 shou) */
+int ClipSegmentInGrain(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos1, int *place1, 
+                       real8 *pos2, int *place2, real8 *pos3, int *place3)
+{
+
+    return ADD_NOTHING;
+}
+
+int ClipSegmentOnFace(Home_t *home, real8 *pos1, int *place1, real8 *pos2, int *place2, real8 *pos3, int *place3)
+{  
+
+    return ADD_NOTHING;
+}
+
+int ClipSegmentOnIB(Home_t *home, real8 *pos1, int *place1, real8 *pos2, int *place2, real8 *pos3, int *place3)
+{
+
+    return ADD_NOTHING;
+}
+
+int ClipSegmentOnFaceEdge(Home_t *home, real8 *pos1, int *place1, real8 *pos2, int *place2, real8 *pos3, int *place3)
+{
+
+    return ADD_NOTHING;
+}
+
+int ClipSegmentAtVertice(Home_t *home, real8 *pos1, int *place1, real8 *pos2, int *place2, real8 *pos3, int *place3)
+{
+
+    return ADD_NOTHING;
+}
+inline int ClipSegmentAtLocation(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos1, int *place1, 
+                                 real8 *pos2, int *place2, real8 *pos3, int *place3)
+{
+    int armPlace[PLACE_LEN]; ArmLocation(home, node1->place, node2->place, armPlace);
+    if(armPlace[0] == IN_GRAIN){return ClipSegmentInGrain(home,node1,node2,pos1,place1,pos2,place2,pos3,place3);}
+    else if(armPlace[0] == ON_IB){return ClipSegmentOnIB(home,pos1,place1,pos2,place2,pos3,place3);}
+    else if(armPlace[0] == ON_FACE){return ClipSegmentOnFace(home,pos1,place1,pos2,place2,pos3,place3);}
+    else if(armPlace[0] == ON_FACE_EDGE){return ClipSegmentOnFaceEdge(home,pos1,place1,pos2,place2,pos3,place3);}
+    else if(armPlace[0] == AT_VERTICE){return ClipSegmentAtVertice(home,pos1,place1,pos2,place2,pos3,place3);}
+    else Fatal("%s: not support type %d",__func__, armPlace[0]);
+    return ADD_NOTHING;
+}
 
 /** The main clipping function for clipping all nodes in parallel */
 void Clipping(Home_t *home)
 {
     Param_t *param = home->param;
 
+    Node_t *node, *nbr; int i,j;
     int newNodeKeyPtr = home->newNodeKeyPtr;
-    for(auto i=0; i<newNodeKeyPtr; i++){
+    for(i=0; i<newNodeKeyPtr; i++){
+        if((node=home->nodeKeys[i])==(Node_t *)NULL)continue;
 
-    }
+        // The node with NODE_RESET_FORCES has been dealed by this loop, so continue it
+        if(node->flags & NODE_RESET_FORCES)continue;
+        
+        for(j=0; j<node->numNbrs; j++){
+            nbr=GetNeighborNode(home, node, j);
+#ifdef DEBUG
+            if(nbr==(Node_t *)NULL)Fatal("%s:%d Can not find the neighbor node",__func__,__LINE__);
+#endif
+        }
+        
+    }/*for(auto i=0; i<newNodeKeyPtr; i++)*/
 
     return;
 }

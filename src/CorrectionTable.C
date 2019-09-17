@@ -436,10 +436,16 @@ void CreateCorrectionTable(Param_t *param, int numLevels, int pbc[3],
                     } else {
                       for(k = 0; k<nalpha; k++) 
                         for(m = 0; m<3; m++)
-                          for(n = 0; n<3; n++){
+                          for(n = 0; n<3; n++)
+#ifdef ORIGIN
                             offset = (((i-i0)*(maxlevels-2)+j)*nalpha+k)*9;
                             leveldata[offset+m*3+n] += alphanew[k*9+m*3+n];
-                          }
+#else
+                            {
+                            offset = (((i-i0)*(maxlevels-2)+j)*nalpha+k)*9;
+                            leveldata[offset+m*3+n] += alphanew[k*9+m*3+n];
+                            }
+#endif                          
                     }
                   }
                 }
@@ -447,11 +453,16 @@ void CreateCorrectionTable(Param_t *param, int numLevels, int pbc[3],
           if(leveldata != NULL) {
             for(k = 0; k<nalpha; k++)
               for(m = 0; m<3; m++)
-                for(n = 0; n<3; n++){
+                for(n = 0; n<3; n++)
+#ifdef ORIGIN
                   offset=(((i-i0)*(maxlevels-2)+j)*nalpha+k)*9;
                   alpha[k*9+m*3+n] +=
                     leveldata[offset+m*3+n];
-                }
+#else
+                  {offset=(((i-i0)*(maxlevels-2)+j)*nalpha+k)*9;
+                  alpha[k*9+m*3+n] +=
+                    leveldata[offset+m*3+n];}
+#endif                
           }
 
         }

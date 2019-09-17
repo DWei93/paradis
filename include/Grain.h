@@ -362,7 +362,16 @@ bool ClipPathOnIB(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPl
 bool ClipPathOnFace(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
 bool ClipPathOnFaceEdge(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
 bool ClipPathAtVertice(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
-bool ClipPathAtLocation(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace);
+inline bool ClipPathAtLocation(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
+{
+    if(place[0] == IN_GRAIN){return ClipPathInGrain(home, place, pos1, pos2, newPlace);}
+    else if(place[0] == ON_IB){ClipPathOnIB(home, place, pos1, pos2, newPlace);}
+    else if(place[0] == ON_FACE){return ClipPathOnFace(home, place, pos1, pos2, newPlace);}
+    else if(place[0] == ON_FACE_EDGE){return ClipPathOnFaceEdge(home, place, pos1, pos2, newPlace);}
+    else if(place[0] == AT_VERTICE){return ClipPathAtVertice(home, place, pos1, pos2, newPlace);}
+    else Fatal("%s: not support type %d",__func__, place[0]);
+    return false;
+}
 
 /** Generate Burgers data information
  *  \param[in] matType material type
@@ -479,10 +488,8 @@ inline int PlaneType(BurgInfo_t *burgData, real8 plane[3]){
     return(burgData->planeType[planeID]);
 }
 inline int PlaneType(BurgInfo_t *burgData, real8 nx, real8 ny, real8 nz)
-{ real8 n[3]={nx, ny, nz}; return PlaneType(burgData, n);}
-
-inline int PlaneType(Home_t *home, Node_t *node, Node_t *nbr){
-    real8       plane[3];
+{real8 n[3]={nx, ny, nz}; return PlaneType(burgData, n);}
+inline int PlaneType(Home_t *home, Node_t *node, Node_t *nbr, real8 *plane){
     BurgInfo_t *burgData = BurgInformation(home, node->place, nbr->place);
     int armID = GetArmID(home, node, nbr);
 #ifdef DEBUG
@@ -492,6 +499,10 @@ inline int PlaneType(Home_t *home, Node_t *node, Node_t *nbr){
     plane[1] = node->ny[armID];
     plane[2] = node->nz[armID];
     return(PlaneType(burgData, plane)); 
+}
+inline int PlaneType(Home_t *home, Node_t *node, Node_t *nbr){
+    real8       plane[3];
+    return  PlaneType(home, node, nbr, plane);
 }
 
 inline int KeyLineID_FCC(BurgInfo_t *burgData, real8 line[3]){
@@ -624,7 +635,6 @@ int	IsZeroVector(real8 *vec);
 int  Coor2EleNum(Home_t *home,real8 position[3]);
 void AdjustSurfaceNode(Home_t *home);
 int SameTag(Tag_t *tag1, Tag_t *tag2);
-
 void DoResistance(Home_t *home, Node_t *node, real8 *nForce);
 int SurfaceNode(Node_t *node);
 int AdjustNodeDirection(Home_t *home, Node_t *node, real8 *vec);

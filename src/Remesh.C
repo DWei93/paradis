@@ -318,8 +318,13 @@ void Remesh(Home_t *home)
 
         TimerStart(home, REMESH);
         ClearOpList(home);
+#ifdef ORIGIN
+/*      ISSUE:  we have initialize the topologycal exemption in ParadisStep,
+ *      I do not think this function should be run here, this may lose
+ *      the previouse topological flags (i.e. dislocation interactions and clipping).
+ *                                                                       D. Wei    */
         InitTopologyExemptions(home);
-		
+#endif	
         switch(param->remeshRule) {
         case 2:
             RemeshRule_2(home);
