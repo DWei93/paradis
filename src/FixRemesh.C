@@ -118,10 +118,10 @@ void FixRemesh(Home_t *home, const char flag[256])
 
 #if 0
 /*
- *                              Temporarily remove restriction that
- *                              domain must have knowledge of node
- *                              being split... if this does not cause
- *                              problems, remve it completely...
+ *              Temporarily remove restriction that
+ *              domain must have knowledge of node
+ *              being split... if this does not cause
+ *              problems, remve it completely...
  */
 				node1 = GetNodeFromIndex(home, op->dom1,
 							 op->idx1);
@@ -131,16 +131,23 @@ void FixRemesh(Home_t *home, const char flag[256])
 				node2 = GetNewGhostNode(home, op->dom2, op->idx2);
 				FreeNodeArms(node2);
 				
+/*
+ *              For save communications, domain 3 operation were comandeered to hold the constraint
+ */
 				node2->constraint = op->dom3;
 
 				node2->x = op->x;
 				node2->y = op->y;
 				node2->z = op->z;
-
-				node2->oldx = op->x;
-				node2->oldy = op->y;
-				node2->oldz = op->z;
-				
+/*
+ *				For the node split operation, the Burgers vector
+ *				values weren't required, but the nodal old position
+ *				was, so the Burgers vector values for the
+ *				operation were comandeered to hold the old position.
+ */
+				node2->oldx = op->bx;
+				node2->oldy = op->by;
+				node2->oldz = op->bz;
 				
 #if CHECK_FIXREMESH
 				printf("FR %s: Task %d, ", flag, home->myDomain);
@@ -170,12 +177,9 @@ void FixRemesh(Home_t *home, const char flag[256])
                 cellSize[1] = param->Ly / param->nYcells;
                 cellSize[2] = param->Lz / param->nZcells;
 
-                cellIndex[0] = (int)(node2->x-param->minSideX) /
-                                (int)cellSize[0];
-                cellIndex[1] = (int)(node2->y-param->minSideY) /
-                                (int)cellSize[1];
-                cellIndex[2] = (int)(node2->z-param->minSideZ) /
-                                (int)cellSize[2];
+                cellIndex[0] = (int)(node2->x-param->minSideX) / (int)cellSize[0];
+                cellIndex[1] = (int)(node2->y-param->minSideY) / (int)cellSize[1];
+                cellIndex[2] = (int)(node2->z-param->minSideZ) / (int)cellSize[2];
 
                 cellIndex[0] = MAX(0, cellIndex[0]);
                 cellIndex[1] = MAX(0, cellIndex[1]);
@@ -189,10 +193,7 @@ void FixRemesh(Home_t *home, const char flag[256])
                 cellIndex[1]++;
                 cellIndex[2]++;
 
-                node2->cellIdx = EncodeCellIdx(home,
-                                               cellIndex[0],
-                                               cellIndex[1],
-                                               cellIndex[2]);
+                node2->cellIdx = EncodeCellIdx(home, cellIndex[0], cellIndex[1], cellIndex[2]);
 	        break;
 
 /*

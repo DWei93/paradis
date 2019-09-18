@@ -31,17 +31,17 @@
  *              BackupNode()
  *              CheckCollisionConditions()
  *              CopyNodeArrays()
- *		CopyNode()
+ *		        CopyNode()
  *              DomainOwnsSeg()
- *		EvaluateMobility()
+ *		        EvaluateMobility()
  *              FreeNodeArrays()
  *              InitTopologyExemptions()
- *		MergeNode()
+ *		        MergeNode()
  *              RemoveDoubleLinks()
  *              RemoveOrphanedNode()
  *              RestoreNode()
- *		SplitMultiNodes()
- *		SplitNode()
+ *		        SplitMultiNodes()
+ *		        SplitNode()
  *
  *****************************************************************************/
 #include <stdio.h>
@@ -2282,6 +2282,25 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
             *splitNode2 = newNode;
         }
 
+/*
+ *      If the new position of node is not changed and arms are switched, 
+ *      the splited node should inherit the old position of the original node.
+ */     
+        if(fabs(pos1[0]-node->x) < 1E-13 && fabs(pos1[1]-node->y) < 1E-13 && 
+           fabs(pos1[2]-node->z) < 1E-13 && switchedArms==1){
+            newNode->oldx = node->oldx;
+            newNode->oldy = node->oldy;
+            newNode->oldz = node->oldz;
+        }else if(switchedArms==0){
+            newNode->oldx = pos1[0];
+            newNode->oldy = pos1[1];
+            newNode->oldz = pos1[2];
+        }else{
+            newNode->oldx = pos2[0];
+            newNode->oldy = pos2[1];
+            newNode->oldz = pos2[2];
+        }
+
         (*splitNode1)->x = pos1[0];
         (*splitNode1)->y = pos1[1];
         (*splitNode1)->z = pos1[2];
@@ -2297,10 +2316,6 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
         (*splitNode2)->vX = vel2[0];
         (*splitNode2)->vY = vel2[1];
         (*splitNode2)->vZ = vel2[2];
-
-	    newNode->oldx = newNode->x;
-	    newNode->oldy = newNode->y;
-	    newNode->oldz = newNode->z;
 
 /*
  *      If the node being split was pinned or fixed at a specific
@@ -2367,13 +2382,13 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                 node->myTag.index,
                 newNode->myTag.domainID,
                 newNode->myTag.index,
-                newNode->constraint, -1,    /* the node3 idom is the constraint here */
-                0.0, 0.0, 0.0,              /* burgers vector unneeded */
+                newNode->constraint, -1,                        /* the node3 idom is the constraint here */
+                newNode->oldx, newNode->oldy, newNode->oldz,    /* burgers vector is changed to storing old position */
                 newNode->x, newNode->y, newNode->z,
-                newNode->vX,                /* plane normal is not needed */
-                newNode->vY,                /* but node velocity is, so we*/
-                newNode->vZ);               /* commandeer the AddOp normal*/
-                                            /* arguments for velocity data*/
+                newNode->vX,                                    /* plane normal is not needed */
+                newNode->vY,                                    /* but node velocity is, so we*/
+                newNode->vZ);                                   /* commandeer the AddOp normal*/
+                                                                /* arguments for velocity data*/                        
             AddOp(home, RESET_COORD,
                 node->myTag.domainID,
                 node->myTag.index,
@@ -2930,14 +2945,15 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
     thisDomain = home->myDomain;
     param = home->param;
 
-
     *newNodePtr = (Node_t *)NULL;
+#ifdef DEBUG
     if (node1->myTag.domainID != thisDomain || 
         node2->myTag.domainID != thisDomain){
         PrintNode(node1);
         PrintNode(node2);
         Fatal("InsertConnection: only allow local node");
     }
+#endif
 
     newNode = GetNewNativeNode(home);
     FreeNodeArms(newNode);
@@ -2971,13 +2987,13 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
               node1->myTag.index,
               (*newNodePtr)->myTag.domainID,
               (*newNodePtr)->myTag.index,
-              (*newNodePtr)->constraint, -1,  /* node3 domain ID used to be constraint of new node*/
-              0.0, 0.0, 0.0,     
-              (*newNodePtr)->x, (*newNodePtr)->y, (*newNodePtr)->z,
-              (*newNodePtr)->vX,            /* plane normal is not needed */
-              (*newNodePtr)->vY,            /* but node velocity is, so we*/
-              (*newNodePtr)->vZ);           /* commandeer the AddOp normal*/
-                                        /* arguments for velocity data*/
+              (*newNodePtr)->constraint, -1,                                    /* the node3 idom is the constraint here */
+              (*newNodePtr)->oldx, (*newNodePtr)->oldy, (*newNodePtr)->oldz,    /* burgers vector is changed to storing old position */
+              (*newNodePtr)->x, (*newNodePtr)->y, (*newNodePtr)->z,                                                                     
+              (*newNodePtr)->vX,                                                /* plane normal is not needed */
+              (*newNodePtr)->vY,                                                /* but node velocity is, so we*/
+              (*newNodePtr)->vZ);                                               /* commandeer the AddOp normal*/
+                                                                                /* arguments for velocity data*/                        
 /////   AssignGrain(home, (*newNodePtr), inGrain, onGB);
     }
 
