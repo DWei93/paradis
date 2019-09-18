@@ -137,6 +137,7 @@ void GetMinDist(real8 p1x, real8 p1y, real8 p1z,
                 real8 p4x, real8 p4y, real8 p4z,
                 real8 v4x, real8 v4y, real8 v4z,
                 real8 *dist2, real8 *ddist2dt, real8 *L1, real8 *L2)
+#ifdef ORIGIN
 {
         int    i, pos;
         real8  A, B, C, D, E, G;
@@ -253,6 +254,188 @@ void GetMinDist(real8 p1x, real8 p1y, real8 p1z,
 
         return;
 }
+#else
+{
+        int    i, pos;
+        real8  A, B, C, D, E, F, G;
+        real8  L1a, L1b;
+        real8  L2a, L2b;
+        real8  dist2a, dist2b;
+        real8  eps = 1.0e-12;
+        real8  ddistxdt, ddistydt, ddistzdt;
+        real8  seg1Lx, seg1Ly, seg1Lz;
+        real8  seg2Lx, seg2Ly, seg2Lz;
+        real8  seg1vx, seg1vy, seg1vz;
+        real8  seg2vx, seg2vy, seg2vz;
+
+        seg1Lx = p2x - p1x;
+        seg1Ly = p2y - p1y;
+        seg1Lz = p2z - p1z;
+
+        seg2Lx = p4x - p3x;
+        seg2Ly = p4y - p3y;
+        seg2Lz = p4z - p3z;
+
+        seg1vx = v2x - v1x;
+        seg1vy = v2y - v1y;
+        seg1vz = v2z - v1z;
+
+        seg2vx = v4x - v3x;
+        seg2vy = v4y - v3y;
+        seg2vz = v4z - v3z;
+
+        A = seg1Lx*seg1Lx + seg1Ly*seg1Ly + seg1Lz*seg1Lz;
+        B = ((seg1Lx*(p1x-p3x)) +
+             (seg1Ly*(p1y-p3y)) +
+             (seg1Lz*(p1z-p3z))) * 2.0;
+        C = (seg1Lx*seg2Lx + seg1Ly*seg2Ly + seg1Lz*seg2Lz) * 2.0;
+        D = ((seg2Lx*(p3x-p1x)) +
+             (seg2Ly*(p3y-p1y)) +
+             (seg2Lz*(p3z-p1z))) * 2.0;
+        E = seg2Lx*seg2Lx + seg2Ly*seg2Ly + seg2Lz*seg2Lz;
+        F = (p1x-p3x) * (p1x-p3x) +
+            (p1y-p3y) * (p1y-p3y) +
+            (p1z-p3z) * (p1z-p3z);
+        G = C*C - 4*A*E;
+
+
+        if (A < eps) {
+/*
+ *          Segment 1 is just a point...
+ */
+            *L1 = 0.0;
+            if (E < eps) {
+                *L2 = 0.0;
+            } else {
+                *L2 = -0.5 * D / E;
+                *L2 = MIN(MAX(*L2, 0.0), 1.0);
+            }
+
+            *dist2 = F + (D + E * *L2) * *L2;
+
+        } else if (E < eps) {
+/*
+ *          Segment 2 is just a point...
+ */
+            *L2 = 0.0;
+            *L1 = -0.5 * B / A;
+            *L1 = MIN(MAX(*L1, 0.0), 1.0);
+
+            *dist2 = F + (B + A * *L1) * *L1;
+
+        } else if (fabs(G) < eps) {
+/*
+ *          Segments are parallel.  Check ends of seg1
+ */
+
+            L2a = -0.5 * D / E;
+            L2a = MIN(MAX(L2a, 0.0), 1.0);
+            dist2a = F + (D + E * L2a) * L2a;
+
+            L2b = 0.5 * (C - D) / E;
+            L2b = MIN(MAX(L2b, 0.0), 1.0);
+            dist2b = A + B + F + (D - C + E * L2b) * L2b;
+/*
+ *          Use the closest end of seg 1
+ */
+            if (dist2a < dist2b) {
+                *L1 = 0.0;
+                *L2 = L2a;
+                *dist2 = dist2a;
+            } else {
+                *L1 = 1.0;
+                *L2 = L2b;
+                *dist2 = dist2b;
+            }
+
+        } else {
+/*
+ *          Non parallel segments
+ */
+            *L2 = (2.0 * A * D + B * C) / G;
+            *L1 = 0.5 * (C * *L2 - B) / A;
+/*
+ *          Now make sure L1 and L2 are between 0.0 and 1.0
+ */
+            if ((*L1 >= 0.0) && (*L1 <= 1.0) &&
+                (*L2 >= 0.0) && (*L2 <= 1.0)) {
+                *dist2 = F +(B + A * *L1) * *L1 + (D + E * *L2) *
+                        *L2 - C * *L1 * *L2;
+            } else {
+/*
+ *              Special case where one or more of the endpoints is closest.
+ *              First check L1=0 edge
+ */
+                L1a=0; L2a=0;
+                if (*L1 < 0.0) {
+                    L1a = 0.0;
+                    L2a = -0.5 * D / E;
+                    L2a = MIN(MAX(L2a, 0.0), 1.0);
+                    dist2a = F + (D + E * L2a) * L2a;
+/*
+ *              Check L1=1 edge
+ */
+                } else if (*L1 > 1.0) {
+                    L1a = 1.0;
+                    L2a = 0.5 * (C - D) / E;
+                    L2a = MIN(MAX(L2a, 0.0), 1.0);
+                    dist2a = A + B + F + (D - C + E * L2a) * L2a;
+                } else {
+                    dist2a = -1.0;
+                }
+
+/*
+ *              Check L2=0 edge
+ */
+                if (*L2 < 0.0) {
+                    L2b = 0.0;
+                    L1b = -0.5 * B / A;
+                    L1b = MIN(MAX(L1b, 0.0), 1.0);
+                    dist2b = F + (B + A * L1b) * L1b;
+/*
+ *              Check L2=1 edge
+ */
+                } else if (*L2 > 1.0) {
+                    L2b = 1.0;
+                    L1b = 0.5 * (C - B) / A;
+                    L1b = MIN(MAX(L1b, 0.0), 1.0);
+                    dist2b = D + E + F + (B - C + A * L1b) * L1b;
+                } else {
+                    dist2b = -1.0;
+                }
+
+/*
+ *              Find the shortest distance
+ */
+                if ((dist2b < 0.0) ||
+                    ((dist2a <= dist2b) && dist2a >= 0.0)) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    *dist2 = dist2a;
+                } else {
+                    *L1 = L1b;
+                    *L2 = L2b;
+                    *dist2 = dist2b;
+                }
+            }
+
+        }  /* end code for non-parallel segments */
+
+/*
+ *      Lastly, the time rate of change between the points at L1 and L2.
+ */
+        ddistxdt = (v1x + (seg1vx * *L1) - v3x - (seg2vx * *L2)) *
+                   (p1x + (seg1Lx * *L1) - p3x - (seg2Lx * *L2));
+        ddistydt = (v1y + (seg1vy * *L1) - v3y - (seg2vy * *L2)) *
+                   (p1y + (seg1Ly * *L1) - p3y - (seg2Ly * *L2));
+        ddistzdt = (v1z + (seg1vz * *L1) - v3z - (seg2vz * *L2)) *
+                   (p1z + (seg1Lz * *L1) - p3z - (seg2Lz * *L2));
+
+        *ddist2dt = 2.0 * (ddistxdt + ddistydt + ddistzdt);
+
+        return;
+}
+#endif
 
 
 void HandleCollisions(Home_t *home)
