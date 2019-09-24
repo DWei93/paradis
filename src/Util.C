@@ -4519,7 +4519,6 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
     double a20, a21, a22, a23;
     double a30, a31, a32, a33;
     double xx[4], yy[4], temp[4], f;
-    int     i;
 
     xx[0] = 1.0;
     xx[1] = x;
@@ -4556,15 +4555,13 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
             2*fx11 + fxy00 + 
             fxy01 + fxy10 + fxy11 + 2*fy00 + 2*fy01 - 2*fy10 - 2*fy11;
 
-    for(i=0;i<4;i++){
-        temp[0] = xx[0]*a00 + xx[1]*a10 + xx[2]*a20 +xx[3]*a30;
-        temp[1] = xx[0]*a01 + xx[1]*a11 + xx[2]*a21 +xx[3]*a31;
-        temp[2] = xx[0]*a02 + xx[1]*a12 + xx[2]*a22 +xx[3]*a32;
-        temp[3] = xx[0]*a03 + xx[1]*a13 + xx[2]*a23 +xx[3]*a33;
-    }
+    temp[0] = xx[0]*a00 + xx[1]*a10 + xx[2]*a20 +xx[3]*a30;
+    temp[1] = xx[0]*a01 + xx[1]*a11 + xx[2]*a21 +xx[3]*a31;
+    temp[2] = xx[0]*a02 + xx[1]*a12 + xx[2]*a22 +xx[3]*a32;
+    temp[3] = xx[0]*a03 + xx[1]*a13 + xx[2]*a23 +xx[3]*a33;
 
     f = (temp[0]*yy[0]+temp[1]*yy[1]+temp[2]*yy[2]+temp[3]*yy[3]);
-    
+#ifdef DEBUG
     if(f>1E20){
         printf("Bic: \n(%e,%e,%e,%e)--\n(%e,%e,%e,%e)--\n(%e,%e,%e,%e)--\n(%e,%e,%e,%e)\n",
                f00,fx00,fy00,fxy00, f01,fx01,fy01,fxy01, f10,fx10,fy10,fxy10, f11,fx11,fy11,fxy11);
@@ -4572,7 +4569,7 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
         Fatal("Bic: \n(%e,%e,%e,%e)--\n(%e,%e,%e,%e)--\n(%e,%e,%e,%e)--\n(%e,%e,%e,%e)\n",
                a00,a01,a02,a03,a10,a11,a12,a13,a20,a21,a22,a23,a30,a31,a32,a33);
     }    
-
+#endif
     if(isnan(f))f=0.0;
     return(f);
 }

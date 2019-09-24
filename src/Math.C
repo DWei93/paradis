@@ -414,6 +414,8 @@ double PointSegmentDistance(double *p, double *p1, double *p2){
     else return dis;
 }
 
+double PointPolygonIntersection(double *p, double *polygon, int nEdges, int 
+
 /** Get the distance between point and polygon
  *  \param[in] p the coordinate of the point
  *  \param[in] v coordinates lis of vertices
@@ -433,12 +435,12 @@ double PointConcavePolygonDistance(double *p, std::vector<double> &v, std::vecto
     return min;
 }
 
-/** Find the intersection segment between plane and concave polygon`
+/** Find the intersection segment between plane and concave polygon
  *  \param[in] n,p normal and point of the plane
  *  \param[in] vertices coodinates list
  *  \param[in] polygon index of polygon vertices
  *  \param[in] nPoints number polygon vertices
- *  \param[out]  intersections two coodinates of te intersection segment (if has)*/
+ *  \param[out]  intersections two coodinates of te intersection segment (if has) */
 bool PlaneConcavePolygonIntersection(double *n, double *p, double *vertices, int *polygon, int nPoints, double intersections[6])
 {
     int next, j=0;

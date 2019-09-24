@@ -127,12 +127,10 @@ double Interpolation(double f00, double fx00, double fy00, double fxy00,
 
     bil = temp[0]*(1.0-y) + temp[1]*y;
 
-    for(i=0;i<4;i++){
-        temp[0] = xx[0]*a00 + xx[1]*a10 + xx[2]*a20 +xx[3]*a30;
-        temp[1] = xx[0]*a01 + xx[1]*a11 + xx[2]*a21 +xx[3]*a31;
-        temp[2] = xx[0]*a02 + xx[1]*a12 + xx[2]*a22 +xx[3]*a32;
-        temp[3] = xx[0]*a03 + xx[1]*a13 + xx[2]*a23 +xx[3]*a33;
-    }
+    temp[0] = xx[0]*a00 + xx[1]*a10 + xx[2]*a20 +xx[3]*a30;
+    temp[1] = xx[0]*a01 + xx[1]*a11 + xx[2]*a21 +xx[3]*a31;
+    temp[2] = xx[0]*a02 + xx[1]*a12 + xx[2]*a22 +xx[3]*a32;
+    temp[3] = xx[0]*a03 + xx[1]*a13 + xx[2]*a23 +xx[3]*a33;
 
 
     return(temp[0]*yy[0]+temp[1]*yy[1]+temp[2]*yy[2]+temp[3]*yy[3]);

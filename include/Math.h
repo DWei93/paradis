@@ -266,6 +266,8 @@ int PointPointIntersection(double *p1, double *p2, double *vec, double *dis,
  *  \return  distance */
 inline double PointPointDistance(double *p1, double *p2)
 {return sqrt((p1[0]-p2[0])*(p1[0]-p2[0])+(p1[1]-p2[1])*(p1[1]-p2[1])+ (p1[2]-p2[2])*(p1[2]-p2[2]));} 
+inline double PointPointDistanceSquare(double *p1, double *p2)
+{return (p1[0]-p2[0])*(p1[0]-p2[0])+(p1[1]-p2[1])*(p1[1]-p2[1])+ (p1[2]-p2[2])*(p1[2]-p2[2]);}
 
 /** Return the distance to plane 
  *  \param[in] p[3] coordinates of point
@@ -335,6 +337,7 @@ inline void PointPlaneDistance(double *p, double *normal, double *point,  double
  *  \param[in] plane[6] normal and a point of the plane
  *  \param[out] t normalized position of intersection point
  *  \param[out] intersection[3] position of intersection point
+ *  \param[out] dot1, dot2, signed distances between end and plane
  *  \return intersection type: NO_INTERSECTION|INSIDE_SPACE, NO_INTERSECTION|OUTSIDE_SPACE, and POINT_INTERSECTION */ 
 inline int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double &t){
 
@@ -430,15 +433,15 @@ inline bool InConcavePolyhedron(double *p, double *bounds, int nBounds, double m
  *  \return NO_INTERSECTION|OUTSIDE_SPACE, POINT_INTERSECTION */
 inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, int &edgeID)
 {
-    int i, type;
-    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,p2))==POINT_INTERSECTION){edgeID=i; return type;}
-    return -1;
+    int i, type=-1;
+    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,p2))==POINT_INTERSECTION){edgeID=i;}
+    return type;
 }
 inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, double margin, int &edgeID)
 {
-    int i, type;
-    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,margin,p2))==POINT_INTERSECTION){edgeID=i; return type;}
-    return -1;
+    int i, type=-1;
+    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,margin,p2))==POINT_INTERSECTION){edgeID=i;}
+    return type;
 }
 
 /** Clip a segment in a concave polyhedron
@@ -452,15 +455,15 @@ inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds
  *  \return NO_INTERSECTION|OUTSIDE_SPACE, POINT_INTERSECTION */
 inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, int &edgeID, double *clipPos)
 {
-    int i, type;
-    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,clipPos))==POINT_INTERSECTION){edgeID=i; return type;}
-    return -1;
+    int i, type=-1;
+    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,clipPos))==POINT_INTERSECTION){edgeID=i;}
+    return type;
 }
 inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, double margin, int &edgeID, double *clipPos)
 {
-    int i, type;
-    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,margin,clipPos))==POINT_INTERSECTION){edgeID=i; return type;}
-    return -1;
+    int i, type=-1;
+    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,margin,clipPos))==POINT_INTERSECTION){edgeID=i;}
+    return type;
 }
 
 /** Get the distance between point and segment

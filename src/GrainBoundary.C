@@ -20,9 +20,8 @@
 #include <numeric>
 
 #define ADD_NOTHING    0x0000
-#define ADD_MIDDLE1    0x0001
-#define ADD_MIDDLE2    0x0002
-#define ADD_MIDDLE3    0x0004
+#define ADD_MIDDLE3    0x0001
+#define ADD_MIDDLE12   0x0002
 
 /** Find the intersections between segement and grain (if has) and return the new place of intersection point.
  *  Note that if the segment intersects with bound, the positions and locations of intersection nodes (middle 
@@ -35,47 +34,152 @@
  * \param[in,out] place2 location of the node2, return location of middle node 2 closed to node2 (if has)
  * \param[out] pos3 the positon of the middle node 3
  * \param[out] place3 the location of the middle node 3
- * \return: CHANGE_NOTHING (nothing need to be changed), CHANGE_NODE1 (node1 shou) */
-int ClipSegmentInGrain(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos1, int *place1, 
+ * \return CHANGE_NOTHING:  nothing need to be changed, the segement is inside or compelety outside of a face
+ *         ADD_MIDDLE3:     add the midlle node which intersects with face or projection on corner 
+ *                          when segment passed through the coner
+ *         ADD_MIDDLE12:    add the two nodes when the segement intersects with a corner                     */
+inline int SegmentPlaneIntersection(double *p1, double *p2, double *nDir, double *point, double &dot1, double &dot2, double *interPos)
+{
+    dot1 = nDir[0]*(p1[0]-point[0]) + nDir[1]*(p1[1]-point[1]) + nDir[2]*(p1[2]-point[2]);
+    dot2 = nDir[0]*(p2[0]-point[0]) + nDir[1]*(p2[1]-point[1]) + nDir[2]*(p2[2]-point[2]);
+    if(dot1 > 0 && dot2>0)return(NO_INTERSECTION|INSIDE_SPACE);
+    if(dot1 < 0 && dot2<0)return(NO_INTERSECTION|OUTSIDE_SPACE);
+
+    double tot = fabs(dot1)+fabs(dot2);
+    if(tot > 1.0E-80) {
+        double t = fabs(dot1)/tot;
+        CoordAdd(1.0-t, p1, t, p2, interPos);
+#ifdef DEBUG
+        if(!Numerical(interPos))Fatal("%s: t=%f", __func__, t);
+#endif
+        return(POINT_INTERSECTION);
+    }
+    return NO_INTERSECTION;
+}
+
+inline bool AssignMiddle12(real8 *pos1, real8 *pos2, real8 *p1, real8 *p2){
+    real8 dis1=PointPointDistanceSquare(pos1,p1);
+    real8 dis2=PointPointDistanceSquare(pos1,p2);
+#ifdef DEBUG
+    real8 dis=PointPointDistanceSquare(pos1,pos2);  
+    if(dis<dis1 || dis<dis2)Fatal("%s at %d: dis<dis1 || dis<dis2",__func__,__LINE__);
+#endif
+    if(dis1<dis2){VectorCopy(pos1,p1); VectorCopy(pos2,p2);return false;}
+    else{VectorCopy(pos1,p2); VectorCopy(pos2,p1); return true;}
+    return true;
+}
+
+int ClipSegmentInGrain(Home_t *home, Node_t *node1, Node_t *node2, int *armPlace, real8 *pos1, int *place1, 
                        real8 *pos2, int *place2, real8 *pos3, int *place3)
+{
+
+    int status = ADD_NOTHING;
+    Face_t *face; real8 interPos[3];
+    Grain_t *grain = home->grainKeys[armPlace[1]];
+    real8 dot1, dot2;
+    int type, place[PLACE_LEN];
+    int ibID = InverseIndex(armPlace[2]); 
+    int hasUpperIB = (ibID<grain->nIBs)?1:0;
+    int hasLowerIB = (ibID>0)?1:0;
+    int numBounds = grain->nFaces+hasUpperIB+hasLowerIB; if(numBounds<=0)return ADD_NOTHING;
+
+    /*Relative position relation list: count end if is inside of boudary*/
+    int *rprList = (int *)malloc(sizeof(int)*numBounds*2); int index=0;
+    
+    if(hasUpperIB){
+        place[0]=ON_IB; place[1]=grain->id; place[2]=ibID; place[3]=-1;
+        type = SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], dot1, dot2, interPos);
+        if(SameLocation(place,place1)){
+            rprList[index++] = 0; rprList[index++] = (dot2>0)?1:-1;    
+        }else if(SameLocation(place,place2)){
+            rprList[index++] = (dot1>0)?1:-1; rprList[index++] = 0; 
+        }else{
+            // record if two nodes is outside of subgrain
+            rprList[index++] = (dot1>0)?1:-1; rprList[index++] = (dot2>0)?1:-1;
+            if(type==POINT_INTERSECTION){
+                if(InGrain(grain, interPos, -FACE_ERROR)){
+                    status |= ADD_MIDDLE3; VECTOR_COPY(pos3, interPos); LocationCopy(place3,place);
+                // If the intersection is on the face within the error 
+                }else if(InGrain(grain, interPos, FACE_ERROR)){
+                    POINT_INTERSECTION==ClipSegmentInConcavePolyhedron(pos1, pos2, grain->ibsEdges[ibID], grain->ibsNumEdges[ibID], edgeID, pos2)
+                }
+            }
+        }
+    }
+    
+    if(hasLowerIB){
+        ibID--; place[0]=ON_IB; place[1]=grain->id; place[2]=ibID; place[3]=-1;
+        type = SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], dot1, dot2, interPos);
+        // record if two nodes is outside of subgrain
+        rprList[index++] = (dot1<0); rprList[index++] = (dot2<0);
+        if(type==POINT_INTERSECTION){
+            if(InGrain(grain, interPos, -FACE_ERROR)){
+                if((status&ADD_MIDDLE3)==0){
+                    status |= ADD_MIDDLE3; VECTOR_COPY(pos3, interPos); LocationCopy(place3,place);
+                }
+                // if middle 3 has been set, that is to say, we have two intersections on the two inner boundaries
+                // so, assign midlle point 1 2 according to distances between intersection and segement end.
+                else{
+                    status |= ADD_MIDDLE12;
+                    if(!AssignMiddle12(pos1,pos2,pos3,interPos)){
+                        place1[0]=place3[0]; place1[1]=place3[1]; place1[2]=place3[2]; place1[3]=place3[3];
+                        place2[0]=ON_IB; place2[1]=grain->id; place2[2]=ibID; place2[3]=-1;
+                    }else{
+                        place1[0]=ON_IB; place1[1]=grain->id; place1[2]=ibID; place1[3]=-1;
+                        place2[0]=place3[0]; place2[1]=place3[1]; place2[2]=place3[2]; place2[3]=place3[3];
+                    }
+                    place3[0]=IN_GRAIN; place3[1]=grain->id; place3[2]=InverseIndex(ibID+1); place3[3]=-1;
+                    CoordAdd(0.5,pos1,0.5,pos2, pos3);
+                    free(rprList); return status;
+                }
+            }
+        } 
+    }
+   
+    int localID=-1;
+    for(auto i=0; i<grain->nFaces; i++){
+        face = grain->faces[i];
+        type = SegmentPlaneIntersection(pos1, pos2, face->n, face->p, dot1, dot2, interPos);
+        if(grain->sign[i]>0){rprList[index++] = (dot1>0); rprList[index++] = (dot2>0);}
+        else {rprList[index++] = (dot1<0); rprList[index++] = (dot2<0);}
+
+        if(type == POINT_INTERSECTION){
+            if(InConcave)
+        }
+
+    }
+
+    free(rprList);
+    return ADD_NOTHING;
+}
+
+int ClipSegmentOnIB(Home_t *home, int *armPlace, real8 *pos1, int *place1, real8 *pos2, int *place2, real8 *pos3, int *place3)
 {
 
     return ADD_NOTHING;
 }
 
-int ClipSegmentOnFace(Home_t *home, real8 *pos1, int *place1, real8 *pos2, int *place2, real8 *pos3, int *place3)
+int ClipSegmentOnFace(Home_t *home, int *armPlace, real8 *pos1, int *place1, real8 *pos2, int *place2, real8 *pos3, int *place3)
 {  
 
     return ADD_NOTHING;
 }
 
-int ClipSegmentOnIB(Home_t *home, real8 *pos1, int *place1, real8 *pos2, int *place2, real8 *pos3, int *place3)
+int ClipSegmentOnFaceEdge(Home_t *home, int *armPlace, real8 *pos1, int *place1, real8 *pos2, int *place2, real8 *pos3, int *place3)
 {
 
     return ADD_NOTHING;
 }
 
-int ClipSegmentOnFaceEdge(Home_t *home, real8 *pos1, int *place1, real8 *pos2, int *place2, real8 *pos3, int *place3)
-{
-
-    return ADD_NOTHING;
-}
-
-int ClipSegmentAtVertice(Home_t *home, real8 *pos1, int *place1, real8 *pos2, int *place2, real8 *pos3, int *place3)
-{
-
-    return ADD_NOTHING;
-}
 inline int ClipSegmentAtLocation(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos1, int *place1, 
                                  real8 *pos2, int *place2, real8 *pos3, int *place3)
 {
-    int armPlace[PLACE_LEN]; ArmLocation(home, node1->place, node2->place, armPlace);
-    if(armPlace[0] == IN_GRAIN){return ClipSegmentInGrain(home,node1,node2,pos1,place1,pos2,place2,pos3,place3);}
-    else if(armPlace[0] == ON_IB){return ClipSegmentOnIB(home,pos1,place1,pos2,place2,pos3,place3);}
-    else if(armPlace[0] == ON_FACE){return ClipSegmentOnFace(home,pos1,place1,pos2,place2,pos3,place3);}
-    else if(armPlace[0] == ON_FACE_EDGE){return ClipSegmentOnFaceEdge(home,pos1,place1,pos2,place2,pos3,place3);}
-    else if(armPlace[0] == AT_VERTICE){return ClipSegmentAtVertice(home,pos1,place1,pos2,place2,pos3,place3);}
-    else Fatal("%s: not support type %d",__func__, armPlace[0]);
+    int armPlace[PLACE_LEN]; ArmLocation(home, node1->place,node2->place,armPlace);
+    if(armPlace[0] == IN_GRAIN){return ClipSegmentInGrain(home,node1,node2,armPlace,pos1,place1,pos2,place2,pos3,place3);}
+    else if(armPlace[0] == ON_IB){return ClipSegmentOnIB(home,armPlace,pos1,place1,pos2,place2,pos3,place3);}
+    else if(armPlace[0] == ON_FACE){return ClipSegmentOnFace(home,armPlace,pos1,place1,pos2,place2,pos3,place3);}
+    else if(armPlace[0] == ON_FACE_EDGE){return ClipSegmentOnFaceEdge(home,armPlace,pos1,place1,pos2,place2,pos3,place3);}
+    else Fatal("%s: not support arm type %d",__func__, armPlace[0]);
     return ADD_NOTHING;
 }
 

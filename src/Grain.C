@@ -1,11 +1,11 @@
 /****************************************************************************
 * 
-*	Module:		Grain.c
+*	Module:		    Grain.C
 *
-*	Description:	This module contains all the subroutines needed in 
-*                  	grain/twin boundary model.
+*	Description:	This module contains basic subroutines needed in 
+*                  	voronoi polycrystal model.
 *
-*	07/06/2016:	created by H. Fan, D. Wei 
+*	12/06/2019:	    created by DeAn Wei
 *
 *****************************************************************************/
 
@@ -1098,36 +1098,28 @@ void NodeLocation(Home_t *home, real8 *pos, int *place, real8 error)
  * \return false if the position are not at the location, true otherwise. */
 bool InGrain(Home_t *home, int *place, real8 *pos, real8 error)
 {
-    int i; Face_t *face; real8 dis;
+    int i; real8 dis;
 #ifdef DEBUG
     if(place[0]!=IN_GRAIN)Fatal("%s: place[0] = %d",__func__, place[0]);
     if(place[1]<0 || place[1]>home->nGrains)Fatal("%s: place[1] = %d",__func__, place[1]);
 #endif    
     // make sure the node is in the grain
     Grain_t *grain = home->grainKeys[place[1]];
-    for(i=0; i<grain->nFaces; i++){
-        face=grain->faces[i];
-        PointPlaneDistance(pos, face->n, face->p, dis);
-        dis *= grain->sign[i];
-        if(dis>-error)return false;
-    }
-    
 #ifdef DEBUG
     if(place[2]<-grain->nIBs-1||place[2]>-1)Fatal("%s: no sub-grain %d in grain %d",__func__,place[2], place[1]);
 #endif
-
+    /*Check if the node is outside of inner boundary firstly*/
     int ibID = InverseIndex(place[2]);
     if(ibID<grain->nIBs){
         PointPlaneDistance(pos, grain->ibN, grain->ibPs[ibID], dis);
         if(dis > -error)return false;
     }
-
     if(ibID>0){
         PointPlaneDistance(pos, grain->ibN, grain->ibPs[ibID-1], dis);
         if(dis < error)return false;
     }
 
-    return true;
+    return InGrain(grain, pos, error);
 }
 
 /** According to the current position of the node, determine whether the node 
@@ -1144,13 +1136,11 @@ bool OnFace(Home_t *home, int *place, real8 *pos, real8 error)
     Face_t *face = home->faces[place[1]];
     real8  dis;
 
-    // if the point is not on face with error of FACE_ERROR, false
+    // First, if the point is not on face with error of FACE_ERROR, false
     PointPlaneDistance(pos, face->n, face->p, dis);
     if(fabs(dis)>FACE_ERROR)return false;
 
-    // if the point is outside of inner edges of the face, false
-    if(!InConcavePolyhedron(pos, face->edges, face->nEdges, -error))return false;
-
+    // Second, check if the point matchs of inner edges of face
     int ibID;  Grain_t *grain;
     for(auto i=0; i<2; i++){
         if(face->nbrGrain[i]<0)continue;
@@ -1172,6 +1162,10 @@ bool OnFace(Home_t *home, int *place, real8 *pos, real8 error)
             }
         }
     }
+
+    // Last, if the point is outside of inner edges of the face, false
+    if(!InConcavePolyhedron(pos, face->edges, face->nEdges, -error))return false;
+
     return true;
 }
 
@@ -1219,7 +1213,7 @@ bool OnFaceEdge(Home_t *home, int *place, real8 *pos, real8 error)
     p1=Coordinate(home->vertices, edge->vertID1);
     p2=Coordinate(home->vertices, edge->vertID2); 
     CoordMinus(pos, p1, vec); CoordMinus(p2, p1, lDir);
-    
+  
 #ifdef DEBUG
     if(normal(lDir)<FACE_ERROR)Fatal("%s: two vertice are too close",__func__);
 #endif
@@ -1286,9 +1280,7 @@ bool AtLocation(Home_t *home, int *place, real8 *pos, real8 error)
  * \return true if the place is changed, otherwise false */
 bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *newPlace)
 {
-    Face_t *face;
-    bool status=false;
-    real8 nFace[3];
+    Face_t *face;  bool status=false; real8 nFace[3];
 
 #ifdef DEBUG
     if(place[0]!=IN_GRAIN)Fatal("%s: place[0] = %d",__func__, place[0]);
@@ -1393,7 +1385,7 @@ bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *ne
             SegmentPlaneIntersection(pos1, pos2, nFace, face->p, -SAFE_FACE_ERROR, pos2);
         }
     }
-    
+
     ibID = InverseIndex(place[2]); 
 #ifdef DEBUG
     if(ibID<0||ibID>grain->nIBs)Fatal("%s: no subgrain %d in grain %d",__func__,place[2], place[1]);
@@ -1403,7 +1395,8 @@ bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *ne
             newPlace[0]=ON_IB; newPlace[1]=grain->id; newPlace[2]=ibID;
             return true; 
         }
-        // if ther is an intersection point on inner plane of subgrain with a margin of -SAFE_FACE_ERROR
+
+        // if there is an intersection point on inner plane of subgrain with a margin of -SAFE_FACE_ERROR
         // clip the segment without changing place
         SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], -SAFE_FACE_ERROR, pos2);
     }
@@ -1415,10 +1408,11 @@ bool ClipPathInGrain(Home_t *home, int *place, real8 *pos1, real8 *pos2, int *ne
             return true; 
         }
 
-        // if ther is an intersection point on inner plane of subgrain with a margin of SAFE_FACE_ERROR
+        // if there is an intersection point on inner plane of subgrain with a margin of SAFE_FACE_ERROR
         // clip the segment without changing place
         SegmentPlaneIntersection(pos1, pos2, grain->ibN, grain->ibPs[ibID], SAFE_FACE_ERROR, pos2);
     }
+
     return status;
 }
 

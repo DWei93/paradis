@@ -276,13 +276,16 @@ void InitGrain(Home_t *home, Param_t *param);
 void FormatPlace(int *place);
 
 /** Determine if p1 and p2 are the same place */
-inline bool SamePlace(int *p1, int *p2){
+inline bool SameLocation(int *p1, int *p2){
     if(p1[0] == IN_GRAIN || p1[0] == ON_IB || p1[0]==ON_FACE_EDGE ||
        p2[0] == IN_GRAIN || p2[0] == ON_IB || p2[0]==ON_FACE_EDGE )return p1[0]==p2[0] && p1[1]==p2[1] && p1[2] == p2[2];
     else if(p1[0] == ON_FACE || p2[0] == ON_FACE) return p1[0]==p2[0] && p1[1]==p2[1] && p1[2] == p2[2] && p1[3] == p2[3];
     else if(p1[0] == AT_VERTICE || p1[0] == AT_VERTICE) return p1[0]==p2[0] && p1[1]==p2[1];
     else  Fatal("%s: can not support location type %d",__func__,__LINE__);
 }
+        
+inline void LocationCopy(int *dest, int *ori)
+{dest[0]=ori[0]; dest[1]=ori[1]; dest[2]=ori[2]; dest[3]=ori[3];}
 
 /** According to the current node coordinates, roughly judge the node position.
   * \param[in] pos: the coordinates of node
