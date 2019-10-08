@@ -2159,7 +2159,7 @@ void FMCommUpPass(Home_t *home, int layerID)
         int         ret;
         MPI_Status  oneStat;
         MPI_Status  *sendStat, *recvStat;
-        MPI_Request *sendReq, *recvReq=(MPI_Request*)NULL;
+        MPI_Request *sendReq=(MPI_Request*)NULL, *recvReq=(MPI_Request*)NULL;
 #endif
 
 

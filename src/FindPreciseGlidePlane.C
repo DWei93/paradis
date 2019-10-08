@@ -19,7 +19,6 @@
 #include "Home.h"
 #include "Grain.h"
 
-
 /*-------------------------------------------------------------------------
  *
  *      Function:     FindBCCGlidePlane

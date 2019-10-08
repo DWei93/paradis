@@ -89,7 +89,7 @@ XLIB_MODE = OFF
 # OPT = -O 
 # OPT = -O1
 # OPT = -O2
-OPT = -O3 -Wall -Wmaybe-uninitialized -Wunknown-pragmas  -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-value -Wno-format-truncation -Wno-unused-function -Wno-sign-compare
+OPT = -O3 -Wall -Wmaybe-uninitialized -Wunknown-pragmas  -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-value -Wno-format-truncation -Wno-unused-function -Wno-sign-compare -Wno-unused-result
 #OPT = -O3
 
 #

@@ -282,6 +282,7 @@ inline bool SameLocation(int *p1, int *p2){
     else if(p1[0] == ON_FACE || p2[0] == ON_FACE) return p1[0]==p2[0] && p1[1]==p2[1] && p1[2] == p2[2] && p1[3] == p2[3];
     else if(p1[0] == AT_VERTICE || p1[0] == AT_VERTICE) return p1[0]==p2[0] && p1[1]==p2[1];
     else  Fatal("%s: can not support location type %d",__func__,__LINE__);
+    return false;
 }
         
 inline void LocationCopy(int *dest, int *ori)

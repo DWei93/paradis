@@ -118,10 +118,6 @@ case $srctype in
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity \
-    -disList 2,1,0,1 -disList 2,1,1,1 \
-    -disList 0,0,0,2 -disList 0,0,1,2 \
-    -disList 3,0,0,2 -disList 3,0,1,2 \
-    -disList 5,1,0,1 -disList 5,1,1,1 \
     -voroFile input/Copper.vor \
     -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 ;;
 #    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 -out SAS/${2} > /dev/null 2>&1;;

@@ -277,7 +277,7 @@ void ReadRSDecompBounds(void **filePtr, int numXDoms, int numYDoms,
         real8     *xBnd=(real8 *)NULL, **yBnd=(real8 **)NULL, ***zBnd=(real8 ***)NULL;
         char      inLine[512];
         FILE      *fp = (FILE *)*filePtr;
-        RSDecomp_t *decomp;
+        RSDecomp_t *decomp = (RSDecomp_t *)NULL;
 
 /*
  *      If we'll need to return the decompostion data to the caller

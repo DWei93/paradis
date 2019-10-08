@@ -72,12 +72,11 @@ inline bool AssignMiddle12(real8 *pos1, real8 *pos2, real8 *p1, real8 *p2){
 int ClipSegmentInGrain(Home_t *home, Node_t *node1, Node_t *node2, int *armPlace, real8 *pos1, int *place1, 
                        real8 *pos2, int *place2, real8 *pos3, int *place3)
 {
-
     int status = ADD_NOTHING;
     Face_t *face; real8 interPos[3];
     Grain_t *grain = home->grainKeys[armPlace[1]];
     real8 dot1, dot2;
-    int type, place[PLACE_LEN];
+    int type, place[PLACE_LEN], boundID;
     int ibID = InverseIndex(armPlace[2]); 
     int hasUpperIB = (ibID<grain->nIBs)?1:0;
     int hasLowerIB = (ibID>0)?1:0;
@@ -101,7 +100,10 @@ int ClipSegmentInGrain(Home_t *home, Node_t *node1, Node_t *node2, int *armPlace
                     status |= ADD_MIDDLE3; VECTOR_COPY(pos3, interPos); LocationCopy(place3,place);
                 // If the intersection is on the face within the error 
                 }else if(InGrain(grain, interPos, FACE_ERROR)){
-                    POINT_INTERSECTION==ClipSegmentInConcavePolyhedron(pos1, pos2, grain->ibsEdges[ibID], grain->ibsNumEdges[ibID], edgeID, pos2)
+                    if(POINT_INTERSECTION!=
+                       ClipSegmentInConcavePolyhedron(grain->ibPs[ibID], interPos, grain->ibsEdges[ibID], grain->ibsNumEdges[ibID], -FACE_ERROR, boundID)){
+                        Fatal("%s at %d: can not find the boundary index",__func__,__LINE__);
+                    }
                 }
             }
         }
@@ -144,7 +146,6 @@ int ClipSegmentInGrain(Home_t *home, Node_t *node1, Node_t *node2, int *armPlace
         else {rprList[index++] = (dot1<0); rprList[index++] = (dot2<0);}
 
         if(type == POINT_INTERSECTION){
-            if(InConcave)
         }
 
     }

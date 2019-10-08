@@ -643,9 +643,8 @@ void LineTensionForce(Home_t *home, real8 x1, real8 y1, real8 z1,
 
         if(!SelfForce(1, MU, NU, bx, by, bz, x1, y1, z1, x2, y2, z2,
                   a, Ecore, fSelf1, fSelf2)){
-//	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
-	    Fatal("at %s, Line %d",__FILE__,__LINE__);
-	}
+	        Fatal("at %s, Line %d",__FILE__,__LINE__); return;
+	    }
 
         ExtPKForce(extStress, bx, by, bz, x1, y1, z1, x2, y2, z2, fPK1, fPK2);
 
@@ -681,7 +680,7 @@ void LineTensionForce(Home_t *home, real8 x1, real8 y1, real8 z1,
 void NodeForce(Home_t *home, int reqType)
 {
         int     i, nc, ti, elasticity, nbrArm;
-        real8   f1[3], f2[3];
+        real8   f1[3]={0,0,0}, f2[3]={0,0,0};
         Node_t  *node, *nbr;
         Param_t *param;
 
@@ -1946,7 +1945,10 @@ int SelfForce(int coreOnly, real8 MU, real8 NU,
 {
 
         if(!SelfForceIsotropic(coreOnly, MU, NU, bx, by, bz, x1, y1, z1, 
-	    x2, y2, z2, a, Ecore, f1, f2))return(0);
+	    x2, y2, z2, a, Ecore, f1, f2)){
+            VECTOR_ZERO(f1); VECTOR_ZERO(f2);
+            return(0);
+        }
         return(1);
 }
 

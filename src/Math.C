@@ -414,8 +414,6 @@ double PointSegmentDistance(double *p, double *p1, double *p2){
     else return dis;
 }
 
-double PointPolygonIntersection(double *p, double *polygon, int nEdges, int 
-
 /** Get the distance between point and polygon
  *  \param[in] p the coordinate of the point
  *  \param[in] v coordinates lis of vertices
