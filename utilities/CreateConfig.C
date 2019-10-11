@@ -2776,12 +2776,13 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         normalABC[1] = 1;
         normalABC[2] = 1;
 
-
+#ifdef SAS_ANALYZE
         FILE    *fp;
         
         if((fp = fopen(inArgs->outFile, "w")) == (FILE *)NULL){
             Fatal("can not open file %s", inArgs->outFile);
         }
+#endif
 
 /*
  *      Grap the command-line argument values needed for this function
@@ -3063,7 +3064,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 }
 
 	            totSrcLen += srcLen;				
-
+#ifdef SAS_ANALYZE
                 if(polycrystal){
                     lambda_FR = srcLen/2;
                     GetFreePath(param, p1, p2, n0, home->grainKeys[inGrain0], 
@@ -3171,6 +3172,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     fprintf(fp, "\n");
 
                 }
+#endif 
 /*           
  *              Reallocate the node array with sufficient size to add
  *              all the new nodes defining this chain.
@@ -3458,9 +3460,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
             printf("the num of  sources in layers %d is %d\n",layer, chain);
 		
 	    }/* for(layer=0; layer<nLayers;...)*/
-
+#ifdef SAS_ANALYZE
         fclose(fp);
-	
+#endif
 	    IncDislocationDensity(inData, totDislocLen);
 	    param->nodeCount = inData->nodeCount;
 	    WriteInitialNodeData(home, inData, 1);
