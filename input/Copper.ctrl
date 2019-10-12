@@ -17,9 +17,9 @@
 #
 #  Domain geometry
 #
-numXdoms = 4
-numYdoms = 4
-numZdoms = 4
+numXdoms = 2
+numYdoms = 2
+numZdoms = 1
 #
 #  Cell geometry
 #
@@ -30,9 +30,9 @@ numZcells = 4
 #
 # Mesh size for tecmesh
 #
-meshSizeX = 48
-meshSizeY = 48
-meshSizeZ = 48
+meshSizeX = 2000
+meshSizeY = 2000
+meshSizeZ = 2000
 
 #  Dynamic load balancing
 #
@@ -48,14 +48,13 @@ splitMultiNodeFreq =   1
 #
 #  Simulation time and timestepping controls
 #  
-relax = 200000
 maxstep =  40000000 
 #maxstep =  50000 
 maxStn = 0.6E-2
 maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
-rTol = 7
+rTol = 5
 rc =  30
 #
 #  Fast Multipole Method controls
@@ -91,7 +90,7 @@ edotdir = [
 appliedStress = [
 	0.0e0
 	0.0e0
-	0.0e0
+    -2.0e8
 	0.0e0
 	0.0e0
 	0.0e0
@@ -128,11 +127,11 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 10000
+tecplotfreq = 200
 saveprop = 1
 savepropfreq = 200
-tecmesh = 0
-tecmeshfreq = 300000
+tecmesh = 1
+tecmeshfreq = 3000
 savecn = 1
 savecnfreq = 1000000
 savetimers = 0

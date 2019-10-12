@@ -70,6 +70,7 @@ PARADIS_CPP_SRCS = GrainBoundary.C \
       Meminfo.C                \
       MemCheck.C               \
       Migrate.C                \
+      MobilityLaw_Wei.C        \
       MobilityLaw_BCC_0.C      \
       MobilityLaw_BCC_0b.C     \
       MobilityLaw_BCC_glide.C  \

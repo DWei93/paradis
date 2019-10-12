@@ -744,7 +744,13 @@ void SetRemainingDefaults(Home_t *home)
  *      ***                                           ***
  *      *************************************************
  */
-        if (strcmp(param->mobilityLaw, "BCC_0") == 0) {
+        if (strcmp(param->mobilityLaw, "Wei") == 0) {
+            param->materialType = MAT_TYPE_FCC;
+            param->mobilityType = MOB_WEI;
+            param->mobilityFunc = Mobility_Wei;
+            param->numBurgGroups = 7;
+            if(home->myDomain==0)printf("Mobility Law: Wei\n");
+        }else if (strcmp(param->mobilityLaw, "BCC_0") == 0) {
             param->materialType = MAT_TYPE_BCC;
             param->mobilityType = MOB_BCC_0;
             param->mobilityFunc = Mobility_BCC_0;
@@ -791,6 +797,7 @@ void SetRemainingDefaults(Home_t *home)
             case MOB_FCC_0:
             case MOB_FCC_0B:
             case MOB_FCC_CLIMB:
+            case MOB_WEI:
                 if (param->enforceGlidePlanes == 0) {
                     param->enforceGlidePlanes = 1;
                     if (home->myDomain == 0) {
@@ -821,6 +828,7 @@ void SetRemainingDefaults(Home_t *home)
                 case MOB_FCC_0:
                 case MOB_FCC_0B:
                 case MOB_FCC_CLIMB:
+                case MOB_WEI:
                     param->enableCrossSlip = 1;
                     break;
                 default:
@@ -1685,6 +1693,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *      and initialize them now.
  */ 
 	
+        
         if ((param->fmEnabled)) {
 
             home->glPositions = (real8 *)malloc(param->fmNumPoints *
@@ -1748,7 +1757,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
         for(i=0; i<totMeshNum; i++){
            home->disDenEle[i] = (real8 *)calloc(6, sizeof(real8)); 
         }
-        
 
 /*
  *	Iinitialize grain
@@ -1756,7 +1764,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
 	    InitGrain(home, param);
         
 //	    param->vshr = sqrt(param->YoungsModulus/param->massDensity)/param->burgMag;
-        param->vshr = 1.5E3/param->burgMag;
+        param->vshr = 1.63E3/param->burgMag;
 
 	    if(home->myDomain == 0)printf("shear Wave velocity: %6.2f m/s.\n",
 	    param->vshr * param->burgMag);

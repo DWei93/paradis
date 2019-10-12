@@ -63,7 +63,7 @@ else
     ydir=`echo "${y1}${y2}${y3}"`
 fi
 
-srctype=1
+srctype=4
 case $srctype in
 ######################################################################################
 #
@@ -108,7 +108,7 @@ case $srctype in
 # 
 ######################################################################################
     4|IV)
-    ./bin/paradisgen -type 3 -frlen 1500 -cubel 4000 -maxseg 100 -nfrsrcs 1 $seed \
+    ./bin/paradisgen -type 3 -frlen 1500 -cubel 4000 -maxseg 200 -nfrsrcs 30 $seed \
     -polycrystal 1 -nGrain 4 -twinRatio 0.5 -pbc 0 ;;
 
 ######################################################################################
