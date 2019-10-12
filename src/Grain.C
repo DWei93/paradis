@@ -484,17 +484,20 @@ void InitGrain(Home_t *home, Param_t *param){
 
 #endif
 /*
- *	Type V: polycrystal = 1, nGrain >= 2, PBC.
+ *	Type IV: polycrystal = 1, nGrain >= 2, PBC.
  *	polycrystal, twin, RVE, XOZ plane is twin plane
  */
     if(type == 4){
+#if 0
 	    halfTwinThick = twinRatio * ly / (real8)numTGrains;
 	    HalfMatrixThick = ly / (real8)numTGrains - halfTwinThick;
-	    	
 	    if (HalfMatrixThick <= 0){
 	        printf("the thickness of matrix is %f\n ", HalfMatrixThick);
 	        Fatal("the thickness of matrix is negative value at %s line %d\n", __FILE__, __LINE__);
 	    }
+#else
+        real8 thick = 2*ly/((real8)nGrain);       
+#endif	    	
 
         home->nGBs = home->nGrains;
         home->GBKeys = (GB_t **)malloc(home->nGrains*sizeof(GB_t *));   
@@ -504,7 +507,11 @@ void InitGrain(Home_t *home, Param_t *param){
             VECTOR_ZERO(home->GBKeys[i]->n);
             VECTOR_ZERO(home->GBKeys[i]->p);
             home->GBKeys[i]->n[1] = 1.0;
+#if 0
             home->GBKeys[i]->p[1] = -ly + HalfMatrixThick + 2*((real8)i)*halfTwinThick;
+#else
+            home->GBKeys[i]->p[1] = -ly + (((real8)i)+0.5)*thick;
+#endif
             home->GBKeys[i]->nbrGrain[0] = i;
             home->GBKeys[i]->nbrGrain[1] = ((i == home->nGrains -1) ? 0 : i+1);
         }
@@ -514,8 +521,12 @@ void InitGrain(Home_t *home, Param_t *param){
 	        grain = home->grainKeys[i];
 	        InitGrainStructure(grain, 2);
     
-	        grain->type = ODINARY_GRAIN;
+	        grain->type = i==0?FOLDED_GRAIN:ODINARY_GRAIN;
+#if 0
 	        grain->cy = -ly + (2 * ((real8)i) - 1) * (HalfMatrixThick + halfTwinThick);
+#else
+	        grain->cy = -ly + double(i)*thick;
+#endif
             grain->cx = 0.0;
             grain->cz = 0.0;
             grain->grainID = i;
@@ -933,7 +944,7 @@ void InitGrain(Home_t *home, Param_t *param){
                                     poss[0][1] += tsize*vec4[1];
                                     poss[0][2] += tsize*vec4[2];
                                 }
-                                th = 0;
+                                th = -1;
                                 break;
                             }
 #endif
@@ -2152,7 +2163,7 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
             }
             break;
         default:
-            Fatal("BeforeMergeArm: wrong type %d", __LINE__);
+            Fatal("BeforeMergeArm: wrong type %d", type);
             break;
     }
 

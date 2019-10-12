@@ -75,8 +75,8 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2, double
         VECTOR_COPY(vec1,n2); VECTOR_COPY(vec2,p2);
         double dot=n2x*(p1x - p2x) + n2y*(p1y - p2y) + n2z*(p1z - p2z);
         if(fabs(dot) < err2) return(PLANE_INTERSECTION);
-        else if(dot > 0) return (NO_INTERSECTION|INSIDE_SPACE);
-        else return (NO_INTERSECTION|OUTSIDE_SPACE);
+        else if(dot > 0) return (NO_INTERSECTION);
+        else return (NO_INTERSECTION);
     } 
 
     // the direction of intersection line is the cross product vector of the two normals
@@ -369,8 +369,8 @@ int PointPlaneIntersection(double *p1, double *n, double *p2, double *vec, doubl
     if(DotProduct(temVec, n) < 0)*dis *= -1.0; 
 #endif 
     if(fabs(*dis) < err2) return(POINT_INTERSECTION);
-    else if(*dis>0)return(NO_INTERSECTION|INSIDE_SPACE);
-    else return (NO_INTERSECTION|OUTSIDE_SPACE);
+    else if(*dis>0)return(NO_INTERSECTION);
+    else return (NO_INTERSECTION);
 }
 
 /** Find intersection of two points, the second point is reference
