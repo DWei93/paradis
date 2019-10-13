@@ -2905,7 +2905,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     if(onGB1 > -1)continue;
 
 #if 1
-                    if(chain < 24){
+                    if(xn > 24 && chain <24){
                         ranNum = chain;
                         if(polycrystal){
                             if(chain < 12){
@@ -2914,26 +2914,24 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                                 if(inGrain1 != 1)continue;
                             }
                         }
+                        if((inGrain1%2)!=(ranNum/12))continue;
                     }else{
                         ranNum = (int)(randm(&seed) * 1000);
                     }
 
-                    gpBurgIndex = (ranNum % 12) / 2;
-                    if((bd->burgType[gpBurgIndex] & EDGE_BURG) == 0)continue;
+                    gpBurgIndex = ranNum%6;
+                    if((bd->burgType[gpBurgIndex] & EDGE_BURG) == 0)Fatal("burgID %d is not edge type", gpBurgIndex);
 
                     if(burgID > -1 && burgID < bd->numBurgVectors){
                         gpBurgIndex = burgID;
                     }
 
-                    if(chain >= 24){
-                        ranNum = (int)(randm(&seed) * 1000);
-                    }
-
                     if(planeID > -1 && planeID < bd->numPlanes){
                         gpIndex = planeID;
+                    }else{
+                        gpIndex = bd->burgOnPlaneID[gpBurgIndex][(ranNum%12)/6];
                     }
 
-                    gpIndex = bd->burgOnPlaneID[gpBurgIndex][ranNum % 2];
                     if((bd->planeType[gpIndex] & GLIDE_PLANE) == 0){
                         if(planeID > -1){
                             printf("Warning: the input plane %d i not a glide plane, ignore it\n", planeID);
