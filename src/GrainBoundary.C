@@ -913,15 +913,13 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
         case POINT_INTERSECTION:
             VECTOR_COPY(mergePos, vec2);
             break;
-        case LINE_INTERSECTION:
+        default:
             vec[0] = 0.5*(nodePos[0] + oldPos[0]);
             vec[1] = 0.5*(nodePos[1] + oldPos[1]);
             vec[2] = 0.5*(nodePos[2] + oldPos[2]);
             PointPlaneIntersection(vec, GBPlane->normal, GBPlane->point,
                                    mergePos, &dis);
             break;
-        default:
-            Fatal("PenetrationLast: wrong intersection type");
 
     }
     FoldBox(param, mergePos, mergePos+1, mergePos+2);

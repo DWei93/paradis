@@ -3205,7 +3205,6 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         }
     }
 
-
     return(1);
 }
 
