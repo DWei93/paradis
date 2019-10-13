@@ -2029,7 +2029,7 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
     int     numGlideConstraintsNode1, numGlideConstraintsNode2;
     real8   glideConstraintsNode1[3][3], glideConstraintsNode2[3][3]; 
     bool    zeroLenJunc1, zeroLenJunc2;
-    real8   p1[3], p2[3], dis;
+    real8   p1[3], p2[3], dis, err=1E-3;
     real8   direction1[3], direction2[3];
     
     VECTOR_ZERO(vec1);
@@ -2059,13 +2059,19 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                 case 1:
                     type = PlanePlaneIntersection(glideConstraintsNode1[0], p1,
                            glideConstraintsNode2[0], p2, vec1, vec2);
+                    if(type == NO_INTERSECTION){
+                        type = fabs(PointPlaneDistance(p1, glideConstraintsNode2[0], p2))<err?PLANE_INTERSECTION:NO_INTERSECTION;
+                    }
                     break;
                 case 2:
                     type = LinePlaneIntersection(glideConstraintsNode2[2], p2, glideConstraintsNode1[0], p1,
                            vec1, vec2);
+                    if(type == NO_INTERSECTION)
+                        type=fabs(PointPlaneDistance(p2, glideConstraintsNode1[0], p1))<err?LINE_INTERSECTION:NO_INTERSECTION;
                     break;
                 case 3:
-                    type = PointPlaneIntersection(p2, glideConstraintsNode1[0], p1, vec2, &dis); 
+                    PointPlaneIntersection(p2, glideConstraintsNode1[0], p1, vec2, &dis); 
+                    type = fabs(dis)<err?POINT_INTERSECTION:NO_INTERSECTION;
                     VECTOR_COPY(vec2, p2);
                     break;
                 default:
@@ -2080,14 +2086,24 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                 case 1:
                     type = LinePlaneIntersection(glideConstraintsNode1[2], p1, glideConstraintsNode2[0], p2,
                            vec1, vec2); 
+                    if(type == NO_INTERSECTION)
+                        type=fabs(PointPlaneDistance(p1, glideConstraintsNode2[0], p2))<err?LINE_INTERSECTION:NO_INTERSECTION;
                     break;
                 case 2:
-                    type = LineLineIntersection(glideConstraintsNode1[2], p1, glideConstraintsNode2[2], p2,
+                    LineLineIntersection(glideConstraintsNode1[2], p1, glideConstraintsNode2[2], p2,
                            vec1, vec2, &dis); 
+                    if(fabs(DotProduct(glideConstraintsNode1[2],glideConstraintsNode2[2]))>0.98){
+                        type = fabs(dis)<err?LINE_INTERSECTION:NO_INTERSECTION;
+                        VECTOR_COPY(vec1, glideConstraintsNode1[2]);
+                    }else{
+                        type = fabs(dis)<err?POINT_INTERSECTION:NO_INTERSECTION;
+                    }
+                    CoordAdd(0.5,p1,0.5,p2,vec2);
                     break;
                 case 3:
-                    type = PointLineIntersection(p2, glideConstraintsNode1[2], p1, vec2, &dis); 
+                    PointLineIntersection(p2, glideConstraintsNode1[2], p1, vec2, &dis); 
                     VECTOR_COPY(vec2, p2);
+                    type = fabs(dis)<err?POINT_INTERSECTION:NO_INTERSECTION;
                     break;
                 default:
                     PrintNode(home, node1);
@@ -2100,17 +2116,20 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
         case 3:
             switch (numGlideConstraintsNode2){
                 case 1:
-                    type = PointPlaneIntersection(p1, glideConstraintsNode2[0], p2,
+                     PointPlaneIntersection(p1, glideConstraintsNode2[0], p2,
                            vec2, &dis); 
                     VECTOR_COPY(vec2, p1);
+                    type = fabs(dis)<err?POINT_INTERSECTION:NO_INTERSECTION;
                     break;
                 case 2:
-                    type = PointLineIntersection(p1, glideConstraintsNode2[2], p2, vec2, &dis); 
+                    PointLineIntersection(p1, glideConstraintsNode2[2], p2, vec2, &dis); 
                     VECTOR_COPY(vec2, p1);
+                    type = fabs(dis)<err?POINT_INTERSECTION:NO_INTERSECTION;
                     break;
                 case 3:
-                    type = PointPointIntersection(p2, p1, vec2, &dis); 
+                    PointPointIntersection(p2, p1, vec2, &dis); 
                     VECTOR_COPY(vec2, p2);
+                    type = fabs(dis)<err?POINT_INTERSECTION:NO_INTERSECTION;
                     break;
                 default:
                     PrintNode(home, node1);
