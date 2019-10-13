@@ -3267,7 +3267,9 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
                 return;
                 break;
             default:
-                Fatal("Warning in %s at %d: chose a non-glide plane\n", __FILE__, __LINE__);
+                VECTOR_COPY(glidePlane, burg);
+                NormalizeVec(glidePlane);
+                return;
                 break;
         }
     }
