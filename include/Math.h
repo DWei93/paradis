@@ -286,6 +286,15 @@ inline void PointPlaneDistance(double *p, double *plane, double &dis){
  *  \param[in] normal[3] normal of the plane
  *  \param[in] point[3] point on the plane
  *  \param[out] dis distance form the plane to the point */
+inline double PointPlaneDistance(double *p, double *normal, double *point){
+    double nx=normal[0], ny=normal[1], nz=normal[2];
+#ifdef DEBUG
+    if(!IsNormalized(nx,ny,nz))
+        Fatal("in file %s at line %d: normal (%g,%g,%g) is not normalized", 
+               __FILE__,__LINE__,nx,ny,nz);
+#endif
+    return (nx*(p[0]-point[0])+ ny*(p[1]-point[1]) + nz*(p[2]-point[2]))/sqrt(nx*nx+ny*ny+nz*nz);
+}
 inline void PointPlaneDistance(double *p, double *normal, double *point, double &dis){
     double nx=normal[0], ny=normal[1], nz=normal[2];
 #ifdef DEBUG
