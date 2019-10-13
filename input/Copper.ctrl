@@ -17,9 +17,9 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
-numYdoms = 2
-numZdoms = 1
+numXdoms = 4
+numYdoms = 4
+numZdoms = 4
 #
 #  Cell geometry
 #
@@ -30,9 +30,9 @@ numZcells = 4
 #
 # Mesh size for tecmesh
 #
-meshSizeX = 2000
-meshSizeY = 2000
-meshSizeZ = 2000
+meshSizeX = 90
+meshSizeY = 90
+meshSizeZ = 90
 
 #  Dynamic load balancing
 #
@@ -40,7 +40,7 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-dirname = "res.1105544"
+dirname = "res.1180028"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -90,7 +90,7 @@ edotdir = [
 appliedStress = [
 	0.0e0
 	0.0e0
-    -2.0e8
+	0.0e0
 	0.0e0
 	0.0e0
 	0.0e0
@@ -99,7 +99,7 @@ appliedStress = [
 #
 #  Material and mobility parameters
 #  
-mobilityLaw =   "FCC_0"  
+mobilityLaw =   "Wei"  
 #shearModulus =   54.6e9  # Voight Average
 shearModulus =  46.554e9  # in jin paper
 limitDisplacement = 0
@@ -127,11 +127,11 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 200
+tecplotfreq = 1000
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1
-tecmeshfreq = 3000
+tecmeshfreq = 3000000
 savecn = 1
 savecnfreq = 1000000
 savetimers = 0
