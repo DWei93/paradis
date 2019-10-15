@@ -538,7 +538,7 @@ void InitGrain(Home_t *home, Param_t *param){
             grain->GB[1] = home->GBKeys[i];
             grain->sign[1] =  1.0;
 
-            if(i != 0){
+            if(i%2==1){
                 memcpy(grain->orientation, TwinOrientation, sizeof(real8 [3][3]));
             }else{
                 memcpy(grain->orientation, param->matrixOrientation, sizeof(real8 [3][3]));
@@ -554,6 +554,14 @@ void InitGrain(Home_t *home, Param_t *param){
         for(i=0; i<home->nGBs; i++){
             GenerateGBBurgInfo(home, home->GBKeys[i]);    
         }
+	    if(home->myDomain == 0){
+	        FormatMatrix(param->matrixOrientation,"basis orientation");
+	        printf("\n");
+	        FormatMatrix(TwinOrientation,"twin orientation");
+	        printf("\n");
+	        FormatVector(param->TBNormal, "twin boundary normal");
+	        printf("\n");
+	    }
         return;
     }
 

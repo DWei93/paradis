@@ -2021,6 +2021,7 @@ void GBCrossSlip(Home_t *home)
     bool    zeroLenJunc1, zeroLenJunc2;
     real8   GC1[3][3], GC2[3][3];
 
+    bool    isScrew;
     Param_t *param;
 
     std::vector<real8>                                      powerDis;
@@ -2245,7 +2246,7 @@ void GBCrossSlip(Home_t *home)
                         break;
                     default:
                         PrintNode(home, gbNbr);
-                        Fatal("something wrong with the node");
+                        Fatal("%s: something wrong with the node",__func__);
                         break;
                 }
             }
@@ -2291,19 +2292,18 @@ void GBCrossSlip(Home_t *home)
             normal[1] = node->ny[0];
             normal[2] = node->nz[0];
 
-            if(fabs(DotProduct(normal, gb->n)) > 0.99){
-                normal[0] = node->nx[1];
-                normal[1] = node->ny[1];
-                normal[2] = node->nz[1];
-                if(fabs(DotProduct(normal, gb->n)) > 0.99){
-                    printf("Warning: there is a contstricted dislocation on GB glide plane\n");
-                }
-            }
+            norm = Normal(burg);
 
             std::vector<std::vector< Dislocation_t> >().swap(disArray);
             std::vector<std::vector<double> >().swap(burgList);
 
-            if(!GeometricCriterion(gbd, burg, interLine.direction, normal, 1,
+            isScrew = fabs(DotProduct(burg,interLine.direction))/norm>0.95?true:false;
+            FormatVector(burg,"burg");
+            FormatVector(interLine.direction,"dir");
+            FormatVector(normal, "normal");
+            printf("burg.dir=%g\n",DotProduct(burg,interLine.direction));
+
+            if(!GeometricCriterion(gbd, burg, interLine.direction, normal, 0,
                    burgList, disArray))continue;
 
 /*
@@ -2323,8 +2323,8 @@ void GBCrossSlip(Home_t *home)
                     }
                 }
   
-                if(k != disArray[j].size() || j > 0 && 
-                   barrierFactor > 0){
+                if(k != disArray[j].size() || (isScrew && 
+                   barrierFactor > 0)){
                     itDisList = disArray.begin() + j;
                     disArray.erase(itDisList);
                 }else{
@@ -2332,6 +2332,21 @@ void GBCrossSlip(Home_t *home)
                 }
             }
             if(disArray.size() == 0)continue;
+#if 1
+            if(!isScrew)
+                printf("non-screw dislocation decomposition (%g,%g,%g) %d %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg),
+                        PlaneID_FCC(gbd,normal));
+            else printf("screw dislocation decomposition (%g,%g,%g) %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg));
+                for(int set=0; set<disArray.size(); set++){
+                    printf("set %d: ",set);
+                    for(int disl=0; disl<disArray[set].size(); disl++){
+                        printf("%d(%d) ", disArray[set][disl].burgID,gbd->planeInGrain[disArray[set][disl].planeID]);
+                    }
+                    printf("\n");
+                }
+                Fatal("!GM\n");
+//            }
+#endif
                       
             VECTOR_COPY(newNodePos, interLine.point);
             PointLineIntersection(nbr1Pos, interLine.direction, interLine.point,
