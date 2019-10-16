@@ -110,8 +110,8 @@ case $srctype in
 ######################################################################################
     4|IV)
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -burgID 5 -planeID 1 \
-    -polycrystal 1 -nGrain 4 -twinRatio 0.5 -pbc 0 ;;
+    -burgID 2 -planeID 2 \
+    -polycrystal 1 -nGrain 2 -twinRatio 0.5 -pbc 0 ;;
 
 ######################################################################################
 #    

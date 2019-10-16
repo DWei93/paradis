@@ -1522,17 +1522,21 @@ int GetGBIndexOfGrain(Grain_t *grain, int onGB){
     return(-1);
 }
 
-bool GetPublicGB(Grain_t *grain1, Grain_t *grain2, GB_t **GB)
+bool GetPublicGB(Home_t *home, Grain_t *grain1, Grain_t *grain2, GB_t **GB, real8 *pos)
 {
     *GB = (GB_t *)NULL;
 
     int id, i;
-    for(i=0; i<grain1->nBounds; i++){
-        id = GetGBIndexOfGrain(grain1, grain2->GB[i]->GBID);
-        if(id > -1){
-            *GB = grain1->GB[id];
-            return(1);
-        } 
+    if(home->nGrains!=2){
+        for(i=0; i<grain1->nBounds; i++){
+            id = GetGBIndexOfGrain(grain1, grain2->GB[i]->GBID);
+            if(id > -1){
+                *GB = grain1->GB[id];
+                return(1);
+            } 
+        }
+    }else{
+        real8 dis=ClosedGB(home,pos,GB); return true;
     }
     return(0);
 }
@@ -1787,7 +1791,7 @@ void GetArmGrain(Home_t *home, Node_t *node1, Node_t *node2, int &inGrain, int &
         inGrain = node1->inGrain;
 
         if(!IsOnGB(node2) && node1->inGrain != node2->inGrain){
-            GB_t    *gb;
+            GB_t    *gb; real8 node1Pos[3]={node1->x, node1->y, node1->z};
             int     node1SegID;
 
             if(Connected(node1, node2, &node1SegID)){
@@ -1797,8 +1801,8 @@ void GetArmGrain(Home_t *home, Node_t *node1, Node_t *node2, int &inGrain, int &
                       node1->inGrain, node2->inGrain);
             }
 
-            if(GetPublicGB(home->grainKeys[node1->inGrain], 
-                        home->grainKeys[node2->inGrain], &gb)){
+            if(GetPublicGB(home, home->grainKeys[node1->inGrain], 
+                        home->grainKeys[node2->inGrain], &gb, node1Pos)){
                 inGrain = -1;
                 onGB = gb->GBID;
             }else{
@@ -3232,7 +3236,6 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         }
     }
 
-
     return(1);
 }
 
@@ -3270,13 +3273,10 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
                 VECTOR_COPY(glidePlane, vec1);
                 return;
                 break;
-            case POINT_INTERSECTION:
+            default:
                 VECTOR_COPY(glidePlane, burg);
                 NormalizeVec(glidePlane);
                 return;
-                break;
-            default:
-                Fatal("Warning in %s at %d: chose a non-glide plane\n", __FILE__, __LINE__);
                 break;
         }
     }

@@ -1095,8 +1095,9 @@ void PredictiveCollisions(Home_t *home)
                                         if(inGrain1 == -1 || inGrain2 == -1){
                                             Fatal("in %s at %d", __FILE__, __LINE__);
                                         }
-                                        if(GetPublicGB(home->grainKeys[inGrain1],
-                                           home->grainKeys[inGrain2], &gb)){
+                                        real8 refPos[3]={node1->x, node1->y, node1->z};
+                                        if(GetPublicGB(home, home->grainKeys[inGrain1],
+                                           home->grainKeys[inGrain2], &gb, refPos)){
                                            splitOnGB = gb->GBID;
                                         }else{
                                             continue;
@@ -1922,8 +1923,9 @@ void PredictiveCollisions(Home_t *home)
                                 if(inGrain1 == -1 || inGrain2 == -1){
                                     Fatal("in %s at %d", __FILE__, __LINE__);
                                 }
-                                if(GetPublicGB(home->grainKeys[inGrain1],
-                                   home->grainKeys[inGrain2], &gb)){
+                                real8 refPos[3]={node1->x, node1->y, node1->z};
+                                if(GetPublicGB(home,home->grainKeys[inGrain1],
+                                   home->grainKeys[inGrain2], &gb,refPos)){
                                    splitOnGB = gb->GBID;
                                 }else{
                                     continue;
