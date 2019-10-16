@@ -25,13 +25,12 @@
 
 
 #frlen=1800
-frlen=600,1200
-cubel=4000
+frlen=1200,2000
+cubel=2000
 #frlen=1980
 #cubel=2000
-maxSeg=200
-nfrs=48
-nGrains=2
+maxSeg=133
+nfrs=1
 maxDensity=1E14
 
 polycrystal=1
@@ -72,7 +71,8 @@ case $srctype in
 #
 ######################################################################################
     1|I)
-    ./bin/paradisgen -type 4  -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  \
+    ./bin/paradisgen -type 3  -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  \
+    -burgID 5 -planeID 1 \
     -polycrystal 0  -pbc 0 -extend 0  -srcLenType 0 \
     -xMatDir 1,0,0 -zMatDir 0,0,1 ;;
 
@@ -110,7 +110,8 @@ case $srctype in
 ######################################################################################
     4|IV)
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 1 -nGrain ${nGrains}  -pbc 0 ;;
+    -burgID 5 -planeID 1 \
+    -polycrystal 1 -nGrain 4 -twinRatio 0.5 -pbc 0 ;;
 
 ######################################################################################
 #    

@@ -90,8 +90,8 @@ edotdir = [
 appliedStress = [
 	0.0e0
 	0.0e0
-	0.0e0
-	0.0e0
+    -2.0e8
+    -2.0e8
 	0.0e0
 	0.0e0
 ]
@@ -127,7 +127,7 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 1000
+tecplotfreq = 10
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1
