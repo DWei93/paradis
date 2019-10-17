@@ -482,6 +482,23 @@ void InitGrain(Home_t *home, Param_t *param){
         Matrix33Vector3Multiply(param->matrixOrientation, planeABC, param->TBNormal);
         RotateWithAxis(param->TBNormal, PI, param->rotateNormal);
 
+	    if(home->myDomain == 0){
+	        FormatMatrix(param->matrixOrientation,"basis orientation");
+	        printf("\n");
+	        FormatMatrix(TwinOrientation,"twin orientation");
+	        printf("\n");
+	        FormatVector(param->TBNormal, "twin boundary normal");
+	        printf("\n");
+
+            real8 loadCrystDir[3], matrixOrientationInv[3][3];
+	        invFlag = Matrix33Invert(param->matrixOrientation, matrixOrientationInv);
+	        if(!invFlag){
+	            Fatal("Invert matrix orientation faild!\n");
+	        }
+            Matrix33Vector3Multiply(matrixOrientationInv, param->edotdir, loadCrystDir);
+            FormatVector(loadCrystDir, "loading crystal direction");
+	    }
+
 #endif
 /*
  *	Type IV: polycrystal = 1, nGrain >= 2, PBC.
@@ -554,14 +571,6 @@ void InitGrain(Home_t *home, Param_t *param){
         for(i=0; i<home->nGBs; i++){
             GenerateGBBurgInfo(home, home->GBKeys[i]);    
         }
-	    if(home->myDomain == 0){
-	        FormatMatrix(param->matrixOrientation,"basis orientation");
-	        printf("\n");
-	        FormatMatrix(TwinOrientation,"twin orientation");
-	        printf("\n");
-	        FormatVector(param->TBNormal, "twin boundary normal");
-	        printf("\n");
-	    }
         return;
     }
 

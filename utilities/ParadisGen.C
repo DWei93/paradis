@@ -393,9 +393,8 @@ static void InitDefaultValues(InArgs_t *inArgs)
 
         inArgs->loadDir[0] = 0;
         inArgs->loadDir[1] = 0;
-        inArgs->loadDir[2] = -1;
+        inArgs->loadDir[2] = 1;
         
-
         return;
 }
 
@@ -1177,6 +1176,7 @@ int main(int argc, char *argv[])
 	    param->polycrystal = inArgs.polycrystal;
 	    param->nGrain = inArgs.nGrain;
 	    param->twinRatio = inArgs.twinRatio;
+        VECTOR_COPY(param->edotdir, inArgs.loadDir);
 
 	    param->xBoundType = ((inArgs.pbcVal & 0x01) == 0 ? Periodic : Free);
 	    param->yBoundType = ((inArgs.pbcVal & 0x02) == 0 ? Periodic : Free);
