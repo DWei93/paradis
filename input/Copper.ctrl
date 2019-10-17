@@ -17,9 +17,9 @@
 #
 #  Domain geometry
 #
-numXdoms = 4
-numYdoms = 4
-numZdoms = 4
+numXdoms = 2
+numYdoms = 2
+numZdoms = 1
 #
 #  Cell geometry
 #
@@ -49,7 +49,7 @@ splitMultiNodeFreq =   1
 #  Simulation time and timestepping controls
 #  
 maxstep =  40000000 
-#maxstep =  50000 
+#maxstep =  400
 maxStn = 0.6E-2
 maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
@@ -91,7 +91,7 @@ appliedStress = [
 	0.0e0
 	0.0e0
     -2.0e8
-    -2.0e8
+	0.0e0
 	0.0e0
 	0.0e0
 ]

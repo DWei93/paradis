@@ -218,7 +218,7 @@ int HasShortSeg(Home_t *home, Node_t *node, real8 shortSegLenSq);
 void AssignGrain (Home_t *home, Node_t *node, int inGrain, int onGB);
 void AssignConstraint(Home_t *home, Node_t *node, int constraint) ;
 int GetGBIndexOfGrain(Grain_t *grain, int onGB);
-bool GetPublicGB(Grain_t *grain1, Grain_t *grain2, GB_t **GB);
+bool GetPublicGB(Home_t *home, Grain_t *grain1, Grain_t *grain2, GB_t **GB, real8 *pos);
 void AddOpGB (Home_t *home, OpType_t type, int dom1, int idx1, int inGrain, int onGB);
 int NodeOnGB(Home_t *home, Node_t *node);
 void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2, 
