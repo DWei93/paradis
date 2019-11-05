@@ -394,6 +394,8 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->loadDir[0] = 0;
         inArgs->loadDir[1] = 0;
         inArgs->loadDir[2] = 1;
+
+        inArgs->nTDs = -1;
         
         return;
 }
@@ -831,6 +833,10 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	                inArgs->loadDir[2] = atof(token);
 	                NormalizeVec(inArgs->loadDir);
 	                break;
+                case OPT_NTDS:
+                    inArgs->nTDs = atoi(argValue);
+                        break;
+            
             }
         }
 
