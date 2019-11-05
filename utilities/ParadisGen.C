@@ -153,7 +153,8 @@ Option_t optList[OPT_MAX] = {
         {OPT_PLANEID,   "planeID",      3, 1},
         {OPT_TBCRYST,   "TBCryst",      3, 1},
         {OPT_OUT_FILE,   "outFile",      3, 1},
-        {OPT_LOAD_DIR,   "loadDir",      3, 1}
+        {OPT_LOAD_DIR,   "loadDir",      3, 1},
+        {OPT_NTDS,      "nTDs",         3, 1}
 
 };
 
@@ -1045,7 +1046,8 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
                     real8 burg[3], plane[3];
                 
                     if(home->param->polycrystal){
-                        burgData = &(home->grainKeys[node->inGrain]->burgData);
+                        if(node->onGB==-1)burgData = &(home->grainKeys[node->inGrain]->burgData);
+                        else burgData = &(home->GBKeys[node->onGB]->burgData);
                     }else{
                         burgData = &(home->burgData);
                     }

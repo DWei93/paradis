@@ -2733,7 +2733,7 @@ void GetFreePath(Param_t *param, real8 pos1[3], real8 pos2[3], real8 n[0], Grain
 void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 						 real8 *totDislocLen)
 {
-        int      i, lineIndex, chain, baseNodeID, numPoints,ranNum;
+        int      i, lineIndex, chain, baseNodeID, numPoints=3,ranNum;
         int      newNodeIndex, lastBlock, burgIndex;
         int      isScrew, gpIndex, gpBurgIndex;
         int      lenRange,x0, d, nLayers, xn, layer, time;
@@ -2809,6 +2809,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         d = inArgs->deltaNums;
         lenRange = srcLenMax - srcLenMin;
         cubeSize	=	(real8)cubeLength;
+
+        real8 n3[3];
 
         if(numSources <= 0){
             singleSrcTest = 1;
@@ -2913,8 +2915,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             }else{
                                 if(inGrain1 != 1)continue;
                             }
+                            if((inGrain1%2)!=(ranNum/12))continue;
                         }
-                        if((inGrain1%2)!=(ranNum/12))continue;
                     }else{
                         ranNum = (int)(randm(&seed) * 1000);
                     }
@@ -2946,26 +2948,33 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 #endif   
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
+                    VECTOR_COPY(n3, bd->planeList[3]);
 
                     time = 0;
                     while(time < 10000){
                         time++;
-                        randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
 
-                        randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
-
-                        cross(n0, b, n1);
-                        NormalizeVec(n1);
-                	
-                        for(i = 0; i < 3; i++){
-                            randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
+                        if(3!=gpIndex){
+                            cross(n3,n0,randomLine);
+                            if(randm(&seed)>0.5){
+                                randomLine[0]=-randomLine[0];
+                                randomLine[1]=-randomLine[1];
+                                randomLine[2]=-randomLine[2];
+                            }
+                        }else{
+                            randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
+                            
+                            randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
+                            
+                            cross(n0, b, n1);
+                            NormalizeVec(n1);
+                	        
+                            for(i = 0; i < 3; i++){
+                                randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
+                            }
                         }
-
-                        if(singleSrcTest){
-                            randomLine[2] = 0.0;
-                        }
-
                         NormalizeVec(randomLine);
+
 
                         for (i = 0; i < 3; i++) {
                             p0[i] = p1[i] + (srcLen * randomLine[i])/2.0;
@@ -3458,13 +3467,216 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
             printf("the num of  sources in layers %d is %d\n",layer, chain);
 		
 	    }/* for(layer=0; layer<nLayers;...)*/
+
+        int l; real8 dis;
+       
+		finish = 0;
+        if(inArgs->nTDs>0)for(i=0; i<home->nGBs; i++){
+            gb = home->GBKeys[i];
+            bd = &(gb->burgData);
+            if(finish>0)break;
+            
+            for(j=0; j<inArgs->nTDs; j++){
+                if(finish>0)break;
+                for(k=7; k<=17; ){
+                    if(finish>0)break;
+	                switch(srcLenType){
+	                    case 0:
+                            if (lenRange > 0) {
+                                srcLen = (srcLenMin + (randm(&seed) * lenRange));
+                                if(srcLen > srcLenMax){
+                                    srcLen = srcLenMax;
+                                }
+                            } else {
+                                srcLen = srcLenMin;
+                            }
+	 	                    break;
+                    
+	 	                case 1:
+	 	                    srcLen = -log(randm(&seed))/sqrt(maxDensity)/burgMag;
+	 	                    break;
+                    
+                        default:
+                            break;
+	                }
+
+                    p0[0] = (randm(&seed)-0.5) * cubeSize;
+                    p0[1] = (randm(&seed)-0.5) * cubeSize;			
+                    p0[2] = (randm(&seed)-0.5) * cubeSize;			
+
+                    PointPlaneDistance(p0, gb->n, gb->p, dis, p0);
+
+                    VECTOR_COPY(n0, bd->planeList[3]);
+                    VECTOR_COPY(b , bd->burgList[k]);
+                    
+                    randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
+                    randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
+                    
+                    cross(n0, b, n1);
+                    NormalizeVec(n1);
+                	
+                    for(l = 0; l < 3; l++){
+                        randomLine[l] = n1[l] * sin(randomAngle) + b[l] * cos(randomAngle);
+                    }
+                    NormalizeVec(randomLine);
+
+                    for (l = 0; l < 3; l++) {
+                        p1[l] = p0[l] - (srcLen * randomLine[l])/2.0;
+                        p2[l] = p0[l] + (srcLen * randomLine[l])/2.0;
+                    } 
+
+                    if(srcLenType == 0){
+                        if(!InCuboid(param, p0, 0) || !InCuboid(param, p1, 0) || !InCuboid(param, p2, 0)){
+                            continue;
+                        }
+	                }
+                    k = k+5;
+	                totSrcLen += srcLen;				
+
+/*           
+ *                  Reallocate the node array with sufficient size to add
+ *                  all the new nodes defining this chain.
+ */                 
+                    newNodeIndex = inData->nodeCount;
+                    inData->nodeCount += numPoints;
+                    inData->node = (Node_t *)realloc(inData->node, inData->nodeCount
+                                                       * sizeof(Node_t));
+                    memset(&inData->node[newNodeIndex], 0, sizeof(Node_t) * numPoints);
+		 	   
+/*           
+ *                  Set up the 3 nodes we're using to define the dislocation line.
+ *                  First do point p0.
+ */               
+                    node = &inData->node[baseNodeID];
+                  
+                    node->myTag.domainID = dislocType;
+                    node->myTag.index    = baseNodeID;
+                    node->x = p0[0];
+                    node->y = p0[1];
+                    node->z = p0[2];
+		 	        
+                    node->constraint = UNCONSTRAINED;
+                    node->inGrain = -1;
+                    node->onGB = i;
+                  
+                    AllocNodeArms(node, 2);
+		 	        
+                    node->nbrTag[0].domainID = dislocType;
+                    node->nbrTag[0].index    = baseNodeID + 1;
+                    node->nbrTag[1].domainID = dislocType;
+                    node->nbrTag[1].index    = baseNodeID + 2;
+                  
+                    node->burgX[0] = b[0];
+                    node->burgY[0] = b[1];
+                    node->burgZ[0] = b[2];
+                  
+                    node->burgX[1] = -b[0];
+                    node->burgY[1] = -b[1];
+                    node->burgZ[1] = -b[2];
+                  
+/*                
+ *                  For screw dislocations, use the glide plane from the table.
+ *                  For edge dislocations, glide plane is the cross product
+ *                  of the burgers vector and line direction.
+ */               
+                  
+                    node->nx[0] = n0[0];
+                    node->ny[0] = n0[1];
+                    node->nz[0] = n0[2];
+                    	
+                    node->nx[1] = n0[0];
+                    node->ny[1] = n0[1];
+                    node->nz[1] = n0[2];
+                  
+/*                
+ *                  Now point p1...
+ */               
+                    node = &inData->node[baseNodeID+1];
+                  
+                    node->myTag.domainID = dislocType;
+                    node->myTag.index    = baseNodeID+1;
+                  
+                    node->x = p1[0];
+                    node->y = p1[1];
+                    node->z = p1[2];
+                  
+                    node->constraint = PINNED_NODE;
+                    node->inGrain = -1;
+                    node->onGB = i;
+                    AllocNodeArms(node, 1);
+                  
+                    node->nbrTag[0].domainID = dislocType;
+                    node->nbrTag[0].index    = baseNodeID;
+                  
+                    node->burgX[0] = -b[0];
+                    node->burgY[0] = -b[1];
+                    node->burgZ[0] = -b[2];
+                    node->nx[0] = n0[0];
+                    node->ny[0] = n0[1];
+                    node->nz[0] = n0[2];
+                  
+/*                
+ *                  Now point p2...
+ */               
+                    node = &inData->node[baseNodeID+2];
+                  
+                    node->myTag.domainID = dislocType;
+                    node->myTag.index    = baseNodeID+2;
+                  
+                    node->x = p2[0];
+                    node->y = p2[1];
+                    node->z = p2[2];
+                  
+                    node->constraint = PINNED_NODE;
+                    node->inGrain = -1;
+                    node->onGB = i;
+                    AllocNodeArms(node, 1);
+                  
+                    node->nbrTag[0].domainID = dislocType;
+                    node->nbrTag[0].index    = baseNodeID;
+                  
+                    node->burgX[0] = b[0];
+                    node->burgY[0] = b[1];
+                    node->burgZ[0] = b[2];
+                    node->nx[0] = n0[0];
+                    node->ny[0] = n0[1];
+                    node->nz[0] = n0[2];
+/*           
+ *                  The initial segments created are not necessarily limited to
+ *                  param->maxSegLen, so a call to InitRemesh() is needed to
+ *                  chop any excessively long segments into proper lengths.
+ *                  When we've generated the nodal data for the final chain,
+ *                  write the block of nodal data to the file.
+ */	               
+                    InitRemesh(inData, dislocType, startRemeshIndex);
+//                    lastBlock = (chain == (numSources - 1));
+                   
+                   
+	                if(totSrcLen > maxDensity*volume*burgMag*burgMag){
+		                finish = 1;
+		                break;
+	                }else{
+		                finish = 0;
+	                }
+                    baseNodeID = inData->nodeCount;
+                    startRemeshIndex = baseNodeID;
+                } // for k<burgID
+            }
+        }
+
 #ifdef SAS_ANALYZE
         fclose(fp);
 #endif
+        
+        printf("1\n");
 	    IncDislocationDensity(inData, totDislocLen);
+        printf("2\n");
 	    param->nodeCount = inData->nodeCount;
+        printf("3\n");
 	    WriteInitialNodeData(home, inData, 1);
+        printf("4\n");
 	    FreeInNodeArray(inData, inData->nodeCount);
+        printf("5\n");
 	    inData->nodeCount = 0;
 	
         return;
