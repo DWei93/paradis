@@ -1956,9 +1956,12 @@ int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]){
  *-------------------------------------------------------------------------*/
 void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f2[3])
 {
+    return;
 
-    real8       dis, burgMag, burg[3], segCentor[3];
-    real8       vec[3], a = 5.8685446009;
+    real8       dis, burgMag, burg[3], segCentor[3], gbStrength, xi[3];
+    real8       vec[3], a = 0.05;
+    real8       gausFac1 = 0.211324865405187; // (1-sqrt(3)/3)/2
+    real8       gausFac2 = 0.7886751345948128; // (1+sqrt(3)/3)/2
     real8       coff, length, nor[3], gDir[3], gbNormal[3];
     GB_t        *gb;
     Param_t     *param;
@@ -1971,6 +1974,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     if(IsOnGB(node1) || IsOnGB(node2))return;
 
     param = home->param;
+    if(param->GBStrength < -1.0) return;
 
     armID = GetArmID(home, node1, node2);
     if(armID == -1)return;
@@ -1985,44 +1989,72 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 
     burgMag = Normal(burg);
     NormalizeVec(burg);
-    if(fabs(DotProduct(burg, param->TBNormal)) < 1.0E-2)return;
 
-    vec[0] = node2->x - node1->x;
-    vec[1] = node2->y - node1->y;
-    vec[2] = node2->z - node1->z;
-    ZImage(param, vec, vec+1, vec+2);
+    if(param->GBStrength > 1.0){
+        gbStrength = param->GBStrength;
+    }else{
+	    gbStrength = (fabs(DotProduct(burg, param->TBNormal)) < 1.0E-2)?245.0E6:7.0E8;
+    }
 
-    length = Normal(vec);
+    xi[0] = node2->x - node1->x;
+    xi[1] = node2->y - node1->y;
+    xi[2] = node2->z - node1->z;
+    ZImage(param, xi, xi+1, xi+2);
+
+    length = Normal(xi);
     if(length < 1.0E-2)return;
 
-    segCentor[0] = node1->x + 0.5*vec[0];
-    segCentor[1] = node1->y + 0.5*vec[1];
-    segCentor[2] = node1->z + 0.5*vec[2];
+    VECTOR_COPY(vec,xi);
+    NormalizeVec(vec);
+    cross(nor, vec, gDir);
+    if(Normal(gDir) < 1E-3) return;
+    NormalizeVec(gDir);
+
+    segCentor[0] = node1->x + gausFac1*xi[0];
+    segCentor[1] = node1->y + gausFac1*xi[1];
+    segCentor[2] = node1->z + gausFac1*xi[2];
     FoldBox(param, segCentor, segCentor+1, segCentor+2);
 
 	dis =  ClosedGB(home, segCentor, &gb);
-    if(fabs(dis) > 100 || fabs(dis) < 1.0E-3)return;
-
-    NormalizeVec(vec);
-    cross(nor, vec, gDir);
-    if(Normal(gDir) < 1E-3)return;
-    NormalizeVec(gDir);
-
+        
     gbNormal[0] = ((real8)Sign(dis)) * gb->n[0];
     gbNormal[1] = ((real8)Sign(dis)) * gb->n[1];
     gbNormal[2] = ((real8)Sign(dis)) * gb->n[2];
-
+    
     if(DotProduct(gbNormal, gDir) < 0.0){
         gDir[0] = -gDir[0];
         gDir[1] = -gDir[1];
         gDir[2] = -gDir[2];
     }
+    
+    coff = gbStrength * a/(fabs(dis)+a);
+    
+    f1[0] += 0.25*length*coff*gDir[0];
+    f1[1] += 0.25*length*coff*gDir[1];
+    f1[2] += 0.25*length*coff*gDir[2];
 
-    coff = param->GBStrength * a/(fabs(dis)+a);
+    segCentor[0] = node1->x + gausFac2*vec[0];
+    segCentor[1] = node1->y + gausFac2*vec[1];
+    segCentor[2] = node1->z + gausFac2*vec[2];
+    FoldBox(param, segCentor, segCentor+1, segCentor+2);
 
-    f1[0] = 0.5*length*coff*gDir[0];
-    f1[1] = 0.5*length*coff*gDir[1];
-    f1[2] = 0.5*length*coff*gDir[2];
+	dis =  ClosedGB(home, segCentor, &gb);
+        
+    gbNormal[0] = ((real8)Sign(dis)) * gb->n[0];
+    gbNormal[1] = ((real8)Sign(dis)) * gb->n[1];
+    gbNormal[2] = ((real8)Sign(dis)) * gb->n[2];
+    
+    if(DotProduct(gbNormal, gDir) < 0.0){
+        gDir[0] = -gDir[0];
+        gDir[1] = -gDir[1];
+        gDir[2] = -gDir[2];
+    }
+    
+    coff = gbStrength * a/(fabs(dis)+a);
+    
+    f1[0] += 0.25*length*coff*gDir[0];
+    f1[1] += 0.25*length*coff*gDir[1];
+    f1[2] += 0.25*length*coff*gDir[2];
 
     VECTOR_COPY(f2, f1);
 
@@ -3365,7 +3397,9 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
                 if(times >= 100){
                     VECTOR_COPY(glidePlane, burg);
                     NormalizeVec(glidePlane);
-                    printf("Warning in %s at %d: chose a non-glide plane\n", __FILE__, __LINE__);
+                    FormatVector(burg, "burg");
+                    PrintNode(home, node1);
+                    Fatal("Warning in %s at %d: chose a non-glide plane\n", __FILE__, __LINE__);
                     return;
                 }
             }

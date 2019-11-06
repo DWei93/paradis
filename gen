@@ -25,12 +25,11 @@
 
 
 #frlen=1800
-frlen=1200,2000
-cubel=2000
-#frlen=1980
-#cubel=2000
-maxSeg=133
-nfrs=1
+frlen=3125
+cubel=6250
+maxSeg=640
+nfrs=10
+nGrains=2
 maxDensity=1E14
 
 polycrystal=1
@@ -110,9 +109,9 @@ case $srctype in
 ######################################################################################
     4|IV)
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -burgID 5 -planeID 1 \
-    -polycrystal 1 -nGrain 2 -twinRatio 0.5 -pbc 0 ;;
+    -polycrystal 1 -nGrain ${nGrains} -twinRatio 0.5 -pbc 0 ;;
 
+#   -burgID 5 -planeID 1 \
 ######################################################################################
 #    
 #    Type V: bicrystal with twin boundary, simulate sample

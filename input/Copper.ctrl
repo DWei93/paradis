@@ -17,22 +17,22 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
-numYdoms = 2
-numZdoms = 1
+numXdoms = 4
+numYdoms = 4
+numZdoms = 2
 #
 #  Cell geometry
 #
-numXcells = 4
-numYcells = 4
-numZcells = 4
+numXcells = 8
+numYcells = 8
+numZcells = 8
 
 #
 # Mesh size for tecmesh
 #
-meshSizeX = 90
-meshSizeY = 90
-meshSizeZ = 90
+meshSizeX = 600
+meshSizeY = 600
+meshSizeZ = 600
 
 #  Dynamic load balancing
 #
@@ -40,7 +40,7 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-dirname = "res.1180028"
+dirname = "res.800nm"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -54,8 +54,9 @@ maxStn = 0.6E-2
 maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
-rTol = 5
-rc =  30
+rTol = 32
+rc =  130
+wallTime = 64
 #
 #  Fast Multipole Method controls
 #  
@@ -90,7 +91,7 @@ edotdir = [
 appliedStress = [
 	0.0e0
 	0.0e0
-    -2.0e8
+	-3.0e8
 	0.0e0
 	0.0e0
 	0.0e0
@@ -103,7 +104,6 @@ mobilityLaw =   "Wei"
 #shearModulus =   54.6e9  # Voight Average
 shearModulus =  46.554e9  # in jin paper
 limitDisplacement = 0
-GBStrength = 5.0e8
 #GBStrength = 0.0e0
 burgMag =   2.55600e-10 
 pois = 3.240000e-01
@@ -127,13 +127,13 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 10
+tecplotfreq = 1
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1
-tecmeshfreq = 3000000
+tecmeshfreq = 10000000
 savecn = 1
-savecnfreq = 1000000
+savecnfreq = 10000
 savetimers = 0
 savetimersfreq = 50000
 velfile = 0

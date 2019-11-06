@@ -302,27 +302,23 @@ int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane){
 		}
 	}
 #endif 
+
+    if(param->GBStrength<-1)return 1;
 	
 	temVec[0] = node->burgX[0];
 	temVec[1] = node->burgY[0];
 	temVec[2] = node->burgZ[0];
 	
-	if(fabs(DotProduct(temVec, GBPlane->normal)) < 1.0e-2)isScrew = 1;
-	
-	if(isScrew){
-	    if(fabs(FGlidePerLength(home,node,GBPlane))  < home->param->GBStrength ){
-	        return(1);
-	    }else{
-	        return(1);
-	    }
-	}else{
-	    if(fabs(FGlidePerLength(home,node,GBPlane))  < home->param->GBStrength ){
-	        return(0);
-	    }else{
-	        return(1);
-	    }
-	}
 
+    real8 gbStrength;
+    
+    if(param->GBStrength > 1.0){
+        gbStrength = param->GBStrength;
+    }else{
+	    gbStrength = (fabs(DotProduct(temVec, GBPlane->normal)) < 1.0e-2)?245.0E6:7.0E8;
+    }
+
+	if(fabs(FGlidePerLength(home,node,GBPlane))  < gbStrength)return(0);
 	return(1);
 }
 
@@ -2516,7 +2512,7 @@ void GBCrossSlip(Home_t *home)
             j = maxShearSet;
 
             VECTOR_COPY(debris, burg);
-            printf("FistPenetration (%g,%g,%g): \n", burg[0],burg[1], burg[2]);
+//          printf("FistPenetration (%g,%g,%g): \n", burg[0],burg[1], burg[2]);
             for(k=0; k<disArray[j].size(); k++){
                 VECTOR_COPY(outBurg,  burgList[disArray[j][k].burgID]);
                 VECTOR_COPY(outPlane, gbd->planeList[disArray[j][k].planeID]);
@@ -2589,7 +2585,7 @@ void GBCrossSlip(Home_t *home)
                     MarkNodeNoCollisions(home, newNode);        
                     MarkNodeNoMeshCoarsen(home, newNode); 
                 } 
-                printf("[%g,%g,%g]--(%g,%g,%g) ",outBurg[0],outBurg[1],outBurg[1], newPos[0],newPos[1],newPos[2]);
+//              printf("[%g,%g,%g]--(%g,%g,%g) ",outBurg[0],outBurg[1],outBurg[1], newPos[0],newPos[1],newPos[2]);
             }
             if(Normal(debris)>1E-2){
                 InsertConnection(home, nbr1, nbr2, globalOp, -1, gb->GBID,
@@ -2597,9 +2593,9 @@ void GBCrossSlip(Home_t *home)
                 MarkNodeForceObsolete(home, newNode);        
                 MarkNodeNoCollisions(home, newNode);        
                 MarkNodeNoMeshCoarsen(home, newNode);        
-                printf("debris: [%g,%g,%g]--(%g,%g,%g) ",debris[0],debris[1],debris[2],nodePos[0],nodePos[1],nodePos[2]);
+//              printf("debris: [%g,%g,%g]--(%g,%g,%g) ",debris[0],debris[1],debris[2],nodePos[0],nodePos[1],nodePos[2]);
             }
-            printf("\n");
+//          printf("\n");
             
 	        MarkNodeForceObsolete(home, nbr1);        
 	        MarkNodeNoCollisions(home, nbr1);        

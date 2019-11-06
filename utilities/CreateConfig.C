@@ -2771,6 +2771,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         real8   normalABC[3], lambda_FR, lambda_SAS1, lambda_GB1, lambda_SAS2, lambda_GB2, interDir[3];
         real8   barrierFactor, crossProd[3], vec[3];
         real8   vec1[3], vec2[3], s0,  paras[4][4], zaxis[3] = {0,0,1}, schmid;
+        int l; real8 dis;
 
         normalABC[0] = 1;
         normalABC[1] = 1;
@@ -2908,39 +2909,22 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
 #if 1
                     if(xn > 24 && chain <24){
-                        ranNum = chain;
-                        if(polycrystal){
-                            if(chain < 12){
-                                if(inGrain1 != 0)continue;
-                            }else{
-                                if(inGrain1 != 1)continue;
-                            }
-                            if((inGrain1%2)!=(ranNum/12))continue;
-                        }
+                        ranNum = chain%24;
                     }else{
-                        ranNum = (int)(randm(&seed) * 1000);
+                        ranNum = (int)(randm(&seed) * 1000)%24;
                     }
 
-                    gpBurgIndex = ranNum%6;
-                    if((bd->burgType[gpBurgIndex] & EDGE_BURG) == 0)Fatal("burgID %d is not edge type", gpBurgIndex);
-
-                    if(burgID > -1 && burgID < bd->numBurgVectors){
-                        gpBurgIndex = burgID;
+                    if(slip_sys[ranNum][2]==0 || slip_sys[ranNum][2]==1){
+                        if((inGrain1%2)!=slip_sys[ranNum][2]) continue;
+                    }else if(slip_sys[ranNum][2]==3) bd=GetBurgData(home, 0, -1);
+                    else{
+                        ClosedGB(home, p1, &gb);
+                        bd = &(gb->burgData);
+                        PointPlaneDistance(p1, gb->n, gb->p, dis, p1);
+                        inGrain1 = -1; onGB1 = gb->GBID;
                     }
 
-                    if(planeID > -1 && planeID < bd->numPlanes){
-                        gpIndex = planeID;
-                    }else{
-                        gpIndex = bd->burgOnPlaneID[gpBurgIndex][(ranNum%12)/6];
-                    }
-
-                    if((bd->planeType[gpIndex] & GLIDE_PLANE) == 0){
-                        if(planeID > -1){
-                            printf("Warning: the input plane %d i not a glide plane, ignore it\n", planeID);
-                            planeID = -1;
-                        }
-                        continue;
-                    }
+                    gpBurgIndex = slip_sys[ranNum][0]; gpIndex=slip_sys[ranNum][1];
 #else
                     gpIndex = 2;
                     gpBurgIndex = 1;
@@ -2949,6 +2933,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
                     VECTOR_COPY(n3, bd->planeList[3]);
+                    if(!PerpendicularDirection(n0,b))Fatal("burg is not perpendicular to glide plane");
 
                     time = 0;
                     while(time < 10000){
@@ -2984,7 +2969,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
                         NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2);
              
-                        if(onGB0 > 0 || onGB2 > 0 || inGrain0 != inGrain1 || inGrain1 != inGrain2){
+                        if(onGB1 != onGB0 || onGB1 !=onGB2 || inGrain0 != inGrain1 || inGrain1 != inGrain2){
                             continue;
                         }	                
 
@@ -3468,7 +3453,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 		
 	    }/* for(layer=0; layer<nLayers;...)*/
 
-        int l; real8 dis;
        
 		finish = 0;
         if(inArgs->nTDs>0)for(i=0; i<home->nGBs; i++){
@@ -3668,15 +3652,10 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         fclose(fp);
 #endif
         
-        printf("1\n");
 	    IncDislocationDensity(inData, totDislocLen);
-        printf("2\n");
 	    param->nodeCount = inData->nodeCount;
-        printf("3\n");
 	    WriteInitialNodeData(home, inData, 1);
-        printf("4\n");
 	    FreeInNodeArray(inData, inData->nodeCount);
-        printf("5\n");
 	    inData->nodeCount = 0;
 	
         return;

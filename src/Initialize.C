@@ -1349,7 +1349,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
             printf("Initialize: Control file parsing complete\n");
     
 #ifdef NO_GB_BARRIER
-            param->GBStrength = 0.0;
+            param->GBStrength = -1;
 #endif
 /*
  *          Set number of initial load-balancing-only cycles. Will

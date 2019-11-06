@@ -1223,8 +1223,8 @@ static void MeshRefine(Home_t *home)
 
                         NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
                         if(inGrain != node->inGrain && !IsOnGB(node)){
-                            PrintNode(node);
-                            printf("Warning: refine - 0\n");
+//                          PrintNode(node);
+//                          printf("Warning: refine - 0\n");
                         }
 
                         splitStatus = SplitNode(home, OPCLASS_REMESH,

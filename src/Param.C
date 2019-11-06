@@ -828,7 +828,7 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 		param->peneTB = 1;
 		BindVar(CPList, "GBStrength", &param->GBStrength,
 				V_DBL, 1, VFLAG_NULL);
-		param->GBStrength = 3.0e8;
+		param->GBStrength = 0;
 
 		BindVar(CPList, "fricStress", &param->fricStress,
 				V_DBL, 1, VFLAG_NULL);

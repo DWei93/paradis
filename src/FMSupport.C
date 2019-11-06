@@ -813,7 +813,7 @@ void makeeta(int norder, real8 ksi0[3], real8 ksi[3], real8 b[3], real8 *Eeta) {
  *          such as spiliting a node without replacing it.
  *                                                              D. Wei
  */
-            printf("Warning: a segement length is almost zero\n");
+//          printf("Warning: a segement length is almost zero\n");
             ksinormi = 0.0;
         }else{
             ksinormi = 1.0 / ksinorm;

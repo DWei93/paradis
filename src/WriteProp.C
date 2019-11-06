@@ -521,14 +521,10 @@ void WriteProp(Home_t *home, int property)
                     }
 
 					if(home->cycle == 1){
-					    fprintf(fp, "variables = step, timeNow, "); 
+					    fprintf(fp, "variables = step,"); 
 
-                        for(i=0; i<6; i++){
-                            if(param->loadDir[i] != 0){
-                                fprintf(fp, "strn_%1d, strs_%1d, pstn_%1d, ", i, i, i);
-                                if(param->polycrystal) fprintf(fp, "twi_def_%1d, ", i);
-                            }
-                        }
+                        fprintf(fp, "strain, stress, plastic_strain,");
+                        if(param->polycrystal) fprintf(fp, "twinning_deformation,");
 
 #ifndef VELOCITY_STATISTICS
                         fprintf(fp, "disDen, effPlaRate\n");
@@ -540,47 +536,44 @@ void WriteProp(Home_t *home, int property)
 #endif
 					}
         
-                    fprintf(fp,"%d %e ", home->cycle, param->timeNow);
+                    fprintf(fp,"%d ", home->cycle);
 
-                    for(i=0; i<6; i++){
-                        if(param->loadDir[i] != 0){
-                            fprintf(fp, "%e %e %e ", sign*param->totstraintensor[i]*1E2,
-                                                     sign*param->appliedStress[i]*1E-6,
-                                                     sign*param->totpStn[i]*1E2);
+                    sigijk = param->appliedStress[0]*al*al     +
+                             param->appliedStress[1]*am*am     +
+                             param->appliedStress[2]*an*an     +
+                             2.0*param->appliedStress[3]*am*an +
+                             2.0*param->appliedStress[4]*an*al +
+                             2.0*param->appliedStress[5]*al*am;
 
-                            if(fabs(param->totpStn[i]) > 1.0E-3 && param->finish == -1){
-                                param->finish = 0; 
-                                printf("stress schmid1 schmid2 smax CRSS:\n");
-                                printf("%e ", sign*param->appliedStress[i]*1E-6);
+                    pstnijk =  param->totpStn[0]*al*al     +
+                               param->totpStn[1]*am*am     +
+                               param->totpStn[2]*an*an     +
+                               2.0*param->totpStn[3]*am*an +
+                               2.0*param->totpStn[4]*an*al +
+                               2.0*param->totpStn[5]*al*am;
+                 
+                    ptstnijk = param->totTwinpStn[0]*al*al     +
+                               param->totTwinpStn[1]*am*am     +
+                               param->totTwinpStn[2]*an*an     +
+                               2.0*param->totTwinpStn[3]*am*an +
+                               2.0*param->totTwinpStn[4]*an*al +
+                               2.0*param->totTwinpStn[5]*al*am;
 
-                                if(home->param->polycrystal){
-                                    Grain_t *grain; 
-                                    real8   maxSchmid = -1;
-                                    int     j;
-                                    for(j=0; j<home->nGrains; j++){
-                                        grain = home->grainKeys[j];
-                                        printf("%e ", grain->maxSchmid);
-                                        if(maxSchmid < grain->maxSchmid){
-                                            maxSchmid = grain->maxSchmid;
-                                        }
-                                    }
-                                    printf("%e %e\n", maxSchmid, sign*param->appliedStress[i]*1E-6*maxSchmid);
-                                }else{
-                                    printf("%e %e\n", param->maxSchmid, 
-                                           sign*param->appliedStress[i]*1E-6*param->maxSchmid);
-                                }
-                            }
-                            if(param->polycrystal) fprintf(fp, "%e ", sign*param->totTwinpStn[i]*1E2);
-        
-                            if(fabs(param->totpStn[i]) > param->maxPst)param->finish = 1;
-                            if(fabs(param->totstraintensor[i]) > param->maxStn){
-                                param->finish = 1;
-                                if(param->polycrystal)printf("Percentage of twinning deformation is %f.\n",
-                                   param->totTwinpStn[i]*1E2/param->totpStn[i]);
-                            }
+                    fprintf(fp, "%e %e %e ",sign*param->eRate*1.0E2*param->timeNow, sign*sigijk/1.0E6, sign*pstnijk*1.0E2);
+                    if(param->polycrystal) fprintf(fp, "%e ", ptstnijk*1.0E2);
 
-                        }
+                    if(fabs(pstnijk) > 1.0E-3 && param->finish == -1){
+                        param->finish = 0; 
+                        printf("CRSS %e ", sign*sigijk*1E-6);
                     }
+        
+                    if(fabs(pstnijk) > param->maxPst)param->finish = 1;
+                    if(fabs(param->totstraintensor[i]) > param->maxStn){
+                        param->finish = 1;
+                        if(param->polycrystal)printf("Percentage of twinning deformation %g\n",
+                            ptstnijk*1E2/pstnijk);
+                    }
+
 
 #ifndef VELOCITY_STATISTICS
                     fprintf(fp, "%e %e\n", param->disloDensity, effPlaRate);

@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include <math.h>
+#include "Math.h"
 
 static void NodeofEle(Param_t *param, int eleNum, int node[8]){
 
@@ -71,6 +72,8 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         FILE     *fp;
         Plane_t	 plane;
         struct stat statbuf;
+        real8   al, am, an, amag, sigijk, pstnijk, dpstnijk;
+        real8   vec[3];
 
         int         index, constraint;
         param      = home->param;
@@ -150,6 +153,28 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
  *      needed.
  */
         if (firstInGroup) {
+            al = param->edotdir[0];
+            am = param->edotdir[1];
+            an = param->edotdir[2];
+            
+            amag = sqrt(al*al+am*am+an*an);
+            
+            al /= amag;
+            am /= amag;
+            an /= amag;
+            sigijk = param->appliedStress[0]*al*al     +
+                     param->appliedStress[1]*am*am     +
+                     param->appliedStress[2]*an*an     +
+                     2.0*param->appliedStress[3]*am*an +
+                     2.0*param->appliedStress[4]*an*al +
+                     2.0*param->appliedStress[5]*al*am;
+
+            pstnijk =  param->totpStn[0]*al*al     +
+                       param->totpStn[1]*am*am     +
+                       param->totpStn[2]*an*an     +
+                       2.0*param->totpStn[3]*am*an +
+                       2.0*param->totpStn[4]*an*al +
+                       2.0*param->totpStn[5]*al*am;
 /*
  *          First task in the I/O group must open the data file for writing
  *          to overwrite any existing file of the same name.
@@ -185,8 +210,11 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,index, dom, id\n");
 		    fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
 #else
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3, velx, vely, velz, armfx, armfy, armfz, numNbr,inGrain,onGB,burgID,normalID,constraint,index, dom, id\n");
-		    fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index\n");
+		    fprintf(fp, "zone T = \"%d\", i = %d, SOLUTIONTIME = %g,  F=POINT\n", home->cycle, numArms,param->timeNow*1.0E9); 
+            fprintf(fp, "AUXDATA strain = \"%g\"\n", abs(param->eRate*param->timeNow*1.0E2));
+            fprintf(fp, "AUXDATA stress = \"%g\"\n", abs(sigijk/1.0E6));
+            fprintf(fp, "AUXDATA plastic_strain = \"%g\"\n", abs(pstnijk*1.0E2));
 	
 #endif
 	    }
@@ -315,33 +343,18 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 				
                 GetArmGrain(home, node, nbrNode, armInGrain, armOnGB);
         
-                if(armOnGB<0){
-                    if(armInGrain == 0){
+                if(param->polycrystal==0)index=0;
+                else{
+                    vec[0] = node->nx[j]; vec[1]=node->ny[j]; vec[2]=node->nz[j];
+                    if(AlignedVector(param->TBNormal, vec)){
                         index = 3;
                     }else{
-                        index = 6;
-                    }
-                }else{
-                    if(burgID == 7){
-                        index = 0;
-                    }else if(burgID == 12){
-                        index = 0;
-                    }else if(burgID == 17){
-                        index =0;
-                    }else{
-                        burg[0] = node->burgX[j];
-                        burg[1] = node->burgY[j];
-                        burg[2] = node->burgZ[j];
-                        if(BurgType_FCC(burg) == BASIC_BURG){
-                            index = 1;
-                        }else{
-                            index = 2;
-                        }
+                        vec[0]=node->burgX[j]; vec[1]=node->burgY[j]; vec[2]=node->burgZ[j];
+                        if(PerpendicularDirection(param->TBNormal, vec)) index =2;
+                        else index = 1;
                     }
                 }
-
                 constraint = node->constraint;
-
                 if((NodeOnGB(home, node) & INTERSECT_NODE)>0)constraint = 4;
 
 /*
@@ -363,10 +376,10 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,constraint,
                             index, node->myTag.domainID, node->myTag.index);
 #else
-                    fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %d %d %d %d %d %d %d %d %d\n", 
-                            x,y,z,prx/2,pry/2,prz/2,vx,vy,vz,node->armfx[j],node->armfy[j],node->armfz[j],
+                    fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d\n", 
+                            x,y,z,prx/2,pry/2,prz/2,
                             narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                            index, node->myTag.domainID, node->myTag.index);
+                            index);
 #endif
 	        }
 #endif	

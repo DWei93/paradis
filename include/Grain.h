@@ -83,6 +83,33 @@ typedef	enum{
     UNKNOWN_BURG 
 } BurgTypeFCC_t;
 
+const int slip_sys[24][3]={
+{4 ,2, 0},
+{2 ,2, 0},
+{0 ,1, 0},
+{2 ,1, 0},
+{0 ,0, 0},
+{4 ,0, 0},
+{4 ,2, 1},
+{2 ,2, 1},
+{0 ,1, 1},
+{2 ,1, 1},
+{0 ,0, 1},
+{4 ,0, 1},
+{1 ,2, 0},
+{5 ,1, 0},
+{3 ,0, 0},
+{1 ,2, 1},
+{5 ,1, 1},
+{3 ,0, 1},
+{1 ,3, 3},
+{5 ,3, 3},
+{3 ,3, 3},
+{17,3,-1},
+{12,3,-1},
+{7 ,3,-1}
+};
+
 /*
  *     Define a structure to hold the burgers vectors and associated
  *     glide planes for material for which we dynamically calculate

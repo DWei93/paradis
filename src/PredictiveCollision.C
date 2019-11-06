@@ -1618,6 +1618,8 @@ void PredictiveCollisions(Home_t *home)
                                 }  /* if (splitSeg2) */
     
                                 if(SurfaceNode(mergenode1) && SurfaceNode(mergenode2))continue;
+                                if(mergenode1->onGB != onGB1 || mergenode2->onGB != onGB1)continue;
+                                if(mergenode1->inGrain != inGrain1 || mergenode2->inGrain != inGrain1)continue;
     
 /*
  *                             If the initially selected collision point
