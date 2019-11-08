@@ -1956,7 +1956,6 @@ int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]){
  *-------------------------------------------------------------------------*/
 void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f2[3])
 {
-    return;
 
     real8       dis, burgMag, burg[3], segCentor[3], gbStrength, xi[3];
     real8       vec[3], a = 0.05;
@@ -2239,7 +2238,7 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
             break;
     }
 
-    if(fabs(*dis) > 500.0 && type != POINT_INTERSECTION){
+    if(fabs(*dis) > 1000.0 && type != POINT_INTERSECTION){
         int     numGlideConstraintsNode1, numGlideConstraintsNode2;
         real8   glideConstraintsNode1[3][3], glideConstraintsNode2[3][3]; 
         bool    zeroLenJunc1, zeroLenJunc2;
@@ -2259,8 +2258,8 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
         PrintNode(home, node1);
         PrintNode(home, node2);
 
-        Fatal("%d: Merge dis %f %d (%f,%f,%f) - %d,%d\n",
-                home->myDomain, *dis, type, pos[0],
+        Fatal("%d: Merge dis %f %d (%g,%g,%g)(%f,%f,%f) - %d,%d\n",
+                home->myDomain, *dis, bakPos[0],bakPos[1], bakPos[2],type, pos[0],
                 pos[1], pos[2],
                 numGlideConstraintsNode1, numGlideConstraintsNode2);
     }
@@ -3397,9 +3396,11 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
                 if(times >= 100){
                     VECTOR_COPY(glidePlane, burg);
                     NormalizeVec(glidePlane);
+#if 0
                     FormatVector(burg, "burg");
                     PrintNode(home, node1);
                     Fatal("Warning in %s at %d: chose a non-glide plane\n", __FILE__, __LINE__);
+#endif
                     return;
                 }
             }

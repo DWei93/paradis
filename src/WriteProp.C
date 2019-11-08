@@ -564,7 +564,7 @@ void WriteProp(Home_t *home, int property)
 
                     if(fabs(pstnijk) > 1.0E-3 && param->finish == -1){
                         param->finish = 0; 
-                        printf("CRSS %e ", sign*sigijk*1E-6);
+                        printf("CRSS %e\n", sign*sigijk*1E-6);
                     }
         
                     if(fabs(pstnijk) > param->maxPst)param->finish = 1;

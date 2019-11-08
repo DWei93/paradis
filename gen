@@ -27,9 +27,9 @@
 #frlen=1800
 frlen=3125
 cubel=6250
-maxSeg=640
-nfrs=10
-nGrains=2
+maxSeg=40
+nfrs=51
+nGrains=32
 maxDensity=1E14
 
 polycrystal=1

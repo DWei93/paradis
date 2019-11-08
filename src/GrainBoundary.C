@@ -398,7 +398,7 @@ void InitPeneRes(Res_t *res, int nDiss){
  *   node1:     penetrated node
  *   node2:     nbr node
  * ******************************************************************************/
-void FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2, 
+bool FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2, 
                             Plane_t *GBPlane, Line_t *line)
 {
     int         armID, type;
@@ -448,9 +448,7 @@ void FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
     type = PlanePlaneIntersection(normal, centor, GBPlane->normal, 
            GBPlane->point, line->direction, line->point);
     
-    if(type != LINE_INTERSECTION){
-        Fatal("In file %s at line %d", __FILE__, __LINE__);        
-    }
+    if(type != LINE_INTERSECTION)return false;
 
     PointPlaneIntersection(n1Pos, GBPlane->normal, GBPlane->point, vec1, &dis1);
     PointPlaneIntersection(n2Pos, GBPlane->normal, GBPlane->point, vec1, &dis2);
@@ -479,7 +477,7 @@ void FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
 
     type = LineLineIntersection(vec1, vec2, line->direction, line->point, vec3, vec4, &dis);
     
-    if(fabs(dis) > 10){
+    if(fabs(dis) > 500){
         char name[50];
         printf("type %d, dis %f\n", type, dis);
         FormatVector(vec1, "vec1");
@@ -492,7 +490,7 @@ void FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
     }
     
     VECTOR_COPY(line->point, vec4);
-    return;
+    return true;
 }
 
 int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
@@ -530,11 +528,11 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 
     VECTOR_COPY(GBPlane.normal, gb->n);
     VECTOR_COPY(GBPlane.point, gb->p);
-    FindIntersectionWithGB(home, node, node1, &GBPlane, &line);
+    if(!FindIntersectionWithGB(home, node, node1, &GBPlane, &line))return 0;
     VECTOR_COPY(pene->line1.direction, line.direction);
     VECTOR_COPY(pene->line1.point, line.point);
 
-    FindIntersectionWithGB(home, node, node2, &GBPlane, &line);
+    if(!FindIntersectionWithGB(home, node, node2, &GBPlane, &line))return 0;
     VECTOR_COPY(pene->line2.direction, line.direction);
     VECTOR_COPY(pene->line2.point, line.point);
 
@@ -846,7 +844,7 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
 		nbrNode2 = nodeTemp;
 	}
 
-    FindIntersectionWithGB(home, node, nbrNode1, GBPlane, &interLine);
+    if(!FindIntersectionWithGB(home, node, nbrNode1, GBPlane, &interLine))return 0;
     VECTOR_COPY(newPos, interLine.point);
 
     FoldBox(param, newPos, newPos+1, newPos+2);
@@ -920,7 +918,7 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
 
     }
     FoldBox(param, vec2, vec2+1, vec2+2);
-    printf("PenetrationLast (gb: %g): (%g,%g,%g)-->(%g,%g,%f)\n", GBPlane->point[1], nodePos[0],nodePos[1],nodePos[2],vec2[0],vec2[1],vec2[2]);
+//  printf("PenetrationLast (gb: %g): (%g,%g,%g)-->(%g,%g,%f)\n", GBPlane->point[1], nodePos[0],nodePos[1],nodePos[2],vec2[0],vec2[1],vec2[2]);
 	RepositionNode(home, vec2, &node->myTag, 1);
     AssignGrain(home, node, -1, nbrNode2->onGB);
     return(1);
@@ -1868,10 +1866,12 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
         cross(normal, gb->n, crossProd);
         
         if(Normal(crossProd) < 1.0E-4){
-            Tecplot(home, (char*)"SplitIntersectionNode", 0, 0, 0 ,0, 0, 1);
+//          Tecplot(home, (char*)"SplitIntersectionNode", 0, 0, 0 ,0, 0, 1);
 //            PrintNode(node);
 //            PrintNode(nbr);
 //            printf("SplitIntersectNode gb{%f,%f,%f}\n", gb->n[0],gb->n[1],gb->n[2]);
+            AssignGrain(home, nbr, -1, node->onGB);
+            continue;
             wrongGlidePlane = 1;
         }
         
