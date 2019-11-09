@@ -513,7 +513,7 @@ void InitGrain(Home_t *home, Param_t *param){
 	        Fatal("the thickness of matrix is negative value at %s line %d\n", __FILE__, __LINE__);
 	    }
 #else
-        real8 thick = 2*ly/((real8)nGrain);       
+        real8 thick = 2*lz/((real8)nGrain);       
 #endif	    	
 
         home->nGBs = home->nGrains;
@@ -523,11 +523,11 @@ void InitGrain(Home_t *home, Param_t *param){
             home->GBKeys[i]->GBID = i;
             VECTOR_ZERO(home->GBKeys[i]->n);
             VECTOR_ZERO(home->GBKeys[i]->p);
-            home->GBKeys[i]->n[1] = 1.0;
+            home->GBKeys[i]->n[2] = 1.0;
 #if 0
             home->GBKeys[i]->p[1] = -ly + HalfMatrixThick + 2*((real8)i)*halfTwinThick;
 #else
-            home->GBKeys[i]->p[1] = -ly + (((real8)i)+0.5)*thick;
+            home->GBKeys[i]->p[2] = -lz + (((real8)i)+0.5)*thick;
 #endif
             home->GBKeys[i]->nbrGrain[0] = i;
             home->GBKeys[i]->nbrGrain[1] = ((i == home->nGrains -1) ? 0 : i+1);
@@ -542,10 +542,10 @@ void InitGrain(Home_t *home, Param_t *param){
 #if 0
 	        grain->cy = -ly + (2 * ((real8)i) - 1) * (HalfMatrixThick + halfTwinThick);
 #else
-	        grain->cy = -ly + double(i)*thick;
+	        grain->cz = -lz + double(i)*thick;
 #endif
             grain->cx = 0.0;
-            grain->cz = 0.0;
+            grain->cy = 0.0;
             grain->grainID = i;
 
             GBID = i -1;

@@ -373,13 +373,13 @@ static void InitDefaultValues(InArgs_t *inArgs)
 	    inArgs->xMatDir[1] = -1;
 	    inArgs->xMatDir[2] =  0;
 	    
-	    inArgs->yMatDir[0] =  1;
-	    inArgs->yMatDir[1] =  1;
-	    inArgs->yMatDir[2] =  1;
+	    inArgs->yMatDir[0] = -1;
+	    inArgs->yMatDir[1] = -1;
+	    inArgs->yMatDir[2] =  2;
 
 	    inArgs->zMatDir[0] = -1;
 	    inArgs->zMatDir[1] = -1;
-	    inArgs->zMatDir[2] =  2;
+	    inArgs->zMatDir[2] = -1;
 
 	    inArgs->TBAngle = 0;
 	    inArgs->maxDensity = 5.0E14;

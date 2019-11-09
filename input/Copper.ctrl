@@ -17,8 +17,8 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
-numYdoms = 8
+numXdoms = 4
+numYdoms = 4
 numZdoms = 2
 #
 #  Cell geometry
@@ -40,7 +40,7 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-dirname = "res.50nm-010"
+dirname = "res.800nm-T1"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -56,7 +56,7 @@ timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
 rTol = 2
 rc =  9
-wallTime = 64
+wallTime = 24
 #
 #  Fast Multipole Method controls
 #  
@@ -90,7 +90,7 @@ edotdir = [
 
 appliedStress = [
 	0.0e0
-    2.0E9
+	0.0e0
 	0.0e0
 	0.0e0
 	0.0e0
@@ -127,7 +127,7 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 10
+tecplotfreq = 600
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1
