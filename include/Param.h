@@ -203,6 +203,7 @@ struct _param {
         int   indxErate;     /* to be compatible with micro3d */
         real8 edotdir[3];    /* Uniaxial loading direction accompanying */
                              /* eRate                                   */
+        real8 edotPolar[2];  /*polar angle and azimuthal angle of loading axis, units in degree*/
         real8 loadDir[6];    /* Loading factors of six conponents */
         real8 strRate;       /* Stress rate. Used when loadType == 6 */ 
         real8 plaRateCtr;    /* Plastic rate for controlling loading */

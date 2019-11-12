@@ -139,6 +139,7 @@ inline bool IsNormalized(double x, double y, double z, double error){
     return IsNormalized(vec,error);
 }
 
+
 /** Determine if two directions are in the same direction. */
 inline bool SameDirection(double *vec1, double *vec2, double error=ANGLE_ERROR2);
 inline bool SameDirection(double x1, double y1, double z1, double x2, double y2, double z2, double error=ANGLE_ERROR2);

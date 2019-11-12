@@ -293,9 +293,13 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         param->indxErate = 1;
 
         BindVar(CPList, "edotdir",&param->edotdir, V_DBL, 3, VFLAG_NULL);
-        param->edotdir[0] = 1.0;
+        param->edotdir[0] = 0.0;
         param->edotdir[1] = 0.0;
         param->edotdir[2] = 0.0;
+        
+        BindVar(CPList, "edotPolar",&param->edotPolar, V_DBL, 2, VFLAG_NULL);
+        param->edotPolar[0] = 0.0;
+        param->edotPolar[1] = 0.0;
 
         BindVar(CPList, "strRate",&param->strRate, V_DBL, 1, VFLAG_NULL);
         param->strRate = -1.0E15;

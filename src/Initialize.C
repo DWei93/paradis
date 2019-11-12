@@ -1200,7 +1200,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
         char token[256];
         FILE *fp = (FILE *)NULL;
 
-        real8 *pstn;
+        real8 *pstn, degree=1.745329251994330e-02;
 /*
  *      Initialize map between old and new node tags before
  *      reading nodal data and distributing it to the remote
@@ -1450,6 +1450,12 @@ void Initialize(Home_t *home,int argc, char *argv[])
             }
         }
 
+        if(fabs(param->edotdir[0])<1E-10 && abs(param->edotdir[1])<1E-10 && abs(param->edotdir[2])<1E-10){
+            param->edotdir[2]=cos(degree*param->edotPolar[0]);
+            param->edotdir[1]=sin(degree*param->edotPolar[0])*sin(degree*param->edotPolar[1]);
+            param->edotdir[0]=sin(degree*param->edotPolar[0])*cos(degree*param->edotPolar[1]);
+            if(home->myDomain==0)FormatVector(param->edotdir, "edot direction");
+        }
 
 /*
  *      Each process needs to get some information about which IO group
