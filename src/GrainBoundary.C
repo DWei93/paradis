@@ -2244,7 +2244,8 @@ void GBCrossSlip(Home_t *home)
                         break;
                     default:
                         PrintNode(home, gbNbr);
-                        Fatal("%s: something wrong with the node",__func__);
+                        printf("%s: a concentrated side segment occured on TB",__func__);
+                        sideCrossSlipNode == 1;
                         break;
                 }
             }
