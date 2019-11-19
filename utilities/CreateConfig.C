@@ -190,7 +190,6 @@ void CreatePrismaticLoop(Home_t *home, InData_t *inData, int cubeLength,
 /*
  *          Interstitial loops for [1 1 1] burgers vector
  */
-            /* [ 1  1 -2] */
             tr[0][0][0]=  invSqrt6;
             tr[0][0][1]=  invSqrt6;
             tr[0][0][2]= -twoInvSqrt6;
@@ -1308,6 +1307,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
    
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
+                    if(!PerpendicularDirection(b,param->TBNormal)){break;}
                     VECTOR_COPY(randomLine, b);
 
                     for (i = 0; i < 3; i++) {
@@ -1419,6 +1419,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         if(DotProduct(f1, f3) < 0)printf("Warning: in %s at %d", __FILE__, __LINE__);
                     }
                 }
+                if(finished == 0){chain++;continue;}
 
 	            totSrcLen += srcLen;				
 /*           
@@ -3834,4 +3835,144 @@ void CreateEdges(Home_t *home, InData_t *inData, int cubeLength,
             startRemeshIndex = id0;
         }
         return;
+}
+
+void CreateLoopSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen)
+{
+    int     nLoops = inArgs->numLoops;
+    int     seed = inArgs->seed;
+    real8   cubeLength = real8(inArgs->cubeLength);
+    const int     radius = inArgs->radius<=sqrt(3)/2?inArgs->radius*cubeLength:inArgs->radius;
+
+    real8   cenPos[3], n[3], b[3], r, rRes, g[3], gRot[3], rot[3][3], segDir[3];
+    int     inGrain0=-1, onGB0=-1, burgID, planeID;
+    BurgInfo_t *bd;
+    int     ranNum;
+
+    GB_t    *gb;
+    int baseNodeID=0, nSegs,nodeID, nbrID1, nbrID2;
+    inData->nodeCount = 0;
+    Param_t *param = inData->param;
+    real8   maxSeg = param->maxSeg;
+    real8   theta;
+    Node_t  *node;
+    
+    home->param->materialType = MAT_TYPE_FCC;
+
+    for(int i=0; i<nLoops;i++){
+        bool finished=false; 
+        rRes = radius;
+        int j=-1;
+        while(finished==false ){
+            
+            cenPos[0] = (randm(&seed)-0.5)*cubeLength;
+            cenPos[1] = (randm(&seed)-0.5)*cubeLength;
+            cenPos[2] = (randm(&seed)-0.5)*cubeLength;
+            
+            if(home->nGBs>0){
+                NodeLocation(home, cenPos[0], cenPos[1], cenPos[2], inGrain0, onGB0);
+                if(onGB0 > -1) continue;
+                ranNum = (i<N_SS && nLoops>N_SS)?i:int(1.0E5*randm(&seed))%N_SS;
+                if(slip_sys[ranNum][2]==0 || slip_sys[ranNum][2]==1){
+                    if((inGrain0%2)!=slip_sys[ranNum][2])continue;
+                    bd = GetBurgData(home, inGrain0, onGB0);
+                    planeID = slip_sys[ranNum][1];
+                    if(planeID != 3){
+                        r = (ClosedGB(home, cenPos, &gb)-1.0)*3.0/sqrt(8.0);
+                        if(r*sqrt(2)<maxSeg/2.0)continue;
+                        rRes -=r; if(rRes<0)finished=true;
+                    }else{
+                        r = radius; if(r<maxSeg/sqrt(2.0))Fatal("radius %g < %g", r, maxSeg/sqrt(2));
+                        finished = true;
+                    }
+                }else if (slip_sys[ranNum][2] == 3){
+                    bd = GetBurgData(home, 0, -1);
+                    r = radius; if(r<maxSeg/sqrt(2.0))Fatal("radius %g < %g", r, maxSeg/sqrt(2));
+                    finished = true;
+                }else{
+                    real8 dis; j++;
+                    bd = GetBurgData(home, -1, j);
+                    gb = home->GBKeys[j];
+                    PointPlaneDistance(cenPos, gb->n, gb->p, dis, cenPos);
+                    inGrain0=-1; onGB0 = j;
+                    r = radius; if(r<maxSeg/sqrt(2.0))Fatal("radius %g < %g", r, maxSeg/sqrt(2));
+                    if(j>=home->nGBs-1)finished=true;
+                }
+            }else{
+                ranNum = (i<12&&nLoops>12)?i:int(1.0E5*randm(&seed))%12; 
+                bd = &(home->burgData);
+                r = radius; if(r<maxSeg/sqrt(2.0))Fatal("radius %g < %g", r, maxSeg/sqrt(2));
+                finished = true;
+            }
+            burgID = slip_sys[ranNum][0]; planeID = slip_sys[ranNum][1];
+            VECTOR_COPY(b, bd->burgList[burgID]);
+            VECTOR_COPY(n, bd->planeList[planeID]);
+            if(!PerpendicularDirection(n,b))Fatal("burg is not perpendicular to glide plane");
+            if(randm(&seed)<0.5){b[0]=-b[0]; b[1]=-b[1]; b[2]=-b[2];}
+
+            theta = 2*asin(maxSeg/2.0/r); nSegs = MAX(4,int(2*M_PI/theta)); theta = 2*M_PI/real8(nSegs);
+
+            inData->nodeCount += nSegs;
+            inData->node = (Node_t *)realloc(inData->node, inData->nodeCount*sizeof(Node_t));
+            memset(&inData->node[baseNodeID], 0, sizeof(Node_t) * nSegs);
+
+            cross(n,b,g); NormalizeVec(g);
+            g[0] *= r; g[1]*=r; g[2]*=r;
+
+            for(int k=0; k<nSegs; k++){
+                nodeID = baseNodeID+k;
+                nbrID1 = k>0?nodeID-1:baseNodeID+nSegs-1;
+                nbrID2 = k<nSegs-1?nodeID+1:baseNodeID;
+
+                RotateWithAxis(n, theta*k, rot);
+                Matrix33Vector3Multiply(rot, g, gRot);
+                CoordMinus(g,gRot,segDir);
+                *totDislocLen += Normal(segDir);
+
+                node = &inData->node[nodeID];
+                
+                node->myTag.domainID = 0;
+                node->myTag.index    = nodeID;
+                node->x = cenPos[0]+gRot[0];
+                node->y = cenPos[1]+gRot[1];
+                node->z = cenPos[2]+gRot[2];
+		 	    
+                node->constraint = UNCONSTRAINED;
+                node->inGrain = inGrain0;
+                node->onGB = onGB0;
+                
+                AllocNodeArms(node, 2);
+		 	    
+                node->nbrTag[0].domainID = 0;
+                node->nbrTag[0].index    = nbrID1;
+                node->nbrTag[1].domainID = 0;
+                node->nbrTag[1].index    = nbrID2;
+                
+                node->burgX[0] = b[0];
+                node->burgY[0] = b[1];
+                node->burgZ[0] = b[2];
+                
+                node->burgX[1] = -b[0];
+                node->burgY[1] = -b[1];
+                node->burgZ[1] = -b[2];
+                
+                node->nx[0] = n[0];
+                node->ny[0] = n[1];
+                node->nz[0] = n[2];
+                	
+                node->nx[1] = n[0];
+                node->ny[1] = n[1];
+                node->nz[1] = n[2];
+            }
+            baseNodeID += nSegs; 
+        }
+    }
+
+	IncDislocationDensity(inData, totDislocLen);
+	param->nodeCount = inData->nodeCount;
+	WriteInitialNodeData(home, inData, 1);
+	FreeInNodeArray(inData, inData->nodeCount);
+	inData->nodeCount = 0;
+	
+    return;
 }

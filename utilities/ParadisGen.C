@@ -1201,7 +1201,7 @@ int main(int argc, char *argv[])
         strncpy(param->node_data_file, inArgs.outputFile,
             sizeof(param->node_data_file)-1);
 
-#if 1
+#if 0
 /*
  * Temporary code until [1 0 0] types are supported again
  */
@@ -1303,11 +1303,15 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
                                         &totDislocLen, inArgs.type);
                 break;
         case FTYPE_PRISMATIC_LOOP:
+#if 0
                 CreatePrismaticLoop(&home, &inData, inArgs.cubeLength,
                                     inArgs.loopType,
                                     inArgs.interstitialLoops,
                                     inArgs.numLoops, inArgs.radius,
                                     inArgs.seed, &totDislocLen, inArgs.type);
+#else
+                CreateLoopSource(&home, &inData, &inArgs, &totDislocLen);
+#endif
                 break;
         case FTYPE_FRANK_READ:
                 CreateFRSource(&home, &inData, &inArgs,
