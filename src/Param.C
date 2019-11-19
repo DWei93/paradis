@@ -825,6 +825,10 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
                 VFLAG_NULL);
         param->position = 0.0;
 
+        BindVar(CPList, "loadTime", &param->loadTime, V_DBL, 1,
+                VFLAG_NULL);
+        param->loadTime = -1;
+
         BindVar(CPList, "correLength", &param->correLength, V_DBL, 1,
                 VFLAG_NULL);
         param->correLength = 1;

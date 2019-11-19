@@ -508,7 +508,7 @@ struct _param {
         int     meshNumX, meshNumY, meshNumZ;
         int     randomInternalForce;
         real8   fMeshSizeX, fMeshSizeY, fNumX, fNumY;
-        real8   position, correLength, targetStress, criticalEff;
+        real8   position, correLength, targetStress, criticalEff, loadTime;
         int     disRule;
 
 #ifdef _FEM

@@ -103,6 +103,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         Node_t  *node;
         int     locVal, gloVal;
         
+        real8   criDis, criEff;
         TimerStart(home, LOADCURVE);
         
         param     = home->param;
@@ -715,6 +716,9 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                                2.0*dpstn[4]*dpstn[4]+ 
                                2.0*dpstn[5]*dpstn[5])*2.0/3.0)/param->lastDT;
 
+                criEff = MAX(2,50.0*param->appliedStress[3]/2.0E8);
+                criDis = MIN(2000.0,criEff*40.0);
+
                 locVal = 1;
                 gloVal = 0;
 
@@ -726,7 +730,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                     vec[1] = node->y - param->position;
                     ZImage(param, vec, vec+1, vec+2);
     
-                    locVal &= int(fabs(vec[1]) >= 2000);
+                    locVal &= int(fabs(vec[1]) >= criDis);
 
                     if(node->y > 0.25*param->Ly){
                         py = node->y - param->Ly;
@@ -748,7 +752,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 #endif
 
                 locVal = 0;
-                if((fabs(effPlaRate) <= param->criticalEff && param->disRule == 0) 
+                if(((fabs(effPlaRate) <= criEff || (param->timeNow-param->loadTime)>4.0E-9)&& param->disRule == 0) 
                    || gloVal == 1){
                     locVal = 1;
                     
@@ -762,7 +766,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                     dsig[5] = stepStr*param->loadDir[5];
                     
                     if(gloVal == 1){
-                        vec[1] = param->position + 2000;
+                        vec[1] = param->position + criDis;
                         FoldBox(param, vec, vec+1, vec+2);
                         param->position = vec[1];
                         param->disRule = 1;
@@ -785,9 +789,10 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 if(gloVal==1){
                     snprintf(name, 50, "-%07.2fMPa", param->appliedStress[3]/1.0E6);
                     GenerateOutput(home, STAGE_DEBUG, name);
+                    param->loadTime = param->timeNow;
                 }
 
-                if(param->appliedStress[3] > param->targetStress)param->finish = 1;
+                if(0.99*param->appliedStress[3] > param->targetStress)param->finish = 1;
 
                 for(i=0; i<6; i++){
                     for(j=0; j<6; j++){

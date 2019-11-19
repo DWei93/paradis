@@ -1533,6 +1533,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
             param->fNumY = para[4];
 
         }
+        if(param->loadTime<0)param->loadTime=param->timeNow;
 
 /*
  *      Now that the param structure is fully populated, do any
