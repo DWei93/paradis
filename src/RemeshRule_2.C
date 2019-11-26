@@ -491,7 +491,7 @@ static void MeshCoarsen(Home_t *home)
                         }
                     }
 
-                    FoldBox(home->param,newPos, newPos+1, newPos+2);
+                    FoldBox(home->param, newPos, newPos+1, newPos+2);
                     if(mergeDone == 1){
                         MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
                               &mergedNode, &mergeStatus, globalOp);
@@ -506,7 +506,7 @@ static void MeshCoarsen(Home_t *home)
                 if (mergeDone == 0) {
                     if ((nbr2->flags & NO_MESH_COARSEN) == 0 &&
                         !(violateGlidePlanesOK==1 && r2 >= 1.0) && 
-                        !(IsOnGB(node) && IsOnGB(nbr1) && !IsOnGB(nbr2))) {
+                        !(IsOnGB(node) && IsOnGB(nbr1) && !IsOnGB(nbr2))){
                         newPos[0] = nbr2->x;
                         newPos[1] = nbr2->y;
                         newPos[2] = nbr2->z;

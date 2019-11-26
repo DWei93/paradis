@@ -3552,6 +3552,26 @@ int GetArmID (Home_t *home, Node_t *node1, Node_t *node2)
 
         return(-1);
 }
+int GetArmID (Node_t *node1, Node_t *node2)
+{
+        int i, domID, index;
+
+        if ((node1 == NULL) || (node2 == NULL)) {
+            return(-1);
+        }
+    
+        domID = node2->myTag.domainID;
+        index = node2->myTag.index;
+
+        for(i = 0; i < node1->numNbrs; i++) {
+            if ((domID == node1->nbrTag[i].domainID) &&
+                (index == node1->nbrTag[i].index)) {
+                return(i);
+            }
+        }
+
+        return(-1);
+}
 
 
 /*-------------------------------------------------------------------------

@@ -694,6 +694,6 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 #endif		
 		
 		
-//		printf(" param->appliedStress[2] = %f\n",param->appliedStress[2]);
+//  	Fatal("param->appliedStress[1] = %g MPa\n",param->appliedStress[1]/1E6);
         return;
 }

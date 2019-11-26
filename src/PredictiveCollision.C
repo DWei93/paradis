@@ -884,7 +884,7 @@ void PredictiveCollisions(Home_t *home)
         int     cell2X, cell2Y, cell2Z, cx, cy, cz;
         int     localCollisionCnt, globalCollisionCnt;
         int     collisionConditionIsMet, adjustCollisionPoint;
-        int     inGrain1, inGrain2, onGB1, onGB2;
+        int     inGrain1=-1, inGrain2=-1, onGB1=-1, onGB2=-1;
         real8   mindist2, dist2, ddist2dt, L1, L2, eps, half;
         real8   cTime, cPoint[3];
         real8   x1, y1, z1, vx1, vy1, vz1;

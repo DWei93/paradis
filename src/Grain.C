@@ -213,6 +213,7 @@ void InitGrain(Home_t *home, Param_t *param){
         home->grainKeys[0] = (Grain_t *)calloc(1, sizeof(Grain_t));
         grain = home->grainKeys[0];
         grain->nBounds = 0;
+        GenerateFCCBurgInfo(&(grain->burgData), param->matrixOrientation, -1);
 
         memcpy(grain->orientation, home->rotMatrix, sizeof(real8 [3][3]));
         memcpy(grain->orientationInv, home->rotMatrixInverse, sizeof(real8 [3][3]));
@@ -1477,7 +1478,7 @@ int NodeOnGB(Home_t *home, Node_t *node){
         if((nbr = GetNeighborNode(home, node, i)) 
             == (Node_t *)NULL){
             PrintNode(home, node);
-            printf("Warning in NodeOnGB, unkonwn neighbor\n");
+            Fatal("Warning in NodeOnGB, unkonwn neighbor\n");
             continue;
         }
 		
@@ -2117,7 +2118,7 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                     break;
                 case 2:
                     type = LinePlaneIntersection(glideConstraintsNode2[2], p2, glideConstraintsNode1[0], p1,
-                           vec1, vec2);
+                           vec1, vec2, 0.01, 1.0E-4);
                     if(type == NO_INTERSECTION)
                         type=fabs(PointPlaneDistance(p2, glideConstraintsNode1[0], p1))<err?LINE_INTERSECTION:NO_INTERSECTION;
                     break;
@@ -2137,13 +2138,13 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
             switch (numGlideConstraintsNode2){
                 case 1:
                     type = LinePlaneIntersection(glideConstraintsNode1[2], p1, glideConstraintsNode2[0], p2,
-                           vec1, vec2); 
+                           vec1, vec2, 0.01, 1.0E-4);
                     if(type == NO_INTERSECTION)
                         type=fabs(PointPlaneDistance(p1, glideConstraintsNode2[0], p2))<err?LINE_INTERSECTION:NO_INTERSECTION;
                     break;
                 case 2:
                     LineLineIntersection(glideConstraintsNode1[2], p1, glideConstraintsNode2[2], p2,
-                           vec1, vec2, &dis); 
+                           vec1, vec2, &dis, 0.01, 1.0E-4);
                     if(fabs(DotProduct(glideConstraintsNode1[2],glideConstraintsNode2[2]))>0.98){
                         type = fabs(dis)<err?LINE_INTERSECTION:NO_INTERSECTION;
                         VECTOR_COPY(vec1, glideConstraintsNode1[2]);

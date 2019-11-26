@@ -361,7 +361,6 @@ typedef struct {
 } NativeSeg_t;
 
 void CheckLocal(Home_t *home, int flag){
-	return;
 	int        i, cellNum, cellID, cellSegCnt;
 	int        arm, armCount;
 	int        homeDomain, homeCells, homeNativeCells;
@@ -389,7 +388,6 @@ void CheckLocal(Home_t *home, int flag){
 	
 		cell = home->cellKeys[home->cellList[cellNum]];
 		
-	
 		for (node = cell->nodeQ; node != (Node_t *)NULL; node = node->nextInCell) {
 	
 			if (node->myTag.domainID == homeDomain) continue;
@@ -490,7 +488,7 @@ void DebugGB(Home_t *home, int flag){
 	param = home->param;
 
 //    if(flag >= 4 && flag == 5){
-	    printf("%d %d\n",home->myDomain, flag);
+//	    printf("%d %d\n",home->myDomain, flag);
 //    }
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
@@ -519,7 +517,21 @@ void DebugGB(Home_t *home, int flag){
 #endif
         for (j = 0; j < node->numNbrs; j++) {
             nbr = GetNeighborNode(home, node, j);
-            if(nbr == (Node_t *)NULL)continue;
+            if(nbr == (Node_t *)NULL){
+                PrintNode(home, node);
+                PrintNode(home, nbr);
+                printf("Task %d, null neighbor, flag %d \n", 
+                        home->myDomain, flag);
+            }
+
+            if(NodeDistance(home,node,nbr)>1000){
+                PrintNode(home, node);
+                PrintNode(home, nbr);
+                snprintf(name,50,"longseg-%d-%d",home->cycle, flag);
+                printf("Task %d, wrong multi-arm node, flag %d \n", 
+                        home->myDomain, flag);
+                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
+            }
 
             vec[0] = node->burgX[j];
             vec[1] = node->burgY[j];
@@ -529,6 +541,24 @@ void DebugGB(Home_t *home, int flag){
             vec1[1] = node->ny[j];
             vec1[2] = node->nz[j];
 
+            lDir[0] = node->x - nbr->x;
+            lDir[1] = node->y - nbr->y;
+            lDir[2] = node->z - nbr->z;
+            ZImage(home->param, lDir, lDir+1, lDir+2);
+
+            NormalizeVec(lDir);
+
+            dot = fabs(DotProduct(lDir, vec1));
+            if(dot > 0.1 && (NM==1)){
+                snprintf(name,50,"wrong-%d-%d",home->cycle, flag);
+                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
+                PrintNode(node);
+                FormatVector(lDir,"lDir");
+                FormatMatrix(GC, "GC");
+                Fatal("Task %d, wrong multi-arm node, flag %d - dot %f - length %f\n", 
+                        home->myDomain, flag, dot, Normal(lDir));
+            }
+            continue;
             if(DifferentGlidePlane(node)){
                 lDir[0] = node->x - nbr->x;
                 lDir[1] = node->y - nbr->y;

@@ -571,7 +571,7 @@ void WriteProp(Home_t *home, int property)
                     if(fabs(param->totstraintensor[i]) > param->maxStn){
                         param->finish = 1;
                         if(param->polycrystal)printf("Percentage of twinning deformation %g\n",
-                            ptstnijk*1E2/pstnijk);
+                            sign*ptstnijk*1E2/pstnijk);
                     }
 
 
