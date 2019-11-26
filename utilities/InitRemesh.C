@@ -116,7 +116,7 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
  *	expand the inData->node array to accomodate the new nodes.
  */
 	if (newNodeCount == 0) return;
-	inData->node = (Node_t *)realloc(inData->node,
+	    inData->node = (Node_t *)realloc(inData->node,
 			sizeof(Node_t) * (inData->nodeCount + newNodeCount));
 
         memset((char *)(&inData->node[inData->nodeCount]), 0,
@@ -145,8 +145,18 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 			dx = nodeB->x - xa;
 			dy = nodeB->y - ya;
 			dz = nodeB->z - za;
-
+#if 1
+            real8 normal[3]={nodeA->nx[armAB],nodeA->ny[armAB],nodeA->nz[armAB]};
+            real8 ls[3]={dx,dy,dz}; normalize_vec(ls);
+            if(!PerpendicularDirection(ls,normal)){
+                Fatal("1: {%g,%g,%g}--{%g,%g,%g}\n",nodeA->x,nodeA->y,nodeA->z,nodeB->x,nodeB->y,nodeB->z);
+            }
+#endif
 			ZImage(param,&dx,&dy,&dz);
+            ls[0]=dx; ls[1]=dy; ls[2]=dz;  normalize_vec(ls);
+            if(!PerpendicularDirection(ls,normal)){
+                Fatal("2: {%g,%g,%g}--{%g,%g,%g}\n",nodeA->x,nodeA->y,nodeA->z,nodeB->x,nodeB->y,nodeB->z);
+            }
 
 			r2 = dx*dx + dy*dy + dz*dz;
 			if (r2 > maxSeg2) {
@@ -164,8 +174,7 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
  */
 				found = 0;
 				for (armBA = 0;armBA < nodeB->numNbrs;armBA++) {
-					(void *)LookupInNode(inData,
-						&nodeB->nbrTag[armBA], &idxBA);
+					(void *)LookupInNode(inData, &nodeB->nbrTag[armBA], &idxBA);
 					if (idxBA == idxA) {
 						found = 1;
 						break;
@@ -192,26 +201,32 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 					newNode->y = ya + inew*frac*dy;
 					newNode->z = za + inew*frac*dz;
 					newNode->constraint = UNCONSTRAINED;
-					newNode->inGrain = nodeA->inGrain;
-					newNode->onGB = nodeA->onGB;
-
+                    
+                    if(nodeA->onGB>-1 && nodeB->onGB>-1){
+                        if(nodeA->onGB == nodeB->onGB){
+                            newNode->inGrain = -1;
+                            newNode->onGB = nodeA->onGB;
+                        }else{
+                            PrintTag(nodeA); PrintTag(nodeB); printf("\n");
+                            Fatal("%s: nodeA->onGB != nodeB->onGB",__func__);
+                        }
+                    }else{
+                        newNode->onGB = -1;
+                        newNode->inGrain = nodeA->inGrain>-1?nodeA->inGrain:nodeB->inGrain;
+                    }
+                    
 					AllocNodeArms(newNode, 2);
 	
 /*
  *					set up the linkage:
  *					prevNewNode <--> newNode <--> nodeB
  */
-					newNode->nbrTag[0].domainID =
-						prevNewNode->myTag.domainID;
-					newNode->nbrTag[0].index =
-						prevNewNode->myTag.index;
-					newNode->nbrTag[1].domainID =
-						nodeB->myTag.domainID;
-					newNode->nbrTag[1].index =
-						nodeB->myTag.index;
+					newNode->nbrTag[0].domainID = prevNewNode->myTag.domainID;
+					newNode->nbrTag[0].index = prevNewNode->myTag.index;
+					newNode->nbrTag[1].domainID = nodeB->myTag.domainID;
+					newNode->nbrTag[1].index = nodeB->myTag.index;
 
-					prevNewNode->nbrTag[armPrev].domainID =
-						domValue;
+					prevNewNode->nbrTag[armPrev].domainID = domValue;
 					prevNewNode->nbrTag[armPrev].index=idxNew;
 
 					nodeB->nbrTag[armBA].domainID = domValue;
@@ -221,20 +236,20 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 /*
  *					Initialize newNode's arms
  */
-					newNode->burgX[0] = nodeB->burgX[armBA];
-					newNode->burgY[0] = nodeB->burgY[armBA];
-					newNode->burgZ[0] = nodeB->burgZ[armBA];
-					newNode->nx[0] = nodeB->nx[armBA];
-					newNode->ny[0] = nodeB->ny[armBA];
-					newNode->nz[0] = nodeB->nz[armBA];
+					newNode->burgX[0]  = nodeB->burgX[armBA];
+					newNode->burgY[0]  = nodeB->burgY[armBA];
+					newNode->burgZ[0]  = nodeB->burgZ[armBA];
+					newNode->nx[0]     = nodeB->nx[armBA];
+					newNode->ny[0]     = nodeB->ny[armBA];
+					newNode->nz[0]     = nodeB->nz[armBA];
                     newNode->signSF[0] = nodeB->signSF[armBA];
 
-					newNode->burgX[1] = nodeA->burgX[armAB];
-					newNode->burgY[1] = nodeA->burgY[armAB];
-					newNode->burgZ[1] = nodeA->burgZ[armAB];
-					newNode->nx[1] = nodeA->nx[armAB];
-					newNode->ny[1] = nodeA->ny[armAB];
-					newNode->nz[1] = nodeA->nz[armAB];
+					newNode->burgX[1]  = nodeA->burgX[armAB];
+					newNode->burgY[1]  = nodeA->burgY[armAB];
+					newNode->burgZ[1]  = nodeA->burgZ[armAB];
+					newNode->nx[1]     = nodeA->nx[armAB];
+					newNode->ny[1]     = nodeA->ny[armAB];
+					newNode->nz[1]     = nodeA->nz[armAB];
                     newNode->signSF[1] = nodeA->signSF[armAB];
 
 					prevNewNode = newNode;

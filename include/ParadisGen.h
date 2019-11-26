@@ -79,6 +79,7 @@ real8 randm(int *seed);
 void  WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock);
 int GetBurgID_FCCFromArm(Home_t *home, Node_t *node, int segID);
 void CreateLoopSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen);
+void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen);
 
 
 /*

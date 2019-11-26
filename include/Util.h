@@ -123,6 +123,7 @@ int    ChangeConnection(Home_t *home, Node_t *node1, Tag_t *tag2,
           Tag_t *tag3, int Log);
 void   CompressArmLists(Node_t *node);
 int    GetArmID(Home_t *home, Node_t *node1, Node_t *node2);
+int    GetArmID (Node_t *node1, Node_t *node2);
 void   GetBurgersVectorNormal(Home_t *home, Node_t *node1, Node_t *node2,
           real8 *bx, real8 *by, real8 *bz,
           real8 *nx, real8 *ny, real8 *nz);

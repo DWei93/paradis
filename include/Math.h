@@ -76,6 +76,7 @@ inline double dot_product(double a0, double a1, double a2, double b0, double b1,
     return a0*b0+a1*b1+a2*b2;
 }
 
+
 /** Parallel component of vector a along the direction dir
  *  \param[in] a vector
  *  \param[in] dir direction (should be normalized)
@@ -118,6 +119,9 @@ inline void Coordinate(v *vector, int element, v a[3])
 template<class v>
 inline void Coordinate(std::vector<v> &vector, int element, v p[3])
 {p[0] = vector[3*element]; p[1] = vector[3*element+1]; p[2] = vector[3*element+2];}
+
+template<class v>
+inline void Oppsite(v a[3], v *b){b[0]=-a[0]; b[1]=-a[1]; b[2]=-a[2]; return;}
 
 /** Check if the variable is numerical. */
 inline bool Numerical(double v){return (!isnan(v) && !isinf(v));}

@@ -3820,8 +3820,6 @@ void CreateEdges(Home_t *home, InData_t *inData, int cubeLength,
  */
             InitRemesh(inData, dislocType, startRemeshIndex);
 			
-			
-
             lastBlock = (ic == numChains - 1);
             if (lastBlock) {
                 IncDislocationDensity(inData, totDislocLen);
@@ -3975,4 +3973,288 @@ void CreateLoopSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *t
 	inData->nodeCount = 0;
 	
     return;
+}
+
+void SliptArm(InData_t *inData, int id1, int id2, real8 burg[3], real8 n[3], int newNodeID, int inGrain, int onGB){
+   
+    inData->nodeCount +=1;
+    inData->node = (Node_t *)realloc(inData->node, inData->nodeCount*sizeof(Node_t));
+    Node_t *node1 = &inData->node[id1];
+    Node_t *node2 = &inData->node[id2];
+    memset(&inData->node[inData->nodeCount-1], 0, sizeof(Node_t) * 1);
+    Node_t *node = &inData->node[inData->nodeCount-1];
+    node->myTag.domainID = 0;
+    node->myTag.index = newNodeID;
+
+    node->x = 0.5*(node1->x + node2->x);
+    node->y = 0.5*(node1->y + node2->y);
+    node->z = 0.5*(node1->z + node2->z);
+    node->constraint = UNCONSTRAINED;
+    node->inGrain = inGrain; node->onGB = onGB;
+
+    AllocNodeArms(node, 2);
+	
+    node->nbrTag[0].domainID = 0;
+    node->nbrTag[0].index    = node1->myTag.index;
+    node->nbrTag[1].domainID = 0;
+    node->nbrTag[1].index    = node2->myTag.index;
+    
+    node->burgX[0] = -burg[0];
+    node->burgY[0] = -burg[1];
+    node->burgZ[0] = -burg[2];
+    
+    node->burgX[1] =  burg[0];
+    node->burgY[1] =  burg[1];
+    node->burgZ[1] =  burg[2];
+    
+    node->nx[0] = n[0];
+    node->ny[0] = n[1];
+    node->nz[0] = n[2];
+    	
+    node->nx[1] = n[0];
+    node->ny[1] = n[1];
+    node->nz[1] = n[2];
+
+    int id12 = GetArmID(node1, node2);
+    int id21 = GetArmID(node2, node1); 
+    if(id12 == id21 && id12 == -1){
+        id12 = node1->numNbrs;
+        ReallocNodeArms(node1, id12+1);
+        id21 = node2->numNbrs;
+        ReallocNodeArms(node2, id21+1);
+    }else{
+        if(id12 == -1 || id21 == -1)Fatal("can not find the relationship");
+    }
+    
+    node1->nbrTag[id12].domainID = 0;
+    node1->nbrTag[id12].index = newNodeID;
+    node1->burgX[id12] = burg[0];
+    node1->burgY[id12] = burg[1];
+    node1->burgZ[id12] = burg[2];
+    node1->nx[id12] = n[0];
+    node1->ny[id12] = n[1];
+    node1->nz[id12] = n[2];
+
+    node2->nbrTag[id21].domainID = 0;
+    node2->nbrTag[id21].index = newNodeID;
+    node2->burgX[id21] = -burg[0];
+    node2->burgY[id21] = -burg[1];
+    node2->burgZ[id21] = -burg[2];
+    node2->nx[id21] = n[0];
+    node2->ny[id21] = n[1];
+    node2->nz[id21] = n[2];
+    return;
+} 
+inline bool Perpendicular(Node_t *node1, Node_t *node2){
+    int id = GetArmID(node1, node2);
+    real8 lDir[3] = {node1->x-node2->x,node1->y-node2->y,node1->z-node2->z}; normalize_vec(lDir);
+    real8 n[3] = {node1->nx[id],node1->ny[id],node1->nz[id]};
+    return PerpendicularDirection(lDir,n);
+}
+
+void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen)
+{
+    int         nLoops = inArgs->numLoops;
+    int         seed = inArgs->seed;
+    const real8 cubeLength = real8(inArgs->cubeLength);
+    const real8   radius = inArgs->radius<=sqrt(3)/2?inArgs->radius*cubeLength:inArgs->radius;
+    const real8 invVol=1.0E0/(pow(cubeLength,3.0)*pow(2.556e-10,2));
+    const real8 maxDensity = inArgs->maxDensity;
+    BurgInfo_t  *bd; Grain_t *grain; GB_t *gb;
+    Node_t *node,  *nextNode;
+
+    int baseNodeID=0, randNum, grainID, burgID, newNodeIndex=0, startRemeshIndex=0;
+    inData->nodeCount = 0;
+    Param_t *param = inData->param;
+    real8   maxSeg = param->maxSeg;
+    real8   n0[3], n[4][3], p[4][3], cenPos[3], r, dis, lDirList[4][3],lPoiList[4][3];
+    real8   burg[3];
+    int     inGrain=-1, onGB=-1, ig, og, onGBList[4];
+    
+    home->param->materialType = MAT_TYPE_FCC;
+
+    for(int i=0; (i<nLoops) && (maxDensity>invVol*(*totDislocLen)); i++){
+        randNum = int(1.0E5*randm(&seed));
+        grainID=(nLoops>6*home->nGrains)&&(i<6*home->nGrains)?i/6:(randNum%(home->nGrains*6))/6;
+        burgID=(nLoops>6*home->nGrains)&&(i<6*home->nGrains)?i%6:randNum%6;
+        grain = home->grainKeys[grainID];
+        bd = &grain->burgData;
+        VECTOR_COPY(burg,bd->burgList[burgID]);
+        if(randm(&seed)>0.5){burg[0]=-burg[0];burg[1]=-burg[1];burg[2]=-burg[2];}
+        
+        while(true){
+            cenPos[0] = (randm(&seed)-0.5)*cubeLength;
+            cenPos[1] = (randm(&seed)-0.5)*cubeLength;
+            cenPos[2] = (randm(&seed)-0.5)*cubeLength;
+            NodeLocation(home, cenPos[0], cenPos[1], cenPos[2], inGrain, onGB);
+            if((inArgs->polycrystal==1 && inGrain == grainID && onGB <0) || (inArgs->polycrystal==0))break;
+        }
+        VECTOR_COPY(n[0],bd->planeList[bd->burgOnPlaneID[burgID][0]]);
+        VECTOR_COPY(n[1],bd->planeList[bd->burgOnPlaneID[burgID][1]]);
+        VECTOR_COPY(n[2],bd->planeList[bd->burgOnPlaneID[burgID][0]]);
+        VECTOR_COPY(n[3],bd->planeList[bd->burgOnPlaneID[burgID][1]]);
+        
+        if(inArgs->polycrystal==1 && (burgID%2)==1){
+            while(true){
+                int loopPlane = int(randm(&seed)*1.0E5)%4;
+                if(loopPlane == bd->burgOnPlaneID[burgID][0] || loopPlane == bd->burgOnPlaneID[burgID][1])continue;
+                VECTOR_COPY(n0, bd->planeList[loopPlane]);break;
+            }
+        }else{
+            if(inArgs->polycrystal==1){
+                VECTOR_COPY(n0, bd->planeList[3]);        
+            }else{
+                while(true){
+                    int loopPlane = int(randm(&seed)*1.0E5)%4;
+                    if(loopPlane == bd->burgOnPlaneID[burgID][0] || loopPlane == bd->burgOnPlaneID[burgID][1])continue;
+                    VECTOR_COPY(n0, bd->planeList[loopPlane]);break;
+                }
+            }
+        }
+
+        CoordAdd(1.0, cenPos, -radius, &n[0][0], &p[0][0]);
+        CoordAdd(1.0, cenPos, -radius, &n[1][0], &p[1][0]);
+        CoordAdd(1.0, cenPos,  radius, &n[2][0], &p[2][0]);
+        CoordAdd(1.0, cenPos,  radius, &n[3][0], &p[3][0]);
+
+        for(int j=0; j<4; j++){
+            onGBList[j] = -1;
+            if(LINE_INTERSECTION!=PlanePlaneIntersection(n0,cenPos,n[j],p[j],lDirList[j],lPoiList[j])){
+                Fatal("can not find line intersection");
+            }
+            CoordMinus(lPoiList[j],cenPos,lDirList[j]); normalize_vec(lDirList[j]);
+            CoordAdd(1.0,cenPos,radius,lDirList[j],lPoiList[j]);
+            NodeLocation(home, lPoiList[j][0],lPoiList[j][1],lPoiList[j][2], ig, og);
+            if((og<0 && inGrain==ig) || (!AlignedDirection(bd->planeList[3],n[j]))){
+                cross(n0,n[j],lDirList[j]); normalize_vec(lDirList[j]);
+                continue;
+            }
+        
+            r=10.0;
+            while(true){
+                CoordAdd(1.0,cenPos,r,lDirList[j],lPoiList[j]);
+                NodeLocation(home, lPoiList[j][0],lPoiList[j][1],lPoiList[j][2], ig, og);
+                if(ig!=inGrain)break;
+                r+=10.0;
+            }
+            ClosedGB(home, lPoiList[j], &gb); 
+            real8 vec[3]; if(POINT_INTERSECTION!=LinePlaneIntersection(lDirList[j],cenPos,gb->n,gb->p,vec,lPoiList[j])){
+                Fatal("can not find point intersection");
+            }
+            onGBList[j] = gb->GBID;
+            cross(n0,n[j],lDirList[j]); normalize_vec(lDirList[j]);
+        }
+        for(int j=0; j<4; j++)if(onGBList[j]>-1){onGBList[(j==0?3:j-1)]=onGBList[j]; j++;}
+        
+        for(int j=0; j<4; j++){
+            real8 vec[3], dis;
+            if(POINT_INTERSECTION!=LineLineIntersection(lDirList[j],lPoiList[j],lDirList[(j==3?0:j+1)],lPoiList[(j==3?0:j+1)],vec,p[j],&dis)){
+                Fatal("can not find point intersection!");
+            }
+        }        
+
+        newNodeIndex = inData->nodeCount;
+        inData->nodeCount += 4;
+        inData->node = (Node_t *)realloc(inData->node, inData->nodeCount*sizeof(Node_t));
+        memset(&inData->node[newNodeIndex], 0, sizeof(Node_t) * 4);
+
+        for(int j=0; j<4; j++){
+            if(!PerpendicularDirection(n[j],lDirList[j]))Fatal("n+_l");
+            if(!PerpendicularDirection(n[j],burg))Fatal("n+_burg");
+            node = &inData->node[baseNodeID+j];
+            int nextIndex = j==3?0:j+1;
+            int lastIndex = j==0?3:j-1;
+
+            node->myTag.domainID = 0;
+            node->myTag.index = baseNodeID+j;
+            node->x = p[j][0];
+            node->y = p[j][1];
+            node->z = p[j][2];
+
+            real8 ls[3]; CoordMinus(p[j],p[nextIndex],ls); normalize_vec(ls);
+            if(!PerpendicularDirection(ls, n[nextIndex]))Fatal("kkk");
+
+            node->constraint = UNCONSTRAINED;
+            if((onGBList[j]==-1)){
+                node->inGrain = inGrain; node->onGB = -1;
+            }else{
+                node->inGrain = -1; node->onGB = onGBList[j];
+            }
+            NodeLocation(home, node->x, node->y, node->z, ig,og);
+            if(node->onGB != og){
+                FormatVector(p[j],"p[j]");
+                FormatVector(n[j],"n[j]");
+                FormatVector(n[nextIndex],"n[nt]");
+                Fatal("[%d,%d]!=[%d,%d] onGBList[%d]=%d, onGBList[%d]=%d",node->inGrain,node->onGB,ig,og,j,onGBList[j],nextIndex,onGBList[nextIndex]);
+            }
+            
+            AllocNodeArms(node, 2);
+		 	
+            node->nbrTag[0].domainID = 0;
+            node->nbrTag[0].index    = lastIndex+baseNodeID;
+            node->nbrTag[1].domainID = 0;
+            node->nbrTag[1].index    = nextIndex+baseNodeID;
+            
+            node->burgX[0] = -burg[0];
+            node->burgY[0] = -burg[1];
+            node->burgZ[0] = -burg[2];
+            
+            node->burgX[1] =  burg[0];
+            node->burgY[1] =  burg[1];
+            node->burgZ[1] =  burg[2];
+            
+            node->nx[0] = n[j][0];
+            node->ny[0] = n[j][1];
+            node->nz[0] = n[j][2];
+            	
+            node->nx[1] = n[nextIndex][0];
+            node->ny[1] = n[nextIndex][1];
+            node->nz[1] = n[nextIndex][2];
+        }
+
+        int newNodeID = inData->nodeCount;
+        for(int j=0; j<4; j++){
+            int nextIndex = j==3?0:j+1;
+            node = &inData->node[baseNodeID+j];
+            nextNode = &inData->node[baseNodeID+nextIndex];
+            if(!Perpendicular(nextNode, node)) Fatal("%s: haha",__func__);
+   
+            if(node->onGB>-1 && nextNode->onGB>-1){
+                if(node->onGB!=nextNode->onGB){
+                    SliptArm(inData, baseNodeID+j, baseNodeID+nextIndex, burg, n[nextIndex], newNodeID++, inGrain, onGB);
+                }else{
+                    real8 b1[3], b2[3];
+                    std::vector<std::vector<Dislocation_t> >    disArray;
+                    std::vector<std::vector<real8> >            burgList;
+
+                    if(!GeometricCriterion(bd, burg, lDirList[nextIndex], n[nextIndex], 2,
+                       burgList, disArray)){
+                        Fatal("something wrong with geometric criterion");
+                    }
+                    if(disArray.size() != 1)printf("Warning: the extened dislcoation has some wrong\n");
+                    if(disArray[0].size() != 2)printf("Warning: the extened dislcoation has some wrong\n");
+                    
+                    VECTOR_COPY(b1, burgList[disArray[0][0].burgID]);
+                    VECTOR_COPY(b2, burgList[disArray[0][1].burgID]);
+                    SliptArm(inData, baseNodeID+j, baseNodeID+nextIndex, b1, n[nextIndex], newNodeID++, node->inGrain, node->onGB);
+                    node = &inData->node[baseNodeID+j];
+                    nextNode = &inData->node[baseNodeID+nextIndex];
+                    SliptArm(inData, baseNodeID+j, baseNodeID+nextIndex, b2, n[nextIndex], newNodeID++, node->inGrain, node->onGB);
+                }
+            }else{
+                SliptArm(inData, baseNodeID+j, baseNodeID+nextIndex, burg, n[nextIndex], newNodeID++, inGrain, onGB);
+            }
+        }
+
+        InitRemesh(inData, 0, startRemeshIndex);
+        baseNodeID = inData->nodeCount;
+        startRemeshIndex = baseNodeID;
+    } 
+
+	IncDislocationDensity(inData, totDislocLen);
+	param->nodeCount = inData->nodeCount;
+	WriteInitialNodeData(home, inData, 1);
+	FreeInNodeArray(inData, inData->nodeCount);
+	inData->nodeCount = 0;
+    return;   
 }

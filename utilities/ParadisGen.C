@@ -1310,7 +1310,8 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
                                     inArgs.numLoops, inArgs.radius,
                                     inArgs.seed, &totDislocLen, inArgs.type);
 #else
-                CreateLoopSource(&home, &inData, &inArgs, &totDislocLen);
+//              CreateLoopSource(&home, &inData, &inArgs, &totDislocLen);
+                CreateFCCPerfectLoop(&home, &inData, &inArgs, &totDislocLen);
 #endif
                 break;
         case FTYPE_FRANK_READ:

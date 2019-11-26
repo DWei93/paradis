@@ -17,15 +17,15 @@
 #
 #  Domain geometry
 #
-numXdoms = 4
-numYdoms = 4
+numXdoms = 2
+numYdoms = 2
 numZdoms = 2
 #
 #  Cell geometry
 #
-numXcells = 8
-numYcells = 8
-numZcells = 8
+numXcells = 4
+numYcells = 4
+numZcells = 4
 
 #
 # Mesh size for tecmesh
@@ -40,7 +40,7 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-dirname = "res.800nm-T1"
+dirname = "res.800nm-loop-3"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -67,21 +67,14 @@ fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 #
 #  Loading conditions
 #  
-loadType = 1
+loadType = 0
 indxErate = 8
-eRate =   -1.0E4
+eRate =   5.0E3
+#eRate =  0.0E0
 strRate = -4.0E16
 #strRate = 0.0
 #plaRateCtr = 2.0E4
-loadDir = [
-    0.0
-    0.0
-    1.0
-    0.0
-    0.0
-    0.0
-]
-  
+
 edotdir = [
   0.0
   1.0
@@ -127,14 +120,14 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 600
+tecplotfreq = 200
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1
 tecmeshfreq = 10000000
 savecn = 1
-savecnfreq = 10000
+savecnfreq = 2000
 savetimers = 0
-savetimersfreq = 50000
+savetimersfreq = 10
 velfile = 0
 velfilefreq = 1000
