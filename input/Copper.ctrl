@@ -40,7 +40,7 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-dirname = "res.800nm-loop-3"
+dirname = "res.800nm-loop-2"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -67,7 +67,7 @@ fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
 #
 #  Loading conditions
 #  
-loadType = 0
+loadType = 1
 indxErate = 8
 eRate =   5.0E3
 #eRate =  0.0E0
@@ -77,14 +77,14 @@ strRate = -4.0E16
 
 edotdir = [
   0.0
-  1.0
   0.0
+  1.0
   ] 
 
 appliedStress = [
 	0.0e0
 	0.0e0
-	0.0e0
+	2.0e8
 	0.0e0
 	0.0e0
 	0.0e0
@@ -120,7 +120,7 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 200
+tecplotfreq = 400
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1

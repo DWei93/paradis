@@ -390,465 +390,356 @@ static void FindCollisionPointAndTime(Home_t *home, real8 p1[3], real8 p2[3],
                                   real8 cPoint[3], real8 *cTime,
                                   real8 *minDist2, real8 *L1, real8 *L2)
 {
-        int   i, j;
-        int   planeDefined;
-        real8 dt, dist2;
-        real8 minTime, minTime2;
-        real8 dpVec1, dpVec2;
-        real8 dM, dM1, dM2, dM3;
-        real8 dMeps, dM1eps, dM2eps, dM3eps;
-        real8 dM1Max, dM2Max, dM3Max;
-        real8 eps = 1.0e-6;
-        real8 val[3] = {0, 0, 0};
-        real8 val2[3];
-        real8 valNoCollision[3] = {0, 0, 1000};
-        real8 sBar1[3], sBar2[3];
-        real8 vec1[3], vec2[3];
-        real8 vBar1[3], vBar2[3];
-        real8 rBar[3], drBar[3];
-        real8 rhs[3], R[3];
-        real8 matrix[3][3], matrixInverse[3][3], tmpMatrix[3][3];
-        real8 m2x2[2][2], m2x2Inverse[2][2];
+        int   i;
+        real8 A, B, C, D, E, F, G, H, J;
+        real8 dt, matDet, eps;
+        real8 L1a, L2a, L3, L3a;
+        real8 dist2, ddist2dt, minDist2Tol;
+        real8 tmpMat22[2][2], tmpMat22Inv[2][2];
+        real8 tmpVec2a[2], tmpVec2b[2];
+        real8 tmpVec3[3];
+        real8 R0[3], seg1[3], seg2[3], vDiff[3];
+        real8 uBar10[3], vBar10[3];
+        real8 rhs[3];
+        real8 mat[3][3], matInv[3][3];
 
+
+        eps = 1.0e-12;
         dt = home->param->deltaTT;
 
-        sBar1[0] = 0.5 * (p1[0] + p2[0]);
-        sBar1[1] = 0.5 * (p1[1] + p2[1]);
-        sBar1[2] = 0.5 * (p1[2] + p2[2]);
-
-        sBar2[0] = 0.5 * (p3[0] + p4[0]);
-        sBar2[1] = 0.5 * (p3[1] + p4[1]);
-        sBar2[2] = 0.5 * (p3[2] + p4[2]);
-
-        vec1[0] = p2[0] - p1[0];
-        vec1[1] = p2[1] - p1[1];
-        vec1[2] = p2[2] - p1[2];
-
-        vec2[0] = p4[0] - p3[0];
-        vec2[1] = p4[1] - p3[1];
-        vec2[2] = p4[2] - p3[2];
-
-        vBar1[0] = 0.5 * dt * (v1[0] + v2[0]);
-        vBar1[1] = 0.5 * dt * (v1[1] + v2[1]);
-        vBar1[2] = 0.5 * dt * (v1[2] + v2[2]);
-
-        vBar2[0] = 0.5 * dt * (v3[0] + v4[0]);
-        vBar2[1] = 0.5 * dt * (v3[1] + v4[1]);
-        vBar2[2] = 0.5 * dt * (v3[2] + v4[2]);
-
-        rBar[0] = sBar1[0] - sBar2[0];
-        rBar[1] = sBar1[1] - sBar2[1];
-        rBar[2] = sBar1[2] - sBar2[2];
-
-        *minDist2 = DotProduct(rBar, rBar);
-        minTime2 = 0.0;
-
-        drBar[0] = vBar1[0] - vBar2[0];
-        drBar[1] = vBar1[1] - vBar2[1];
-        drBar[2] = vBar1[2] - vBar2[2];
-
-/*
- *      Create the decision matrix and the right hand side
- */
-        dpVec1 = DotProduct(vec1, vec1);
-        dpVec2 = DotProduct(vec2, vec2);
-
-        tmpMatrix[0][0] =  dpVec1 * 0.5;
-        tmpMatrix[0][1] = -(DotProduct(vec1, vec2));
-        tmpMatrix[0][2] = DotProduct(drBar, vec1);
-        tmpMatrix[1][0] = 0.0;
-        tmpMatrix[1][1] =  dpVec2 * 0.5;
-        tmpMatrix[1][2] = -(DotProduct(drBar, vec2));
-        tmpMatrix[2][0] = 0.0;
-        tmpMatrix[2][1] = 0.0;
-        tmpMatrix[2][2] = DotProduct(drBar, drBar) * 0.5;
-
         for (i = 0; i < 3; i++) {
-            for (j = 0; j < 3; j++) {
-                matrix[i][j] = tmpMatrix[i][j] + tmpMatrix[j][i];
-            }
+            R0[i] = p1[i] - p3[i];
+            seg1[i] = p2[i] - p1[i];
+            seg2[i] = p4[i] - p3[i];
+            vBar10[i] = (v1[i] + v2[i]) * 5.0 * dt;
+            uBar10[i] = (v3[i] + v4[i]) * 5.0 * dt;
+            vDiff[i] = vBar10[i] - uBar10[i];
         }
 
-        rhs[0] = -(DotProduct(rBar, vec1));
-        rhs[1] =   DotProduct(rBar, vec2);
-        rhs[2] = -(DotProduct(rBar, drBar));
+        A =   DotProduct(seg1, seg1);
+        B = -(DotProduct(seg1, seg2));
+        C =   DotProduct(seg1, vDiff);
+        D =   DotProduct(seg2, seg2);
+        E = -(DotProduct(seg2, vDiff));
+        F =   DotProduct(vDiff, vDiff);
+        G =   DotProduct(R0, seg1);
+        H = -(DotProduct(R0, seg2));
+        J =   DotProduct(R0, vDiff);
 
-        dM = Matrix33Det(matrix);
+        mat[0][0] = A;  mat[0][1] = C;  mat[0][2] = B;
+        mat[1][0] = C;  mat[1][1] = F;  mat[1][2] = E;
+        mat[2][0] = B;  mat[2][1] = E;  mat[2][2] = D;
 
-        dM1 = matrix[0][0] * matrix[1][1] - 
-              matrix[0][1] * matrix[1][0];
-
-        dM2 = matrix[0][0] * matrix[2][2] - 
-              matrix[0][2] * matrix[2][0];
-
-        dM3 = matrix[1][1] * matrix[2][2] - 
-              matrix[1][2] * matrix[2][1];
-
-/*
- *      Further down we enter blocks of code only if the determinants
- *      of the 2x2 matrices formed from components of matrix are
- *      sufficiently greater than zero.  Using a single hard-coded 'eps'
- *      value isn't good enough, so calculate a unique 'eps' value 
- *      for each of the determinants based on the components of
- *      the matrix used for the 2x2 sub-matrix.  However, don't let
- *      the calculated dM*eps value drop below the base 'eps' value.
- *
- *      First get the eps for dM1
- */
-        dM1Max = MAX(fabs(matrix[0][0]), fabs(matrix[0][1]));
-        dM1Max = MAX(dM1Max, fabs(matrix[1][0]));
-        dM1Max = MAX(dM1Max, fabs(matrix[1][1]));
-        dM1eps = dM1Max * eps;
-        dM1eps = MAX(dM1eps, eps);
+        rhs[0] = -G;
+        rhs[1] = -J;
+        rhs[2] = -H;
 
 /*
- *      Now for dM2
+ *      Check the solution of all the faces, edges and corners.
  */
-        dM2Max = MAX(fabs(matrix[0][0]), fabs(matrix[0][2]));
-        dM2Max = MAX(dM2Max, fabs(matrix[2][0]));
-        dM2Max = MAX(dM2Max, fabs(matrix[2][2]));
-        dM2eps = dM2Max * eps;
-        dM2eps = MAX(dM2eps, eps);
+        L3 = 0.0;  /* Start with zero time */
+
+        GetMinDist(p1[0], p1[1], p1[2], v1[0], v1[1], v1[2],
+                   p2[0], p2[1], p2[2], v2[0], v2[1], v2[2],
+                   p3[0], p3[1], p3[2], v3[0], v3[1], v3[2],
+                   p4[0], p4[1], p4[2], v4[0], v4[1], v4[2],
+                   minDist2, &ddist2dt, L1, L2);
 
 /*
- *      Now dM3
+ *      Check the end node pairs of the segments
  */
-        dM3Max = MAX(fabs(matrix[1][1]), fabs(matrix[1][2]));
-        dM3Max = MAX(dM3Max, fabs(matrix[2][1]));
-        dM3Max = MAX(dM3Max, fabs(matrix[2][2]));
-        dM3eps = dM3Max * eps;
-        dM3eps = MAX(dM3eps, eps);
+        if (F > eps) {
 
-/*
- *      Lastly, dMeps should be the maximum of dM1eps, dM2eps and dM3eps
- */
-        dMeps = MAX(MAX(dM1eps, dM2eps), dM3eps);
+            L1a = 0.0;  /* Check for this node 1 on seg1 */
+            L2a = 0.0;  /* Check for this node 1 on seg2 */
+            L3a = J / -F;
 
-/*
- *      Check all of the finite ends of the values
- */
-        for (i = 0; i < 4; i++) {
-            switch(i) {
-                case 0:
-                    val2[0] = 0.5; val2[1] = 0.5; val2[2] = 0.0;
-                    break;
-                case 1:
-                    val2[0] =  0.5; val2[1] = -0.5; val2[2] =  0.0;
-                    break;
-                case 2:
-                    val2[0] = -0.5; val2[1] =  0.5; val2[2] =  0.0;
-                    break;
-                case 3:
-                    val2[0] = -0.5; val2[1] = -0.5; val2[2] =  0.0;
-                    break;
-            }
+            if (L3a > 0.0) {
 
-            if (matrix[2][2] > eps) {
-                val2[2] = (rhs[2]-(matrix[2][0]*val2[0]+matrix[2][1]*val2[1]))/
-                          matrix[2][2];
-                val2[2] = MAX(val2[2], 0.0);
-            }
-
-            for (j = 0; j < 3; j++) {
-                R[j] = rBar[j] + (vec1[j]*val2[0]) - (vec2[j]*val2[1]) +
-                       (drBar[j]*val2[2]);
-            }
-
-            dist2 = DotProduct(R,R);
-
-            if ((dist2 < *minDist2) ||
-                ((dist2 == *minDist2) && (val2[2] < minTime))) {
-                *minDist2 = dist2;
-                minTime = val2[2];
-                VECTOR_COPY(val, val2);
-            }
-
-        }  /* end loop checking finite ends */
-
-/*
- *      Check zero time
- */
-        if (fabs(dM1) > dM1eps) {
-            real8 m2x2[2][2], m2x2Inverse[2][2];
-
-            val2[2] = 0.0;
-
-            m2x2[0][0] = matrix[0][0];
-            m2x2[0][1] = matrix[0][1];
-            m2x2[1][0] = matrix[1][0];
-            m2x2[1][1] = matrix[1][1];
-
-            Matrix22Invert(m2x2, m2x2Inverse);
-            Matrix22Vector2Mult(m2x2Inverse, rhs, val2);
-
-            if (fabs(val2[0]) > 0.5) {
-                val2[0] = MIN(0.5, MAX(val2[0], -0.5));
-                val2[1] = (rhs[1]-(matrix[1][0]*val2[0])) / matrix[1][1];
-                if (fabs(val2[0]) <= 0.5) {
-                    for (i = 0; i < 3; i++) {
-                        R[j] = rBar[i] +
-                               (vec1[i]*val2[0]) -
-                               (vec2[i]*val2[1]) +
-                               (drBar[i]*val2[2]);
-                    }
-
-                    dist2 = DotProduct(R,R);
-
-                    if ((dist2 < *minDist2) ||
-                        ((dist2 == *minDist2) && (val2[2] < minTime))) {
-                        *minDist2 = dist2;
-                        minTime = val2[2];
-                        VECTOR_COPY(val, val2);
-                    }
-                }
-            } else if (fabs(val2[1] > 0.5)) {
-                val2[1] = MIN(0.5, MAX(val2[1], -0.5));
-                val2[0] = (rhs[0]-(matrix[0][1]*val2[1])) / matrix[0][0];
-                if (fabs(val2[0]) <= 0.5) {
-                    for (i = 0; i < 3; i++) {
-                        R[j] = rBar[i] +
-                               (vec1[i]*val2[0]) -
-                               (vec2[i]*val2[1]) +
-                               (drBar[i]*val2[2]);
-                    }
-
-                    dist2 = DotProduct(R,R);
-
-                    if ((dist2 < *minDist2) ||
-                        ((dist2 == *minDist2) && (val2[2] < minTime))) {
-                        *minDist2 = dist2;
-                        minTime = val2[2];
-                        VECTOR_COPY(val, val2);
-                    }
-                }
-            } else {
                 for (i = 0; i < 3; i++) {
-                    R[j] = rBar[i] +
-                           (vec1[i]*val2[0]) -
-                           (vec2[i]*val2[1]) +
-                           (drBar[i]*val2[2]);
+                    tmpVec3[i] = R0[i] + vDiff[i] * L3a;
                 }
 
-                dist2 = DotProduct(R,R);
-
-                if ((dist2 < *minDist2) ||
-                    ((dist2 == *minDist2) && (val2[2] < minTime))) {
+                dist2 = DotProduct(tmpVec3, tmpVec3);
+              
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
                     *minDist2 = dist2;
-                    minTime = val2[2];
-                    VECTOR_COPY(val, val2);
                 }
             }
-        }
+
+            L1a = 1.0;  /* Check for this node 2 on seg1 */
+            L2a = 0.0;  /* Check for this node 1 on seg2 */
+            L3a = (J + C) / -F;
+
+            if (L3a > 0.0) {
+
+                for (i = 0; i < 3; i++) {
+                    tmpVec3[i] = R0[i] + seg1[i] + vDiff[i] * L3a;
+                }
+
+                dist2 = DotProduct(tmpVec3, tmpVec3);
+
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
+                    *minDist2 = dist2;
+                }
+            }
+
+            L1a = 0.0;  /* Check for this node 1 on seg1 */
+            L2a = 1.0;  /* Check for this node 2 on seg2 */
+            L3a = (J + E) / -F;
+
+            if (L3a > 0.0) {
+
+                for (i = 0; i < 3; i++) {
+                    tmpVec3[i] = R0[i] - seg2[i] + vDiff[i] * L3a;
+                }
+
+                dist2 = DotProduct(tmpVec3, tmpVec3);
+
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
+                    *minDist2 = dist2;
+                }
+            }
+
+            L1a = 1.0;  /* Check for this node 2 on seg1 */
+            L2a = 1.0;  /* Check for this node 2 on seg2 */
+            L3a = (J + C + E) / -F;
+
+            if (L3a > 0.0) {
+
+                for (i = 0; i < 3; i++) {
+                    tmpVec3[i] = R0[i] + seg1[i] - seg2[i] + vDiff[i] * L3a;
+                }
+
+                dist2 = DotProduct(tmpVec3, tmpVec3);
+
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
+                    *minDist2 = dist2;
+                }
+            }
+
+        } /* end if (F > eps) */
 
 /*
- *      At this point all checks have been done for zero time and
- *      all of the endpoints of the segments.  Now perform check to get
- *      only one endpoint of segment in finite time.
+ *      Check single end nodes on seg1
  */
-        if (fabs(dM3) > dM3eps) {
-            real8 vecTemp1[2];
-            val2[0] = 0.5;
+        if (fabs(D*F - E*E) > eps) {
+            L1a = 0.0;
+            tmpMat22[0][0] = mat[1][1];
+            tmpMat22[0][1] = mat[1][2];
+            tmpMat22[1][0] = mat[2][1];
+            tmpMat22[1][1] = mat[2][2];
 
-            m2x2[0][0] = matrix[1][1];
-            m2x2[0][1] = matrix[1][2];
-            m2x2[1][0] = matrix[2][1];
-            m2x2[1][1] = matrix[2][2];
+            Matrix22Invert(tmpMat22, tmpMat22Inv);
+            Matrix22Vector2Mult(tmpMat22Inv, &rhs[1], tmpVec2a);
 
-            Matrix22Invert(m2x2, m2x2Inverse);
+            if ((tmpVec2a[1] >= 0.0) &&
+                (tmpVec2a[1] <= 1.0) &&
+                (tmpVec2a[0] >= 0.0)) {
 
-            vecTemp1[0] = rhs[1] - matrix[1][0] * val2[0];
-            vecTemp1[1] = rhs[2] - matrix[2][0] * val2[0];
+                L2a = tmpVec2a[1];
+                L3a = tmpVec2a[0];
 
-            Matrix22Vector2Mult(m2x2Inverse, vecTemp1, &val2[1]);
-
-            if ((fabs(val2[1]) <= 0.5) && (val2[2] >= 0.0)) {
                 for (i = 0; i < 3; i++) {
-                    R[j] = rBar[i] +
-                           (vec1[i]*val2[0]) -
-                           (vec2[i]*val2[1]) +
-                           (drBar[i]*val2[2]);
+                    tmpVec3[i] = R0[i] - (seg2[i] * L2a) + (vDiff[i] * L3a);
                 }
 
-                dist2 = DotProduct(R,R);
+                dist2 = DotProduct(tmpVec3, tmpVec3);
 
-                if ((dist2 < *minDist2) ||
-                    ((dist2 == *minDist2) && (val2[2] < minTime))) {
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
                     *minDist2 = dist2;
-                    minTime = val2[2];
-                    VECTOR_COPY(val, val2);
                 }
             }
 
-            val2[0] = -0.5;
+            L1a = 1.0;
 
-            vecTemp1[0] = rhs[1] - matrix[1][0] * val2[0];
-            vecTemp1[1] = rhs[2] - matrix[2][0] * val2[0];
+            tmpVec2a[0] = rhs[1] - mat[1][0];
+            tmpVec2a[1] = rhs[2] - mat[2][0];
+ 
+            /* note: tmpMat22Inv calculated above */
+            Matrix22Vector2Mult(tmpMat22Inv, tmpVec2a, tmpVec2b);
 
-            Matrix22Vector2Mult(m2x2Inverse, vecTemp1, &val2[1]);
+            if ((tmpVec2b[1] >= 0.0) &&
+                (tmpVec2b[1] <= 1.0) &&
+                (tmpVec2b[0] >= 0.0)) {
 
-            if ((fabs(val2[1]) <= 0.5) && (val2[2] >= 0.0)) {
+                L2a = tmpVec2b[1];
+                L3a = tmpVec2b[0];
+
                 for (i = 0; i < 3; i++) {
-                    R[j] = rBar[i] +
-                           (vec1[i]*val2[0]) -
-                           (vec2[i]*val2[1]) +
-                           (drBar[i]*val2[2]);
+                    tmpVec3[i] = R0[i] - (seg2[i] * L2a) + (vDiff[i] * L3a);
                 }
 
-                dist2 = DotProduct(R,R);
+                dist2 = DotProduct(tmpVec3, tmpVec3);
 
-                if ((dist2 < *minDist2) ||
-                    ((dist2 == *minDist2) && (val2[2] < minTime))) {
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
                     *minDist2 = dist2;
-                    minTime = val2[2];
-                    VECTOR_COPY(val, val2);
                 }
             }
-        }
 
-        if (fabs(dM2) > dM2eps) {
-            real8 vecTemp1[3], vecTemp2[3];
-            val2[1] = 0.5;
+        } /* end if (fabs(D*F - E*E) > eps) */
 
-            m2x2[0][0] = matrix[0][0];
-            m2x2[0][1] = matrix[0][2];
-            m2x2[1][0] = matrix[2][0];
-            m2x2[1][1] = matrix[2][2];
+/*
+ *      Check single end nodes on seg2
+ */
+        if (fabs(A*F - C*C) > eps) {
+
+            L2a = 0.0;
+
+            tmpMat22[0][0] = mat[0][0];
+            tmpMat22[0][1] = mat[0][1];
+            tmpMat22[1][0] = mat[1][0];
+            tmpMat22[1][1] = mat[1][1];
+
+            Matrix22Invert(tmpMat22, tmpMat22Inv);
+            Matrix22Vector2Mult(tmpMat22Inv, rhs, tmpVec2a);
+
+            if ((tmpVec2a[0] >= 0.0) &&
+                (tmpVec2a[0] <= 1.0) &&
+                (tmpVec2a[1] >= 0.0)) {
+
+                L1a = tmpVec2a[0];
+                L3a = tmpVec2a[1];
+
+                for (i = 0; i < 3; i++) {
+                    tmpVec3[i] = R0[i] + (seg1[i] * L1a) + (vDiff[i] * L3a);
+                }
+
+                dist2 = DotProduct(tmpVec3, tmpVec3);
+
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
+                    *minDist2 = dist2;
+                }
+            }
             
-            vecTemp1[0] = rhs[0] - matrix[0][1] * val2[1];
-            vecTemp1[1] = rhs[2] - matrix[2][1] * val2[1];
+            L2a = 1.0;
 
-            Matrix22Invert(m2x2, m2x2Inverse);
-            Matrix22Vector2Mult(m2x2Inverse, vecTemp1, vecTemp2);
+            tmpVec2a[0] = rhs[0] - mat[0][2];
+            tmpVec2a[1] = rhs[1] - mat[1][2];
+ 
+            /* note: tmpMat22Inv calculated above */
+            Matrix22Vector2Mult(tmpMat22Inv, tmpVec2a, tmpVec2b);
 
-            val2[0] = vecTemp2[0];
-            val2[2] = vecTemp2[1];
+            if ((tmpVec2b[0] >= 0.0) &&
+                (tmpVec2b[0] <= 1.0) &&
+                (tmpVec2b[1] >= 0.0)) {
 
-            if ((fabs(val2[0]) <= 0.5) && (val2[2] >= 0.0)) {
+                L1a = tmpVec2b[0];
+                L3a = tmpVec2b[1];
+
                 for (i = 0; i < 3; i++) {
-                    R[j] = rBar[i] +
-                           (vec1[i]*val2[0]) -
-                           (vec2[i]*val2[1]) +
-                           (drBar[i]*val2[2]);
+                    tmpVec3[i] = R0[i] + (seg1[i] * L1a) - seg2[i] +
+                                 (vDiff[i] * L3a);
                 }
 
-                dist2 = DotProduct(R,R);
+                dist2 = DotProduct(tmpVec3, tmpVec3);
 
-                if ((dist2 < *minDist2) ||
-                    ((dist2 == *minDist2) && (val2[2] < minTime))) {
+                if (dist2 < *minDist2) {
+                    *L1 = L1a;
+                    *L2 = L2a;
+                    L3 = L3a;
                     *minDist2 = dist2;
-                    minTime = val2[2];
-                    VECTOR_COPY(val, val2);
                 }
             }
 
-            val2[1] = -0.5;
+        }  /* end if (fabs(A*F - C*C) > eps) */
 
-            vecTemp1[0] = rhs[0] - matrix[0][1] * val2[1];
-            vecTemp1[1] = rhs[2] - matrix[2][1] * val2[1];
+        matDet = Matrix33Det(mat);
 
-            Matrix22Vector2Mult(m2x2Inverse, vecTemp1, vecTemp2);
+        if (fabs(matDet) > eps) {
 
-            val2[0] = vecTemp2[0];
-            val2[2] = vecTemp2[1];
-
-            if ((fabs(val2[0]) <= 0.5) && (val2[2] >= 0.0)) {
-                for (i = 0; i < 3; i++) {
-                    R[j] = rBar[i] +
-                           (vec1[i]*val2[0]) -
-                           (vec2[i]*val2[1]) +
-                           (drBar[i]*val2[2]);
-                }
-
-                dist2 = DotProduct(R,R);
-
-                if ((dist2 < *minDist2) ||
-                    ((dist2 == *minDist2) && (val2[2] < minTime))) {
-                    *minDist2 = dist2;
-                    minTime = val2[2];
-                    VECTOR_COPY(val, val2);
-                }
-            }
-        }
-
-/*
- *      Check the general case
- */
-        if (fabs(dM) > dMeps) {
-            if (!Matrix33Invert(matrix, matrixInverse)) {
+            if (!Matrix33Invert(mat, matInv)) {
 #if 0
-                Fatal("Non-invertable matrix at %s line %d",
-                      __FILE__, __LINE__);
+                Fatal("Unable to invert matrix in FindCollisionPointAndTime");
 #endif
                 *L1 = 0.0;
                 *L2 = 0.0;
                 *cTime = -1;
+
                 return;
             }
 
-            Matrix33Vector3Multiply(matrixInverse, rhs, val2);
+            Matrix33Vector3Multiply(matInv, rhs, tmpVec3);
 
-            if ((fabs(val2[0]) <= 0.5) &&
-                (fabs(val2[1]) <= 0.5) &&
-                (val2[2] >= 0.0)) {
+            if ((tmpVec3[0] >= 0.0) && (tmpVec3[0] <= 1.0) &&
+                (tmpVec3[2] >= 0.0) && (tmpVec3[2] <= 1.0) &&
+                (tmpVec3[1] >= 0.0)) {
+/*
+ *              An interior point has been found
+ */
+                *L1 = tmpVec3[0];
+                *L2 = tmpVec3[2];
+                L3 = tmpVec3[1];
 
                 for (i = 0; i < 3; i++) {
-                    R[j] = rBar[i] +
-                           (vec1[i]*val2[0]) -
-                           (vec2[i]*val2[1]) +
-                           (drBar[i]*val2[2]);
+                    tmpVec3[i] = R0[i] + (seg1[i] * *L1) - (seg2[i] * *L2) +
+                                 (vDiff[i] * L3);
                 }
 
-                dist2 = DotProduct(R,R);
-
-                if ((dist2 < *minDist2) ||
-                    ((dist2 == *minDist2) && (val2[2] < minTime))) {
-                    *minDist2 = dist2;
-                    minTime = val2[2];
-                    VECTOR_COPY(val, val2);
-                }
+                *minDist2 = DotProduct(tmpVec3, tmpVec3);
             }
-        }
+
+        } /* end if (fabs(matDet) > eps) */
+
 
 /*
- *      Calculate the distance between colliding points and see if it
- *      will be within the collision distance in the future.
- *
  *      In general, if the dislocation segments on their current
  *      trajectories will not eventually intersect we don't want
  *      to do a collision and set the collision time negative to
- *      indicate no collision.  However, if we are enforcing glide
- *      planes but allowing some fuzziness in them relax the criteria
- *      a little and treat the segments as if they were colliding if
- *      the minimum distance between them is less than the annihilation
- *      distance.
- *
- *      Note:  we *may* also want to relax the collision criteria any
- *      time glide planes are not being enforced...
+ *      indicate no collision.  First, determine the tolerance for
+ *      deciding if the segments will be within collision distance in
+ *      the future.  Use a tight tolerance if strict glide planes
+ *      are enforced, loosen up the tolerance a little in all
+ *      other cases.
  */
         if (home->param->enforceGlidePlanes &&
-            home->param->allowFuzzyGlidePlanes) {
-            if (*minDist2 > home->param->rann) {
-/*
- *              Distance between segments exceeds the threshold
- */
-                val[2] = -1.0;
-            }
-        } else if (*minDist2 > (eps*eps)) {
-/*
- *          Segments are not on a collision course.
- */
-            val[2] = -1.0;
+            (home->param->allowFuzzyGlidePlanes == 0)) {
+            minDist2Tol = eps;
+        } else {
+            minDist2Tol = 1.0;
         }
 
-        *L1 = val[0] + 0.5;
-        *L2 = val[1] + 0.5;
-        *cTime = val[2];  /* given in terms of multiples of dt */
 
-        for (i = 0; i < 3; i++) {
-            cPoint[i] = 0.5 * (sBar1[i] + sBar2[i] +
-                               (vec1[i] * val[0]) +
-                               (vec2[i] * val[1]) +
-                               ((vBar1[i] + vBar2[i]) * val[2]));
+/*
+ *      If collision criteria is not met, set collision time to a
+ *      negative value.  Otherwise calculate the collision point and
+ *      time.
+ */
+        if (*minDist2 > minDist2Tol) {
+
+            *cTime = -1.0;
+
+        } else {
+
+            *cTime = 10.0 * L3;
+
+            for (i = 0; i < 3; i++) {
+                cPoint[i] = 0.5 * ((p1[i] + p3[i]) +
+                                   (*L1 * seg1[i]) +
+                                   (*L2 * seg2[i]) +
+                                   (vBar10[i] + uBar10[i]) * L3);
+            }
         }
 
         return;
@@ -903,7 +794,7 @@ void PredictiveCollisions(Home_t *home)
         real8   vec1[3], vec2[3], vec3[3];
         real8   p1[3], p2[3], p3[3], p4[3];
         real8   v1[3], v2[3], v3[3], v4[3];
-        real8   pos[3], dis;
+        real8   pos[3];
         Tag_t   oldTag1, oldTag2;
         Node_t  *node1, *node2, *node3, *node4, *tmpNbr;
         Node_t  *mergenode1, *mergenode2, *targetNode;
@@ -913,7 +804,9 @@ void PredictiveCollisions(Home_t *home)
         int     gbIndex;
         Plane_t plane;
         Param_t *param;
+        int newInGrain, newOnGB, type; real8 dis; bool canMerge;
 
+        int     gbCollision;
 #if ENABLE_COMPLICATED_REACTION
         int     splitInGrain, splitOnGB;
 #endif
@@ -1067,12 +960,11 @@ void PredictiveCollisions(Home_t *home)
                                 continue;
                             }
 
+                            gbCollision = 0;
                             if(home->param->polycrystal){
                                 GetArmGrain(home, node1, node2, inGrain1, onGB1);
                                 GetArmGrain(home, node3, node4, inGrain2, onGB2);
 #if ENABLE_COMPLICATED_REACTION
-                                if(onGB1 != onGB2)continue;
-                                if(onGB1 == -1 && inGrain1 != inGrain2)continue;
 
                                 splitInGrain = -1;
                                 splitOnGB = -1;
@@ -1083,8 +975,10 @@ void PredictiveCollisions(Home_t *home)
                                         continue;
                                     }else if(onGB1 > -1){
                                         splitOnGB = onGB1;
+                                        gbCollision = 2;
                                     }else if(onGB2 > -1){
                                         splitOnGB = onGB2;
+                                        gbCollision = 2;
                                     }else{
                                         continue;
                                     }
@@ -1099,6 +993,7 @@ void PredictiveCollisions(Home_t *home)
                                         if(GetPublicGB(home, home->grainKeys[inGrain1],
                                            home->grainKeys[inGrain2], &gb, refPos)){
                                            splitOnGB = gb->GBID;
+                                            gbCollision = 1;
                                         }else{
                                             continue;
                                         }
@@ -1229,7 +1124,6 @@ void PredictiveCollisions(Home_t *home)
  *                              that node.
  */
                                 adjustCollisionPoint = 0;
-                            
                                 vec1[0] = cPoint[0] - p1[0];
                                 vec1[1] = cPoint[1] - p1[1];
                                 vec1[2] = cPoint[2] - p1[2];
@@ -1258,6 +1152,15 @@ void PredictiveCollisions(Home_t *home)
                                     splitSeg1 = 1;
                                 }
 
+                                if(gbCollision){
+                                    printf("Task %d, gb collision %d on (%d,%d): (%d,%d,%d)--(%d,%d,%d) * (%d,%d,%d)--(%d,%d,%d)\n",
+                                            home->myDomain, gbCollision, splitInGrain, splitOnGB,
+                                            node1->myTag.domainID,node1->myTag.index,node1->inGrain,
+                                            node2->myTag.domainID,node2->myTag.index,node2->inGrain,
+                                            node3->myTag.domainID,node3->myTag.index,node3->inGrain,
+                                            node4->myTag.domainID,node4->myTag.index,node4->inGrain);
+                                }
+                            
 /*
  *                              If we need to add a new node to the first
  *                              segment, do it now.
@@ -1326,7 +1229,7 @@ void PredictiveCollisions(Home_t *home)
                                                              &splitNode2, 0
 #if ENABLE_COMPLICATED_REACTION
                                                              ,node1->inGrain, node1->onGB
-                                                             ,splitInGrain, splitOnGB
+                                                             ,inGrain1, onGB1
 #endif
                                                                             );
 /*
@@ -1391,24 +1294,21 @@ void PredictiveCollisions(Home_t *home)
  *                                  topological changes taking place and
  *                                  the nodes involved
  */
-#ifdef DEBUG_TOPOLOGY_CHANGES
-                                    if ((dbgDom < 0)||(dbgDom == home->myDomain)) {
-                                        printf("  Split-1(SegCollision): "
+                                    if(gbCollision){
+                                        printf("%d  Split-1(SegCollision): "
                                                "(%d,%d)--(%d,%d) ==> "
-                                               "(%d,%d)--(%d,%d)--(%d,%d)\n",
+                                               "(%d,%d,%d)--(%d,%d,%d)--(%d,%d,%d)\n",home->myDomain,
                                                oldTag1.domainID, oldTag1.index,
                                                oldTag2.domainID, oldTag2.index,
                                                splitNode1->myTag.domainID,
                                                splitNode1->myTag.index,
+                                               splitNode1->inGrain,
                                                splitNode2->myTag.domainID,
                                                splitNode2->myTag.index,
+                                               splitNode2->inGrain,
                                                node2->myTag.domainID,
-                                               node2->myTag.index);
-                                        PrintNode(splitNode1);
-                                        PrintNode(splitNode2);
-                                        PrintNode(node2);
+                                               node2->myTag.index, node2->inGrain);
                                      }
-#endif
 /*
  *                                   When we actually do a collision, we flag
  *                                   it so we don't attempt additional changes
@@ -1530,7 +1430,7 @@ void PredictiveCollisions(Home_t *home)
 
 #if ENABLE_COMPLICATED_REACTION
                                                             ,node3->inGrain, node3->onGB
-                                                            ,splitInGrain, splitOnGB
+                                                            ,inGrain2, onGB2
 #endif
                                                                             );
 /*
@@ -1594,32 +1494,26 @@ void PredictiveCollisions(Home_t *home)
  *                                   topological changes taking place and
  *                                   the nodes involved
  */
-#ifdef DEBUG_TOPOLOGY_CHANGES
-                                     if ((dbgDom < 0) ||
-                                         (dbgDom == home->myDomain)) {
-                                         printf("  Split-2(SegCollision): "
+                                     if (gbCollision) {
+                                         printf("%d  Split-2(SegCollision): "
                                                "(%d,%d)--(%d,%d) ==> "
-                                               "(%d,%d)--(%d,%d)--(%d,%d)\n",
+                                               "(%d,%d,%d)--(%d,%d,%d)--(%d,%d,%d)\n", home->myDomain,
                                                oldTag1.domainID,
                                                oldTag1.index,
                                                oldTag2.domainID,
                                                oldTag2.index,
                                                splitNode1->myTag.domainID,
-                                               splitNode1->myTag.index,
+                                               splitNode1->myTag.index, splitNode1->inGrain,
                                                splitNode2->myTag.domainID,
-                                               splitNode2->myTag.index,
+                                               splitNode2->myTag.index, splitNode2->inGrain,
                                                node4->myTag.domainID,
-                                               node4->myTag.index);
-                                         PrintNode(splitNode1);
-                                         PrintNode(splitNode2);
-                                         PrintNode(node4);
+                                               node4->myTag.index,node3->inGrain);
                                     }
-#endif
                                 }  /* if (splitSeg2) */
     
                                 if(SurfaceNode(mergenode1) && SurfaceNode(mergenode2))continue;
-                                if(mergenode1->onGB != onGB1 || mergenode2->onGB != onGB1)continue;
-                                if(mergenode1->inGrain != inGrain1 || mergenode2->inGrain != inGrain1)continue;
+//                              if(mergenode1->onGB != onGB1 || mergenode2->onGB != onGB2)continue;
+//                              if(mergenode1->inGrain != inGrain1 || mergenode2->inGrain != inGrain2)continue;
     
 /*
  *                             If the initially selected collision point
@@ -1639,6 +1533,12 @@ void PredictiveCollisions(Home_t *home)
                                }
                                 
                                FoldBox(param, newPos, newPos+1, newPos+2);
+
+                               if(gbCollision){
+                                    printf("%d ",home->myDomain); PrintTag(mergenode1); PrintTag(mergenode2);
+                                    printf("plan to merge at {%g,%g,%g}\n",newPos[0],newPos[1],newPos[2]);
+                                    
+                               }
     
 #ifdef _FEM
 /*
@@ -1678,86 +1578,47 @@ void PredictiveCollisions(Home_t *home)
                                oldTag2 = mergenode2->myTag;
                     
                                if(param->polycrystal){
-#if ENABLE_COMPLICATED_REACTION
-                                    inGrain1 = splitInGrain;
-                                    onGB1 = splitOnGB;
-
-                                    if(IsOnGB(mergenode1) || IsOnGB(mergenode2)){
-                                        inGrain1 = -1;
-                                
-                                        if(IsOnGB(mergenode1)){
-                                            onGB1 = mergenode1->onGB;
-                                            if(IsOnGB(mergenode2) && mergenode1->onGB != mergenode2->onGB)continue;
-                                        }else{
-                                            onGB1 = mergenode2->onGB;
-                                        } 
-                                    }
-#else
-
-                                    inGrain1 = -1;
-                                    onGB1 = -1;
-                                    if(mergenode1->inGrain != mergenode2->inGrain){
-                                        if(IsOnGB(mergenode1) && IsOnGB(mergenode2) 
-                                           && mergenode1->onGB != mergenode2->onGB){
-                                            Fatal("in %s at %d", __FILE__, __LINE__);
-                                        }
-
-                                        if(IsOnGB(mergenode1)){
-                                            onGB1 = mergenode1->onGB;
-                                        }else if(IsOnGB(mergenode2)){
-                                            onGB1 = mergenode2->onGB;
-                                        }else{
-                                            GetArmGrain(home, mergenode1, mergenode2,
-                                                        inGrain1, onGB1);
-                                        }
-
-                                    }else{
-                                        GetArmGrain(home, mergenode1, mergenode2,
-                                                    inGrain1, onGB1);
-                                    }
-#endif
-
-                                    NodeLocation(home, newPos[0], newPos[1], newPos[2],
-                                                 inGrain2, onGB2);
-
-                                    VECTOR_COPY(vec1, newPos);
-                                    
-                                    if(onGB1 > -1 && onGB2 != onGB1){
-                                        NewPosToGB(home, mergenode1, -1, onGB1, newPos, vec1);
-                                        NewPosToGB(home, mergenode2, -1, onGB1, newPos, vec2);
-                                        vec1[0] -= vec2[0];
-                                        vec1[1] -= vec2[1];
-                                        vec1[2] -= vec2[2];
-                                        ZImage(param, vec1, vec1+1, vec1+2);
-
-                                        if(Normal(vec1) > 5){
-                                            PrintNode(mergenode1);
-                                            PrintNode(mergenode2);
-                                            printf("Warning: can not merge the two nodes in PredictiveCollision. %f\n",
-                                                   Normal(vec1));
+                                    NodeLocation(home, newPos[0],newPos[1],newPos[2],newInGrain,newOnGB);
+                                    if(splitOnGB>-1){
+                                        gb = home->GBKeys[splitOnGB];
+                                        PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
+                                        if(fabs(dis)>2.0*param->rTol){
+                                            printf("Task %d: adjust merge pos to gb={%g,%g,%g}\n",home->myDomain,newPos[0],newPos[1],newPos[2]);
                                             continue;
                                         }
-
-                                        newPos[0] = vec2[0] + 0.5*vec1[0];
-                                        newPos[1] = vec2[1] + 0.5*vec1[1];
-                                        newPos[2] = vec2[2] + 0.5*vec1[2];
-                                    }else if(onGB1 == -1 && inGrain1 != inGrain2){
-
-                                        AdjustSplitedNodePosition(home, mergenode1, newPos, vec1);
-                                        AdjustSplitedNodePosition(home, mergenode2, newPos, vec2);
-
-                                        vec1[0] -= vec2[0];
-                                        vec1[1] -= vec2[1];
-                                        vec1[2] -= vec2[2];
-                                        ZImage(param, vec1, vec1+1, vec1+2);
-
-                                        newPos[0] = vec2[0] + 0.5*vec1[0];
-                                        newPos[1] = vec2[1] + 0.5*vec1[1];
-                                        newPos[2] = vec2[2] + 0.5*vec1[2];
+                                    }else{
+                                        if(newInGrain != splitInGrain)continue;
                                     }
-                               }else{
-                                    inGrain1 = -1;
-                                    onGB1 = -1;
+                                    canMerge = BeforeMergeNodes(home, mergenode1, mergenode2, newPos, &dis, type);
+                                    if(!canMerge){
+                                        printf("Task %d: can not merge, newPos={%g,%g,%g}, dis=%g, type=%d\n",
+                                                home->myDomain,newPos[0],newPos[1],newPos[2], dis, type); 
+                                        continue; 
+                                    }
+                                    if(gbCollision)printf("Task %d: adjust merge pos ={%g,%g,%g}\n",home->myDomain,newPos[0],newPos[1],newPos[2]);                                   
+                                    if(gbCollision>0 && fabs(dis)>2*param->rTol){
+                                        printf("Task %d: can not adjust, newPos={%g,%g,%g}, dis=%g, type=%d\n",
+                                                home->myDomain,newPos[0],newPos[1],newPos[2], dis, type); 
+                                        continue; 
+                                    }
+                                    NodeLocation(home, newPos[0],newPos[1],newPos[2],newInGrain,newOnGB);
+                                    if(splitOnGB<0){if(newInGrain != splitInGrain)continue;}
+                                    else{
+                                       if(splitOnGB!=newOnGB){
+                                           int time;
+                                           for(time=0; newOnGB!=splitOnGB && fabs(dis)>1.0E-3 && time<100; time++){
+                                               PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
+                                               canMerge = BeforeMergeNodes(home, mergenode1, mergenode2, newPos, &dis, type);
+                                               NodeLocation(home, newPos[0],newPos[1],newPos[2],newInGrain,newOnGB);
+                                           }
+                                           if(newOnGB==splitOnGB || fabs(dis)<=1.0E-3){
+                                                printf("Task %d: interation succed, times=%d, newPos={%g,%g,%g}\n",home->myDomain, time, newPos[0],newPos[1],newPos[2]);
+                                           }else{
+                                                printf("Task %d: interation faild, times=%d, newPos={%g,%g,%g}\n",home->myDomain, time, newPos[0],newPos[1],newPos[2]);
+                                                continue;
+                                            }
+                                       }
+                                   }
                                }
                                FoldBox(param, newPos, newPos+1, newPos+2);
 
@@ -1765,7 +1626,7 @@ void PredictiveCollisions(Home_t *home)
                                          mergenode2, newPos, &targetNode,
                                          &mergeStatus, globalOp
 #if ENABLE_COMPLICATED_REACTION
-                                         ,inGrain1, onGB1
+                                         ,splitInGrain, splitOnGB
 #endif
 
                                         );
@@ -1831,7 +1692,7 @@ void PredictiveCollisions(Home_t *home)
                                                      targetNode->z, inGrain1, onGB1);
                                         if(inGrain1 != targetNode->inGrain){
                                             PrintNode(targetNode);
-                                            Fatal("There is something wrong in %s at %d %d - 1",
+                                            Fatal("Task %d There is something wrong in %s at %d %d - 1",home->myDomain,
                                                    __FILE__, __LINE__, mergeStatus);
                                         } 
                                    }
@@ -1899,13 +1760,13 @@ void PredictiveCollisions(Home_t *home)
                     node3 = GetNodeFromTag(home, node1->nbrTag[j]);
                     node4 = GetNodeFromTag(home, node1->nbrTag[k]);
 
+                    splitInGrain = -1;
+                    splitOnGB = -1;
+                    gbCollision = 0;
                     if(home->param->polycrystal){
                         GetArmGrain(home, node1, node3, inGrain1, onGB1);
                         GetArmGrain(home, node1, node4, inGrain2, onGB2);
                                 
-#if ENABLE_COMPLICATED_REACTION
-                        splitInGrain = -1;
-                        splitOnGB = -1;
                         if(onGB1 > -1 || onGB2 > -1){
                             if(onGB1 == onGB2){
                                 splitOnGB = onGB1;
@@ -1913,8 +1774,10 @@ void PredictiveCollisions(Home_t *home)
                                 continue;
                             }else if(onGB1 > -1){
                                 splitOnGB = onGB1;
+                                gbCollision = 2;
                             }else if(onGB2 > -1){
                                 splitOnGB = onGB2;
+                                gbCollision = 2;
                             }else{
                                 continue;
                             }
@@ -1929,15 +1792,12 @@ void PredictiveCollisions(Home_t *home)
                                 if(GetPublicGB(home,home->grainKeys[inGrain1],
                                    home->grainKeys[inGrain2], &gb,refPos)){
                                    splitOnGB = gb->GBID;
+                                    gbCollision =1;
                                 }else{
                                     continue;
                                 }
                             }
                         }
-#else
-                        if(onGB1 != onGB2)continue;
-                        if(onGB1 == -1 && inGrain1 != inGrain2)continue;
-#endif
                     }
 
                     x1 = node1->x; y1 = node1->y; z1 = node1->z;
@@ -2107,7 +1967,7 @@ void PredictiveCollisions(Home_t *home)
                                                      &splitNode2, 0
 #if ENABLE_COMPLICATED_REACTION
                                                      ,node1->inGrain, node1->onGB
-                                                     ,splitInGrain, splitOnGB
+                                                     ,inGrain2, onGB2
 #endif
                                                                      );
 
@@ -2124,19 +1984,6 @@ void PredictiveCollisions(Home_t *home)
  *                           beginning of the next.
  */
                              mergenode2 = splitNode2;
-
-                             if(AdjustSplitedNodePosition(home, mergenode2, newPos, pos)){
-                                 VECTOR_COPY(newPos, pos);
-                                 mergenode2->x = newPos[0];
-                                 mergenode2->y = newPos[1];
-                                 mergenode2->z = newPos[2];
-                
-                                 if(node1 != mergenode2){
-                                     mergenode2->oldx = newPos[0];
-                                     mergenode2->oldy = newPos[1];
-                                     mergenode2->oldz = newPos[2];
-                                 }
-                             }
 
                              MarkNodeForceObsolete(home, splitNode1);
                              MarkNodeForceObsolete(home, splitNode2);
@@ -2166,24 +2013,19 @@ void PredictiveCollisions(Home_t *home)
  *                           When debugging, dump some info on topological
  *                           changes taking place and the nodes involved
  */
-#ifdef DEBUG_TOPOLOGY_CHANGES
-                             if ((dbgDom < 0)||(dbgDom == home->myDomain)) {
-                                 printf("  Split-1(Hinge): "
+                             if (gbCollision) {
+                                 printf("%d,%d Split-1(Hinge): "
                                         "(%d,%d)--(%d,%d) ==> "
-                                        "(%d,%d)--(%d,%d)--(%d,%d)\n",
+                                        "(%d,%d,%d)--(%d,%d,%d)--(%d,%d,%d)\n", home->myDomain,gbCollision,
                                         oldTag1.domainID, oldTag1.index,
                                         oldTag2.domainID, oldTag2.index,
                                         splitNode1->myTag.domainID,
-                                        splitNode1->myTag.index,
-                                        splitNode2->myTag.domainID,
-                                        splitNode2->myTag.index,
+                                        splitNode1->myTag.index, splitNode1->inGrain,
+                                        splitNode2->myTag.domainID, 
+                                        splitNode2->myTag.index,splitNode2->inGrain,
                                         node4->myTag.domainID,
-                                        node4->myTag.index);
-                                 PrintNode(splitNode1);
-                                 PrintNode(splitNode2);
-                                 PrintNode(node4);
+                                        node4->myTag.index,node4->inGrain);
                              }
-#endif
                         }
 
 /*
@@ -2200,7 +2042,10 @@ void PredictiveCollisions(Home_t *home)
                         }
 
                         FoldBox(param, &newPos[0], &newPos[1], &newPos[2]);
-
+                        if(gbCollision){
+                             printf("%d ",home->myDomain); PrintTag(mergenode1); PrintTag(mergenode2);
+                             printf("plan to merge at {%g,%g,%15.7e}\n",newPos[0],newPos[1],newPos[2]);
+                        }
 /*
  *                      The merge is going to happen, so there's a few
  *                      more nodes we'll need to mark for force/velocity
@@ -2235,92 +2080,55 @@ void PredictiveCollisions(Home_t *home)
                         oldTag2 = mergenode2->myTag;
 
                         if(param->polycrystal){
-#if ENABLE_COMPLICATED_REACTION
-                            inGrain1 = splitInGrain;
-                            onGB1 = splitOnGB;
-                            
-                            if(IsOnGB(mergenode1) || IsOnGB(mergenode2)){
-                                inGrain1 = -1;
-
-                                if(IsOnGB(mergenode1)){
-                                    onGB1 = mergenode1->onGB;
-                                    if(IsOnGB(mergenode2) && mergenode1->onGB != mergenode2->onGB)continue;
-                                }else{
-                                    onGB1 = mergenode2->onGB;
-                                } 
-                            }
-#else
-                            inGrain1 = -1;
-                            onGB1 = -1;
-                            if(mergenode1->inGrain != mergenode2->inGrain){
-                                if(IsOnGB(mergenode1) && IsOnGB(mergenode2) 
-                                   && mergenode1->onGB != mergenode2->onGB){
-                                    Fatal("in %s at %d", __FILE__, __LINE__);
-                                }
-
-                                if(IsOnGB(mergenode1)){
-                                    onGB1 = mergenode1->onGB;
-                                }else if(IsOnGB(mergenode2)){
-                                    onGB1 = mergenode2->onGB;
-                                }else{
-                                    GetArmGrain(home, mergenode1, mergenode2,
-                                                inGrain1, onGB1);
-                                }
-
-                            }else{
-                                GetArmGrain(home, mergenode1, mergenode2,
-                                            inGrain1, onGB1);
-                            }
-#endif
-
-                             NodeLocation(home, newPos[0], newPos[1], newPos[2],
-                                          inGrain2, onGB2);
-
-                             VECTOR_COPY(vec1, newPos);
-                             
-                             if(onGB1 > -1 && onGB2 != onGB1){
-                                 NewPosToGB(home, mergenode1, -1, onGB1, newPos, vec1);
-                                 NewPosToGB(home, mergenode2, -1, onGB1, newPos, vec2);
-                                 vec1[0] -= vec2[0];
-                                 vec1[1] -= vec2[1];
-                                 vec1[2] -= vec2[2];
-                                 ZImage(param, vec1, vec1+1, vec1+2);
-                                 if(Normal(vec1) > 5){
-                                     PrintNode(mergenode1);
-                                     PrintNode(mergenode2);
-                                     printf("Warning: can not merge the two nodes in PredictiveCollision. %f\n",
-                                            Normal(vec1));
+                             NodeLocation(home, newPos[0],newPos[1],newPos[2],newInGrain,newOnGB);
+                             if(splitOnGB>-1){
+                                 gb = home->GBKeys[splitOnGB];
+                                 PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
+                                 if(fabs(dis)>2.0*param->rTol){
+                                     printf("Hinge Task %d: adjust merge pos to gb={%g,%g,%15.7e}\n",home->myDomain,newPos[0],newPos[1],newPos[2]);
                                      continue;
                                  }
-
-                                 newPos[0] = vec2[0] + 0.5*vec1[0];
-                                 newPos[1] = vec2[1] + 0.5*vec1[1];
-                                 newPos[2] = vec2[2] + 0.5*vec1[2];
                              }else{
-                                 if(onGB1 == -1 && inGrain1 != inGrain2){
-                                     AdjustSplitedNodePosition(home, mergenode1, newPos, vec1);
-                                     AdjustSplitedNodePosition(home, mergenode2, newPos, vec2);
-
-                                     vec1[0] -= vec2[0];
-                                     vec1[1] -= vec2[1];
-                                     vec1[2] -= vec2[2];
-                                     ZImage(param, vec1, vec1+1, vec1+2);
-
-                                     newPos[0] = vec2[0] + 0.5*vec1[0];
-                                     newPos[1] = vec2[1] + 0.5*vec1[1];
-                                     newPos[2] = vec2[2] + 0.5*vec1[2];
-                                 }
+                                 if(newInGrain != splitInGrain)continue;
                              }
-                        }else{
-                            inGrain1 = -1;
-                            onGB1 = -1;
+                             canMerge = BeforeMergeNodes(home, mergenode1, mergenode2, newPos, &dis, type);
+                             if(!canMerge){
+                                 printf("Hinge Task %d: can not merge, newPos={%g,%g,%15.7e}, dis=%g, type=%d\n",
+                                         home->myDomain,newPos[0],newPos[1],newPos[2], dis, type); 
+                                 continue; 
+                             }
+                             if(gbCollision)printf("Task %d: adjust merge pos ={%g,%g,%15.7e}\n",home->myDomain,newPos[0],newPos[1],newPos[2]);                                   
+                             if(gbCollision>0 && fabs(dis)>2*param->rTol){
+                                 printf("Hinge Task %d: can not adjust, newPos={%g,%g,%15.7e}, dis=%g, type=%d\n",
+                                         home->myDomain,newPos[0],newPos[1],newPos[2], dis, type); 
+                                 continue; 
+                             }
+                             NodeLocation(home, newPos[0],newPos[1],newPos[2],newInGrain,newOnGB);
+                             if(splitOnGB<0){if(newInGrain != splitInGrain)continue;}
+                             else{
+                                if(splitOnGB!=newOnGB){
+                                    int time;
+                                    for(time=0; newOnGB!=splitOnGB && fabs(dis)>1.0E-3 && time<100; time++){
+                                        PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
+                                        canMerge = BeforeMergeNodes(home, mergenode1, mergenode2, newPos, &dis, type);
+                                        NodeLocation(home, newPos[0],newPos[1],newPos[2],newInGrain,newOnGB);
+                                    }
+                                    if(newOnGB==splitOnGB || fabs(dis)<=1.0E-3){
+                                        printf("Task %d: interation succed, times=%d, newPos={%g,%g,%g}\n",home->myDomain, time, newPos[0],newPos[1],newPos[2]);
+                                    }else{
+                                        printf("Task %d: interation faild, times=%d, newPos={%g,%g,%g}\n",home->myDomain, time, newPos[0],newPos[1],newPos[2]);
+                                        continue;
+                                    }
+                                }
+                            }
                         }
 
+                        FoldBox(param, &newPos[0], &newPos[1], &newPos[2]);
                         MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                   mergenode2, newPos, &targetNode,
                                   &mergeStatus, globalOp
 #if ENABLE_COMPLICATED_REACTION
-                                  , inGrain1, onGB1
+                                  , splitInGrain, splitOnGB
 #endif
                                  );
 
@@ -2366,17 +2174,14 @@ void PredictiveCollisions(Home_t *home)
                             targetNode->flags |= NODE_RESET_FORCES;
                             targetNode->flags |= NO_COLLISIONS;
 
-#ifdef DEBUG_TOPOLOGY_CHANGES
-                            if ((dbgDom < 0) || (dbgDom == home->myDomain)) {
-                                printf("  Merge(HingeCollision): "
-                                       "(%d,%d) and (%d,%d) at (%d,%d)\n",
+                            if (gbCollision) {
+                                printf("Hinge(%d,%d)  Merge(HingeCollision): "
+                                       "(%d,%d) and (%d,%d) at (%d,%d)\n",home->myDomain,gbCollision,
                                        oldTag1.domainID, oldTag1.index,
                                        oldTag2.domainID, oldTag2.index,
                                        targetNode->myTag.domainID,
                                        targetNode->myTag.index);
-                                PrintNode(targetNode);
                             }
-#endif
 #ifdef DEBUG_LOG_MULTI_NODE_SPLITS
                             targetNode->multiNodeLife = 0;
 #endif

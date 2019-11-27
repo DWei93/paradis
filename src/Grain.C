@@ -2118,7 +2118,7 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                     break;
                 case 2:
                     type = LinePlaneIntersection(glideConstraintsNode2[2], p2, glideConstraintsNode1[0], p1,
-                           vec1, vec2, 0.01, 1.0E-4);
+                           vec1, vec2, 0.05, 1.0E-4);
                     if(type == NO_INTERSECTION)
                         type=fabs(PointPlaneDistance(p2, glideConstraintsNode1[0], p1))<err?LINE_INTERSECTION:NO_INTERSECTION;
                     break;
@@ -2138,13 +2138,13 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
             switch (numGlideConstraintsNode2){
                 case 1:
                     type = LinePlaneIntersection(glideConstraintsNode1[2], p1, glideConstraintsNode2[0], p2,
-                           vec1, vec2, 0.01, 1.0E-4);
+                           vec1, vec2, 0.05, 1.0E-4);
                     if(type == NO_INTERSECTION)
                         type=fabs(PointPlaneDistance(p1, glideConstraintsNode2[0], p2))<err?LINE_INTERSECTION:NO_INTERSECTION;
                     break;
                 case 2:
                     LineLineIntersection(glideConstraintsNode1[2], p1, glideConstraintsNode2[2], p2,
-                           vec1, vec2, &dis, 0.01, 1.0E-4);
+                           vec1, vec2, &dis, 0.05, 1.0E-4);
                     if(fabs(DotProduct(glideConstraintsNode1[2],glideConstraintsNode2[2]))>0.98){
                         type = fabs(dis)<err?LINE_INTERSECTION:NO_INTERSECTION;
                         VECTOR_COPY(vec1, glideConstraintsNode1[2]);
@@ -2238,6 +2238,9 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
             Fatal("BeforeMergeArm: wrong type %d", type);
             break;
     }
+
+    CoordMinus(bakPos, pos, bakPos); ZImage(home->param, bakPos, bakPos+1, bakPos+2);
+    *dis = Normal(bakPos);
 
     if(fabs(*dis) > 1000.0 && type != POINT_INTERSECTION){
         int     numGlideConstraintsNode1, numGlideConstraintsNode2;
