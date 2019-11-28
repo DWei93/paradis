@@ -93,6 +93,104 @@ void InitGrainStructure(Grain_t *grain, int numBounds){
 }
 
 
+/** Draw polygon with tecplot formart
+ *  \param[in] fp file pointer for output
+ *  \param[in] f_vert vertices index list
+ *  \param[in] v coordinates of vertices
+ *  \param[in] startID the start index in f_vert for output polygon
+ *  \param[in] zoneName the zone name of tecplot
+ *  \param[in] vec the variales of the polygon */
+void DrawPolygon(FILE *fp, std::vector<int> &f_vert,std::vector<double> &v,int startID, char *zoneName, std::vector<int> &vec, bool startFromCentor=false){
+    real8 centor[3];
+    int n;
+    if(startFromCentor){
+        CentroidOfPolygon(f_vert,v,startID, centor);
+    }
+    n=f_vert[startID++];
+    if(startFromCentor)fprintf(fp,"Zone T = \"%s\", N = %d, E = %d, F = FEPOINT, ET = TRIANGLE\n", zoneName, n+1, n);
+    else fprintf(fp,"Zone T = \"%s\", N = %d, E = %d, F = FEPOINT, ET = TRIANGLE\n", zoneName, n, n-2);
+
+    std::vector<std::vector<int> > record(2);
+    record[0].resize(n);    record[1].resize(n);
+
+    for(int i=startID; i<startID+n; i++){
+        fprintf(fp, "%g %g %g", v[f_vert[i]*3], v[f_vert[i]*3+1], v[f_vert[i]*3+2]);
+        for(int j=0; j<vec.size(); j++)fprintf(fp," %d", vec[j]); 
+        fprintf(fp, "\n");
+        record[0][i-startID] = f_vert[i];   record[1][i-startID] = i-startID+1;        
+    }
+
+    if(startFromCentor){
+        fprintf(fp, "%g %g %g", centor[0], centor[1], centor[2]);
+        for(int j=0; j<vec.size(); j++)fprintf(fp," %d", vec[j]); 
+        fprintf(fp, "\n");
+
+        for(int i=startID; i<startID+n; i++){
+            int j;
+            for(j=0; j<n; j++)if(record[0][j] == f_vert[i])break;
+            fprintf(fp, "%d %d",n+1, record[1][j]);
+            for(j=0; j<n; j++)if(record[0][j] == f_vert[(i<startID+n-1?i+1:startID)])break;
+            fprintf(fp, " %d\n", record[1][j]);
+        }
+
+        
+    }else{
+        for(int i=startID+1; i<startID+n-1; i++){
+            int j;
+            for(j=1; j<n-1; j++)if(record[0][j] == f_vert[i])break;
+            fprintf(fp, "1 %d", record[1][j]);
+            for(j=2; j<n; j++)if(record[0][j] == f_vert[i+1])break;
+            fprintf(fp, " %d\n", record[1][j]);
+        }
+    }
+    return;
+}
+void DrawTetrahedron(FILE *fp, real8 rotMatrix[3][3], real8 r, real8 pos[3], std::vector<int> &vec, char *baseName)
+{
+    const real8 a=0.57735026918962576451;
+
+//  real8 d[3]={-a,-a,-a};
+//  real8 a[3]={a,-a,a};
+//  real8 b[3]={-a,a,a};
+//  real8 c[3]={a,a,-a};
+
+    real8 vCryst[12]={-a,-a,-a,  a,-a,a,  -a,a,a,  a,a,-a}, vLab[12]; 
+    std::vector<real8> vertices(12);
+    for(int i=0;i<4;i++){Matrix33Vector3Multiply(rotMatrix,vCryst+3*i,vLab+3*i); normalize_vec(vLab+i*3);}
+    for(int i=0;i<12;i++)vertices[i]=r*vLab[i];
+    for(int i=0;i<4;i++){vertices[3*i]+=pos[0]; vertices[3*i+1]+=pos[1];vertices[3*i+2]+=pos[2];}
+
+    std::vector<int> f_vert(16);
+    f_vert[0]=3; f_vert[1]=2; f_vert[2]=3; f_vert[3]=0;     // a plane  ID: 0
+    f_vert[4]=3; f_vert[5]=1; f_vert[6]=3; f_vert[7]=0;     // b plane  ID: 1
+    f_vert[8]=3; f_vert[9]=1; f_vert[10]=2; f_vert[11]=0;   // g plane  ID: 2
+    f_vert[12]=3; f_vert[13]=1; f_vert[14]=2; f_vert[15]=3; // d plane  ID: 3
+
+    char zoneName[256];
+    snprintf(zoneName,sizeof(zoneName),"%s-bcd",baseName);
+    vec[1]=0; DrawPolygon(fp, f_vert, vertices, 0, zoneName, vec);
+
+    snprintf(zoneName,sizeof(zoneName),"%s-acd",baseName);
+    vec[1]=1; DrawPolygon(fp, f_vert, vertices, 4, zoneName, vec);
+
+    snprintf(zoneName,sizeof(zoneName),"%s-abd",baseName);
+    vec[1]=2; DrawPolygon(fp, f_vert, vertices, 8, zoneName, vec);
+
+    snprintf(zoneName,sizeof(zoneName),"%s-abc",baseName);
+    vec[1]=3; DrawPolygon(fp, f_vert, vertices, 12, zoneName, vec, true);
+    return;
+}
+void DrawGrainBoundary(FILE *fp, Param_t *param, real8 z, char *zoneName, std::vector<int> &vec)
+{
+    real8 x=param->xBoundMax, y=param->yBoundMax;
+    real8 v[12]={x,y,z, x,-y,z, -x,-y,z, -x,y,z};
+    std::vector<real8> vertices(12);
+    for(int i=0; i<12; i++)vertices[i]=v[i];
+    std::vector<int> f_vert(5); f_vert[0]=4; for(int i=1;i<5;i++)f_vert[i]=i-1;    
+    DrawPolygon(fp, f_vert, vertices, 0, zoneName, vec);
+    return;
+}
+
 bool cmp3(SlipSys_t p, SlipSys_t q){
     return(p.schmid > q.schmid);
 }
@@ -517,6 +615,11 @@ void InitGrain(Home_t *home, Param_t *param){
         real8 thick = 2*lz/((real8)nGrain);       
 #endif	    	
 
+	    snprintf(fileName, sizeof(fileName), "planes.plt");
+		if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
+		    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
+		}
+        fprintf(fp,"variables = x, y, z, id1, id2\n");
         home->nGBs = home->nGrains;
         home->GBKeys = (GB_t **)malloc(home->nGrains*sizeof(GB_t *));   
         for(i=0; i<home->nGrains; i++){
@@ -569,9 +672,35 @@ void InitGrain(Home_t *home, Param_t *param){
 	        }
         }
 
+        char zoneName[256]; std::vector<int> indexs(2); real8 r=thick/3.0; real8 tPos[3];
+        indexs[0]=i; indexs[1]=4;
         for(i=0; i<home->nGBs; i++){
             GenerateGBBurgInfo(home, home->GBKeys[i]);    
+  
+            gb = home->GBKeys[i];
+
+            snprintf(zoneName,sizeof(zoneName),"GB-%d",i);
+            DrawGrainBoundary(fp, param, gb->p[2], zoneName, indexs);
         }
+
+        grain = home->grainKeys[0];
+        tPos[0]=grain->cx;  tPos[1]=grain->cy;
+        tPos[2]=-lz;
+        snprintf(zoneName,sizeof(zoneName),"tetrahedron-0-1");
+        DrawTetrahedron(fp, grain->orientation, r, tPos, indexs, zoneName);
+        
+        tPos[2]=lz;
+        snprintf(zoneName,sizeof(zoneName),"tetrahedron-0-2");
+        DrawTetrahedron(fp, grain->orientation, r, tPos, indexs, zoneName);
+
+        for(i=1; i<home->nGrains; i++){
+            grain = home->grainKeys[i];
+            tPos[0]=grain->cx;  tPos[1]=grain->cy;  tPos[2]=grain->cz-0.15*thick;
+            snprintf(zoneName,sizeof(zoneName),"tetrahedron-%d",i);
+            DrawTetrahedron(fp, grain->orientation, r, tPos, indexs, zoneName);
+        }
+
+        fclose(fp);
         return;
     }
 
