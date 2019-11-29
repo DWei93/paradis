@@ -2086,7 +2086,7 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
                 burg[1] = by;
                 burg[2] = bz;
 
-                if(Normal(dir) < 1.0E-4)printf("a zero length seg occured 4\n");
+                if(Normal(dir) < 1.0E-4){PrintTag(node1); PrintTag(node2);printf("-- zero segment length\n");}
                 FindGlidePlane(home, burg, dir, glidePlane,node1,node2);
 
                 gpDotgp = DotProduct(glidePlane, glidePlane);
