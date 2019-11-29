@@ -25,10 +25,10 @@
 
 
 #frlen=1800
-frlen=0.45
+frlen=0.4 
 cubel=6250
 maxSeg=320
-nfrs=6
+nfrs=12
 nGrains=1
 maxDensity=1E14
 

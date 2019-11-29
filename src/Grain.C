@@ -1114,9 +1114,10 @@ void InitGrain(Home_t *home, Param_t *param){
 	return;
 }
 
-void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB){
+
+void NodeLocation(Home_t *home, real8 pos[3], int& inGrain, int& onGB){
     int         i, j, nGrains, type, breakLoop = 0;
-    real8       vec[3], dis, pos[3], sign;
+    real8       vec[3], dis, sign;
 	Grain_t		*grain;
 	Param_t		*param;
 
@@ -1129,9 +1130,7 @@ void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& on
     }
 
 	nGrains = home->nGrains;
-    pos[0] = x;
-    pos[1] = y;
-    pos[2] = z;
+
     FoldBox(param, pos, pos+1, pos+2);
 
     for(i=0; i<nGrains; i++){
@@ -1636,15 +1635,17 @@ int AdjustNodeDirection(Home_t *home, Node_t *node, real8 *vec){
 
 
 real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB){
-	real8	    tempDistance, vec[3];
+	real8	    tempDistance, vec[3]={pos[0],pos[1],pos[2]},vec1[3];
 	real8 	    minDistance = 1e14;
 	GB_t 	    *temGB;
-	    	
+	    
     if(!home->param->polycrystal)return(0.0);
+   
     int     i;
+    FoldBox(home->param, vec, vec+1, vec+2);
     for(i=0; i<home->nGBs; i++){
         temGB = home->GBKeys[i];
-        PointPlaneIntersection(pos, temGB->n, temGB->p, vec, &tempDistance);
+        PointPlaneIntersection(vec, temGB->n, temGB->p, vec1, &tempDistance);
         if(fabs(tempDistance) < fabs(minDistance)){
             *GB = temGB;
             minDistance = tempDistance;

@@ -17,8 +17,8 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
-numYdoms = 2
+numXdoms = 4
+numYdoms = 4
 numZdoms = 2
 #
 #  Cell geometry
@@ -84,7 +84,7 @@ edotdir = [
 appliedStress = [
 	0.0e0
 	0.0e0
-	2.0e8
+	0.0e8
 	0.0e0
 	0.0e0
 	0.0e0
@@ -120,13 +120,13 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 400
+tecplotfreq = 2000
 saveprop = 1
-savepropfreq = 200
+savepropfreq = 400
 tecmesh = 1
 tecmeshfreq = 10000000
 savecn = 1
-savecnfreq = 2000
+savecnfreq = 20000
 savetimers = 0
 savetimersfreq = 10
 velfile = 0

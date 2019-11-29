@@ -4068,8 +4068,10 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
     Param_t *param = inData->param;
     real8   maxSeg = param->maxSeg;
     real8   n0[3], n[4][3], p[4][3], cenPos[3], r, dis, lDirList[4][3],lPoiList[4][3];
-    real8   burg[3];
+    real8   burg[3], gbPos[3];
     int     inGrain=-1, onGB=-1, ig, og, onGBList[4];
+    const int loopIDs[3][2]={{0,1},{0,2},{1,2}};
+    int      lID, pid1, pid2, nodeGBList[4];
     
     home->param->materialType = MAT_TYPE_FCC;
 
@@ -4089,15 +4091,20 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
             NodeLocation(home, cenPos[0], cenPos[1], cenPos[2], inGrain, onGB);
             if((inArgs->polycrystal==1 && inGrain == grainID && onGB <0) || (inArgs->polycrystal==0))break;
         }
-        VECTOR_COPY(n[0],bd->planeList[bd->burgOnPlaneID[burgID][0]]);
-        VECTOR_COPY(n[1],bd->planeList[bd->burgOnPlaneID[burgID][1]]);
-        VECTOR_COPY(n[2],bd->planeList[bd->burgOnPlaneID[burgID][0]]);
-        VECTOR_COPY(n[3],bd->planeList[bd->burgOnPlaneID[burgID][1]]);
+
+        lID = int(1.0E5*randm(&seed))%3; 
+        pid1=bd->burgOnPlaneID[burgID][loopIDs[lID][0]];
+        pid2=bd->burgOnPlaneID[burgID][loopIDs[lID][1]];
+        VECTOR_COPY(n[0],bd->planeList[pid1]);
+        VECTOR_COPY(n[1],bd->planeList[pid2]);
+        VECTOR_COPY(n[2],bd->planeList[pid1]);
+        VECTOR_COPY(n[3],bd->planeList[pid2]);
         
-        if(inArgs->polycrystal==1 && (burgID%2)==1){
+        if(inArgs->polycrystal==1 && (burgID%2==1)){
             while(true){
-                int loopPlane = int(randm(&seed)*1.0E5)%4;
-                if(loopPlane == bd->burgOnPlaneID[burgID][0] || loopPlane == bd->burgOnPlaneID[burgID][1])continue;
+                int loopPlane = int(randm(&seed)*1.0E5)%7;
+                if(loopPlane == bd->burgOnPlaneID[burgID][0] || loopPlane == bd->burgOnPlaneID[burgID][1] ||
+                   loopPlane == bd->burgOnPlaneID[burgID][2])continue; 
                 VECTOR_COPY(n0, bd->planeList[loopPlane]);break;
             }
         }else{
@@ -4105,8 +4112,9 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
                 VECTOR_COPY(n0, bd->planeList[3]);        
             }else{
                 while(true){
-                    int loopPlane = int(randm(&seed)*1.0E5)%4;
-                    if(loopPlane == bd->burgOnPlaneID[burgID][0] || loopPlane == bd->burgOnPlaneID[burgID][1])continue;
+                    int loopPlane = int(randm(&seed)*1.0E5)%7;
+                    if(loopPlane == bd->burgOnPlaneID[burgID][0] || loopPlane == bd->burgOnPlaneID[burgID][1] ||
+                       loopPlane == bd->burgOnPlaneID[burgID][2])continue; 
                     VECTOR_COPY(n0, bd->planeList[loopPlane]);break;
                 }
             }
@@ -4137,21 +4145,61 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
                 if(ig!=inGrain)break;
                 r+=10.0;
             }
-            ClosedGB(home, lPoiList[j], &gb); 
-            real8 vec[3]; if(POINT_INTERSECTION!=LinePlaneIntersection(lDirList[j],cenPos,gb->n,gb->p,vec,lPoiList[j])){
+            ClosedGB(home, lPoiList[j], &gb); VECTOR_COPY(gbPos, gb->p);
+            if(lPoiList[j][2]<param->zBoundMin)gbPos[2]+=(2.0*param->zBoundMin);
+            else if(lPoiList[j][2]>param->zBoundMax)gbPos[2]+=(2.0*param->zBoundMax);
+
+            real8 vec[3]; if(POINT_INTERSECTION!=LinePlaneIntersection(lDirList[j],cenPos,gb->n,gbPos,vec,lPoiList[j])){
                 Fatal("can not find point intersection");
             }
             onGBList[j] = gb->GBID;
             cross(n0,n[j],lDirList[j]); normalize_vec(lDirList[j]);
         }
-        for(int j=0; j<4; j++)if(onGBList[j]>-1){onGBList[(j==0?3:j-1)]=onGBList[j]; j++;}
         
         for(int j=0; j<4; j++){
-            real8 vec[3], dis;
-            if(POINT_INTERSECTION!=LineLineIntersection(lDirList[j],lPoiList[j],lDirList[(j==3?0:j+1)],lPoiList[(j==3?0:j+1)],vec,p[j],&dis)){
-                Fatal("can not find point intersection!");
+            real8 vec[3], dis; int type;
+            type =LineLineIntersection(lDirList[j],lPoiList[j],lDirList[(j==3?0:j+1)],lPoiList[(j==3?0:j+1)],vec,p[j],&dis,1.0E-3,1.0E-4);
+            if(type != POINT_INTERSECTION){
+                Fatal("can not find point intersection!, dis=%g, type =%d, j=%d",dis,type,j);
+            }
+            int nextIndex = j==3?0:j+1;
+            if(onGBList[j]==-1 && onGBList[nextIndex]==-1){
+                nodeGBList[j]=-1;
+            }else{
+                nodeGBList[j] = (onGBList[j]>-1?onGBList[j]:onGBList[nextIndex]);
             }
         }        
+        bool dangerLoop = (pid1!=3 && pid2!=3 && !AlignedDirection(n0, bd->planeList[3]))?true:false;
+        if(dangerLoop){
+            int j; for(j=0; j<4; j++){
+                NodeLocation(home, p[j][0],p[j][1],p[j][2], ig, og); if(ig!=inGrain)break;
+            }
+            if(j<4){
+                real8 ldir1[3]; CoordMinus(p[2],p[0],ldir1); normalize_vec(ldir1);
+                real8 ldir2[3]; CoordMinus(p[3],p[1],ldir2); normalize_vec(ldir2);
+                real8 vec1[3], vec2[3], lList[4][3];
+                int k,l; real8 factor=1.0;
+                if(LineLineIntersection(ldir1,p[0],ldir2,p[1],vec1,vec2,&dis)!=POINT_INTERSECTION){
+                    Fatal("%d: can not find intersection",__LINE__);
+                }
+                CoordMinus(cenPos,vec2,vec1); 
+                for(k=0; k<4; k++){CoordAdd(p[k],vec1,p[k]); CoordMinus(p[k],cenPos,lList[k]);}
+                for(k=0;k<4;k++){
+                    NodeLocation(home, p[k][0],p[k][1],p[k][2], ig, og); if(ig!=inGrain)break;
+                }
+                if(k<4){
+                    while(ig!=inGrain||og>-1){
+                        factor *= 0.98;
+                        for(l=0; l<4; l++){
+                            CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
+                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og);
+                            if(ig!=inGrain||og>-1)break;
+                        }
+                    }
+                    printf("interation succeed. factor=%g\n",factor);
+                }
+            }
+        }
 
         newNodeIndex = inData->nodeCount;
         inData->nodeCount += 4;
@@ -4175,17 +4223,17 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
             if(!PerpendicularDirection(ls, n[nextIndex]))Fatal("kkk");
 
             node->constraint = UNCONSTRAINED;
-            if((onGBList[j]==-1)){
+            if(onGBList[j]==-1 && onGBList[nextIndex]==-1){
                 node->inGrain = inGrain; node->onGB = -1;
             }else{
-                node->inGrain = -1; node->onGB = onGBList[j];
+                node->inGrain = -1; node->onGB = (onGBList[j]>-1?onGBList[j]:onGBList[nextIndex]);
             }
             NodeLocation(home, node->x, node->y, node->z, ig,og);
             if(node->onGB != og){
                 FormatVector(p[j],"p[j]");
                 FormatVector(n[j],"n[j]");
                 FormatVector(n[nextIndex],"n[nt]");
-                Fatal("[%d,%d]!=[%d,%d] onGBList[%d]=%d, onGBList[%d]=%d",node->inGrain,node->onGB,ig,og,j,onGBList[j],nextIndex,onGBList[nextIndex]);
+                Fatal("j=%d: [%d,%d]!=[%d,%d] onGBList[%d]=%d, onGBList[%d]=%d",j,node->inGrain,node->onGB,ig,og,j,onGBList[j],nextIndex,onGBList[nextIndex]);
             }
             
             AllocNodeArms(node, 2);
