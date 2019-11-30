@@ -487,12 +487,16 @@ void DebugGB(Home_t *home, int flag){
 
 	param = home->param;
 
+#ifdef DEBUG
+    home->flag = flag;
+#endif
 //    if(flag >= 4 && flag == 5){
 //	    printf("%d %d\n",home->myDomain, flag);
 //    }
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
 
+#if 0
         if ((node->numNbrs == 1) && (node->constraint == UNCONSTRAINED)) {
             PrintNode(node);
             snprintf(name,50,"singly-%d-%d",home->cycle, flag);
@@ -506,7 +510,6 @@ void DebugGB(Home_t *home, int flag){
         vec1[0] = node->x;
         vec1[1] = node->y;
         vec1[2] = node->z;
-#if 0
         if(flag < 18 || flag > 22){
             NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
             if(inGrain != node->inGrain && !IsOnGB(node)){
@@ -524,6 +527,15 @@ void DebugGB(Home_t *home, int flag){
                         home->myDomain, flag);
             }
 
+            if(node->onGB == -1 && nbr->onGB == -1){
+                if(node->inGrain!=nbr->inGrain){
+                    PrintNode(node);
+                    PrintNode(nbr);
+                    printf("Task %d, wrong inGrain, flag %d \n", 
+                        home->myDomain, flag);
+                }
+            }
+            continue;
             if(NodeDistance(home,node,nbr)>1000){
                 PrintNode(home, node);
                 PrintNode(home, nbr);

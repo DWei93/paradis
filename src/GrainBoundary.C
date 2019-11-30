@@ -2654,7 +2654,7 @@ void GBCrossSlip(Home_t *home)
             PointLineIntersection(gbNbrPos, interLine.direction, interLine.point,
                               newPos, &dis);
 
-            if(fabs(dis) > 4.0*param->rTol){
+            if(fabs(dis) > 10.0*param->rTol){
                 printf("Warning in side cross-slip - 1, dis %f\n", dis);
 	            RepositionNode(home, vec2, &node->myTag, 0);
                 continue;

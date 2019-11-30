@@ -411,7 +411,10 @@ struct _home {
 
         GB_t        **GBKeys;
         int         nGBs;
-		
+
+#ifdef DEBUG        
+        int         flag;
+#endif		
         real8	**pstnEle;
         real8	**disDenEle;
         real8   *randomForceTable;

@@ -1569,6 +1569,12 @@ void PrintNode(Node_t *node)
 #endif
         printf("\n");
 #endif
+        printf("  node(%d,%d) Flags: ",node->myTag.domainID, node->myTag.index);
+        if((node->flags&NODE_OUTSIDE_SURF)>0)printf("NODE_OUTSIDE_SURF ");
+        if((node->flags&NO_COLLISIONS    )>0)printf("NO_COLLISIONS     ");
+        if((node->flags&NO_MESH_COARSEN  )>0)printf("NO_MESH_COARSEN   ");
+        if((node->flags&NODE_CHK_DBL_LINK)>0)printf("NODE_CHK_DBL_LINK ");
+        printf("\n");
 
 #if 1
 /*
@@ -1654,6 +1660,12 @@ void PrintNode(Home_t *home, Node_t *node)
 		
         printf("\n");
 
+        printf("  node(%d,%d) Flags: ",node->myTag.domainID, node->myTag.index);
+        if((node->flags&NODE_OUTSIDE_SURF)>0)printf("NODE_OUTSIDE_SURF ");
+        if((node->flags&NO_COLLISIONS    )>0)printf("NO_COLLISIONS     ");
+        if((node->flags&NO_MESH_COARSEN  )>0)printf("NO_MESH_COARSEN   ");
+        if((node->flags&NODE_CHK_DBL_LINK)>0)printf("NODE_CHK_DBL_LINK ");
+        printf("\n");
 /*
  *      Print the nodal position
  */

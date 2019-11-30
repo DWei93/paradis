@@ -1515,6 +1515,7 @@ void PredictiveCollisions(Home_t *home)
                                 }  /* if (splitSeg2) */
     
                                 if(SurfaceNode(mergenode1) && SurfaceNode(mergenode2))continue;
+                                if(splitInGrain >-1 && (mergenode1->onGB>-1 || mergenode2->onGB>-1))continue;
 //                              if(mergenode1->onGB != onGB1 || mergenode2->onGB != onGB2)continue;
 //                              if(mergenode1->inGrain != inGrain1 || mergenode2->inGrain != inGrain2)continue;
     
@@ -1672,16 +1673,13 @@ void PredictiveCollisions(Home_t *home)
  *                             When debugging, dump some info on topological
  *                             changes taking place and the nodes involved
  */
-#ifdef DEBUG_TOPOLOGY_CHANGES
-                               if ((dbgDom < 0) || (dbgDom == home->myDomain)) {
-                                   printf("  Merge(SegCollision): "
-                                          "(%d,%d) and (%d,%d) at (%d,%d)\n",
-                                          oldTag1.domainID, oldTag1.index,
-                                          oldTag2.domainID, oldTag2.index,
-                                          targetNode->myTag.domainID,
-                                          targetNode->myTag.index);
-                                   PrintNode(targetNode);
-                               }
+#if 0
+                               printf("  Merge(SegCollision): "
+                                      "(%d,%d) and (%d,%d) at (%d,%d,%d,%d)\n",
+                                      oldTag1.domainID, oldTag1.index,
+                                      oldTag2.domainID, oldTag2.index,
+                                      targetNode->myTag.domainID,
+                                      targetNode->myTag.index, targetNode->inGrain, targetNode->onGB);
 #endif
 
 /*
@@ -2042,6 +2040,7 @@ void PredictiveCollisions(Home_t *home)
 #endif
                         }
 
+                        if(splitInGrain >-1 && (mergenode1->onGB>-1 || mergenode2->onGB>-1))continue;
 /*
  *                      If the initially selected collision point
  *                      was close enough to one of the segment
