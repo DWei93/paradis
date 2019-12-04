@@ -1918,9 +1918,6 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
 	        RepositionNode(home, newPos, &node->myTag, globalOp);
             return;
         }
-#if ENABLE_COMPLICATED_REACTION	
-        continue;
-#endif
 
         if(nbrInGrain[i].size() <= 2)continue;
 
@@ -1969,6 +1966,9 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             }
 	        RepositionNode(home, newPos, &splitNode2->myTag, globalOp);
             
+            splitNode1->flags |= NO_COLLISIONS;
+            splitNode2->flags |= NO_COLLISIONS;
+
             if(globalOp){
                 AssignGrain(home, splitNode2, nbrInGrain[i][0], -1);
             }else{
@@ -1982,6 +1982,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
                 printf("Warning in SplitIntersectNode at %d", __LINE__);
             }
 
+            printf("Task %d %s: split successed ", home->myDomain, __func__); PrintTag(splitNode1); PrintTag(splitNode2); printf("\n");
             if(node != splitNode1)return;
         }
     }
@@ -2164,7 +2165,9 @@ void GBCrossSlip(Home_t *home)
         if(firstCrossSlipNode){
             nbr1 = GetNeighborNode(home, node, 0);
             nbr2 = GetNeighborNode(home, node, 1);
+            if(nbr1==(Node_t *)NULL || nbr2==(Node_t *)NULL)continue;
 #if 1
+            if(nbr1->numNbrs>4 || nbr2->numNbrs>4)continue;
             if(nbr1->myTag.domainID != thisDomain ||
                nbr2->myTag.domainID != thisDomain)continue;
 #endif            
@@ -2647,6 +2650,7 @@ void GBCrossSlip(Home_t *home)
 	        MarkNodeNoMeshCoarsen(home, node); 
        
         }else if(sideCrossSlipNode >= 2){
+//          if(node->numNbrs + gbNbr->numNbrs >6){printf("Task %d %s: too much arms, skip\n",home->myDomain,__func__);continue;}
             VECTOR_COPY(vec2, nodePos);
 	        RepositionNode(home, interLine.point, &node->myTag, 0);
 
@@ -2692,9 +2696,20 @@ void GBCrossSlip(Home_t *home)
 
             FoldBox(param,newPos, newPos+1, newPos+2);
 
+                                printf("Task %d %d %s: (%d,%d,%d)-(%d,%d,%d) plan to merge at (%g,%g,%g)\n", home->myDomain,home->cycle, __func__,
+                                       node->myTag.domainID, node->myTag.index, node->inGrain,
+                                       gbNbr->myTag.domainID, gbNbr->myTag.index, gbNbr->inGrain,
+                                       newPos[0], newPos[1], newPos[2]);
             MergeNode(home, opClass, node, gbNbr, newPos,
                       &mergedNode, &mergeStatus, globalOp);
 
+                                if((mergeStatus & MERGE_SUCCESS) == 0){
+                                    printf("Task %d %s-2: merge failed, status %d\n", home->myDomain, __func__,mergeStatus);
+                                }else{
+                                    printf("Task %d %s-2: merge succeed, ", home->myDomain, __func__);
+                                    PrintTag(mergedNode);
+                                    printf("\n");
+                                }
 	        if((mergeStatus & MERGE_SUCCESS) ==0){
 	            RepositionNode(home, vec2, &node->myTag, 0);
 	            RepositionNode(home, vec3, &gbNbr->myTag, 0);
@@ -2703,6 +2718,8 @@ void GBCrossSlip(Home_t *home)
     
             if(mergedNode != (Node_t *)NULL){
 
+                if(IsOnGB(mergedNode))printf("Task %d: GBCrossSlip merged node(%d,%d) arms %d\n", home->myDomain
+                    ,mergedNode->myTag.domainID,mergedNode->myTag.index, mergedNode->numNbrs);
 	            MarkNodeForceObsolete(home, mergedNode);        
 	            MarkNodeNoCollisions(home, mergedNode);        
 	            MarkNodeNoMeshCoarsen(home, mergedNode);
@@ -2715,7 +2732,15 @@ void GBCrossSlip(Home_t *home)
                 mergedNode->oldvY = 0.0;
                 mergedNode->oldvZ = 0.0;
 
+                if(IsOnGB(mergedNode)){
+                    printf("Task %d: GBCrossSlip, merge succeed: ", home->myDomain);
+                    PrintTag(mergedNode); printf("\n");
+                }
                 SplitIntersectNode(home, mergedNode, opClass, globalOp);
+                if(IsOnGB(mergedNode)){
+                    printf("Task %d: GBCrossSlip after SplitIntersectNode: ", home->myDomain);
+                    PrintTag(mergedNode); printf("\n");
+                }
             }
         }
 

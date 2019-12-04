@@ -644,8 +644,8 @@ void LineTensionForce(Home_t *home, real8 x1, real8 y1, real8 z1,
         if(!SelfForce(1, MU, NU, bx, by, bz, x1, y1, z1, x2, y2, z2,
                   a, Ecore, fSelf1, fSelf2)){
 //	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
-	    Fatal("at %s, Line %d",__FILE__,__LINE__);
-	}
+	        Fatal("at %s, Line %d",__FILE__,__LINE__);
+	    }
 
         ExtPKForce(extStress, bx, by, bz, x1, y1, z1, x2, y2, z2, fPK1, fPK2);
 

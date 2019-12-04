@@ -1487,8 +1487,8 @@ Node_t *GetNodeFromTag (Home_t *home, Tag_t tag)
                   home->myDomain, tag.domainID, tag.index);
         }
 		
-	    if(tag.index > 20000){
-	        Fatal("Task %d GetNodeFromTag: invalid tag (%d,%d)\n",
+	    if(tag.index > 200000){
+	        printf("Task %d GetNodeFromTag: invalid tag (%d,%d)\n",
 	            home->myDomain, tag.domainID, tag.index);
 	    }
 

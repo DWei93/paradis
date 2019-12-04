@@ -491,17 +491,22 @@ void DebugGB(Home_t *home, int flag){
     home->flag = flag;
 #endif
 //    if(flag >= 4 && flag == 5){
-//	    printf("%d %d\n",home->myDomain, flag);
+	    printf("%d %d\n",home->myDomain, flag);
 //    }
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
-
+        if(node->numNbrs > 16){
+            PrintNode(node);
+            Fatal("DebugGB:  (%d,%d) singsdaly linked! %d",
+                  node->myTag.domainID, node->myTag.index, flag);
+        }
+        continue;
 #if 0
         if ((node->numNbrs == 1) && (node->constraint == UNCONSTRAINED)) {
             PrintNode(node);
             snprintf(name,50,"singly-%d-%d",home->cycle, flag);
             Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-            Fatal("DebugGB: Node (%d,%d) singly linked! %d",
+            Fatal("DebugGB: VNode (%d,%d) singly linked! %d",
                   node->myTag.domainID, node->myTag.index, flag);
         }
 

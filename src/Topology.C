@@ -1107,12 +1107,15 @@ void SplitMultiNodes(Home_t *home)
         SegData_t *segData = (SegData_t *)NULL;
 
 #if ENABLE_COMPLICATED_REACTION
-        int     splitInGrain, splitOnGB;
-        int     bakInGrain1, bakOnGB1;
-        int     bakInGrain2, bakOnGB2;
+        int     splitInGrain=-1, splitOnGB=-1;
+        int     bakInGrain1=-1, bakOnGB1=-1;
+        int     bakInGrain2=-1, bakOnGB2=-1;
+        bool    gbNode=false;
 
         std::vector<int>    nbrInGrain;
 #endif
+
+        printf("Task %d, start splitmultinodes\n",home->myDomain);
 
 /*
  *      Only do multinode splits on cycles that are multiples
@@ -1291,6 +1294,8 @@ void SplitMultiNodes(Home_t *home)
     					if ((splitCnt << 1) == nbrs) break;
     				}
     			}
+                PrintNode(node);
+                Fatal("two much arams %d", nbrs);
     		} else
   		    maxSets = POSSIBLE_SPLITS[nbrs];
     
@@ -1373,7 +1378,7 @@ void SplitMultiNodes(Home_t *home)
 #if ENABLE_COMPLICATED_REACTION	
                 
                 if(IsOnGB(node)){
-
+                    gbNode = true;
                     splitInGrain = -1;
                     splitOnGB = -1;
                     nbrInGrain.resize(armSets[j][nbrs]);
@@ -1413,10 +1418,12 @@ void SplitMultiNodes(Home_t *home)
 
                         if(splitOnGB > -1)splitInGrain = -1;
                     }
-
+                    printf("Task %d %s: GB node plan to be splitted on (%d,%d) ",home->myDomain, __func__, splitInGrain,splitOnGB);
+                    PrintTag(node); printf("\n");
                 }else{
                     splitInGrain = node->inGrain;
                     splitOnGB = node->onGB;
+                    gbNode=false;
                 }
 
 #endif
@@ -1439,29 +1446,15 @@ void SplitMultiNodes(Home_t *home)
                                         armSets[j][nbrs],
                                         armList, 0, &splitNode1,
                                         &splitNode2, 0
-#if ENABLE_COMPLICATED_REACTION	
                                         , node->inGrain, node->onGB,
                                         splitInGrain, splitOnGB
 
-#endif
                                         );
 
-                if (splitStatus != SPLIT_SUCCESS) continue;
- /*
-  *             If Split operation is OPCLASS_SEPARATION, we need 
-  *             set right node location next.
-  */
-
-#if ENABLE_COMPLICATED_REACTION	
-
-#else
-                // FIXME
-                splitNode1->inGrain = node->inGrain;                        
-                splitNode1->onGB = node->onGB;                        
-
-                splitNode2->inGrain = node->inGrain;                        
-                splitNode2->onGB = node->onGB;                        
-#endif
+                if (splitStatus != SPLIT_SUCCESS) {
+                    if(gbNode)printf("Task %d: gbNode split filed after SplitNode Fuc.\n",home->myDomain);
+                    continue;
+                }
 
 /*
  *              For the initial split, the two nodes involved
@@ -1769,9 +1762,7 @@ void SplitMultiNodes(Home_t *home)
                 MergeNode(home, OPCLASS_SEPARATION, newNode, origNode,
                           origPos, &mergedNode, &mergeStatus, 0
 
-#if ENABLE_COMPLICATED_REACTION	
                            ,splitNode1->inGrain, splitNode1->onGB  
-#endif
                           );
 
 /*
@@ -1921,8 +1912,16 @@ void SplitMultiNodes(Home_t *home)
                     armList = (int *)NULL;
 	  	            for (k = 0; k < numSets; k++) free(armSets[k]);
 	  	            free(armSets);
+
+                    if(gbNode)printf("Task %d: split faild after secon SplitNode", home->myDomain);
+                    PrintTag(node); printf("\n");
 	  	            continue;
-	            }
+	            }else{
+                    if(gbNode)printf("Task %d: Split GB node succed: ",home->myDomain);
+                    PrintTag(splitNode1);
+                    PrintTag(splitNode2);
+                    printf("\n");
+                }
 
 #ifdef DEBUG_LOG_MULTI_NODE_SPLITS
                 splitNode1->multiNodeLife = 0;
@@ -2053,6 +2052,7 @@ void SplitMultiNodes(Home_t *home)
 
         TimerStop(home, SPLIT_MULTI_NODES);
 
+        printf("Task %d, end splitmultinodes\n",home->myDomain);
 	    return;
 }
 

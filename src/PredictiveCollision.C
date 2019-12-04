@@ -964,7 +964,6 @@ void PredictiveCollisions(Home_t *home)
                             if(home->param->polycrystal){
                                 GetArmGrain(home, node1, node2, inGrain1, onGB1);
                                 GetArmGrain(home, node3, node4, inGrain2, onGB2);
-#if ENABLE_COMPLICATED_REACTION
 
                                 splitInGrain = -1;
                                 splitOnGB = -1;
@@ -999,10 +998,6 @@ void PredictiveCollisions(Home_t *home)
                                         }
                                     }
                                 }
-#else
-                                if(onGB1 != onGB2)continue;
-                                if(onGB1 == -1 && inGrain1 != inGrain2)continue;
-#endif
                             }else{
                                 splitInGrain = -1;
                                 splitOnGB = -1;
@@ -1227,10 +1222,8 @@ void PredictiveCollisions(Home_t *home)
                                                              &arm12, globalOp,
                                                              &splitNode1,
                                                              &splitNode2, 0
-#if ENABLE_COMPLICATED_REACTION
                                                              ,node1->inGrain, node1->onGB
                                                              ,inGrain1, onGB1
-#endif
                                                                             );
 /*
  *                                   If we were unable to split the node
@@ -1429,12 +1422,8 @@ void PredictiveCollisions(Home_t *home)
                                                             &arm34, globalOp,
                                                             &splitNode1,
                                                             &splitNode2, 0
-
-#if ENABLE_COMPLICATED_REACTION
                                                             ,node3->inGrain, node3->onGB
-                                                            ,inGrain2, onGB2
-#endif
-                                                                            );
+                                                            ,inGrain2, onGB2);
 /*
  *                                   If we were unable to split the node
  *                                   go back to looking for more collision
@@ -1516,6 +1505,7 @@ void PredictiveCollisions(Home_t *home)
     
                                 if(SurfaceNode(mergenode1) && SurfaceNode(mergenode2))continue;
                                 if(splitInGrain >-1 && (mergenode1->onGB>-1 || mergenode2->onGB>-1))continue;
+//                              if(splitOnGB > -1 && (mergenode1->numNbrs+mergenode2->numNbrs)>6)continue;
 //                              if(mergenode1->onGB != onGB1 || mergenode2->onGB != onGB2)continue;
 //                              if(mergenode1->inGrain != inGrain1 || mergenode2->inGrain != inGrain2)continue;
     
@@ -1635,7 +1625,10 @@ void PredictiveCollisions(Home_t *home)
                                    }
                                }
                                FoldBox(param, newPos, newPos+1, newPos+2);
-
+                                printf("Task %d %d %s-1: (%d,%d,%d)-(%d,%d,%d) plan to merge at (%g,%g,%g)\n", home->myDomain,home->cycle, __func__,
+                                       mergenode1->myTag.domainID, mergenode1->myTag.index, mergenode1->inGrain,
+                                       mergenode2->myTag.domainID, mergenode2->myTag.index, mergenode2->inGrain,
+                                       newPos[0], newPos[1], newPos[2]);
                                MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                          mergenode2, newPos, &targetNode,
                                          &mergeStatus, globalOp
@@ -1644,6 +1637,13 @@ void PredictiveCollisions(Home_t *home)
 #endif
 
                                         );
+                                if((mergeStatus & MERGE_SUCCESS) == 0){
+                                    printf("Task %d %s-1: merge failed, status %d\n", home->myDomain, __func__,mergeStatus);
+                                }else{
+                                    printf("Task %d %s-1: merge succeed, ", home->myDomain, __func__);
+                                    PrintTag(targetNode);
+                                    printf("\n");
+                                }
     
 /*
  *                             If the merge did not succeed, go back and
@@ -1698,6 +1698,8 @@ void PredictiveCollisions(Home_t *home)
  *                                 planes for the segments attched to the
  *                                 collision node.
  */
+                                    if(IsOnGB(targetNode))printf("Task %d: PredictiveCollsion merged node(%d,%d) arms %d\n", home->myDomain
+                                        ,targetNode->myTag.domainID,targetNode->myTag.index, targetNode->numNbrs);
                                    if(!IsOnGB(targetNode) && home->param->polycrystal){
                                         NodeLocation(home, targetNode->x, targetNode->y,
                                                      targetNode->z, inGrain1, onGB1);
@@ -2041,6 +2043,7 @@ void PredictiveCollisions(Home_t *home)
                         }
 
                         if(splitInGrain >-1 && (mergenode1->onGB>-1 || mergenode2->onGB>-1))continue;
+//                      if(splitOnGB > -1 && (mergenode1->numNbrs+mergenode2->numNbrs)>6)continue;
 /*
  *                      If the initially selected collision point
  *                      was close enough to one of the segment
@@ -2149,6 +2152,10 @@ void PredictiveCollisions(Home_t *home)
                         }
 
                         FoldBox(param, &newPos[0], &newPos[1], &newPos[2]);
+                                printf("Task %d %d %s-2: (%d,%d,%d)-(%d,%d,%d) plan to merge at (%g,%g,%g)\n", home->myDomain,home->cycle, __func__,
+                                       mergenode1->myTag.domainID, mergenode1->myTag.index, mergenode1->inGrain,
+                                       mergenode2->myTag.domainID, mergenode2->myTag.index, mergenode2->inGrain,
+                                       newPos[0], newPos[1], newPos[2]);
                         MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                   mergenode2, newPos, &targetNode,
                                   &mergeStatus, globalOp
@@ -2157,6 +2164,13 @@ void PredictiveCollisions(Home_t *home)
 #endif
                                  );
 
+                                if((mergeStatus & MERGE_SUCCESS) == 0){
+                                    printf("Task %d %s-2: merge failed, status %d\n", home->myDomain, __func__,mergeStatus);
+                                }else{
+                                    printf("Task %d %s-2: merge succeed, ", home->myDomain, __func__);
+                                    PrintTag(targetNode);
+                                    printf("\n");
+                                }
                         localCollisionCnt++;
 
 /*
@@ -2167,6 +2181,8 @@ void PredictiveCollisions(Home_t *home)
  *                      from subsequent segment collisions this cycle.
  */
                         if (targetNode != (Node_t *)NULL) {
+                            if(IsOnGB(targetNode))printf("Task %d: PredictiveCollsion hinge merged node(%d,%d) arms %d\n", home->myDomain
+                                ,targetNode->myTag.domainID,targetNode->myTag.index, targetNode->numNbrs);
                             if(!IsOnGB(targetNode) && home->param->polycrystal){
                                  NodeLocation(home, targetNode->x, targetNode->y,
                                               targetNode->z, inGrain1, onGB1);
