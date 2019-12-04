@@ -89,6 +89,38 @@ static void IncDislocationDensity(InData_t *inData, real8 *totDislocLen)
         return;
 }
 
+static void IncDislocationDensity(InData_t *inData, int startID, real8 *totDislocLen)
+{
+        int      i, armID, nbrIndex;
+        real8    xLen, yLen, zLen;
+        Param_t  *param;
+        Node_t   *node, *nbrNode;
+
+        param = inData->param;
+
+        for (i = startID; i < inData->nodeCount; i++) {
+
+            node = &inData->node[i];
+
+            for (armID = 0; armID < node->numNbrs; armID++) {
+
+                nbrIndex = node->nbrTag[armID].index;
+                if (nbrIndex < i) continue;
+
+                nbrNode = &inData->node[nbrIndex];
+
+                xLen = nbrNode->x - node->x;   
+                yLen = nbrNode->y - node->y;   
+                zLen = nbrNode->z - node->z;   
+
+                ZImage(param, &xLen, &yLen, &zLen);
+
+                *totDislocLen += sqrt(xLen*xLen + yLen*yLen + zLen*zLen);
+            }
+        }
+
+        return;
+}
 
 /*---------------------------------------------------------------------------
  *
@@ -3975,45 +4007,73 @@ void CreateLoopSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *t
     return;
 }
 
-void SliptArm(InData_t *inData, int id1, int id2, real8 burg[3], real8 n[3], int newNodeID, int inGrain, int onGB){
+void SliptArm(InData_t *inData, int id1, int id2, real8 burg[3], real8 n[3], int &newNodeID, int inGrain, int onGB){
    
-    inData->nodeCount +=1;
+    inData->nodeCount +=2;
     inData->node = (Node_t *)realloc(inData->node, inData->nodeCount*sizeof(Node_t));
     Node_t *node1 = &inData->node[id1];
     Node_t *node2 = &inData->node[id2];
     memset(&inData->node[inData->nodeCount-1], 0, sizeof(Node_t) * 1);
-    Node_t *node = &inData->node[inData->nodeCount-1];
-    node->myTag.domainID = 0;
-    node->myTag.index = newNodeID;
+    Node_t *newNode1 = &inData->node[inData->nodeCount-2];
+    Node_t *newNode2 = &inData->node[inData->nodeCount-1];
 
-    node->x = 0.5*(node1->x + node2->x);
-    node->y = 0.5*(node1->y + node2->y);
-    node->z = 0.5*(node1->z + node2->z);
-    node->constraint = UNCONSTRAINED;
-    node->inGrain = inGrain; node->onGB = onGB;
+    newNode1->myTag.domainID = 0;
+    newNode1->myTag.index = newNodeID;
+    newNode2->myTag.domainID = 0;
+    newNode2->myTag.index = newNodeID+1;
 
-    AllocNodeArms(node, 2);
+    real8 pos1[3]={node1->x,node1->y,node1->z};
+    real8 pos2[3]={node2->x,node2->y,node2->z};
+    real8 newPos[3], t1=1.0/3.0, t2=2.0/3.0;
+
+    CoordAdd(1.0-t1,pos1,t1,pos2,newPos);
+    newNode1->x=newPos[0]; newNode1->y=newPos[1]; newNode1->z=newPos[2];
+    CoordAdd(1.0-t2,pos1,t2,pos2,newPos);
+    newNode2->x=newPos[0]; newNode2->y=newPos[1]; newNode2->z=newPos[2];
+
+    newNode1->constraint = UNCONSTRAINED;
+    newNode2->constraint = UNCONSTRAINED;
+    newNode1->inGrain = inGrain; newNode1->onGB = onGB;
+    newNode2->inGrain = inGrain; newNode2->onGB = onGB;
+
+    AllocNodeArms(newNode1, 2);
+    AllocNodeArms(newNode2, 2);
 	
-    node->nbrTag[0].domainID = 0;
-    node->nbrTag[0].index    = node1->myTag.index;
-    node->nbrTag[1].domainID = 0;
-    node->nbrTag[1].index    = node2->myTag.index;
+    newNode1->nbrTag[0].domainID = 0;
+    newNode1->nbrTag[0].index    = node1->myTag.index;
+    newNode1->nbrTag[1].domainID = 0;
+    newNode1->nbrTag[1].index    = newNode2->myTag.index;
+
+    newNode2->nbrTag[0].domainID = 0;
+    newNode2->nbrTag[0].index    = newNode1->myTag.index;
+    newNode2->nbrTag[1].domainID = 0;
+    newNode2->nbrTag[1].index    = node2->myTag.index;
     
-    node->burgX[0] = -burg[0];
-    node->burgY[0] = -burg[1];
-    node->burgZ[0] = -burg[2];
-    
-    node->burgX[1] =  burg[0];
-    node->burgY[1] =  burg[1];
-    node->burgZ[1] =  burg[2];
-    
-    node->nx[0] = n[0];
-    node->ny[0] = n[1];
-    node->nz[0] = n[2];
-    	
-    node->nx[1] = n[0];
-    node->ny[1] = n[1];
-    node->nz[1] = n[2];
+    newNode1->burgX[0] = -burg[0];
+    newNode1->burgY[0] = -burg[1];
+    newNode1->burgZ[0] = -burg[2];
+    newNode1->burgX[1] =  burg[0];
+    newNode1->burgY[1] =  burg[1];
+    newNode1->burgZ[1] =  burg[2];
+    newNode1->nx[0] = n[0];
+    newNode1->ny[0] = n[1];
+    newNode1->nz[0] = n[2];
+    newNode1->nx[1] = n[0];
+    newNode1->ny[1] = n[1];
+    newNode1->nz[1] = n[2];
+
+    newNode2->burgX[0] = -burg[0];
+    newNode2->burgY[0] = -burg[1];
+    newNode2->burgZ[0] = -burg[2];
+    newNode2->burgX[1] =  burg[0];
+    newNode2->burgY[1] =  burg[1];
+    newNode2->burgZ[1] =  burg[2];
+    newNode2->nx[0] = n[0];
+    newNode2->ny[0] = n[1];
+    newNode2->nz[0] = n[2];
+    newNode2->nx[1] = n[0];
+    newNode2->ny[1] = n[1];
+    newNode2->nz[1] = n[2];
 
     int id12 = GetArmID(node1, node2);
     int id21 = GetArmID(node2, node1); 
@@ -4027,7 +4087,7 @@ void SliptArm(InData_t *inData, int id1, int id2, real8 burg[3], real8 n[3], int
     }
     
     node1->nbrTag[id12].domainID = 0;
-    node1->nbrTag[id12].index = newNodeID;
+    node1->nbrTag[id12].index = newNode1->myTag.index;
     node1->burgX[id12] = burg[0];
     node1->burgY[id12] = burg[1];
     node1->burgZ[id12] = burg[2];
@@ -4036,13 +4096,15 @@ void SliptArm(InData_t *inData, int id1, int id2, real8 burg[3], real8 n[3], int
     node1->nz[id12] = n[2];
 
     node2->nbrTag[id21].domainID = 0;
-    node2->nbrTag[id21].index = newNodeID;
+    node2->nbrTag[id21].index = newNode2->myTag.index;
     node2->burgX[id21] = -burg[0];
     node2->burgY[id21] = -burg[1];
     node2->burgZ[id21] = -burg[2];
     node2->nx[id21] = n[0];
     node2->ny[id21] = n[1];
     node2->nz[id21] = n[2];
+
+    newNodeID +=2;
     return;
 } 
 inline bool Perpendicular(Node_t *node1, Node_t *node2){
@@ -4075,7 +4137,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
     
     home->param->materialType = MAT_TYPE_FCC;
 
-    for(int i=0; (i<nLoops) && (maxDensity>invVol*(*totDislocLen)); i++){
+    int i;for(i=0; (i<nLoops) && (maxDensity>invVol*(*totDislocLen)); i++){
         randNum = int(1.0E5*randm(&seed));
         grainID=(nLoops>6*home->nGrains)&&(i<6*home->nGrains)?i/6:(randNum%(home->nGrains*6))/6;
         burgID=(nLoops>6*home->nGrains)&&(i<6*home->nGrains)?i%6:randNum%6;
@@ -4196,10 +4258,90 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
                             if(ig!=inGrain||og>-1)break;
                         }
                     }
-                    printf("interation succeed. factor=%g\n",factor);
+//                  printf("interation succeed. factor=%g\n",factor);
+                }
+            }
+            if(inArgs->polycrystal !=0){
+                for(int gbID=0; gbID<grain->nBounds; gbID++){
+                    gb = grain->GB[gbID];
+                    real8 dis1=PointPlaneDistance(cenPos, gb->n, gb->p);
+                    for(j=0; j<4; j++){if(dis1*PointPlaneDistance(p[j],gb->n,gb->p) < 0)break;}
+                    if(j<4){
+                        real8 ldir1[3]; CoordMinus(p[2],p[0],ldir1); normalize_vec(ldir1);
+                        real8 ldir2[3]; CoordMinus(p[3],p[1],ldir2); normalize_vec(ldir2);
+                        real8 vec1[3], vec2[3], lList[4][3];
+                        int k,l; real8 factor=1.0E-10;
+                        if(LineLineIntersection(ldir1,p[0],ldir2,p[1],vec1,vec2,&dis)!=POINT_INTERSECTION){
+                            Fatal("%d: can not find intersection",__LINE__);
+                        }
+                        CoordMinus(cenPos,vec2,vec1); 
+                        for(k=0; k<4; k++){
+                            CoordAdd(p[k],vec1,p[k]); 
+                            CoordMinus(p[k],cenPos,lList[k]); 
+                        }
+                        l=4; ig=inGrain; og=-1;
+                        while(ig==inGrain && og==-1 && l==4){
+                            factor *= 1.1;
+                            for(l=0; l<4; l++){
+                                CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
+                                NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og);
+                                if(ig!=inGrain||og>-1)break;
+                            }
+                        }
+                        factor /= 1.1;
+                        for(l=0; l<4; l++){
+                            CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
+                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og);
+                            if(ig!=inGrain || onGB>-1)Fatal("shit {%g,%g,%g}",p[l][0],p[l][1],p[l][2]);
+                        }
+                    
+                    }
                 }
             }
         }
+            if(inArgs->polycrystal !=0){
+                int j;
+                for(int gbID=0; gbID<grain->nBounds; gbID++){
+                    gb = grain->GB[gbID];
+                    real8 dis1=PointPlaneDistance(cenPos, gb->n, gb->p);
+                    for(j=0; j<4; j++){
+                        if(nodeGBList[j]>-1)continue;
+                        if(dis1*PointPlaneDistance(p[j],gb->n,gb->p) < 0.0)
+                        break;
+                    }
+
+                    if(j<4){
+                        real8 ldir1[3]; CoordMinus(p[2],p[0],ldir1); normalize_vec(ldir1);
+                        real8 ldir2[3]; CoordMinus(p[3],p[1],ldir2); normalize_vec(ldir2);
+                        real8 vec1[3], vec2[3], lList[4][3];
+                        int k,l; real8 factor=1.0E-10;
+                        if(LineLineIntersection(ldir1,p[0],ldir2,p[1],vec1,vec2,&dis)!=POINT_INTERSECTION){
+                            Fatal("%d: can not find intersection",__LINE__);
+                        }
+                        CoordMinus(cenPos,vec2,vec1); 
+                        for(k=0; k<4; k++){
+                            CoordAdd(p[k],vec1,p[k]); 
+                            CoordMinus(p[k],cenPos,lList[k]); 
+                        }
+                        l=4; ig=inGrain; og=-1;
+                        while(ig==inGrain && og==-1 && l==4){
+                            factor *= 1.1;
+                            for(l=0; l<4; l++){
+                                CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
+                                NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og);
+                                if(ig!=inGrain||og>-1)break;
+                            }
+                        }
+                        factor /= 1.1;
+                        for(l=0; l<4; l++){
+                            CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
+                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og);
+                            nodeGBList[l] = -1;
+                            if(ig!=inGrain || onGB>-1)Fatal("shit {%g,%g,%g}",p[l][0],p[l][1],p[l][2]);
+                        }
+                    }
+                }
+            }
 
         newNodeIndex = inData->nodeCount;
         inData->nodeCount += 4;
@@ -4223,10 +4365,10 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
             if(!PerpendicularDirection(ls, n[nextIndex]))Fatal("kkk");
 
             node->constraint = UNCONSTRAINED;
-            if(onGBList[j]==-1 && onGBList[nextIndex]==-1){
+            if(nodeGBList[j] == -1){
                 node->inGrain = inGrain; node->onGB = -1;
             }else{
-                node->inGrain = -1; node->onGB = (onGBList[j]>-1?onGBList[j]:onGBList[nextIndex]);
+                node->inGrain =-1; node->onGB = nodeGBList[j];
             }
             NodeLocation(home, node->x, node->y, node->z, ig,og);
             if(node->onGB != og){
@@ -4269,7 +4411,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
    
             if(node->onGB>-1 && nextNode->onGB>-1){
                 if(node->onGB!=nextNode->onGB){
-                    SliptArm(inData, baseNodeID+j, baseNodeID+nextIndex, burg, n[nextIndex], newNodeID++, inGrain, onGB);
+                    SliptArm(inData, baseNodeID+j, baseNodeID+nextIndex, burg, n[nextIndex], newNodeID, inGrain, onGB);
                 }else{
                     real8 b1[3], b2[3];
                     std::vector<std::vector<Dislocation_t> >    disArray;
@@ -4284,22 +4426,23 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
                     
                     VECTOR_COPY(b1, burgList[disArray[0][0].burgID]);
                     VECTOR_COPY(b2, burgList[disArray[0][1].burgID]);
-                    SliptArm(inData, baseNodeID+j, baseNodeID+nextIndex, b1, n[nextIndex], newNodeID++, node->inGrain, node->onGB);
+                    SliptArm(inData, baseNodeID+j, baseNodeID+nextIndex, b1, n[nextIndex], newNodeID, node->inGrain, node->onGB);
                     node = &inData->node[baseNodeID+j];
                     nextNode = &inData->node[baseNodeID+nextIndex];
-                    SliptArm(inData, baseNodeID+j, baseNodeID+nextIndex, b2, n[nextIndex], newNodeID++, node->inGrain, node->onGB);
+                    SliptArm(inData, baseNodeID+j, baseNodeID+nextIndex, b2, n[nextIndex], newNodeID, node->inGrain, node->onGB);
                 }
             }else{
-                SliptArm(inData, baseNodeID+j, baseNodeID+nextIndex, burg, n[nextIndex], newNodeID++, inGrain, onGB);
+                SliptArm(inData, baseNodeID+j, baseNodeID+nextIndex, burg, n[nextIndex], newNodeID, inGrain, onGB);
             }
         }
 
+	    IncDislocationDensity(inData, startRemeshIndex, totDislocLen);
         InitRemesh(inData, 0, startRemeshIndex);
         baseNodeID = inData->nodeCount;
         startRemeshIndex = baseNodeID;
     } 
+    printf("%d have beend distributed\n",i);
 
-	IncDislocationDensity(inData, totDislocLen);
 	param->nodeCount = inData->nodeCount;
 	WriteInitialNodeData(home, inData, 1);
 	FreeInNodeArray(inData, inData->nodeCount);
