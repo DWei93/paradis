@@ -274,6 +274,7 @@ real8 FGlidePerLength(Home_t *home,Node_t *node,Plane_t *GBPlane);
 real8 Distance(Home_t *home,real8 *p1,real8 *p2);
 int NodeOnLine(real8 *p, Line_t *line);
 void PrintTag(Node_t *node);
+void PrintTag(Home_t *home, Node_t *node);
 void FreePenStr(Pene_t *pene);
 int  GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb);
 

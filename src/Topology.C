@@ -1115,7 +1115,6 @@ void SplitMultiNodes(Home_t *home)
         std::vector<int>    nbrInGrain;
 #endif
 
-        printf("Task %d, start splitmultinodes\n",home->myDomain);
 
 /*
  *      Only do multinode splits on cycles that are multiples
@@ -1153,6 +1152,7 @@ void SplitMultiNodes(Home_t *home)
 		    if (node ==(Node_t *)NULL) continue;
 
 		    if (node->numNbrs < 4) continue;
+            if(node->numNbrs > 8 && node->inGrain==-1)continue;
 
             origNumNbrs = node->numNbrs;
 
@@ -1375,7 +1375,6 @@ void SplitMultiNodes(Home_t *home)
                     }
                 }
 
-#if ENABLE_COMPLICATED_REACTION	
                 
                 if(IsOnGB(node)){
                     gbNode = true;
@@ -1418,15 +1417,11 @@ void SplitMultiNodes(Home_t *home)
 
                         if(splitOnGB > -1)splitInGrain = -1;
                     }
-                    printf("Task %d %s: GB node plan to be splitted on (%d,%d) ",home->myDomain, __func__, splitInGrain,splitOnGB);
-                    PrintTag(node); printf("\n");
                 }else{
                     splitInGrain = node->inGrain;
                     splitOnGB = node->onGB;
                     gbNode=false;
                 }
-
-#endif
 /*
  *              Note: for this test, both the node being split
  *              and the resulting new node will intially retain the
@@ -1452,7 +1447,6 @@ void SplitMultiNodes(Home_t *home)
                                         );
 
                 if (splitStatus != SPLIT_SUCCESS) {
-                    if(gbNode)printf("Task %d: gbNode split filed after SplitNode Fuc.\n",home->myDomain);
                     continue;
                 }
 
@@ -1897,12 +1891,9 @@ void SplitMultiNodes(Home_t *home)
 						node, pos1, pos2, vel1, vel2,
 						armSets[setIndex][nbrs],
 						armList, globalOp,
-						&splitNode1, &splitNode2, 0
-#if ENABLE_COMPLICATED_REACTION	
-                        , bakInGrain1, bakOnGB1
-                        , bakInGrain2, bakOnGB2
-#endif
-                        );
+						&splitNode1, &splitNode2, 0,
+                        bakInGrain1, bakOnGB1,
+                        bakInGrain2, bakOnGB2);
 /*
  *	            If the split failed, clean up then go back and
  *	            continue looking for more multinodes to split.
@@ -1912,15 +1903,7 @@ void SplitMultiNodes(Home_t *home)
                     armList = (int *)NULL;
 	  	            for (k = 0; k < numSets; k++) free(armSets[k]);
 	  	            free(armSets);
-
-                    if(gbNode)printf("Task %d: split faild after secon SplitNode", home->myDomain);
-                    PrintTag(node); printf("\n");
 	  	            continue;
-	            }else{
-                    if(gbNode)printf("Task %d: Split GB node succed: ",home->myDomain);
-                    PrintTag(splitNode1);
-                    PrintTag(splitNode2);
-                    printf("\n");
                 }
 
 #ifdef DEBUG_LOG_MULTI_NODE_SPLITS
@@ -2052,7 +2035,6 @@ void SplitMultiNodes(Home_t *home)
 
         TimerStop(home, SPLIT_MULTI_NODES);
 
-        printf("Task %d, end splitmultinodes\n",home->myDomain);
 	    return;
 }
 
@@ -2647,6 +2629,8 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	*status     = MERGE_NOT_PERMITTED;
 	
 	if(node1==(Node_t *)NULL || node2==(Node_t *)NULL){ 
+        PrintTag(node1); PrintTag(node2); printf("\n");
+        printf("Task %d %s: can not find the merge nodes ",home->myDomain,__func__); 
 		*status = MERGE_NOT_PERMITTED;
 		return;
 	}
@@ -2782,27 +2766,10 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 
 	if((targetNode->myTag.domainID != thisDomain)) {
         int     currInGrain, currOnGB;
-
-        if(targetNode->inGrain != inGrain 
-            || targetNode->onGB != onGB){
-
-	        *status = MERGE_NOT_PERMITTED;
-            return;
-        }
-
-        NodeLocation(home, targetNode->x, targetNode->y, targetNode->z,
-                     currInGrain, currOnGB);
-        if(onGB > -1){
-            if(currOnGB != onGB){
-	            *status = MERGE_NOT_PERMITTED;
-                return;
-            }
-        }else{
-            if(inGrain != currInGrain){
-	            *status = MERGE_NOT_PERMITTED;
-                return;
-            }
-        }
+        if(targetNode->inGrain != inGrain || targetNode->onGB != onGB){ *status = MERGE_NOT_PERMITTED; return; }
+        NodeLocation(home, targetNode->x, targetNode->y, targetNode->z, currInGrain, currOnGB);
+        if(onGB > -1){ if(currOnGB != onGB){ *status = MERGE_NOT_PERMITTED; return; } }
+        else{ if(inGrain != currInGrain){ *status = MERGE_NOT_PERMITTED; return; } }
     }
 
 /*

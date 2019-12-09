@@ -496,10 +496,6 @@ static void MeshCoarsen(Home_t *home)
                         MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
                               &mergedNode, &mergeStatus, globalOp);
                         mergeDone = mergeStatus & MERGE_SUCCESS;
-                        if(mergeDone != 0 && mergedNode != (Node_t *)NULL){
-                            if(IsOnGB(mergedNode))printf("Task %d: remesh 1 merged node(%d,%d) arms %d\n", home->myDomain
-                            ,mergedNode->myTag.domainID,mergedNode->myTag.index, mergedNode->numNbrs);
-                        }
                     }
                 }
 /*
@@ -534,10 +530,6 @@ static void MeshCoarsen(Home_t *home)
                         MergeNode(home, OPCLASS_REMESH, node, nbr2, newPos,
                                   &mergedNode, &mergeStatus, globalOp);
                         mergeDone = mergeStatus & MERGE_SUCCESS;
-                        if(mergeDone != 0 && mergedNode != (Node_t *)NULL){
-                            if(IsOnGB(mergedNode))printf("Task %d: remesh 2 merged node(%d,%d) arms %d\n", home->myDomain
-                            ,mergedNode->myTag.domainID,mergedNode->myTag.index, mergedNode->numNbrs);
-                        }
                     }
                 }
 

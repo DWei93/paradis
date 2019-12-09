@@ -1707,11 +1707,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
                home->myDomain, __FILE__, __LINE__);
 	}
 
-#if ENABLE_COMPLICATED_REACTION
-    eps = param->rann/2.0;
-#else
-    eps = 1.0;
-#endif
+    eps = param->rTol;
 
 	FoldBox(param, pos, pos+1, pos+2);
 
@@ -2016,6 +2012,29 @@ void PrintTag(Node_t *node){
 	}
     return;
 }
+void PrintTag(Home_t *home, Node_t *node){
+
+    if(node == (Node_t *)NULL){
+        printf("(NULL)"); return;
+    }else{
+        printf("[%d %d %d %d %d %d]-{%f,%f,%f} ",node->myTag.domainID,
+               node->myTag.index,node->numNbrs,node->inGrain,
+               node->onGB, node->constraint, node->x,node->y,node->z);
+	}
+    int numGlideConstraints; bool  zeroLenJunc;
+    real8 glideConstraints[3][3];
+    GetGlideConstraintList(home, node, 
+                       &numGlideConstraints, glideConstraints, zeroLenJunc,
+                       1, 0.0, 0.0, 0.0, -1);
+    if(numGlideConstraints== 1){
+        printf("plane constraint: {%g,%g,%g} ", glideConstraints[0][0],glideConstraints[0][1],glideConstraints[0][2]);
+    }else if(numGlideConstraints== 2){
+        printf("line constraint: {%g,%g,%g} ", glideConstraints[2][0],glideConstraints[2][1],glideConstraints[2][2]);
+    }else{
+        printf("completely constraint");
+    }
+    return;
+}
 
 void RotateWithAxis(real8 a[3], real8 theta, real8 R[3][3]){
     
@@ -2222,7 +2241,7 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
     int     numGlideConstraintsNode1, numGlideConstraintsNode2;
     real8   glideConstraintsNode1[3][3], glideConstraintsNode2[3][3]; 
     bool    zeroLenJunc1, zeroLenJunc2;
-    real8   p1[3], p2[3], dis, err=1E-3;
+    real8   p1[3], p2[3], dis, err=home->param->rTol;
     real8   direction1[3], direction2[3];
     
     VECTOR_ZERO(vec1);
@@ -2258,7 +2277,7 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                     break;
                 case 2:
                     type = LinePlaneIntersection(glideConstraintsNode2[2], p2, glideConstraintsNode1[0], p1,
-                           vec1, vec2, 0.05, 1.0E-4);
+                           vec1, vec2, 0.05, err);
                     if(type == NO_INTERSECTION)
                         type=fabs(PointPlaneDistance(p2, glideConstraintsNode1[0], p1))<err?LINE_INTERSECTION:NO_INTERSECTION;
                     break;
@@ -2278,14 +2297,14 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
             switch (numGlideConstraintsNode2){
                 case 1:
                     type = LinePlaneIntersection(glideConstraintsNode1[2], p1, glideConstraintsNode2[0], p2,
-                           vec1, vec2, 0.05, 1.0E-4);
+                           vec1, vec2, 0.05, err);
                     if(type == NO_INTERSECTION)
                         type=fabs(PointPlaneDistance(p1, glideConstraintsNode2[0], p2))<err?LINE_INTERSECTION:NO_INTERSECTION;
                     break;
                 case 2:
                     LineLineIntersection(glideConstraintsNode1[2], p1, glideConstraintsNode2[2], p2,
-                           vec1, vec2, &dis, 0.05, 1.0E-4);
-                    if(fabs(DotProduct(glideConstraintsNode1[2],glideConstraintsNode2[2]))>0.98){
+                           vec1, vec2, &dis, 0.05, err);
+                    if(fabs(DotProduct(glideConstraintsNode1[2],glideConstraintsNode2[2]))>0.95){
                         type = fabs(dis)<err?LINE_INTERSECTION:NO_INTERSECTION;
                         VECTOR_COPY(vec1, glideConstraintsNode1[2]);
                     }else{
