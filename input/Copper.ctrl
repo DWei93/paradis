@@ -17,9 +17,9 @@
 #
 #  Domain geometry
 #
-numXdoms = 4
-numYdoms = 4
-numZdoms = 2
+numXdoms = 2
+numYdoms = 2
+numZdoms = 1
 #
 #  Cell geometry
 #
@@ -54,8 +54,8 @@ maxStn = 0.6E-2
 maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
-rTol = 2
-rc =  9
+rTol = 10
+rc =  41
 wallTime = 24
 #
 #  Fast Multipole Method controls
@@ -75,11 +75,10 @@ strRate = -4.0E16
 #strRate = 0.0
 #plaRateCtr = 2.0E4
 
-edotdir = [
-  0.0
-  0.0
-  1.0
-  ] 
+edotPolar = [
+7.5000000e+01
+6.0000000e+01
+]
 
 appliedStress = [
 	0.0e0
@@ -108,9 +107,6 @@ fricStress = 0.0e0
 #MobEdge =    6.4102600e+04  
 #MobTwinning = 6.4102600e+04
 
-MobScrew =   1.00e+04
-MobEdge =    1.00e+04  
-MobTwinning = 5.00e+04
 sfEnergy = 29.498E-3    # J.m^-1
 # Radom Interal stree field
 randomInternalForce = 0
@@ -120,9 +116,9 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 2000
+tecplotfreq = 400
 saveprop = 1
-savepropfreq = 400
+savepropfreq = 200
 tecmesh = 1
 tecmeshfreq = 10000000
 savecn = 1
