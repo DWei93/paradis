@@ -469,9 +469,13 @@ bool FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
         vec2[2] = (n1Pos[2] + n2Pos[2])*0.5;
     }
     if(Normal(vec1) < 1.0E-4){
+#if 0
         PrintNode(home, node1);
         PrintNode(home, node2);
         Fatal("In file %s at line %d", __FILE__, __LINE__);
+#else
+        return false;
+#endif
     }
     NormalizeVec(vec1);
 
