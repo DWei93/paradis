@@ -19,7 +19,7 @@
 #
 numXdoms = 2
 numYdoms = 2
-numZdoms = 1
+numZdoms = 2
 #
 #  Cell geometry
 #
@@ -30,9 +30,9 @@ numZcells = 4
 #
 # Mesh size for tecmesh
 #
-meshSizeX = 600
-meshSizeY = 600
-meshSizeZ = 600
+meshSizeX = 150
+meshSizeY = 150
+meshSizeZ = 150
 
 #  Dynamic load balancing
 #
