@@ -1106,14 +1106,12 @@ void SplitMultiNodes(Home_t *home)
 	    Param_t	*param;
         SegData_t *segData = (SegData_t *)NULL;
 
-#if ENABLE_COMPLICATED_REACTION
         int     splitInGrain=-1, splitOnGB=-1;
         int     bakInGrain1=-1, bakOnGB1=-1;
         int     bakInGrain2=-1, bakOnGB2=-1;
         bool    gbNode=false;
 
         std::vector<int>    nbrInGrain;
-#endif
 
 
 /*

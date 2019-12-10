@@ -807,9 +807,7 @@ void PredictiveCollisions(Home_t *home)
         int newInGrain, newOnGB, type; real8 dis; bool canMerge;
 
         int     gbCollision;
-#if ENABLE_COMPLICATED_REACTION
         int     splitInGrain, splitOnGB;
-#endif
 
 #ifdef _FEM
         int     resetSurfaceProperties, femSurface[2];
@@ -1002,7 +1000,6 @@ void PredictiveCollisions(Home_t *home)
                                 splitInGrain = -1;
                                 splitOnGB = -1;
                             }
-                            if(gbCollision>0)continue;
 /*
  *                          At this point, segment node3/node4 is owned by
  *                          node3.  If node3 is not native to this domain,
@@ -1821,7 +1818,6 @@ void PredictiveCollisions(Home_t *home)
                             }
                         }
                     }
-                    if(gbCollision>0)continue;
 
                     x1 = node1->x; y1 = node1->y; z1 = node1->z;
                     x3 = node3->x; y3 = node3->y; z3 = node3->z;
