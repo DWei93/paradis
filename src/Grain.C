@@ -1115,7 +1115,7 @@ void InitGrain(Home_t *home, Param_t *param){
 }
 
 
-void NodeLocation(Home_t *home, real8 pos[3], int& inGrain, int& onGB){
+void NodeLocation(Home_t *home, real8 pos[3], int& inGrain, int& onGB, real8 err){
     int         i, j, nGrains, type, breakLoop = 0;
     real8       vec[3], dis, sign;
 	Grain_t		*grain;
@@ -1141,7 +1141,7 @@ void NodeLocation(Home_t *home, real8 pos[3], int& inGrain, int& onGB){
                    grain->GB[j]->p, vec, &dis);
             dis *= grain->sign[j];
 
-            if(fabs(dis)<1E-4){
+            if(fabs(dis)<err){
                 if(dis < 0.0){
                     inGrain = grain->grainID;
                 }else if (dis == 0){
@@ -2258,6 +2258,7 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
 
     Connected(node1, node2, &armID12);
     Connected(node2, node1, &armID21);
+
     GetGlideConstraintList(home, node1, 
                        &numGlideConstraintsNode1, glideConstraintsNode1, zeroLenJunc1,
                        1, 0.0, 0.0, 0.0, armID12);

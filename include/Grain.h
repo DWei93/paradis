@@ -235,13 +235,13 @@ void FormatVector(real8 vec[3], const char *msg);
 void InitOrientation(real8 MatrixOrientation[3][3], real8 TwinOrientation[3][3]);
 void FreeGrainStructure(Grain_t *grain);
 void InitGrain(Home_t *home, Param_t *param);
-void NodeLocation(Home_t *home, real8 pos[3], int& inGrain, int& onGB);
-inline void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB){
+void NodeLocation(Home_t *home, real8 pos[3], int& inGrain, int& onGB, real8 err=1.0E-4);
+inline void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB, real8 err=1.0E-4){
     real8 pos[3];
     pos[0] = x;
     pos[1] = y;
     pos[2] = z;
-    return NodeLocation(home, pos, inGrain, onGB);
+    return NodeLocation(home, pos, inGrain, onGB,err);
 }
 Node_t *GetinDataNodeFromTag(InData_t *inData, Tag_t tag);
 BurgInfo_t* GetBurgData(Home_t *home, Node_t *node1, Node_t *node2);

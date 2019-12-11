@@ -1326,7 +1326,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     p0[0] = (randm(&seed)-0.5) * cubeSize;
                     p0[1] = (randm(&seed)-0.5) * cubeSize;			
                     p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
-                    NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
+                    NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,15);
                     bd = GetBurgData(home, inGrain0, onGB0);
                     if(onGB0 > -1)continue;
 
@@ -1347,8 +1347,8 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         p2[i] = p0[i] - (srcLen * randomLine[i]*0.5);
                     } 
 
-                    NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1);
-                    NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2);
+                    NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1,15);
+                    NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,15);
              
                     if(onGB1 > -1 || inGrain0 != inGrain1 || onGB2 > -1 || inGrain2 != inGrain1){
                         continue;
@@ -1382,12 +1382,12 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         p5[1] = p2[1] + separateLength*glideDir[1];
                         p5[2] = p2[2] + separateLength*glideDir[2];
 #if 1
-                        NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
-                        NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1);
-                        NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2);
-                        NodeLocation(home, p3[0],  p3[1], p3[2], inGrain3, onGB3);
-                        NodeLocation(home, p4[0],  p4[1], p4[2], inGrain4, onGB4);
-                        NodeLocation(home, p5[0],  p3[1], p5[2], inGrain5, onGB5);
+                        NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,15);
+                        NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1,15);
+                        NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,15);
+                        NodeLocation(home, p3[0],  p3[1], p3[2], inGrain3, onGB3,15);
+                        NodeLocation(home, p4[0],  p4[1], p4[2], inGrain4, onGB4,15);
+                        NodeLocation(home, p5[0],  p3[1], p5[2], inGrain5, onGB5,15);
                     
                         if(onGB0 > -1 || onGB3 > -1 || onGB1 > -1 || onGB2 > -1 ||
                            onGB4 > -1 || onGB5 > -1 || inGrain4 != inGrain0 || inGrain5 != inGrain0 ||
@@ -2936,7 +2936,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     p0[2] = -200;
 #endif
 
-                    NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1);
+                    NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1,15);
                     bd = GetBurgData(home, inGrain1, onGB1);
                     if(onGB1 > -1)continue;
 
@@ -2999,8 +2999,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             p2[i] = p1[i] + (srcLen * randomLine[i]);
                         } 
 
-                        NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
-                        NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2);
+                        NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,15);
+                        NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,15);
              
                         if(onGB1 != onGB0 || onGB1 !=onGB2 || inGrain0 != inGrain1 || inGrain1 != inGrain2){
                             continue;
@@ -3017,8 +3017,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             p3[0] = p0[0] + separateLength*glideDir[0];
                             p3[1] = p0[1] + separateLength*glideDir[1];
                             p3[2] = p0[2] + separateLength*glideDir[2];
-                            NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
-                            NodeLocation(home, p3[0],  p3[1], p3[2], inGrain3, onGB3);
+                            NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,15);
+                            NodeLocation(home, p3[0],  p3[1], p3[2], inGrain3, onGB3,15);
                     
                             if(onGB0 > -1 || onGB3 > -1 || inGrain0 != inGrain2 || inGrain3 != inGrain2)continue;
                         }   
@@ -3900,7 +3900,7 @@ void CreateLoopSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *t
             cenPos[2] = (randm(&seed)-0.5)*cubeLength;
             
             if(home->nGBs>0){
-                NodeLocation(home, cenPos[0], cenPos[1], cenPos[2], inGrain0, onGB0);
+                NodeLocation(home, cenPos[0], cenPos[1], cenPos[2], inGrain0, onGB0,15);
                 if(onGB0 > -1) continue;
                 ranNum = (i<N_SS && nLoops>N_SS)?i:int(1.0E5*randm(&seed))%N_SS;
                 if(slip_sys[ranNum][2]==0 || slip_sys[ranNum][2]==1){
@@ -4150,7 +4150,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
             cenPos[0] = (randm(&seed)-0.5)*cubeLength;
             cenPos[1] = (randm(&seed)-0.5)*cubeLength;
             cenPos[2] = (randm(&seed)-0.5)*cubeLength;
-            NodeLocation(home, cenPos[0], cenPos[1], cenPos[2], inGrain, onGB);
+            NodeLocation(home, cenPos[0], cenPos[1], cenPos[2], inGrain, onGB,15);
             if((inArgs->polycrystal==1 && inGrain == grainID && onGB <0) || (inArgs->polycrystal==0))break;
         }
 
@@ -4194,7 +4194,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
             }
             CoordMinus(lPoiList[j],cenPos,lDirList[j]); normalize_vec(lDirList[j]);
             CoordAdd(1.0,cenPos,radius,lDirList[j],lPoiList[j]);
-            NodeLocation(home, lPoiList[j][0],lPoiList[j][1],lPoiList[j][2], ig, og);
+            NodeLocation(home, lPoiList[j][0],lPoiList[j][1],lPoiList[j][2], ig, og,15);
             if((og<0 && inGrain==ig) || (!AlignedDirection(bd->planeList[3],n[j]))){
                 cross(n0,n[j],lDirList[j]); normalize_vec(lDirList[j]);
                 continue;
@@ -4203,7 +4203,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
             r=10.0;
             while(true){
                 CoordAdd(1.0,cenPos,r,lDirList[j],lPoiList[j]);
-                NodeLocation(home, lPoiList[j][0],lPoiList[j][1],lPoiList[j][2], ig, og);
+                NodeLocation(home, lPoiList[j][0],lPoiList[j][1],lPoiList[j][2], ig, og,15);
                 if(ig!=inGrain)break;
                 r+=10.0;
             }
@@ -4234,7 +4234,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
         bool dangerLoop = (pid1!=3 && pid2!=3 && !AlignedDirection(n0, bd->planeList[3]))?true:false;
         if(dangerLoop){
             int j; for(j=0; j<4; j++){
-                NodeLocation(home, p[j][0],p[j][1],p[j][2], ig, og); if(ig!=inGrain)break;
+                NodeLocation(home, p[j][0],p[j][1],p[j][2], ig, og,15); if(ig!=inGrain)break;
             }
             if(j<4){
                 real8 ldir1[3]; CoordMinus(p[2],p[0],ldir1); normalize_vec(ldir1);
@@ -4247,14 +4247,14 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
                 CoordMinus(cenPos,vec2,vec1); 
                 for(k=0; k<4; k++){CoordAdd(p[k],vec1,p[k]); CoordMinus(p[k],cenPos,lList[k]);}
                 for(k=0;k<4;k++){
-                    NodeLocation(home, p[k][0],p[k][1],p[k][2], ig, og); if(ig!=inGrain)break;
+                    NodeLocation(home, p[k][0],p[k][1],p[k][2], ig, og,15); if(ig!=inGrain)break;
                 }
                 if(k<4){
                     while(ig!=inGrain||og>-1){
                         factor *= 0.98;
                         for(l=0; l<4; l++){
                             CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
-                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og);
+                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og,15);
                             if(ig!=inGrain||og>-1)break;
                         }
                     }
@@ -4284,14 +4284,14 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
                             factor *= 1.1;
                             for(l=0; l<4; l++){
                                 CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
-                                NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og);
+                                NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og,15);
                                 if(ig!=inGrain||og>-1)break;
                             }
                         }
                         factor /= 1.1;
                         for(l=0; l<4; l++){
                             CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
-                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og);
+                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og,15);
                             if(ig!=inGrain || onGB>-1)Fatal("shit {%g,%g,%g}",p[l][0],p[l][1],p[l][2]);
                         }
                     
@@ -4328,14 +4328,14 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
                             factor *= 1.1;
                             for(l=0; l<4; l++){
                                 CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
-                                NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og);
+                                NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og,15);
                                 if(ig!=inGrain||og>-1)break;
                             }
                         }
                         factor /= 1.1;
                         for(l=0; l<4; l++){
                             CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
-                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og);
+                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og,15);
                             nodeGBList[l] = -1;
                             if(ig!=inGrain || onGB>-1)Fatal("shit {%g,%g,%g}",p[l][0],p[l][1],p[l][2]);
                         }
@@ -4370,7 +4370,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
             }else{
                 node->inGrain =-1; node->onGB = nodeGBList[j];
             }
-            NodeLocation(home, node->x, node->y, node->z, ig,og);
+            NodeLocation(home, node->x, node->y, node->z, ig,og,15);
             if(node->onGB != og){
                 FormatVector(p[j],"p[j]");
                 FormatVector(n[j],"n[j]");
