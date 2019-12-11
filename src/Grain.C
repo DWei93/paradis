@@ -1701,7 +1701,11 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
         return(0);
     }
 
-
+    if(node->constraint ==7){
+        printf("Task %s %d: ",__func__,home->myDomain);
+        PrintTag(home, node);
+        printf("move from {%g,%g,%g} to grain %d\n",pos[0],pos[1],pos[2],inGrain);
+    }
     if(onGB < 0 || onGB >= home->nGBs)Fatal("in %s at %d", __FILE__, __LINE__);
 	if(node == (Node_t *)NULL){
         Fatal("Task %d: %s, line %d -- Node = NULL",

@@ -1499,11 +1499,6 @@ void SplitMultiNodes(Home_t *home)
                             vec[2] = splitNode1->z;
 
                             if(AdjustSplitedNodePosition(home, splitNode1, vec, pos)){
-                                if(splitNode1->onGB>-1 && splitNode1->constraint==7){
-                                    printf("Task %d %s-2: attempt move GB node ",home->myDomain,__func__);
-                                    PrintTag(home, splitNode1); 
-                                    printf(" form {%g,%g,%g} to {%g,%g,%g}\n", vec[0],vec[1],vec[2],pos[0],pos[1],pos[2]);
-                                }
                                 splitNode1->x = pos[0];
                                 splitNode1->y = pos[1];
                                 splitNode1->z = pos[2];
@@ -1534,11 +1529,6 @@ void SplitMultiNodes(Home_t *home)
                             vec[2] = splitNode2->z;
 
                             if(AdjustSplitedNodePosition(home, splitNode2, vec, pos)){
-                                if(splitNode2->onGB>-1 && splitNode2->constraint==7){
-                                    printf("Task %d %s-2: attempt move GB node ",home->myDomain,__func__);
-                                    PrintTag(home, splitNode2); 
-                                    printf(" form {%g,%g,%g} to {%g,%g,%g}\n", vec[0],vec[1],vec[2],pos[0],pos[1],pos[2]);
-                                }
                                 splitNode2->x = pos[0];
                                 splitNode2->y = pos[1];
                                 splitNode2->z = pos[2];
@@ -1761,9 +1751,7 @@ void SplitMultiNodes(Home_t *home)
 
                 MergeNode(home, OPCLASS_SEPARATION, newNode, origNode,
                           origPos, &mergedNode, &mergeStatus, 0
-
-                           ,splitNode1->inGrain, splitNode1->onGB  
-                          );
+                           ,splitNode1->inGrain, splitNode1->onGB);
 
 /*
  *              If the merge failed, something's screwy!  Abort.
@@ -2427,32 +2415,20 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 	    free(tarmList);
 
         if(AdjustSplitedNodePosition(home, (*splitNode1), pos1, pos)){
-            if((*splitNode1)->onGB>-1 && (*splitNode1)->constraint==7){
-                printf("Task %d %s-1: attempt move GB node ",home->myDomain,__func__);
-                PrintTag(home, (*splitNode1)); 
-                printf(" form {%g,%g,%g} to {%g,%g,%g}\n", pos1[0],pos1[1],pos1[2],pos[0],pos[1],pos[2]);
-            }
-            VECTOR_COPY(pos1, pos);
-            (*splitNode1)->x = pos1[0];
-            (*splitNode1)->y = pos1[1];
-            (*splitNode1)->z = pos1[2];
+            (*splitNode1)->x = pos[0];
+            (*splitNode1)->y = pos[1];
+            (*splitNode1)->z = pos[2];
             if(globalOp){
-                RepositionNode(home,pos1,&(*splitNode1)->myTag,globalOp);
+                RepositionNode(home,pos,&(*splitNode1)->myTag,globalOp);
             }
         }
  
         if(AdjustSplitedNodePosition(home, (*splitNode2), pos2, pos)){
-            if((*splitNode2)->onGB>-1 && (*splitNode2)->constraint==7){
-                printf("Task %d %s-1: attempt move GB node ",home->myDomain,__func__);
-                PrintTag(home, (*splitNode2)); 
-                printf(" form {%g,%g,%g} to {%g,%g,%g}\n", pos2[0],pos2[1],pos2[2],pos[0],pos[1],pos[2]);
-            }
-            VECTOR_COPY(pos2, pos);
-            (*splitNode2)->x = pos2[0];
-            (*splitNode2)->y = pos2[1];
-            (*splitNode2)->z = pos2[2];
+            (*splitNode2)->x = pos[0];
+            (*splitNode2)->y = pos[1];
+            (*splitNode2)->z = pos[2];
             if(globalOp){
-                RepositionNode(home,pos2,&(*splitNode2)->myTag,globalOp);
+                RepositionNode(home,pos,&(*splitNode2)->myTag,globalOp);
             }
         }
  

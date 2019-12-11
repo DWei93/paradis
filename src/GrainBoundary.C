@@ -1853,7 +1853,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
     std::vector<std::vector<int> >   nbrInGrain;
 
     if(home->myDomain != node->myTag.domainID)return;
-    if(!IsOnGB(node) || (node->constraint ==7))return;
+    if(!IsOnGB(node))return;
 
     gb = home->GBKeys[node->onGB];
 
