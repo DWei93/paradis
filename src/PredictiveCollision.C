@@ -39,6 +39,7 @@
 #include "Util.h"
 #include "Comm.h"
 #include "Mobility.h"
+#include "Math.h"
 
 static int dbgDom;
 
@@ -763,6 +764,14 @@ static void FindCollisionPointAndTime(Home_t *home, real8 p1[3], real8 p2[3],
  *      been marked as non-deletable nodes for this cycle.
  *
  *-------------------------------------------------------------------------*/
+
+inline bool ParallelGB(Node_t *node, real8 n[3]){
+    for(int i=0; i<node->numNbrs; i++){
+        if(fabs(dot_product(n[0],n[1],n[2],node->nx[i],node->ny[i],node->nz[i])) > 0.95)return true;
+    }    
+    return false;
+}
+
 void PredictiveCollisions(Home_t *home)
 {
         int     i, j, k, q, arm12, arm21, arm34, arm43;
@@ -1594,7 +1603,9 @@ void PredictiveCollisions(Home_t *home)
                                         if(splitOnGB>-1){
                                             gb = home->GBKeys[splitOnGB];
                                             PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
-                                            if(fabs(dis)>param->rTol){
+                                            if(fabs(dis)>param->rTol || 
+                                               (mergenode1->inGrain>-1 && ParallelGB(mergenode1,gb->n)) ||
+                                               (mergenode2->inGrain>-1 && ParallelGB(mergenode2,gb->n)) ){
                                                 mergenode1->flags |= NO_COLLISIONS;
                                                 mergenode2->flags |= NO_COLLISIONS;
                                                 continue;
@@ -1624,6 +1635,16 @@ void PredictiveCollisions(Home_t *home)
                                                 AdjustSplitedNodePosition(home, mergenode1, newPos, vec1);
                                                 AdjustSplitedNodePosition(home, mergenode2, newPos, vec2);
                                         
+                                        if(mergenode1->onGB>-1 && mergenode1->constraint==7){
+                                            printf("Task %d %s-2: attempt move GB node ",home->myDomain,__func__);
+                                            PrintTag(home, mergenode1); 
+                                            printf(" form {%g,%g,%g} to {%g,%g,%g}\n", newPos[0],newPos[1],newPos[2],vec1[0],vec1[1],vec1[2]);
+                                        }
+                                        if(mergenode2->onGB>-2 && mergenode2->constraint==7){
+                                            printf("Task %d %s-1: attempt move GB node ",home->myDomain,__func__);
+                                            PrintTag(home, mergenode2); 
+                                            printf(" form {%g,%g,%g} to {%g,%g,%g}\n", newPos[0],newPos[1],newPos[2],vec2[0],vec2[1],vec2[2]);
+                                        }
                                                 vec1[0] -= vec2[0];
                                                 vec1[1] -= vec2[1];
                                                 vec1[2] -= vec2[2];
@@ -2129,7 +2150,9 @@ void PredictiveCollisions(Home_t *home)
                                 if(splitOnGB>-1){
                                     gb = home->GBKeys[splitOnGB];
                                     PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
-                                    if(fabs(dis)>param->rTol){
+                                    if(fabs(dis)>param->rTol || 
+                                       (mergenode1->inGrain>-1 && ParallelGB(mergenode1,gb->n)) ||
+                                       (mergenode2->inGrain>-1 && ParallelGB(mergenode2,gb->n)) ){
                                         mergenode1->flags |= NO_COLLISIONS;
                                         mergenode2->flags |= NO_COLLISIONS;
                                         continue;
@@ -2158,6 +2181,16 @@ void PredictiveCollisions(Home_t *home)
 
                                         AdjustSplitedNodePosition(home, mergenode1, newPos, vec1);
                                         AdjustSplitedNodePosition(home, mergenode2, newPos, vec2);
+                                        if(mergenode1->onGB>-1 && mergenode1->constraint==7){
+                                            printf("Task %d %s-1: attempt move GB node ",home->myDomain,__func__);
+                                            PrintTag(home, mergenode1); 
+                                            printf(" form {%g,%g,%g} to {%g,%g,%g}\n", newPos[0],newPos[1],newPos[2],vec1[0],vec1[1],vec1[2]);
+                                        }
+                                        if(mergenode2->onGB>-1 && mergenode2->constraint==7){
+                                            printf("Task %d %s-1: attempt move GB node ",home->myDomain,__func__);
+                                            PrintTag(home, mergenode2); 
+                                            printf(" form {%g,%g,%g} to {%g,%g,%g}\n", newPos[0],newPos[1],newPos[2],vec2[0],vec2[1],vec2[2]);
+                                        }
 
                                         vec1[0] -= vec2[0];
                                         vec1[1] -= vec2[1];

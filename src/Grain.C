@@ -1701,6 +1701,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
         return(0);
     }
 
+
     if(onGB < 0 || onGB >= home->nGBs)Fatal("in %s at %d", __FILE__, __LINE__);
 	if(node == (Node_t *)NULL){
         Fatal("Task %d: %s, line %d -- Node = NULL",
