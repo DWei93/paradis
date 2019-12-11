@@ -1575,7 +1575,7 @@ void PredictiveCollisions(Home_t *home)
                                    if(splitOnGB>-1){
                                        gb = home->GBKeys[splitOnGB];
                                        PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
-                                       if(fabs(dis)>2.0*param->rTol){
+                                       if(fabs(dis)>param->rTol){
                                            continue;
                                        }
                                    }
@@ -1594,7 +1594,9 @@ void PredictiveCollisions(Home_t *home)
                                         if(splitOnGB>-1){
                                             gb = home->GBKeys[splitOnGB];
                                             PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
-                                            if(fabs(dis)>2.0*param->rTol){
+                                            if(fabs(dis)>param->rTol){
+                                                mergenode1->flags |= NO_COLLISIONS;
+                                                mergenode2->flags |= NO_COLLISIONS;
                                                 continue;
                                             }
                                             
@@ -2128,6 +2130,8 @@ void PredictiveCollisions(Home_t *home)
                                     gb = home->GBKeys[splitOnGB];
                                     PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
                                     if(fabs(dis)>param->rTol){
+                                        mergenode1->flags |= NO_COLLISIONS;
+                                        mergenode2->flags |= NO_COLLISIONS;
                                         continue;
                                     }
                                     
