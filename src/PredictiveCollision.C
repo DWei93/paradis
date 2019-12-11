@@ -2127,7 +2127,7 @@ void PredictiveCollisions(Home_t *home)
                                 if(splitOnGB>-1){
                                     gb = home->GBKeys[splitOnGB];
                                     PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
-                                    if(fabs(dis)>2.0*param->rTol){
+                                    if(fabs(dis)>param->rTol){
                                         continue;
                                     }
                                     
@@ -2138,7 +2138,7 @@ void PredictiveCollisions(Home_t *home)
                                     vec1[2] -= vec2[2];
                                     ZImage(param, vec1, vec1+1, vec1+2);
 
-                                    if(Normal(vec1) > 2.0*param->rTol){
+                                    if(Normal(vec1) > param->rTol){
                                         PrintNode(mergenode1);
                                         PrintNode(mergenode2);
                                         printf("Warning: can not merge the two nodes in PredictiveCollision. %f\n",
