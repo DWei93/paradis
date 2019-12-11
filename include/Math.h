@@ -420,7 +420,7 @@ inline int SegmentPlaneIntersection(double *p1, double *p2, double *plane, doubl
 inline bool InConcavePolyhedron(double *p, double **bounds, int nBounds, double margin)
 {
     double dis;
-    for(auto i=0; i<nBounds; i++){
+    for(int i=0; i<nBounds; i++){
         PointPlaneDistance(p, bounds[i], dis);
         if(dis>margin)return false;
     }
@@ -429,7 +429,7 @@ inline bool InConcavePolyhedron(double *p, double **bounds, int nBounds, double 
 inline bool InConcavePolyhedron(double *p, double *bounds, int nBounds, double margin)
 {
     double dis;
-    for(auto i=0; i<nBounds; i++){
+    for(int i=0; i<nBounds; i++){
         PointPlaneDistance(p, &bounds[i*6], dis);
         if(dis>margin)return false;
     }
@@ -523,8 +523,8 @@ int AddAndSearchVertice(std::vector<double> &vertices, double x, double y, doubl
 
 inline void BubbleSort2D(double *x, double *y, int n){
     double temp;
-    for(auto i=n-1; i>0; i--){
-        for( auto j=0; j<i; j++){
+    for(int i=n-1; i>0; i--){
+        for( int j=0; j<i; j++){
             if(x[j]>x[j+1]){
                 temp=x[j]; x[j]=x[j+1]; x[j+1]=temp; 
                 temp=y[j]; y[j]=y[j+1]; y[j+1]=temp; 

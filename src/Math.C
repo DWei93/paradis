@@ -422,7 +422,7 @@ double PointSegmentDistance(double *p, double *p1, double *p2){
  *  \return distance                    */
 double PointConcavePolygonDistance(double *p, std::vector<double> &v, std::vector<int> &polygon, int startID){
     double p1[3], p2[3], dis, min=1E50;
-    for(auto i=startID+1; i<startID+1+polygon[startID]; i++){
+    for(int i=startID+1; i<startID+1+polygon[startID]; i++){
         Coordinate(v,polygon[i],p1);
         if(i<startID+polygon[startID])Coordinate(v,polygon[i+1],p2);
         else Coordinate(v,polygon[startID+1],p2);
@@ -443,7 +443,7 @@ bool PlaneConcavePolygonIntersection(double *n, double *p, double *vertices, int
 {
     int next, j=0;
     double pos[3];
-    for(auto i=0; i<nPoints; i++){
+    for(int i=0; i<nPoints; i++){
         next = (i<nPoints-1)?i+1:0;
         if(POINT_INTERSECTION==SegmentPlaneIntersection(Coordinate(vertices, polygon[i]), Coordinate(vertices,polygon[next]),n, p, pos)){
             intersections[3*j]=pos[0];intersections[3*j+1]=pos[1];intersections[3*j+2]=pos[2]; j++;
