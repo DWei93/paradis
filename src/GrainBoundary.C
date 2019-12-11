@@ -1853,7 +1853,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
     std::vector<std::vector<int> >   nbrInGrain;
 
     if(home->myDomain != node->myTag.domainID)return;
-    if(!IsOnGB(node))return;
+    if(!IsOnGB(node) || (node->constraint ==7))return;
 
     gb = home->GBKeys[node->onGB];
 
@@ -1871,9 +1871,10 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
         
         if(Normal(crossProd) < 1.0E-4){
 //          Tecplot(home, (char*)"SplitIntersectionNode", 0, 0, 0 ,0, 0, 1);
-//            PrintNode(node);
-//            PrintNode(nbr);
-//            printf("SplitIntersectNode gb{%f,%f,%f}\n", gb->n[0],gb->n[1],gb->n[2]);
+            printf("Warning in task %d %s: ",home->myDomain,__func__);
+            PrintTag(home,node);
+            PrintTag(home,nbr);
+            printf("\n");
             AssignGrain(home, nbr, -1, node->onGB);
             continue;
             wrongGlidePlane = 1;
