@@ -2948,7 +2948,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     }
 
                     if(slip_sys[ranNum][2]==0 || slip_sys[ranNum][2]==1){
-                        if((inGrain1%2)!=slip_sys[ranNum][2]) continue;
+                        if(inArgs->polycrystal ==1 && (inGrain1%2)!=slip_sys[ranNum][2]) continue;
                     }else if(slip_sys[ranNum][2]==3) bd=GetBurgData(home, 0, -1);
                     else{
                         ClosedGB(home, p1, &gb);
