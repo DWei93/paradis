@@ -470,7 +470,12 @@ void CheckNodeNANS(Node_t *node){
 }
 
 void DebugGB(Home_t *home, int flag){
+#ifndef DEBUG
     return;
+#else
+    home->flag = flag;
+    return;
+#endif
 	int 	i,j,k,l, crossSlipNode, sameNode;
 	int	    normalID, inGrain, onGB;
 	real8   dot,resiBurg[3], resiVec[3];
@@ -488,18 +493,14 @@ void DebugGB(Home_t *home, int flag){
 	param = home->param;
 
 #ifdef DEBUG
-    home->flag = flag;
 #endif
 //    if(flag >= 4 && flag == 5){
-	    printf("%d %d\n",home->myDomain, flag);
+////    printf("%d %d\n",home->myDomain, flag);
 //    }
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
-        if(node->numNbrs > 16){
-            PrintNode(node);
-            Fatal("DebugGB:  (%d,%d) singsdaly linked! %d",
-                  node->myTag.domainID, node->myTag.index, flag);
-        }
+
+
         continue;
 #if 0
         if ((node->numNbrs == 1) && (node->constraint == UNCONSTRAINED)) {

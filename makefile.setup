@@ -106,6 +106,7 @@ OPT = -O3
 #    WARNING: This is still under development and not fully supported!
 #
  OPENMP_MODE = ON
+#DEFS += -DDEBUG
 #DEFS += -DNO_GB_BARRIER
 #######################################################################
 #

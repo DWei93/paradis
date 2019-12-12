@@ -1606,7 +1606,11 @@ int NodeOnGB(Home_t *home, Node_t *node){
         if((nbr = GetNeighborNode(home, node, i)) 
             == (Node_t *)NULL){
             PrintNode(home, node);
+#ifdef DEBUG
+            Fatal("Warning in NodeOnGB, unkonwn neighbor, flag=%d\n",home->flag);
+#else
             Fatal("Warning in NodeOnGB, unkonwn neighbor\n");
+#endif
             continue;
         }
 		
