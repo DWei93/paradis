@@ -354,7 +354,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                         else index = 1;
                     }
                 }
-                f((PlaneType(home, node, nbr) & GLIDE_PLANE) == 0)index=4;
+                if((GetPlaneType_FCC(home, node, nbrNode) & GLIDE_PLANE) == 0)index=4;
                 constraint = node->constraint;
                 if((NodeOnGB(home, node) & INTERSECT_NODE)>0)constraint = 4;
 
