@@ -380,7 +380,20 @@ static void InitDefaultValues(InArgs_t *inArgs)
 	    inArgs->zMatDir[0] = -1;
 	    inArgs->zMatDir[1] = -1;
 	    inArgs->zMatDir[2] = -1;
-
+#if 1
+        NormalizeVec(inArgs->xMatDir);
+        NormalizeVec(inArgs->yMatDir);
+        NormalizeVec(inArgs->zMatDir);
+        real8 rot[3][3], o1[3][3], o2[3][3],zaxis[3]={0.0,0.0,1.0};
+        RotateWithAxis(zaxis, 15.0*M_PI/180.0, rot);
+        VECTOR_COPY(o1[0],inArgs->xMatDir);
+        VECTOR_COPY(o1[1],inArgs->yMatDir);
+        VECTOR_COPY(o1[2],inArgs->zMatDir);
+        Matrix33Mult33(rot, o1, o2);
+        VECTOR_COPY(inArgs->xMatDir,o2[0]);
+        VECTOR_COPY(inArgs->yMatDir,o2[1]);
+        VECTOR_COPY(inArgs->zMatDir,o2[2]);
+#endif
 	    inArgs->TBAngle = 0;
 	    inArgs->maxDensity = 5.0E14;
 
