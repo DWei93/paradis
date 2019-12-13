@@ -471,17 +471,15 @@ void CheckNodeNANS(Node_t *node){
 
 void DebugGB(Home_t *home, int flag){
 #ifndef DEBUG
-    return;
 #else
     home->flag = flag;
-    return;
 #endif
 	int 	i,j,k,l, crossSlipNode, sameNode;
 	int	    normalID, inGrain, onGB;
 	real8   dot,resiBurg[3], resiVec[3];
 	Param_t *param;
 	Grain_t	*grain;
-	Node_t	*node,*nbr;
+	Node_t	*node,*nbr, *nbr2;
     bool    zeroLenJunc;
 	int 	inGrainPos, corInGrain, corOnGB, NM; 
 	real8   vec1[3],vec2[3], vec[3], vecMag, lDir[3];
@@ -492,16 +490,12 @@ void DebugGB(Home_t *home, int flag){
 
 	param = home->param;
 
-#ifdef DEBUG
-#endif
 //    if(flag >= 4 && flag == 5){
 ////    printf("%d %d\n",home->myDomain, flag);
 //    }
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
 
-
-        continue;
 #if 0
         if ((node->numNbrs == 1) && (node->constraint == UNCONSTRAINED)) {
             PrintNode(node);
@@ -527,21 +521,33 @@ void DebugGB(Home_t *home, int flag){
         for (j = 0; j < node->numNbrs; j++) {
             nbr = GetNeighborNode(home, node, j);
             if(nbr == (Node_t *)NULL){
-                PrintNode(home, node);
-                PrintNode(home, nbr);
                 printf("Task %d, null neighbor, flag %d \n", 
                         home->myDomain, flag);
+                PrintNode(home, node);
+                PrintNode(home, nbr);
+                printf("\n");
             }
 
             if(node->onGB == -1 && nbr->onGB == -1){
                 if(node->inGrain!=nbr->inGrain){
-                    PrintNode(node);
-                    PrintNode(nbr);
-                    printf("Task %d, wrong inGrain, flag %d \n", 
+                    PrintNode(home, node);
+                    PrintNode(home, nbr);
+                    Fatal("Task %d, wrong inGrain, flag %d \n", 
                         home->myDomain, flag);
                 }
             }
+        
+            for(k=0; k<nbr->numNbrs; k++){
+                nbr2 = GetNeighborNode(home, nbr, k);
+                if(nbr2==(Node_t *)NULL){
+                    printf("Task %d: can not find secondary ghost node (%d,%d) flag %d\n", home->myDomain, nbr->nbrTag[k].domainID, nbr->nbrTag[k].index, flag);
+                    PrintNode(home, nbr);
+                    printf("\n");
+                }
+            }
+
             continue;
+
             if(NodeDistance(home,node,nbr)>1000){
                 PrintNode(home, node);
                 PrintNode(home, nbr);

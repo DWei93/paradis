@@ -1708,7 +1708,7 @@ void PrintNode(Home_t *home, Node_t *node)
             nbr = GetNeighborNode(home, node, i);
 
             if(nbr == (Node_t *)NULL){
-                printf("null nbr\n");
+                printf("null nbr[%d,%d]\n",node->nbrTag[i].domainID,node->nbrTag[i].index);
             }else{
                 printf("%d\n", GetBurgID_FCC(home, node, nbr));
             }
@@ -1726,7 +1726,7 @@ void PrintNode(Home_t *home, Node_t *node)
             nbr = GetNeighborNode(home, node, i);
 
             if(nbr == (Node_t *)NULL){
-                printf("null nbr\n");
+                printf("null nbr[%d,%d]\n",node->nbrTag[i].domainID,node->nbrTag[i].index);
             }else{
                 printf("%d\n", GetPlaneID_FCC(home, node, nbr));
             }
