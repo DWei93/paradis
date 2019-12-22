@@ -756,12 +756,13 @@ int GetUnitVector(int unitFlag,
            *ux = 0.0;                                 
            *uy = 0.0;                                 
            *uz = 0.0;
-
+#ifdef DEBUG
            printf("GetUnitVector:  disMag < min:\n"
                  "    pointA = (%20.15f %20.15f %20.15f)\n"
-                 "    pointB = (%20.15f %20.15f %20.15f)",
+                 "    pointB = (%20.15f %20.15f %20.15f)\n",
                  x1, y1, z1, x2, y2, z2);
-	return(0);
+#endif
+	        return(0);
 
         } else {                                                
 
@@ -2097,8 +2098,10 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
                 burg[0] = bx;
                 burg[1] = by;
                 burg[2] = bz;
-
-                if(Normal(dir) < 1.0E-4){PrintTag(node1); PrintTag(node2);printf("-- zero segment length\n");}
+#ifdef DEBUG
+                if(Normal(dir) < 1.0E-4){PrintTag(home,node1); PrintTag(home,node2);
+                printf("-- zero segment length(%d)\n", home->myDomain);}
+#endif
                 FindGlidePlane(home, burg, dir, glidePlane,node1,node2);
 
                 gpDotgp = DotProduct(glidePlane, glidePlane);

@@ -181,7 +181,7 @@ real8 FGlidePerLength(Home_t *home, Node_t *node, Plane_t *GBPlane){
     cross(normal,intersection,glideDir);
 
     NormalizeVec(glideDir);
-
+    
     fGlide = node->fX*glideDir[0]+
          node->fY*glideDir[1]+
          node->fZ*glideDir[2];
@@ -219,8 +219,8 @@ real8 FGlidePerLength(Home_t *home, Node_t *node){
     NormalizeVec(vec);
 
     fGlide = node->fX*vec[0]+
-         node->fY*vec[1]+
-         node->fZ*vec[2];
+             node->fY*vec[1]+
+             node->fZ*vec[2];
 
     return(fabs(fGlide)/disLength);
 }
@@ -2694,6 +2694,8 @@ void GBCrossSlip(Home_t *home)
        
         }else if(sideCrossSlipNode >= 2){
 //          if(node->numNbrs + gbNbr->numNbrs >6){printf("Task %d %s: too much arms, skip\n",home->myDomain,__func__);continue;}
+	        MarkNodeForceObsolete(home, node);        
+	        MarkNodeForceObsolete(home, gbNbr);        
             VECTOR_COPY(vec2, nodePos);
 	        RepositionNode(home, interLine.point, &node->myTag, 0);
 
@@ -2742,6 +2744,9 @@ void GBCrossSlip(Home_t *home)
 //          printf("Task %d %d %s: ", home->myDomain,home->cycle, __func__);
 //          PrintTag(node); PrintTag(gbNbr); printf(" plan to merge at {%g,%g,%g}\n",newPos[0],newPos[1],newPos[2]);
 
+            if((node->flags&NO_COLLISIONS)>0 || (gbNbr->flags&NO_COLLISIONS)>0){
+                continue;           
+            }
             MergeNode(home, opClass, node, gbNbr, newPos, &mergedNode, &mergeStatus, globalOp);
 
 //          if((mergeStatus & MERGE_SUCCESS) == 0){
@@ -2807,7 +2812,12 @@ bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8
         if(node->onGB != currOnGB){
             if(NewPosToGB(home, node, -1, node->onGB, currPos, pos)){
                 PrintNode(home, node);
+                PrintNeighbor(home,node);
+#ifdef DEBUG
+                Fatal("in %s at %d, flag=%d", __FILE__, __LINE__,home->flag);
+#else
                 Fatal("in %s at %d", __FILE__, __LINE__);
+#endif
             }
             return(1);
         }

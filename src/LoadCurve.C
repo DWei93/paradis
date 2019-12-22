@@ -270,9 +270,9 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 /*
  *              Cover for specific loading direction also
  */
-                dpl_stn=  param->delpStrain[0]*al*al +
-                          param->delpStrain[1]*am*am +
-                          param->delpStrain[2]*an*an +
+                dpl_stn=     param->delpStrain[0]*al*al +
+                             param->delpStrain[1]*am*am +
+                             param->delpStrain[2]*an*an +
                           2.0*param->delpStrain[3]*am*an +
                           2.0*param->delpStrain[4]*an*al +
                           2.0*param->delpStrain[5]*al*am;

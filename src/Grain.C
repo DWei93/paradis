@@ -2125,9 +2125,9 @@ int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]){
  *-------------------------------------------------------------------------*/
 void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f2[3])
 {
-
+    return;
     real8       dis, burgMag, burg[3], segCentor[3], gbStrength, xi[3];
-    real8       vec[3], a = 0.05;
+    real8       vec[3], a = 5.8685446009;
     real8       gausFac1 = 0.211324865405187; // (1-sqrt(3)/3)/2
     real8       gausFac2 = 0.7886751345948128; // (1+sqrt(3)/3)/2
     real8       coff, length, nor[3], gDir[3], gbNormal[3];
@@ -2226,6 +2226,21 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 
     VECTOR_COPY(f2, f1);
 
+    return;
+}
+
+void NodeImageForce(Home_t *home, Node_t *node, real8 *f)
+{
+    real8 armf1[3],armf2[3];
+    VECTOR_ZERO(f); Node_t *nbr;
+    for(int i=0; i<node->numNbrs; i++){
+        nbr=GetNeighborNode(home, node, i); 
+        if(nbr==(Node_t *)NULL)continue;
+        ImageForce(home, node, nbr, armf1, armf2);
+        f[0] += armf1[0];
+        f[1] += armf1[1];
+        f[2] += armf1[2];
+    }
     return;
 }
 

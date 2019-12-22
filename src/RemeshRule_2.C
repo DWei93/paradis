@@ -61,7 +61,7 @@ static void MeshCoarsen(Home_t *home)
         int     planeType, nbrInGrain;
         int     inGrain, onGB;
         int     armInGrain1, armInGrain2, armOnGB1, armOnGB2;
-
+        GB_t    *gb;
 
         thisDomain = home->myDomain;
         param      = home->param;
@@ -277,10 +277,11 @@ static void MeshCoarsen(Home_t *home)
                 gp1[1] = node->ny[1];
                 gp1[2] = node->nz[1];
 
-                if(fabs(DotProduct(gp0, gp1)) < 0.9555 &&
-                   IsOnGB(node) && IsOnGB(nbr1) && IsOnGB(nbr2) &&
+                if(IsOnGB(node) && IsOnGB(nbr1) && IsOnGB(nbr2) &&
                    node->onGB == nbr1->onGB && node->onGB == nbr2->onGB){
-                    violateGlidePlanesOK = 1;
+                    real8 ld1[3]={vec1x,vec1y,vec1z}; NormalizeVec(ld1);
+                    real8 ld2[3]={vec2x,vec2y,vec2z}; NormalizeVec(ld2);        
+                    if(AlignedDirection(ld1,ld2,0.9))violateGlidePlanesOK = 1;
                 }
 
 /*
@@ -469,9 +470,9 @@ static void MeshCoarsen(Home_t *home)
  *              If the first neighbor is not exempt from a coarsen
  *              operation, attempt to merge the nodes.
  */
-                if ((nbr1->flags & NO_MESH_COARSEN) == 0 &&
-                    !(violateGlidePlanesOK==1 && r1 >= 1.0) && 
-                    !(IsOnGB(node) && IsOnGB(nbr2) && !IsOnGB(nbr1))){
+                if (((nbr1->flags & NO_MESH_COARSEN) == 0) &&
+                    (!(violateGlidePlanesOK==1 && r1 >= 1.0)) && 
+                    (!(IsOnGB(node) && IsOnGB(nbr2) && !IsOnGB(nbr1)))){
                     newPos[0] = nbr1->x;
                     newPos[1] = nbr1->y;
                     newPos[2] = nbr1->z;
@@ -491,6 +492,19 @@ static void MeshCoarsen(Home_t *home)
                         }
                     }
 
+                    if(node->inGrain >-1 && nbr1->onGB > -1){
+                        gp0[0] = node->nx[0];
+                        gp0[1] = node->ny[0];
+                        gp0[2] = node->nz[0];
+                        gb = home->GBKeys[nbr1->onGB];
+                        if(AlignedDirection(gp0,gb->n,0.95)){
+                            if(mergeDone == 1){
+                                printf("verified bug: %s %d\n",__FILE__,__LINE__);
+                            }
+                            mergeDone=0;
+                        }
+                    }
+
                     FoldBox(home->param, newPos, newPos+1, newPos+2);
                     if(mergeDone == 1){
                         MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
@@ -504,9 +518,9 @@ static void MeshCoarsen(Home_t *home)
  */
 
                 if (mergeDone == 0) {
-                    if ((nbr2->flags & NO_MESH_COARSEN) == 0 &&
-                        !(violateGlidePlanesOK==1 && r2 >= 1.0) && 
-                        !(IsOnGB(node) && IsOnGB(nbr1) && !IsOnGB(nbr2))){
+                    if (((nbr2->flags & NO_MESH_COARSEN) == 0) &&
+                        (!(violateGlidePlanesOK==1 && r2 >= 1.0)) && 
+                        (!(IsOnGB(node) && IsOnGB(nbr1) && !IsOnGB(nbr2)))){
                         newPos[0] = nbr2->x;
                         newPos[1] = nbr2->y;
                         newPos[2] = nbr2->z;
@@ -527,6 +541,16 @@ static void MeshCoarsen(Home_t *home)
 
                         FoldBox(home->param,newPos, newPos+1, newPos+2);
 
+                        if(node->inGrain >-1 && nbr2->onGB > -1){
+                            gp1[0] = node->nx[1];
+                            gp1[1] = node->ny[1];
+                            gp1[2] = node->nz[1];
+                            gb = home->GBKeys[nbr2->onGB];
+                            if(AlignedDirection(gp1,gb->n,0.95)){
+                                printf("verified bug: %s %d\n",__FILE__,__LINE__);
+                                continue;
+                            }
+                        }
                         MergeNode(home, OPCLASS_REMESH, node, nbr2, newPos,
                                   &mergedNode, &mergeStatus, globalOp);
                         mergeDone = mergeStatus & MERGE_SUCCESS;

@@ -772,6 +772,25 @@ inline bool ParallelGB(Node_t *node, real8 n[3]){
     return false;
 }
 
+void Continue(Home_t *home, Node_t *node1, Node_t *node2, real8 x, real8 y, real8 z, real8 oldPos[3])
+{
+    real8 newPos[3]={x,y,z};
+    Node_t *targetNode;
+    int mergeStatus;
+    MergeNode(home, OPCLASS_COLLISION, node2,
+              node1, newPos, &targetNode,
+              &mergeStatus,1);
+
+    if((mergeStatus & MERGE_SUCCESS) == 0){
+        Fatal("%s at %d: can not undo topo changes",__FILE__,__LINE__);
+    }
+    if(targetNode==(Node_t *)NULL)
+        Fatal("%s at %d: null target node",__FILE__,__LINE__);
+    targetNode->oldx = oldPos[0];
+    targetNode->oldy = oldPos[1];
+    targetNode->oldz = oldPos[2];
+    return;
+}
 void PredictiveCollisions(Home_t *home)
 {
         int     i, j, k, q, arm12, arm21, arm34, arm43;
@@ -803,11 +822,11 @@ void PredictiveCollisions(Home_t *home)
         real8   vec1[3], vec2[3], vec3[3];
         real8   p1[3], p2[3], p3[3], p4[3];
         real8   v1[3], v2[3], v3[3], v4[3];
-        real8   pos[3];
+        real8   pos[3], oldPos1[3], oldPos2[3];
         Tag_t   oldTag1, oldTag2;
         Node_t  *node1, *node2, *node3, *node4, *tmpNbr;
         Node_t  *mergenode1, *mergenode2, *targetNode;
-        Node_t  *splitNode1, *splitNode2;
+        Node_t  *splitNode1, *splitNode2, *seg1Node1, *seg1Node2;
         GB_t    *gb;
         Grain_t *grain;
         int     gbIndex;
@@ -816,7 +835,7 @@ void PredictiveCollisions(Home_t *home)
         int newInGrain, newOnGB, type; real8 dis; bool canMerge;
 
         int     gbCollision;
-        int     splitInGrain, splitOnGB;
+        int     splitInGrain=-1, splitOnGB=-1;
 
 #ifdef _FEM
         int     resetSurfaceProperties, femSurface[2];
@@ -1005,10 +1024,11 @@ void PredictiveCollisions(Home_t *home)
                                         }
                                     }
                                 }
-                            }else{
-                                splitInGrain = -1;
-                                splitOnGB = -1;
                             }
+
+#ifdef SIMLPLE_REACTION_ON_GB
+                            if(gbCollision > 0)continue;
+#endif
 /*
  *                          At this point, segment node3/node4 is owned by
  *                          node3.  If node3 is not native to this domain,
@@ -1024,6 +1044,8 @@ void PredictiveCollisions(Home_t *home)
                             x2 = node2->x; y2 = node2->y; z2 = node2->z;
                             x3 = node3->x; y3 = node3->y; z3 = node3->z;
                             x4 = node4->x; y4 = node4->y; z4 = node4->z;
+                            oldPos1[0]=node1->oldx; oldPos1[1]=node1->oldy; oldPos1[2]=node1->oldz;
+                            oldPos2[0]=node3->oldx; oldPos2[1]=node3->oldy; oldPos2[2]=node3->oldz;
     
                             vx1 = node1->vX; vy1 = node1->vY; vz1 = node1->vZ;
                             vx2 = node2->vX; vy2 = node2->vY; vz2 = node2->vZ;
@@ -1228,10 +1250,9 @@ void PredictiveCollisions(Home_t *home)
                                                              newNodeVel, 1,
                                                              &arm12, globalOp,
                                                              &splitNode1,
-                                                             &splitNode2, 0
-                                                             ,node1->inGrain, node1->onGB
-                                                             ,inGrain1, onGB1
-                                                                            );
+                                                             &splitNode2, 0,
+                                                             node1->inGrain, node1->onGB,
+                                                             inGrain1, onGB1);
 /*
  *                                   If we were unable to split the node
  *                                   go back to looking for more collision
@@ -1239,6 +1260,8 @@ void PredictiveCollisions(Home_t *home)
  */
                                      if (splitStatus == SPLIT_FAILED) {
                                          continue;
+                                     }else{
+                                        seg1Node1=splitNode1; seg1Node2=splitNode2;
                                      }
 
 /*
@@ -1290,26 +1313,19 @@ void PredictiveCollisions(Home_t *home)
                                      (void)EvaluateMobility(home, node2);
 
 /*
- *                                  When debugging, dump some info on
- *                                  topological changes taking place and
- *                                  the nodes involved
- */
-#if 0
-                                    if(gbCollision){
-                                        printf("%d  Split-1(SegCollision): "
-                                               "(%d,%d)--(%d,%d) ==> "
-                                               "(%d,%d,%d)--(%d,%d,%d)--(%d,%d,%d)\n",home->myDomain,
-                                               oldTag1.domainID, oldTag1.index,
-                                               oldTag2.domainID, oldTag2.index,
-                                               splitNode1->myTag.domainID,
-                                               splitNode1->myTag.index,
-                                               splitNode1->inGrain,
-                                               splitNode2->myTag.domainID,
-                                               splitNode2->myTag.index,
-                                               splitNode2->inGrain,
-                                               node2->myTag.domainID,
-                                               node2->myTag.index, node2->inGrain);
-                                     }
+ *                                   When debugging, dump some info on
+ *                                   topological changes taking place and
+ *                                   the nodes involved
+ */                                  
+#if 0                                
+                                     printf("Task %d  Split-1(SegCollision): "
+                                            "(%d,%d)--(%d,%d) ==> "
+                                            ,home->myDomain,
+                                            oldTag1.domainID, oldTag1.index,
+                                            oldTag2.domainID, oldTag2.index);
+                                         PrintTag(home,splitNode1);
+                                         PrintTag(home,splitNode2);
+                                         PrintTag(home,node2); printf("\n");
 #endif
 /*
  *                                   When we actually do a collision, we flag
@@ -1492,21 +1508,14 @@ void PredictiveCollisions(Home_t *home)
  *                                   topological changes taking place and
  *                                   the nodes involved
  */
-                                     if (gbCollision) {
-                                         printf("%d  Split-2(SegCollision): "
-                                               "(%d,%d)--(%d,%d) ==> "
-                                               "(%d,%d,%d)--(%d,%d,%d)--(%d,%d,%d)\n", home->myDomain,
-                                               oldTag1.domainID,
-                                               oldTag1.index,
-                                               oldTag2.domainID,
-                                               oldTag2.index,
-                                               splitNode1->myTag.domainID,
-                                               splitNode1->myTag.index, splitNode1->inGrain,
-                                               splitNode2->myTag.domainID,
-                                               splitNode2->myTag.index, splitNode2->inGrain,
-                                               node4->myTag.domainID,
-                                               node4->myTag.index,node3->inGrain);
-                                    }
+                                     printf("Task %d  Split-2(SegCollision): "
+                                            "(%d,%d)--(%d,%d) ==> "
+                                            ,home->myDomain,
+                                            oldTag1.domainID, oldTag1.index,
+                                            oldTag2.domainID, oldTag2.index);
+                                         PrintTag(home,splitNode1);
+                                         PrintTag(home,splitNode2);
+                                         PrintTag(home,node4); printf("\n");
 #endif
                                 }  /* if (splitSeg2) */
     
@@ -1585,31 +1594,35 @@ void PredictiveCollisions(Home_t *home)
                                        gb = home->GBKeys[splitOnGB];
                                        PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
                                        if(fabs(dis)>param->rTol){
-                                           continue;
+                                            if(splitSeg1>0) Continue(home,seg1Node1,seg1Node2,x1,y1,z1,oldPos1);
+                                            if(splitSeg2>0) Continue(home,splitNode1,splitNode2,x3,y3,z3,oldPos2);
+                                            continue;
                                        }
                                    }
                                    
                                    canMerge = BeforeMergeNodes(home, mergenode1,mergenode2,newPos,&dis,type);
                                    if(!canMerge){
-                                         mergenode1->flags |= NO_COLLISIONS;
-                                         mergenode2->flags |= NO_COLLISIONS;
+                                         if(splitSeg1>0) Continue(home,seg1Node1,seg1Node2,x1,y1,z1,oldPos1);
+                                         if(splitSeg2>0) Continue(home,splitNode1,splitNode2,x3,y3,z3,oldPos2);
                                          continue;
                                    }
                                    NodeLocation(home, newPos[0],newPos[1],newPos[2],newInGrain,newOnGB);
                                    if(splitOnGB>-1){if(splitOnGB != newOnGB)canMerge=false;}
                                    else{if(splitInGrain!=newInGrain)canMerge=false;}                            
                                    
+                                   if(splitOnGB>-1){
+                                       gb = home->GBKeys[splitOnGB];
+                                       PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
+                                       if(fabs(dis)>param->rTol || 
+                                          (mergenode1->inGrain>-1 && ParallelGB(mergenode1,gb->n)) ||
+                                          (mergenode2->inGrain>-1 && ParallelGB(mergenode2,gb->n)) ){
+                                           if(splitSeg1>0) Continue(home,seg1Node1,seg1Node2,x1,y1,z1,oldPos1);
+                                           if(splitSeg2>0) Continue(home,splitNode1,splitNode2,x3,y3,z3,oldPos2);
+                                           continue;
+                                       }
+                                   }
                                    if(!canMerge){
                                         if(splitOnGB>-1){
-                                            gb = home->GBKeys[splitOnGB];
-                                            PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
-                                            if(fabs(dis)>param->rTol || 
-                                               (mergenode1->inGrain>-1 && ParallelGB(mergenode1,gb->n)) ||
-                                               (mergenode2->inGrain>-1 && ParallelGB(mergenode2,gb->n)) ){
-                                                mergenode1->flags |= NO_COLLISIONS;
-                                                mergenode2->flags |= NO_COLLISIONS;
-                                                continue;
-                                            }
                                             
                                             NewPosToGB(home, mergenode1, -1, splitOnGB, newPos, vec1);
                                             NewPosToGB(home, mergenode2, -1, splitOnGB, newPos, vec2);
@@ -1623,6 +1636,8 @@ void PredictiveCollisions(Home_t *home)
                                                 PrintNode(mergenode2);
                                                 printf("Warning: can not merge the two nodes in PredictiveCollision. %f\n",
                                                        Normal(vec1));
+                                                if(splitSeg1>0) Continue(home,seg1Node1,seg1Node2,x1,y1,z1,oldPos1);
+                                                if(splitSeg2>0) Continue(home,splitNode1,splitNode2,x3,y3,z3,oldPos2);
                                                 continue;
                                             }
                                         
@@ -1651,18 +1666,19 @@ void PredictiveCollisions(Home_t *home)
 //                                     mergenode1->myTag.domainID, mergenode1->myTag.index, mergenode1->inGrain,
 //                                     mergenode2->myTag.domainID, mergenode2->myTag.index, mergenode2->inGrain,
 //                                     newPos[0], newPos[1], newPos[2]);
-                               MergeNode(home, OPCLASS_COLLISION, mergenode1,
+                                MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                          mergenode2, newPos, &targetNode,
                                          &mergeStatus, globalOp,
                                          splitInGrain, splitOnGB);
-//                              if((mergeStatus & MERGE_SUCCESS) == 0){
-//                                  printf("Task %d %s-1: merge failed, status %d\n", home->myDomain, __func__,mergeStatus);
-//                              }else{
-//                                  printf("Task %d %s-1: merge succeed, ", home->myDomain, __func__);
-//                                  PrintTag(targetNode);
-//                                  printf("\n");
-//                              }
-    
+#if 0
+                                if((mergeStatus & MERGE_SUCCESS) == 0){
+                                    printf("Task %d %s-1: merge failed, status %d\n", home->myDomain, __func__,mergeStatus);
+                                }else{
+                                    printf("Task %d %s-1: merge succeed, ", home->myDomain, __func__);
+                                    PrintTag(targetNode);
+                                    printf("\n");
+                                }
+#endif
 /*
  *                             If the merge did not succeed, go back and
  *                             continue looking for collision candidates.
@@ -1830,10 +1846,14 @@ void PredictiveCollisions(Home_t *home)
                             }
                         }
                     }
+#ifdef SIMLPLE_REACTION_ON_GB
+                    if(gbCollision > 0)continue;
+#endif
 
                     x1 = node1->x; y1 = node1->y; z1 = node1->z;
                     x3 = node3->x; y3 = node3->y; z3 = node3->z;
                     x4 = node4->x; y4 = node4->y; z4 = node4->z;
+                    oldPos1[0]=node1->oldx; oldPos1[1]=node1->oldy; oldPos1[2]=node1->oldz;
 
                     vx1 = node1->vX; vy1 = node1->vY; vz1 = node1->vZ;
                     vx3 = node3->vX; vy3 = node3->vY; vz3 = node3->vZ;
@@ -1995,11 +2015,9 @@ void PredictiveCollisions(Home_t *home)
                                                      nodeVel, newVel, 1,
                                                      &k, globalOp,
                                                      &splitNode1,
-                                                     &splitNode2, 0
-                                                     ,node1->inGrain, node1->onGB
-                                                     ,inGrain2, onGB2
-                                                                     );
-
+                                                     &splitNode2, 0,
+                                                     node1->inGrain, node1->onGB,
+                                                     inGrain2, onGB2);
                              if (splitStatus != SPLIT_SUCCESS) {
                                  continue;
                              }
@@ -2042,7 +2060,6 @@ void PredictiveCollisions(Home_t *home)
  *                           When debugging, dump some info on topological
  *                           changes taking place and the nodes involved
  */
-                             if (gbCollision) {
                                  printf("%d,%d Split-1(Hinge): "
                                         "(%d,%d)--(%d,%d) ==> "
                                         "(%d,%d,%d)--(%d,%d,%d)--(%d,%d,%d)\n", home->myDomain,gbCollision,
@@ -2054,7 +2071,6 @@ void PredictiveCollisions(Home_t *home)
                                         splitNode2->myTag.index,splitNode2->inGrain,
                                         node4->myTag.domainID,
                                         node4->myTag.index,node4->inGrain);
-                             }
 #endif
                         }
 
@@ -2083,33 +2099,6 @@ void PredictiveCollisions(Home_t *home)
                         }
 #endif
 /*
- *                      The merge is going to happen, so there's a few
- *                      more nodes we'll need to mark for force/velocity
- *                      re-evaluation.
- */
-                        MarkNodeForceObsolete(home, node1);
-                        MarkNodeForceObsolete(home, node3);
-                        MarkNodeForceObsolete(home, node4);
-
-                        for (q = 0; q < node1->numNbrs; q++) {
-                            tmpNbr = GetNodeFromTag(home, node1->nbrTag[q]);
-                            if (tmpNbr == (Node_t *)NULL) continue;
-                            tmpNbr->flags |= NODE_RESET_FORCES;
-                        }
-
-                        for (q = 0; q < node3->numNbrs; q++) {
-                            tmpNbr = GetNodeFromTag(home, node3->nbrTag[q]);
-                            if (tmpNbr == (Node_t *)NULL) continue;
-                            tmpNbr->flags |= NODE_RESET_FORCES;
-                        }
-
-                        for (q = 0; q < node4->numNbrs; q++) {
-                            tmpNbr = GetNodeFromTag(home, node4->nbrTag[q]);
-                            if (tmpNbr == (Node_t *)NULL) continue;
-                            tmpNbr->flags |= NODE_RESET_FORCES;
-                        }
-
-/*
  *                      Try the collision
  */
                         oldTag1 = mergenode1->myTag;
@@ -2120,6 +2109,8 @@ void PredictiveCollisions(Home_t *home)
                                 gb = home->GBKeys[splitOnGB];
                                 PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
                                 if(fabs(dis)>2.0*param->rTol){
+                                    mergenode1->flags |= NO_COLLISIONS;
+                                    mergenode2->flags |= NO_COLLISIONS;
                                     continue;
                                 }
                             }
@@ -2135,18 +2126,19 @@ void PredictiveCollisions(Home_t *home)
                             if(splitOnGB>-1){if(splitOnGB != newOnGB)canMerge=false;}
                             else{if(splitInGrain!=newInGrain)canMerge=false;}                            
 
+                            if(splitOnGB>-1){
+                                gb = home->GBKeys[splitOnGB];
+                                PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
+                                if(fabs(dis)>param->rTol || 
+                                   (mergenode1->inGrain>-1 && ParallelGB(mergenode1,gb->n)) ||
+                                   (mergenode2->inGrain>-1 && ParallelGB(mergenode2,gb->n)) ){
+                                    mergenode1->flags |= NO_COLLISIONS;
+                                    mergenode2->flags |= NO_COLLISIONS;
+                                    continue;
+                                }
+                            }
                             if(!canMerge){
                                 if(splitOnGB>-1){
-                                    gb = home->GBKeys[splitOnGB];
-                                    PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
-                                    if(fabs(dis)>param->rTol || 
-                                       (mergenode1->inGrain>-1 && ParallelGB(mergenode1,gb->n)) ||
-                                       (mergenode2->inGrain>-1 && ParallelGB(mergenode2,gb->n)) ){
-                                        mergenode1->flags |= NO_COLLISIONS;
-                                        mergenode2->flags |= NO_COLLISIONS;
-                                        continue;
-                                    }
-                                    
                                     NewPosToGB(home, mergenode1, -1, splitOnGB, newPos, vec1);
                                     NewPosToGB(home, mergenode2, -1, splitOnGB, newPos, vec2);
                                     vec1[0] -= vec2[0];
@@ -2159,6 +2151,8 @@ void PredictiveCollisions(Home_t *home)
                                         PrintNode(mergenode2);
                                         printf("Warning: can not merge the two nodes in PredictiveCollision. %f\n",
                                                Normal(vec1));
+                                        mergenode1->flags |= NO_COLLISIONS;
+                                        mergenode2->flags |= NO_COLLISIONS;
                                         continue;
                                     }
 
@@ -2184,22 +2178,51 @@ void PredictiveCollisions(Home_t *home)
                         }
 
                         FoldBox(param, &newPos[0], &newPos[1], &newPos[2]);
-//                              printf("Task %d %d %s-2: (%d,%d,%d)-(%d,%d,%d) plan to merge at (%g,%g,%g)\n", home->myDomain,home->cycle, __func__,
-//                                     mergenode1->myTag.domainID, mergenode1->myTag.index, mergenode1->inGrain,
-//                                     mergenode2->myTag.domainID, mergenode2->myTag.index, mergenode2->inGrain,
-//                                     newPos[0], newPos[1], newPos[2]);
+/*
+ *                      The merge is going to happen, so there's a few
+ *                      more nodes we'll need to mark for force/velocity
+ *                      re-evaluation.
+ */
+                        MarkNodeForceObsolete(home, node1);
+                        MarkNodeForceObsolete(home, node3);
+                        MarkNodeForceObsolete(home, node4);
+
+                        for (q = 0; q < node1->numNbrs; q++) {
+                            tmpNbr = GetNodeFromTag(home, node1->nbrTag[q]);
+                            if (tmpNbr == (Node_t *)NULL) continue;
+                            tmpNbr->flags |= NODE_RESET_FORCES;
+                        }
+
+                        for (q = 0; q < node3->numNbrs; q++) {
+                            tmpNbr = GetNodeFromTag(home, node3->nbrTag[q]);
+                            if (tmpNbr == (Node_t *)NULL) continue;
+                            tmpNbr->flags |= NODE_RESET_FORCES;
+                        }
+
+                        for (q = 0; q < node4->numNbrs; q++) {
+                            tmpNbr = GetNodeFromTag(home, node4->nbrTag[q]);
+                            if (tmpNbr == (Node_t *)NULL) continue;
+                            tmpNbr->flags |= NODE_RESET_FORCES;
+                        }
+#if 0
+                        printf("Task %d %d %s-2: (%d,%d,%d)-(%d,%d,%d) plan to merge at (%g,%g,%g)\n", home->myDomain,home->cycle, __func__,
+                               mergenode1->myTag.domainID, mergenode1->myTag.index, mergenode1->inGrain,
+                               mergenode2->myTag.domainID, mergenode2->myTag.index, mergenode2->inGrain,
+                               newPos[0], newPos[1], newPos[2]);
+#endif
                         MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                   mergenode2, newPos, &targetNode,
                                   &mergeStatus, globalOp,
                                   splitInGrain, splitOnGB);
-
-//                              if((mergeStatus & MERGE_SUCCESS) == 0){
-//                                  printf("Task %d %s-2: merge failed, status %d\n", home->myDomain, __func__,mergeStatus);
-//                              }else{
-//                                  printf("Task %d %s-2: merge succeed, ", home->myDomain, __func__);
-//                                  PrintTag(targetNode);
-//                                  printf("\n");
-//                              }
+#if 0
+                        if((mergeStatus & MERGE_SUCCESS) == 0){
+                            printf("Task %d %s-2: merge failed, status %d\n", home->myDomain, __func__,mergeStatus);
+                        }else{
+                            printf("Task %d %s-2: merge succeed, ", home->myDomain, __func__);
+                            PrintTag(targetNode);
+                            printf("\n");
+                        }
+#endif
                         localCollisionCnt++;
 
 /*
@@ -2210,8 +2233,6 @@ void PredictiveCollisions(Home_t *home)
  *                      from subsequent segment collisions this cycle.
  */
                         if (targetNode != (Node_t *)NULL) {
-//                          if(IsOnGB(targetNode))printf("Task %d: PredictiveCollsion hinge merged node(%d,%d) arms %d\n", home->myDomain
-//                              ,targetNode->myTag.domainID,targetNode->myTag.index, targetNode->numNbrs);
                             if(!IsOnGB(targetNode) && home->param->polycrystal){
                                  NodeLocation(home, targetNode->x, targetNode->y,
                                               targetNode->z, inGrain1, onGB1);

@@ -23,7 +23,6 @@ int main (int argc, char *argv[])
         int     cycleEnd, memSize, initialDLBCycles;
         time_t  tp;
         Home_t  *home;
-        Param_t *param;
 
 /*
  *      On some systems, the getrusage() call made by Meminfo() to get
@@ -51,7 +50,7 @@ int main (int argc, char *argv[])
    
         home->cycle      = home->param->cycleStart;
 
-        param            = home->param;
+        Param_t *param            = home->param;
         cycleEnd         = param->cycleStart + param->maxstep;
         initialDLBCycles = param->numDLBCycles;
 

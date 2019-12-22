@@ -102,7 +102,7 @@ void SemiInfiniteSegSegForce(real8 p1x, real8 p1y, real8 p1z,
         real8 *fp1x, real8 *fp1y, real8 *fp1z,
         real8 *fp3x, real8 *fp3y, real8 *fp3z,
         real8 *fp4x, real8 *fp4y, real8 *fp4z);
-void SetOneNodeForce(Home_t *home, Node_t *node1);
+void SetOneNodeForce(Home_t *home, Node_t *node1, bool cacImageForce=true);
 void ZeroNodeForces(Home_t *home, int reqType);
 
 #endif  /* ifndef _Force_h */

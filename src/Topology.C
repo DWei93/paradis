@@ -473,7 +473,6 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
                     bz = node->burgZ[i]+node->burgZ[j];
 
                     if(sqrt(bx*bx + by*by +bz*bz) > 1.1){
-
                         nodeOrphaned = 2;
                     }
 /*
@@ -494,15 +493,15 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
                                    __FILE__, __LINE__);
                         }
 						
-                    ChangeArmBurg(home, node, &nbrNode->myTag,
-                                  0.0, 0.0, 0.0,
-                                  0.0, 0.0, 0.0,
-                                  globalOp, DEL_SEG_HALF);
+                        ChangeArmBurg(home, node, &nbrNode->myTag,
+                                      0.0, 0.0, 0.0,
+                                      0.0, 0.0, 0.0,
+                                      globalOp, DEL_SEG_HALF);
 
-                    ChangeArmBurg(home, nbrNode, &node->myTag,
-                                  0.0, 0.0, 0.0,
-                                  0.0, 0.0, 0.0,
-                                  globalOp, DEL_SEG_HALF);
+                        ChangeArmBurg(home, nbrNode, &node->myTag,
+                                      0.0, 0.0, 0.0,
+                                      0.0, 0.0, 0.0,
+                                      globalOp, DEL_SEG_HALF);
 						
                         
 /*
@@ -541,6 +540,8 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
                             Fatal("Neighbor not found at %s line %d\n",
                                    __FILE__, __LINE__);
                         }
+    
+                        
 /*
  *                      We don't yet know what glide plane to use for this
  *                      new segment.  If both the old segments had the same
@@ -1963,7 +1964,6 @@ void SplitMultiNodes(Home_t *home)
  */
                 origNode->flags |= NO_COLLISIONS;
                 newNode->flags  |= NO_COLLISIONS;
-
 /*
  *              When debugging, dump some info on topological
  *              changes taking place and the nodes involved

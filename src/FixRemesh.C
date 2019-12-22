@@ -311,6 +311,14 @@ void FixRemesh(Home_t *home, const char flag[256])
 
 				node1 = GetNodeFromIndex(home, op->dom1,
 							 op->idx1);
+#if CHECK_FIXREMESH				
+				printf("FR %s: Task %d, ", flag, home->myDomain);
+				printf("UG (%d,%d), %d %d ",op->dom1,op->idx1,
+					  op->inGrain, op->onGB);
+
+				PrintTag(node1);
+				printf("\n");
+#endif				
 				if (node1 == (Node_t *)NULL) {
 					break;
 				}
@@ -320,14 +328,6 @@ void FixRemesh(Home_t *home, const char flag[256])
                 if(node1->inGrain == op->inGrain &&
                    node1->onGB == op->onGB)break;
 				
-#if CHECK_FIXREMESH				
-				printf("FR %s: Task %d, ", flag, home->myDomain);
-				printf("UG (%d,%d), %d %d ",op->dom1,op->idx1,
-					  op->inGrain, op->onGB);
-
-				PrintTag(node1);
-				printf("\n");
-#endif				
 
 				if(op->dom1 == home->myDomain){
 					PrintTag(node1);

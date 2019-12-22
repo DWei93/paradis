@@ -470,7 +470,9 @@ void CheckNodeNANS(Node_t *node){
 }
 
 void DebugGB(Home_t *home, int flag){
+//  printf("%d %d\n",home->myDomain,flag);
 #ifndef DEBUG
+    return;
 #else
     home->flag = flag;
 #endif
@@ -491,7 +493,6 @@ void DebugGB(Home_t *home, int flag){
 	param = home->param;
 
 //    if(flag >= 4 && flag == 5){
-////    printf("%d %d\n",home->myDomain, flag);
 //    }
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
@@ -540,9 +541,9 @@ void DebugGB(Home_t *home, int flag){
             for(k=0; k<nbr->numNbrs; k++){
                 nbr2 = GetNeighborNode(home, nbr, k);
                 if(nbr2==(Node_t *)NULL){
-                    printf("Task %d: can not find secondary ghost node (%d,%d) flag %d\n", home->myDomain, nbr->nbrTag[k].domainID, nbr->nbrTag[k].index, flag);
-                    PrintNode(home, nbr);
-                    printf("\n");
+                    PrintNode(home, node);
+                    PrintNode(nbr);
+                    Fatal("Task %d: can not find secondary ghost node (%d,%d) flag %d\n", home->myDomain, nbr->nbrTag[k].domainID, nbr->nbrTag[k].index, flag);
                 }
             }
 

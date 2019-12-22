@@ -1008,11 +1008,11 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
                       pos1[0], pos1[1], pos1[2], pos2[0], pos2[1], pos2[2],
                       a, Ecore, f1, f2)){
 
-//	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
-	    PrintNode(node1);
-	    PrintNode(node2);
-	    Fatal("at %s, Line %d",__FILE__,__LINE__);
-	    }
+//	            Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
+	            PrintNode(node1);
+	            PrintNode(node2);
+	            Fatal("at %s, Line %d",__FILE__,__LINE__);
+	        }
 
             AddtoArmForce(node1, armID12, f1);
             AddtoArmForce(node2, armID21, f2);
@@ -1145,7 +1145,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
         return;
 }
 #else  /* FULL_N2_FORCES not defined */
-void SetOneNodeForce(Home_t *home, Node_t *nodeA)
+void SetOneNodeForce(Home_t *home, Node_t *nodeA, bool cacImageForce)
 {
         int     armIndex;
         int     segPairCnt, segPairListSize;
@@ -1367,17 +1367,17 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
             VECTOR_ADD(fseg1node1, f1);
             VECTOR_ADD(fseg1node2, f2);
 
-
+            if(cacImageForce){
 /*
- *          If we're including grain boundary or free surface, 
- *          add the image force in now.
- */
-            if(param->polycrystal){
-                ImageForce(home, node1, node2, f1, f2);
-
-                VECTOR_ADD(fseg1node1, f1);
-                VECTOR_ADD(fseg1node2, f2);
-
+ *              If we're including grain boundary or free surface, 
+ *              add the image force in now.
+ */             
+                if(param->polycrystal){
+                    ImageForce(home, node1, node2, f1, f2);
+                    VECTOR_ADD(fseg1node1, f1);
+                    VECTOR_ADD(fseg1node2, f2);
+                
+                }
             }
 
             StackingFaultForce(home, dx, dy, dz, param->sfEnergy/param->burgMag, signSF, 

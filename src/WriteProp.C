@@ -560,7 +560,7 @@ void WriteProp(Home_t *home, int property)
                                2.0*param->totTwinpStn[5]*al*am;
 
                     fprintf(fp, "%e %e %e ",sign*param->eRate*1.0E2*param->timeNow, sign*sigijk/1.0E6, sign*pstnijk*1.0E2);
-                    if(param->polycrystal) fprintf(fp, "%e ", ptstnijk*1.0E2);
+                    if(param->polycrystal) fprintf(fp, "%e ", sign*ptstnijk*1.0E2);
 
                     if(fabs(pstnijk) > 1.0E-3 && param->finish == -1){
                         param->finish = 0; 
