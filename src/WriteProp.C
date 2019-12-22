@@ -562,17 +562,8 @@ void WriteProp(Home_t *home, int property)
                     fprintf(fp, "%e %e %e ",sign*param->eRate*1.0E2*param->timeNow, sign*sigijk/1.0E6, sign*pstnijk*1.0E2);
                     if(param->polycrystal) fprintf(fp, "%e ", sign*ptstnijk*1.0E2);
 
-                    if(fabs(pstnijk) > 1.0E-3 && param->finish == -1){
-                        param->finish = 0; 
-                        printf("CRSS %e\n", sign*sigijk*1E-6);
-                    }
-        
+                    if(fabs(aram->eRate*param->timeNow) > param->maxStn)param->finish = 1;
                     if(fabs(pstnijk) > param->maxPst)param->finish = 1;
-                    if(fabs(param->totstraintensor[i]) > param->maxStn){
-                        param->finish = 1;
-                        if(param->polycrystal)printf("Percentage of twinning deformation %g\n",
-                            sign*ptstnijk*1E2/pstnijk);
-                    }
 
 
 #ifndef VELOCITY_STATISTICS

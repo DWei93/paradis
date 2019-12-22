@@ -19,7 +19,7 @@
 #
 numXdoms = 2
 numYdoms = 2
-numZdoms = 2
+numZdoms = 1
 #
 #  Cell geometry
 #
@@ -30,9 +30,9 @@ numZcells = 4
 #
 # Mesh size for tecmesh
 #
-meshSizeX = 150
-meshSizeY = 150
-meshSizeZ = 150
+meshSizeX = 1000
+meshSizeY = 1000
+meshSizeZ = 1000
 
 #  Dynamic load balancing
 #
@@ -40,7 +40,7 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-dirname = "res.800nm-loop-2"
+dirname = "res.point-7-eRate-100"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -50,7 +50,7 @@ splitMultiNodeFreq =   1
 #  
 maxstep =  40000000 
 #maxstep =  400
-maxStn = 0.6E-2
+maxStn = 1.2E-2
 maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
@@ -76,14 +76,14 @@ strRate = -4.0E16
 #plaRateCtr = 2.0E4
 
 edotPolar = [
-7.5000000e+01
-6.0000000e+01
+    90.0
+    00.0
 ]
 
 appliedStress = [
 	0.0e0
 	0.0e0
-	0.0e8
+	0.0e0
 	0.0e0
 	0.0e0
 	0.0e0
