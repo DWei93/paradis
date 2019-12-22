@@ -562,7 +562,7 @@ void WriteProp(Home_t *home, int property)
                     fprintf(fp, "%e %e %e ",sign*param->eRate*1.0E2*param->timeNow, sign*sigijk/1.0E6, sign*pstnijk*1.0E2);
                     if(param->polycrystal) fprintf(fp, "%e ", sign*ptstnijk*1.0E2);
 
-                    if(fabs(aram->eRate*param->timeNow) > param->maxStn)param->finish = 1;
+                    if(fabs(param->eRate*param->timeNow) > param->maxStn)param->finish = 1;
                     if(fabs(pstnijk) > param->maxPst)param->finish = 1;
 
 
