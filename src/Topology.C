@@ -2101,7 +2101,7 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
         real8   segPlaneX, segPlaneY, segPlaneZ;
 	    real8	eps = 1.0e-12;
 	    real8   ftmp[3];
-        real8   burg[3], vel[3], dirVec[3], glidePlane[3], pos[3];
+        real8   burg[3], vel[3], dirVec[3], glidePlane[3], pos[3], oldPos[3];
         real8   signSF;
 	    Node_t	*newNode, *nbrNode;
 	    Param_t	*param;
@@ -2126,6 +2126,9 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 		    Fatal("SplitNode: attempted to create new node with 0 arms");
 	    }
 
+        oldPos[0] = node->oldx;
+        oldPos[1] = node->oldy;
+        oldPos[2] = node->oldz;
 /*
  *      If we are only moving a single segment from the original node to the
  *      new node, it (likely) means we're simply bisecting a segment during
@@ -2301,10 +2304,13 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
         (*splitNode2)->vY = vel2[1];
         (*splitNode2)->vZ = vel2[2];
 
-	    newNode->oldx = newNode->x;
-	    newNode->oldy = newNode->y;
-	    newNode->oldz = newNode->z;
+        (*splitNode1)->oldx = oldPos[0];
+        (*splitNode1)->oldy = oldPos[1];
+        (*splitNode1)->oldz = oldPos[2];
 
+        (*splitNode2)->oldx = pos2[0];
+        (*splitNode2)->oldy = pos2[1];
+        (*splitNode2)->oldz = pos2[2];
 /*
  *      If the node being split was pinned or fixed at a specific
  *      position then the node left at position <pos1> must become a
@@ -2371,7 +2377,7 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                 newNode->myTag.domainID,
                 newNode->myTag.index,
                 newNode->constraint, -1,    /* the node3 idom is the constraint here */
-                0.0, 0.0, 0.0,              /* burgers vector unneeded */
+                newNode->oldx, newNode->oldy, newNode->oldz,/* burgers vector unneeded */
                 newNode->x, newNode->y, newNode->z,
                 newNode->vX,                /* plane normal is not needed */
                 newNode->vY,                /* but node velocity is, so we*/
@@ -2384,7 +2390,7 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                 -1, -1,                 /* 3rd node tag unneeded */
                 0.0, 0.0, 0.0,          /* burgers vector unneeded */
                 node->x, node->y, node->z,
-                0.0, 0.0, 0.0);         /* plane normal not needed */
+                node->oldx, node->oldy, node->oldz);         /* plane normal not needed */
 
             AssignGrain(home, node, node->inGrain, node->onGB);
             AssignGrain(home, newNode, newNode->inGrain, newNode->onGB);
@@ -2972,7 +2978,7 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
               (*newNodePtr)->myTag.domainID,
               (*newNodePtr)->myTag.index,
               (*newNodePtr)->constraint, -1,  /* node3 domain ID used to be constraint of new node*/
-              0.0, 0.0, 0.0,     
+              (*newNodePtr)->oldx, (*newNodePtr)->oldy, (*newNodePtr)->oldz,     
               (*newNodePtr)->x, (*newNodePtr)->y, (*newNodePtr)->z,
               (*newNodePtr)->vX,            /* plane normal is not needed */
               (*newNodePtr)->vY,            /* but node velocity is, so we*/

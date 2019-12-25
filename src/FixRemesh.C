@@ -143,10 +143,9 @@ void FixRemesh(Home_t *home, const char flag[256])
 				node2->y = op->y;
 				node2->z = op->z;
 
-				node2->oldx = op->x;
-				node2->oldy = op->y;
-				node2->oldz = op->z;
-				
+				node2->oldx = op->bx;
+				node2->oldy = op->by;
+				node2->oldz = op->bz;
 				
 #if CHECK_FIXREMESH
 				printf("FR %s: Task %d, ", flag, home->myDomain);
@@ -302,6 +301,11 @@ void FixRemesh(Home_t *home, const char flag[256])
 				node1->y = op->y;
 				node1->z = op->z;
 
+                if(fabs(op->nx)>1E-10 || fabs(op->ny)>1E-10 || fabs(op->nz)>1E-10){
+                    node1->oldx = op->nx;
+                    node1->oldy = op->ny;
+                    node1->oldz = op->nz;
+                }
 				break;
 
 /*
