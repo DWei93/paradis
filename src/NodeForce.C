@@ -1372,12 +1372,10 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA, bool cacImageForce)
  *              If we're including grain boundary or free surface, 
  *              add the image force in now.
  */             
-                if(param->polycrystal){
-                    ImageForce(home, node1, node2, f1, f2);
-                    VECTOR_ADD(fseg1node1, f1);
-                    VECTOR_ADD(fseg1node2, f2);
+                ImageForce(home, node1, node2, f1, f2);
+                VECTOR_ADD(fseg1node1, f1);
+                VECTOR_ADD(fseg1node2, f2);
                 
-                }
             }
 
             StackingFaultForce(home, dx, dy, dz, param->sfEnergy/param->burgMag, signSF, 
