@@ -272,6 +272,8 @@ inline double PointPointDistance(double *p1, double *p2)
 {return sqrt((p1[0]-p2[0])*(p1[0]-p2[0])+(p1[1]-p2[1])*(p1[1]-p2[1])+ (p1[2]-p2[2])*(p1[2]-p2[2]));} 
 inline double PointPointDistanceSquare(double *p1, double *p2)
 {return (p1[0]-p2[0])*(p1[0]-p2[0])+(p1[1]-p2[1])*(p1[1]-p2[1])+ (p1[2]-p2[2])*(p1[2]-p2[2]);}
+inline double PointPointDistance(double p1x, double p1y, double p1z, double p2x, double p2y, double p2z)
+{return sqrt((p1x-p2x)*(p1x-p2x)+(p1y-p2y)*(p1y-p2y)+ (p1z-p2z)*(p1z-p2z)); }
 
 /** Return the distance to plane 
  *  \param[in] p[3] coordinates of point
