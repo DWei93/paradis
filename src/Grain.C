@@ -290,7 +290,7 @@ void InitGrain(Home_t *home, Param_t *param){
         }
     }
 
-	if(param->polycrystal == 0)param->nGrain = 0;
+	if(param->polycrystal == 0)param->nGrain = 1;
 	nGrain = param->nGrain;
 
     if(type == 3)Fatal("Not supposed this type now");
@@ -539,7 +539,7 @@ void InitGrain(Home_t *home, Param_t *param){
 	    }
 
 #if PARALLEL
-       MPI_Bcast(&(param->maxSchmid), sizeof(double), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+       MPI_Bcast(&(param->maxSchmid), sizeof(double), MPI_CHAR, 0, MPI_COMM_WORLD);
 #endif
 	    return;
 	}
@@ -1559,8 +1559,6 @@ void AssignGrain(Home_t *home, Node_t *node, int inGrain, int onGB)
 void AssignConstraint(Home_t *home, Node_t *node, int constraint) 
 {
 	if(node == (Node_t *)NULL){
-		printf("Task %d: %s, line %d -- Node = NULL",
-			   home->myDomain, __FILE__, __LINE__);
 		return;
 	}
 
@@ -2125,24 +2123,19 @@ int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]){
  *-------------------------------------------------------------------------*/
 void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f2[3])
 {
-    return;
-    real8       dis, burgMag, burg[3], segCentor[3], gbStrength, xi[3];
-    real8       vec[3], a = 5.8685446009;
-    real8       gausFac1 = 0.211324865405187; // (1-sqrt(3)/3)/2
-    real8       gausFac2 = 0.7886751345948128; // (1+sqrt(3)/3)/2
-    real8       coff, length, nor[3], gDir[3], gbNormal[3];
+    Param_t *param = home->param;
+
+    real8       dis, burgMag, burg[3], segCentor[3], tbStrength, xi[3];
+    real8       ldir[3],pdir[3], a = 0.5*param->rTol, amax=10*param->rTol, err=1.0E-4; 
+    real8       gausFac[2] = {0.211324865405187, // (1-sqrt(3)/3)/2
+                              0.7886751345948128}; // (1+sqrt(3)/3)/2
+    real8       coff, length, nor[3], gDir[3], gbNormal[3], pos[3], pBound[3], nBound[3];
     GB_t        *gb;
-    Param_t     *param;
-    int         armID;
+    Grain_t     *grain;
+    int         armID, i, j, type, armInGrain,armOnGB;
 
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);
-
-    if(!home->param->polycrystal)return;
-    if(IsOnGB(node1) || IsOnGB(node2))return;
-
-    param = home->param;
-    if(param->GBStrength < -1.0) return;
 
     armID = GetArmID(home, node1, node2);
     if(armID == -1)return;
@@ -2158,12 +2151,6 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     burgMag = Normal(burg);
     NormalizeVec(burg);
 
-    if(param->GBStrength > 1.0){
-        gbStrength = param->GBStrength;
-    }else{
-	    gbStrength = (fabs(DotProduct(burg, param->TBNormal)) < 1.0E-2)?245.0E6:7.0E8;
-    }
-
     xi[0] = node2->x - node1->x;
     xi[1] = node2->y - node1->y;
     xi[2] = node2->z - node1->z;
@@ -2171,58 +2158,132 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 
     length = Normal(xi);
     if(length < 1.0E-2)return;
+    NormalizeVec(xi);
+    GetArmGrain(home, node1, node2, armInGrain, armOnGB);
 
-    VECTOR_COPY(vec,xi);
-    NormalizeVec(vec);
-    cross(nor, vec, gDir);
-    if(Normal(gDir) < 1E-3) return;
-    NormalizeVec(gDir);
-
-    segCentor[0] = node1->x + gausFac1*xi[0];
-    segCentor[1] = node1->y + gausFac1*xi[1];
-    segCentor[2] = node1->z + gausFac1*xi[2];
-    FoldBox(param, segCentor, segCentor+1, segCentor+2);
-
-	dis =  ClosedGB(home, segCentor, &gb);
+    for(i=0; i<2; i++){
+        pos[0] = node1->x + length*gausFac[i]*xi[0];
+        pos[1] = node1->y + length*gausFac[i]*xi[1];
+        pos[2] = node1->z + length*gausFac[i]*xi[2];
+        FoldBox(param, pos, pos+1, pos+2);
         
-    gbNormal[0] = ((real8)Sign(dis)) * gb->n[0];
-    gbNormal[1] = ((real8)Sign(dis)) * gb->n[1];
-    gbNormal[2] = ((real8)Sign(dis)) * gb->n[2];
-    
-    if(DotProduct(gbNormal, gDir) < 0.0){
-        gDir[0] = -gDir[0];
-        gDir[1] = -gDir[1];
-        gDir[2] = -gDir[2];
-    }
-    
-    coff = gbStrength * a/(fabs(dis)+a);
-    
-    f1[0] += 0.25*length*coff*gDir[0];
-    f1[1] += 0.25*length*coff*gDir[1];
-    f1[2] += 0.25*length*coff*gDir[2];
+/*
+ *      GB image force
+ */
+        if(param->gbStrength > 0){
+            if(param->xBoundType==Periodic){
+                nBound[0]=1.0; nBound[1]=0; nBound[2]=0;
+                pBound[0]=param->xBoundMin; pBound[1]=0; pBound[2]=0;
+                type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
+                if(type==LINE_INTERSECTION){
+                    CoordMinus(pos,pdir,ldir); 
+                    if((dis=Normal(ldir))>err){
+                        NormalizeVec(ldir);
+                        coff = param->gbStrength * a/(fabs(dis)+a);
+                        NormalComponent(ldir,xi,gDir);
+                        f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                        f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                        f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                }
+                pBound[0]=param->xBoundMax; pBound[1]=0; pBound[2]=0;
+                type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
+                if(type==LINE_INTERSECTION){
+                    CoordMinus(pos,pdir,ldir); 
+                    if((dis=Normal(ldir))>err){
+                        NormalizeVec(ldir);
+                        coff = param->gbStrength * a/(fabs(dis)+a);
+                        NormalComponent(ldir,xi,gDir);
+                        f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                        f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                        f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                }
+            }
 
-    segCentor[0] = node1->x + gausFac2*vec[0];
-    segCentor[1] = node1->y + gausFac2*vec[1];
-    segCentor[2] = node1->z + gausFac2*vec[2];
-    FoldBox(param, segCentor, segCentor+1, segCentor+2);
+            if(param->yBoundType==Periodic){
+                nBound[0]=0.0; nBound[1]=1.0; nBound[2]=0;
+                pBound[0]=0; pBound[1]=param->yBoundMin; pBound[2]=0;
+                type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
+                if(type==LINE_INTERSECTION){
+                    CoordMinus(pos,pdir,ldir); 
+                    if((dis=Normal(ldir))>err){
+                        NormalizeVec(ldir);
+                        coff = param->gbStrength * a/(fabs(dis)+a);
+                        NormalComponent(ldir,xi,gDir);
+                        f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                        f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                        f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                }
+                pBound[0]=0; pBound[1]=param->yBoundMax; pBound[2]=0;
+                type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
+                if(type==LINE_INTERSECTION){
+                    CoordMinus(pos,pdir,ldir); 
+                    if((dis=Normal(ldir))>err){
+                        NormalizeVec(ldir);
+                        coff = param->gbStrength * a/(fabs(dis)+a);
+                        NormalComponent(ldir,xi,gDir);
+                        f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                        f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                        f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                }
+            }
 
-	dis =  ClosedGB(home, segCentor, &gb);
+            if(param->zBoundType==Periodic){
+                nBound[0]=0.0; nBound[1]=0.0; nBound[2]=1.0;
+                pBound[0]=0; pBound[1]=0; pBound[2]=param->zBoundMin;
+                type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
+                if(type==LINE_INTERSECTION){
+                    CoordMinus(pos,pdir,ldir); 
+                    if((dis=Normal(ldir))>err){
+                        NormalizeVec(ldir);
+                        coff = param->gbStrength * a/(fabs(dis)+a);
+                        NormalComponent(ldir,xi,gDir);
+                        f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                        f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                        f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                }
+                pBound[0]=0; pBound[1]=0; pBound[2]=param->zBoundMax;
+                type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
+                if(type==LINE_INTERSECTION){
+                    CoordMinus(pos,pdir,ldir); 
+                    if((dis=Normal(ldir))>err){
+                        NormalizeVec(ldir);
+                        coff = param->gbStrength * a/(fabs(dis)+a);
+                        NormalComponent(ldir,xi,gDir);
+                        f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                        f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                        f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                }
+            }
+        }
+/*
+ *      TB image force
+ */
+        if(armInGrain<0 || param->polycrystal==0)continue; 
+        tbStrength = (PerpendicularDirection(burg,param->TBNormal,0.05)==true?param->tbStrength[0]:param->tbStrength[1]);
         
-    gbNormal[0] = ((real8)Sign(dis)) * gb->n[0];
-    gbNormal[1] = ((real8)Sign(dis)) * gb->n[1];
-    gbNormal[2] = ((real8)Sign(dis)) * gb->n[2];
-    
-    if(DotProduct(gbNormal, gDir) < 0.0){
-        gDir[0] = -gDir[0];
-        gDir[1] = -gDir[1];
-        gDir[2] = -gDir[2];
+        grain=home->grainKeys[armInGrain];
+        for(j=0; j<grain->nBounds; j++){
+            gb = grain->GB[j];
+            type = PlanePlaneIntersection(nor,pos,gb->n,gb->p,ldir,pdir);
+            if(type==LINE_INTERSECTION){
+                CoordMinus(pos,pdir,ldir); 
+                if((dis=Normal(ldir))>err){
+                    NormalizeVec(ldir);
+                    coff = tbStrength * a/(fabs(dis)+a);
+                    NormalComponent(ldir,xi,gDir);
+                    f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                    f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                    f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                }
+            }
+        } 
     }
-    
-    coff = gbStrength * a/(fabs(dis)+a);
-    
-    f1[0] += 0.25*length*coff*gDir[0];
-    f1[1] += 0.25*length*coff*gDir[1];
-    f1[2] += 0.25*length*coff*gDir[2];
 
     VECTOR_COPY(f2, f1);
 
@@ -3802,15 +3863,15 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
 
 bool InCuboid(Param_t *param, real8 pos[3], real8 eps)
 {
-    if(param->xBoundType != Periodic){
+    if(param->xBoundType != Periodic || param->gbStrength>0){
         if(fabs(pos[0]) > param->xBoundMax + eps)return(0);
     }
     
-    if(param->yBoundType != Periodic){
+    if(param->yBoundType != Periodic || param->gbStrength>0){
         if(fabs(pos[1]) > param->yBoundMax + eps)return(0);
     }
 
-    if(param->zBoundType != Periodic){
+    if(param->zBoundType != Periodic || param->gbStrength>0){
         if(fabs(pos[2]) > param->zBoundMax + eps)return(0);
     }
     return(1);
