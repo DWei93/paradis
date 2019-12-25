@@ -108,7 +108,6 @@ OPT = -O3
 #OPENMP_MODE = ON
 #DEFS += -DDEBUG
 #DEFS += -DSIMLPLE_REACTION_ON_GB
-#DEFS += -DNO_GB_BARRIER
 #######################################################################
 #
 #    Specify some miscellaneous definitions that may be used

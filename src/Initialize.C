@@ -1348,9 +1348,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
             ReadControlFile(home, ctrlFile);
             printf("Initialize: Control file parsing complete\n");
     
-#ifdef NO_GB_BARRIER
-            param->GBStrength = -1;
-#endif
 /*
  *          Set number of initial load-balancing-only cycles. Will
  *          be zero unless user provided value via "-r" command line
@@ -1774,7 +1771,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
 	    if(home->myDomain == 0)printf("shear Wave velocity: %6.2f m/s.\n",
 	    param->vshr * param->burgMag);
-
+        
 #ifdef VELOCITY_STATISTICS
         param->velMax = 1.5E3;
         param->velMin = 1.0E-3;
