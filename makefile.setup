@@ -107,7 +107,7 @@ OPT = -O3
 #
 #OPENMP_MODE = ON
 #DEFS += -DDEBUG
-#DEFS += -DSIMLPLE_REACTION_ON_GB
+DEFS += -DSIMLPLE_REACTION_ON_GB
 #######################################################################
 #
 #    Specify some miscellaneous definitions that may be used

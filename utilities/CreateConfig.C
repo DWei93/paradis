@@ -2940,7 +2940,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     bd = GetBurgData(home, inGrain1, onGB1);
                     if(onGB1 > -1)continue;
 
-#if 1
+#if 0
                     if(xn > 24 && chain <24){
                         ranNum = chain%24;
                     }else{
@@ -2959,9 +2959,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
                     gpBurgIndex = slip_sys[ranNum][0]; gpIndex=slip_sys[ranNum][1];
 #else
-                    gpIndex = 2;
-                    gpBurgIndex = 1;
-
+                    gpIndex = 3;
+                    gpBurgIndex = 3;
 #endif   
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);

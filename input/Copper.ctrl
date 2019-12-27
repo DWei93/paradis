@@ -19,7 +19,7 @@
 #
 numXdoms = 2
 numYdoms = 2
-numZdoms = 2
+numZdoms = 1
 #
 #  Cell geometry
 #
@@ -40,7 +40,7 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-dirname = "res.point-1-GB_Collision"
+dirname = "res.Ecore-4000_l-800"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -76,8 +76,8 @@ strRate = -4.0E16
 #plaRateCtr = 2.0E4
 
 edotPolar = [
-    0.0
-    0.0
+    45.0
+    105.0
 ]
 
 appliedStress = [
@@ -103,7 +103,8 @@ tbStrength = [
 ]
 burgMag =   2.55600e-10 
 pois = 3.240000e-01
-fricStress = 0.0e0
+Ecore = 2.21963E11
+#Ecore = 3.07265E11
 
 #fricStress = 3.46e7
 #  mobility values may be a little low for FCC
