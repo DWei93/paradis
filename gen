@@ -131,4 +131,4 @@ case $srctype in
      exit 1 ;;
 esac
 
-./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,2 -outfile input/Copper.data > /dev/null 2>&1
+./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,2 -outfile Copper.data > /dev/null 2>&1
