@@ -1992,9 +1992,9 @@ static void FMUpPassZeroCharges(Home_t *home, int layerID)
                             cell = LookupFMCell(layer->cellTable, cellID);
 
                             if (cell == NULL) {
-                                Fatal("ZeroCharges: layer %d, i = %d, "
+                                Fatal("Task %d ZeroCharges: layer %d, i = %d, "
                                       "cell %d,%d,%d is NULL",
-                                      layerID, i, x, y, z);
+                                      home->myDomain,layerID, i, x, y, z);
                             }
 
                             if (param->fmEnabled) {

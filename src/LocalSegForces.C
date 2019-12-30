@@ -2897,16 +2897,14 @@ void LocalSegForces(Home_t *home, int reqType)
  *          If we're including grain boundary or free surface, 
  *          add the image force in now.
  */
-            if(param->polycrystal){
-                ImageForce(home, node1, node2, f1, f2);
+            ImageForce(home, node1, node2, f1, f2);
 
-                VECTOR_ADD(node1SegForce, f1);
-                VECTOR_ADD(node2SegForce, f2);
+            VECTOR_ADD(node1SegForce, f1);
+            VECTOR_ADD(node2SegForce, f2);
 
-                for (j = 0; j < 3; j++) {
-                    nativeSegList[i].seg->f1[j] += f1[j];
-                    nativeSegList[i].seg->f2[j] += f2[j];
-                }
+            for (j = 0; j < 3; j++) {
+                nativeSegList[i].seg->f1[j] += f1[j];
+                nativeSegList[i].seg->f2[j] += f2[j];
             }
 
             StackingFaultForce(home, dx, dy, dz, param->sfEnergy/param->burgMag, signSF, 

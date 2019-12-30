@@ -40,7 +40,7 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-dirname = "res.point-7-eRate-100"
+dirname = "res.gb-200_l-200_n-5"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -63,7 +63,7 @@ wallTime = 24
 fmEnabled =   1  
 fmMPOrder =   2  
 fmTaylorOrder =   5  
-fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
+fmCorrectionTbl =   "fm-ctab.Cu.m2.t5.dat"
 #
 #  Loading conditions
 #  
@@ -76,8 +76,8 @@ strRate = -4.0E16
 #plaRateCtr = 2.0E4
 
 edotPolar = [
-    90.0
-    00.0
+    45.0
+    105.0
 ]
 
 appliedStress = [
@@ -96,10 +96,15 @@ mobilityLaw =   "Wei"
 #shearModulus =   54.6e9  # Voight Average
 shearModulus =  46.554e9  # in jin paper
 limitDisplacement = 0
-#GBStrength = 0.0e0
+gbStrength = -1
+tbStrength = [
+    245.0E6
+    700.0E6 
+]
 burgMag =   2.55600e-10 
 pois = 3.240000e-01
-fricStress = 0.0e0
+Ecore = 2.21963E11
+#Ecore = 3.07265E11
 
 #fricStress = 3.46e7
 #  mobility values may be a little low for FCC

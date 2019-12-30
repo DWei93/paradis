@@ -170,11 +170,14 @@ real8 FGlidePerLength(Home_t *home, Node_t *node, Plane_t *GBPlane){
     normal[2] = node->nz[0];	
 
     disLength = 0;
-
+    real8 burgMag;
     for(i=0;i<node->numNbrs;i++){
        nbr = GetNeighborNode(home,node,i);
        if(nbr==(Node_t *)NULL) continue;
-       disLength += NodeDistance(home,node,nbr)/2;
+       burgMag = sqrt(node->burgX[i]*node->burgX[i]
+                     +node->burgY[i]*node->burgY[i]
+                     +node->burgZ[i]*node->burgZ[i]);
+       disLength += NodeDistance(home,node,nbr)*burgMag/2;
     }
 
     cross(normal,GBPlane->normal,intersection);
@@ -186,6 +189,50 @@ real8 FGlidePerLength(Home_t *home, Node_t *node, Plane_t *GBPlane){
          node->fY*glideDir[1]+
          node->fZ*glideDir[2];
 
+    if(disLength<1E-10)return 0.0;
+    return(fabs(fGlide)/disLength);
+}
+
+real8 FGlidePerLength(Home_t *home, Node_t *node, real8 *n){
+
+    int	    i;
+    real8	normal[3],disLength;
+    real8	intersection[3];
+    real8	glideDir[3];
+    real8	fGlide;
+    Node_t  *nbr;
+    
+    if(node == (Node_t *)NULL){
+        printf("Task %d: %s, line %d -- Node = NULL",
+               home->myDomain, __FILE__, __LINE__);
+        return(0);
+    }
+
+    normal[0] = node->nx[0];	
+    normal[1] = node->ny[0];	
+    normal[2] = node->nz[0];	
+
+    disLength = 0;
+    real8 burgMag;
+    for(i=0;i<node->numNbrs;i++){
+       nbr = GetNeighborNode(home,node,i);
+       if(nbr==(Node_t *)NULL) continue;
+       burgMag = sqrt(node->burgX[i]*node->burgX[i]
+                     +node->burgY[i]*node->burgY[i]
+                     +node->burgZ[i]*node->burgZ[i]);
+       disLength += NodeDistance(home,node,nbr)*burgMag/2;
+    }
+
+    cross(normal,n,intersection);
+    cross(normal,intersection,glideDir);
+
+    NormalizeVec(glideDir);
+    
+    fGlide = node->fX*glideDir[0]+
+         node->fY*glideDir[1]+
+         node->fZ*glideDir[2];
+
+    if(disLength<1E-10)return 0.0;
     return(fabs(fGlide)/disLength);
 }
 
@@ -204,11 +251,14 @@ real8 FGlidePerLength(Home_t *home, Node_t *node){
     }
 
     disLength = 0;
-
+    real8 burgMag;
     for(i=0;i<node->numNbrs;i++){
        nbr = GetNeighborNode(home,node,i);
        if(nbr==(Node_t *)NULL) continue;
-       disLength += (NodeDistance(home,node,nbr)/2);
+       burgMag = sqrt(node->burgX[i]*node->burgX[i]
+                     +node->burgY[i]*node->burgY[i]
+                     +node->burgZ[i]*node->burgZ[i]);
+       disLength += NodeDistance(home,node,nbr)*burgMag/2;
     }
 
     vec[0] = node->vX;
@@ -222,6 +272,7 @@ real8 FGlidePerLength(Home_t *home, Node_t *node){
              node->fY*vec[1]+
              node->fZ*vec[2];
 
+    if(disLength<1E-10)return 0.0;
     return(fabs(fGlide)/disLength);
 }
 
@@ -263,7 +314,7 @@ int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane){
 		vec[1] = nbr->y - node->y;
 		vec[2] = nbr->z - node->z;
 		ZImage(param, vec, vec+1, vec+2);
-		NormalizeVec(vec);
+	NormalizeVec(vec);
 		
 		cosTheta = DotProduct(vec, inBurg);
 		segEnergy = SegementEnergy(param, cosTheta, bMag);
@@ -303,22 +354,13 @@ int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane){
 	}
 #endif 
 
-    if(param->GBStrength<-1)return 1;
-	
 	temVec[0] = node->burgX[0];
 	temVec[1] = node->burgY[0];
 	temVec[2] = node->burgZ[0];
-	
-
-    real8 gbStrength;
     
-    if(param->GBStrength > 1.0){
-        gbStrength = param->GBStrength;
-    }else{
-	    gbStrength = (fabs(DotProduct(temVec, GBPlane->normal)) < 1.0e-2)?245.0E6:7.0E8;
-    }
+    real8 tbStrength = (fabs(DotProduct(temVec, GBPlane->normal)) < 1.0e-2)?param->tbStrength[0]:param->tbStrength[1];
+	if(fabs(FGlidePerLength(home,node,GBPlane))  < tbStrength)return(0);
 
-	if(fabs(FGlidePerLength(home,node,GBPlane))  < gbStrength)return(0);
 	return(1);
 }
 
@@ -989,10 +1031,10 @@ void HandleGrainBoundary(Home_t *home)
 	real8		x,y,z,burgj[3], burgk[3], vec[3], mergPos[3], dis;
 	real8		burg[3], normal[3], nDir1[3], nDir2[3];
 	real8		mergePos[3], distance, newInGrain, newPos[3];
-    real8       vec1[3], vec2[3];
+    real8       vec1[3], vec2[3], p[3];
 	Param_t		*param;
 	Node_t		*node, *nbrNode1, *nbrNode2, *nbr1, *nbr2, *mergedNode;
-	Plane_t		GBPlane, norPlane, surPlane;
+	Plane_t		GBPlane;
 	Line_t		line;
 	Grain_t		*oldGrain, *currGrain;
     GB_t        *gb;
@@ -1002,7 +1044,48 @@ void HandleGrainBoundary(Home_t *home)
 	
     pene.nSets = 0;
 	newNodeKeyPtr = home->newNodeKeyPtr;
-	for(i=0;i<newNodeKeyPtr;i++){
+#if 0
+	if(param->gbStrength>0){
+        real8 nList[6][3]={{-1,0,0},{1,0,0},{0,-1,0},{0,1,0},{0,0,-1},{0,0,1}};
+        real8 pList[6][3]={{param->xBoundMin,0,0},{param->xBoundMax,0,0},
+                           {0,param->yBoundMin,0},{0,param->yBoundMax,0},
+                           {0,0,param->zBoundMin},{0,0,param->zBoundMax}};
+        real8 fglide, nSur[3];
+        for(i=0;i<newNodeKeyPtr;i++){
+            if((node = home->nodeKeys[i]) == (Node_t *) NULL)continue;
+            if(!SurfaceNode(node))continue;
+
+//          if((node->flags|NODE_RESET_FORCES)>0)continue;
+            if((node->constraint==1 && param->xBoundType==Free) ||
+               (node->constraint==2 && param->yBoundType==Free) ||
+               (node->constraint==3 && param->zBoundType==Free))continue;
+
+            for(j=0; j<node->numNbrs; j++){
+	            nbrNode1 = GetNeighborNode(home,node,j); if(nbrNode1 ==(Node_t *)NULL)continue;
+                if(PointPointDistance(node->x,node->y,node->z,nbrNode1->x,nbrNode1->y,nbrNode1->z)>3*param->maxSeg)break;
+            } if(j<node->numNbrs)continue;
+
+            j=(node->constraint-1)*2+((node->x<0)?0:1);
+            VECTOR_COPY(nSur,nList[j]);
+            fglide=FGlidePerLength(home,node,nSur);
+            fglide *=((dot_product(node->fX,node->fY,node->fZ,nSur[0],nSur[1],nSur[2])>0)?1.0:-1.0);
+            if(fglide<0 || fglide>param->gbStrength){
+                AssignConstraint(home, node, 0);
+                EvaluateMobility(home, node);
+                vec1[0]=node->vX; vec1[1]=node->vY; vec1[2]=node->vZ;
+                NormalizeVec(vec1); 
+                vec2[0]=node->x; vec2[1]=node->y; vec2[2]=node->z;
+                CoordAdd(1.0,vec2,1E-3,vec1,p);
+	            RepositionNode(home, p, &node->myTag, 1);
+                
+                MarkNodeForceObsolete(home, node);
+                if(fglide<0)printf("back to grain %g MPa\n",fglide/1E6);
+                else printf("penetrated GB %g MPa\n",fglide/1E6);
+            }else printf("penetrated failed %g MPa\n",fglide/1E6);
+        }
+    }
+#endif
+	if(param->polycrystal)for(i=0;i<newNodeKeyPtr;i++){
         
         if((node = home->nodeKeys[i]) == (Node_t *) NULL)continue;
         if(node->constraint == PINNED_NODE)continue;
@@ -1050,7 +1133,7 @@ void HandleGrainBoundary(Home_t *home)
         }
 
         if(node->numNbrs > 2){
-            if(FGlidePerLength(home, node) > param->GBStrength){
+            if(FGlidePerLength(home, node) > param->tbStrength[1]){
                 vec1[0] = node->vX;
                 vec1[1] = node->vY;
                 vec1[2] = node->vZ;
@@ -1360,7 +1443,6 @@ void HandleGrainBoundary(Home_t *home)
 	for(i=0;i<home->newNodeKeyPtr;i++){
         if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
         if(IsOnGB(node))continue;
-	    if(SurfaceNode(node))continue;
         NodeLocation(home, node->x, node->y, node->z, currInGrain, currOnGB);
         if(node->inGrain != currInGrain){
             PrintTag(node);
@@ -1469,7 +1551,7 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce)
                     gDir[2] = -gDir[3];
                 }
     
-	            GBForceMag = param->GBStrength * pow(2.7182,-(distance*distance/rann/rann));
+	            GBForceMag = param->gbStrength * pow(2.7182,-(distance*distance/rann/rann));
 	            GBForceMag *= (length * burgMag * 0.5e0);
                 armGBForce[0] = GBForceMag * gDir[0];
                 armGBForce[1] = GBForceMag * gDir[1];
@@ -1574,15 +1656,17 @@ void ApplyPosConstraint(Param_t *param, Node_t *node){
 	pos[1] = node->y;
 	pos[2] = node->z;
 
+    PBCPOSITION(param, node->oldx, node->oldy, node->oldz, pos, pos+1, pos+2);
+
 	VECTOR_ZERO(disVec);
 
-	if(param->xBoundType == Free &&  fabs(pos[0])>param->xBoundMax) { 
+	if(fabs(pos[0])>param->xBoundMax) { 
 	    disVec[0] = fabs(pos[0]) - param->xBoundMax;
 	}
-	if(param->yBoundType == Free &&  fabs(pos[1])>param->yBoundMax) { 
+	if(fabs(pos[1])>param->yBoundMax) { 
 	    disVec[1] = fabs(pos[1]) - param->yBoundMax;
 	}
-	if(param->zBoundType == Free &&  fabs(pos[2])>param->zBoundMax) { 
+	if(fabs(pos[2])>param->zBoundMax) { 
 	    disVec[2] = fabs(pos[2]) - param->zBoundMax;
 	}
 
@@ -1594,11 +1678,12 @@ void ApplyPosConstraint(Param_t *param, Node_t *node){
 	}
 
 	if(maxDis > 0){
+        if(node->constraint != constraintSurface)node->flags |= NODE_RESET_FORCES;
 	    node->constraint = constraintSurface;
 	}
 	if(maxDis < -5.0 && node->constraint >= 1 && 
 	   node->constraint <=3 && node->numNbrs > 1){
-	    node->constraint = 0;
+	    node->constraint = 0; node->flags |= NODE_RESET_FORCES;
 	}
 	return;
 }
@@ -1607,17 +1692,16 @@ void ApplyPosConstraint(Param_t *param, Node_t *node){
 void AdjustSurfaceNode(Home_t *home)
 {
 
+	Param_t *param = home->param;
 	int 	i, j, numNodePtr, thisDomain, splitOK, switchNode;
     int     inGrain, onGB, armInGrain, armOnGB;
 	real8	nodePos[3], nbrPos[3], nbrConstraint;
-	real8	interPos[3], oldPos[3], dis, dot;
+	real8	interPos[3], oldPos[3], dis, dot, eps=1.0E-4, margin=(param->gbStrength>0)?2.0E-4:0.0;;
 	real8	newPos[3], burg0[3], burgj[3], vec[3], normal[3];
- 	Param_t *param;
 	Node_t  *node, *nbr, *newNode, *node1, *node2;
 	int 	nodecst, surfaceNbr, constraint;
 	Line_t	line;
 	Plane_t	plane;
-	param = home->param;
 
     thisDomain = home->myDomain;
   
@@ -1645,16 +1729,18 @@ void AdjustSurfaceNode(Home_t *home)
 
 	    if(SurfaceNode(node) || node->numNbrs < 2) continue;
 #if 1
-	    surfaceNbr = 0;
-	    for(j=0;j<node->numNbrs;j++){
-		    if((nbr=GetNeighborNode(home,node,j))==(Node_t *)NULL) continue;
-		    if(SurfaceNode(nbr)){
-                surfaceNbr++;
-                nbrConstraint = nbr->constraint;
+        if(param->gbStrength<=0){
+	        surfaceNbr = 0;
+	        for(j=0;j<node->numNbrs;j++){
+		        if((nbr=GetNeighborNode(home,node,j))==(Node_t *)NULL) continue;
+		        if(SurfaceNode(nbr)){
+                    surfaceNbr++;
+                    nbrConstraint = nbr->constraint;
+                }
+		    }
+            if(surfaceNbr == node->numNbrs){
+                AssignConstraint(home, node, nbrConstraint);
             }
-		}
-        if(surfaceNbr == node->numNbrs){
-            AssignConstraint(home, node, nbrConstraint);
         }
 #endif
 	}
@@ -1691,11 +1777,12 @@ void AdjustSurfaceNode(Home_t *home)
 	    nodePos[0] = node->x;
 	    nodePos[1] = node->y;
 	    nodePos[2] = node->z;
+        PBCPOSITION(param, node->oldx, node->oldy, node->oldz, nodePos, nodePos+1, nodePos+2);
 		VECTOR_COPY(line.point, nodePos);
 
-	    if(param->xBoundType == Free &&  fabs(nodePos[0]) >= param->xBoundMax  ||
-	       param->yBoundType == Free &&  fabs(nodePos[1]) >= param->yBoundMax  ||
-	       param->zBoundType == Free &&  fabs(nodePos[2]) >= param->zBoundMax)continue;
+	    if(fabs(nodePos[0]) >= param->xBoundMax-eps-margin  ||
+	       fabs(nodePos[1]) >= param->yBoundMax-eps-margin  ||
+	       fabs(nodePos[2]) >= param->zBoundMax-eps-margin )continue;
 
 		nodecst = node->constraint;
 
@@ -1703,16 +1790,17 @@ void AdjustSurfaceNode(Home_t *home)
 	        nbr = GetNeighborNode(home, node, j);
 	        if(nbr == (Node_t *)NULL)continue;
 	        if(!SurfaceNode(nbr))continue;
-            if(DomainOwnsSeg(home, OPCLASS_REMESH,
-                        thisDomain, &nbr->myTag) == 0)continue;
+            if(DomainOwnsSeg(home, OPCLASS_REMESH, thisDomain, &nbr->myTag) == 0)continue;
+            if((nbr->flags|NODE_RESET_FORCES)>0)continue;
 
 	        nbrPos[0] = nbr->x;
 	        nbrPos[1] = nbr->y;
 	        nbrPos[2] = nbr->z;
+            PBCPOSITION(param, nbr->oldx, nbr->oldy, nbr->oldz, nbrPos, nbrPos+1, nbrPos+2);
 
-	        if(param->xBoundType == Free &&  fabs(nbrPos[0]) <= param->xBoundMax + 1.0E-10 &&
-	           param->yBoundType == Free &&  fabs(nbrPos[1]) <= param->yBoundMax + 1.0E-10 &&
-	           param->zBoundType == Free &&  fabs(nbrPos[2]) <= param->zBoundMax + 1.0E-10 && 
+	        if(fabs(nbrPos[0]) <= param->xBoundMax + eps -margin &&
+	           fabs(nbrPos[1]) <= param->yBoundMax + eps -margin &&
+	           fabs(nbrPos[2]) <= param->zBoundMax + eps -margin && 
                nbr->numNbrs == 1)continue;
 
 	        constraint = nbr->constraint;
@@ -1733,11 +1821,11 @@ void AdjustSurfaceNode(Home_t *home)
 
             dot = fabs(DotProduct(normal, line.direction));
             if(dot > 1E-2){
-                printf("Warning: the handling segemnet near to surface is ");
+                printf("Task %d %s %d: Warning: the handling segemnet near to surface is ",home->myDomain,__func__,home->cycle);
                 printf("not on current glide plane, error of dot is %f\n", dot);
 
-                PrintTag(node);
-                PrintTag(nbr);
+                PrintTag(home,node);
+                PrintTag(home,nbr);
                 printf("\n");
             }
 
@@ -1754,13 +1842,9 @@ void AdjustSurfaceNode(Home_t *home)
 	            plane.point[2] = Sign(nbrPos[2]) * param->zBoundMax;
 	        }
 
-	        VECTOR_ZERO(interPos);
-
-            if(LinePlaneIntersection(line.direction, line.point, plane.normal,
-               plane.point, vec, interPos) != POINT_INTERSECTION){
-                continue;
-            }
-
+            if(SegmentPlaneIntersection(nodePos,nbrPos,plane.normal,plane.point,
+                                       ((nbrPos[nbr->constraint-1]>0)?-margin:margin),interPos)!=POINT_INTERSECTION)continue;
+#if 0
 		    if(fabs(interPos[0] - nbrPos[0]) < 1e-10 &&
 		       fabs(interPos[1] - nbrPos[1]) < 1e-10 &&
 		       fabs(interPos[2] - nbrPos[2]) < 1e-10){
@@ -1769,7 +1853,7 @@ void AdjustSurfaceNode(Home_t *home)
 		        interPos[1] = 0.99999 * nbrPos[1] + 0.00001 * nodePos[1]; 
 		        interPos[2] = 0.99999 * nbrPos[2] + 0.00001 * nodePos[2]; 
 		    }
-
+#endif
             NodeLocation(home, interPos[0], interPos[1], interPos[2], inGrain, onGB);
             GetArmGrain(home, node, nbr, armInGrain, armOnGB);
 
@@ -1778,9 +1862,6 @@ void AdjustSurfaceNode(Home_t *home)
                     if(onGB != armOnGB)continue;
                 }else{
                     if(NewPosToGB(home, nbr, -1, armOnGB, interPos, vec)){
-                        nbr->x = nbrPos[0];
-                        nbr->y = nbrPos[1];
-                        nbr->z = nbrPos[2];
                         continue;
                     }
                     VECTOR_COPY(interPos, vec);
@@ -1792,11 +1873,9 @@ void AdjustSurfaceNode(Home_t *home)
             if(nbr->numNbrs == 1 && nbr->myTag.domainID == home->myDomain){
 	            RepositionNode(home, interPos, &nbr->myTag, 1);
 
-                MarkNodeNoMeshCoarsen(home, node);        
 	            MarkNodeForceObsolete(home, node);        
 	            MarkNodeNoCollisions(home, node);        
              
-                MarkNodeNoMeshCoarsen(home, nbr);        
 	            MarkNodeForceObsolete(home, nbr);        
 	            MarkNodeNoCollisions(home, nbr);        
                 continue;
@@ -1822,20 +1901,90 @@ void AdjustSurfaceNode(Home_t *home)
 	            node2 = newNode;
 	        }
 
-            MarkNodeNoMeshCoarsen(home, node1);        
 	        MarkNodeForceObsolete(home, node1);        
 	        MarkNodeNoCollisions(home, node1);        
 
-            MarkNodeNoMeshCoarsen(home, node2);        
 	        MarkNodeForceObsolete(home, node2);        
 	        MarkNodeNoCollisions(home, node2);        
 
             AssignConstraint(home, node1, nodecst);
             AssignConstraint(home, node2, constraint);
 
+
 	    } /*for(j=0; j< ...)*/
 	}/*for(i=0; i< ...)*/	
 
+	if(param->gbStrength>0)for (i = 0; i<numNodePtr; i++){
+        if((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
+        if(!SurfaceNode(node))continue;
+        if((node->flags&NODE_RESET_FORCES)==0)continue;
+
+	    nodePos[0] = node->x;
+	    nodePos[1] = node->y;
+	    nodePos[2] = node->z;
+        PBCPOSITION(param, node->oldx, node->oldy, node->oldz, nodePos, nodePos+1, nodePos+2);
+
+        oldPos[0] = node->oldx;
+        oldPos[1] = node->oldy;
+        oldPos[2] = node->oldz;
+
+        if(fabs(nodePos[0])>param->xBoundMax+eps && param->xBoundType==Periodic){
+            plane.normal[0]=1.0; plane.normal[1]=0.0; plane.normal[2]=0.0;
+            plane.point[0]=(nodePos[0]>0?param->xBoundMax-margin:param->xBoundMin+margin); plane.point[1]=0.0; plane.point[2]=0.0;
+            if(SegmentPlaneIntersection(nodePos,oldPos,plane.normal,plane.point,interPos)!=POINT_INTERSECTION){
+                VECTOR_COPY(interPos,oldPos);
+                FoldBox(param,interPos,interPos+1,interPos+2);
+            }else{
+                NodeLocation(home, interPos[0], interPos[1], interPos[2], inGrain, onGB);
+                if((node->onGB>-1 && onGB!=node->onGB) || (node->inGrain>-1 && inGrain!=node->inGrain)){
+                    VECTOR_COPY(interPos,oldPos);
+                    FoldBox(param,interPos,interPos+1,interPos+2);
+                }
+            }
+            
+            RepositionNode(home, interPos, &node->myTag, 1);
+	        MarkNodeForceObsolete(home, node);        
+	        MarkNodeNoCollisions(home, node);        
+        }
+        
+        if(fabs(nodePos[1])>param->yBoundMax+eps && param->yBoundType==Periodic){
+            plane.normal[1]=1.0; plane.normal[0]=0.0; plane.normal[2]=0.0;
+            plane.point[1]=(nodePos[0]>0?param->yBoundMax-margin:param->yBoundMin+margin); plane.point[0]=0.0; plane.point[2]=0.0;
+            if(SegmentPlaneIntersection(nodePos,oldPos,plane.normal,plane.point,interPos)!=POINT_INTERSECTION){
+                VECTOR_COPY(interPos,oldPos);
+                FoldBox(param,interPos,interPos+1,interPos+2);
+            }else{
+                NodeLocation(home, interPos[0], interPos[1], interPos[2], inGrain, onGB);
+                if((node->onGB>-1 && onGB!=node->onGB) || (node->inGrain>-1 && inGrain!=node->inGrain)){
+                    VECTOR_COPY(interPos,oldPos);
+                    FoldBox(param,interPos,interPos+1,interPos+2);
+                }
+            }
+            RepositionNode(home, interPos, &node->myTag, 1);
+	        MarkNodeForceObsolete(home, node);        
+	        MarkNodeNoCollisions(home, node);        
+        }
+
+        if(fabs(nodePos[2])>param->zBoundMax+eps && param->zBoundType==Periodic){
+            plane.normal[2]=1.0; plane.normal[0]=0.0; plane.normal[1]=0.0;
+            plane.point[2]=(nodePos[2]>0?param->zBoundMax-margin:param->zBoundMin+margin); plane.point[0]=0.0; plane.point[1]=0.0;
+            if(SegmentPlaneIntersection(nodePos,oldPos,plane.normal,plane.point,interPos)!=POINT_INTERSECTION){
+                VECTOR_COPY(interPos,oldPos);
+                FoldBox(param,interPos,interPos+1,interPos+2);
+            }else{
+                NodeLocation(home, interPos[0], interPos[1], interPos[2], inGrain, onGB);
+                if((node->onGB>-1 && onGB!=node->onGB) || (node->inGrain>-1 && inGrain!=node->inGrain)){
+                    VECTOR_COPY(interPos,oldPos);
+                    FoldBox(param,interPos,interPos+1,interPos+2);
+                }
+            }
+//          printf("Task %d %s %d: ",home->myDomain,__func__,home->cycle); PrintTag(home,node);
+//          printf("move to {%g,%g,%17.15f} \n",interPos[0],interPos[1],interPos[2]);
+            RepositionNode(home, interPos, &node->myTag, 1);
+	        MarkNodeForceObsolete(home, node);        
+	        MarkNodeNoCollisions(home, node);        
+        }
+    }
 	return;
 }
 

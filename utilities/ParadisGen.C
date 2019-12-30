@@ -154,7 +154,8 @@ Option_t optList[OPT_MAX] = {
         {OPT_TBCRYST,   "TBCryst",      3, 1},
         {OPT_OUT_FILE,   "outFile",      3, 1},
         {OPT_LOAD_DIR,   "loadDir",      3, 1},
-        {OPT_NTDS,      "nTDs",         3, 1}
+        {OPT_NTDS,      "nTDs",         3, 1},
+        {OPT_GB,        "gb",         2, 1}
 
 };
 
@@ -410,7 +411,7 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->loadDir[2] = 1;
 
         inArgs->nTDs = -1;
-        
+        inArgs->gb = false; 
         return;
 }
 
@@ -850,6 +851,9 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                 case OPT_NTDS:
                     inArgs->nTDs = atoi(argValue);
                         break;
+                case OPT_GB:
+                    inArgs->gb = atoi(argValue)>0?true:false;
+                        break;
             
             }
         }
@@ -1202,6 +1206,7 @@ int main(int argc, char *argv[])
 	    param->xBoundType = ((inArgs.pbcVal & 0x01) == 0 ? Periodic : Free);
 	    param->yBoundType = ((inArgs.pbcVal & 0x02) == 0 ? Periodic : Free);
 	    param->zBoundType = ((inArgs.pbcVal & 0x04) == 0 ? Periodic : Free);
+        param->gbStrength = inArgs.gb==true?1E8:0;
 
 	    VECTOR_COPY(param->matrixOrientation[0],inArgs.xMatDir);
 	    VECTOR_COPY(param->matrixOrientation[1],inArgs.yMatDir);

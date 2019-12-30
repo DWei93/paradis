@@ -50,6 +50,7 @@ typedef struct {
         char    outFile[256];
         real8   loadDir[3]; 
         int     nTDs;
+        bool    gb;
 }InArgs_t;
 
 /*
@@ -163,6 +164,7 @@ typedef	enum{
     OPT_OUT_FILE,
     OPT_LOAD_DIR,
     OPT_NTDS,
+    OPT_GB,
 	OPT_MAX
 	
 }ParadisGenArgs_t;

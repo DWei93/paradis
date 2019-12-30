@@ -3145,7 +3145,7 @@ void RepositionNode(Home_t *home, real8 newPos[3], Tag_t *tag, int globalOp)
         node = GetNodeFromTag(home, *tag);
 
         if (node != (Node_t *)NULL) {
-
+#ifdef DEBUG
 	        real8	vec[3];
 
 	        vec[0] = node->x - newPos[0];
@@ -3159,7 +3159,7 @@ void RepositionNode(Home_t *home, real8 newPos[3], Tag_t *tag, int globalOp)
                 printf("Warning: task %d, the node new pos is {%f,%f,%f}, dis %f\n",
                       home->myDomain, newPos[0], newPos[1], newPos[2], Normal(vec));
             }
-
+#endif
             node->x = newPos[0];
             node->y = newPos[1];
             node->z = newPos[2];
