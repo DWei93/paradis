@@ -19,7 +19,7 @@
 #
 numXdoms = 2
 numYdoms = 2
-numZdoms = 1
+numZdoms = 2
 #
 #  Cell geometry
 #
@@ -40,7 +40,7 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-dirname = "res.Ecore-4000_l-800"
+dirname = "res.grainSize-1600nm_simple-model_a-32"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -54,9 +54,10 @@ maxStn = 1.2E-2
 maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
-rTol = 10
-rc =  41
+rc =  32
 wallTime = 24
+grainSize = 6250
+a0 = [ 0.7929 0.5866 0.4525 0.0918 ]
 #
 #  Fast Multipole Method controls
 #  
@@ -103,8 +104,6 @@ tbStrength = [
 ]
 burgMag =   2.55600e-10 
 pois = 3.240000e-01
-Ecore = 2.21963E11
-#Ecore = 3.07265E11
 
 #fricStress = 3.46e7
 #  mobility values may be a little low for FCC
@@ -121,7 +120,7 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 400
+tecplotfreq = 200
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1

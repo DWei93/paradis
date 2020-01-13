@@ -493,6 +493,8 @@ struct _param {
 	    real8	matrixOrientation[3][3];
 	    real8   gbStrength, tbStrength[2];
 	    real8	fricStress;
+        real8   a0[4];
+        real8   grainSize;
 /*
  *		
  */

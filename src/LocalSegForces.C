@@ -262,7 +262,8 @@ void FindSubFSeg(Home_t *home, real8 p1[3], real8 p2[3], real8 burg[3],
     Param_t  *param;
 
     param = home->param;
-
+    real8   *a0 = param->a0;
+    real8   grainSize = param->grainSize;
     Ecore = param->Ecore;
     MU    = param->shearModulus;
     NU    = param->pois;
@@ -306,7 +307,7 @@ void FindSubFSeg(Home_t *home, real8 p1[3], real8 p2[3], real8 burg[3],
  *  Find the self-force for this segment and subtract it off
  */
     SelfForce(0, MU, NU, burg[0], burg[1], burg[2], p1[0], p1[1], p1[2],
-              p2[0], p2[1], p2[2], a, Ecore, f1, f2);
+              p2[0], p2[1], p2[2], a, a0, grainSize, f1, f2);
 
     for (i = 0; i < 3; i++) {
         oldfp1[i] -= f1[i];
@@ -342,7 +343,7 @@ void FindSubFSeg(Home_t *home, real8 p1[3], real8 p2[3], real8 burg[3],
  *  included in the previous segment calculation
  */
     SelfForce(0, MU, NU, burg[0], burg[1], burg[2], p1[0], p1[1], p1[2],
-              newpos[0], newpos[1], newpos[2], a, Ecore, f1, f2);
+              newpos[0], newpos[1], newpos[2], a, a0, grainSize, f1, f2);
 
     for (i = 0; i < 3; i++) {
         f0seg1[i] += f1[i];
@@ -350,7 +351,7 @@ void FindSubFSeg(Home_t *home, real8 p1[3], real8 p2[3], real8 burg[3],
     }
 
     SelfForce(0, MU, NU, burg[0], burg[1], burg[2], newpos[0], newpos[1],
-              newpos[2], p2[0], p2[1], p2[2], a, Ecore, f1, f2);
+              newpos[2], p2[0], p2[1], p2[2], a, a0, grainSize, f1, f2);
     
     for (i = 0; i < 3; i++) {
         f0seg2[i] += f1[i];
@@ -416,7 +417,8 @@ void FindFSegComb(Home_t *home, real8 p0[3], real8 p1[3], real8 p2[3],
     MU    = param->shearModulus;
     NU    = param->pois;
     a     = param->rc;
-
+    real8 *a0 = param->a0;
+    real8 grainSize = param->grainSize;
     Lsub1 = (p1[0]-p0[0])*(p1[0]-p0[0]) +
             (p1[1]-p0[1])*(p1[1]-p0[1]) +
             (p1[2]-p0[2])*(p1[2]-p0[2]);
@@ -430,7 +432,7 @@ void FindFSegComb(Home_t *home, real8 p0[3], real8 p1[3], real8 p2[3],
  *  it off.
  */
     SelfForce(0, MU, NU, burg1[0], burg1[1], burg1[2], p0[0], p0[1], p0[2],
-              p1[0], p1[1], p1[2], a, Ecore, f1, f2);
+              p1[0], p1[1], p1[2], a, a0, grainSize, f1, f2);
     
     for (i = 0; i < 3; i++) {
         tmpfp0seg1[i] = fp0seg1[i] - f1[i];
@@ -438,7 +440,7 @@ void FindFSegComb(Home_t *home, real8 p0[3], real8 p1[3], real8 p2[3],
     }
 
     SelfForce(0, MU, NU, burg2[0], burg2[1], burg2[2], p1[0], p1[1], p1[2],
-              p2[0], p2[1], p2[2], a, Ecore, f1, f2);
+              p2[0], p2[1], p2[2], a, a0, grainSize, f1, f2);
     
     for (i = 0; i < 3; i++) {
         tmpfp1seg2[i] = fp1seg2[i] - f1[i];
@@ -494,7 +496,7 @@ void FindFSegComb(Home_t *home, real8 p0[3], real8 p1[3], real8 p2[3],
     }
 
     SelfForce(0, MU, NU, burg1[0], burg1[1], burg1[2], p0[0], p0[1], p0[2],
-              p2[0], p2[1], p2[2], a, Ecore, f1, f2);
+              p2[0], p2[1], p2[2], a, a0, grainSize, f1, f2);
 
     for (i = 0; i < 3; i++) {
         f0new[i] += f1[i];
@@ -2043,6 +2045,8 @@ void LocalSegForces(Home_t *home, int reqType)
         MU    = param->shearModulus;
         NU    = param->pois;
         Ecore = param->Ecore;
+        real8 *a0 = param->a0;
+        real8 grainSize = param->grainSize;
 
         extStress[0][0] = param->appliedStress[0];
         extStress[1][1] = param->appliedStress[1];
@@ -2133,7 +2137,7 @@ void LocalSegForces(Home_t *home, int reqType)
                     SelfForce(0, MU, NU, burg[0], burg[1], burg[2],
                               pos1[0], pos1[1], pos1[2],
                               pos2[0], pos2[1], pos2[2],
-                              a, Ecore, f1, f2);
+                              a, a0, grainSize, f1, f2);
 
                     AddtoArmForce(node1, armID12, f1);
                     AddtoArmForce(node2, armID21, f2);
@@ -2313,6 +2317,8 @@ void LocalSegForces(Home_t *home, int reqType)
         NU    = param->pois;
         a     = param->rc;
         Ecore = param->Ecore;
+        real8 *a0=param->a0;
+        real8  grainSize = param->grainSize;
 
         extstress[0][0] = param->appliedStress[0];
         extstress[1][1] = param->appliedStress[1];
@@ -2843,7 +2849,7 @@ void LocalSegForces(Home_t *home, int reqType)
  *          Add in force due to self stress
  */
             SelfForce(0, MU, NU, bx1, by1, bz1, x1, y1, z1, x2, y2, z2,
-                      a, Ecore, f1, f2);
+                      a, a0, grainSize, f1, f2);
 
             VECTOR_ADD(node1SegForce, f1);
             VECTOR_ADD(node2SegForce, f2);
@@ -2919,7 +2925,6 @@ void LocalSegForces(Home_t *home, int reqType)
             }
 
             if(param->randomInternalForce){
-
                 RandomInternalForce(home, x1, y1, z1, x2, y2, z2, dx, dy, dz, 
                                     bx1, by1, bz1, f1, f2);
                 VECTOR_ADD(node1SegForce, f1);
@@ -3083,9 +3088,9 @@ void LocalSegForces(Home_t *home, int reqType)
  *      communication time with force calc time, but we do want to time
  *      the communication phase.
  */
-	TimerStop(home, LOCAL_FORCE);
-	TimerStop(home, CALC_FORCE);
-	TimerStart(home, SEGFORCE_COMM);
+	    TimerStop(home, LOCAL_FORCE);
+	    TimerStop(home, CALC_FORCE);
+	    TimerStart(home, SEGFORCE_COMM);
 
 #ifdef PARALLEL
         MPI_Allreduce(localMsgCnts, globalMsgCnts, numDomains,
@@ -3095,9 +3100,9 @@ void LocalSegForces(Home_t *home, int reqType)
         CommSendSegments(home, globalMsgCnts[homeDomain], sendDomCnt,
                          sendDomList, cellSegLists, totalSegCounts);
 
-	TimerStop(home, SEGFORCE_COMM);
-	TimerStart(home, LOCAL_FORCE);
-	TimerStart(home, CALC_FORCE);
+	    TimerStop(home, SEGFORCE_COMM);
+	    TimerStart(home, LOCAL_FORCE);
+	    TimerStart(home, CALC_FORCE);
                          
 /*
  *      Free all temporary arrays

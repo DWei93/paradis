@@ -561,11 +561,10 @@ void SetRemainingDefaults(Home_t *home)
  *      If the user did not provide an Ecore value, set the default
  *      based on the shear modulus and rc values
  */
-        if (param->Ecore < 0.0) {
-            param->Ecore = (param->shearModulus / (4*M_PI)) *
-                           log(param->rc/0.1);
-        }
 
+        if (param->Ecore < 0.0) {
+            param->Ecore = (param->shearModulus / (4*M_PI))*log(param->grainSize/param->a0[0]);
+        }
 /*
  *      Now do some additional sanity checks.
  */
@@ -1530,7 +1529,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
             param->fNumY = para[4];
 
         }
-
 /*
  *      Now that the param structure is fully populated, do any
  *      remaining sanity checks or initializations that could not
