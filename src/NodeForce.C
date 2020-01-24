@@ -1945,7 +1945,7 @@ int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
 {
     real8 tx, ty, tz, L, La;
     real8 bs, bs2, bex, bey, bez, be2, fL, ft, bMag2;
-    real8 A = MU/4/M_PI, R;
+    real8 A = MU/4/M_PI, R, S;
     
     if(!GetUnitVector(1, x1, y1, z1, x2, y2, z2, &tx, &ty, &tz, &L))return(0);
     bs = bx*tx + by*ty + bz*tz;
@@ -1980,46 +1980,45 @@ int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
     /* Account for the self force due to the core energy change when 
        the core radius changes from a0-->a, M. Tang, 7/19/2004 */ 
 
-    real8 Ecore_screw, Ecore_edge, Etot_edge, Etot_screw;
+    real8 Ecore_screw, Ecore_edge, Etot_edge, Etot_screw, Etot, Ens;
 
 #if 1    
     if(bMag2>0.9){
-        Ecore_screw =A*log(a/a0[0]);
-        Ecore_edge = A*log(a/a0[1])/(1-NU);
-
         if(coreOnly){
             R=a; S=0;
         }else{
             R=grainSize*0.5;
-            S = (-(2*NU*La+(1-NU)*a*a/La-(1+NU)*a)/L +
-                (NU*log((La+L)/a)-(1-NU)*0.5*L/La))*MU/4/M_PI/(1-NU)*bs;
+            S = (-(2*NU*La+(1-NU)*a*a/La-(1+NU)*a)/L+(NU*log((La+L)/a)-(1-NU)*0.5*L/La))*MU/4/M_PI/(1-NU)*bs;
         }
         Etot_screw = A*log(R/a0[0]);
         Etot_edge =  A*log(R/a0[1])/(1-NU);
-    }else{
-        Ecore_screw =A*log(a/a0[2]);
-        Ecore_edge = A*log(a/a0[3])/(1-NU);
 
+        Ecore_screw = A*log(a/a0[0]);
+        Ecore_edge =  A*log(a/a0[1])/(1-NU);
+    }else{
         if(coreOnly){
             R=a; S=0;
         }else{
             R=grainSize;
-            S = (-(2*NU*La+(1-NU)*a*a/La-(1+NU)*a)/L +
-                (NU*log((La+L)/a)-(1-NU)*0.5*L/La))*MU/4/M_PI/(1-NU)*bs;
+            S = (-(2*NU*La+(1-NU)*a*a/La-(1+NU)*a)/L+(NU*log((La+L)/a)-(1-NU)*0.5*L/La))*MU/4/M_PI/(1-NU)*bs;
         }
         Etot_screw = A*log(R/a0[2]);
         Etot_edge =  A*log(R/a0[3])/(1-NU);
+
+        Ecore_screw = A*log(a/a0[2]);
+        Ecore_edge =  A*log(a/a0[3])/(1-NU);
     }
 
-    fL = -(Ecore_screw*bs2 + Ecore_edge*be2);
-    ft = (Etot_edge - Etot_screw)*2*bs;
+    S=0.0;
+    fL = -((Etot_screw*bs2 - 0.5*S*bs)+Etot_edge*be2);
+    ft =  (Etot_edge - Etot_screw)*2*bs;
 
-    f2[0] = bex*ft + fL*tx;
-    f2[1] = bey*ft + fL*ty;
-    f2[2] = bez*ft + fL*tz;
+    f2[0] = bex*(ft + S) + fL*tx;
+    f2[1] = bey*(ft + S) + fL*ty;
+    f2[2] = bez*(ft + S) + fL*tz;
 #else
     if(bMag2>0.9){
-        Ecore_screw = (MU/(4.0*M_PI))*log(0.5*grainSize/a0[0])*bs2/bMag2;
+       core_screw = (MU/(4.0*M_PI))*log(0.5*grainSize/a0[0])*bs2/bMag2;
         Ecore_edge = (MU/(4.0*M_PI))*log(0.5*grainSize/a0[1])*be2/bMag2;
     }else{
         Ecore_screw = (MU/(4.0*M_PI))*log(grainSize/a0[2])*bs2/bMag2;

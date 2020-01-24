@@ -40,7 +40,7 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-dirname = "res.grainSize-1600nm_simple-model_a-32"
+dirname = "res.bulk-rc=64-4"
 remeshRule = 2
 enforceGlidePlanes =  1 
 enableCrossSlip =   1
@@ -54,7 +54,7 @@ maxStn = 1.2E-2
 maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
-rc =  32
+rc =  10
 wallTime = 24
 grainSize = 6250
 a0 = [ 0.7929 0.5866 0.4525 0.0918 ]
