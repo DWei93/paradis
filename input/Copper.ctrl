@@ -40,9 +40,9 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-dirname = "res.gbSts-50_debug-surface-constraint"
+dirname = "res.bulk-rc=64-4"
 remeshRule = 2
-enforceGlidePlanes =  2 
+enforceGlidePlanes =  1
 enableCrossSlip =   1
 splitMultiNodeFreq =   1  
 #
@@ -54,8 +54,10 @@ maxStn = 1.2E-2
 maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
-rc =  40
+rc =  10
 wallTime = 24
+grainSize = 6250
+a0 = [ 0.7929 0.5866 0.4525 0.0918 ]
 #
 #  Fast Multipole Method controls
 #  
@@ -101,7 +103,6 @@ tbStrength = [
 ]
 burgMag =   2.55600e-10 
 pois = 3.240000e-01
-#Ecore = 3.07265E11
 
 #fricStress = 3.46e7
 #  mobility values may be a little low for FCC

@@ -2848,7 +2848,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
         if(numSources <= 0){
             singleSrcTest = 1;
-            numSources = 1;
         }
         	
         if(polycrystal){
