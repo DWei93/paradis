@@ -4688,4 +4688,20 @@ real8 NodeLength(Home_t *home, Node_t *node)
     return(len);
 }
 
+real8 NodeLengthXMag(Home_t *home, Node_t *node) 
+{
+    int     i;
+    Node_t  *nbr;
+    real8   len = 0, mag;
+
+    for(i=0; i<node->numNbrs; i++){
+	    nbr = GetNeighborNode(home, node, i);
+        if(nbr == (Node_t *)NULL)continue;
+        mag = sqrt(node->burgX[i]*node->burgX[i]+
+                   node->burgY[i]*node->burgY[i]+
+                   node->burgZ[i]*node->burgZ[i]);
+        len += (0.5*NodeDistance(home, node, nbr)*mag);        
+    }
+    return(len);
+}
 

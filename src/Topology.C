@@ -1757,12 +1757,14 @@ void SplitMultiNodes(Home_t *home)
  *              and unpin the first node so the merge will take
  *              place as expected.
  */
-                if (newNode->constraint == PINNED_NODE) {
+
+                if (newNode->constraint > 0) {
+                    int oriCon = newNode->constraint;
                     origNode->x = origPos[0];
                     origNode->y = origPos[1];
                     origNode->z = origPos[2];
                     newNode->constraint = UNCONSTRAINED;
-                    origNode->constraint = PINNED_NODE;
+                    origNode->constraint = oriCon;
                 }
 
                 MergeNode(home, OPCLASS_SEPARATION, newNode, origNode,
@@ -1776,7 +1778,7 @@ void SplitMultiNodes(Home_t *home)
                     char name[50];
 
                     PrintNode(home, origNode);
-                    PrintNode(newNode);
+                    PrintNode(home, newNode);
                     snprintf(name,sizeof(name),"separationTest-%d.plt",home->cycle);
                     Tecplot(home, name, 0, 0, 0, 0, 0, 1);
                     Fatal("Unable to merge (%d,%d) into (%d,%d)"
@@ -2668,7 +2670,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
  */
 
 	node1Deletable  = (node1->myTag.domainID == thisDomain); 
-	node1Deletable &= (node1->constraint == UNCONSTRAINED);	
+	node1Deletable &= (node1->constraint == UNCONSTRAINED || (SurfaceNode(node1) && SurfaceNode(node2)));	
 
     node1Deletable &= ((node1->flags & NO_COLLISIONS) == 0);
 	node1Deletable &= ((node1->flags & NO_MESH_COARSEN) == 0);
@@ -2688,7 +2690,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 		deadNode = node1;
 	} else {
 		node2Deletable  = (node2->myTag.domainID == thisDomain); 
-	    node2Deletable &= (node2->constraint == UNCONSTRAINED);	
+	    node2Deletable &= (node2->constraint == UNCONSTRAINED || (SurfaceNode(node1) && SurfaceNode(node2)));	
 
         node2Deletable &= ((node2->flags & NO_COLLISIONS) == 0);
         node2Deletable &= ((node2->flags & NO_MESH_COARSEN) == 0);

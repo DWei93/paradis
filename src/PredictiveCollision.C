@@ -954,7 +954,7 @@ void PredictiveCollisions(Home_t *home)
                             continue;
                         }
 
-                        if(SurfaceNode(node1) && SurfaceNode(node2))continue;
+                        if(param->gbStrength<=0)if(SurfaceNode(node1) && SurfaceNode(node2))continue;
 
 /*
  *                      Loop over all arms of node3.  Skip any segments that
@@ -979,7 +979,7 @@ void PredictiveCollisions(Home_t *home)
                                 continue;
                             }
 
-                            if(SurfaceNode(node3) && SurfaceNode(node3))continue;
+                            if(param->gbStrength<=0)if(SurfaceNode(node3) && SurfaceNode(node4))continue;
             
                             if (CollisionNodeOrder(home, &node3->myTag,
                                                    &node4->myTag) > 0) {
@@ -1051,11 +1051,17 @@ void PredictiveCollisions(Home_t *home)
                             vx2 = node2->vX; vy2 = node2->vY; vz2 = node2->vZ;
                             vx3 = node3->vX; vy3 = node3->vY; vz3 = node3->vZ;
                             vx4 = node4->vX; vy4 = node4->vY; vz4 = node4->vZ;
-    
+                        
                             PBCPOSITION(param, x1, y1, z1, &x2, &y2, &z2);
                             PBCPOSITION(param, x1, y1, z1, &x3, &y3, &z3);
                             PBCPOSITION(param, x3, y3, z3, &x4, &y4, &z4);
     
+                            if(param->gbStrength>0){
+                                if(fabs(x2)>param->xBoundMax || fabs(x3)>param->xBoundMax || fabs(x4)>param->xBoundMax)continue;    
+                                if(fabs(y2)>param->yBoundMax || fabs(y3)>param->yBoundMax || fabs(y4)>param->yBoundMax)continue;    
+                                if(fabs(z2)>param->zBoundMax || fabs(z3)>param->zBoundMax || fabs(z4)>param->zBoundMax)continue;    
+                            }
+
                             p1[0] = x1;  p1[1] = y1;  p1[2] = z1;
                             p2[0] = x2;  p2[1] = y2;  p2[2] = z2;
                             p3[0] = x3;  p3[1] = y3;  p3[2] = z3;
@@ -1519,7 +1525,7 @@ void PredictiveCollisions(Home_t *home)
 #endif
                                 }  /* if (splitSeg2) */
     
-                                if(SurfaceNode(mergenode1) && SurfaceNode(mergenode2))continue;
+                                if(param->gbStrength<=0)if(SurfaceNode(mergenode1) && SurfaceNode(mergenode2))continue;
                                 if(splitInGrain >-1 && (mergenode1->onGB>-1 || mergenode2->onGB>-1)){
                                     splitInGrain = -1; splitOnGB = (mergenode1->onGB>-1?mergenode1->onGB:mergenode2->onGB);
                                 }

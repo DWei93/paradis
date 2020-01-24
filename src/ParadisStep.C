@@ -319,7 +319,8 @@ void ParadisStep(Home_t *home)
 
         if(param->xBoundType == Free ||
            param->yBoundType == Free ||
-           param->zBoundType == Free){
+           param->zBoundType == Free ||
+           param->gbStrength > 0){
             ClearOpList(home);
 
             AdjustSurfaceNode(home);
@@ -337,7 +338,7 @@ void ParadisStep(Home_t *home)
         }
 
         DebugGB(home,21);
-        if(param->polycrystal && param->nGrain>1){
+        if(param->gbStrength>0 || param->polycrystal && param->nGrain>1){
             ClearOpList(home);
             HandleGrainBoundary(home);
             DebugGB(home,22);

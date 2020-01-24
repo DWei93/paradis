@@ -2125,18 +2125,18 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 {
     Param_t *param = home->param;
 
-    real8       dis, burgMag, burg[3], segCentor[3], tbStrength, xi[3];
-    real8       ldir[3],pdir[3], a = 0.5*param->rTol, amax=10*param->rTol, err=1.0E-4; 
+    real8       dis, burgMag, burg[3], segCentor[3], tbStrength, xi[3], bedge[3];
+    real8       ldir[3],pdir[3], a = param->rc, err=1.0E-3, amax=10*a; 
     real8       gausFac[2] = {0.211324865405187, // (1-sqrt(3)/3)/2
                               0.7886751345948128}; // (1+sqrt(3)/3)/2
     real8       coff=0.0, length, nor[3], gDir[3], gbNormal[3], pos[3], pBound[3], nBound[3], vel[3];
     GB_t        *gb;
     Grain_t     *grain;
     int         armID, i, j, type, armInGrain,armOnGB;
+    real8       node1Pos[3]={node1->x,node1->y,node1->z}, node2Pos[3]={node2->x,node2->y,node2->z};
 
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);
-
     armID = GetArmID(home, node1, node2);
     if(armID == -1)return;
 
@@ -2151,19 +2151,26 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     burgMag = Normal(burg);
     NormalizeVec(burg);
 
+    real8 gbStrength = param->gbStrength;
+    bool cacGBStress = (gbStrength>0);
+
     xi[0] = node2->x - node1->x;
     xi[1] = node2->y - node1->y;
     xi[2] = node2->z - node1->z;
+    cacGBStress |= (Normal(xi)<3*param->maxSeg);
+
     ZImage(param, xi, xi+1, xi+2);
 
     length = Normal(xi);
     if(length < 1.0E-2)return;
     NormalizeVec(xi);
     GetArmGrain(home, node1, node2, armInGrain, armOnGB);
+    NormalComponent(burg,xi,bedge);
 
-    vel[0] = 0.5*(node2->vX+node1->vX);
-    vel[1] = 0.5*(node2->vY+node1->vY);
-    vel[2] = 0.5*(node2->vZ+node1->vZ);
+    PBCPOSITION(param,node1->oldx,node1->oldy,node1->oldz,node1Pos,node1Pos+1,node1Pos+2);
+    PBCPOSITION(param,node2->oldx,node2->oldy,node2->oldz,node2Pos,node2Pos+1,node2Pos+2);
+    cacGBStress |= fabs(node1Pos[0])<param->xBoundMax && fabs(node1Pos[1])<param->yBoundMax && fabs(node1Pos[2])<param->zBoundMax;
+    cacGBStress |= fabs(node2Pos[0])<param->xBoundMax && fabs(node2Pos[1])<param->yBoundMax && fabs(node2Pos[2])<param->zBoundMax;
 
     for(i=0; i<2; i++){
         pos[0] = node1->x + length*gausFac[i]*xi[0];
@@ -2173,37 +2180,35 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 /*
  *      GB image force
  */
-        if(param->gbStrength > 0){
+        if(cacGBStress){
             if(param->xBoundType==Periodic){
                 nBound[0]=1.0; nBound[1]=0; nBound[2]=0;
                 pBound[0]=param->xBoundMin; pBound[1]=0; pBound[2]=0;
                 type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
                 if(type==LINE_INTERSECTION){
                     CoordMinus(pos,pdir,ldir); 
-                    if((dis=Normal(ldir))>err){
+                    dis=Normal(ldir);
+                    if(dis>err && dis<amax){
                         NormalizeVec(ldir);
-                        coff = param->gbStrength * a/(fabs(dis)+a);
+                        coff = (dis>a)?gbStrength * a/sqrt(dis*dis+a*a):gbStrength;
                         NormalComponent(ldir,xi,gDir);
-                        if(DotProduct(vel,gDir)>0){
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
                             f1[2] += 0.25*length*coff*gDir[2]*burgMag;
-                        }
                     }
                 }
                 pBound[0]=param->xBoundMax; pBound[1]=0; pBound[2]=0;
                 type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
                 if(type==LINE_INTERSECTION){
                     CoordMinus(pos,pdir,ldir); 
-                    if((dis=Normal(ldir))>err){
+                    dis=Normal(ldir);
+                    if(dis>err && dis<amax){
                         NormalizeVec(ldir);
-                        coff = param->gbStrength * a/(fabs(dis)+a);
+                        coff = (dis>a)?gbStrength * a/sqrt(dis*dis+a*a):gbStrength;
                         NormalComponent(ldir,xi,gDir);
-                        if(DotProduct(vel,gDir)>0){
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
                             f1[2] += 0.25*length*coff*gDir[2]*burgMag;
-                        }
                     }
                 }
             }
@@ -2214,30 +2219,28 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                 type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
                 if(type==LINE_INTERSECTION){
                     CoordMinus(pos,pdir,ldir); 
-                    if((dis=Normal(ldir))>err){
+                    dis=Normal(ldir);
+                    if(dis>err && dis<amax){
                         NormalizeVec(ldir);
-                        coff = param->gbStrength * a/(fabs(dis)+a);
+                        coff = (dis>a)?gbStrength * a/sqrt(dis*dis+a*a):gbStrength;
                         NormalComponent(ldir,xi,gDir);
-                        if(DotProduct(vel,gDir)>0){
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
                             f1[2] += 0.25*length*coff*gDir[2]*burgMag;
-                        }
                     }
                 }
                 pBound[0]=0; pBound[1]=param->yBoundMax; pBound[2]=0;
                 type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
                 if(type==LINE_INTERSECTION){
                     CoordMinus(pos,pdir,ldir); 
-                    if((dis=Normal(ldir))>err){
+                    dis=Normal(ldir);
+                    if(dis>err && dis<amax){
                         NormalizeVec(ldir);
-                        coff = param->gbStrength * a/(fabs(dis)+a);
+                        coff = (dis>a)?gbStrength * a/sqrt(dis*dis+a*a):gbStrength;
                         NormalComponent(ldir,xi,gDir);
-                        if(DotProduct(vel,gDir)>0){
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
                             f1[2] += 0.25*length*coff*gDir[2]*burgMag;
-                        }
                     }
                 }
             }
@@ -2248,30 +2251,28 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                 type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
                 if(type==LINE_INTERSECTION){
                     CoordMinus(pos,pdir,ldir); 
-                    if((dis=Normal(ldir))>err){
+                    dis=Normal(ldir);
+                    if(dis>err && dis<amax){
                         NormalizeVec(ldir);
-                        coff = param->gbStrength * a/(fabs(dis)+a);
+                        coff = (dis>a)?gbStrength * a/sqrt(dis*dis+a*a):gbStrength;
                         NormalComponent(ldir,xi,gDir);
-                        if(DotProduct(vel,gDir)>0){
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
                             f1[2] += 0.25*length*coff*gDir[2]*burgMag;
-                        }
                     }
                 }
                 pBound[0]=0; pBound[1]=0; pBound[2]=param->zBoundMax;
                 type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
                 if(type==LINE_INTERSECTION){
                     CoordMinus(pos,pdir,ldir); 
-                    if((dis=Normal(ldir))>err){
+                    dis=Normal(ldir);
+                    if(dis>err && dis<amax){
                         NormalizeVec(ldir);
-                        coff = param->gbStrength * a/(fabs(dis)+a);
+                        coff = (dis>a)?gbStrength * a/sqrt(dis*dis+a*a):gbStrength;
                         NormalComponent(ldir,xi,gDir);
-                        if(DotProduct(vel,gDir)>0){
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
                             f1[2] += 0.25*length*coff*gDir[2]*burgMag;
-                        }
                     }
                 }
             }
@@ -2290,13 +2291,11 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                 CoordMinus(pos,pdir,ldir); 
                 if((dis=Normal(ldir))>err){
                     NormalizeVec(ldir);
-                    coff = tbStrength * a/(fabs(dis)+a);
+                    coff = (dis>a)?tbStrength * a/sqrt(dis*dis+a*a):tbStrength;
                     NormalComponent(ldir,xi,gDir);
-                    if(DotProduct(vel,gDir)>0){
                         f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                         f1[1] += 0.25*length*coff*gDir[1]*burgMag;
                         f1[2] += 0.25*length*coff*gDir[2]*burgMag;
-                    }
                 }
             }
         } 

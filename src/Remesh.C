@@ -344,7 +344,7 @@ void Remesh(Home_t *home)
  *      should be taken care of by the RemoveOrphanedNodes() call further
  *      on.
  */
-        CutSurfaceSegments(home);
+        if(param->gbStrength<=0)CutSurfaceSegments(home);
 
 /*
  *      Send to the neighboring domains, a list of all local

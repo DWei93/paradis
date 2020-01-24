@@ -156,7 +156,11 @@ int Mobility_Wei(Home_t *home, Node_t *node)
 	        bx/=br; by/=br; bz/=br; /* unit vector along Burgers vector */
 
             armID21 = GetArmID(home, nbr, node);
-            if(armID21<0)Fatal("%s: armID21 <0", __func__);
+            if(armID21<0){
+                PrintNode(home, node);
+                PrintNode(home, nbr);
+                Fatal("%s: armID21 <0", __func__);
+            }
             glideForce[0] = node->armfx[j] + nbr->armfx[armID21];
             glideForce[1] = node->armfy[j] + nbr->armfy[armID21];
             glideForce[2] = node->armfz[j] + nbr->armfz[armID21];

@@ -1818,6 +1818,7 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
  *      from the semi-infinite segment node1-->infinity on the finite
  *      segment node3-->node4
  */
+        if(param->gbStrength<=0){
         if (node1->constraint > 0 && node1->constraint < 4 ) {
 
             xInf = x1 + (x1 - x2);
@@ -1916,6 +1917,7 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
                     f2[i] += siF4[i];
                 }
             }
+        }
         }
 //   #endif  /* ifdef _FEM */
 
@@ -2893,6 +2895,7 @@ void LocalSegForces(Home_t *home, int reqType)
                 }
             }
 
+#ifdef IMAGEFORCE
 /*
  *          If we're including grain boundary or free surface, 
  *          add the image force in now.
@@ -2906,7 +2909,7 @@ void LocalSegForces(Home_t *home, int reqType)
                 nativeSegList[i].seg->f1[j] += f1[j];
                 nativeSegList[i].seg->f2[j] += f2[j];
             }
-
+#endif
             StackingFaultForce(home, dx, dy, dz, param->sfEnergy/param->burgMag, signSF, 
                                normal, f1, f2); 
             

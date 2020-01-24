@@ -529,6 +529,12 @@ void DebugGB(Home_t *home, int flag){
                 printf("\n");
             }
 
+            if(GetArmID(home, nbr, node)<0){
+                    PrintNode(home, node);
+                    PrintNode(home, nbr);
+                    Fatal("Task %d, wrong connection, flag %d \n", 
+                        home->myDomain, flag);
+            }
             if(node->onGB == -1 && nbr->onGB == -1){
                 if(node->inGrain!=nbr->inGrain){
                     PrintNode(home, node);

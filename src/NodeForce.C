@@ -1367,6 +1367,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA, bool cacImageForce)
             VECTOR_ADD(fseg1node1, f1);
             VECTOR_ADD(fseg1node2, f2);
 
+#ifdef IMAGEFORCE
             if(cacImageForce){
 /*
  *              If we're including grain boundary or free surface, 
@@ -1377,7 +1378,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA, bool cacImageForce)
                 VECTOR_ADD(fseg1node2, f2);
                 
             }
-
+#endif
             StackingFaultForce(home, dx, dy, dz, param->sfEnergy/param->burgMag, signSF, 
                                normal, f1, f2); 
 
@@ -1715,6 +1716,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA, bool cacImageForce)
                 fseg1node2[2] = fz2;
 
 #if 1
+                if(param->gbStrength<=0){
 /*
  *              Also, if segment 3/4 has any surface nodes, we need to add in
  *              any force on the finite portion of segment 1/2 from the
@@ -1782,6 +1784,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA, bool cacImageForce)
                     fseg1node2[1] += fy4;
                     fseg1node2[2] += fz4;
                 }
+            }
 #endif  /* ifdef _FEM */
 
 /*
