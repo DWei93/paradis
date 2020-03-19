@@ -50,9 +50,10 @@ case $srctype in
     1|I)
     echo "initial separation ${d0}"
     ./bin/paradisgen -type 4 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-   -polycrystal 0 -pbc 0 -extended 4,${d0} \
+    -polycrystal 0 -pbc 0 \
     -xMatDir -1,-1,2 -zMatDir 1,1,1 ;;
 
+#   -extended 4,${d0} \
 #   -polycrystal 0 -pbc 0  \
 #    -polycrystal 0 -pbc 0 \
 ######################################################################################

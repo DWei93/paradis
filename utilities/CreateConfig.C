@@ -1293,7 +1293,6 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
             }
             	
             printf("the num of  sources in layers %d is %d\n",layer, xn);
-            	
             for(chain = 0; chain < xn; ){
              
                 numPoints = (inArgs->extended == 0) ? 3 : 6;
@@ -1304,15 +1303,19 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     p0[1] = (randm(&seed)-0.5) * cubeSize;			
                     p0[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
                     VECTOR_ZERO(p0);
-//                    p0[2] = -50;
+//                  p0[2] = -50;
                     NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0);
                     bd = GetBurgData(home, inGrain0, onGB0);
                     if(onGB0 > -1)continue;
 
                     ranNum = (int)(randm(&seed) * 1000);
                     gpBurgIndex = ranNum % bd->numBurgVectors;
+#if 0
                     if(gpBurgIndex != 1)continue;
                     if((bd->burgType[gpBurgIndex] & EDGE_BURG) == 0)continue;
+#else
+                    gpBurgIndex = 12;
+#endif                    
 
                     ranNum = (int)(randm(&seed) * 1000);
                     gpIndex = bd->burgOnPlaneID[gpBurgIndex][ranNum%bd->numPlanesPerBurg[gpBurgIndex]];
@@ -1489,10 +1492,12 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->burgX[0] = b[0];
                      node->burgY[0] = b[1];
                      node->burgZ[0] = b[2];
+                     node->signSF[0] = (gpBurgIndex>5&&gpBurgIndex<18?1:0);
                   
                      node->burgX[1] = -b[0];
                      node->burgY[1] = -b[1];
                      node->burgZ[1] = -b[2];
+                     node->signSF[1] = (gpBurgIndex>5&&gpBurgIndex<18?-1:0);
                   
 /*                
  *                   For screw dislocations, use the glide plane from the table.
@@ -1534,6 +1539,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->nx[0] = n0[0];
                      node->ny[0] = n0[1];
                      node->nz[0] = n0[2];
+                     node->signSF[0] = (gpBurgIndex>5&&gpBurgIndex<18?-1:0);
                   
                      node->nbrTag[1].domainID = dislocType;
                      node->nbrTag[1].index    = baseNodeID+2;
@@ -1544,6 +1550,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->nx[1] = n0[0];
                      node->ny[1] = n0[1];
                      node->nz[1] = n0[2];
+                     node->signSF[1] = (gpBurgIndex>5&&gpBurgIndex<18?1:0);
 /*                
  *                   Now point p2...
  */               
@@ -1570,6 +1577,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->nx[0] = n0[0];
                      node->ny[0] = n0[1];
                      node->nz[0] = n0[2];
+                     node->signSF[0] = (gpBurgIndex>5&&gpBurgIndex<18?1:0);
 
                      node->nbrTag[1].domainID = dislocType;
                      node->nbrTag[1].index    = baseNodeID+1;
@@ -1580,6 +1588,8 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->nx[1] = n0[0];
                      node->ny[1] = n0[1];
                      node->nz[1] = n0[2];
+                     node->signSF[1] = (gpBurgIndex>5&&gpBurgIndex<18?-1:0);
+
                 }else{
                      node = &inData->node[baseNodeID];
                   
