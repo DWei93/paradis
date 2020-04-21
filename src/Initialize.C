@@ -563,7 +563,11 @@ void SetRemainingDefaults(Home_t *home)
  */
 
         if (param->Ecore < 0.0) {
+#ifdef GSIZE_EFFECT
             param->Ecore = (param->shearModulus / (4*M_PI))*log(param->grainSize/param->a0[0]);
+#else
+            param->Ecore = (param->shearModulus / (4*M_PI))*log(param->rc/0.1);
+#endif
         }
 /*
  *      Now do some additional sanity checks.

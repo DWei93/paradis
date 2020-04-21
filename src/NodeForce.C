@@ -58,18 +58,19 @@ static real8 *cellCenterX = (real8 *)NULL;
 static real8 *cellCenterY = (real8 *)NULL;
 static real8 *cellCenterZ = (real8 *)NULL;
 
-
-int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
-        real8 bx, real8 by, real8 bz, real8 x1, real8 y1, real8 z1,
-        real8 x2, real8 y2, real8 z2, real8 a,  real8 Ecore,
-        real8 f1[3], real8 f2[3]);
+#ifdef GSIZE_EFFECT
 int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
                         real8 bx, real8 by, real8 bz,
                         real8 x1, real8 y1, real8 z1,
                         real8 x2, real8 y2, real8 z2,
                         real8 a, real8 *a0, real8 grainSize,
                         real8 f1[3], real8 f2[3]);
-
+#else
+int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
+        real8 bx, real8 by, real8 bz, real8 x1, real8 y1, real8 z1,
+        real8 x2, real8 y2, real8 z2, real8 a,  real8 Ecore,
+        real8 f1[3], real8 f2[3]);
+#endif
 /*---------------------------------------------------------------------------
  *
  *    Function:        FreeCellCenters
@@ -607,10 +608,12 @@ void LineTensionForce(Home_t *home, real8 x1, real8 y1, real8 z1,
         NU = param->pois;
         a = param->rc;
         TensionFactor = param->TensionFactor;
+#ifdef GSIZE_EFFECT
         real8 *a0 = param->a0;
         real8 grainSize = param->grainSize; 
-
+#else
         Ecore = 0.5 * TensionFactor * MU;
+#endif
 
         extStress[0][0] = param->appliedStress[0];
         extStress[1][1] = param->appliedStress[1];
@@ -648,9 +651,13 @@ void LineTensionForce(Home_t *home, real8 x1, real8 y1, real8 z1,
         x2 = x1 + dx;
         y2 = y1 + dy;
         z2 = z1 + dz;
-
+#ifdef GSIZE_EFFECT
         if(!SelfForce(1, MU, NU, bx, by, bz, x1, y1, z1, x2, y2, z2,
                   a, a0, grainSize, fSelf1, fSelf2)){
+#else 
+        if(!SelfForce(1, MU, NU, bx, by, bz, x1, y1, z1, x2, y2, z2,
+                  a, Ecore, fSelf1, fSelf2)){
+#endif
 //	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
 	        Fatal("at %s, Line %d",__FILE__,__LINE__);
 	    }
@@ -927,10 +934,12 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
         a     = param->rc;
         MU    = param->shearModulus;
         NU    = param->pois;
-        Ecore = param->Ecore;
+#ifdef GSIZE_EFFECT
         real8 *a0 = param->a0;
         real8 grainSize = param->grainSize;
-
+#else
+        Ecore = param->Ecore;
+#endif
         eps = 1.0e-6;
 
 /*
@@ -1014,10 +1023,15 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
 /*
  *          Calculate the segment self-force, force from external stress, etc.
  */
+#ifdef GSIZE_EFFECT
             if(!SelfForce(0, MU, NU, burg[0], burg[1], burg[2],
-                      pos1[0], pos1[1], pos1[2], pos2[0], pos2[1], pos2[2],
-                      a, a0, grainSize,f1, f2)){
-
+                          pos1[0], pos1[1], pos1[2], pos2[0], pos2[1], pos2[2],
+                          a, a0, grainSize,f1, f2)){
+#else
+            if(!SelfForce(0, MU, NU, burg[0], burg[1], burg[2],
+                          pos1[0], pos1[1], pos1[2], pos2[0], pos2[1], pos2[2],
+                          a, Ecore,f1, f2)){
+#endif
 //	            Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
 	            PrintNode(node1);
 	            PrintNode(node2);
@@ -1172,9 +1186,12 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA, bool cacImageForce)
         a     = param->rc;
         MU    = param->shearModulus;
         NU    = param->pois;
-        Ecore = param->Ecore;
+#ifdef GSIZE_EFFECT
         real8 *a0 = param->a0;
         real8 grainSize = param->grainSize;
+#else
+        Ecore = param->Ecore;
+#endif
         eps = 1.0e-6;
 
         extstress[0][0] = param->appliedStress[0];
@@ -1357,9 +1374,13 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA, bool cacImageForce)
  *          direct interactions with other segments.  Start with force
  *          due to self stress.
  */
+#ifdef GSIZE_EFFECT
             if(!SelfForce(0, MU, NU, burg[0], burg[1], burg[2],
                       x1, y1, z1, x2, y2, z2, a, a0,grainSize, f1, f2)){
-
+#else
+            if(!SelfForce(0, MU, NU, burg[0], burg[1], burg[2],
+                      x1, y1, z1, x2, y2, z2, a, Ecore, f1, f2)){
+#endif
 //	            Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
 	            PrintNode(node1);
 	            PrintNode(node2);
@@ -1896,7 +1917,7 @@ void PKForce(real8 sigb[3],
     }
 }
 
-
+#ifndef GSIZE_EFFECT
 int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
                         real8 bx, real8 by, real8 bz,
                         real8 x1, real8 y1, real8 z1,
@@ -1938,7 +1959,7 @@ int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
 
     return(1);
 }
-
+#else
 int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
                         real8 bx, real8 by, real8 bz,
                         real8 x1, real8 y1, real8 z1,
@@ -2043,7 +2064,7 @@ int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
 
     return(1);
 }
-
+#endif
 /*-------------------------------------------------------------------------
  *
  *      Function:       SelfForce
@@ -2053,6 +2074,7 @@ int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
  *      Arguments:
  *
  *------------------------------------------------------------------------*/
+#ifndef GSIZE_EFFECT
 int SelfForce(int coreOnly, real8 MU, real8 NU,
                real8 bx, real8 by, real8 bz,
                real8 x1, real8 y1, real8 z1,
@@ -2065,7 +2087,7 @@ int SelfForce(int coreOnly, real8 MU, real8 NU,
 	    x2, y2, z2, a, Ecore, f1, f2))return(0);
         return(1);
 }
-
+#else
 int SelfForce(int coreOnly, real8 MU, real8 NU,
                real8 bx, real8 by, real8 bz,
                real8 x1, real8 y1, real8 z1,
@@ -2078,7 +2100,7 @@ int SelfForce(int coreOnly, real8 MU, real8 NU,
 	    x2, y2, z2, a, a0, grainSize,f1, f2))return(0);
         return(1);
 }
-
+#endif
 /**************************************************************************
  *
  *      Function:    StressDueToSeg
