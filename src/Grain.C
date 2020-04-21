@@ -3945,4 +3945,193 @@ void LineBoxIntersection(Param_t *param, real8 dir[3], real8 pos[3], real8 inter
     return;
 }
 
+void DoResistance(Home_t *home, Node_t *node, real8 *nForce)
+{
+	real8 	distance, pos[3],dir[3], factor, burgMag;
+	real8	GBForceMag, lDir[3], nDir[3], gDir[3], length;
+	real8 	burg[3], fricMag, dot, armGBForce[3];
+	real8	rann, armf[3], forceGB[3], segCentor[3];
+	real8	oriNForce[3], gForce[3], burgNor[3], norForce[3];
+	int	    i, cacuGBForce, fricForce, armInGrain, armOnGB;
+    GB_t    *gb;
+	Node_t	*nbr;
+	Param_t *param;
+	
+	param = home->param;
+	pos[0] = node->x;
+	pos[1] = node->y;
+	pos[2] = node->z;
+	VECTOR_ZERO(forceGB);
 
+	nForce[0] = node->fX;
+	nForce[1] = node->fY;
+	nForce[2] = node->fZ;
+
+    if(param->polycrystal){
+	    rann = 3.0 * param->rann;
+
+	    for(i=0; i<node->numNbrs; i++){
+	        nbr = GetNeighborNode(home,node,i);
+	        if(nbr == (Node_t *)NULL)continue;
+    
+            GetArmGrain(home, node, nbr, armInGrain, armOnGB);
+	        lDir[0] = nbr->x - node->x;
+	        lDir[1] = nbr->y - node->y;
+	        lDir[2] = nbr->z - node->z;
+	        ZImage(param, lDir, lDir+1, lDir+2);
+    
+	        segCentor[0] = node->x + 0.5 * lDir[0];
+	        segCentor[1] = node->y + 0.5 * lDir[1];
+	        segCentor[2] = node->z + 0.5 * lDir[2];
+    
+	        length = Normal(lDir);
+    
+	        if(length < 1e-8)continue;
+    
+	        NormalizeVec(lDir);
+	        nDir[0] = node->nx[i];
+	        nDir[1] = node->ny[i];
+	        nDir[2] = node->nz[i];
+	        cross(lDir, nDir, gDir);
+    
+	        if(Normal(gDir) < 1e-5) continue;
+	        NormalizeVec(gDir);
+    
+	        burg[0] = node->burgX[i];
+	        burg[1] = node->burgY[i];
+	        burg[2] = node->burgZ[i];
+    
+	        armf[0] = node->armfx[i];
+	        armf[1] = node->armfy[i];
+	        armf[2] = node->armfz[i];
+    
+	        dot = DotProduct(armf, gDir);
+	        gForce[0] = dot * gDir[0];
+	        gForce[1] = dot * gDir[1];
+	        gForce[2] = dot * gDir[2];
+    
+            norForce[0] = armf[0] - gForce[0];
+            norForce[1] = armf[1] - gForce[1];
+            norForce[2] = armf[2] - gForce[2];
+    
+	        burgMag = sqrt(node->burgX[i] * node->burgX[i] +
+			            node->burgY[i] * node->burgY[i] +
+			            node->burgZ[i] * node->burgZ[i]);
+    
+	        distance =  ClosedGB(home, segCentor, &gb);
+	        cacuGBForce &= (fabs(distance) < 2.0e0 * rann);
+	        cacuGBForce &= (fabs(distance) > 1.0e-3);
+	        cacuGBForce &= (armOnGB == -1);
+    
+/*
+ *	        screw dislocation can easily cut though GB.
+ */
+            VECTOR_COPY(burgNor, burg);
+            NormalizeVec(burgNor);
+	        dot = fabs(DotProduct(gb->n, burgNor));
+	        cacuGBForce &= (dot > 1.0e-1); // mon-screw dislocation
+    
+	        if(cacuGBForce == 1){
+    
+	            dir[0] = Sign(distance) * gb->n[0];
+	            dir[1] = Sign(distance) * gb->n[1];
+	            dir[2] = Sign(distance) * gb->n[2];
+                if(DotProduct(gDir,dir) < 0){
+                    gDir[0] = -gDir[0];
+                    gDir[1] = -gDir[2];
+                    gDir[2] = -gDir[3];
+                }
+    
+	            GBForceMag = param->GBStrength * pow(2.7182,-(distance*distance/rann/rann));
+	            GBForceMag *= (length * burgMag * 0.5e0);
+                armGBForce[0] = GBForceMag * gDir[0];
+                armGBForce[1] = GBForceMag * gDir[1];
+                armGBForce[2] = GBForceMag * gDir[2];
+    
+                nForce[0] += armGBForce[0]; 
+                nForce[1] += armGBForce[1]; 
+                nForce[2] += armGBForce[2]; 
+    
+                armf[0] += armGBForce[0]; 
+                armf[1] += armGBForce[1]; 
+                armf[2] += armGBForce[2]; 
+    
+                gForce[0] += armGBForce[0]; 
+                gForce[1] += armGBForce[1]; 
+                gForce[2] += armGBForce[2]; 
+	        }
+        }
+    }
+    
+	VECTOR_COPY(oriNForce, nForce);
+
+	for(i=0; i<node->numNbrs; i++){
+	    nbr = GetNeighborNode(home,node,i);
+	    if(nbr == (Node_t *)NULL)continue;
+
+	    lDir[0] = nbr->x - node->x;
+	    lDir[1] = nbr->y - node->y;
+	    lDir[2] = nbr->z - node->z;
+	    ZImage(param, lDir, lDir+1, lDir+2);
+	    length = Normal(lDir);
+
+	    if(length < 1e-8)continue;
+
+	    NormalizeVec(lDir);
+	    nDir[0] = node->nx[i];
+	    nDir[1] = node->ny[i];
+	    nDir[2] = node->nz[i];
+	    cross(lDir, nDir, gDir);
+
+	    if(Normal(gDir) < 1e-5) continue;
+	    NormalizeVec(gDir);
+
+	    burg[0] = node->burgX[i];
+	    burg[1] = node->burgY[i];
+	    burg[2] = node->burgZ[i];
+
+	    armf[0] = node->armfx[i];
+	    armf[1] = node->armfy[i];
+	    armf[2] = node->armfz[i];
+
+	    dot = DotProduct(armf, gDir);
+	    gForce[0] = dot * gDir[0];
+	    gForce[1] = dot * gDir[1];
+	    gForce[2] = dot * gDir[2];
+
+	    burgMag = sqrt(node->burgX[i] * node->burgX[i] +
+			           node->burgY[i] * node->burgY[i] +
+			           node->burgZ[i] * node->burgZ[i]);
+
+/*
+ *      Friction Foreces
+ */
+	    fricMag = 0.5e0 * length * burgMag * param->fricStress;
+
+	    if(Normal(gForce) <= fricMag){
+		    nForce[0] -= gForce[0];
+		    nForce[1] -= gForce[1];
+		    nForce[2] -= gForce[2];
+
+            armf[0] -= gForce[0];
+            armf[1] -= gForce[1];
+            armf[2] -= gForce[2];
+	    }else{
+	        NormalizeVec(gForce);
+	        nForce[0] -= (fricMag * gForce[0]);
+	        nForce[1] -= (fricMag * gForce[1]);
+	        nForce[2] -= (fricMag * gForce[2]);
+
+	        armf[0] -= (fricMag * gForce[0]);
+	        armf[1] -= (fricMag * gForce[1]);
+	        armf[2] -= (fricMag * gForce[2]);
+        }
+
+    }
+
+    if(DotProduct(nForce,oriNForce) <= 0.0){
+        VECTOR_ZERO(nForce);
+    }
+
+	return;
+}
