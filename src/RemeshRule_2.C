@@ -189,19 +189,10 @@ static void MeshCoarsen(Home_t *home)
                        __FILE__, __LINE__);
                 continue;
             }
-            if(SurfaceNode(nbr1) && SurfaceNode(node) ||
+            if(param->gbStrength<=0)if(SurfaceNode(nbr1) && SurfaceNode(node) ||
                SurfaceNode(nbr2) && SurfaceNode(node) ||
                SurfaceNode(node) )continue;
 
-#if CROSS_SLIP_GB_MODEL
-#else
-            if(nbr1 != (Node_t *)NULL && nbr2 != (Node_t *)NULL){
-                if((NodeOnGB(home, nbr1) & INTERSECT_NODE) > 0 &&
-                   (NodeOnGB(home, nbr2) & INTERSECT_NODE) > 0){
-                    continue;
-                }
-            }
-#endif
             if (node->flags & NO_MESH_COARSEN) {
                 continue;
             }
@@ -446,6 +437,10 @@ static void MeshCoarsen(Home_t *home)
                 for (q = 0; q < nbr2->numNbrs; q++) {
                     globalOp |= (nbr2->nbrTag[q].domainID != thisDomain);
                 }
+
+                globalOp |= SurfaceNode(node);
+                globalOp |= SurfaceNode(nbr1);
+                globalOp |= SurfaceNode(nbr2);
         
                 oldTag1 = nbr1->myTag;
                 oldTag2 = node->myTag;
@@ -987,7 +982,7 @@ static void MeshRefine(Home_t *home)
         
             node = home->nodeKeys[i];
             if (node == (Node_t *)NULL) continue;
-	        if (SurfaceNode(node))continue;
+	        if(param->gbStrength<=0)if (SurfaceNode(node))continue;
 
         
 /*

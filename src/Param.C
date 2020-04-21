@@ -839,6 +839,16 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 		param->tbStrength[0] = -1.0;
 		param->tbStrength[1] = -1.0;
 
+		BindVar(CPList, "grainSize", &param->grainSize,
+				V_DBL, 1, VFLAG_NULL);
+        param->grainSize = -1;
+        
+		BindVar(CPList, "a0", &param->a0, V_DBL, 4, VFLAG_NULL);
+        param->a0[0] = 0.1;
+        param->a0[1] = 0.1;
+        param->a0[2] = 0.1;
+        param->a0[3] = 0.1;
+
 		BindVar(CPList, "fricStress", &param->fricStress,
 				V_DBL, 1, VFLAG_NULL);
 		param->fricStress = 0.0e0;

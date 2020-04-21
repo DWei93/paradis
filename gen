@@ -25,12 +25,12 @@
 
 
 #frlen=1800
-frlen=1564
-cubel=6250
-maxSeg=320
-nfrs=725
+frlen=97
+cubel=195
+maxSeg=50
+nfrs=50
 nGrains=2
-maxDensity=1E14
+maxDensity=1E16
 
 polycrystal=1
 single=2
@@ -70,8 +70,7 @@ case $srctype in
 #
 ######################################################################################
     1|I)
-    ./bin/paradisgen -type 3  -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  \
-    -burgID 5 -planeID 1 \
+    ./bin/paradisgen -type 4  -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  \
     -polycrystal 0  -pbc 0 -extend 0  -srcLenType 0 \
     -xMatDir 1,0,0 -zMatDir 0,0,1 ;;
 
@@ -109,7 +108,7 @@ case $srctype in
 ######################################################################################
     4|IV)
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 0 -nGrain 1  -pbc 0 -nTDs 0 -gb 1;;
+    -polycrystal 1 -nGrain 2  -pbc 0 -nTDs 1 -gb 0 -maxDensity $maxDensity  ;;
 #   -polycrystal 0 -nGrain 1  -pbc 0 -nTDs 0 ;;
 #   -polycrystal 1 -nGrain ${nGrains}  -pbc 0  ;;
 #   -burgID 5 -planeID 1 \
@@ -132,5 +131,4 @@ case $srctype in
      exit 1 ;;
 esac
 
-./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 
-cp Copper.data ~/Copper-1.data
+./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile strain-rate-3.data 

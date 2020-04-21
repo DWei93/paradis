@@ -32,6 +32,10 @@ void FixRemesh(Home_t *home, const char flag[256])
 
     param = home->param;
 
+#if CHECK_FIXREMESH
+	printf("FR %s: Task %d, cycle=%d\n", flag, home->myDomain, home->cycle);
+
+#endif
 /*
  *	Loop through the neighbor domains
  */
@@ -75,8 +79,6 @@ void FixRemesh(Home_t *home, const char flag[256])
 #endif				
 				if (node1 == NULL) break;
 				
-				
-
 				tag2.domainID = op->dom2;
 				tag2.index    = op->idx2;
 				tag3.domainID = op->dom3;

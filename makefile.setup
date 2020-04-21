@@ -105,8 +105,9 @@ OPT = -O3
 #
 #    WARNING: This is still under development and not fully supported!
 #
+#DEFS += -DIMAGEFORCE
 #OPENMP_MODE = ON
-#DEFS += -DDEBUG
+# DEFS += -DDEBUG
 DEFS += -DSIMLPLE_REACTION_ON_GB
 #######################################################################
 #

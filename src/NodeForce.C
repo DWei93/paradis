@@ -63,6 +63,12 @@ int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
         real8 bx, real8 by, real8 bz, real8 x1, real8 y1, real8 z1,
         real8 x2, real8 y2, real8 z2, real8 a,  real8 Ecore,
         real8 f1[3], real8 f2[3]);
+int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
+                        real8 bx, real8 by, real8 bz,
+                        real8 x1, real8 y1, real8 z1,
+                        real8 x2, real8 y2, real8 z2,
+                        real8 a, real8 *a0, real8 grainSize,
+                        real8 f1[3], real8 f2[3]);
 
 /*---------------------------------------------------------------------------
  *
@@ -601,6 +607,8 @@ void LineTensionForce(Home_t *home, real8 x1, real8 y1, real8 z1,
         NU = param->pois;
         a = param->rc;
         TensionFactor = param->TensionFactor;
+        real8 *a0 = param->a0;
+        real8 grainSize = param->grainSize; 
 
         Ecore = 0.5 * TensionFactor * MU;
 
@@ -642,7 +650,7 @@ void LineTensionForce(Home_t *home, real8 x1, real8 y1, real8 z1,
         z2 = z1 + dz;
 
         if(!SelfForce(1, MU, NU, bx, by, bz, x1, y1, z1, x2, y2, z2,
-                  a, Ecore, fSelf1, fSelf2)){
+                  a, a0, grainSize, fSelf1, fSelf2)){
 //	    Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
 	        Fatal("at %s, Line %d",__FILE__,__LINE__);
 	    }
@@ -920,6 +928,8 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
         MU    = param->shearModulus;
         NU    = param->pois;
         Ecore = param->Ecore;
+        real8 *a0 = param->a0;
+        real8 grainSize = param->grainSize;
 
         eps = 1.0e-6;
 
@@ -1006,7 +1016,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
  */
             if(!SelfForce(0, MU, NU, burg[0], burg[1], burg[2],
                       pos1[0], pos1[1], pos1[2], pos2[0], pos2[1], pos2[2],
-                      a, Ecore, f1, f2)){
+                      a, a0, grainSize,f1, f2)){
 
 //	            Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
 	            PrintNode(node1);
@@ -1163,7 +1173,8 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA, bool cacImageForce)
         MU    = param->shearModulus;
         NU    = param->pois;
         Ecore = param->Ecore;
-
+        real8 *a0 = param->a0;
+        real8 grainSize = param->grainSize;
         eps = 1.0e-6;
 
         extstress[0][0] = param->appliedStress[0];
@@ -1347,7 +1358,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA, bool cacImageForce)
  *          due to self stress.
  */
             if(!SelfForce(0, MU, NU, burg[0], burg[1], burg[2],
-                      x1, y1, z1, x2, y2, z2, a, Ecore, f1, f2)){
+                      x1, y1, z1, x2, y2, z2, a, a0,grainSize, f1, f2)){
 
 //	            Tecplot(home, "Zeroleng.plt", 0, 0, 0, 0, 0, 1);
 	            PrintNode(node1);
@@ -1367,6 +1378,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA, bool cacImageForce)
             VECTOR_ADD(fseg1node1, f1);
             VECTOR_ADD(fseg1node2, f2);
 
+#ifdef IMAGEFORCE
             if(cacImageForce){
 /*
  *              If we're including grain boundary or free surface, 
@@ -1377,7 +1389,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA, bool cacImageForce)
                 VECTOR_ADD(fseg1node2, f2);
                 
             }
-
+#endif
             StackingFaultForce(home, dx, dy, dz, param->sfEnergy/param->burgMag, signSF, 
                                normal, f1, f2); 
 
@@ -1715,6 +1727,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA, bool cacImageForce)
                 fseg1node2[2] = fz2;
 
 #if 1
+                if(param->gbStrength<=0){
 /*
  *              Also, if segment 3/4 has any surface nodes, we need to add in
  *              any force on the finite portion of segment 1/2 from the
@@ -1782,6 +1795,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA, bool cacImageForce)
                     fseg1node2[1] += fy4;
                     fseg1node2[2] += fz4;
                 }
+            }
 #endif  /* ifdef _FEM */
 
 /*
@@ -1925,6 +1939,110 @@ int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
     return(1);
 }
 
+int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
+                        real8 bx, real8 by, real8 bz,
+                        real8 x1, real8 y1, real8 z1,
+                        real8 x2, real8 y2, real8 z2,
+                        real8 a, real8 *a0, real8 grainSize,
+                        real8 f1[3], real8 f2[3])
+{
+    real8 tx, ty, tz, L, La;
+    real8 bs, bs2, bex, bey, bez, be2, fL, ft, bMag2;
+    real8 A = MU/4/M_PI, R, S;
+    
+    if(!GetUnitVector(1, x1, y1, z1, x2, y2, z2, &tx, &ty, &tz, &L))return(0);
+    bs = bx*tx + by*ty + bz*tz;
+    bex = bx-bs*tx; bey = by-bs*ty; bez=bz-bs*tz;
+    be2 = (bex*bex+bey*bey+bez*bez);
+    bs2 = bs*bs;
+    bMag2 = bs2+be2;
+
+    La=sqrt(L*L+a*a);
+
+#if 0
+    if (coreOnly) {
+        S = 0.0;
+    } else {
+        S = (-(2*NU*La+(1-NU)*a*a/La-(1+NU)*a)/L +
+             (NU*log((La+L)/a)-(1-NU)*0.5*L/La))*A*bs;
+    }
+
+    /*Cai wei 2007 */
+    if(coreOnly){S=0.0;}else{
+        if(grainSize>0){
+            a1 = ((bMag2>0.9)?0.5*grainSize:grainSize);
+            EnsElastic = 0.5*S*bs;
+//          EnsElastic = A*((bMag2-NU*bs2)*log((La+L)/a) - 0.5*(3-NU)*bs2*(La-a)/L);
+            EsimElastic = (MU/(4.0*M_PI))*log(a1/a)*(bs2+be2/(1-NU));
+            Ecore_surface = (EnsElastic-EsimElastic)/(bs2+be2/(1-NU)); 
+        }
+    }
+
+#endif
+    /* Ecore = E_screw + E_edge;  E = MU/(4*pi) log(a/a0) */
+    /* Account for the self force due to the core energy change when 
+       the core radius changes from a0-->a, M. Tang, 7/19/2004 */ 
+
+    real8 Ecore_screw, Ecore_edge, Etot_edge, Etot_screw, Etot, Ens;
+
+#if 1    
+    if(bMag2>0.9){
+        if(coreOnly){
+            R=a; S=0;
+        }else{
+            R=grainSize*0.5;
+            S = (-(2*NU*La+(1-NU)*a*a/La-(1+NU)*a)/L+(NU*log((La+L)/a)-(1-NU)*0.5*L/La))*MU/4/M_PI/(1-NU)*bs;
+        }
+        Etot_screw = A*log(R/a0[0]);
+        Etot_edge =  A*log(R/a0[1])/(1-NU);
+
+        Ecore_screw = A*log(a/a0[0]);
+        Ecore_edge =  A*log(a/a0[1])/(1-NU);
+    }else{
+        if(coreOnly){
+            R=a; S=0;
+        }else{
+            R=grainSize;
+            S = (-(2*NU*La+(1-NU)*a*a/La-(1+NU)*a)/L+(NU*log((La+L)/a)-(1-NU)*0.5*L/La))*MU/4/M_PI/(1-NU)*bs;
+        }
+        Etot_screw = A*log(R/a0[2]);
+        Etot_edge =  A*log(R/a0[3])/(1-NU);
+
+        Ecore_screw = A*log(a/a0[2]);
+        Ecore_edge =  A*log(a/a0[3])/(1-NU);
+    }
+
+    S=0.0;
+    fL = -((Etot_screw*bs2 - 0.5*S*bs)+Etot_edge*be2);
+    ft =  (Etot_edge - Etot_screw)*2*bs;
+
+    f2[0] = bex*(ft + S) + fL*tx;
+    f2[1] = bey*(ft + S) + fL*ty;
+    f2[2] = bez*(ft + S) + fL*tz;
+#else
+    if(bMag2>0.9){
+       core_screw = (MU/(4.0*M_PI))*log(0.5*grainSize/a0[0])*bs2/bMag2;
+        Ecore_edge = (MU/(4.0*M_PI))*log(0.5*grainSize/a0[1])*be2/bMag2;
+    }else{
+        Ecore_screw = (MU/(4.0*M_PI))*log(grainSize/a0[2])*bs2/bMag2;
+        Ecore_edge = (MU/(4.0*M_PI))*log(grainSize/a0[3])*be2/bMag2;
+    }
+
+    Ecore = Ecore_screw+Ecore_edge;
+    fL = -Ecore*(bs2+be2/(1-NU));
+    ft =  Ecore*2*bs*NU/(1-NU);   
+
+    f2[0] = bex*ft + fL*tx;
+    f2[1] = bey*ft + fL*ty;
+    f2[2] = bez*ft + fL*tz;
+
+#endif
+    f1[0] = -f2[0];
+    f1[1] = -f2[1];
+    f1[2] = -f2[2];
+
+    return(1);
+}
 
 /*-------------------------------------------------------------------------
  *
@@ -1948,6 +2066,18 @@ int SelfForce(int coreOnly, real8 MU, real8 NU,
         return(1);
 }
 
+int SelfForce(int coreOnly, real8 MU, real8 NU,
+               real8 bx, real8 by, real8 bz,
+               real8 x1, real8 y1, real8 z1,
+               real8 x2, real8 y2, real8 z2,
+               real8 a,  real8 *a0, real8 grainSize,
+               real8 f1[3], real8 f2[3])
+{
+
+        if(!SelfForceIsotropic(coreOnly, MU, NU, bx, by, bz, x1, y1, z1, 
+	    x2, y2, z2, a, a0, grainSize,f1, f2))return(0);
+        return(1);
+}
 
 /**************************************************************************
  *

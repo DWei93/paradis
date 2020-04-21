@@ -1116,6 +1116,7 @@ INCS_SERIAL.franklin       =
 
 CC_PARALLEL.gcc       = mpicc
 CPP_PARALLEL.gcc      = ~/DWei/openmpi-4.0.2/bin/mpicxx
+#CPP_PARALLEL.gcc      = mpicxx
 CCFLAG_PARALLEL.gcc   = -DPARALLEL=1 -Wno-unknown-pragmas  
 CPPFLAG_PARALLEL.gcc  = -DPARALLEL=1 
 

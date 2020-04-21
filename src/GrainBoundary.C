@@ -150,14 +150,16 @@ Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int glo
 *	calculate the glide force towards GB of the node	
 *
 *****************************************************************************/
-real8 FGlidePerLength(Home_t *home, Node_t *node, Plane_t *GBPlane){
 
-    int	    i;
+real8 GlideShearStress(Home_t *home, Node_t *node, real8 *n){
+
+    int	    i,armID21;
     real8	normal[3],disLength;
     real8	intersection[3];
-    real8	glideDir[3];
-    real8	fGlide;
+    real8	glideDir[3], ldir[3];
+    real8	fGlide=0.0;
     Node_t  *nbr;
+    Param_t *param=home->param;
     
     if(node == (Node_t *)NULL){
         printf("Task %d: %s, line %d -- Node = NULL",
@@ -165,42 +167,59 @@ real8 FGlidePerLength(Home_t *home, Node_t *node, Plane_t *GBPlane){
         return(0);
     }
 
-    normal[0] = node->nx[0];	
-    normal[1] = node->ny[0];	
-    normal[2] = node->nz[0];	
 
-    disLength = 0;
-    real8 burgMag;
+    real8 burgMag, numEff=0, armf[3];
     for(i=0;i<node->numNbrs;i++){
-       nbr = GetNeighborNode(home,node,i);
-       if(nbr==(Node_t *)NULL) continue;
-       burgMag = sqrt(node->burgX[i]*node->burgX[i]
+        nbr = GetNeighborNode(home,node,i);
+        if(nbr==(Node_t *)NULL) continue;
+        normal[0] = node->nx[i];	
+        normal[1] = node->ny[i];	
+        normal[2] = node->nz[i];	
+
+        cross(normal,n,intersection);
+        NormalizeVec(intersection);
+
+        burgMag = sqrt(node->burgX[i]*node->burgX[i]
                      +node->burgY[i]*node->burgY[i]
                      +node->burgZ[i]*node->burgZ[i]);
-       disLength += NodeDistance(home,node,nbr)*burgMag/2;
+        ldir[0] = nbr->x-node->x;
+        ldir[1] = nbr->y-node->y;
+        ldir[2] = nbr->z-node->z;
+        ZImage(param,ldir, ldir+1, ldir+2);
+        disLength = Normal(ldir)*burgMag;
+
+        if(disLength<1E-2)continue;
+        NormalizeVec(ldir);
+        if(!AlignedDirection(ldir, intersection, 0.85))continue;
+        armID21 = GetArmID(home, nbr, node);
+        if(armID21 <0)Fatal("can not find inverse armID in %s",__func__);
+
+        armf[0] = node->armfx[i]+nbr->armfx[armID21];
+        armf[1] = node->armfy[i]+nbr->armfy[armID21];
+        armf[2] = node->armfz[i]+nbr->armfz[armID21];
+#if 1
+        cross(normal,intersection,glideDir);
+        NormalizeVec(glideDir);
+
+        ParallelComponent(armf, glideDir, armf);
+#endif
+        fGlide += Normal(armf)/disLength;
+        numEff += 1.0;
     }
 
-    cross(normal,GBPlane->normal,intersection);
-    cross(normal,intersection,glideDir);
-
-    NormalizeVec(glideDir);
-    
-    fGlide = node->fX*glideDir[0]+
-         node->fY*glideDir[1]+
-         node->fZ*glideDir[2];
-
-    if(disLength<1E-10)return 0.0;
-    return(fabs(fGlide)/disLength);
+    if(numEff <1E-10)return 0.0;
+    else return (fGlide/numEff);
 }
 
-real8 FGlidePerLength(Home_t *home, Node_t *node, real8 *n){
+real8 GlideShearStress(Home_t *home, Node_t *node){
 
-    int	    i;
+    int	    i,armID21;
     real8	normal[3],disLength;
     real8	intersection[3];
-    real8	glideDir[3];
-    real8	fGlide;
+    real8	glideDir[3], ldir[3];
+    real8	fGlide=0.0;
     Node_t  *nbr;
+    Param_t *param=home->param;
     
     if(node == (Node_t *)NULL){
         printf("Task %d: %s, line %d -- Node = NULL",
@@ -208,73 +227,40 @@ real8 FGlidePerLength(Home_t *home, Node_t *node, real8 *n){
         return(0);
     }
 
-    normal[0] = node->nx[0];	
-    normal[1] = node->ny[0];	
-    normal[2] = node->nz[0];	
-
-    disLength = 0;
-    real8 burgMag;
+    real8 burgMag, numEff=0, armf[3];
     for(i=0;i<node->numNbrs;i++){
-       nbr = GetNeighborNode(home,node,i);
-       if(nbr==(Node_t *)NULL) continue;
-       burgMag = sqrt(node->burgX[i]*node->burgX[i]
+        nbr = GetNeighborNode(home,node,i);
+        if(nbr==(Node_t *)NULL) continue;
+        normal[0] = node->nx[i];	
+        normal[1] = node->ny[i];	
+        normal[2] = node->nz[i];	
+
+        burgMag = sqrt(node->burgX[i]*node->burgX[i]
                      +node->burgY[i]*node->burgY[i]
                      +node->burgZ[i]*node->burgZ[i]);
-       disLength += NodeDistance(home,node,nbr)*burgMag/2;
+        ldir[0] = nbr->x-node->x;
+        ldir[1] = nbr->y-node->y;
+        ldir[2] = nbr->z-node->z;
+        ZImage(param,ldir, ldir+1, ldir+2);
+        disLength = Normal(ldir)*burgMag;
+
+        if(disLength<1E-2)continue;
+        armID21 = GetArmID(home, nbr, node);
+        if(armID21 <0)Fatal("can not find inverse armID in %s",__func__);
+
+        armf[0] = node->armfx[i]+nbr->armfx[armID21];
+        armf[1] = node->armfy[i]+nbr->armfy[armID21];
+        armf[2] = node->armfz[i]+nbr->armfz[armID21];
+
+        NormalComponent(armf, normal, armf);
+        fGlide += Normal(armf)/disLength;
+        numEff += 1.0;
     }
 
-    cross(normal,n,intersection);
-    cross(normal,intersection,glideDir);
-
-    NormalizeVec(glideDir);
-    
-    fGlide = node->fX*glideDir[0]+
-         node->fY*glideDir[1]+
-         node->fZ*glideDir[2];
-
-    if(disLength<1E-10)return 0.0;
-    return(fabs(fGlide)/disLength);
+    if(numEff <1E-10)return 0.0;
+    else return (fGlide/numEff);
 }
 
-real8 FGlidePerLength(Home_t *home, Node_t *node){
-
-    int	    i;
-    real8	disLength;
-    real8   vec[3];
-    real8	fGlide;
-    Node_t  *nbr;
-    
-    if(node == (Node_t *)NULL){
-        printf("Task %d: %s, line %d -- Node = NULL",
-               home->myDomain, __FILE__, __LINE__);
-        return(0);
-    }
-
-    disLength = 0;
-    real8 burgMag;
-    for(i=0;i<node->numNbrs;i++){
-       nbr = GetNeighborNode(home,node,i);
-       if(nbr==(Node_t *)NULL) continue;
-       burgMag = sqrt(node->burgX[i]*node->burgX[i]
-                     +node->burgY[i]*node->burgY[i]
-                     +node->burgZ[i]*node->burgZ[i]);
-       disLength += NodeDistance(home,node,nbr)*burgMag/2;
-    }
-
-    vec[0] = node->vX;
-    vec[1] = node->vY;
-    vec[2] = node->vZ;
-
-    if(Normal(vec)<1E-2)return(0.0);
-    NormalizeVec(vec);
-
-    fGlide = node->fX*vec[0]+
-             node->fY*vec[1]+
-             node->fZ*vec[2];
-
-    if(disLength<1E-10)return 0.0;
-    return(fabs(fGlide)/disLength);
-}
 
 real8 SegementEnergy(Param_t *param, real8 cosTheta, real8 bMag){
 	static real8 pi = 3.1415926535897932385;
@@ -347,7 +333,7 @@ int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane){
 		
 		outEnergy += burgMag * param->TBEnergy/param->burgMag;
 		
-		if(FGlidePerLength(home,node,GBPlane) * burgMag < outEnergy - inEnergy){
+		if(GlideShearStress(home,node,GBPlane) * burgMag < outEnergy - inEnergy){
 			pene->effective[i] = 0;
 		
 		}
@@ -359,7 +345,7 @@ int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane){
 	temVec[2] = node->burgZ[0];
     
     real8 tbStrength = (fabs(DotProduct(temVec, GBPlane->normal)) < 1.0e-2)?param->tbStrength[0]:param->tbStrength[1];
-	if(fabs(FGlidePerLength(home,node,GBPlane))  < tbStrength)return(0);
+	if(fabs(GlideShearStress(home,node,GBPlane->normal))  < tbStrength)return(0);
 
 	return(1);
 }
@@ -1020,11 +1006,34 @@ int PenetrationSurface(Home_t *home, Node_t *node, GB_t *gb)
     return(1);
 }
 
+bool GBIntersectNode(Home_t *home, Node_t *node){
+    int     positive = 0, constraint = node->constraint, j;
+    Node_t  *nbr;
+    Param_t *param=home->param;
+    real8   nodePos[3]={node->x, node->y, node->z}, nbrPos[3];
+    for(j=0; j<node->numNbrs; j++){
+	    nbr = GetNeighborNode(home,node,j); if(nbr ==(Node_t *)NULL)continue;
+        if(SurfaceNode(nbr))continue;
+        nbrPos[0]=nbr->x; nbrPos[1]=nbr->y; nbrPos[2]=nbr->z; 
+        PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2], nbrPos, nbrPos+1, nbrPos+2);
+        if(positive==0){
+            if(constraint == 1)positive=Sign(nbrPos[0]-nodePos[0]);
+            else if(constraint == 2)positive=Sign(nbrPos[1]-nodePos[1]);
+            else if(constraint == 3)positive=Sign(nbrPos[2]-nodePos[2]);
+        }else{
+            if(constraint == 1){if(positive != Sign(nbrPos[0]-nodePos[0]))break;}
+            else if(constraint == 2){if(positive != Sign(nbrPos[1]-nodePos[1]))break;}
+            else if(constraint == 3){if(positive != Sign(nbrPos[2]-nodePos[2]))break;}
+        }
+    }
+    return ((j<node->numNbrs)?true:false);
+}
+
 void HandleGrainBoundary(Home_t *home)
 {
 	
 	int 		i,j,k,m,numNbrOnGB, globalOp = 1, mergeStatus;
-	int	 	    grainNode = 0, endNode, newConstraint;
+	int	 	    grainNode = 0, endNode, newConstraint, positive;
     int         newNodeKeyPtr, type;
 	int 		oldInGrain, oldOnGB, currInGrain, currOnGB;	
     int         crossSlipNode, nbr1OnGB, nbr2OnGB;
@@ -1054,20 +1063,19 @@ void HandleGrainBoundary(Home_t *home)
         for(i=0;i<newNodeKeyPtr;i++){
             if((node = home->nodeKeys[i]) == (Node_t *) NULL)continue;
             if(!SurfaceNode(node))continue;
+            if((node->flags&NODE_RESET_FORCES)>0)continue;
 
-//          if((node->flags|NODE_RESET_FORCES)>0)continue;
             if((node->constraint==1 && param->xBoundType==Free) ||
                (node->constraint==2 && param->yBoundType==Free) ||
                (node->constraint==3 && param->zBoundType==Free))continue;
 
-            for(j=0; j<node->numNbrs; j++){
-	            nbrNode1 = GetNeighborNode(home,node,j); if(nbrNode1 ==(Node_t *)NULL)continue;
-                if(PointPointDistance(node->x,node->y,node->z,nbrNode1->x,nbrNode1->y,nbrNode1->z)>3*param->maxSeg)break;
-            } if(j<node->numNbrs)continue;
-
-            j=(node->constraint-1)*2+((node->x<0)?0:1);
+            if(GBIntersectNode(home, node))continue;
+            j=(node->constraint-1)*2;
+            if(node->constraint ==1)j+=((node->x>0)?1:0);
+            else if(node->constraint ==2)j+=((node->y>0)?1:0);
+            else if(node->constraint ==3)j+=((node->z>0)?1:0);
             VECTOR_COPY(nSur,nList[j]);
-            fglide=FGlidePerLength(home,node,nSur);
+            fglide=GlideShearStress(home,node,nSur);
             fglide *=((dot_product(node->fX,node->fY,node->fZ,nSur[0],nSur[1],nSur[2])>0)?1.0:-1.0);
             if(fglide<0 || fglide>param->gbStrength){
                 AssignConstraint(home, node, 0);
@@ -1077,11 +1085,12 @@ void HandleGrainBoundary(Home_t *home)
                 vec2[0]=node->x; vec2[1]=node->y; vec2[2]=node->z;
                 CoordAdd(1.0,vec2,1E-3,vec1,p);
 	            RepositionNode(home, p, &node->myTag, 1);
-                
                 MarkNodeForceObsolete(home, node);
-                if(fglide<0)printf("back to grain %g MPa\n",fglide/1E6);
-                else printf("penetrated GB %g MPa\n",fglide/1E6);
-            }else printf("penetrated failed %g MPa\n",fglide/1E6);
+                if(fglide>0){
+                    PrintTag(home, node);
+                    printf("penetrated GB %g MPa\n",fglide/1E6);
+                }
+            }
         }
     }
 #endif
@@ -1132,8 +1141,17 @@ void HandleGrainBoundary(Home_t *home)
             continue;
         }
 
+        oldGrain  = home->grainKeys[oldInGrain];
+        currGrain = home->grainKeys[currInGrain];
+        real8 refPos[3]={node->x, node->y, node->z};
+        if(!GetPublicGB(home,oldGrain, currGrain, &gb,refPos)){
+            Fatal("in %s at %d", __FILE__, __LINE__);
+        }
+        VECTOR_COPY(GBPlane.normal, gb->n);
+        VECTOR_COPY(GBPlane.point, gb->p);
+
         if(node->numNbrs > 2){
-            if(FGlidePerLength(home, node) > param->tbStrength[1]){
+            if(GlideShearStress(home, node, gb->n) > param->tbStrength[1]){
                 vec1[0] = node->vX;
                 vec1[1] = node->vY;
                 vec1[2] = node->vZ;
@@ -1177,14 +1195,6 @@ void HandleGrainBoundary(Home_t *home)
             }
         }		
 
-        oldGrain  = home->grainKeys[oldInGrain];
-        currGrain = home->grainKeys[currInGrain];
-        real8 refPos[3]={node->x, node->y, node->z};
-        if(!GetPublicGB(home,oldGrain, currGrain, &gb,refPos)){
-            Fatal("in %s at %d", __FILE__, __LINE__);
-        }
-        VECTOR_COPY(GBPlane.normal, gb->n);
-        VECTOR_COPY(GBPlane.point, gb->p);
 
 /*	
  *	    There are 4 scenarios: 
@@ -1646,28 +1656,43 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce)
 
 }
 
-void ApplyPosConstraint(Param_t *param, Node_t *node){
+inline bool ChangeGBConstraint(Home_t *home, Node_t *node, real8 *n){
+    if(GBIntersectNode(home, node))return false;
 
-	real8 disVec[3], maxDis= -1E50;
-	int   i, constraintSurface;
-	real8 pos[3];
+    real8 fGlide = GlideShearStress(home, node, n);
+    fGlide *=((dot_product(node->fX,node->fY,node->fZ,n[0],n[1],n[2])>0)?1.0:-1.0);
+    if(fGlide > home->param->gbStrength || fGlide<0){
+        node->constraint =0;
+        return true;
+    }
+    return false;
+}
+
+void ApplyPosConstraint(Home_t *home, Node_t *node){
+
+    Param_t *param = home->param;
+	real8 disVec[3], maxDis= -1E50,dis;
+	int   i, constraintSurface, inGrain, onGB;
+	real8 pos[3],n[3],fGlide,p[3],interPos[3],a=((param->gbStrength>0)?param->rc:0.0);
 
 	pos[0] = node->x;
 	pos[1] = node->y;
 	pos[2] = node->z;
 
+    real8 oldPos[3] = {node->oldx,node->oldy,node->oldz};
+
     PBCPOSITION(param, node->oldx, node->oldy, node->oldz, pos, pos+1, pos+2);
 
 	VECTOR_ZERO(disVec);
 
-	if(fabs(pos[0])>param->xBoundMax) { 
-	    disVec[0] = fabs(pos[0]) - param->xBoundMax;
+	if(fabs(pos[0])>param->xBoundMax-a) { 
+	    disVec[0] = fabs(pos[0]) - param->xBoundMax+a;
 	}
-	if(fabs(pos[1])>param->yBoundMax) { 
-	    disVec[1] = fabs(pos[1]) - param->yBoundMax;
+	if(fabs(pos[1])>param->yBoundMax-a) { 
+	    disVec[1] = fabs(pos[1]) - param->yBoundMax+a;
 	}
-	if(fabs(pos[2])>param->zBoundMax) { 
-	    disVec[2] = fabs(pos[2]) - param->zBoundMax;
+	if(fabs(pos[2])>param->zBoundMax-a) { 
+	    disVec[2] = fabs(pos[2]) - param->zBoundMax+a;
 	}
 
 	for(i=0; i<3; i++){
@@ -1678,9 +1703,38 @@ void ApplyPosConstraint(Param_t *param, Node_t *node){
 	}
 
 	if(maxDis > 0){
-        if(node->constraint != constraintSurface)node->flags |= NODE_RESET_FORCES;
-	    node->constraint = constraintSurface;
-	}
+        if(param->gbStrength<=0){
+            if(node->constraint != constraintSurface)node->flags |= NODE_RESET_FORCES;
+	        node->constraint = constraintSurface;
+        }else{
+            VECTOR_ZERO(n); VECTOR_ZERO(p);
+            if(constraintSurface==1){
+                if(pos[0]>0){n[0]=1; p[0]=param->xBoundMax-a;}else{n[0]=-1; p[0]=param->xBoundMin+a;}
+            }else if(constraintSurface==2){
+                if(pos[1]>0){n[1]=1; p[1]=param->yBoundMax-a;}else{n[1]=-1; p[1]=param->yBoundMin+a;}
+            }else if(constraintSurface==3){
+                if(pos[2]>0){n[2]=1; p[2]=param->zBoundMax-a;}else{n[2]=-1; p[2]=param->zBoundMin+a;}
+            }
+                
+            fGlide = GlideShearStress(home, node, n);
+            fGlide *=((dot_product(node->fX,node->fY,node->fZ,n[0],n[1],n[2])>0)?1.0:-1.0);
+            if(fGlide < param->gbStrength){
+                if(SegmentPlaneIntersection(pos,oldPos,n,p,interPos)!=POINT_INTERSECTION){
+                    VECTOR_COPY(interPos,oldPos);
+                }else{
+                    NodeLocation(home, interPos[0], interPos[1], interPos[2], inGrain, onGB);
+                    if((node->onGB>-1 && onGB!=node->onGB) || (node->inGrain>-1 && inGrain!=node->inGrain)){
+                        VECTOR_COPY(interPos,oldPos);
+                        FoldBox(param,interPos,interPos+1,interPos+2);
+                    }
+                }
+                node->flags |= NODE_RESET_FORCES;
+                FoldBox(param,interPos,interPos+1,interPos+2);
+                node->x = interPos[0]; node->y=interPos[1]; node->z=interPos[2];
+            }
+        }
+    }
+
 	if(maxDis < -5.0 && node->constraint >= 1 && 
 	   node->constraint <=3 && node->numNbrs > 1){
 	    node->constraint = 0; node->flags |= NODE_RESET_FORCES;
@@ -1694,7 +1748,7 @@ void AdjustSurfaceNode(Home_t *home)
 
 	Param_t *param = home->param;
 	int 	i, j, numNodePtr, thisDomain, splitOK, switchNode;
-    int     inGrain, onGB, armInGrain, armOnGB;
+    int     inGrain, onGB, armInGrain, armOnGB, globalOp, optClass = OPCLASS_REMESH;
 	real8	nodePos[3], nbrPos[3], nbrConstraint;
 	real8	interPos[3], oldPos[3], dis, dot, eps=1.0E-4, margin=(param->gbStrength>0)?2.0E-4:0.0;;
 	real8	newPos[3], burg0[3], burgj[3], vec[3], normal[3];
@@ -1711,7 +1765,7 @@ void AdjustSurfaceNode(Home_t *home)
 	    nodePos[0] = node->x;
 	    nodePos[1] = node->y;
 	    nodePos[2] = node->z;
-	    ApplyPosConstraint(param, node);
+	    ApplyPosConstraint(home, node);
 
 	    if(SurfaceNode(node) && node->numNbrs > 1){
             NodeLocation(home, nodePos[0], nodePos[1], nodePos[2], inGrain, onGB);
@@ -1723,7 +1777,7 @@ void AdjustSurfaceNode(Home_t *home)
 	            nodePos[0] = node->x;
 	            nodePos[1] = node->y;
 	            nodePos[2] = node->z;
-	            ApplyPosConstraint(param, node);
+	            ApplyPosConstraint(home, node);
 	        }
 	    }
 
@@ -1751,7 +1805,7 @@ void AdjustSurfaceNode(Home_t *home)
 	    nodePos[0] = node->x;
 	    nodePos[1] = node->y;
 	    nodePos[2] = node->z;
-	    ApplyPosConstraint(param, node);
+	    ApplyPosConstraint(home, node);
 
 	    if(SurfaceNode(node) && node->numNbrs > 1){
             NodeLocation(home, nodePos[0], nodePos[1], nodePos[2], inGrain, onGB);
@@ -1763,7 +1817,7 @@ void AdjustSurfaceNode(Home_t *home)
 	            nodePos[0] = node->x;
 	            nodePos[1] = node->y;
 	            nodePos[2] = node->z;
-	            ApplyPosConstraint(param, node);
+	            ApplyPosConstraint(home, node);
 	        }
 	    }
 
@@ -1771,7 +1825,7 @@ void AdjustSurfaceNode(Home_t *home)
 	}
 
     numNodePtr = home->newNodeKeyPtr;
-	for (i = 0; i<numNodePtr; i++){
+	if(param->gbStrength<=0)for (i = 0; i<numNodePtr; i++){
         if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
 	    if(SurfaceNode(node))continue;
 	    nodePos[0] = node->x;
@@ -1790,17 +1844,17 @@ void AdjustSurfaceNode(Home_t *home)
 	        nbr = GetNeighborNode(home, node, j);
 	        if(nbr == (Node_t *)NULL)continue;
 	        if(!SurfaceNode(nbr))continue;
-            if(DomainOwnsSeg(home, OPCLASS_REMESH, thisDomain, &nbr->myTag) == 0)continue;
-            if((nbr->flags|NODE_RESET_FORCES)>0)continue;
+            if(DomainOwnsSeg(home, optClass, thisDomain, &nbr->myTag) == 0)continue;
+            if((nbr->flags|NODE_RESET_FORCES)==0)continue;
 
 	        nbrPos[0] = nbr->x;
 	        nbrPos[1] = nbr->y;
 	        nbrPos[2] = nbr->z;
             PBCPOSITION(param, nbr->oldx, nbr->oldy, nbr->oldz, nbrPos, nbrPos+1, nbrPos+2);
 
-	        if(fabs(nbrPos[0]) <= param->xBoundMax + eps -margin &&
-	           fabs(nbrPos[1]) <= param->yBoundMax + eps -margin &&
-	           fabs(nbrPos[2]) <= param->zBoundMax + eps -margin && 
+	        if(fabs(nbrPos[0]) <= param->xBoundMax + eps - margin &&
+	           fabs(nbrPos[1]) <= param->yBoundMax + eps - margin &&
+	           fabs(nbrPos[2]) <= param->zBoundMax + eps - margin && 
                nbr->numNbrs == 1)continue;
 
 	        constraint = nbr->constraint;
@@ -1881,7 +1935,8 @@ void AdjustSurfaceNode(Home_t *home)
                 continue;
             }
 
-            newNode = InsertNode(home, node, nbr, interPos, 1, OPCLASS_REMESH);
+            globalOp = 1;
+            newNode = InsertNode(home, node, nbr, interPos, globalOp, optClass);
             if(newNode == (Node_t *)NULL){
 #if 1
                 PrintNode(home, node);
@@ -1900,6 +1955,8 @@ void AdjustSurfaceNode(Home_t *home)
 	            node1 = node;
 	            node2 = newNode;
 	        }
+            printf("Task %d %s %d: switchNode(%d) globalOp=%d",home->myDomain,__func__,home->cycle,switchNode,globalOp);
+            PrintTag(node1); PrintTag(node2); PrintTag(nbr); printf("\n");
 
 	        MarkNodeForceObsolete(home, node1);        
 	        MarkNodeNoCollisions(home, node1);        
@@ -1913,7 +1970,7 @@ void AdjustSurfaceNode(Home_t *home)
 
 	    } /*for(j=0; j< ...)*/
 	}/*for(i=0; i< ...)*/	
-
+#if 0
 	if(param->gbStrength>0)for (i = 0; i<numNodePtr; i++){
         if((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
         if(!SurfaceNode(node))continue;
@@ -1985,6 +2042,7 @@ void AdjustSurfaceNode(Home_t *home)
 	        MarkNodeNoCollisions(home, node);        
         }
     }
+#endif
 	return;
 }
 

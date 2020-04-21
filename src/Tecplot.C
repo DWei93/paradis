@@ -73,7 +73,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         Plane_t	 plane;
         struct stat statbuf;
         real8   al, am, an, amag, sigijk, pstnijk, dpstnijk;
-        real8   vec[3];
+        real8   vec[3], f[3], f1[3], f2[3], length, fMag,ifMag,n[3];
 
         int         index, constraint;
         param      = home->param;
@@ -210,7 +210,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,index, dom, id\n");
 		    fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
 #else
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index\n");
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, ifx,ify,ifz,ifMag\n");
 		    fprintf(fp, "zone T = \"%d\", i = %d, SOLUTIONTIME = %g,  F=POINT\n", home->cycle, numArms,param->timeNow*1.0E9); 
             fprintf(fp, "AUXDATA strain = \"%g\"\n", abs(param->eRate*param->timeNow*1.0E2));
             fprintf(fp, "AUXDATA stress = \"%g\"\n", abs(sigijk/1.0E6));
@@ -330,6 +330,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                     prz = prz - Lz*rint(prz/Lz);
                 }
         
+                
                 x2 = x + prx;
                 y2 = y + pry;
                 z2 = z + prz;
@@ -338,15 +339,32 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 vy =  node->vY * param->burgMag;
                 vz =  node->vZ * param->burgMag;
 	            velocity = sqrt(vx*vx + vy*vy + vz*vz);
-                  
+                length = sqrt(prx*prx+pry*pry+prz*prz); 
                 narm = node->numNbrs;
 				
                 GetArmGrain(home, node, nbrNode, armInGrain, armOnGB);
-        
+                vec[0]=prx; vec[1]=pry; vec[2]=prz;
+                NormalizeVec(vec);
+                n[0] = node->nx[j]; n[1]=node->ny[j]; n[2]=node->nz[j];
+
+                int armID21=GetArmID(home, nbrNode, node);
+                if(armID21<0)Fatal("%s: armID 21 < 0",__func__);
+                f[0] = node->armfx[j]+nbrNode->armfx[armID21];
+                f[1] = node->armfy[j]+nbrNode->armfy[armID21];
+                f[2] = node->armfz[j]+nbrNode->armfz[armID21];
+                f[0]/= length;f[2]/= length; f[2]/= length;  
+                NormalComponent(f,vec,f);
+                NormalComponent(f,n,f);
+                fMag = Normal(f)/1E6; NormalizeVec(f);
+                if((!Numerical(f)) || (!Numerical(fMag))){VECTOR_ZERO(f); fMag=0.0;}
+
+                ImageForce(home, node, nbrNode, f1, f2);
+                f1[0] /= (0.5*length);  f1[1] /= (0.5*length);  f1[2] /= (0.5*length);
+                ifMag = Normal(f1)/1E6; NormalizeVec(f1);
+                
                 if(param->polycrystal==0)index=0;
                 else{
-                    vec[0] = node->nx[j]; vec[1]=node->ny[j]; vec[2]=node->nz[j];
-                    if(AlignedVector(param->TBNormal, vec)){
+                    if(AlignedVector(param->TBNormal, n)){
                         index = 3;
                     }else{
                         vec[0]=node->burgX[j]; vec[1]=node->burgY[j]; vec[2]=node->burgZ[j];
@@ -357,7 +375,6 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 //              if((GetPlaneType_FCC(home, node, nbrNode) & GLIDE_PLANE) == 0)index=4;
                 constraint = node->constraint;
                 if((NodeOnGB(home, node) & INTERSECT_NODE)>0)constraint = 4;
-
 /*
  *              This part is for output of junction investigation
  */
@@ -377,10 +394,10 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,constraint,
                             index, node->myTag.domainID, node->myTag.index);
 #else
-                    fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d\n", 
+                    fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g\n", 
                             x,y,z,prx/2,pry/2,prz/2,
                             narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                            index);
+                            index, f[0],f[1],f[2],fMag, f1[0],f1[1],f1[2],ifMag);
 #endif
 	        }
 #endif	
