@@ -262,9 +262,12 @@ void FindSubFSeg(Home_t *home, real8 p1[3], real8 p2[3], real8 burg[3],
     Param_t  *param;
 
     param = home->param;
-    real8   *a0 = param->a0;
-    real8   grainSize = param->grainSize;
-    Ecore = param->Ecore;
+#ifdef GSIZE_EFFECT
+        real8 *a0 = param->a0;
+        real8 grainSize = param->grainSize;
+#else
+        Ecore = param->Ecore;
+#endif
     MU    = param->shearModulus;
     NU    = param->pois;
     a     = param->rc;
@@ -306,9 +309,13 @@ void FindSubFSeg(Home_t *home, real8 p1[3], real8 p2[3], real8 burg[3],
 /*
  *  Find the self-force for this segment and subtract it off
  */
+#ifdef GSIZE_EFFECT
     SelfForce(0, MU, NU, burg[0], burg[1], burg[2], p1[0], p1[1], p1[2],
               p2[0], p2[1], p2[2], a, a0, grainSize, f1, f2);
-
+#else
+    SelfForce(0, MU, NU, burg[0], burg[1], burg[2], p1[0], p1[1], p1[2],
+              p2[0], p2[1], p2[2], a, Ecore, f1, f2);
+#endif
     for (i = 0; i < 3; i++) {
         oldfp1[i] -= f1[i];
         oldfp2[i] -= f2[i];
@@ -342,17 +349,25 @@ void FindSubFSeg(Home_t *home, real8 p1[3], real8 p2[3], real8 burg[3],
  *  new interaction between the two new segments that was not 
  *  included in the previous segment calculation
  */
+#ifdef GSIZE_EFFECT
     SelfForce(0, MU, NU, burg[0], burg[1], burg[2], p1[0], p1[1], p1[2],
               newpos[0], newpos[1], newpos[2], a, a0, grainSize, f1, f2);
-
+#else
+    SelfForce(0, MU, NU, burg[0], burg[1], burg[2], p1[0], p1[1], p1[2],
+              newpos[0], newpos[1], newpos[2], a, Ecore, f1, f2);
+#endif
     for (i = 0; i < 3; i++) {
         f0seg1[i] += f1[i];
         f1seg1[i] += f2[i];
     }
 
+#ifdef GSIZE_EFFECT
     SelfForce(0, MU, NU, burg[0], burg[1], burg[2], newpos[0], newpos[1],
               newpos[2], p2[0], p2[1], p2[2], a, a0, grainSize, f1, f2);
-    
+#else
+    SelfForce(0, MU, NU, burg[0], burg[1], burg[2], newpos[0], newpos[1],
+              newpos[2], p2[0], p2[1], p2[2], a, Ecore, f1, f2);
+#endif    
     for (i = 0; i < 3; i++) {
         f0seg2[i] += f1[i];
         f1seg2[i] += f2[i];
@@ -413,12 +428,15 @@ void FindFSegComb(Home_t *home, real8 p0[3], real8 p1[3], real8 p2[3],
 
     param = home->param;
 
-    Ecore = param->Ecore;
     MU    = param->shearModulus;
     NU    = param->pois;
     a     = param->rc;
+#ifdef GSIZE_EFFECT
     real8 *a0 = param->a0;
     real8 grainSize = param->grainSize;
+#else 
+    Ecore = param->Ecore;
+#endif
     Lsub1 = (p1[0]-p0[0])*(p1[0]-p0[0]) +
             (p1[1]-p0[1])*(p1[1]-p0[1]) +
             (p1[2]-p0[2])*(p1[2]-p0[2]);
@@ -431,17 +449,24 @@ void FindFSegComb(Home_t *home, real8 p0[3], real8 p1[3], real8 p2[3],
  *  Find the self force of each segment at each point and subtract
  *  it off.
  */
+#ifdef GSIZE_EFFECT
     SelfForce(0, MU, NU, burg1[0], burg1[1], burg1[2], p0[0], p0[1], p0[2],
               p1[0], p1[1], p1[2], a, a0, grainSize, f1, f2);
-    
+#else
+    SelfForce(0, MU, NU, burg1[0], burg1[1], burg1[2], p0[0], p0[1], p0[2],
+              p1[0], p1[1], p1[2], a, Ecore, f1, f2);
+#endif
     for (i = 0; i < 3; i++) {
         tmpfp0seg1[i] = fp0seg1[i] - f1[i];
         tmpfp1seg1[i] = fp1seg1[i] - f2[i];
     }
-
+#ifdef GSIZE_EFFECT
     SelfForce(0, MU, NU, burg2[0], burg2[1], burg2[2], p1[0], p1[1], p1[2],
               p2[0], p2[1], p2[2], a, a0, grainSize, f1, f2);
-    
+#else
+    SelfForce(0, MU, NU, burg2[0], burg2[1], burg2[2], p1[0], p1[1], p1[2],
+              p2[0], p2[1], p2[2], a, Ecore, f1, f2);
+#endif
     for (i = 0; i < 3; i++) {
         tmpfp1seg2[i] = fp1seg2[i] - f1[i];
         tmpfp2seg2[i] = fp2seg2[i] - f2[i];
@@ -494,10 +519,13 @@ void FindFSegComb(Home_t *home, real8 p0[3], real8 p1[3], real8 p2[3],
             f1new[i] = (fLinv1a[i] + (2.0 * fLinv2b[i])) * L / 6.0;
         }
     }
-
+#ifdef GSIZE_EFFECT
     SelfForce(0, MU, NU, burg1[0], burg1[1], burg1[2], p0[0], p0[1], p0[2],
               p2[0], p2[1], p2[2], a, a0, grainSize, f1, f2);
-
+#else
+    SelfForce(0, MU, NU, burg1[0], burg1[1], burg1[2], p0[0], p0[1], p0[2],
+              p2[0], p2[1], p2[2], a, Ecore, f1, f2);
+#endif
     for (i = 0; i < 3; i++) {
         f0new[i] += f1[i];
         f1new[i] += f2[i];
@@ -1727,7 +1755,11 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
  *      handling).  If we find such a segment, there will be no seg/seg
  *      forces between the given segment pair, so just return zero forces.
  */
-        if ((dx*dx + dy*dy + dz*dz) < 1.0e-20) {
+        if ((dx*dx + dy*dy + dz*dz) < 1.0e-20 
+#ifdef GSIZE_EFFECT
+            || node1==node3 || node1==node4 || node2==node3 ||node2==node4
+#endif
+           ) {
             VECTOR_ZERO(f1);
             VECTOR_ZERO(f2);
             VECTOR_ZERO(f3);
@@ -2046,9 +2078,12 @@ void LocalSegForces(Home_t *home, int reqType)
         a     = param->rc;
         MU    = param->shearModulus;
         NU    = param->pois;
-        Ecore = param->Ecore;
+#ifdef GSIZE_EFFECT
         real8 *a0 = param->a0;
         real8 grainSize = param->grainSize;
+#else
+        Ecore = param->Ecore;
+#endif
 
         extStress[0][0] = param->appliedStress[0];
         extStress[1][1] = param->appliedStress[1];
@@ -2136,11 +2171,17 @@ void LocalSegForces(Home_t *home, int reqType)
 /*
  *                  Add in force due to self stress
  */
+#ifdef GSIZE_EFFECT
                     SelfForce(0, MU, NU, burg[0], burg[1], burg[2],
                               pos1[0], pos1[1], pos1[2],
                               pos2[0], pos2[1], pos2[2],
                               a, a0, grainSize, f1, f2);
-
+#else
+                    SelfForce(0, MU, NU, burg[0], burg[1], burg[2],
+                              pos1[0], pos1[1], pos1[2],
+                              pos2[0], pos2[1], pos2[2],
+                              a, Ecore, f1, f2);
+#endif
                     AddtoArmForce(node1, armID12, f1);
                     AddtoArmForce(node2, armID21, f2);
 /*
@@ -2318,9 +2359,12 @@ void LocalSegForces(Home_t *home, int reqType)
         MU    = param->shearModulus;
         NU    = param->pois;
         a     = param->rc;
+#ifdef GSIZE_EFFECT
+        real8 *a0 = param->a0;
+        real8 grainSize = param->grainSize;
+#else
         Ecore = param->Ecore;
-        real8 *a0=param->a0;
-        real8  grainSize = param->grainSize;
+#endif
 
         extstress[0][0] = param->appliedStress[0];
         extstress[1][1] = param->appliedStress[1];
@@ -2850,9 +2894,13 @@ void LocalSegForces(Home_t *home, int reqType)
 /*
  *          Add in force due to self stress
  */
+#ifdef GSIZE_EFFECT
             SelfForce(0, MU, NU, bx1, by1, bz1, x1, y1, z1, x2, y2, z2,
                       a, a0, grainSize, f1, f2);
-
+#else
+            SelfForce(0, MU, NU, bx1, by1, bz1, x1, y1, z1, x2, y2, z2,
+                      a, Ecore, f1, f2);
+#endif
             VECTOR_ADD(node1SegForce, f1);
             VECTOR_ADD(node2SegForce, f2);
 

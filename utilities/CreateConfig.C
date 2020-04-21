@@ -2916,6 +2916,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
           
 	 	            case 1:
 	 	                srcLen = -log(randm(&seed))/sqrt(maxDensity)/burgMag;
+                        printf("chain=%d length=%f\n",chain,srcLen);
 	 	                break;
              
                     default:
@@ -2939,7 +2940,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     bd = GetBurgData(home, inGrain1, onGB1);
                     if(onGB1 > -1)continue;
 
-#if 1
+#if 0
                     if(xn > 24 && chain <24){
                         ranNum = chain%24;
                     }else{
@@ -2990,8 +2991,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             }
                         }
                         NormalizeVec(randomLine);
-
-
+#if 1
+                        VECTOR_ZERO(p1); VECTOR_ZERO(randomLine); randomLine[0]=1;
+#endif
                         for (i = 0; i < 3; i++) {
                             p0[i] = p1[i] + (srcLen * randomLine[i])/2.0;
                             p2[i] = p1[i] + (srcLen * randomLine[i]);
