@@ -225,7 +225,7 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "minSeg", &param->minSeg, V_DBL, 1, VFLAG_NULL);
         param->minSeg = -1.0;
 		
-	BindVar(CPList, "rann", &param->rann, V_DBL, 1, VFLAG_NULL);
+	    BindVar(CPList, "rann", &param->rann, V_DBL, 1, VFLAG_NULL);
         param->rann = -1.0;
 
         BindVar(CPList, "remeshRule", &param->remeshRule, V_INT, 1, VFLAG_NULL);
@@ -853,9 +853,11 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 				V_DBL, 1, VFLAG_NULL);
 		param->fricStress = 0.0e0;
 
-		BindVar(CPList, "preRann", &param->preRann,
-				V_DBL, 1, VFLAG_NULL);
+		BindVar(CPList, "preRann", &param->preRann, V_DBL, 1, VFLAG_NULL);
 		param->preRann = -1.0;
+
+		BindVar(CPList, "minDT", &param->minDT, V_DBL, 1, VFLAG_NULL);
+		param->minDT = 1.0E-16;
 		
 		BindVar(CPList, "limitDisplacement", &param->limitDisplacement, V_INT, 1, VFLAG_NULL);
 		param->limitDisplacement = 0;
