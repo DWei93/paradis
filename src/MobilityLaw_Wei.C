@@ -188,11 +188,14 @@ int Mobility_Wei(Home_t *home, Node_t *node)
  */
 #if 0
 	DoResistance(home, node, nForce);
-#else
     NodeImageForce(home, node, nForce);
     nForce[0] += node->fX;
     nForce[1] += node->fY;
     nForce[2] += node->fZ;
+#else
+    nForce[0] = node->fX;
+    nForce[1] = node->fY;
+    nForce[2] = node->fZ;
 #endif
 	/* Velocity is simply proportional to total force per unit length */
 	nVel[0] = nForce[0]/LtimesB;

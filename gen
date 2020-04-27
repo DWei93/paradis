@@ -24,12 +24,17 @@
 ######################################################################################
 
 
-#frlen=1800
-frlen=97
-cubel=195
-maxSeg=50
-nfrs=50
-nGrains=2
+#frlen=00
+cubel=`echo 500/0.256 | bc`
+frlen=`echo ${cubel}/2 | bc`,`echo "$cubel*sqrt(2)" | bc`
+maxSeg=`echo ${cubel}/15 |bc `
+nfrs=12
+nGrains=8
+thick=`echo ${cubel}/${nGrains}| bc`
+thickn=`echo ${thick}*0.256 |bc`
+echo "Thickness=$thick b, $thickn nm"
+sed -i "/grainSize/cgrainSize = ${thick}" input/Copper.ctrl
+sed -i "/dirname/cdirname = \"res.relax-t-${thickn}nm\"" input/Copper.ctrl
 maxDensity=1E16
 
 polycrystal=1
@@ -70,7 +75,7 @@ case $srctype in
 #
 ######################################################################################
     1|I)
-    ./bin/paradisgen -type 4  -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  \
+    ./bin/paradisgen -type 3  -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  \
     -polycrystal 0  -pbc 0 -extend 0  -srcLenType 0 \
     -xMatDir 1,0,0 -zMatDir 0,0,1 ;;
 
@@ -108,9 +113,9 @@ case $srctype in
 ######################################################################################
     4|IV)
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 1 -nGrain 2  -pbc 0 -nTDs 1 -gb 0 -maxDensity $maxDensity  ;;
-#   -polycrystal 0 -nGrain 1  -pbc 0 -nTDs 0 ;;
+    -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs 0 -maxDensity $maxDensity ;;
 #   -polycrystal 1 -nGrain ${nGrains}  -pbc 0  ;;
+#   -polycrystal 1 -nGrain 2  -pbc 0 -nTDs 1 -gb 1;;
 #   -burgID 5 -planeID 1 \
 ######################################################################################
 #    
@@ -131,4 +136,6 @@ case $srctype in
      exit 1 ;;
 esac
 
-./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile strain-rate-3.data 
+./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 
+cp Copper.data input/Copper.data
+echo "cp Copper.data > input/Copper.data"
