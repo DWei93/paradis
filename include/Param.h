@@ -500,7 +500,7 @@ struct _param {
  */
         int	    preDecreaseDT;
         int     limitDisplacement;
-        real8	preRann;
+        real8	preRann, minDT;
         int	    markPreDTDisable;
 	    int	    finish;
 	    real8	maxStn;

@@ -622,7 +622,7 @@ void TrapezoidIntegrator(Home_t *home)
 #endif
 
         param = home->param;
-	    minDT = MIN(1.0E-15, 2.0 * param->xBoundMax / 1.0e16);
+	    minDT = param->minDT;
 
 		if(param->limitDisplacement && param->preDecreaseDT){
 			
