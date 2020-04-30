@@ -47,7 +47,7 @@ int Mobility_Wei(Home_t *home, Node_t *node)
     real8 bx, by, bz, br, dangle;
     real8 glideConstraintsCrystal[3][3];
     real8 nForce[3], glideForce[3], glideConstraints[3][3], n[3], sig;
-    real8 factor = 1.0;
+    real8 factor = 1.0, pinForce;
 
     static real8 params[4][3]={
                                {2.56938E-5, 1.03497E8 , 1.4982E7  },
@@ -198,15 +198,27 @@ int Mobility_Wei(Home_t *home, Node_t *node)
     nForce[2] = node->fZ;
 #endif
 	/* Velocity is simply proportional to total force per unit length */
-	nVel[0] = nForce[0]/LtimesB;
-	nVel[1] = nForce[1]/LtimesB;
-	nVel[2] = nForce[2]/LtimesB;
-
 	GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints, zeroLenJunc);
 
-	ApplyConstraintsToVelocity(numGlideConstraints,
-				    glideConstraints, nVel);
-
+    if((NodeOnGB(home, node)&INTERSECT_NODE)>0 && (numGlideConstraints ==2)){
+        pinForce = 4.81851E8/param->grainSize + 5.9E8;
+        ParallelComponent(nForce, glideConstraints[2], glideForce);
+        if(Normal(glideForce)<=pinForce){
+            VECTOR_ZERO(nVel);
+        }else{
+            glideForce[0] -= (pinForce*glideConstraints[2][0]);
+            glideForce[1] -= (pinForce*glideConstraints[2][1]);
+            glideForce[2] -= (pinForce*glideConstraints[2][2]);
+	        nVel[0] = glideForce[0]/LtimesB;
+	        nVel[1] = glideForce[1]/LtimesB;
+	        nVel[2] = glideForce[2]/LtimesB;
+        }
+    }else{
+	    nVel[0] = nForce[0]/LtimesB;
+	    nVel[1] = nForce[1]/LtimesB;
+	    nVel[2] = nForce[2]/LtimesB;
+	    ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, nVel);
+    }
     if(Normal(nVel) > 1E-10 && SurfaceNode(node)){
         real8   vec[3], nor[3];
         VECTOR_ZERO(nor);
