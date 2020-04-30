@@ -73,7 +73,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         Plane_t	 plane;
         struct stat statbuf;
         real8   al, am, an, amag, sigijk, pstnijk, dpstnijk;
-        real8   vec[3], f[3], f1[3], f2[3], length, fMag,ifMag,n[3];
+        real8   vec[3], f[3], f1[3], f2[3], length, fMag,ifMag,n[3],val;
 
         int         index, constraint;
         param      = home->param;
@@ -211,10 +211,14 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 		    fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
 #else
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, ifx,ify,ifz,ifMag\n");
-		    fprintf(fp, "zone T = \"%d\", i = %d, SOLUTIONTIME = %g,  F=POINT\n", home->cycle, numArms,param->timeNow*1.0E9); 
-            fprintf(fp, "AUXDATA strain = \"%g\"\n", abs(param->eRate*param->timeNow*1.0E2));
-            fprintf(fp, "AUXDATA stress = \"%g\"\n", abs(sigijk/1.0E6));
-            fprintf(fp, "AUXDATA plastic_strain = \"%g\"\n", abs(pstnijk*1.0E2));
+            val = param->timeNow*1.0E9;
+		    fprintf(fp, "zone T = \"%d\", i = %d, SOLUTIONTIME = %g,  F=POINT\n", home->cycle, numArms,val); 
+            val = abs(param->eRate*param->timeNow*1.0E2);
+            fprintf(fp, "AUXDATA strain = \"%g\"\n", val);
+            val = abs(sigijk/1.0E6);
+            fprintf(fp, "AUXDATA stress = \"%g\"\n", val);
+            val = abs(pstnijk*1.0E2);
+            fprintf(fp, "AUXDATA plastic_strain = \"%g\"\n", val);
 	
 #endif
 	    }
