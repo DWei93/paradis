@@ -214,11 +214,11 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
             val = param->timeNow*1.0E9;
 		    fprintf(fp, "zone T = \"%d\", i = %d, SOLUTIONTIME = %g,  F=POINT\n", home->cycle, numArms,val); 
             val = abs(param->eRate*param->timeNow*1.0E2);
-            fprintf(fp, "AUXDATA strain = \"%g\"\n", val);
+            fprintf(fp, "AUXDATA strain = \"%f\"\n", val);
             val = abs(sigijk/1.0E6);
-            fprintf(fp, "AUXDATA stress = \"%g\"\n", val);
+            fprintf(fp, "AUXDATA stress = \"%f\"\n", val);
             val = abs(pstnijk*1.0E2);
-            fprintf(fp, "AUXDATA plastic_strain = \"%g\"\n", val);
+            fprintf(fp, "AUXDATA plastic_strain = \"%f\"\n", val);
 	
 #endif
 	    }

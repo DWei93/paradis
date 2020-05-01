@@ -40,7 +40,7 @@ int Mobility_Wei(Home_t *home, Node_t *node)
     real8 normx[MAX_NBRS], normy[MAX_NBRS], normz[MAX_NBRS];
     real8 lineX[MAX_NBRS], lineY[MAX_NBRS], lineZ[MAX_NBRS];
     real8 a, b, velocity;
-    real8 dx, dy, dz, lx, ly, lz, lr, LtimesB;
+    real8 dx, dy, dz, lx, ly, lz, lr, LtimesB, lxb;
     real8 lcx, lcy, lcz, normdotlc;
     Node_t *nbr;
     real8 MobScrew, MobEdge, MobTwinning, Mob;
@@ -100,7 +100,7 @@ int Mobility_Wei(Home_t *home, Node_t *node)
 /*
  *  Find total dislocation length times drag coefficent (LtimesB)
  */
-    LtimesB=0;
+    LtimesB=0; lxb=0;
     for(j=0;j<nc;j++){
         if ((nbr=GetNeighborNode(home,node,j)) == (Node_t *)NULL) continue;
         dx=nbr->x - node->x;
@@ -153,6 +153,7 @@ int Mobility_Wei(Home_t *home, Node_t *node)
             }       
 
 	        br = sqrt(bx*bx+by*by+bz*bz);
+            lxb += (lr*br);
 	        bx/=br; by/=br; bz/=br; /* unit vector along Burgers vector */
 
             armID21 = GetArmID(home, nbr, node);
@@ -181,7 +182,7 @@ int Mobility_Wei(Home_t *home, Node_t *node)
 	        LtimesB+=(lr/Mob);
 	    }
     }
-    LtimesB/=2;
+    LtimesB/=2; lxb/=2;
 
 /*
  *  Add resitance of friction force of GB force
@@ -199,9 +200,9 @@ int Mobility_Wei(Home_t *home, Node_t *node)
 #endif
 	/* Velocity is simply proportional to total force per unit length */
 	GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints, zeroLenJunc);
-
+#ifdef TB_PINNING
     if((NodeOnGB(home, node)&INTERSECT_NODE)>0 && (numGlideConstraints ==2)){
-        pinForce = 4.81851E8/param->grainSize + 5.9E8;
+        pinForce = (4.81851E8/param->grainSize + 5.9E8)*lxb;
         ParallelComponent(nForce, glideConstraints[2], glideForce);
         if(Normal(glideForce)<=pinForce){
             VECTOR_ZERO(nVel);
@@ -219,6 +220,13 @@ int Mobility_Wei(Home_t *home, Node_t *node)
 	    nVel[2] = nForce[2]/LtimesB;
 	    ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, nVel);
     }
+#else
+	 nVel[0] = nForce[0]/LtimesB;
+	 nVel[1] = nForce[1]/LtimesB;
+	 nVel[2] = nForce[2]/LtimesB;
+	 ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, nVel);
+
+#endif
     if(Normal(nVel) > 1E-10 && SurfaceNode(node)){
         real8   vec[3], nor[3];
         VECTOR_ZERO(nor);
