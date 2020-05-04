@@ -2844,6 +2844,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         lenRange = srcLenMax - srcLenMin;
         cubeSize	=	(real8)cubeLength;
 
+        bool freeLine=(param->xBoundType != Periodic && param->yBoundType != Periodic && param->zBoundType != Periodic);
+
         real8 n3[3];
 
         if(numSources <= 0){
@@ -2971,7 +2973,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     while(time < 10000){
                         time++;
 
-                        if(3!=gpIndex){
+                        if(3!=gpIndex && freeLine == false){
                             cross(n3,n0,randomLine);
                             if(randm(&seed)>0.5){
                                 randomLine[0]=-randomLine[0];

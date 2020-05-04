@@ -539,3 +539,24 @@ int AddAndSearchVertice(std::vector<double> &vertices, double x, double y, doubl
     }
 }
 
+
+bool FourPointCoplanar(double x1, double y1, double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4,double y4, double z4, double err)
+{
+   double vec1[3], vec2[3], n[3], cen[3], p[3]={x4,y4,z4};
+
+    cen[0] = (x1+x2+x3)/3.0;
+    cen[1] = (y1+y2+y3)/3.0;
+    cen[2] = (z1+z2+z3)/3.0;
+
+    vec1[0] = x1-cen[0];
+    vec1[1] = y1-cen[1];
+    vec1[2] = z1-cen[2];
+    vec2[0] = x2-cen[0];
+    vec2[1] = y2-cen[1];
+    vec2[2] = z2-cen[2];
+    
+    cross_product(vec1,vec2,n); normalize_vec(n); if(normal(n)<1E-10)return true;
+
+    if(fabs(PointPlaneDistance(p,n,cen)) < err)return true;
+    return false; 
+}

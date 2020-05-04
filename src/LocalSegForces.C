@@ -23,7 +23,7 @@
 #include "Home.h"
 #include "Comm.h"
 #include "ParadisThread.h"
-
+#include "Math.h"
 
 typedef struct {
         Segment_t *seg1;
@@ -1795,6 +1795,7 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
         PBCPOSITION(param, xCenter, yCenter, zCenter, &x3, &y3, &z3);
         PBCPOSITION(param, x3, y3, z3, &x4, &y4, &z4);
 
+
 /*
  *      It is possible to have a zero-length segment (created by collision
  *      handling).  If we find such a segment, there will be no seg/seg
@@ -1804,7 +1805,9 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
         dy = y3 - y4;
         dz = z3 - z4;
 
-        if ((dx*dx + dy*dy + dz*dz) < 1.0e-20) {
+        if ((dx*dx + dy*dy + dz*dz) < 1.0e-20
+            || node1==node3 || node1==node4 || node2==node3 || node2==node4)
+            {
             VECTOR_ZERO(f1);
             VECTOR_ZERO(f2);
             VECTOR_ZERO(f3);
@@ -1822,6 +1825,27 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
         b34x = node3->burgX[armID34];
         b34y = node3->burgY[armID34];
         b34z = node3->burgZ[armID34];
+
+        if(param->gbStrength >0){
+            if(fabs(x1)>param->xBoundMax || fabs(y1)>param->yBoundMax || fabs(z1)>param->zBoundMax ||
+               fabs(x2)>param->xBoundMax || fabs(y2)>param->yBoundMax || fabs(z2)>param->zBoundMax ||
+               fabs(x3)>param->xBoundMax || fabs(y3)>param->yBoundMax || fabs(z3)>param->zBoundMax ||
+               fabs(x4)>param->xBoundMax || fabs(y4)>param->yBoundMax || fabs(z4)>param->zBoundMax ){
+
+                real8 l12[3]={x2-x1,y2-y1,z2-z1}, l34[3]={x4-x3,y4-y3,z4-z3}, b12[3]={b12x,b12y,b12z}, b34[3]={b34x,b34y,b34z}, n12[3], n34[3];
+                cross(l12,b12,n12); cross(l34,b34,n34); NormalizeVec(n12); NormalizeVec(n34);
+
+                if(DotProduct(n12,n34) <= 0.0){
+                    if(FourPointCoplanar(x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,param->rc)){
+                        VECTOR_ZERO(f1);
+                        VECTOR_ZERO(f2);
+                        VECTOR_ZERO(f3);
+                        VECTOR_ZERO(f4);
+                        return;
+                    }
+                }
+            }
+        }
 
         SegSegForce(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4,
                     b12x, b12y, b12z, b34x, b34y, b34z,        
