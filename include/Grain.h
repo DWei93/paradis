@@ -265,6 +265,7 @@ void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2,
 void VectorCrystalToLab(Home_t *home, Node_t *node1, Node_t *node2, 
                         real8 cryst[3], real8 *lab);
 real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB);
+real8 ClosedGB(Home_t *home, real8 px, real8 py, real8 pz, GB_t **GB);
 bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3], real8 *newPos);
 void PullBack(Home_t *home, Node_t *node);
 void PenetrationRule(Home_t *home, Node_t *node);

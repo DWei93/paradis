@@ -1648,6 +1648,26 @@ real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB){
 	return(minDistance);
 }
 
+real8 ClosedGB(Home_t *home, real8 px, real8 py, real8 pz, GB_t **GB){
+	real8	    tempDistance, vec[3]={px,py,pz},vec1[3];
+	real8 	    minDistance = 1e14;
+	GB_t 	    *temGB;
+	    
+    if(!home->param->polycrystal)return(0.0);
+   
+    int     i;
+    FoldBox(home->param, vec, vec+1, vec+2);
+    for(i=0; i<home->nGBs; i++){
+        temGB = home->GBKeys[i];
+        PointPlaneIntersection(vec, temGB->n, temGB->p, vec1, &tempDistance);
+        if(fabs(tempDistance) < fabs(minDistance)){
+            *GB = temGB;
+            minDistance = tempDistance;
+        }
+    }
+	return(minDistance);
+}
+
 int GetGBIndexOfGrain(Grain_t *grain, int onGB){
     int i;
     for(i=0; i<grain->nBounds; i++){
