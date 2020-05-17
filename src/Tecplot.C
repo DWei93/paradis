@@ -213,12 +213,12 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, ifx,ify,ifz,ifMag\n");
             val = param->timeNow*1.0E9;
 		    fprintf(fp, "zone T = \"%d\", i = %d, SOLUTIONTIME = %g,  F=POINT\n", home->cycle, numArms,val); 
-            val = abs(param->eRate*param->timeNow*1.0E2);
-            fprintf(fp, "AUXDATA strain = \"%f\"\n", val);
-            val = abs(sigijk/1.0E6);
-            fprintf(fp, "AUXDATA stress = \"%f\"\n", val);
-            val = abs(pstnijk*1.0E2);
-            fprintf(fp, "AUXDATA plastic_strain = \"%f\"\n", val);
+            val = fabs(param->eRate*param->timeNow*1.0E2);
+            fprintf(fp, "AUXDATA strain = \"%7.2f\"\n", val);
+            val = fabs(sigijk/1.0E6);
+            fprintf(fp, "AUXDATA stress = \"%7.2f\"\n", val);
+            val = fabs(pstnijk*1.0E2);
+            fprintf(fp, "AUXDATA plastic_strain = \"%7.2f\"\n", val);
 	
 #endif
 	    }
@@ -362,8 +362,17 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 fMag = Normal(f)/1E6; NormalizeVec(f);
                 if((!Numerical(f)) || (!Numerical(fMag))){VECTOR_ZERO(f); fMag=0.0;}
 
-                ImageForce(home, node, nbrNode, f1, f2);
-                f1[0] /= (0.5*length);  f1[1] /= (0.5*length);  f1[2] /= (0.5*length);
+                ifMag = NodeLengthXMag(home, node);
+                f1[0]=node->fZ/ifMag; f1[1]=node->fY/ifMag; f1[2]=node->fZ/ifMag;
+                f2[0]=node->vX; f2[1]=node->vY; f2[2]=node->vZ;
+                if(Normal(f2) > 1){
+                    NormalizeVec(f2);
+                    ParallelComponent(f1,f2,f1);
+                }else {
+                    VECTOR_ZERO(f1);
+                }
+//              ImageForce(home, node, nbrNode, f1, f2);
+//              f1[0] /= (0.5*length);  f1[1] /= (0.5*length);  f1[2] /= (0.5*length);
                 ifMag = Normal(f1)/1E6; NormalizeVec(f1);
                 
                 if(param->polycrystal==0)index=0;
@@ -376,6 +385,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                         else index = 1;
                     }
                 }
+                if(normalID > 3)index=4;
 //              if((GetPlaneType_FCC(home, node, nbrNode) & GLIDE_PLANE) == 0)index=4;
                 constraint = node->constraint;
                 if((NodeOnGB(home, node) & INTERSECT_NODE)>0)constraint = 4;

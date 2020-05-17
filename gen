@@ -25,13 +25,14 @@
 
 
 #frlen=00
-cubel=`echo 500/0.256 | bc`
-frlen=`echo ${cubel}/2 | bc`,`echo "$cubel*sqrt(2)" | bc`
+cubeln=1000
+cubel=`echo ${cubeln}/0.256 | bc`
+frlen=`echo ${cubel}/2/1.5 | bc`
 maxSeg=`echo ${cubel}/15 |bc `
-nfrs=12
-nGrains=8
+nfrs=40
+nGrains=2
 thick=`echo ${cubel}/${nGrains}| bc`
-thickn=`echo ${thick}*0.256 |bc`
+thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
 echo "Thickness=$thick b, $thickn nm"
 sed -i "/grainSize/cgrainSize = ${thick}" input/Copper.ctrl
 sed -i "/dirname/cdirname = \"res.relax-t-${thickn}nm\"" input/Copper.ctrl
@@ -113,7 +114,7 @@ case $srctype in
 ######################################################################################
     4|IV)
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs 0 -maxDensity $maxDensity ;;
+    -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs 1 -maxDensity $maxDensity -gb 1 ;;
 #   -polycrystal 1 -nGrain ${nGrains}  -pbc 0  ;;
 #   -polycrystal 1 -nGrain 2  -pbc 0 -nTDs 1 -gb 1;;
 #   -burgID 5 -planeID 1 \

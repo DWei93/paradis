@@ -817,14 +817,6 @@ void InitGrain(Home_t *home, Param_t *param){
             GenerateGBBurgInfo(home, home->GBKeys[i]);    
         }
 
-	    if(home->myDomain == 0){
-	        FormatMatrix(param->matrixOrientation,"basis orientation");
-	        printf("\n");
-	        FormatMatrix(TwinOrientation,"twin orientation");
-	        printf("\n");
-	        FormatVector(param->TBNormal, "twin boundary normal");
-	        printf("\n");
-	    }
 
         if(home->myDomain == 0){
 
