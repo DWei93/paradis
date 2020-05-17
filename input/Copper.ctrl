@@ -40,7 +40,7 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-dirname = "res.bulk-rc=64-4"
+dirname = "res.relax-t-62.464nm"
 remeshRule = 2
 enforceGlidePlanes =  1
 enableCrossSlip =   1
@@ -49,14 +49,14 @@ splitMultiNodeFreq =   1
 #  Simulation time and timestepping controls
 #  
 maxstep =  40000000 
-#maxstep =  400
-maxStn = 1.2E-2
-maxPst = 1.0E-2
+#maxstep =  20000
+maxStn = 7.2E-2
+maxPst = 5.0E-2
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
 rc =  10
 wallTime = 24
-grainSize = 6250
+grainSize = 244
 a0 = [ 0.7929 0.5866 0.4525 0.0918 ]
 #
 #  Fast Multipole Method controls
@@ -64,7 +64,7 @@ a0 = [ 0.7929 0.5866 0.4525 0.0918 ]
 fmEnabled =   1  
 fmMPOrder =   2  
 fmTaylorOrder =   5  
-fmCorrectionTbl =   "input/fm-ctab.Cu.m2.t5.dat"
+fmCorrectionTbl =   "fm-ctab.Cu.m2.t5.dat"
 #
 #  Loading conditions
 #  
@@ -76,10 +76,7 @@ strRate = -4.0E16
 #strRate = 0.0
 #plaRateCtr = 2.0E4
 
-edotPolar = [
-    90.0
-    105.0
-]
+edotPolar = [ 0.0 0.0 ]
 
 appliedStress = [
 	0.0e0
@@ -96,7 +93,7 @@ appliedStress = [
 mobilityLaw =   "Wei"  
 #shearModulus =   54.6e9  # Voight Average
 shearModulus =  46.554e9  # in jin paper
-gbStrength = 50E6
+gbStrength = -1
 tbStrength = [
     245.0E6
     700.0E6 
@@ -119,13 +116,13 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 200
+tecplotfreq = 2000
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1
 tecmeshfreq = 10000000
 savecn = 1
-savecnfreq = 2000
+savecnfreq = 10000
 savetimers = 0
 savetimersfreq = 10
 velfile = 0
