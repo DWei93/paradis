@@ -64,6 +64,7 @@ void CrossSlipFCC(Home_t *home)
         Param_t *param;
         real8   rotMatrix[3][3], rotMatrixInverse[3][3];
         BurgInfo_t  *burgData;
+        GB_t *gb;
 
 #ifdef DEBUG_CROSSSLIP_DOMAIN
         dbgDom = DEBUG_CROSSSLIP_DOMAIN;
@@ -170,8 +171,12 @@ void CrossSlipFCC(Home_t *home)
  *          it with dislocation emission on GB.
  *                                                              D. Wei
  */
-            if(IsOnGB(nbr1) || IsOnGB(nbr2) || IsOnGB(node))continue;
-
+            if( param->polycrystal >0 ){
+                if(IsOnGB(nbr1) || IsOnGB(nbr2) || IsOnGB(node))continue;
+                if(fabs(ClosedGB(home, node->x, node->y, node->z, &gb))>param->rc)continue;
+                if(fabs(ClosedGB(home, nbr1->x, nbr1->y, nbr1->z, &gb))>param->rc)continue;
+                if(fabs(ClosedGB(home, nbr2->x, nbr2->y, nbr2->z, &gb))>param->rc)continue;
+            }
 /*
  *          Before we commit to doing a cross-slip event, we may shift
  *          nodes and recalculate some forces to determine if it is
