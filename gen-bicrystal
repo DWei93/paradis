@@ -23,32 +23,39 @@
 #                    
 ######################################################################################
 
-
 #frlen=00
-cubeln=500
+ctrlFile=input/Copper.ctrl
+cubeln=200
 if [ $cubeln -ge 3000 ]; then heightRatio=1; else heightRatio=2; fi
 cubel=`echo ${cubeln}/0.256 | bc`
-frlen=`echo ${cubel}/3 | bc`
+frlen=`echo ${cubel}/2 | bc`
 maxSeg=`echo ${cubel}/15 |bc `
-nfrs=500
 nGrains=2
 thick=`echo ${cubel}/${nGrains}| bc`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
 echo "Thickness=$thick b, $thickn nm"
-maxDensity=5E12
+nfrs=500; maxDensity=1E14;
 polycrystal=${1}
 single=${2}
+
+msize=`echo "scale=0; ${cubel}/21" | bc`
+sed -i "/meshSizeX/cmeshSizeX = $msize" $ctrlFile;
+sed -i "/meshSizeY/cmeshSizeY = $msize" $ctrlFile;
+sed -i "/meshSizeZ/cmeshSizeZ = $msize" $ctrlFile;
+
+if [ $cubeln -eq 500 ]; then nfrs=24; maxDensity=5E12; fi;
+if [ $cubeln -eq 750 ]; then nfrs=24; maxDensity=6E12; fi;
 
 PI=3.1415926535897932385
 if [ ${polycrystal} == "1" ]; then
     srctype=5
     angle=`echo "scale=16; ${2}.0 * ${PI} / 180.0 " | bc -l`
-    sed -i "/dirname/cdirname = \"res.bicrtal-d-${cubeln}nm-${2}-degree\"" input/Copper.ctrl
-    sed -i "/grainSize/cgrainSize = ${thick}" input/Copper.ctrl
+    sed -i "/dirname/cdirname = \"res.bicrtal-d-${cubeln}nm-${2}-degree-$3\"" ${ctrlFile}
+    sed -i "/grainSize/cgrainSize = ${thick}" ${ctrlFile}
 else
     degree=`sed -n '1p' ${3}`
-    sed -i "/dirname/cdirname = \"res.single-${single}-d-${cubeln}nm-${degree}\"" input/Copper.ctrl
-    sed -i "/grainSize/cgrainSize = ${cubel}" input/Copper.ctrl
+    sed -i "/dirname/cdirname = \"res.single-${single}-d-${cubeln}nm-${degree}\"" ${ctrlFile}
+    sed -i "/grainSize/cgrainSize = ${cubel}" ${ctrlFile}
     srctype=2
     if [ ${single} = "1" ]; then
         lnum=`grep  -n "basis orientation:" ${3} | cut -d : -f 1`
@@ -129,7 +136,7 @@ case $srctype in
 ######################################################################################
     5|V)
 
-    ( echo "${2}-degree" ; ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    (echo "${2}-degree" ; ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity \
     -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1 )| tee createFR.log;;
 
