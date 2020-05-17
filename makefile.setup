@@ -58,6 +58,7 @@
 #      gcc             Generic Linux system build using gnu compilers
 #
 
+#SYS = linux.opteron
 SYS = gcc
 
 #
@@ -108,7 +109,9 @@ OPT = -O3
 #DEFS += -DIMAGEFORCE
 #OPENMP_MODE = ON
 # DEFS += -DDEBUG
-#DEFS += -DSIMLPLE_REACTION_ON_GB
+DEFS += -DSIMLPLE_REACTION_ON_GB
+DEFS += -DGSIZE_EFFECT
+DEFS += -DTB_PINNING
 #######################################################################
 #
 #    Specify some miscellaneous definitions that may be used
