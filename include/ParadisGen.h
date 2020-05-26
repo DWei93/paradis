@@ -9,8 +9,8 @@
  */
 typedef struct {
         int     cubeLength;
-        int     frLenMin;
-        int     frLenMax;
+        real8     frLenMin;
+        real8     frLenMax;
         int     hexl;
         int     interstitialLoops;
         int     loopType;

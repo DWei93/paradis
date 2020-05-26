@@ -311,6 +311,7 @@ void InitGrain(Home_t *home, Param_t *param){
         home->grainKeys[0] = (Grain_t *)calloc(1, sizeof(Grain_t));
         grain = home->grainKeys[0];
         grain->nBounds = 0;
+        grain->thick = param->xBoundMax*2;
         GenerateFCCBurgInfo(&(grain->burgData), param->matrixOrientation, -1);
 
         memcpy(grain->orientation, home->rotMatrix, sizeof(real8 [3][3]));
@@ -651,6 +652,7 @@ void InitGrain(Home_t *home, Param_t *param){
             grain->cx = 0.0;
             grain->cy = 0.0;
             grain->grainID = i;
+            grain->thick = thick;
 
             GBID = i -1;
             if(GBID < 0) GBID = nGrain - 1;
@@ -792,6 +794,7 @@ void InitGrain(Home_t *home, Param_t *param){
         grain->grainID = 0;
         grain->sign[0] = 1.0;
         grain->GB[0] = home->GBKeys[0];
+        grain->thick = 2*param->xBoundMax;
         memcpy(grain->orientation, param->matrixOrientation, sizeof(real8 [3][3]));
         GenerateFCCBurgInfo(&(grain->burgData), grain->orientation, grain->grainID);
 	    invFlag = Matrix33Invert(grain->orientation, grain->orientationInv);
@@ -804,6 +807,7 @@ void InitGrain(Home_t *home, Param_t *param){
 	    InitGrainStructure(grain, 1);
 	    grain->type = ODINARY_GRAIN;
         grain->grainID = 1;
+        grain->thick = 2*param->xBoundMax;
         grain->sign[0] = -1.0;
         grain->GB[0] = home->GBKeys[0];
     

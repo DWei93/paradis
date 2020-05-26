@@ -186,6 +186,7 @@ struct _grain{
 	real8	    orientation[3][3];
 	real8	    orientationInv[3][3];
     real8       maxSchmid;
+    real8       thick;
     int         grainID;
 	int		    type;	/*0: folded grain*/
 					    /*1: ordinary grain*/

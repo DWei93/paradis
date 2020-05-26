@@ -1206,13 +1206,13 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         int      i, lineIndex, chain, baseNodeID, numPoints,ranNum;
         int      newNodeIndex, lastBlock, burgIndex;
         int      isScrew, gpIndex, gpBurgIndex;
-        int      lenRange,x0, d, nLayers, xn, layer;
+        int      x0, d, nLayers, xn, layer;
         int      startRemeshIndex = 0;
         real8    srcLen, thickness;
         real8    p0[3], p1[3], p2[3], p3[3], randomLine[3],k0[3];
         real8    p4[3], p5[3];
-        real8	 randomAngle;
-        int	     cubeLength, numSources, srcLenMin, srcLenMax, seed, dislocType;
+        real8	 randomAngle,srcLenMin, srcLenMax,lenRange;
+        int	     cubeLength, numSources,  seed, dislocType;
         int	     polycrystal, nGrain, finish;
         int      firstBurgIndex, srcLenType;
         int      inGrain1, onGB1, inGrain2, onGB2, inGrain0, onGB0;
@@ -2769,12 +2769,12 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         int      i, lineIndex, chain, baseNodeID, numPoints=3,ranNum;
         int      newNodeIndex, lastBlock, burgIndex;
         int      isScrew, gpIndex, gpBurgIndex;
-        int      lenRange,x0, d, nLayers, xn, layer, time;
+        int      x0, d, nLayers, xn, layer, time;
         int      startRemeshIndex = 0;
-        real8    srcLen, thickness;
+        real8    srcLen, thickness,lenRange;
         real8    p0[3], p1[3], p2[3], p3[3], randomLine[3];
-        real8	 randomAngle;
-        int	     cubeLength, numSources, srcLenMin, srcLenMax, seed, dislocType;
+        real8	 randomAngle, edge, srcLenMin, srcLenMax;
+        int	     cubeLength, numSources,  seed, dislocType;
         int	     polycrystal, nGrain, finish;
         int      firstBurgIndex, srcLenType;
         int      inGrain1, onGB1, inGrain2, onGB2, inGrain0, onGB0;
@@ -2841,8 +2841,10 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         	
         param = inData->param;
         d = inArgs->deltaNums;
-        lenRange = srcLenMax - srcLenMin;
         cubeSize	=	(real8)cubeLength;
+        if(srcLenMax<0) {srcLenMax = -srcLenMax; srcLenType = 2;} 
+        if(srcLenMin<0) {srcLenMin = -srcLenMin; srcLenType = 2;}
+        lenRange = srcLenMax - srcLenMin;
 
         bool freeLine=(param->xBoundType != Periodic && param->yBoundType != Periodic && param->zBoundType != Periodic);
 
@@ -2851,6 +2853,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         if(numSources <= 0){
             singleSrcTest = 1;
         }
+
         	
         if(polycrystal){
             gb = home->GBKeys[0];
@@ -2900,30 +2903,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
             for(chain = 0; chain < xn; ){
              
                 numPoints = (inArgs->extended == 0) ? 3 : 4;
-/*           
- *              Length of the frank read source should be a random length
- *              between srcLenMin and srcLenMax.
- */          
-	            switch(srcLenType){
-	                case 0:
-                        if (lenRange > 0) {
-                            srcLen = (srcLenMin + (randm(&seed) * lenRange));
-                            if(srcLen > srcLenMax){
-                                srcLen = srcLenMax;
-                            }
-                        } else {
-                            srcLen = srcLenMin;
-                        }
-	 	                break;
-          
-	 	            case 1:
-	 	                srcLen = -log(randm(&seed))/sqrt(maxDensity)/burgMag;
-                        printf("chain=%d length=%f\n",chain,srcLen);
-	 	                break;
-             
-                    default:
-                        break;
-	            }
     
                 finished = 0;
                 while(!finished){
@@ -2961,12 +2940,13 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
                     gpBurgIndex = slip_sys[ranNum][0]; gpIndex=slip_sys[ranNum][1];
 #else
-                    gpIndex = 3;
-                    gpBurgIndex = 3;
+                    gpIndex = 0;
+                    gpBurgIndex = 0;
+                    p1[3] =  home->grainKeys[inGrain1]->cz;
 #endif   
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
-                    VECTOR_COPY(n3, bd->planeList[3]);
+                    VECTOR_COPY(n3, param->TBNormal);
                     if(!PerpendicularDirection(n0,b))Fatal("burg is not perpendicular to glide plane");
 
                     time = 0;
@@ -2974,15 +2954,19 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         time++;
 
                         if(3!=gpIndex && freeLine == false){
+#if 1
                             cross(n3,n0,randomLine);
+#else
+                            NormalComponent(n3,n0,randomLine); NormalizeVec(randomLine);
+#endif                            
                             if(randm(&seed)>0.5){
                                 randomLine[0]=-randomLine[0];
                                 randomLine[1]=-randomLine[1];
                                 randomLine[2]=-randomLine[2];
                             }
+                            edge = home->grainKeys[inGrain1]->thick/0.942809;
                         }else{
                             randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
-                            
                             randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
                             
                             cross(n0, b, n1);
@@ -2991,11 +2975,46 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             for(i = 0; i < 3; i++){
                                 randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
                             }
+                            edge = cubeLength;
                         }
                         NormalizeVec(randomLine);
 #if 0
                         VECTOR_ZERO(p1); VECTOR_ZERO(randomLine); randomLine[0]=1;
 #endif
+/*           
+ *                     Length of the frank read source should be a random length
+ *                     between srcLenMin and srcLenMax.
+ */          
+	                    switch(srcLenType){
+	                        case 0:
+                                if (lenRange > 0) {
+                                    srcLen = (srcLenMin + (randm(&seed) * lenRange));
+                                    if(srcLen > srcLenMax){
+                                        srcLen = srcLenMax;
+                                    }
+                                } else {
+                                    srcLen = srcLenMin;
+                                }
+	 	                        break;
+                        
+	 	                    case 1:
+	 	                        srcLen = -log(randm(&seed))/sqrt(maxDensity)/burgMag;
+                                printf("chain=%d length=%f\n",chain,srcLen);
+	 	                        break;
+                            case 2:
+                                if (lenRange > 0) {
+                                    srcLen = (srcLenMin + (randm(&seed) * lenRange))*edge;
+                                    if(srcLen > srcLenMax*edge){
+                                        srcLen = srcLenMax*edge;
+                                    }
+                                } else {
+                                    srcLen = srcLenMin*edge;
+                                }
+	 	                        break;
+                            default:
+                                break;
+	                    }
+
                         for (i = 0; i < 3; i++) {
                             p0[i] = p1[i] + (srcLen * randomLine[i])/2.0;
                             p2[i] = p1[i] + (srcLen * randomLine[i]);

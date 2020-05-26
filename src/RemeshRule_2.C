@@ -193,6 +193,8 @@ static void MeshCoarsen(Home_t *home)
                SurfaceNode(nbr2) && SurfaceNode(node) ||
                SurfaceNode(node) )continue;
 
+            if(nbr1->constraint ==7 && nbr2->constraint==7)continue;
+
             if (node->flags & NO_MESH_COARSEN) {
                 continue;
             }

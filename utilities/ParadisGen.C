@@ -460,12 +460,6 @@ static void CheckArgSanity(InArgs_t *inArgs)
                 if (inArgs->numFRSrcs < 0) {
                         Fatal("Number of frank read sources must be > 0");
                 }
-                if (inArgs->frLenMin < 0.0) {
-                    inArgs->frLenMin = (int) floor(0.5 * inArgs->cubeLength);
-                }
-                if (inArgs->frLenMax < inArgs->frLenMin) {
-                    inArgs->frLenMax = (int) floor(1.1 * inArgs->frLenMin);
-                }
         }
 
         return;
@@ -526,10 +520,10 @@ static void PrintArgs(InArgs_t *inArgs)
                 printf("Source length distribution type:        %d\n", inArgs->srcLenType);
                 printf("Number of sources:        %d\n", inArgs->numFRSrcs);
                 if (inArgs->frLenMax > inArgs->frLenMin) {
-                    printf("Length of sources:        %d-%d\n",
+                    printf("Length of sources:        %f-%f\n",
                            inArgs->frLenMin, inArgs->frLenMax);
                 } else {
-                    printf("Length of sources:        %d\n", inArgs->frLenMin);
+                    printf("Length of sources:        %f\n", inArgs->frLenMin);
                 }
                 printf("Seed Value:               %d\n", inArgs->seed);
 	            printf("HeightRatio:              %f\n",inArgs->heightRatio);
@@ -656,13 +650,13 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 					
 	            case OPT_FRLEN:
                     token = strtok(argValue, ",");
-                    inArgs->frLenMin = atoi(token);
+                    inArgs->frLenMin = atof(token);
                     token = strtok(NULL, ",");
                     if (token == (char *)NULL) {
                         inArgs->frLenMax = inArgs->frLenMin;
                         break;
                     }
-                    inArgs->frLenMax = atoi(token);
+                    inArgs->frLenMax = atof(token);
                     break;
                 case OPT_HELP:
                     PrintHelp(argv[0]);

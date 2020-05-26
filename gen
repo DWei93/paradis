@@ -27,9 +27,11 @@
 #frlen=00
 cubeln=1000
 cubel=`echo ${cubeln}/0.256 | bc`
-frlen=`echo ${cubel}/2 | bc`
-nfrs=5
-nGrains=10
+#frlen=`echo ${cubel}/2 | bc`
+frlen=-0.5
+nGrains=20
+nfrs=`echo "12*${nGrains}" | bc`
+nfrs=1
 nTDs=0
 gb=0
 thick=`echo ${cubel}/${nGrains}| bc`
