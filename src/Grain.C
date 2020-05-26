@@ -2515,7 +2515,7 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
     CoordMinus(bakPos, pos, bakPos); ZImage(home->param, bakPos, bakPos+1, bakPos+2);
     *dis = Normal(bakPos);
 
-    if(fabs(*dis) > 1000.0 && type != POINT_INTERSECTION){
+    if(fabs(*dis) > 3000.0 && type != POINT_INTERSECTION){
         int     numGlideConstraintsNode1, numGlideConstraintsNode2;
         real8   glideConstraintsNode1[3][3], glideConstraintsNode2[3][3]; 
         bool    zeroLenJunc1, zeroLenJunc2;

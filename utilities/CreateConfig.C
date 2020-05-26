@@ -3670,6 +3670,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     InitRemesh(inData, dislocType, startRemeshIndex);
 //                    lastBlock = (chain == (numSources - 1));
                    
+                    baseNodeID = inData->nodeCount;
+                    startRemeshIndex = baseNodeID;
                    
 	                if(totSrcLen > maxDensity*volume*burgMag*burgMag){
 		                finish = 1;
@@ -3677,8 +3679,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 	                }else{
 		                finish = 0;
 	                }
-                    baseNodeID = inData->nodeCount;
-                    startRemeshIndex = baseNodeID;
                 } // for k<burgID
             }
         }

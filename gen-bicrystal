@@ -24,17 +24,17 @@
 ######################################################################################
 
 #frlen=00
-ctrlFile=input/Copper.ctrl
-cubeln=200
+ctrlFile=Copper.ctrl
+cubeln=5000
 if [ $cubeln -ge 3000 ]; then heightRatio=1; else heightRatio=2; fi
 cubel=`echo ${cubeln}/0.256 | bc`
-frlen=`echo ${cubel}/2 | bc`
+frlen=`echo ${cubel}/3 | bc`
 maxSeg=`echo ${cubel}/15 |bc `
 nGrains=2
 thick=`echo ${cubel}/${nGrains}| bc`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
 echo "Thickness=$thick b, $thickn nm"
-nfrs=500; maxDensity=1E14;
+nfrs=500; maxDensity=5E12;
 polycrystal=${1}
 single=${2}
 
@@ -43,7 +43,7 @@ sed -i "/meshSizeX/cmeshSizeX = $msize" $ctrlFile;
 sed -i "/meshSizeY/cmeshSizeY = $msize" $ctrlFile;
 sed -i "/meshSizeZ/cmeshSizeZ = $msize" $ctrlFile;
 
-if [ $cubeln -eq 500 ]; then nfrs=24; maxDensity=5E12; fi;
+if [ $cubeln -le 500 ]; then nfrs=23; maxDensity=5E12; fi;
 if [ $cubeln -eq 750 ]; then nfrs=24; maxDensity=6E12; fi;
 
 PI=3.1415926535897932385
