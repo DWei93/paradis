@@ -2148,8 +2148,10 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     real8       coff=0.0, length, nor[3], gDir[3], gbNormal[3], pos[3], pBound[3], nBound[3], vel[3];
     GB_t        *gb;
     Grain_t     *grain;
-    int         armID, i, j, type, armInGrain,armOnGB;
+    int         armID, i, j, type, armInGrain,armOnGB,curInGrain, curOnGB;
     real8       node1Pos[3]={node1->x,node1->y,node1->z}, node2Pos[3]={node2->x,node2->y,node2->z};
+    FoldBox(param,node1Pos,node1Pos+1,node1Pos+2);
+    FoldBox(param,node2Pos,node2Pos+1,node2Pos+2);
 
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);
@@ -2170,28 +2172,31 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     real8 gbStrength = param->gbStrength;
     bool cacGBStress = (gbStrength>0);
 
-    xi[0] = node2->x - node1->x;
-    xi[1] = node2->y - node1->y;
-    xi[2] = node2->z - node1->z;
+    CoordMinus(node2Pos,node1Pos,xi);
     cacGBStress |= (Normal(xi)<3*param->maxSeg);
 
     ZImage(param, xi, xi+1, xi+2);
-
     length = Normal(xi);
     if(length < 1.0E-2)return;
     NormalizeVec(xi);
     GetArmGrain(home, node1, node2, armInGrain, armOnGB);
     NormalComponent(burg,xi,bedge);
 
-    PBCPOSITION(param,node1->oldx,node1->oldy,node1->oldz,node1Pos,node1Pos+1,node1Pos+2);
-    PBCPOSITION(param,node2->oldx,node2->oldy,node2->oldz,node2Pos,node2Pos+1,node2Pos+2);
+    real8 old1Pos[3]={node1->oldx,node1->oldy,node1->oldz}, old2Pos[3]={node2->oldx,node2->oldy,node2->oldz};
+    FoldBox(param,old1Pos,old1Pos+1,old1Pos+2);
+    FoldBox(param,old2Pos,old2Pos+1,old2Pos+2);
+    PBCPOSITION(param,old1Pos[0],old1Pos[1],old1Pos[2],node1Pos,node1Pos+1,node1Pos+2);
+    PBCPOSITION(param,old2Pos[0],old2Pos[1],old2Pos[2],node2Pos,node2Pos+1,node2Pos+2);
     cacGBStress |= fabs(node1Pos[0])<param->xBoundMax && fabs(node1Pos[1])<param->yBoundMax && fabs(node1Pos[2])<param->zBoundMax;
     cacGBStress |= fabs(node2Pos[0])<param->xBoundMax && fabs(node2Pos[1])<param->yBoundMax && fabs(node2Pos[2])<param->zBoundMax;
 
+    FoldBox(param,node1Pos,node1Pos+1,node1Pos+2);
+    FoldBox(param,node2Pos,node2Pos+1,node2Pos+2);
+
     for(i=0; i<2; i++){
-        pos[0] = node1->x + length*gausFac[i]*xi[0];
-        pos[1] = node1->y + length*gausFac[i]*xi[1];
-        pos[2] = node1->z + length*gausFac[i]*xi[2];
+        pos[0] = node1Pos[0] + length*gausFac[i]*xi[0];
+        pos[1] = node1Pos[1] + length*gausFac[i]*xi[1];
+        pos[2] = node1Pos[2] + length*gausFac[i]*xi[2];
         FoldBox(param, pos, pos+1, pos+2);
 /*
  *      GB image force
@@ -2298,6 +2303,8 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
  */
         if(armInGrain<0 || param->polycrystal==0)continue; 
         tbStrength = (PerpendicularDirection(burg,param->TBNormal,0.05)==true?param->tbStrength[0]:param->tbStrength[1]);
+        NodeLocation(home, pos[0], pos[1], pos[2], curInGrain, curOnGB);
+        if(curInGrain != armInGrain)continue;
         
         grain=home->grainKeys[armInGrain];
         for(j=0; j<grain->nBounds; j++){
@@ -2305,7 +2312,8 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
             type = PlanePlaneIntersection(nor,pos,gb->n,gb->p,ldir,pdir);
             if(type==LINE_INTERSECTION){
                 CoordMinus(pos,pdir,ldir); 
-                if((dis=Normal(ldir))>err){
+                dis=Normal(ldir);
+                if(dis>err && dis <amax){
                     NormalizeVec(ldir);
                     coff = (dis>a)?tbStrength * a/sqrt(dis*dis+a*a):tbStrength;
                     NormalComponent(ldir,xi,gDir);
@@ -2325,7 +2333,8 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 void NodeImageForce(Home_t *home, Node_t *node, real8 *f)
 {
     real8 armf1[3],armf2[3];
-    VECTOR_ZERO(f); Node_t *nbr;
+    VECTOR_ZERO(f); 
+    Node_t *nbr;
     for(int i=0; i<node->numNbrs; i++){
         nbr=GetNeighborNode(home, node, i); 
         if(nbr==(Node_t *)NULL)continue;

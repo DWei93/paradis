@@ -45,7 +45,7 @@ int Mobility_Wei(Home_t *home, Node_t *node)
     Node_t *nbr;
     real8 MobScrew, MobEdge, MobTwinning, Mob;
     real8 bx, by, bz, br, dangle;
-    real8 glideConstraintsCrystal[3][3];
+    real8 glideConstraintsCrystal[3][3], imageForce[3];
     real8 nForce[3], glideForce[3], glideConstraints[3][3], n[3], sig;
     real8 factor = 1.0, pinForce;
 
@@ -200,6 +200,21 @@ int Mobility_Wei(Home_t *home, Node_t *node)
 #endif
 	/* Velocity is simply proportional to total force per unit length */
 	GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints, zeroLenJunc);
+    ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, nForce);
+    NodeImageForce(home, node, imageForce);
+    if(DotProduct(nForce,imageForce)<0){
+        if(Normal(nForce)>Normal(imageForce)){
+            nForce[0] -= imageForce[0];
+            nForce[1] -= imageForce[1];
+            nForce[2] -= imageForce[2];
+        }else{
+	        node->vX =0.0;
+	        node->vY =0.0;
+	        node->vZ =0.0;
+            return (0);
+        }
+    }
+
 #ifdef TB_PINNING
     if((NodeOnGB(home, node)&INTERSECT_NODE)>0 && (numGlideConstraints ==2)){
         pinForce = ((param->tbStrength[0] < 2.0E8)?param->tbStrength[0]*lxb:(4.81851E8/param->grainSize + 5.9E8)*lxb);
@@ -218,15 +233,13 @@ int Mobility_Wei(Home_t *home, Node_t *node)
 	    nVel[0] = nForce[0]/LtimesB;
 	    nVel[1] = nForce[1]/LtimesB;
 	    nVel[2] = nForce[2]/LtimesB;
-	    ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, nVel);
     }
 #else
 	 nVel[0] = nForce[0]/LtimesB;
 	 nVel[1] = nForce[1]/LtimesB;
 	 nVel[2] = nForce[2]/LtimesB;
-	 ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, nVel);
-
 #endif
+
     if(Normal(nVel) > 1E-10 && SurfaceNode(node)){
         real8   vec[3], nor[3];
         VECTOR_ZERO(nor);

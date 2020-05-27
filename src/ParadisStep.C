@@ -242,7 +242,6 @@ void ParadisStep(Home_t *home)
             return;
         }
 		
-		
 
 #ifndef NO_XWINDOW
         while (WinIsPaused()) {
