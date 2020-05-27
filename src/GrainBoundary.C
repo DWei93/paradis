@@ -28,16 +28,29 @@
 *****************************************************************************/
 void PullBack(Home_t *home, Node_t *node){
 
+    int oldInGrain, oldOnGB;
     int     currInGrain, currOnGB;
 	real8	newPos[3], bakVec[3];
     GB_t    *gb;
     char name[50];
-	
+
+#if DEBUG
 	if(node == (Node_t *)NULL){
         printf("Task %d: %s, line %d -- Node = NULL",
 		       home->myDomain, __FILE__, __LINE__);
         return;
 	}
+#endif
+    NodeLocation(home, node->oldx, node->oldy, node->oldz, oldInGrain, oldOnGB);
+    if(oldInGrain==node->inGrain && oldOnGB==node->onGB){
+        newPos[0]=node->oldx;
+        newPos[1]=node->oldy;
+        newPos[2]=node->oldz;
+	    FoldBox(home->param, newPos, newPos+1, newPos+2);
+        RepositionNode(home, newPos, &node->myTag,1);
+	    return;
+    }
+
 
     if(IsOnGB(node)){
         currOnGB = node->onGB;
@@ -98,7 +111,6 @@ void PullBack(Home_t *home, Node_t *node){
     }
 
 	FoldBox(home->param, newPos, newPos+1, newPos+2);
-
     RepositionNode(home, newPos, &node->myTag,1);
 	return;
 }
