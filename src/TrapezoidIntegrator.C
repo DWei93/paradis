@@ -715,13 +715,20 @@ void TrapezoidIntegrator(Home_t *home)
                     nodeVec[0] = node->x - oldx;
                     nodeVec[1] = node->y - oldy;
                     nodeVec[2] = node->z - oldz;
-                    ZImage(param, nodeVec, nodeVec+1, nodeVec+2);
                     	
                     localMaxDisp = MAX(localMaxDisp, Normal(nodeVec));
 				
-                    if(isnan(errMax) || isinf(errMax) || errMax > 1000){
-			            PrintNode(node);
-			            printf("Warning: errMax is %f at %s, Line %d.\n",errMax,__FILE__,__LINE__);
+                    if(isnan(errMax) || isinf(errMax) || errMax > 200){
+			            PrintNode(home,node);
+                        real8 nodeVel[3]={node->vX,node->vY,node->vZ}, currVel[3]={node->currvX,node->currvY,node->currvZ};
+                        real8 v1=Normal(nodeVel)*2.556E-10, v2=Normal(currVel)*2.556E-10;
+                        NormalizeVec(nodeVel); NormalizeVec(currVel);
+                        FormatVector(nodeVel,"nodeVel");
+                        FormatVector(currVel,"currVel");
+                        printf("%f=%f-%f\n",nodeVec[0],node->x,oldx);
+                        printf("%f=%f-%f\n",nodeVec[1],node->y,oldy);
+                        printf("%f=%f-%f\n",nodeVec[2],node->z,oldz);
+			            printf("errMax=%e, nodeVel=%e, currVel=%e at %s, newDt=%e, nodeVec=%e Line %d.\n",errMax,v1,v2,newDT,Normal(nodeVec),__FILE__,__LINE__);
                     }
 #ifdef DEBUG_TIMESTEP
                     if (errMax > oldErrMax) {
