@@ -2941,8 +2941,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     gpBurgIndex = slip_sys[ranNum][0]; gpIndex=slip_sys[ranNum][1];
 #else
                     gpIndex = 0;
-                    gpBurgIndex = 0;
-                    p1[3] =  home->grainKeys[inGrain1]->cz;
+                    gpBurgIndex = 3;
+                    p1[2] =  home->grainKeys[inGrain1]->cz;
 #endif   
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
