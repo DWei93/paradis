@@ -355,7 +355,6 @@ void RestoreCrossSlipForce(Node_t *node, Node_t *nbr1, Node_t *nbr2,
 void CrossSlip(Home_t *home)
 {
     int enabled, matType;
-		
 
     enabled = home->param->enableCrossSlip;
     matType = home->param->materialType;
@@ -366,7 +365,7 @@ void CrossSlip(Home_t *home)
  *                                                                   D.Wei
  */
     DebugGB(home, 301);
-    GBCrossSlip(home);
+    if(home->cycle%100==0)GBCrossSlip(home);
     DebugGB(home, 302);
 #endif
 
