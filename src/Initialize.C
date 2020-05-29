@@ -1272,7 +1272,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
                     if (i >= (argc - 1)) Usage(argv[0]);
                     dataFile = argv[++i];
 
-                } else if (!strcmp(argv[i], "-h")) {
+                } else if (!strcmp(argv[i], "-t")) {
                     if(i >= (argc - 1)) Usage(argv[0]);
                     tableFile = argv[++i];
                 } else {
@@ -1762,6 +1762,51 @@ void Initialize(Home_t *home,int argc, char *argv[])
         for(i=0; i<totMeshNum; i++){
            home->disDenEle[i] = (real8 *)calloc(6, sizeof(real8)); 
         }
+
+/*
+ *      Reading the plastic strain restart file
+ */
+
+        if(home->myDomain == 0){
+
+            if (tableFile == (char *)NULL) {
+                strcpy(tmpTableFile, ctrlFile);
+                start = strrchr(tmpTableFile, '/');
+                if (start == (char *)NULL) start = tmpTableFile;
+                sep = strrchr(start, '.');
+                if ((sep != (char *)NULL) && (sep > start)) *sep = 0;
+                strcat(tmpTableFile, TABLE_FILE_SUFFIX);
+                tableFile = tmpTableFile;
+            }
+
+            maxTokenLen = sizeof(token);
+            tokenType = TOKEN_GENERIC;
+
+            if ((fp = fopen(tableFile, "r")) != (FILE *)NULL) {
+                printf("Initialize: Parsing plastic strain file %s\n", tableFile);
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if (strcmp(token, "pstnEle") != 0){
+                    Fatal("Read Table File: can not read pstEle");
+                }
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if(tokenType != TOKEN_EQUAL)Fatal("Read Table File: can not read pstEle");
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if(tokenType != TOKEN_BEGIN_VAL_LIST)Fatal("Read Table File: can not read pstEle");
+            
+                for(i=0; i<totMeshNum; i++){
+                    for(j=0; j<6; j++){
+                        if((tokenType = GetNextToken(fp, token, maxTokenLen)) != TOKEN_GENERIC){
+                            Fatal("Read Table File: can not read pstEle");
+                        }
+                        home->pstnEle[i][j] = atof(token);
+                    }
+                }
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if(tokenType != TOKEN_END_VAL_LIST)Fatal("Read Table File: can not read pstEle");
+                printf("Initialize: Plastic strain file parsing complete\n");
+                fclose(fp);
+            }
+        }        
 
 /*
  *	Iinitialize grain
