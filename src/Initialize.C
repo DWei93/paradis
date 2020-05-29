@@ -1202,6 +1202,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
         int  maxTokenLen, tokenType, pIndex, okay;
         char token[256];
         FILE *fp = (FILE *)NULL;
+        tableFile = (char *)NULL;
 
         real8 *pstn, degree=1.745329251994330e-02;
 /*
@@ -1242,7 +1243,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
             dataFile = (char *)NULL;
             ctrlFile = (char*)"control.script";
-            tableFile = (char *)NULL;
 
             for (i = 1; i < argc; i++) {
                 if (!strcmp(argv[i], "-r")) {
@@ -1653,6 +1653,73 @@ void Initialize(Home_t *home,int argc, char *argv[])
         }
 #endif
 
+        param->meshNumX = (int)(param->Lx/(real8)param->meshSizeX);
+        param->meshNumY = (int)(param->Ly/(real8)param->meshSizeY);
+        param->meshNumZ = (int)(param->Lz/(real8)param->meshSizeZ);
+
+        param->meshSizeX = param->Lx/(real8)param->meshNumX;
+        param->meshSizeY = param->Ly/(real8)param->meshNumY;
+        param->meshSizeZ = param->Lz/(real8)param->meshNumZ;
+
+        totMeshNum = param->meshNumX*param->meshNumY*param->meshNumZ;
+        home->pstnEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
+        home->disDenEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
+
+        for(i=0; i<totMeshNum; i++){
+            home->pstnEle[i] = (real8 *)calloc(6, sizeof(real8)); 
+        }
+
+        for(i=0; i<totMeshNum; i++){
+           home->disDenEle[i] = (real8 *)calloc(6, sizeof(real8)); 
+        }
+
+/*
+ *      Reading the plastic strain restart file
+ */
+
+        if(home->myDomain == 0){
+
+            if (tableFile == (char *)NULL) {
+                strcpy(tmpTableFile, ctrlFile);
+                start = strrchr(tmpTableFile, '/');
+                if (start == (char *)NULL) start = tmpTableFile;
+                sep = strrchr(start, '.');
+                if ((sep != (char *)NULL) && (sep > start)) *sep = 0;
+                strcat(tmpTableFile, TABLE_FILE_SUFFIX);
+                tableFile = tmpTableFile;
+            }
+
+            maxTokenLen = sizeof(token);
+            tokenType = TOKEN_GENERIC;
+            fp = fopen(tmpTableFile, "r");
+            if (fp != (FILE *)NULL) {
+                printf("Initialize: Parsing plastic strain file %s\n", tableFile);
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if (strcmp(token, "pstnEle") != 0){
+                    Fatal("Read Table File: can not read pstEle");
+                }
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if(tokenType != TOKEN_EQUAL)Fatal("Read Table File: can not read pstEle");
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if(tokenType != TOKEN_BEGIN_VAL_LIST)Fatal("Read Table File: can not read pstEle");
+            
+                for(i=0; i<totMeshNum; i++){
+                    for(j=0; j<6; j++){
+                        if((tokenType = GetNextToken(fp, token, maxTokenLen)) != TOKEN_GENERIC){
+                            Fatal("Read Table File: can not read pstEle");
+                        }
+                        home->pstnEle[i][j] = atof(token);
+                    }
+                }
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if(tokenType != TOKEN_END_VAL_LIST)Fatal("Read Table File: can not read pstEle");
+                printf("Initialize: Plastic strain file parsing complete\n");
+                fclose(fp);
+            }else{
+                if(param->cycleStart)printf("Warning: can not open plastic strain field file %s, errno=%d\n",tableFile,errno);
+            }
+        }     
+
 /*
  *      Create the output directory (and sub-directories) and reset the
  *      current working directory to the top level output directory.
@@ -1742,71 +1809,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
             Matrix33Invert(home->rotMatrix, home->rotMatrixInverse);
         }
-
-        param->meshNumX = (int)(param->Lx/(real8)param->meshSizeX);
-        param->meshNumY = (int)(param->Ly/(real8)param->meshSizeY);
-        param->meshNumZ = (int)(param->Lz/(real8)param->meshSizeZ);
-
-        param->meshSizeX = param->Lx/(real8)param->meshNumX;
-        param->meshSizeY = param->Ly/(real8)param->meshNumY;
-        param->meshSizeZ = param->Lz/(real8)param->meshNumZ;
-
-        totMeshNum = param->meshNumX*param->meshNumY*param->meshNumZ;
-        home->pstnEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
-        home->disDenEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
-
-        for(i=0; i<totMeshNum; i++){
-            home->pstnEle[i] = (real8 *)calloc(6, sizeof(real8)); 
-        }
-
-        for(i=0; i<totMeshNum; i++){
-           home->disDenEle[i] = (real8 *)calloc(6, sizeof(real8)); 
-        }
-
-/*
- *      Reading the plastic strain restart file
- */
-
-        if(home->myDomain == 0){
-
-            if (tableFile == (char *)NULL) {
-                strcpy(tmpTableFile, ctrlFile);
-                start = strrchr(tmpTableFile, '/');
-                if (start == (char *)NULL) start = tmpTableFile;
-                sep = strrchr(start, '.');
-                if ((sep != (char *)NULL) && (sep > start)) *sep = 0;
-                strcat(tmpTableFile, TABLE_FILE_SUFFIX);
-                tableFile = tmpTableFile;
-            }
-
-            maxTokenLen = sizeof(token);
-            tokenType = TOKEN_GENERIC;
-
-            if ((fp = fopen(tableFile, "r")) != (FILE *)NULL) {
-                printf("Initialize: Parsing plastic strain file %s\n", tableFile);
-                tokenType = GetNextToken(fp, token, maxTokenLen);
-                if (strcmp(token, "pstnEle") != 0){
-                    Fatal("Read Table File: can not read pstEle");
-                }
-                tokenType = GetNextToken(fp, token, maxTokenLen);
-                if(tokenType != TOKEN_EQUAL)Fatal("Read Table File: can not read pstEle");
-                tokenType = GetNextToken(fp, token, maxTokenLen);
-                if(tokenType != TOKEN_BEGIN_VAL_LIST)Fatal("Read Table File: can not read pstEle");
-            
-                for(i=0; i<totMeshNum; i++){
-                    for(j=0; j<6; j++){
-                        if((tokenType = GetNextToken(fp, token, maxTokenLen)) != TOKEN_GENERIC){
-                            Fatal("Read Table File: can not read pstEle");
-                        }
-                        home->pstnEle[i][j] = atof(token);
-                    }
-                }
-                tokenType = GetNextToken(fp, token, maxTokenLen);
-                if(tokenType != TOKEN_END_VAL_LIST)Fatal("Read Table File: can not read pstEle");
-                printf("Initialize: Plastic strain file parsing complete\n");
-                fclose(fp);
-            }
-        }        
 
 /*
  *	Iinitialize grain
