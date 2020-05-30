@@ -1805,9 +1805,7 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
         dy = y3 - y4;
         dz = z3 - z4;
 
-        if ((dx*dx + dy*dy + dz*dz) < 1.0e-20
-            || node1==node3 || node1==node4 || node2==node3 || node2==node4)
-            {
+        if ((dx*dx + dy*dy + dz*dz) < 1.0e-20){
             VECTOR_ZERO(f1);
             VECTOR_ZERO(f2);
             VECTOR_ZERO(f3);

@@ -566,7 +566,8 @@ void SetRemainingDefaults(Home_t *home)
 #ifdef GSIZE_EFFECT
             param->Ecore = (param->shearModulus / (4*M_PI))*log(param->grainSize/param->a0[0]);
 #else
-            param->Ecore = (param->shearModulus / (4*M_PI))*log(param->rc/0.1);
+            param->Ecore = (param->shearModulus / (4*M_PI))*log(param->rc*param->grainSize*10E6*param->burgMag);
+            if(home->myDomain==0)printf("Cut-off radius for self energy is %f\n", 1.0/(param->grainSize*10E6*param->burgMag));
 #endif
         }
 /*

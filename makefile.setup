@@ -110,7 +110,7 @@ OPT = -O3
 #OPENMP_MODE = ON
 # DEFS += -DDEBUG
 DEFS += -DSIMLPLE_REACTION_ON_GB
-DEFS += -DGSIZE_EFFECT
+#DEFS += -DGSIZE_EFFECT
 DEFS += -DTB_PINNING
 #######################################################################
 #

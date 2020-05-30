@@ -717,7 +717,7 @@ void TrapezoidIntegrator(Home_t *home)
                     nodeVec[2] = node->z - oldz;
                     	
                     localMaxDisp = MAX(localMaxDisp, Normal(nodeVec));
-				
+#if 0	
                     if(isnan(errMax) || isinf(errMax) || errMax > 200){
 			            PrintNode(home,node);
                         real8 nodeVel[3]={node->vX,node->vY,node->vZ}, currVel[3]={node->currvX,node->currvY,node->currvZ};
@@ -730,6 +730,7 @@ void TrapezoidIntegrator(Home_t *home)
                         printf("%f=%f-%f\n",nodeVec[2],node->z,oldz);
 			            printf("errMax=%e, nodeVel=%e, currVel=%e at %s, newDt=%e, nodeVec=%e Line %d.\n",errMax,v1,v2,newDT,Normal(nodeVec),__FILE__,__LINE__);
                     }
+#endif
 #ifdef DEBUG_TIMESTEP
                     if (errMax > oldErrMax) {
                         tmpNode = node;

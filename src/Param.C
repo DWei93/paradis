@@ -189,7 +189,7 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "deltaTT", &param->deltaTT, V_DBL, 1, VFLAG_NULL);
 
         BindVar(CPList, "maxDT", &param->maxDT, V_DBL, 1, VFLAG_NULL);
-        param->maxDT = 1.0e-11;
+        param->maxDT = 1.0e-08;
 
         BindVar(CPList, "nextDT", &param->nextDT, V_DBL, 1, VFLAG_NULL);
 

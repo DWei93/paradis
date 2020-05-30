@@ -23,24 +23,30 @@
 #                    
 ######################################################################################
 
-
-#frlen=00
+ctrlFile=input/Copper.ctrl
 cubeln=1000
 cubel=`echo ${cubeln}/0.256 | bc`
 #frlen=`echo ${cubel}/2 | bc`
+frlen=`echo ${cubel} | bc`
 frlen=-0.5
-nGrains=20
+nGrains=2
 nfrs=`echo "12*${nGrains}" | bc`
-nfrs=1
-nTDs=0
-gb=0
+nTDs=1
+gb=1
 thick=`echo ${cubel}/${nGrains}| bc`
-maxSeg=`echo ${thick}/3 |bc `
+maxSeg1=`echo ${cubel}/15 | bc `
+maxSeg2=`echo ${thick}/4 | bc `
+if [ ${maxSeg1} -gt ${maxSeg2} ]; then maxSeg=${maxSeg2}; else maxSeg=${maxSeg1}; fi
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
-echo "Thickness=$thick b, $thickn nm"
-sed -i "/grainSize/cgrainSize = ${thick}" input/Copper.ctrl
-sed -i "/dirname/cdirname = \"res.relax-t-${thickn}nm\"" input/Copper.ctrl
+echo "Thickness=$thick b, $thickn nm, maxSeg=${maxSeg}b"
+sed -i "/grainSize/cgrainSize = ${thick}" ${ctrlFile}
+#sed -i "/dirname/cdirname = \"res.relax-t-${thickn}nm\"" ${ctrlFile}
 maxDensity=1E16
+
+msize=`echo "scale=0; ${cubel}/10" | bc`
+sed -i "/meshSizeX/cmeshSizeX = $msize" $ctrlFile;
+sed -i "/meshSizeY/cmeshSizeY = $msize" $ctrlFile;
+sed -i "/meshSizeZ/cmeshSizeZ = $msize" $ctrlFile;
 
 polycrystal=1
 single=2
@@ -82,8 +88,10 @@ case $srctype in
     1|I)
     ./bin/paradisgen -type 3  -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  -frlen ${frlen} \
     -polycrystal 0  -pbc 0 -extend 0  -srcLenType 0 -maxDensity ${maxDensity} \
-    -xMatDir 0.788675134594813,-0.577350269189626,-0.211324865405187 \
-    -yMatDir -0.211324865405187,-0.577350269189626,0.788675134594813 ;;
+    -xMatDir 1,0,0 -yMatDir 0,1,0 ;;
+
+#   -xMatDir 0.788675134594813,-0.577350269189626,-0.211324865405187 \
+#   -yMatDir -0.211324865405187,-0.577350269189626,0.788675134594813 ;;
 
 #    -polycrystal 0 -pbc 0 \
 ######################################################################################

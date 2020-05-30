@@ -2941,14 +2941,14 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     gpBurgIndex = slip_sys[ranNum][0]; gpIndex=slip_sys[ranNum][1];
 #else
                     gpIndex = 0;
-                    gpBurgIndex = 3;
-                    p1[2] =  home->grainKeys[inGrain1]->cz;
+                    gpBurgIndex = 0;
+//                  p1[2] =  home->grainKeys[inGrain1]->cz;
+                    VECTOR_ZERO(p1);
 #endif   
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
-                    VECTOR_COPY(n3, param->TBNormal);
+                    VECTOR_COPY(n3, bd->planeList[3]);
                     if(!PerpendicularDirection(n0,b))Fatal("burg is not perpendicular to glide plane");
-
                     time = 0;
                     while(time < 10000){
                         time++;
@@ -2964,7 +2964,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                                 randomLine[1]=-randomLine[1];
                                 randomLine[2]=-randomLine[2];
                             }
-                            edge = home->grainKeys[inGrain1]->thick/0.942809;
+                            if(polycrystal>0){
+                                edge = home->grainKeys[inGrain1]->thick/0.942809;
+                            }else edge = cubeLength;
                         }else{
                             randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
                             randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
@@ -2990,7 +2992,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                                 if (lenRange > 0) {
                                     srcLen = (srcLenMin + (randm(&seed) * lenRange));
                                     if(srcLen > srcLenMax){
-                                        srcLen = srcLenMax;
+                                       srcLen = srcLenMax;
                                     }
                                 } else {
                                     srcLen = srcLenMin;

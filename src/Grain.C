@@ -2142,7 +2142,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     Param_t *param = home->param;
 
     real8       dis, burgMag, burg[3], segCentor[3], tbStrength, xi[3], bedge[3];
-    real8       ldir[3],pdir[3], a = param->rc, err=1.0E-3, amax=10*a; 
+    real8       ldir[3],pdir[3], a = 5.85938, err=1.0E-3, amax=100; 
     real8       gausFac[2] = {0.211324865405187, // (1-sqrt(3)/3)/2
                               0.7886751345948128}; // (1+sqrt(3)/3)/2
     real8       coff=0.0, length, nor[3], gDir[3], gbNormal[3], pos[3], pBound[3], nBound[3], vel[3];
@@ -2211,7 +2211,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                     dis=Normal(ldir);
                     if(dis>err && dis<amax){
                         NormalizeVec(ldir);
-                        coff = (dis>a)?gbStrength * a/sqrt(dis*dis+a*a):gbStrength;
+                        coff = gbStrength * a/(a+dis);
                         NormalComponent(ldir,xi,gDir);
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
@@ -2225,7 +2225,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                     dis=Normal(ldir);
                     if(dis>err && dis<amax){
                         NormalizeVec(ldir);
-                        coff = (dis>a)?gbStrength * a/sqrt(dis*dis+a*a):gbStrength;
+                        coff = gbStrength * a/(a+dis);
                         NormalComponent(ldir,xi,gDir);
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
@@ -2243,7 +2243,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                     dis=Normal(ldir);
                     if(dis>err && dis<amax){
                         NormalizeVec(ldir);
-                        coff = (dis>a)?gbStrength * a/sqrt(dis*dis+a*a):gbStrength;
+                        coff = gbStrength * a/(a+dis);
                         NormalComponent(ldir,xi,gDir);
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
@@ -2257,7 +2257,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                     dis=Normal(ldir);
                     if(dis>err && dis<amax){
                         NormalizeVec(ldir);
-                        coff = (dis>a)?gbStrength * a/sqrt(dis*dis+a*a):gbStrength;
+                        coff = gbStrength * a/(a+dis);
                         NormalComponent(ldir,xi,gDir);
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
@@ -2275,7 +2275,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                     dis=Normal(ldir);
                     if(dis>err && dis<amax){
                         NormalizeVec(ldir);
-                        coff = (dis>a)?gbStrength * a/sqrt(dis*dis+a*a):gbStrength;
+                        coff = gbStrength * a/(a+dis);
                         NormalComponent(ldir,xi,gDir);
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
@@ -2289,7 +2289,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                     dis=Normal(ldir);
                     if(dis>err && dis<amax){
                         NormalizeVec(ldir);
-                        coff = (dis>a)?gbStrength * a/sqrt(dis*dis+a*a):gbStrength;
+                        coff = gbStrength * a/(a+dis);
                         NormalComponent(ldir,xi,gDir);
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
@@ -2315,7 +2315,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                 dis=Normal(ldir);
                 if(dis>err && dis <amax){
                     NormalizeVec(ldir);
-                    coff = (dis>a)?tbStrength * a/sqrt(dis*dis+a*a):tbStrength;
+                    coff = tbStrength * a/(a+dis);
                     NormalComponent(ldir,xi,gDir);
                         f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                         f1[1] += 0.25*length*coff*gDir[1]*burgMag;
