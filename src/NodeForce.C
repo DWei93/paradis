@@ -58,19 +58,22 @@ static real8 *cellCenterX = (real8 *)NULL;
 static real8 *cellCenterY = (real8 *)NULL;
 static real8 *cellCenterZ = (real8 *)NULL;
 
-#ifdef GSIZE_EFFECT
 int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
                         real8 bx, real8 by, real8 bz,
                         real8 x1, real8 y1, real8 z1,
                         real8 x2, real8 y2, real8 z2,
                         real8 a, real8 *a0, real8 grainSize,
                         real8 f1[3], real8 f2[3]);
-#else
 int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
         real8 bx, real8 by, real8 bz, real8 x1, real8 y1, real8 z1,
         real8 x2, real8 y2, real8 z2, real8 a,  real8 Ecore,
         real8 f1[3], real8 f2[3]);
-#endif
+int SelfForceAnisotropic(int coreOnly, real8 MU, real8 NU,
+                        real8 bx, real8 by, real8 bz,
+                        real8 x1, real8 y1, real8 z1,
+                        real8 x2, real8 y2, real8 z2,
+                        real8 a, real8 *a0, real8 grainSize,
+                        real8 f1[3], real8 f2[3]);
 /*---------------------------------------------------------------------------
  *
  *    Function:        FreeCellCenters
@@ -1917,7 +1920,6 @@ void PKForce(real8 sigb[3],
     }
 }
 
-#ifndef GSIZE_EFFECT
 int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
                         real8 bx, real8 by, real8 bz,
                         real8 x1, real8 y1, real8 z1,
@@ -1959,8 +1961,56 @@ int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
 
     return(1);
 }
-#else
 int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
+                        real8 bx, real8 by, real8 bz,
+                        real8 x1, real8 y1, real8 z1,
+                        real8 x2, real8 y2, real8 z2,
+                        real8 a, real8 *a0, real8 grainSize,
+                        real8 f1[3], real8 f2[3])
+{
+    real8 tx, ty, tz, L, La;
+    real8 bs, bs2, bex, bey, bez, be2, fL, ft, bMag2;
+    real8 A = MU/4/M_PI, R, S, Ecore;
+    
+    if(!GetUnitVector(1, x1, y1, z1, x2, y2, z2, &tx, &ty, &tz, &L))return(0);
+    bs = bx*tx + by*ty + bz*tz;
+    bex = bx-bs*tx; bey = by-bs*ty; bez=bz-bs*tz;
+    be2 = (bex*bex+bey*bey+bez*bez);
+    bs2 = bs*bs;
+    bMag2 = bs2+be2;
+
+    La=sqrt(L*L+a*a);
+
+    if (coreOnly) {
+        S = 0.0;
+    } else {
+        S = (-(2*NU*La+(1-NU)*a*a/La-(1+NU)*a)/L +
+             (NU*log((La+L)/a)-(1-NU)*0.5*L/La))*A*bs;
+    }
+    /* Account for the self force due to the core energy change when 
+       the core radius changes from a0-->a, M. Tang, 7/19/2004 */ 
+
+    if(bMag2>0.9){
+        Ecore = A*log(a/a0[0]);
+    }else{
+        Ecore = A*log(a/a0[2]);
+    }
+
+    fL = -Ecore*(bs2+be2/(1-NU));
+    ft =  Ecore*2*bs*NU/(1-NU);   
+    
+    f2[0] = bex*(S+ft) + fL*tx;
+    f2[1] = bey*(S+ft) + fL*ty;
+    f2[2] = bez*(S+ft) + fL*tz;
+
+    f1[0] = -f2[0];
+    f1[1] = -f2[1];
+    f1[2] = -f2[2];
+
+    return(1);
+}
+
+int SelfForceAnisotropic(int coreOnly, real8 MU, real8 NU,
                         real8 bx, real8 by, real8 bz,
                         real8 x1, real8 y1, real8 z1,
                         real8 x2, real8 y2, real8 z2,
@@ -1980,52 +2030,27 @@ int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
 
     La=sqrt(L*L+a*a);
 
-#if 0
     if (coreOnly) {
         S = 0.0;
     } else {
         S = (-(2*NU*La+(1-NU)*a*a/La-(1+NU)*a)/L +
              (NU*log((La+L)/a)-(1-NU)*0.5*L/La))*A*bs;
     }
-
-    /*Cai wei 2007 */
-    if(coreOnly){S=0.0;}else{
-        if(grainSize>0){
-            a1 = ((bMag2>0.9)?0.5*grainSize:grainSize);
-            EnsElastic = 0.5*S*bs;
-//          EnsElastic = A*((bMag2-NU*bs2)*log((La+L)/a) - 0.5*(3-NU)*bs2*(La-a)/L);
-            EsimElastic = (MU/(4.0*M_PI))*log(a1/a)*(bs2+be2/(1-NU));
-            Ecore_surface = (EnsElastic-EsimElastic)/(bs2+be2/(1-NU)); 
-        }
-    }
-
-#endif
     /* Ecore = E_screw + E_edge;  E = MU/(4*pi) log(a/a0) */
     /* Account for the self force due to the core energy change when 
        the core radius changes from a0-->a, M. Tang, 7/19/2004 */ 
 
     real8 Ecore_screw, Ecore_edge, Etot_edge, Etot_screw, Etot, Ens;
 
-#if 1    
     if(bMag2>0.9){
-        if(coreOnly){
-            R=a; S=0;
-        }else{
-            R=grainSize*0.5;
-            S = (-(2*NU*La+(1-NU)*a*a/La-(1+NU)*a)/L+(NU*log((La+L)/a)-(1-NU)*0.5*L/La))*MU/4/M_PI/(1-NU)*bs;
-        }
+        R=grainSize*0.5;
         Etot_screw = A*log(R/a0[0]);
         Etot_edge =  A*log(R/a0[1])/(1-NU);
 
         Ecore_screw = A*log(a/a0[0]);
         Ecore_edge =  A*log(a/a0[1])/(1-NU);
     }else{
-        if(coreOnly){
-            R=a; S=0;
-        }else{
-            R=grainSize;
-            S = (-(2*NU*La+(1-NU)*a*a/La-(1+NU)*a)/L+(NU*log((La+L)/a)-(1-NU)*0.5*L/La))*MU/4/M_PI/(1-NU)*bs;
-        }
+        R=grainSize;
         Etot_screw = A*log(R/a0[2]);
         Etot_edge =  A*log(R/a0[3])/(1-NU);
 
@@ -2033,38 +2058,19 @@ int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
         Ecore_edge =  A*log(a/a0[3])/(1-NU);
     }
 
-    S=0.0;
-    fL = -((Etot_screw*bs2 - 0.5*S*bs)+Etot_edge*be2);
+    fL = -(Etot_screw*bs2 +Etot_edge*be2);
     ft =  (Etot_edge - Etot_screw)*2*bs;
 
     f2[0] = bex*(ft + S) + fL*tx;
     f2[1] = bey*(ft + S) + fL*ty;
     f2[2] = bez*(ft + S) + fL*tz;
-#else
-    if(bMag2>0.9){
-       core_screw = (MU/(4.0*M_PI))*log(0.5*grainSize/a0[0])*bs2/bMag2;
-        Ecore_edge = (MU/(4.0*M_PI))*log(0.5*grainSize/a0[1])*be2/bMag2;
-    }else{
-        Ecore_screw = (MU/(4.0*M_PI))*log(grainSize/a0[2])*bs2/bMag2;
-        Ecore_edge = (MU/(4.0*M_PI))*log(grainSize/a0[3])*be2/bMag2;
-    }
 
-    Ecore = Ecore_screw+Ecore_edge;
-    fL = -Ecore*(bs2+be2/(1-NU));
-    ft =  Ecore*2*bs*NU/(1-NU);   
-
-    f2[0] = bex*ft + fL*tx;
-    f2[1] = bey*ft + fL*ty;
-    f2[2] = bez*ft + fL*tz;
-
-#endif
     f1[0] = -f2[0];
     f1[1] = -f2[1];
     f1[2] = -f2[2];
 
     return(1);
 }
-#endif
 /*-------------------------------------------------------------------------
  *
  *      Function:       SelfForce
@@ -2074,7 +2080,6 @@ int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
  *      Arguments:
  *
  *------------------------------------------------------------------------*/
-#ifndef GSIZE_EFFECT
 int SelfForce(int coreOnly, real8 MU, real8 NU,
                real8 bx, real8 by, real8 bz,
                real8 x1, real8 y1, real8 z1,
@@ -2087,7 +2092,6 @@ int SelfForce(int coreOnly, real8 MU, real8 NU,
 	    x2, y2, z2, a, Ecore, f1, f2))return(0);
         return(1);
 }
-#else
 int SelfForce(int coreOnly, real8 MU, real8 NU,
                real8 bx, real8 by, real8 bz,
                real8 x1, real8 y1, real8 z1,
@@ -2096,11 +2100,15 @@ int SelfForce(int coreOnly, real8 MU, real8 NU,
                real8 f1[3], real8 f2[3])
 {
 
+    if(coreOnly>0){
+        if(!SelfForceAnisotropic(coreOnly, MU, NU, bx, by, bz, x1, y1, z1, 
+	    x2, y2, z2, a, a0, grainSize,f1, f2))return(0);
+    }else{
         if(!SelfForceIsotropic(coreOnly, MU, NU, bx, by, bz, x1, y1, z1, 
 	    x2, y2, z2, a, a0, grainSize,f1, f2))return(0);
+    }
         return(1);
 }
-#endif
 /**************************************************************************
  *
  *      Function:    StressDueToSeg

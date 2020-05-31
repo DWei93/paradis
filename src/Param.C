@@ -844,10 +844,10 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         param->grainSize = -1;
         
 		BindVar(CPList, "a0", &param->a0, V_DBL, 4, VFLAG_NULL);
-        param->a0[0] = 0.1;
-        param->a0[1] = 0.1;
-        param->a0[2] = 0.1;
-        param->a0[3] = 0.1;
+        param->a0[0] = -0.1;
+        param->a0[1] = -0.1;
+        param->a0[2] = -0.1;
+        param->a0[3] = -0.1;
 
 		BindVar(CPList, "fricStress", &param->fricStress,
 				V_DBL, 1, VFLAG_NULL);

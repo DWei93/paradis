@@ -564,12 +564,26 @@ void SetRemainingDefaults(Home_t *home)
 
         if (param->Ecore < 0.0) {
 #ifdef GSIZE_EFFECT
-            param->Ecore = (param->shearModulus / (4*M_PI))*log(param->grainSize/param->a0[0]);
+            // obsolete
 #else
-            param->Ecore = (param->shearModulus / (4*M_PI))*log(param->rc*param->grainSize*10E6*param->burgMag);
-            if(home->myDomain==0)printf("Cut-off radius for self energy is %f\n", 1.0/(param->grainSize*10E6*param->burgMag));
+            param->Ecore = (param->shearModulus / (4*M_PI))*log(param->rc*10);
 #endif
         }
+#ifdef GSIZE_EFFECT
+        if(param->elasticinteraction){
+            if(param->a0[0]<0 || param->a0[1] < 0 || param->a0[2] <0 || param->a0[3] <0){
+                param->a0[0]=390.6/param->grainSize; // Isotropic full dislocation
+                param->a0[2]=390.6/param->grainSize; // Isotropic twinning dislocation
+                param->a0[1]=390.6/param->grainSize;
+                param->a0[3]=390.6/param->grainSize;
+               if(home->myDomain==0)printf("cut-off radius %f (full dislocation), %f (twinning dislocation)\n",param->a0[0],param->a0[2]);
+            }
+        }else{
+            if(param->a0[0]<0 || param->a0[1] < 0 || param->a0[2] <0 || param->a0[3] <0){
+                Fatal("non-elasticinteraction of GSIZE_EFFECT must define a0");
+            }
+        }
+#endif
 /*
  *      Now do some additional sanity checks.
  */

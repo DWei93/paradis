@@ -1755,11 +1755,7 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
  *      handling).  If we find such a segment, there will be no seg/seg
  *      forces between the given segment pair, so just return zero forces.
  */
-        if ((dx*dx + dy*dy + dz*dz) < 1.0e-20 
-#ifdef GSIZE_EFFECT
-            || node1==node3 || node1==node4 || node2==node3 ||node2==node4
-#endif
-           ) {
+        if ((dx*dx + dy*dy + dz*dz) < 1.0e-20 ) {
             VECTOR_ZERO(f1);
             VECTOR_ZERO(f2);
             VECTOR_ZERO(f3);
