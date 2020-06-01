@@ -2042,20 +2042,15 @@ int SelfForceAnisotropic(int coreOnly, real8 MU, real8 NU,
 
     real8 Ecore_screw, Ecore_edge, Etot_edge, Etot_screw, Etot, Ens;
 
+    R=grainSize;
     if(bMag2>0.9){
-        R=grainSize*0.5;
         Etot_screw = A*log(R/a0[0]);
         Etot_edge =  A*log(R/a0[1])/(1-NU);
 
-        Ecore_screw = A*log(a/a0[0]);
-        Ecore_edge =  A*log(a/a0[1])/(1-NU);
     }else{
-        R=grainSize;
         Etot_screw = A*log(R/a0[2]);
         Etot_edge =  A*log(R/a0[3])/(1-NU);
 
-        Ecore_screw = A*log(a/a0[2]);
-        Ecore_edge =  A*log(a/a0[3])/(1-NU);
     }
 
     fL = -(Etot_screw*bs2 +Etot_edge*be2);

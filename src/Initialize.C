@@ -571,12 +571,15 @@ void SetRemainingDefaults(Home_t *home)
         }
 #ifdef GSIZE_EFFECT
         if(param->elasticinteraction){
-            if(param->a0[0]<0 || param->a0[1] < 0 || param->a0[2] <0 || param->a0[3] <0){
-                param->a0[0]=390.6/param->grainSize; // Isotropic full dislocation
-                param->a0[2]=390.6/param->grainSize; // Isotropic twinning dislocation
-                param->a0[1]=390.6/param->grainSize;
-                param->a0[3]=390.6/param->grainSize;
-               if(home->myDomain==0)printf("cut-off radius %f (full dislocation), %f (twinning dislocation)\n",param->a0[0],param->a0[2]);
+            if(param->grainSize<0) Fatal("elasticinteraction: grainSize < 0");
+            param->a0[0]=7.77809715342E3*pow(param->grainSize,-1.198379329); // Isotropic full dislocation
+            param->a0[2]=1.57188018497E3*pow(2.0*param->grainSize,-0.986622918); // Isotropic twinning dislocation
+            param->a0[1]=390.6/param->grainSize;
+            param->a0[3]=390.6/param->grainSize;
+            if(home->myDomain==0){
+                printf("cut-off radius %f (full dislocation), %f (twinning dislocation)\n",param->a0[0],param->a0[2]);
+                if(param->a0[0]>param->rc)printf("Warning: (a0[0] = %f) > (rc = %f)\n",param->a0[0],param->rc);
+                if(param->a0[2]>param->rc)printf("Warning: (a0[2] = %f) > (rc = %f)\n",param->a0[2],param->rc);
             }
         }else{
             if(param->a0[0]<0 || param->a0[1] < 0 || param->a0[2] <0 || param->a0[3] <0){
