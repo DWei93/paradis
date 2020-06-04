@@ -25,25 +25,28 @@
 
 ctrlFile=input/Copper.ctrl
 cubeln=1000
-cubel=`echo ${cubeln}/0.256 | bc`
+cubel=`echo "${cubeln}/0.2556" | bc`
 #frlen=`echo ${cubel}/2 | bc`
 frlen=`echo ${cubel} | bc`
-frlen=-0.5
+frlen=-0.5,-1.0
 nGrains=2
 nfrs=`echo "12*${nGrains}" | bc`
 nTDs=1
 gb=1
+nMesh=11
 thick=`echo ${cubel}/${nGrains}| bc`
 maxSeg1=`echo ${cubel}/15 | bc `
 maxSeg2=`echo ${thick}/4 | bc `
 if [ ${maxSeg1} -gt ${maxSeg2} ]; then maxSeg=${maxSeg2}; else maxSeg=${maxSeg1}; fi
+rTol=`echo "scale=7;${maxSeg}*sqrt(2)/33" | bc -l`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
-echo "Thickness=$thick b, $thickn nm, maxSeg=${maxSeg}b"
+echo "Thickness=$thick b, $thickn nm, maxSeg=${maxSeg}b, rTol =$rTol"
 sed -i "/grainSize/cgrainSize = ${thick}" ${ctrlFile}
+sed -i "/^rTol =/crTol = ${rTol}" $ctrlFile
 #sed -i "/dirname/cdirname = \"res.relax-t-${thickn}nm\"" ${ctrlFile}
 maxDensity=1E16
 
-msize=`echo "scale=0; ${cubel}/10" | bc`
+msize=`echo "scale=0; ${cubel}/$nMesh" | bc`
 sed -i "/meshSizeX/cmeshSizeX = $msize" $ctrlFile;
 sed -i "/meshSizeY/cmeshSizeY = $msize" $ctrlFile;
 sed -i "/meshSizeZ/cmeshSizeZ = $msize" $ctrlFile;
@@ -52,31 +55,6 @@ polycrystal=1
 single=2
 
 PI=3.1415926535897932385
-if [ ${polycrystal} == "1" ]; then
-    srctype=5
-    angle=`echo "scale=16; ${1}.0 * ${PI} / 180.0 " | bc -l`
-else
-    srctype=2
-    if [ ${single} = "1" ]; then
-        lnum=`grep  -n "basis orientation:" ${1} | cut -d : -f 1`
-    else
-        lnum=`grep  -n "twin orientation:" ${1} | cut -d : -f 1`
-    fi
-
-    let lnum=${lnum}+1
-    l1=`sed -n "${lnum}p" ${1}`
-    x1=`echo ${l1} | cut -d " " -f 2 `
-    x2=`echo ${l1} | cut -d " " -f 3 `
-    x3=`echo ${l1} | cut -d " " -f 4 | cut -d "}" -f 1`
-    let lnum=${lnum}+1
-    l2=`sed -n "${lnum}p" ${1}`
-    y1=`echo ${l2} | cut -d " " -f 2 `
-    y2=`echo ${l2} | cut -d " " -f 3 `
-    y3=`echo ${l2} | cut -d " " -f 4 | cut -d "}" -f 1`
-
-    xdir=`echo "${x1}${x2}${x3}"`
-    ydir=`echo "${y1}${y2}${y3}"`
-fi
 
 srctype=4
 case $srctype in
@@ -126,7 +104,6 @@ case $srctype in
 # 
 ######################################################################################
     4|IV)
-    echo "$frlen $maxSeg $nfrs $nGrains $maxDensity"
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} ;;
 #   -polycrystal 1 -nGrain ${nGrains}  -pbc 0  ;;
@@ -150,7 +127,9 @@ case $srctype in
      echo "input error!"
      exit 1 ;;
 esac
-
+info="# paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb}"
 ./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 
+sed -i "1i$info" Copper.data
+sed -i "1i#`date`" Copper.data
 cp Copper.data input/Copper.data
 echo "cp Copper.data > input/Copper.data"

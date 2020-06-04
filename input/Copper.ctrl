@@ -17,9 +17,9 @@
 #
 #  Domain geometry
 #
-numXdoms = 4
+numXdoms = 2
 numYdoms = 2
-numZdoms = 4
+numZdoms = 2
 #
 #  Cell geometry
 #
@@ -30,9 +30,9 @@ numZcells = 4
 #
 # Mesh size for tecmesh
 #
-meshSizeX = 390
-meshSizeY = 390
-meshSizeZ = 390
+meshSizeX = 355
+meshSizeY = 355
+meshSizeZ = 355
 
 #  Dynamic load balancing
 #
@@ -41,9 +41,12 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 elasticinteraction = 1
+a0 = [ 1.68098 1.12421 1.01163 0.187646 ]
 enableCrossSlip =   1
-rc =  10
-dirname = "res.TE-50nm-0.453"
+rTol = 11.1422881
+rc =  200
+grainSize = 1956
+dirname = "res.EM-l-1000nm"
 remeshRule = 2
 enforceGlidePlanes =  1
 splitMultiNodeFreq =   1  
@@ -57,8 +60,6 @@ maxPst = 5.0E-3
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
 wallTime = 24
-grainSize = 195
-a0 = [ 0.7929 0.5866 0.4525 0.0918 ]
 #
 #  Fast Multipole Method controls
 #  
@@ -77,7 +78,7 @@ strRate = -4.0E16
 #strRate = 0.0
 #plaRateCtr = 2.0E4
 
-edotPolar = [ 0.0 0.0 ]
+edotPolar = [ 45.0 90.0 ]
 
 appliedStress = [
 	0.0e0

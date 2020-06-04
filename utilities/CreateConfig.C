@@ -2953,7 +2953,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     while(time < 10000){
                         time++;
 
-                        if(3!=gpIndex && freeLine == false){
+//                      if(3!=gpIndex && freeLine == false){
+                        if(false){
 #if 1
                             cross(n3,n0,randomLine);
 #else
@@ -2977,7 +2978,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             for(i = 0; i < 3; i++){
                                 randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
                             }
-                            edge = cubeLength;
+                            if(polycrystal>0 && gpIndex != 3){
+                                edge = home->grainKeys[inGrain1]->thick/0.942809;
+                            }else edge = cubeLength;
                         }
                         NormalizeVec(randomLine);
 #if 0
@@ -3046,7 +3049,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             if(onGB0 > -1 || onGB3 > -1 || inGrain0 != inGrain2 || inGrain3 != inGrain2)continue;
                         }   
 
-                        if(srcLenType == 0){
+                        if(srcLenType == 0 || inArgs->gb==true){
                             if(!InCuboid(param, p0, 0) || !InCuboid(param, p1, 0) || !InCuboid(param, p2, 0)){
                                 continue;
                             }
@@ -3535,17 +3538,26 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 	 	                case 1:
 	 	                    srcLen = -log(randm(&seed))/sqrt(maxDensity)/burgMag;
 	 	                    break;
-                    
+                        case 2:
+                            edge = cubeLength;
+                            if (lenRange > 0) {
+                                srcLen = (srcLenMin + (randm(&seed) * lenRange))*edge;
+                                if(srcLen > srcLenMax*edge){
+                                    srcLen = srcLenMax*edge;
+                                }
+                            } else {
+                                srcLen = srcLenMin*edge;
+                            }
+                            break; 
                         default:
                             break;
 	                }
-
                     p0[0] = (randm(&seed)-0.5) * cubeSize;
                     p0[1] = (randm(&seed)-0.5) * cubeSize;			
                     p0[2] = (randm(&seed)-0.5) * cubeSize;			
-
+                    
                     PointPlaneDistance(p0, gb->n, gb->p, dis, p0);
-
+                    
                     VECTOR_COPY(n0, bd->planeList[3]);
                     VECTOR_COPY(b , bd->burgList[k]);
                     
@@ -3559,13 +3571,13 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         randomLine[l] = n1[l] * sin(randomAngle) + b[l] * cos(randomAngle);
                     }
                     NormalizeVec(randomLine);
-
+                    
                     for (l = 0; l < 3; l++) {
                         p1[l] = p0[l] - (srcLen * randomLine[l])/2.0;
                         p2[l] = p0[l] + (srcLen * randomLine[l])/2.0;
                     } 
-
-                    if(srcLenType == 0){
+                    
+                    if(srcLenType == 0 || inArgs->gb==true){
                         if(!InCuboid(param, p0, 0) || !InCuboid(param, p1, 0) || !InCuboid(param, p2, 0)){
                             continue;
                         }
