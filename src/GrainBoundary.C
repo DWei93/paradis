@@ -1967,8 +1967,8 @@ void AdjustSurfaceNode(Home_t *home)
 	            node1 = node;
 	            node2 = newNode;
 	        }
-            printf("Task %d %s %d: switchNode(%d) globalOp=%d",home->myDomain,__func__,home->cycle,switchNode,globalOp);
-            PrintTag(node1); PrintTag(node2); PrintTag(nbr); printf("\n");
+//          printf("Task %d %s %d: switchNode(%d) globalOp=%d",home->myDomain,__func__,home->cycle,switchNode,globalOp);
+//          PrintTag(node1); PrintTag(node2); PrintTag(nbr); printf("\n");
 
 	        MarkNodeForceObsolete(home, node1);        
 	        MarkNodeNoCollisions(home, node1);        

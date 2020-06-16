@@ -885,7 +885,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	        real8    angle, angleZTB = 9.553166181245092e-01;
 	        int	     seed;
 #if 1
-            real8   temp0[3][3] = {{1,-1,0},{1,1,-2},{1,1,1}};
+            real8   temp0[3][3] = {{-1,1,0},{-1,-1,2},{1,1,1}};
             real8   axisx[3] = {1,0,0};
             NormalizeVec(temp0[0]);
             NormalizeVec(temp0[1]);

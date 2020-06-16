@@ -367,7 +367,7 @@ static void UnpackSecondaryGhostResponse(Home_t *home, real8 *inBuf)
  */
 				
                 numArms = (int)inBuf[bufOffset+2];
-	        if(numArms<0 || numArms>16){
+	        if(numArms<0 || numArms>32){
 		    printf("Task %d, Node(%d,%d):\n", home->myDomain, tmpTag.domainID, tmpTag.index);
 	            Fatal("UnpackSecondaryGhostResponse 1: numArms<0 || numArms>16 (%d)",numArms);
 	        }
@@ -397,7 +397,7 @@ static void UnpackSecondaryGhostResponse(Home_t *home, real8 *inBuf)
 
             numArms = (int)inBuf[bufOffset++];
 			
-			if(numArms<0 || numArms>16){
+			if(numArms<0 || numArms>32){
 	            Fatal("UnpackSecondaryGhostResponse 1: numArms<0 || numArms>16 (%d)",numArms);
 			}
 

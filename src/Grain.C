@@ -2152,6 +2152,9 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     real8       node1Pos[3]={node1->x,node1->y,node1->z}, node2Pos[3]={node2->x,node2->y,node2->z};
     FoldBox(param,node1Pos,node1Pos+1,node1Pos+2);
     FoldBox(param,node2Pos,node2Pos+1,node2Pos+2);
+    real8       rc=param->rc;
+    
+    bool    cacGB1, cacGB2, cacTB1, cacTB2;
 
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);
@@ -2187,8 +2190,13 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     FoldBox(param,old2Pos,old2Pos+1,old2Pos+2);
     PBCPOSITION(param,old1Pos[0],old1Pos[1],old1Pos[2],node1Pos,node1Pos+1,node1Pos+2);
     PBCPOSITION(param,old2Pos[0],old2Pos[1],old2Pos[2],node2Pos,node2Pos+1,node2Pos+2);
-    cacGBStress |= fabs(node1Pos[0])<param->xBoundMax && fabs(node1Pos[1])<param->yBoundMax && fabs(node1Pos[2])<param->zBoundMax;
-    cacGBStress |= fabs(node2Pos[0])<param->xBoundMax && fabs(node2Pos[1])<param->yBoundMax && fabs(node2Pos[2])<param->zBoundMax;
+    cacGB1 = fabs(node1Pos[0])<param->xBoundMax-rc && fabs(node1Pos[1])<param->yBoundMax-rc && fabs(node1Pos[2])<param->zBoundMax-rc;
+    cacGB2 = fabs(node2Pos[0])<param->xBoundMax-rc && fabs(node2Pos[1])<param->yBoundMax-rc && fabs(node2Pos[2])<param->zBoundMax-rc;
+    cacGBStress |= (cacGB1 && cacGB2);
+
+
+    cacTB1 = (node1->onGB < 0);
+    cacTB2 = (node2->onGB < 0);
 
     FoldBox(param,node1Pos,node1Pos+1,node1Pos+2);
     FoldBox(param,node2Pos,node2Pos+1,node2Pos+2);
@@ -2204,7 +2212,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
         if(cacGBStress){
             if(param->xBoundType==Periodic){
                 nBound[0]=1.0; nBound[1]=0; nBound[2]=0;
-                pBound[0]=param->xBoundMin; pBound[1]=0; pBound[2]=0;
+                pBound[0]=param->xBoundMin+rc; pBound[1]=0; pBound[2]=0;
                 type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
                 if(type==LINE_INTERSECTION){
                     CoordMinus(pos,pdir,ldir); 
@@ -2213,12 +2221,16 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                         NormalizeVec(ldir);
                         coff = gbStrength * a/(a+dis);
                         NormalComponent(ldir,xi,gDir);
+                        NormalizeVec(gDir);
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
                             f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
                     }
                 }
-                pBound[0]=param->xBoundMax; pBound[1]=0; pBound[2]=0;
+                pBound[0]=param->xBoundMax-rc; pBound[1]=0; pBound[2]=0;
                 type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
                 if(type==LINE_INTERSECTION){
                     CoordMinus(pos,pdir,ldir); 
@@ -2227,16 +2239,20 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                         NormalizeVec(ldir);
                         coff = gbStrength * a/(a+dis);
                         NormalComponent(ldir,xi,gDir);
+                        NormalizeVec(gDir);
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
                             f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
                     }
                 }
             }
 
             if(param->yBoundType==Periodic){
                 nBound[0]=0.0; nBound[1]=1.0; nBound[2]=0;
-                pBound[0]=0; pBound[1]=param->yBoundMin; pBound[2]=0;
+                pBound[0]=0; pBound[1]=param->yBoundMin+rc; pBound[2]=0;
                 type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
                 if(type==LINE_INTERSECTION){
                     CoordMinus(pos,pdir,ldir); 
@@ -2245,12 +2261,16 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                         NormalizeVec(ldir);
                         coff = gbStrength * a/(a+dis);
                         NormalComponent(ldir,xi,gDir);
+                        NormalizeVec(gDir);
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
                             f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
                     }
                 }
-                pBound[0]=0; pBound[1]=param->yBoundMax; pBound[2]=0;
+                pBound[0]=0; pBound[1]=param->yBoundMax-rc; pBound[2]=0;
                 type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
                 if(type==LINE_INTERSECTION){
                     CoordMinus(pos,pdir,ldir); 
@@ -2259,16 +2279,20 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                         NormalizeVec(ldir);
                         coff = gbStrength * a/(a+dis);
                         NormalComponent(ldir,xi,gDir);
+                        NormalizeVec(gDir);
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
                             f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
                     }
                 }
             }
 
             if(param->zBoundType==Periodic){
                 nBound[0]=0.0; nBound[1]=0.0; nBound[2]=1.0;
-                pBound[0]=0; pBound[1]=0; pBound[2]=param->zBoundMin;
+                pBound[0]=0; pBound[1]=0; pBound[2]=param->zBoundMin+rc;
                 type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
                 if(type==LINE_INTERSECTION){
                     CoordMinus(pos,pdir,ldir); 
@@ -2277,12 +2301,16 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                         NormalizeVec(ldir);
                         coff = gbStrength * a/(a+dis);
                         NormalComponent(ldir,xi,gDir);
+                        NormalizeVec(gDir);
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
                             f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
                     }
                 }
-                pBound[0]=0; pBound[1]=0; pBound[2]=param->zBoundMax;
+                pBound[0]=0; pBound[1]=0; pBound[2]=param->zBoundMax-rc;
                 type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
                 if(type==LINE_INTERSECTION){
                     CoordMinus(pos,pdir,ldir); 
@@ -2291,9 +2319,13 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                         NormalizeVec(ldir);
                         coff = gbStrength * a/(a+dis);
                         NormalComponent(ldir,xi,gDir);
+                        NormalizeVec(gDir);
                             f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                             f1[1] += 0.25*length*coff*gDir[1]*burgMag;
                             f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
                     }
                 }
             }
@@ -2317,15 +2349,24 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                     NormalizeVec(ldir);
                     coff = tbStrength * a/(a+dis);
                     NormalComponent(ldir,xi,gDir);
+                    NormalizeVec(gDir);
+                    if(cacTB1){
                         f1[0] += 0.25*length*coff*gDir[0]*burgMag;
                         f1[1] += 0.25*length*coff*gDir[1]*burgMag;
                         f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+
+                    if(cacTB2){
+                        f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                        f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                        f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                    
                 }
             }
         } 
     }
 
-    VECTOR_COPY(f2, f1);
 
     return;
 }
@@ -2342,6 +2383,9 @@ void NodeImageForce(Home_t *home, Node_t *node, real8 *f)
         f[0] += armf1[0];
         f[1] += armf1[1];
         f[2] += armf1[2];
+    }
+    if(!Numerical(f)){
+        VECTOR_ZERO(f);
     }
     return;
 }

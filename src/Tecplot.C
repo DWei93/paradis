@@ -241,6 +241,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
  *      domain's data
  */
         newNodeKeyPtr = home->newNodeKeyPtr;
+        real8 glideConstraints[3][3], nodeLen;
+        int numGlideConstraints;
+        bool zeroLenJunc;
 
         for (i = 0; i < newNodeKeyPtr; i++) {
 
@@ -257,8 +260,20 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
             vecOldNew[2] = z - node->oldz;
             	
             ZImage(param, vecOldNew, vecOldNew+1, vecOldNew+2);
-            	
             displacement = Normal(vecOldNew);
+
+	        GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints, zeroLenJunc);
+            f[0] = node->fX; f[1]=node->fY; f[2]=node->fZ;
+            ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, f);
+            NodeImageForce(home, node,  f1);
+            ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, f1);
+            nodeLen =  NodeLengthXMag(home, node);
+            f[0]/=(nodeLen*1E6); f[1]/=(nodeLen*1E6); f[2]/=(nodeLen*1E6);
+            f1[0]/=(nodeLen*1E6); f1[1]/=(nodeLen*1E6); f1[2]/=(nodeLen*1E6);
+            fMag=Normal(f); ifMag=Normal(f1);
+            NormalizeVec(f1); NormalizeVec(f);
+            if(!Numerical(f)){VECTOR_ZERO(f);}
+            if(!Numerical(f1)){VECTOR_ZERO(f1);}
           
 /*
  *          Don't assume PBC is enabled...
@@ -350,6 +365,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 NormalizeVec(vec);
                 n[0] = node->nx[j]; n[1]=node->ny[j]; n[2]=node->nz[j];
 
+#if 0
                 int armID21=GetArmID(home, nbrNode, node);
                 if(armID21<0)Fatal("%s: armID 21 < 0",__func__);
                 f[0] = node->armfx[j]+nbrNode->armfx[armID21];
@@ -360,7 +376,6 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 NormalComponent(f,n,f);
                 fMag = Normal(f)/1E6; NormalizeVec(f);
                 if((!Numerical(f)) || (!Numerical(fMag))){VECTOR_ZERO(f); fMag=0.0;}
-#if 0
                 ifMag = NodeLengthXMag(home, node);
                 f1[0]=node->fZ/ifMag; f1[1]=node->fY/ifMag; f1[2]=node->fZ/ifMag;
                 f2[0]=node->vX; f2[1]=node->vY; f2[2]=node->vZ;
@@ -370,22 +385,23 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 }else {
                     VECTOR_ZERO(f1);
                 }
-#else
-                ImageForce(home, node, nbrNode, f1, f2);
-                f1[0] /= (0.5*length);  f1[1] /= (0.5*length);  f1[2] /= (0.5*length);
+                NodeImageForce(home, node,  f1);
+                length =  NodeLengthXMag(home, node);
+                f1[0] /= length; f1[1] /=length; f2[2] /=length;
+                if(!Numerical(f1)){VECTOR_ZERO(f1);}
                 ifMag = Normal(f1)/1E6; NormalizeVec(f1);
 #endif                
                 if(param->polycrystal==0)index=0;
                 else{
                     if(AlignedVector(param->TBNormal, n)){
-                        index = 3;
+                        if(burgID>6 && burgID<22)index=4; else index=3;
                     }else{
                         vec[0]=node->burgX[j]; vec[1]=node->burgY[j]; vec[2]=node->burgZ[j];
                         if(PerpendicularDirection(param->TBNormal, vec)) index =2;
                         else index = 1;
                     }
                 }
-                if(normalID > 3)index=4;
+                if(normalID > 3)index=5;
 //              if((GetPlaneType_FCC(home, node, nbrNode) & GLIDE_PLANE) == 0)index=4;
                 constraint = node->constraint;
                 if((NodeOnGB(home, node) & INTERSECT_NODE)>0)constraint = 4;

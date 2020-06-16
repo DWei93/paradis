@@ -237,7 +237,7 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
             }
 
             fprintf(fp,
-                    " %d,%d %lf %lf %lf %d %d %d %d\n",
+                    " %d,%d %.17f %.17f %.17f %d %d %d %d\n",
                     node->myTag.domainID, node->myTag.index,
                     node->x, node->y, node->z, node->numNbrs,
                     node->constraint, node->inGrain, node->onGB);
@@ -246,8 +246,8 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
  *          Write the segment specific data
  */
             for (iArm = 0; iArm < node->numNbrs; iArm++) {
-                fprintf(fp, "   %d,%d %lf %lf %lf\n"
-                        "       %lf %lf %lf %2.0f\n",
+                fprintf(fp, "   %d,%d %.17f %.17f %.17f\n"
+                        "       %.17f %.17f %.17f %2.0f\n",
                         node->nbrTag[iArm].domainID,
                         node->nbrTag[iArm].index, node->burgX[iArm],
                         node->burgY[iArm], node->burgZ[iArm],
