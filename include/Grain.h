@@ -333,4 +333,5 @@ bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8
 bool InCuboid(Param_t *param, real8 pos[3], real8 eps);
 int GeosTest();
 void NodeImageForce(Home_t *home, Node_t *node, real8 *f);
+bool PartialDislocations(Home_t *home, Node_t *node1, Node_t *node2, real8 *p1, real8 *p2);
 #endif

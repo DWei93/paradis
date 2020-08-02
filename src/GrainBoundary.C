@@ -215,7 +215,7 @@ real8 GlideShearStress(Home_t *home, Node_t *node, real8 *n){
 
         ParallelComponent(armf, glideDir, armf);
 #endif
-        fGlide += Normal(armf)/disLength;
+        fGlide += (Sign(DotProduct(n,armf))*Normal(armf)/disLength);
         numEff += 1.0;
     }
 
@@ -283,8 +283,111 @@ real8 SegementEnergy(Param_t *param, real8 cosTheta, real8 bMag){
 		  
 }
 
+bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2, real8 *gbN, real8 *plane)
+{
+    Param_t *param = home->param;
+    real8 pBurg1[3], pBurg2[3], EsciagBurg[3];
+    real8 burg[3]={node->burgX[1], node->burgY[1], node->burgZ[1]};
+    if(PartialDislocations(home, node, nbr2, pBurg1, pBurg2)==false)return false;
+    CoordMinus(pBurg2,pBurg1,EsciagBurg);
+    NormalizeVec(EsciagBurg);
+
+	real8 glideStress = GlideShearStress(home,node,gbN);
+    if(glideStress < 0){
+        printf("dislocation pull bake in %s, %fMPa\n",__func__,glideStress/1.0E6);
+        return false;
+    }
+
+	ChangeArmBurg(home, nbr1, &node->myTag, 
+                  EsciagBurg[0],
+                  EsciagBurg[1],
+                  EsciagBurg[2],
+                  plane[0],
+                  plane[1],
+                  plane[2],
+	              0, DEL_SEG_NONE);
+    
+	ChangeArmBurg(home, node, &nbr2->myTag, 
+                  EsciagBurg[0],
+                  EsciagBurg[1],
+                  EsciagBurg[2],
+                  plane[0],
+                  plane[1],
+                  plane[2],
+	              0, DEL_SEG_NONE);
+
+	ChangeArmBurg(home, nbr2, &node->myTag, 
+                  -EsciagBurg[0],
+                  -EsciagBurg[1],
+                  -EsciagBurg[2],
+                  plane[0],
+                  plane[1],
+                  plane[2],
+	              0, DEL_SEG_NONE);
+    
+	ChangeArmBurg(home, node, &nbr1->myTag, 
+                  -EsciagBurg[0],
+                  -EsciagBurg[1],
+                  -EsciagBurg[2],
+                  plane[0],
+                  plane[1],
+                  plane[2],
+	              0, DEL_SEG_NONE);
+
+	SetOneNodeForce(home, node);
+	real8 EsciagStress = GlideShearStress(home,node,gbN);
+
+	ChangeArmBurg(home, nbr1, &node->myTag, 
+                  burg[0],
+                  burg[1],
+                  burg[2],
+                  plane[0],
+                  plane[1],
+                  plane[2],
+	              0, DEL_SEG_NONE);
+    
+	ChangeArmBurg(home, node, &nbr2->myTag, 
+                  burg[0],
+                  burg[1],
+                  burg[2],
+                  plane[0],
+                  plane[1],
+                  plane[2],
+	              0, DEL_SEG_NONE);
+
+	ChangeArmBurg(home, nbr2, &node->myTag, 
+                  -burg[0],
+                  -burg[1],
+                  -burg[2],
+                  plane[0],
+                  plane[1],
+                  plane[2],
+	              0, DEL_SEG_NONE);
+    
+	ChangeArmBurg(home, node, &nbr1->myTag, 
+                  -burg[0],
+                  -burg[1],
+                  -burg[2],
+                  plane[0],
+                  plane[1],
+                  plane[2],
+	              0, DEL_SEG_NONE);
+	SetOneNodeForce(home, node);
+
+    real8 cStress;
+    if(EsciagStress<0){
+        cStress = 49.0E6+0.11*EsciagStress;
+    }else{
+        cStress = 49.0E6+0.26*EsciagStress;
+    }
+
+    if(cStress <= glideStress)return true;
+    return false;
+}
+
 int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane){
-	
+    
+
 	int		i, isScrew = 0;
 	real8	inBurg[3], inEnergy=0.0, cosTheta, bMag;
 	real8	segEnergy, outEnergy=0.0;
@@ -1048,9 +1151,9 @@ void HandleGrainBoundary(Home_t *home)
 	int	 	    grainNode = 0, endNode, newConstraint, positive;
     int         newNodeKeyPtr, type;
 	int 		oldInGrain, oldOnGB, currInGrain, currOnGB;	
-    int         crossSlipNode, nbr1OnGB, nbr2OnGB;
+    int         crossSlipNode, nbr1OnGB, nbr2OnGB, localGBID;
 	real8		x,y,z,burgj[3], burgk[3], vec[3], mergPos[3], dis;
-	real8		burg[3], normal[3], nDir1[3], nDir2[3];
+	real8		burg[3], normal[3], nDir1[3], nDir2[3], gbPlane[3];
 	real8		mergePos[3], distance, newInGrain, newPos[3];
     real8       vec1[3], vec2[3], p[3];
 	Param_t		*param;
@@ -1159,10 +1262,30 @@ void HandleGrainBoundary(Home_t *home)
         if(!GetPublicGB(home,oldGrain, currGrain, &gb,refPos)){
             Fatal("in %s at %d", __FILE__, __LINE__);
         }
-        VECTOR_COPY(GBPlane.normal, gb->n);
-        VECTOR_COPY(GBPlane.point, gb->p);
 
-        if(node->numNbrs > 2){
+        CoordMinus(refPos,gb->p,vec1);
+        if(DotProduct(gb->n, vec1)>0){
+            VECTOR_COPY(gbPlane, gb->n);
+        }else{
+            NegativeVector(gb->n, gbPlane);
+        }
+        VECTOR_COPY(GBPlane.point, gb->p);
+        VECTOR_COPY(GBPlane.normal, gb->n);
+
+/*	
+ *	    Due to different slip planes of two segments of crossSlip node,
+ *	    we only allow such node penetrateLast.  	
+ */		
+        crossSlipNode = 0;
+        if(node->numNbrs == 2){
+	        if(fabs(node->nx[0] * node->nx[1] +
+	                node->ny[0] * node->ny[1] +
+                    node->nz[0] * node->nz[1]) < 0.995){
+                crossSlipNode = 1;
+            }
+        }		
+
+        if(node->numNbrs > 2 || (crossSlipNode==1)){
             if(GlideShearStress(home, node, gb->n) > param->tbStrength[1]){
                 vec1[0] = node->vX;
                 vec1[1] = node->vY;
@@ -1194,19 +1317,6 @@ void HandleGrainBoundary(Home_t *home)
         }
 		
 		
-/*	
- *	    Due to different slip planes of two segments of crossSlip node,
- *	    we only allow such node penetrateLast.  	
- */		
-        crossSlipNode = 0;
-        if(node->numNbrs == 2){
-	        if(fabs(node->nx[0] * node->nx[1] +
-	                node->ny[0] * node->ny[1] +
-                    node->nz[0] * node->nz[1]) < 0.995){
-                crossSlipNode = 1;
-            }
-        }		
-
 
 /*	
  *	    There are 4 scenarios: 
@@ -1304,10 +1414,21 @@ void HandleGrainBoundary(Home_t *home)
  */
 
 #ifndef NO_GB_BARRIER
+#if 0
 	    if(EnergyRule(home, node, &GBPlane) == 0){
             PullBack(home,node);
             continue;
 	    }
+#else
+        normal[0] = node->nx[0];
+        normal[1] = node->ny[0];
+        normal[2] = node->nz[0];
+        if(ConstrictionCriteria(home, node, nbrNode1, nbrNode2, gbPlane, normal)==false){
+            PullBack(home,node);
+            continue;
+	    }
+
+#endif
 #endif
 
         burg[0] = node->burgX[0];

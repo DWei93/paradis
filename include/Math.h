@@ -76,6 +76,12 @@ inline double dot_product(double a0, double a1, double a2, double b0, double b1,
     return a0*b0+a1*b1+a2*b2;
 }
 
+/* Negative vector*/
+inline void NegativeVector(double *a, double *b){
+    b[0] = -a[0];
+    b[1] = -a[1];
+    b[2] = -a[2];
+}
 
 /** Parallel component of vector a along the direction dir
  *  \param[in] a vector
