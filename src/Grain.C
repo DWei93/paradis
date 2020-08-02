@@ -3682,7 +3682,6 @@ bool PartialDislocations(Home_t *home, Node_t *node1, Node_t *node2, real8 *p1, 
         resBurg[1] = burg[1] - p1[1] - p2[1];
         resBurg[2] = burg[2] - p1[2] - p2[2];
         if(Normal(resBurg) < 0.05){
-            printf("decomposition successed!!\n");
             return true;
         }
 

@@ -294,7 +294,6 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
 
 	real8 glideStress = GlideShearStress(home,node,gbN);
     if(glideStress < 0){
-        printf("dislocation pull bake in %s, %fMPa\n",__func__,glideStress/1.0E6);
         return false;
     }
 
@@ -381,6 +380,7 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
         cStress = 49.0E6+0.26*EsciagStress;
     }
 
+//    printf("%5.1f %5.1f %5.1f\n", cStress/1E6, glideStress/1E6, EsciagStress/1E6);
     if(cStress <= glideStress)return true;
     return false;
 }
