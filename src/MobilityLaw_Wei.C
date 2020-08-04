@@ -218,7 +218,8 @@ int Mobility_Wei(Home_t *home, Node_t *node)
 
 #ifdef TB_PINNING
     if((NodeOnGB(home, node)&INTERSECT_NODE)>0 && (numGlideConstraints ==2)){
-        pinForce = ((param->tbStrength[0] < 1.0E5)?param->tbStrength[0]*lxb:(4.81851E8/param->grainSize + 5.9E8)*lxb);
+//      pinForce = ((param->tbStrength[0] < 1.0E5)?param->tbStrength[0]*lxb:(4.81851E8/param->grainSize + 5.9E8)*lxb);
+        pinForce = 4.8E8*lxb;
         ParallelComponent(nForce, glideConstraints[2], glideForce);
         if(Normal(glideForce)<=pinForce){
             VECTOR_ZERO(nVel);

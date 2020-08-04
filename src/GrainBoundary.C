@@ -288,17 +288,17 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
     Param_t *param = home->param;
     real8 pBurg1[3], pBurg2[3], EsciagBurg[3];
     real8 burg[3]={node->burgX[1], node->burgY[1], node->burgZ[1]};
+	real8 glideStress = GlideShearStress(home,node,gbN);
+
+    if(fabs(DotProduct(burg, gbN)) > 0.05){ // non-screw dislocation
+        return (glideStress > param->tbStrength[1]);
+    }
+
+    if(glideStress < 0.0)return false;
+
     if(PartialDislocations(home, node, nbr2, pBurg1, pBurg2)==false)return false;
     CoordMinus(pBurg2,pBurg1,EsciagBurg);
     NormalizeVec(EsciagBurg);
-
-	real8 glideStress = GlideShearStress(home,node,gbN);
-    real8 temVec[3];
-	temVec[0] = node->burgX[0];
-	temVec[1] = node->burgY[0];
-	temVec[2] = node->burgZ[0];
-    real8 tbStrength = (fabs(DotProduct(temVec, gbN)) < 1.0e-2)?0:param->tbStrength[1];
-    if(glideStress < tbStrength)return false;
 
 	ChangeArmBurg(home, nbr1, &node->myTag, EsciagBurg[0],EsciagBurg[1],EsciagBurg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	ChangeArmBurg(home, node, &nbr2->myTag, EsciagBurg[0],EsciagBurg[1],EsciagBurg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
@@ -1224,7 +1224,7 @@ void HandleGrainBoundary(Home_t *home)
         }		
 
         if(node->numNbrs > 2 || (crossSlipNode==1)){
-            if(GlideShearStress(home, node, gb->n) > param->tbStrength[1]){
+            if(fabs(GlideShearStress(home, node, gb->n)) > param->tbStrength[1]){
                 vec1[0] = node->vX;
                 vec1[1] = node->vY;
                 vec1[2] = node->vZ;

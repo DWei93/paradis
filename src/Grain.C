@@ -2333,7 +2333,6 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 /*
  *      TB image force
  */
-        continue;
         if(armInGrain<0 || param->polycrystal==0)continue; 
         tbStrength = (PerpendicularDirection(burg,param->TBNormal,0.05)==true?param->tbStrength[0]:param->tbStrength[1]);
         NodeLocation(home, pos[0], pos[1], pos[2], curInGrain, curOnGB);
@@ -3071,7 +3070,7 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
         VECTOR_COPY(gbd->keyLineList[i], keyLineList[i]);
     }
     
-#if 1
+#if 0
     printf("Burgs info:\n");
     for(i=0; i<gbd->numBurgVectors; i++){
         printf("%d(%d): {%f,%f,%f} numPlanes %d, ", i,gbd->burgType[i], 
