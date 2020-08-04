@@ -293,84 +293,24 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
     NormalizeVec(EsciagBurg);
 
 	real8 glideStress = GlideShearStress(home,node,gbN);
-    if(glideStress < 0){
-        return false;
-    }
+    real8 temVec[3];
+	temVec[0] = node->burgX[0];
+	temVec[1] = node->burgY[0];
+	temVec[2] = node->burgZ[0];
+    real8 tbStrength = (fabs(DotProduct(temVec, gbN)) < 1.0e-2)?0:param->tbStrength[1];
+    if(glideStress < tbStrength)return false;
 
-	ChangeArmBurg(home, nbr1, &node->myTag, 
-                  EsciagBurg[0],
-                  EsciagBurg[1],
-                  EsciagBurg[2],
-                  plane[0],
-                  plane[1],
-                  plane[2],
-	              0, DEL_SEG_NONE);
-    
-	ChangeArmBurg(home, node, &nbr2->myTag, 
-                  EsciagBurg[0],
-                  EsciagBurg[1],
-                  EsciagBurg[2],
-                  plane[0],
-                  plane[1],
-                  plane[2],
-	              0, DEL_SEG_NONE);
-
-	ChangeArmBurg(home, nbr2, &node->myTag, 
-                  -EsciagBurg[0],
-                  -EsciagBurg[1],
-                  -EsciagBurg[2],
-                  plane[0],
-                  plane[1],
-                  plane[2],
-	              0, DEL_SEG_NONE);
-    
-	ChangeArmBurg(home, node, &nbr1->myTag, 
-                  -EsciagBurg[0],
-                  -EsciagBurg[1],
-                  -EsciagBurg[2],
-                  plane[0],
-                  plane[1],
-                  plane[2],
-	              0, DEL_SEG_NONE);
-
+	ChangeArmBurg(home, nbr1, &node->myTag, EsciagBurg[0],EsciagBurg[1],EsciagBurg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
+	ChangeArmBurg(home, node, &nbr2->myTag, EsciagBurg[0],EsciagBurg[1],EsciagBurg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
+	ChangeArmBurg(home, nbr2, &node->myTag, -EsciagBurg[0],-EsciagBurg[1],-EsciagBurg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
+	ChangeArmBurg(home, node, &nbr1->myTag, -EsciagBurg[0],-EsciagBurg[1],-EsciagBurg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	SetOneNodeForce(home, node);
 	real8 EsciagStress = GlideShearStress(home,node,gbN);
 
-	ChangeArmBurg(home, nbr1, &node->myTag, 
-                  burg[0],
-                  burg[1],
-                  burg[2],
-                  plane[0],
-                  plane[1],
-                  plane[2],
-	              0, DEL_SEG_NONE);
-    
-	ChangeArmBurg(home, node, &nbr2->myTag, 
-                  burg[0],
-                  burg[1],
-                  burg[2],
-                  plane[0],
-                  plane[1],
-                  plane[2],
-	              0, DEL_SEG_NONE);
-
-	ChangeArmBurg(home, nbr2, &node->myTag, 
-                  -burg[0],
-                  -burg[1],
-                  -burg[2],
-                  plane[0],
-                  plane[1],
-                  plane[2],
-	              0, DEL_SEG_NONE);
-    
-	ChangeArmBurg(home, node, &nbr1->myTag, 
-                  -burg[0],
-                  -burg[1],
-                  -burg[2],
-                  plane[0],
-                  plane[1],
-                  plane[2],
-	              0, DEL_SEG_NONE);
+	ChangeArmBurg(home, nbr1, &node->myTag, burg[0],burg[1],burg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
+	ChangeArmBurg(home, node, &nbr2->myTag, burg[0],burg[1],burg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
+	ChangeArmBurg(home, nbr2, &node->myTag, -burg[0],-burg[1],-burg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
+	ChangeArmBurg(home, node, &nbr1->myTag, -burg[0],-burg[1],-burg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	SetOneNodeForce(home, node);
 
     real8 cStress;
@@ -379,8 +319,6 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
     }else{
         cStress = 49.0E6+0.26*EsciagStress;
     }
-
-//    printf("%5.1f %5.1f %5.1f\n", cStress/1E6, glideStress/1E6, EsciagStress/1E6);
     if(cStress <= glideStress)return true;
     return false;
 }
@@ -2647,10 +2585,9 @@ void GBCrossSlip(Home_t *home)
 
             if(!GeometricCriterion(gbd, burg, interLine.direction, normal, 0,
                    burgList, disArray))continue;
-
+#if 1
 /*
- *          Now, we don't need the resultant configure including a lattice burg on GB,
- *          or a partial burg in Grain.
+ *          Now, we don't need the resultant configure including a partial burg in Grain.
  */
             for(j=0; j<disArray.size(); ){
                 barrierFactor = -1.0;
@@ -2673,12 +2610,13 @@ void GBCrossSlip(Home_t *home)
                     j++;
                 }
             }
+#endif
             if(disArray.size() == 0)continue;
 #if 0
-            if(!isScrew){}
-//              printf("non-screw dislocation decomposition (%g,%g,%g) %d %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg),
-//                      PlaneID_FCC(gbd,normal));
-            else {printf("screw dislocation decomposition (%g,%g,%g) %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg));
+            if(!isScrew){
+                printf("non-screw dislocation decomposition (%g,%g,%g) %d %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg),
+                        PlaneID_FCC(gbd,normal));
+            }else {printf("screw dislocation decomposition (%g,%g,%g) %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg));
 
                 for(int set=0; set<disArray.size(); set++){
                     printf("set %d: ",set);

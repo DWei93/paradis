@@ -1404,7 +1404,7 @@ int PlaneType_FCC(BurgInfo_t *burgData, real8 plane[3])
 
     planeID = PlaneID_FCC(burgData, plane);
 
-    if(planeID >= NUM_PLANES_IN_FCC) return(UNKOWN_PLANE);
+    if(planeID >= burgData->numPlanes) return(UNKOWN_PLANE);
  
     return(burgData->planeType[planeID]);
 }
@@ -3071,7 +3071,7 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
         VECTOR_COPY(gbd->keyLineList[i], keyLineList[i]);
     }
     
-#if 0
+#if 1
     printf("Burgs info:\n");
     for(i=0; i<gbd->numBurgVectors; i++){
         printf("%d(%d): {%f,%f,%f} numPlanes %d, ", i,gbd->burgType[i], 
@@ -3094,6 +3094,7 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
         printf("\n");
         
     }
+    printf("\n\n");
 #endif
     return;
 }
@@ -3390,8 +3391,12 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
             j++;
             for(k=0; k<bd->numBurgsPerPlane[i]; k++){
                 burgType = BurgType_FCC(bd->burgList[bd->planeOnBurgID[i][k]]);
-                if(flag == 2 && burgType == BASIC_BURG)continue;
-                if(!(burgType != SHOCKLEY_BURG || burgType != BASIC_BURG))continue;
+                if(flag == 2){
+                    if(burgType != SHOCKLEY_BURG)continue;
+                }else{
+                    if(burgType == JUNCTION1_BURG || burgType == JUNCTION2_BURG)continue;
+                }
+//              if(!(burgType != SHOCKLEY_BURG || burgType != BASIC_BURG))continue;
                 VECTOR_COPY(vector, bd->burgList[bd->planeOnBurgID[i][k]]);
                 if(DotProduct(vector, burg) < 0){
                     vector[0] = -vector[0];
@@ -3650,7 +3655,7 @@ bool PartialDislocations(Home_t *home, Node_t *node1, Node_t *node2, real8 *p1, 
     int pID = PlaneID_FCC(bd, plane); 
 
     int dID[2]={-1,-1};
-    if((pID<3)&&(bID<6)&&(bType==BASIC_BURG)){
+    if(bID<6 && pID<4 && bType==BASIC_BURG){
         if(bID==0){ // DC
             if(pID==0){dID[0]=10; dID[1]=9;}else if(pID==1){dID[0]=6; dID[1]=13;}
         }else if(bID==1){
@@ -3694,7 +3699,8 @@ bool PartialDislocations(Home_t *home, Node_t *node1, Node_t *node2, real8 *p1, 
     if(Normal(lDir)<0.1){return false;} else{NormalizeVec(lDir);}
 
     if(!GeometricCriterion(bd, burg, lDir, plane, 2,  burgList, disArray)){
-        Fatal("something wrong with geometric criterion");
+        printf("something wrong with geometric criterion"); 
+        return false;
     }
     if(disArray.size() != 1){printf("Warning: the extened dislcoation has some wrong\n"); return false;}
     if(disArray[0].size() != 2){printf("Warning: the extened dislcoation has some wrong\n"); return false;}
