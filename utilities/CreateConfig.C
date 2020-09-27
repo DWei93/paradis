@@ -2793,8 +2793,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         bool        finished, singleSrcTest = 0;
         BurgInfo_t  *bd, *gbd;
         GB_t        *gb;
+        Grain_t     *grain;
         	
-        real8                                       str[3][3];
+        real8                                       str[3][3], gbNormal[3];
         int                                         appliedDir, j, k;
         real8                                       sign;
         std::vector<std::vector<Dislocation_t> >    disArray;
@@ -2921,7 +2922,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     bd = GetBurgData(home, inGrain1, onGB1);
                     if(onGB1 > -1)continue;
 
-#if 0
+#if 1
                     if(xn > 24 && chain <24){
                         ranNum = chain%24;
                     }else{
@@ -2940,8 +2941,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
                     gpBurgIndex = slip_sys[ranNum][0]; gpIndex=slip_sys[ranNum][1];
 #else
-                    gpIndex = 0;
-                    gpBurgIndex = 3;
+                    gpIndex = 1;
+                    gpBurgIndex = 5;
 //                  p1[2] =  home->grainKeys[inGrain1]->cz;
                     VECTOR_ZERO(p0);
 #endif   
@@ -3020,17 +3021,59 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                                 break;
 	                    }
 
-                        for (i = 0; i < 3; i++) {
-                            p0[i] = p1[i] + (srcLen * randomLine[i])/2.0;
-                            p2[i] = p1[i] + (srcLen * randomLine[i]);
-                        } 
-
-                        NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,15);
-                        NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,15);
-             
-                        if(onGB1 != onGB0 || onGB1 !=onGB2 || inGrain0 != inGrain1 || inGrain1 != inGrain2){
-                            continue;
-                        }	                
+                        if(home->nGBs<=1){
+                            for (i = 0; i < 3; i++) {
+                                p0[i] = p1[i] + (srcLen * randomLine[i])/2.0;
+                                p2[i] = p1[i] + (srcLen * randomLine[i]);
+                            } 
+                            NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,15);
+                            NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,15);
+                            if(inGrain1 != inGrain0 || inGrain1 != inGrain2 || onGB1 != onGB0 || onGB1 != onGB2)continue;
+                        }else{
+                            VECTOR_COPY(p0, p1); inGrain0=inGrain1; onGB0 = onGB1;
+                            for (i = 0; i < 3; i++) {
+                                p1[i] = p0[i] - (srcLen * randomLine[i])/2.0;
+                                p2[i] = p0[i] + (srcLen * randomLine[i])/2.0;
+                            } 
+                            grain = home->grainKeys[inGrain0];
+                            NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1, 15);
+                            if(!(onGB1<0 && inGrain1==inGrain0)){
+                                for(i=0;i<grain->nBounds;i++){
+                                    gb = grain->GB[i];
+                                    gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
+                                    gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
+                                    gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
+                                
+                                    if(DotProduct(gbNormal,randomLine)<0){
+                                        VECTOR_COPY(vec2, gb->p);
+                                        PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                        LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p1);
+                                        inGrain1=-1; onGB1 = gb->GBID;
+                                        break;
+                                    }
+                                }
+                                if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
+                            }
+                            
+                            NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2, 15);
+                            if(!(onGB2<0 && inGrain2==inGrain0)){
+                                for(i=0;i<grain->nBounds;i++){
+                                    gb = grain->GB[i];
+                                    gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
+                                    gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
+                                    gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
+                                
+                                    if(DotProduct(gbNormal,randomLine)>0){
+                                        VECTOR_COPY(vec2, gb->p);
+                                        PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                        LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p2);
+                                        inGrain2=-1; onGB2 = gb->GBID;
+                                        break;
+                                    }
+                                }
+                                if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
+                            }
+                        }
 
                         if(inArgs->extended != 0){
                             VECTOR_COPY(basePos, p0);
@@ -4178,8 +4221,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
     int i;for(i=0; (i<nLoops) && (maxDensity>invVol*(*totDislocLen)); i++){
         randNum = int(1.0E5*randm(&seed));
         grainID=(nLoops>6*home->nGrains)&&(i<6*home->nGrains)?i/6:(randNum%(home->nGrains*6))/6;
-//      burgID=(nLoops>6*home->nGrains)&&(i<6*home->nGrains)?i%6:randNum%6;
-        burgID = 5;
+        burgID=(nLoops>6*home->nGrains)&&(i<6*home->nGrains)?i%6:randNum%6;
         grain = home->grainKeys[grainID];
         bd = &grain->burgData;
         VECTOR_COPY(burg,bd->burgList[burgID]);
