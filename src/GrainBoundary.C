@@ -2167,6 +2167,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
 
     if(home->myDomain != node->myTag.domainID)return;
     if(!IsOnGB(node))return;
+    if(node->constraint==7)return;
 
     gb = home->GBKeys[node->onGB];
 
@@ -2219,7 +2220,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             nodePos[2] = node->z;
 
             if(NewPosToGB(home, node, nbrInGrain[i][0], node->onGB, nodePos, newPos)){
-//                PrintNode(node);
+                PrintNode(home,node);
                 printf("Warning in SplitIntersectNode at %d\n", __LINE__);
                 if(wrongGlidePlane){
                     printf("Wrong glide plane\n");

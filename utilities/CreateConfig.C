@@ -2861,6 +2861,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
             gbd = &(gb->burgData);
         }
         n1[0] = 0.0;	n1[1] = 0.0;	n1[2] = 0.0;
+        real8 maximalLen, a1, a2;
 
 		
 	    printf("the max density is %e \n", maxDensity);
@@ -2946,43 +2947,29 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 //                  p1[2] =  home->grainKeys[inGrain1]->cz;
                     VECTOR_ZERO(p0);
 #endif   
+                    grain = home->grainKeys[inGrain1];
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
                     VECTOR_COPY(n3, bd->planeList[3]);
                     if(!PerpendicularDirection(n0,b))Fatal("burg is not perpendicular to glide plane");
                     time = 0;
+
+
+                    
                     while(time < 10000){
                         time++;
-
-//                      if(3!=gpIndex && freeLine == false){
-                        if(false){
-#if 1
-                            cross(n3,n0,randomLine);
-#else
-                            NormalComponent(n3,n0,randomLine); NormalizeVec(randomLine);
-#endif                            
-                            if(randm(&seed)>0.5){
-                                randomLine[0]=-randomLine[0];
-                                randomLine[1]=-randomLine[1];
-                                randomLine[2]=-randomLine[2];
-                            }
-                            if(polycrystal>0){
-                                edge = home->grainKeys[inGrain1]->thick/0.942809;
-                            }else edge = cubeLength;
-                        }else{
-                            randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
-                            randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
-                            
-                            cross(n0, b, n1);
-                            NormalizeVec(n1);
-                	        
-                            for(i = 0; i < 3; i++){
-                                randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
-                            }
-                            if(polycrystal>0 && gpIndex != 3){
-                                edge = home->grainKeys[inGrain1]->thick/0.942809;
-                            }else edge = cubeLength;
+                        randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
+                        randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
+                        
+                        cross(n0, b, n1);
+                        NormalizeVec(n1);
+                	    
+                        for(i = 0; i < 3; i++){
+                            randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
                         }
+                        if(polycrystal>0 && gpIndex != 3){
+                            edge = home->grainKeys[inGrain1]->thick/0.942809;
+                        }else edge = cubeLength;
                         NormalizeVec(randomLine);
 #if 0
                         VECTOR_ZERO(p1); VECTOR_ZERO(randomLine); randomLine[0]=1;
@@ -3030,12 +3017,15 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,15);
                             if(inGrain1 != inGrain0 || inGrain1 != inGrain2 || onGB1 != onGB0 || onGB1 != onGB2)continue;
                         }else{
+                            a1 = M_PI/2.0-atan(grain->thick/0.942809/(srcLen/1.1));
+                            a2 = acos(fabs(DotProduct(param->TBNormal, randomLine)));
+                            if(a1>a2){ continue;}
+                            
                             VECTOR_COPY(p0, p1); inGrain0=inGrain1; onGB0 = onGB1;
                             for (i = 0; i < 3; i++) {
                                 p1[i] = p0[i] - (srcLen * randomLine[i])/2.0;
                                 p2[i] = p0[i] + (srcLen * randomLine[i])/2.0;
                             } 
-                            grain = home->grainKeys[inGrain0];
                             NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1, 15);
                             if(!(onGB1<0 && inGrain1==inGrain0)){
                                 for(i=0;i<grain->nBounds;i++){

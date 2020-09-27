@@ -413,7 +413,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 if((GetPlaneType_FCC(home, node, nbrNode) & GLIDE_PLANE) == 0)index=5;
                 constraint = node->constraint;
                 nodeOnGB = NodeOnGB(home, node);
-                if((nodeOnGB & INTERSECT_NODE)>0){
+                if((nodeOnGB & INTERSECT_NODE)>0 && (constraint!=7)){
                     if((nodeOnGB &GB_NODE)==0)constraint = 4; else if(narm <=3) constraint = 5; else constraint =6;
                 }
 /*
