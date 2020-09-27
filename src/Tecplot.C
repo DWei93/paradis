@@ -73,9 +73,11 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         Plane_t	 plane;
         struct stat statbuf;
         real8   al, am, an, amag, sigijk, pstnijk, dpstnijk;
-        real8   vec[3], f[3], f1[3], f2[3], length, fMag,ifMag,n[3],val;
+        real8   vec[3], f[3], f1[3], f2[3], length, fMag,ifMag,n[3],val, nodePos[3], nbrPos[3];
+        int     armID21;
+        real8   tau_g, tau_gg, tau_ext;
 
-        int         index, constraint;
+        int         index, constraint, nodeOnGB;
         param      = home->param;
         thisDomain = home->myDomain;
 
@@ -209,8 +211,16 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
             }
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,index, dom, id\n");
 		    fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
+            val = param->timeNow*1.0E9;
+            val = fabs(param->eRate*param->timeNow*1.0E2);
+            fprintf(fp, "AUXDATA strain = \"%10.7f\"\n", val);
+            val = fabs(sigijk/1.0E6);
+            fprintf(fp, "AUXDATA stress = \"%10.7f\"\n", val);
+            val = fabs(pstnijk*1.0E2);
+            fprintf(fp, "AUXDATA plastic_strain = \"%10.7f\"\n", val);
+            fprintf(fp, "AUXDATA fileName = \"%s\"\n", fileName);
 #else
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, ifx,ify,ifz,ifMag\n");
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_gg, tau_ext,ifMag\n");
             val = param->timeNow*1.0E9;
 		    fprintf(fp, "zone T = \"%d\", i = %d, SOLUTIONTIME = %g,  F=POINT\n", home->cycle, numArms,val); 
             val = fabs(param->eRate*param->timeNow*1.0E2);
@@ -219,6 +229,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
             fprintf(fp, "AUXDATA stress = \"%7.2f\"\n", val);
             val = fabs(pstnijk*1.0E2);
             fprintf(fp, "AUXDATA plastic_strain = \"%7.3f\"\n", val);
+            fprintf(fp, "AUXDATA fileName = \"%s\"\n", fileName);
 #endif
 	    }
 #endif	
@@ -271,6 +282,8 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
             f[0]/=(nodeLen*1E6); f[1]/=(nodeLen*1E6); f[2]/=(nodeLen*1E6);
             f1[0]/=(nodeLen*1E6); f1[1]/=(nodeLen*1E6); f1[2]/=(nodeLen*1E6);
             fMag=Normal(f); ifMag=Normal(f1);
+
+
             NormalizeVec(f1); NormalizeVec(f);
             if(!Numerical(f)){VECTOR_ZERO(f);}
             if(!Numerical(f1)){VECTOR_ZERO(f1);}
@@ -365,32 +378,28 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 NormalizeVec(vec);
                 n[0] = node->nx[j]; n[1]=node->ny[j]; n[2]=node->nz[j];
 
-#if 0
-                int armID21=GetArmID(home, nbrNode, node);
+                armID21=GetArmID(home, nbrNode, node);
                 if(armID21<0)Fatal("%s: armID 21 < 0",__func__);
-                f[0] = node->armfx[j]+nbrNode->armfx[armID21];
-                f[1] = node->armfy[j]+nbrNode->armfy[armID21];
-                f[2] = node->armfz[j]+nbrNode->armfz[armID21];
-                f[0]/= length;f[2]/= length; f[2]/= length;  
-                NormalComponent(f,vec,f);
-                NormalComponent(f,n,f);
-                fMag = Normal(f)/1E6; NormalizeVec(f);
-                if((!Numerical(f)) || (!Numerical(fMag))){VECTOR_ZERO(f); fMag=0.0;}
-                ifMag = NodeLengthXMag(home, node);
-                f1[0]=node->fZ/ifMag; f1[1]=node->fY/ifMag; f1[2]=node->fZ/ifMag;
-                f2[0]=node->vX; f2[1]=node->vY; f2[2]=node->vZ;
-                if(Normal(f2) > 1){
-                    NormalizeVec(f2);
-                    ParallelComponent(f1,f2,f1);
-                }else {
-                    VECTOR_ZERO(f1);
-                }
-                NodeImageForce(home, node,  f1);
-                length =  NodeLengthXMag(home, node);
-                f1[0] /= length; f1[1] /=length; f2[2] /=length;
-                if(!Numerical(f1)){VECTOR_ZERO(f1);}
-                ifMag = Normal(f1)/1E6; NormalizeVec(f1);
-#endif                
+                f1[0] =(node->armfx[j]+nbrNode->armfx[armID21])/1E6/length;
+                f1[1] =(node->armfy[j]+nbrNode->armfy[armID21])/1E6/length;
+                f1[2] =(node->armfz[j]+nbrNode->armfz[armID21])/1E6/length;
+                
+                if((!Numerical(f1))){VECTOR_ZERO(f1);}
+                NormalComponent(f1,n,f1);
+                tau_g=Normal(f1);
+                if(!Numerical(tau_g))tau_g=0;
+
+                NormalComponent(f1,vec,f1);
+                tau_gg=Normal(f1);
+                if(!Numerical(tau_gg))tau_gg=0;
+
+                burg[0] = node->burgX[j];
+                burg[1] = node->burgY[j];
+                burg[2] = node->burgZ[j];
+                nodePos[0] = x; nodePos[1]=y; nodePos[2]=z;
+                nbrPos[0] = x2; nbrPos[1]=y2; nbrPos[2]=z2;
+                tau_ext = ExtShearStress(param, burg, nodePos, nbrPos, n)/1E6;
+
                 if(param->polycrystal==0)index=0;
                 else{
                     if(AlignedVector(param->TBNormal, n)){
@@ -403,7 +412,10 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 }
                 if((GetPlaneType_FCC(home, node, nbrNode) & GLIDE_PLANE) == 0)index=5;
                 constraint = node->constraint;
-                if((NodeOnGB(home, node) & INTERSECT_NODE)>0)constraint = 4;
+                nodeOnGB = NodeOnGB(home, node);
+                if((nodeOnGB & INTERSECT_NODE)>0){
+                    if((nodeOnGB &GB_NODE)==0)constraint = 4; else if(narm <=3) constraint = 5; else constraint =6;
+                }
 /*
  *              This part is for output of junction investigation
  */
@@ -426,7 +438,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                     fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g\n", 
                             x,y,z,prx/2,pry/2,prz/2,
                             narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                            index, f[0],f[1],f[2],fMag, f1[0],f1[1],f1[2],ifMag);
+                            index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag);
 #endif
 	        }
 #endif	
@@ -542,7 +554,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 
                 constraint = node->constraint;
 
-                if((NodeOnGB(home, node) & INTERSECT_NODE)>0)constraint = 4;
+                if((NodeOnGB(home, node) & INTERSECT_NODE)>0){
+                    if(narm==2)constraint = 4; else if(narm==3) constraint = 5; else constraint =6;
+                }
 
                 fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %d 0\n", 
                         x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,constraint,

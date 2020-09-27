@@ -36,7 +36,7 @@ int Mobility_Wei(Home_t *home, Node_t *node)
     int grainNode;
     Param_t *param;
     real8 nVel[3], Veldotlcr, forceGB[3];
-    int i, j, nc, nconstraint, nlc, TBBurg, armID21;
+    int i, j, nc, nconstraint, nlc, TBBurg, armID21, nodeOnGB;
     real8 normx[MAX_NBRS], normy[MAX_NBRS], normz[MAX_NBRS];
     real8 lineX[MAX_NBRS], lineY[MAX_NBRS], lineZ[MAX_NBRS];
     real8 a, b, velocity;
@@ -201,6 +201,7 @@ int Mobility_Wei(Home_t *home, Node_t *node)
 	/* Velocity is simply proportional to total force per unit length */
 	GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints, zeroLenJunc);
     ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, nForce);
+#if 1
     NodeImageForce(home, node, imageForce);
     ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, imageForce);
     if(DotProduct(nForce,imageForce)<0){
@@ -215,11 +216,13 @@ int Mobility_Wei(Home_t *home, Node_t *node)
             return (0);
         }
     }
+#endif
 
 #ifdef TB_PINNING
-    if((NodeOnGB(home, node)&INTERSECT_NODE)>0 && (numGlideConstraints ==2)){
+    nodeOnGB = NodeOnGB(home, node);
+    if((nodeOnGB &INTERSECT_NODE)>0 && (numGlideConstraints ==2) && (nodeOnGB & GB_NODE)==0){
 //      pinForce = ((param->tbStrength[0] < 1.0E5)?param->tbStrength[0]*lxb:(4.81851E8/param->grainSize + 5.9E8)*lxb);
-        pinForce = 4.8E8*lxb;
+        pinForce = 0.15*param->shearModulus;
         ParallelComponent(nForce, glideConstraints[2], glideForce);
         if(Normal(glideForce)<=pinForce){
             VECTOR_ZERO(nVel);

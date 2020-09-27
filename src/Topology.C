@@ -593,16 +593,16 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
                               bsum[1] = nbrNode->burgY[arm] + by;
                               bsum[2] = nbrNode->burgZ[arm] + bz;
                               if (DotProduct(bsum, bsum) < 1.0e-4) {
+                                  nx = nbrNode->nx[arm];
+                                  ny = nbrNode->ny[arm];
+                                  nz = nbrNode->nz[arm];
+                                  needGlide = 0;
                                   if(GetPlaneType_FCC(home,node, nbrNode)==GLIDE_PLANE){
                                     real8 lDir[3]={node->x-nbrNode->x, node->y-nbrNode->y,node->z-nbrNode->z};  
                                     ZImage(home->param, lDir, lDir+1, lDir+2);
                                     NormalizeVec(lDir); if(Normal(lDir)<1E-10)continue;
                                     if(fabs(dot_product(lDir[0],lDir[1],lDir[2],node->nx[arm],node->ny[arm],node->nz[arm])) > 1.0E-1)continue;
                                   }
-                                  nx = nbrNode->nx[arm];
-                                  ny = nbrNode->ny[arm];
-                                  nz = nbrNode->nz[arm];
-                                  needGlide = 0;
                                   break;
                               }
                           }

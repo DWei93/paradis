@@ -365,7 +365,11 @@ void CrossSlip(Home_t *home)
  *                                                                   D.Wei
  */
     DebugGB(home, 301);
-    if(home->cycle%100==0)GBCrossSlip(home);
+    Param_t *param = home->param;
+    if(param->timeNow >= param->timeNextGBCrossSlip){
+        GBCrossSlip(home);
+        param->timeNextGBCrossSlip += 1.0E-9;
+    }
     DebugGB(home, 302);
 #endif
 

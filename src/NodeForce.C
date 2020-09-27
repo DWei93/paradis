@@ -2495,3 +2495,24 @@ void GetFieldPointStress(Home_t *home, real8 x, real8 y, real8 z,
 
         return;
 }
+real8 ExtShearStress(Param_t *param, real8 *burg, real8 *p1, real8 *p2, real8 *n){
+
+    real8 extstress[3][3], f1[3], f2[3], stress, g[3];
+    extstress[0][0] = param->appliedStress[0];
+    extstress[1][1] = param->appliedStress[1];
+    extstress[2][2] = param->appliedStress[2];
+    extstress[1][2] = param->appliedStress[3];
+    extstress[2][0] = param->appliedStress[4];
+    extstress[0][1] = param->appliedStress[5];
+    extstress[2][1] = extstress[1][2];
+    extstress[0][2] = extstress[2][0];
+    extstress[1][0] = extstress[0][1];
+    ExtPKForce(extstress, burg[0], burg[1], burg[2], p1[0], p1[1], p1[2], p2[0],p2[1],p2[2],f1,f2);
+
+    real8 vec[3]={p1[0]-p2[0], p1[1]-p2[1], p1[2]-p2[2]};
+    ZImage(param, vec, vec+1, vec+2);
+    NormalComponent(f1,n,g);
+    stress = 2.0*Normal(g)/Normal(vec);
+
+    return stress;
+}

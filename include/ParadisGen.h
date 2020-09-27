@@ -21,6 +21,8 @@ typedef struct {
         char    *outputFile;
         int     pbcVal;
         real8   radius;
+        real8   radius2;
+        real8   radius3;
         int     seed;
         int     type;
         real8   xSurf[2];

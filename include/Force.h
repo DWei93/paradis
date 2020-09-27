@@ -108,5 +108,5 @@ void SemiInfiniteSegSegForce(real8 p1x, real8 p1y, real8 p1z,
         real8 *fp4x, real8 *fp4y, real8 *fp4z);
 void SetOneNodeForce(Home_t *home, Node_t *node1);
 void ZeroNodeForces(Home_t *home, int reqType);
-
+real8 ExtShearStress(Param_t *param, real8 *burg, real8 *p1, real8 *p2, real8 *n);
 #endif  /* ifndef _Force_h */

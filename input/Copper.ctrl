@@ -19,20 +19,20 @@
 #
 numXdoms = 2
 numYdoms = 2
-numZdoms = 2
+numZdoms = 4
 #
 #  Cell geometry
 #
-numXcells = 4
-numYcells = 4
-numZcells = 4
+numXcells = 8
+numYcells = 8
+numZcells = 8
 
 #
-# Mesh size for tecmesh
+# Mesh numbers for tecmesh
 #
-meshSizeX = 355
-meshSizeY = 355
-meshSizeZ = 355
+meshNumX = 11
+meshNumY = 11
+meshNumZ = 11
 
 #  Dynamic load balancing
 #
@@ -41,25 +41,26 @@ DLBfreq = 3
 #
 #  Discretization and topological change controls
 elasticinteraction = 1
-a0 = [ 1.68098 1.12421 1.01163 0.187646 ]
+#a0 = [ 1.68098 1.12421 1.01163 0.187646 ]
 enableCrossSlip =   1
-rTol = 11.1422881
-rc =  200
-grainSize = 1956
-dirname = "res.EM-l-1000nm"
+rTol = 1.6713432
+rc =  8
+grainSize = 277
+loadType = 1
+maxstep =  40000000
+#maxstep =  50000
+dirname = "res.single-1-d-4000nm-90-degree"
 remeshRule = 2
 enforceGlidePlanes =  1
 splitMultiNodeFreq =   1  
 #
 #  Simulation time and timestepping controls
 #  
-maxstep =  40000000 
-#maxstep =  20000
 maxStn = 7.0E-2
 maxPst = 5.0E-3
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
-wallTime = 24
+wallTime = 240
 #
 #  Fast Multipole Method controls
 #  
@@ -70,19 +71,18 @@ fmCorrectionTbl =   "fm-ctab.Cu.m2.t5.dat"
 #
 #  Loading conditions
 #  
-loadType = 1
 indxErate = 8
-eRate =   5.0E3
+eRate = 5.0E3
 #eRate =  0.0E0
 strRate = -4.0E16
 #strRate = 0.0
 #plaRateCtr = 2.0E4
 
-edotPolar = [ 45.0 90.0 ]
+edotPolar = [ 9.0000000e+01 9.0000000e+01 ]
 
 appliedStress = [
 	0.0e0
-	0.0e0
+	2.0e8
 	0.0e0
 	0.0e0
 	0.0e0
@@ -93,11 +93,11 @@ appliedStress = [
 #  Material and mobility parameters
 #  
 mobilityLaw =   "Wei"  
-#shearModulus =   54.6e9  # Voight Average
-shearModulus =  46.554e9  # in jin paper
+shearModulus =   54.6e9  # Voight Average
+#shearModulus =  46.554e9  # in jin paper
 gbStrength = -1
 tbStrength = [
-    245.0E6
+    17.0E6
     700.0E6 
 ]
 burgMag =   2.55600e-10 
@@ -122,11 +122,11 @@ tecplotfreq = 2000
 saveprop = 1
 savepropfreq = 200
 tecmesh = 1
-tecmeshfreq = 10000000
+tecmeshfreq = 40000
 savecn = 1
 savecnfreq = 10000
 savetimers = 0
 savetimersfreq = 10
 velfile = 0
 velfilefreq = 1000
-minDT = 1.0E-12
+minDT = 3.0E-13

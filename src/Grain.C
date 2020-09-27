@@ -3799,11 +3799,17 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
     cross(normBurg, lDir, crossProdt);
     if(Normal(crossProdt) < 1.0E-4){
         if(burgID >= bd->numBurgVectors){
-            FormatVector(burg, "burg");
-            FormatVector(lDir, "lDir");
-            VECTOR_COPY(glidePlane, burg);
+
+            interType = NodesIntersection(home, node1, node2, vec1, vec2);   
+            if(interType == PLANE_INTERSECTION){
+                VECTOR_COPY(glidePlane, vec1);
+            }else{
+                VECTOR_COPY(glidePlane, burg);
+                FormatVector(burg, "burg");
+                FormatVector(lDir, "lDir");
+                printf("Warning: can not find a glide plane without burgID\n");
+            }
             NormalizeVec(glidePlane);
-            printf("Warning: can not find a glide plane without burgID\n");
             return;
         }else{
             times = 0;
@@ -4107,5 +4113,15 @@ void LineBoxIntersection(Param_t *param, real8 dir[3], real8 pos[3], real8 inter
     }
     
     return;
+}
+
+void CentorPos(Param_t *param, real8 *p1, real8 *p2, real8 *p)
+{
+    real8 vec[3]={p1[0]-p2[0], p1[1]-p2[1], p1[2]-p2[2]};
+    ZImage(param, vec, vec+1, vec+2);
+    p[0] = p2[0] + 0.5*vec[0];
+    p[1] = p2[1] + 0.5*vec[1];
+    p[2] = p2[2] + 0.5*vec[2];
+    FoldBox(param, p, p+1, p+2);
 }
 

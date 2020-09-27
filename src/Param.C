@@ -812,17 +812,17 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
                 V_INT, 1, VFLAG_NULL);
         param->elasticinteraction = 1;
 		
-        BindVar(CPList, "meshSizeX", &param->meshSizeX, V_DBL, 1,
+        BindVar(CPList, "meshNumX", &param->meshNumX, V_INT, 1,
                 VFLAG_NULL);
-        param->meshSizeX = 20;
+        param->meshNumX = 11;
 
-        BindVar(CPList, "meshSizeY", &param->meshSizeY, V_DBL, 1,
+        BindVar(CPList, "meshNumY", &param->meshNumY, V_INT, 1,
                 VFLAG_NULL);
-        param->meshSizeY = 20;
+        param->meshNumY = 11;
 
-        BindVar(CPList, "meshSizeZ", &param->meshSizeZ, V_DBL, 1,
+        BindVar(CPList, "meshNumZ", &param->meshNumZ, V_INT, 1,
                 VFLAG_NULL);
-        param->meshSizeZ = 20;
+        param->meshNumZ = 11;
 
 /*
  *      Grain parameters

@@ -454,14 +454,22 @@ inline bool InConcavePolyhedron(double *p, double *bounds, int nBounds, double m
  *  \return NO_INTERSECTION|OUTSIDE_SPACE, POINT_INTERSECTION */
 inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, int &edgeID)
 {
-    int i, type=-1, ftype=-1;
-    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,p2))==POINT_INTERSECTION){edgeID=i; ftype=type;}
+    int i, type=-1, ftype=1, outspace=0;
+    for(i=0;i<nBounds;i++){
+        if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,p2))==POINT_INTERSECTION){edgeID=i; ftype=type;}
+        else if((type&OUTSIDE_SPACE)>0)outspace=1;
+    }
+    if((ftype&NO_INTERSECTION)>0 && outspace==1)ftype|=(NO_INTERSECTION|OUTSIDE_SPACE);
     return ftype;
 }
 inline int ClipSegmentInConcavePolyhedron(double *p1, double *p2, double *bounds, int nBounds, double margin, int &edgeID)
 {
-    int i, type=-1, ftype=-1;
-    for(i=0;i<nBounds;i++)if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,margin,p2))==POINT_INTERSECTION){edgeID=i; ftype=type;}
+    int i, type=-1, ftype=-1, outspace=0;
+    for(i=0;i<nBounds;i++){
+        if((type=SegmentPlaneIntersection(p1,p2,bounds+6*i,margin,p2))==POINT_INTERSECTION){edgeID=i; ftype=type;}
+        else if((type&OUTSIDE_SPACE)>0)outspace=1;
+    }
+    if((ftype&NO_INTERSECTION)>0 && outspace==1)ftype|=(NO_INTERSECTION|OUTSIDE_SPACE);
     return ftype;
 }
 

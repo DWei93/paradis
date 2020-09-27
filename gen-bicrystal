@@ -24,27 +24,32 @@
 ######################################################################################
 
 #frlen=00
-ctrlFile=Copper.ctrl
-cubeln=5000
+ctrlFile=input/Copper.ctrl
+cubeln=71
+nMesh=11
 if [ $cubeln -ge 3000 ]; then heightRatio=1; else heightRatio=2; fi
-cubel=`echo ${cubeln}/0.256 | bc`
+nMeshZ=`echo "${heightRatio}*${nMesh}" | bc `
+cubel=`echo ${cubeln}/0.2556 | bc`
 frlen=`echo ${cubel}/3 | bc`
 maxSeg=`echo ${cubel}/15 |bc `
 nGrains=2
 thick=`echo ${cubel}/${nGrains}| bc`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
 echo "Thickness=$thick b, $thickn nm"
-nfrs=500; maxDensity=5E12;
+nfrs=500; 
+maxDisDen=`echo "(1+10*(1000/${cubeln}))" | bc`
+maxDensity=${maxDisDen}E12;
 polycrystal=${1}
 single=${2}
 
-msize=`echo "scale=0; ${cubel}/21" | bc`
-sed -i "/meshSizeX/cmeshSizeX = $msize" $ctrlFile;
-sed -i "/meshSizeY/cmeshSizeY = $msize" $ctrlFile;
-sed -i "/meshSizeZ/cmeshSizeZ = $msize" $ctrlFile;
+rTol=`echo "scale=7;${maxSeg}*sqrt(2)/33" | bc -l`
+sed -i "/^rTol =/crTol = ${rTol}" $ctrlFile
+sed -i "/meshNumX/cmeshNumX = $nMesh" $ctrlFile;
+sed -i "/meshNumY/cmeshNumY = $nMesh" $ctrlFile;
+sed -i "/meshNumZ/cmeshNumZ = $nMeshZ" $ctrlFile;
 
-if [ $cubeln -le 500 ]; then nfrs=23; maxDensity=5E12; fi;
-if [ $cubeln -eq 750 ]; then nfrs=24; maxDensity=6E12; fi;
+minDT=`echo ${thickn}/100 | bc`.0E-13
+sed -i "/^minDT/cminDT = ${minDT}" $ctrlFile;
 
 PI=3.1415926535897932385
 if [ ${polycrystal} == "1" ]; then
@@ -98,6 +103,7 @@ case $srctype in
 #
 ######################################################################################
     2|II)
+    info="# ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed  -polycrystal 0 -pbc 7 -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity}  -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 "
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 0 -pbc 7 \
     -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity} \
@@ -136,6 +142,7 @@ case $srctype in
 ######################################################################################
     5|V)
 
+    info="#./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1";
     (echo "${2}-degree" ; ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity \
     -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1 )| tee createFR.log;;
@@ -149,5 +156,7 @@ case $srctype in
 esac
 
 ./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 
+sed -i "1i$info" Copper.data
+sed -i "1i#`date`" Copper.data
 cp Copper.data input/Copper.data
 echo "cp Copper.data > input/Copper.data"

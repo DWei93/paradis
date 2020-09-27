@@ -24,32 +24,39 @@
 ######################################################################################
 
 ctrlFile=input/Copper.ctrl
-cubeln=1000
-cubel=`echo "${cubeln}/0.2556" | bc`
+thickn=71
 #frlen=`echo ${cubel}/2 | bc`
-frlen=`echo ${cubel} | bc`
-frlen=-0.5,-1.0
-nGrains=2
-nfrs=`echo "12*${nGrains}" | bc`
-nTDs=1
-gb=1
+poly=1
+nGrains=6
+nTDs=3
+gb=0
 nMesh=11
+nfrsPerGrain=6
+nTimesThick=5
+cubeln=`echo "${nGrains}*${thickn}" | bc`
+cubel=`echo "${cubeln}/0.2556" | bc`
+#nfrs=`echo "24*${nGrains}" | bc`
+nfrs=`echo "${nfrsPerGrain}*${nGrains}" | bc`
 thick=`echo ${cubel}/${nGrains}| bc`
+frlen=`echo ${thick}*${nTimesThick} | bc`
 maxSeg1=`echo ${cubel}/15 | bc `
-maxSeg2=`echo ${thick}/4 | bc `
+maxSeg2=`echo ${thick}/7 | bc `
 if [ ${maxSeg1} -gt ${maxSeg2} ]; then maxSeg=${maxSeg2}; else maxSeg=${maxSeg1}; fi
 rTol=`echo "scale=7;${maxSeg}*sqrt(2)/33" | bc -l`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
-echo "Thickness=$thick b, $thickn nm, maxSeg=${maxSeg}b, rTol =$rTol"
+minDT=`echo ${thickn}/23 | bc`.0E-13
+echo "Thickness=$thick b, $thickn nm, maxSeg=${maxSeg}b, rTol =$rTol, minDT=$minDT"
 sed -i "/grainSize/cgrainSize = ${thick}" ${ctrlFile}
 sed -i "/^rTol =/crTol = ${rTol}" $ctrlFile
+sed -i "/^minDT =/cminDT = ${minDT}" $ctrlFile
 #sed -i "/dirname/cdirname = \"res.relax-t-${thickn}nm\"" ${ctrlFile}
 maxDensity=1E16
 
-msize=`echo "scale=0; ${cubel}/$nMesh" | bc`
-sed -i "/meshSizeX/cmeshSizeX = $msize" $ctrlFile;
-sed -i "/meshSizeY/cmeshSizeY = $msize" $ctrlFile;
-sed -i "/meshSizeZ/cmeshSizeZ = $msize" $ctrlFile;
+if [ $# == 1 ]; then line=`sed -n "${1}p" data`; polar=`echo ${line} | cut -d " " -f 7`; amu=`echo ${line} | cut -d " " -f 8`; echo "edotPolar = [$polar $amu]" ; sed -i "/^edotPolar =/cedotPolar = [ $polar $amu ]" $ctrlFile; fi
+
+sed -i "/meshNumX/cmeshNumX = $nMesh" $ctrlFile;
+sed -i "/meshNumY/cmeshNumY = $nMesh" $ctrlFile;
+sed -i "/meshNumZ/cmeshNumZ = $nMesh" $ctrlFile;
 
 polycrystal=1
 single=2
@@ -105,7 +112,7 @@ case $srctype in
 ######################################################################################
     4|IV)
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} ;;
+    -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} ;;
 #   -polycrystal 1 -nGrain ${nGrains}  -pbc 0  ;;
 #   -polycrystal 1 -nGrain 2  -pbc 0 -nTDs 1 -gb 1;;
 #   -burgID 5 -planeID 1 \

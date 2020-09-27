@@ -495,6 +495,7 @@ static void AdvanceAllNodes(Home_t *home, real8 oldDT)
 		node->x = x;
 		node->y = y;
 		node->z = z;
+        AdjustPenetratedNode(home, node);
 	}
 
 /*
@@ -521,6 +522,7 @@ static void AdvanceAllNodes(Home_t *home, real8 oldDT)
 		node->y = y;
 		node->z = z;
 
+        AdjustPenetratedNode(home, node);
 		node = node->next;
 	}
 

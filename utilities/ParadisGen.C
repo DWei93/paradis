@@ -686,8 +686,23 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                     inArgs->pbcVal = atoi(argValue);
                     break;
                 case OPT_RADIUS:
-                    inArgs->radius = atof(argValue);
                     setDefaultRadius = 0;
+                    token = strtok(argValue, ",");
+                    inArgs->radius = atof(token);
+                    token = strtok(NULL, ",");
+                    if (token == (char *)NULL) {
+                        inArgs->radius2 = inArgs->radius;
+                        break;
+                    }
+                    inArgs->radius2 = atof(token);
+
+                    
+                    token = strtok(NULL, ",");
+                    if (token == (char *)NULL) {
+                        inArgs->radius3 = inArgs->radius2;
+                        break;
+                    }
+                    inArgs->radius3 = atof(token);
                     break;
                 case OPT_SEED:
                     inArgs->seed = atoi(argValue);
@@ -1324,6 +1339,7 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
 #else
 //              CreateLoopSource(&home, &inData, &inArgs, &totDislocLen);
                 CreateFCCPerfectLoop(&home, &inData, &inArgs, &totDislocLen);
+
 #endif
                 break;
         case FTYPE_FRANK_READ:

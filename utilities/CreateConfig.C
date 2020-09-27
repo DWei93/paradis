@@ -4154,20 +4154,23 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
     int         nLoops = inArgs->numLoops;
     int         seed = inArgs->seed;
     const real8 cubeLength = real8(inArgs->cubeLength);
-    const real8   radius = inArgs->radius<=sqrt(3)/2?inArgs->radius*cubeLength:inArgs->radius;
+    const real8  radius = inArgs->radius<=sqrt(3)/2?inArgs->radius*cubeLength:inArgs->radius;
+    const real8  radius2 = inArgs->radius2;
+    const real8 radius3 = inArgs->radius3;
     const real8 invVol=1.0E0/(pow(cubeLength,3.0)*pow(2.556e-10,2));
     const real8 maxDensity = inArgs->maxDensity;
     BurgInfo_t  *bd; Grain_t *grain; GB_t *gb;
     Node_t *node,  *nextNode;
+    real8   rList[4];
 
     int baseNodeID=0, randNum, grainID, burgID, newNodeIndex=0, startRemeshIndex=0;
     inData->nodeCount = 0;
     Param_t *param = inData->param;
     real8   maxSeg = param->maxSeg;
     real8   n0[3], n[4][3], p[4][3], cenPos[3], r, dis, lDirList[4][3],lPoiList[4][3];
-    real8   burg[3], gbPos[3];
+    real8   burg[3], gbPos[3], l1[3], l2[3], xi[3], t;
     int     inGrain=-1, onGB=-1, ig, og, onGBList[4];
-    const int loopIDs[3][2]={{0,1},{0,2},{1,2}};
+    const int loopIDs[3][2]={{0,1},{0,1},{1,0}};
     int      lID, pid1, pid2, nodeGBList[4];
     
     home->param->materialType = MAT_TYPE_FCC;
@@ -4175,7 +4178,8 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
     int i;for(i=0; (i<nLoops) && (maxDensity>invVol*(*totDislocLen)); i++){
         randNum = int(1.0E5*randm(&seed));
         grainID=(nLoops>6*home->nGrains)&&(i<6*home->nGrains)?i/6:(randNum%(home->nGrains*6))/6;
-        burgID=(nLoops>6*home->nGrains)&&(i<6*home->nGrains)?i%6:randNum%6;
+//      burgID=(nLoops>6*home->nGrains)&&(i<6*home->nGrains)?i%6:randNum%6;
+        burgID = 5;
         grain = home->grainKeys[grainID];
         bd = &grain->burgData;
         VECTOR_COPY(burg,bd->burgList[burgID]);
@@ -4196,7 +4200,13 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
         VECTOR_COPY(n[1],bd->planeList[pid2]);
         VECTOR_COPY(n[2],bd->planeList[pid1]);
         VECTOR_COPY(n[3],bd->planeList[pid2]);
+
+        rList[0] = (param->polycrystal>0 && pid1<3)?radius3:radius+randm(&seed)*(radius2-radius);
+        rList[1] = (param->polycrystal>0 && pid2<3)?radius3:radius+randm(&seed)*(radius2-radius);
+        rList[2] = (param->polycrystal>0 && pid1<3)?radius3:radius+randm(&seed)*(radius2-radius);
+        rList[3] = (param->polycrystal>0 && pid2<3)?radius3:radius+randm(&seed)*(radius2-radius);
         
+#if 0
         if(inArgs->polycrystal==1 && (burgID%2==1)){
             while(true){
                 int loopPlane = int(randm(&seed)*1.0E5)%7;
@@ -4216,11 +4226,27 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
                 }
             }
         }
+#else
+        cross(n[0],burg,l1);
+        cross(n[1],burg,l2);
 
-        CoordAdd(1.0, cenPos, -radius, &n[0][0], &p[0][0]);
-        CoordAdd(1.0, cenPos, -radius, &n[1][0], &p[1][0]);
-        CoordAdd(1.0, cenPos,  radius, &n[2][0], &p[2][0]);
-        CoordAdd(1.0, cenPos,  radius, &n[3][0], &p[3][0]);
+        NormalizeVec(l1); NormalizeVec(l2);
+        DefineN0:
+        t=randm(&seed);
+        CoordAdd(t, l1, 1.0-t, l2, xi);
+        NormalizeVec(xi);
+        t=randm(&seed)/2;
+
+        CoordAdd(t, xi, 1.0-t, burg, n0);
+        NormalizeVec(n0);
+
+
+        if(param->polycrystal>0 && (burgID%2)==0 && fabs(Dot(param->TBNormal,n0))<0.8) goto DefineN0;
+#endif
+        CoordAdd(1.0, cenPos, -rList[0], &n[0][0], &p[0][0]);
+        CoordAdd(1.0, cenPos, -rList[1], &n[1][0], &p[1][0]);
+        CoordAdd(1.0, cenPos,  rList[2], &n[2][0], &p[2][0]);
+        CoordAdd(1.0, cenPos,  rList[3], &n[3][0], &p[3][0]);
 
         for(int j=0; j<4; j++){
             onGBList[j] = -1;
@@ -4228,7 +4254,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
                 Fatal("can not find line intersection");
             }
             CoordMinus(lPoiList[j],cenPos,lDirList[j]); normalize_vec(lDirList[j]);
-            CoordAdd(1.0,cenPos,radius,lDirList[j],lPoiList[j]);
+            CoordAdd(1.0,cenPos,rList[j],lDirList[j],lPoiList[j]);
             NodeLocation(home, lPoiList[j][0],lPoiList[j][1],lPoiList[j][2], ig, og,15);
             if((og<0 && inGrain==ig) || (!AlignedDirection(bd->planeList[3],n[j]))){
                 cross(n0,n[j],lDirList[j]); normalize_vec(lDirList[j]);
@@ -4405,7 +4431,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
             }else{
                 node->inGrain =-1; node->onGB = nodeGBList[j];
             }
-            NodeLocation(home, node->x, node->y, node->z, ig,og,15);
+            NodeLocation(home, node->x, node->y, node->z, ig,og);
             if(node->onGB != og){
                 FormatVector(p[j],"p[j]");
                 FormatVector(n[j],"n[j]");

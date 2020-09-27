@@ -239,7 +239,7 @@ real8 GlideShearStress(Home_t *home, Node_t *node){
         return(0);
     }
 
-    real8 burgMag, numEff=0, armf[3];
+    real8 burgMag, numEff=0, armf[3], f[3]={0,0,0};
     for(i=0;i<node->numNbrs;i++){
         nbr = GetNeighborNode(home,node,i);
         if(nbr==(Node_t *)NULL) continue;
@@ -264,15 +264,45 @@ real8 GlideShearStress(Home_t *home, Node_t *node){
         armf[1] = node->armfy[i]+nbr->armfy[armID21];
         armf[2] = node->armfz[i]+nbr->armfz[armID21];
 
-        NormalComponent(armf, normal, armf);
-        fGlide += Normal(armf)/disLength;
+        cross(normal,ldir,glideDir);
+        NormalizeVec(glideDir);
+        ParallelComponent(armf, glideDir, armf);
+        f[0] += armf[0]/disLength;
+        f[1] += armf[1]/disLength;
+        f[2] += armf[2]/disLength;
         numEff += 1.0;
     }
 
     if(numEff <1E-10)return 0.0;
-    else return (fGlide/numEff);
+    else return (Normal(f)/numEff);
 }
 
+void AdjustPenetratedNode(Home_t *home, Node_t *node){
+    if(node->inGrain < 0)return;
+    int currInGrain, currOnGB;
+    NodeLocation(home, node->x, node->y, node->z, currInGrain, currOnGB);
+    if(currInGrain == node->inGrain)return;
+
+    real8 gStress = GlideShearStress(home, node);
+    real8 cStress;
+    Param_t *param = home->param;
+    if(node->numNbrs > 1){
+        if(node->numNbrs>2) cStress = param->tbStrength[1];
+        else{
+           if(fabs(dot_product(node->burgX[0], node->burgY[0], node->burgZ[0], param->TBNormal[0], param->TBNormal[1], param->TBNormal[2])) < 0.1){
+                cStress = param->tbStrength[0];
+            } else{
+                cStress = param->tbStrength[1];
+            }
+        }
+
+        if(cStress > gStress){
+            node->x = node->oldx;
+            node->y = node->oldy;
+            node->z = node->oldz;
+        }
+    }
+}
 
 real8 SegementEnergy(Param_t *param, real8 cosTheta, real8 bMag){
 	static real8 pi = 3.1415926535897932385;
@@ -314,11 +344,16 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
 	SetOneNodeForce(home, node);
 
     real8 cStress;
+#if 1
     if(EsciagStress<0){
         cStress = 49.0E6+0.11*EsciagStress;
     }else{
         cStress = 49.0E6+0.26*EsciagStress;
     }
+#else
+    cStress = 141E6 + 0.16*EsciagStress;
+
+#endif
     if(cStress <= glideStress)return true;
     return false;
 }
@@ -2272,6 +2307,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
     return;
 }
 
+#define MAX_DISSIP 1
 
 void GBCrossSlip(Home_t *home)
 {
@@ -2286,7 +2322,7 @@ void GBCrossSlip(Home_t *home)
     real8   test1, test2, test3, test1Max, test2Max, test3Max;
     real8   nodePos[3], nbr1Pos[3], nbr2Pos[3], gbNbrPos[3];
     real8   vec1[3], vec2[3], vec3[3], vec[3], crossProd[3];
-    real8   noiseFactor, glideForce0[3],glideForce[3], froceMag, noiseForce;
+    real8   noiseFactor, glideForce0[3],glideForce[3], froceMag, noiseForce, gShear, extShear;
     real8   eps, thetacrit, sthetacrit, s2thetacrit, areamin;
     real8   dis, burg[3], normal[3], normals[2][3], norm;
     real8   newNodePos[3], newNbr1Pos[3], newNbr2Pos[3], newGBNbrPos[3];
@@ -2581,7 +2617,7 @@ void GBCrossSlip(Home_t *home)
             std::vector<std::vector< Dislocation_t> >().swap(disArray);
             std::vector<std::vector<double> >().swap(burgList);
 
-            isScrew = fabs(DotProduct(burg,interLine.direction))/norm>0.95?true:false;
+            isScrew = fabs(DotProduct(burg,gb->n))/norm<0.1?true:false;
 
             if(!GeometricCriterion(gbd, burg, interLine.direction, normal, 0,
                    burgList, disArray))continue;
@@ -2634,6 +2670,7 @@ void GBCrossSlip(Home_t *home)
             }
 #endif
                       
+//          CentorPos(param, newNbr1Pos, newNbr2Pos, newNodePos);
             VECTOR_COPY(newNodePos, interLine.point);
             PointLineIntersection(nbr1Pos, interLine.direction, interLine.point,
                                  newNbr1Pos, &dis);
@@ -2652,7 +2689,7 @@ void GBCrossSlip(Home_t *home)
             vec[1] = node->fY;
             vec[2] = node->fZ;
             NormalComponent(vec, normal, glideForce0);
-            oriShear = Normal(vec)>1.0?Normal(glideForce0):0.0;
+//          oriShear = fabs(GlideShearStress(home,node,normal);
 
 		    SetOneNodeForce(home, node);
             EvaluateMobility(home, node);
@@ -2696,6 +2733,7 @@ void GBCrossSlip(Home_t *home)
                     outBurgNorm[1] = temBurgList[3*k+1];
                     outBurgNorm[2] = temBurgList[3*k+2];
                     debris[0]-=outBurgNorm[0]; debris[1]-=outBurgNorm[1]; debris[2]-=outBurgNorm[2];
+
                     energyList[j] += DotProduct(outBurgNorm,outBurgNorm);
                     NormalizeVec(outBurgNorm);
                     VECTOR_COPY(outPlane, gbd->planeList[temPlaneIDList[k]]);
@@ -2742,11 +2780,10 @@ void GBCrossSlip(Home_t *home)
 		            SetOneNodeForce(home, node);
                     EvaluateMobility(home, node);
 
-                    vec[0] = node->fX;
-                    vec[1] = node->fY;
-                    vec[2] = node->fZ;
-                    NormalComponent(vec, outPlane, glideForce);
-                    maxShearList[j] = MAX(maxShearList[j],Normal(glideForce)); 
+                    gShear = GlideShearStress(home, node);
+                    extShear = ExtShearStress(param, outBurgNorm, newNbr1Pos, newNbr2Pos, outPlane);
+//                  printf("j=%d: j=%d, k=%d, temPlaneID=%d, gb=%d, gShear=%5.2f MPa\n", home->myDomain, j, k, temPlaneIDList[k], node->onGB, gShear/1E6);
+                    maxShearList[j] = MAX(maxShearList[j],fabs(gShear)); 
 
                     vec[0] = node->vX;
                     vec[1] = node->vY;
@@ -2762,6 +2799,9 @@ void GBCrossSlip(Home_t *home)
 
                     VECTOR_COPY(disPosArray[j][k], vec);
 
+//                 printf("j=%d: VZ=%5.2e b/s, nexDT=%5.2e, dis=%5.2e pos: %f %d!=%d, extShear=%5.2fMPa, gShear=%5.2fMPa, dissip=%5.2e\n",
+//                      j, node->vZ, param->nextDT, node->vZ*param->nextDT/10.0, newNodePos[2],node->inGrain,inGrain,extShear/1E6,gShear/1E6,
+//                       node->fX*node->vX + node->fY*node->vY + node->fZ*node->vZ);
                     if(!IsOnGB(node)){
                         NodeLocation(home, vec[0], vec[1], vec[2], inGrain, onGB);
                         if(inGrain != node->inGrain){
@@ -2770,7 +2810,7 @@ void GBCrossSlip(Home_t *home)
                     }
                 }
                 if(k!=temPlaneIDList.size()){
-                    energyList[j]=-1.0E50;
+                    energyList[j]=-1.0E2;
                     maxShearList[j] = 0.0;
                 }
                 energyList[j]+= DotProduct(debris, debris);
@@ -2778,8 +2818,9 @@ void GBCrossSlip(Home_t *home)
 
             maxShear = -1E20;
             maxShearSet = -1;
-            noiseForce = NodeLength(home, node)*param->shearModulus*noiseFactor;
+            noiseForce = param->shearModulus*noiseFactor;
             for(j=0; j<disArray.size(); j++){
+//              printf("%d: j=%d, shear=%5.2e, energy=%5.2f\n",home->myDomain,j,maxShearList[j],energyList[j]);
                 if(maxShearList[j] > maxShear+noiseForce){
                     maxShearSet = j;
                     maxShear = maxShearList[j];
@@ -2793,7 +2834,7 @@ void GBCrossSlip(Home_t *home)
                 }
             }
 
-            if(maxShearSet == -1 || maxShear-oriShear < noiseForce || energySet<0){
+            if(maxShearSet == -1 || energySet<0){
                 RestoreCrossSlipForce(node, nbr1, nbr2, 0,
                                       1, segForceOrig);
 	            RepositionNode(home, nodePos, &node->myTag, 0);
@@ -2824,7 +2865,10 @@ void GBCrossSlip(Home_t *home)
 	            RepositionNode(home, newNbr2Pos, &nbr2->myTag, 1);
             }
 
+//          if(maxShearSet == 2)printf("Absorption: %5.3f %5.3f %5.3f\n", maxShearList[0]/1E6, maxShearList[1]/1E6, maxShearList[2]/1E6);
+
             j = maxShearSet;
+//          printf("%d: penetrate set: %d \n",home->myDomain, j);
 
             VECTOR_COPY(debris, burg);
 

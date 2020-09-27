@@ -213,4 +213,5 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
 
 bool DifferentGlidePlane(Node_t *node);
 real8 NodeLength(Home_t *home, Node_t *node);
+
 #endif
