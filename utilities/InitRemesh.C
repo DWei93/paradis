@@ -183,6 +183,8 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 				}
 
 				if (!found) {
+                    PrintNode(nodeA);
+                    PrintNode(nodeB);
                     Fatal("InitRemesh: broken Linkage");
 				}
 
