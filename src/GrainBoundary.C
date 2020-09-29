@@ -2782,7 +2782,7 @@ void GBCrossSlip(Home_t *home)
                     EvaluateMobility(home, node);
 
                     gShear = GlideShearStress(home, node);
-                    extShear = ExtShearStress(param, outBurgNorm, newNbr1Pos, newNbr2Pos, outPlane);
+//                  extShear = ExtShearStress(param, outBurgNorm, newNbr1Pos, newNbr2Pos, outPlane);
 //                  printf("j=%d: j=%d, k=%d, temPlaneID=%d, gb=%d, gShear=%5.2f MPa\n", home->myDomain, j, k, temPlaneIDList[k], node->onGB, gShear/1E6);
                     maxShearList[j] = MAX(maxShearList[j],fabs(gShear)); 
 
@@ -2817,7 +2817,7 @@ void GBCrossSlip(Home_t *home)
                 energyList[j]+= DotProduct(debris, debris);
             }
 
-            maxShear = -1E20;
+            maxShear = 0;
             maxShearSet = -1;
             noiseForce = param->shearModulus*noiseFactor;
             for(j=0; j<disArray.size(); j++){
@@ -2826,7 +2826,7 @@ void GBCrossSlip(Home_t *home)
                     maxShearSet = j;
                     maxShear = maxShearList[j];
                     energySet = energyList[j];
-                }else if(fabs(maxShearList[j]-maxShear)<noiseForce){
+                }else if((fabs(maxShearList[j]-maxShear)<noiseForce) && (maxShearList[j]>noiseForce)){
                     if(energySet > energyList[j]){
                         maxShearSet = j;
                         maxShear = maxShearList[j];
