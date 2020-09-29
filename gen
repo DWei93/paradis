@@ -24,11 +24,11 @@
 ######################################################################################
 
 ctrlFile=input/Copper.ctrl
-thickn=500
+thickn=71
 #frlen=`echo ${cubel}/2 | bc`
 maxDensity=`echo "scale=4; 1.0+10000.0/${thickn}" | bc -l`E12
 poly=1
-nGrains=2
+nGrains=6
 nTDs=1
 gb=0
 nfrs=500
@@ -44,14 +44,16 @@ thick=`echo ${cubel}/${nGrains}| bc`
 frlen=`echo ${thick}*${nTimesThick1} | bc`,`echo ${thick}*${nTimesThick2} | bc`
 
 maxSeg1=`echo ${cubel}/15 | bc `
-maxSeg2=`echo ${thick}/7 | bc `
+maxSeg2=`echo ${thick}/6 | bc `
 if [ ${maxSeg1} -gt ${maxSeg2} ]; then maxSeg=${maxSeg2}; else maxSeg=${maxSeg1}; fi
 rTol=`echo "scale=7;${maxSeg}*sqrt(2)/32" | bc -l`
+rc=`echo "scale=7;0.1+4.0*${rTol}" | bc -l`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
 minDT=`echo "scale=3; ${thickn}/15" | bc`E-13
-echo "Thickness=$thick b, $thickn nm, maxSeg=${maxSeg}b, rTol =$rTol, minDT=$minDT, maxDensity=$maxDensity"
+echo "Thickness=$thick b, $thickn nm, maxSeg=${maxSeg}b, rTol =$rTol, minDT=$minDT, maxDensity=$maxDensity, rc=$rc"
 sed -i "/grainSize/cgrainSize = ${thick}" ${ctrlFile}
 sed -i "/^rTol =/crTol = ${rTol}" $ctrlFile
+sed -i "/^rc =/crc = ${rc}" $ctrlFile
 sed -i "/^minDT =/cminDT = ${minDT}" $ctrlFile
 #sed -i "/dirname/cdirname = \"res.relax-t-${thickn}nm\"" ${ctrlFile}
 

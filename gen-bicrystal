@@ -44,7 +44,9 @@ polycrystal=${1}
 single=${2}
 
 rTol=`echo "scale=7;${maxSeg}*sqrt(2)/33" | bc -l`
+rc=`echo "scale=7;0.1+4.0*${rTol}" | bc -l`
 sed -i "/^rTol =/crTol = ${rTol}" $ctrlFile
+sed -i "/^rc =/crc = ${rc}" $ctrlFile
 sed -i "/meshNumX/cmeshNumX = $nMesh" $ctrlFile;
 sed -i "/meshNumY/cmeshNumY = $nMesh" $ctrlFile;
 sed -i "/meshNumZ/cmeshNumZ = $nMeshZ" $ctrlFile;
