@@ -222,9 +222,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 #else
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_gg, tau_ext,ifMag\n");
             val = param->timeNow*1.0E9;
-		    fprintf(fp, "zone T = \"%d\", i = %d, SOLUTIONTIME = %g,  F=POINT\n", home->cycle, numArms,val); 
+		    fprintf(fp, "zone T = \"%d\", i = %d, SOLUTIONTIME = %d,  F=POINT\n", home->cycle, numArms, home->cycle); 
             val = fabs(param->eRate*param->timeNow*1.0E2);
-            fprintf(fp, "AUXDATA strain = \"%7.3f\"\n", val);
+            fprintf(fp, "AUXDATA strain = \"%7.2f\"\n", val);
             val = fabs(sigijk/1.0E6);
             fprintf(fp, "AUXDATA stress = \"%7.2f\"\n", val);
             val = fabs(pstnijk*1.0E2);
@@ -801,8 +801,8 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 //	    fprintf(fpEle,"solutiontime = %e\n", param->timeNow);
 	    fprintf(fpEle, "Variables = \"X\", \"Y\", \"Z\",\"plaStn"
 				"\",\"disDen\"\n"); 
-	    fprintf(fpEle, "Zone T = \"%10.5f\" N= %d  E= %d F=FEPOINT ET=Brick\n",
-				param->timeNow*1.0E9, totNodeNum,totEleNum); 
+	    fprintf(fpEle, "Zone T = \"%d\", SOLUTIONTIME = %d, N= %d  E= %d F=FEPOINT ET=Brick\n",
+				home->cycle, home->cycle,totNodeNum,totEleNum); 
 
 	    for(i=0;i<totEleNum;i++){
 
