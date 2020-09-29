@@ -2846,7 +2846,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         if(srcLenMax<0) {srcLenMax = -srcLenMax; srcLenType = 2;} 
         if(srcLenMin<0) {srcLenMin = -srcLenMin; srcLenType = 2;}
         lenRange = srcLenMax - srcLenMin;
-        printf("srcLenMin=%f, srcLenMax=%f, lenRange=%f, type=%d\n",srcLenMin, srcLenMax, lenRange, srcLenType);
 
         bool freeLine=(param->xBoundType != Periodic && param->yBoundType != Periodic && param->zBoundType != Periodic);
 
@@ -2855,14 +2854,13 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         if(numSources <= 0){
             singleSrcTest = 1;
         }
-
         	
         if(polycrystal){
             gb = home->GBKeys[0];
             gbd = &(gb->burgData);
         }
         n1[0] = 0.0;	n1[1] = 0.0;	n1[2] = 0.0;
-        real8 maximalLen, a1, a2;
+        real8 maximalLen, a1, a2, randmVal;
 
 /*
  *      Set up an array of dislocation line directions that
@@ -2887,12 +2885,33 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 	    volume = heightSize * cubeSize * cubeSize;
         thickness = heightSize / ((real8)nLayers);
         	
-        real8 tdLength= double(inArgs->nTDs*home->nGBs)*srcLenMax;
-	    printf("the max density is %e, twinning dislocation density is %e \n", maxDensity, tdLength/(volume*burgMag*burgMag));
-
         x0 = (d*nLayers*(1 - nLayers) + 2*numSources)/(2 * nLayers);
 	    totSrcLen = 0.0;
+        real8 primarySrcLen = 0.0;
 	    finish = 0;
+
+        int nSlips;
+        if(param->polycrystal>0){ if(inArgs->nTDs>0)nSlips=N_SS; else nSlips=N_LD; }else nSlips=N_SG;
+        real8 *proba, *primary, *Proba, *percen, maxSchmid=0;
+        proba = (real8 *)malloc(nSlips*sizeof(real8));
+        Proba = (real8 *)malloc(nSlips*sizeof(real8));
+        percen = (real8 *)malloc(nSlips*sizeof(real8));
+        primary = (real8 *)malloc(nSlips*sizeof(real8));
+
+        for(i=0; i<nSlips; i++){
+            j = slip_sys[i][2]>-1?slip_sys[i][2]:0;
+            bd=GetBurgData(home, j, -1);
+            proba[i] = fabs(DotProduct(inArgs->loadDir, bd->burgList[slip_sys[i][0]])*DotProduct(inArgs->loadDir,bd->planeList[slip_sys[i][1]])/Normal(bd->burgList[slip_sys[i][0]]));
+            if(proba[i]>maxSchmid){
+                maxSchmid = proba[i];
+            }
+            Proba[i]=proba[i];
+            percen[i]=0.0;
+        }
+        for(i=0;i<nSlips;i++)if(fabs(proba[i]-maxSchmid)<1E-4)primary[i]=1.0; else primary[i]=MAX(proba[i]/maxSchmid, 0.33333);
+        for(i=1;i<nSlips;i++)Proba[i]+=Proba[i-1];
+        for(i=0;i<nSlips;i++)Proba[i]/=Proba[nSlips-1];
+        
         for (layer = 0; layer < nLayers; layer++) {
 
 	        if(finish)break;
@@ -2906,6 +2925,14 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
             for(chain = 0; chain < xn; ){
              
                 numPoints = (inArgs->extended == 0) ? 3 : 4;
+
+                if(xn > nSlips && chain < nSlips && (maxDensity*volume*burgMag*burgMag/srcLenMax > nSlips)){
+                    ranNum = chain%nSlips;
+                }else{
+                    randmVal= randm(&seed);
+                    for(i=0;i<nSlips;i++)if(randmVal<Proba[i]&& (randmVal>((i==0)?0:Proba[i-1])) )ranNum=i;
+                }
+                gpBurgIndex = slip_sys[ranNum][0]; gpIndex=slip_sys[ranNum][1];
     
                 finished = 0;
                 while(!finished){
@@ -2925,31 +2952,20 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     if(onGB1 > -1)continue;
 
 #if 1
-                    if(xn > 24 && chain <24){
-                        ranNum = chain%24;
-                    }else{
-                        ranNum = (int)(randm(&seed) * 1000)%24;
-                    }
-
-                    if(slip_sys[ranNum][2]==0 || slip_sys[ranNum][2]==1){
-                        if(inArgs->polycrystal ==1 && (inGrain1%2)!=slip_sys[ranNum][2]) continue;
-                    }else if(slip_sys[ranNum][2]==3) bd=GetBurgData(home, 0, -1);
-                    else{
+                    if(gpBurgIndex>=6){
                         ClosedGB(home, p1, &gb);
                         bd = &(gb->burgData);
                         PointPlaneDistance(p1, gb->n, gb->p, dis, p1);
                         inGrain1 = -1; onGB1 = gb->GBID;
+                    }else if(gpIndex!=3){
+                        if(inArgs->polycrystal ==1 && (inGrain1%2)!=slip_sys[ranNum][2]) continue;
                     }
-
-                    gpBurgIndex = slip_sys[ranNum][0]; gpIndex=slip_sys[ranNum][1];
-                    if(gpBurgIndex==5 && gpIndex==1 && (inGrain1%2)==0)printf("primary hard II occurd\n");
 #else
                     gpIndex = 1;
                     gpBurgIndex = 5;
 //                  p1[2] =  home->grainKeys[inGrain1]->cz;
                     VECTOR_ZERO(p0);
 #endif   
-                    grain = home->grainKeys[inGrain1];
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
                     VECTOR_COPY(n3, bd->planeList[3]);
@@ -3008,7 +3024,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                                 break;
 	                    }
 
-                        if(home->nGBs<=1){
+                        if(home->nGBs>1)srcLen *= primary[ranNum];
+
+                        if(home->nGBs<=1 || gpIndex==3){
                             for (i = 0; i < 3; i++) {
                                 p0[i] = p1[i] + (srcLen * randomLine[i])/2.0;
                                 p2[i] = p1[i] + (srcLen * randomLine[i]);
@@ -3017,9 +3035,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,15);
                             if(inGrain1 != inGrain0 || inGrain1 != inGrain2 || onGB1 != onGB0 || onGB1 != onGB2)continue;
                         }else{
-                            a1 = M_PI/2.0-atan(grain->thick/0.942809/(srcLen/1.1));
-                            a2 = acos(fabs(DotProduct(param->TBNormal, randomLine)));
-//                          if(a1>a2){ continue;}
                             
                             VECTOR_COPY(p0, p1); inGrain0=inGrain1; onGB0 = onGB1;
                             for (i = 0; i < 3; i++) {
@@ -3027,7 +3042,16 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                                 p2[i] = p0[i] + (srcLen * randomLine[i])/2.0;
                             } 
                             NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1, 15);
-                            if(!(onGB1<0 && inGrain1==inGrain0)){
+                            NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2, 15);
+                            grain = home->grainKeys[inGrain0];
+
+                            if(!(onGB1<0 && inGrain1==inGrain0) && !(onGB2<0 && inGrain2==inGrain0)){
+                                a1 = atan(grain->thick/0.942809/(srcLen));
+                                cross(param->TBNormal, n0, vec1); NormalizeVec(vec1);
+                                cross(vec1, n0, vec2); NormalizeVec(vec2);
+                                CoordAdd(((randm(&seed)>0.5)?-1.0:1.0)*cos(a1),vec1,((randm(&seed)>0.5)?-1.0:1.0)*sin(a1),vec2, randomLine);
+                                NormalizeVec(randomLine);
+                
                                 for(i=0;i<grain->nBounds;i++){
                                     gb = grain->GB[i];
                                     gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
@@ -3043,10 +3067,39 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                                     }
                                 }
                                 if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
-                            }
-                            
-                            NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2, 15);
-                            if(!(onGB2<0 && inGrain2==inGrain0)){
+
+                                for(i=0;i<grain->nBounds;i++){
+                                    gb = grain->GB[i];
+                                    gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
+                                    gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
+                                    gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
+                                
+                                    if(DotProduct(gbNormal,randomLine)>0){
+                                        VECTOR_COPY(vec2, gb->p);
+                                        PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                        LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p2);
+                                        inGrain2=-1; onGB2 = gb->GBID;
+                                        break;
+                                    }
+                                }
+                                if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
+                            }else if(!(onGB1<0 && inGrain1==inGrain0)){
+                                for(i=0;i<grain->nBounds;i++){
+                                    gb = grain->GB[i];
+                                    gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
+                                    gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
+                                    gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
+                                
+                                    if(DotProduct(gbNormal,randomLine)<0){
+                                        VECTOR_COPY(vec2, gb->p);
+                                        PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                        LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p1);
+                                        inGrain1=-1; onGB1 = gb->GBID;
+                                        break;
+                                    }
+                                }
+                                if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
+                            }else if(!(onGB2<0 && inGrain2==inGrain0)){
                                 for(i=0;i<grain->nBounds;i++){
                                     gb = grain->GB[i];
                                     gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
@@ -3150,6 +3203,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     }
                 }
 
+                if(primary[ranNum]>0.99) primarySrcLen += srcLen;
+                percen[ranNum] += srcLen;
 	            totSrcLen += srcLen;				
 #ifdef SAS_ANALYZE
                 if(polycrystal){
@@ -3537,7 +3592,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 baseNodeID = inData->nodeCount;
                 startRemeshIndex = baseNodeID;
 
-	            if(totSrcLen + tdLength > maxDensity*volume*burgMag*burgMag){
+	            if(totSrcLen> maxDensity*volume*burgMag*burgMag){
 		            finish = 1;
 		            break;
 	            }else{
@@ -3546,9 +3601,21 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
             }  /* for (chain = 0; chain < numChains; ) */
 		
 	    }/* for(layer=0; layer<nLayers;...)*/
+        printf("Slip systems | location  | burgID | planeID  | Schmid Factor | percentage\n"); 
+        for(i=0; i<nSlips; i++){
+            printf("    %3d      |   %3s     |   %3d  |   %3d    |    %5.3f      |  %5.2f  \n",
+                i+1, (slip_sys[i][0]>=6)?"TB":((slip_sys[i][1]==3)?"M/T":(slip_sys[i][2]==0?"M":"T")), slip_sys[i][0], slip_sys[i][1], proba[i], percen[i]*100/totSrcLen);
+        }
 
-        printf("%d chains has been distributed in matrix/twin, averaged number of chains over grain is %d \n",chain, chain/home->nGrains);
-
+        free(proba);
+        free(Proba);
+        free(percen);
+        free(primary);
+        printf("%d chains has been distributed in matrix/twin\n"
+               "Averaged number of chains over grain is %d\n" 
+               "%4.2f%% of srcs are of primary slip systems\n",
+                chain, chain/home->nGrains, primarySrcLen*100/totSrcLen);
+#if 0
        
 		finish = 0;
         if(inArgs->nTDs>0)for(i=0; i<home->nGBs; i++){
@@ -3745,6 +3812,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 startRemeshIndex = baseNodeID;
             }
         }
+#endif
 
 #ifdef SAS_ANALYZE
         fclose(fp);

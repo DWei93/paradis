@@ -576,6 +576,8 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
         char    *argValue;
         char    *token;
 
+        const real8 degree=1.745329251994330e-02;
+        real8  edotdir[3];
 	    VECTOR_ZERO(existDir);
 	    orientationType = 0;
 
@@ -853,9 +855,16 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                     if (token == (char *)NULL) Fatal("load direction wrong");
 	                inArgs->loadDir[1] = atof(token);
 	                token = strtok(NULL,",");
-                    if (token == (char *)NULL) Fatal("load direction wrong");
-	                inArgs->loadDir[2] = atof(token);
+                    if (token == (char *)NULL){
+                        edotdir[2]=cos(degree*inArgs->loadDir[0]);
+                        edotdir[1]=sin(degree*inArgs->loadDir[0])*sin(degree*inArgs->loadDir[1]);
+                        edotdir[0]=sin(degree*inArgs->loadDir[0])*cos(degree*inArgs->loadDir[1]);
+                        VECTOR_COPY(inArgs->loadDir, edotdir);
+                    }else{
+	                    inArgs->loadDir[2] = atof(token);
+                    }
 	                NormalizeVec(inArgs->loadDir);
+                    printf("loading direction : {%f,%f,%f}\n", inArgs->loadDir[0], inArgs->loadDir[1],inArgs->loadDir[2]);
 	                break;
                 case OPT_NTDS:
                     inArgs->nTDs = atoi(argValue);
