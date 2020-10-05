@@ -2906,7 +2906,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
             if(proba[i]>maxSchmid){
                 maxSchmid = proba[i];
             }
-            Proba[i]=proba[i];
+            if(home->nGBs>1)Proba[i]=proba[i]; else Proba[i]=1.0;
             percen[i]=0.0;
         }
         for(i=0;i<nSlips;i++)if(fabs(proba[i]-maxSchmid)<1E-4)primary[i]=1.0; else primary[i]=MAX(proba[i]/maxSchmid, 0.33333);
