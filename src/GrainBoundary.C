@@ -326,7 +326,7 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
 
     if(glideStress < 0.0)return false;
 
-    if(PartialDislocations(home, node, nbr2, pBurg1, pBurg2)==false)return false;
+    if(PartialDislocations(home, node, node, pBurg1, pBurg2)==false)return false;
     CoordMinus(pBurg2,pBurg1,EsciagBurg);
     NormalizeVec(EsciagBurg);
 

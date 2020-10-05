@@ -3697,7 +3697,7 @@ bool PartialDislocations(Home_t *home, Node_t *node1, Node_t *node2, real8 *p1, 
     if(Normal(lDir)<0.1){return false;} else{NormalizeVec(lDir);}
 
     if(!GeometricCriterion(bd, burg, lDir, plane, 2,  burgList, disArray)){
-        printf("something wrong with geometric criterion"); 
+//      printf("something wrong with geometric criterion"); 
         return false;
     }
     if(disArray.size() != 1){printf("Warning: the extened dislcoation has some wrong\n"); return false;}
