@@ -24,16 +24,19 @@
 ######################################################################################
 
 ctrlFile=input/Copper.ctrl
-thickn=71
+logFile=input/CreateFR.log
+thickn=500
+if [ $# -gt 1 ] ; then thickn=$2; fi
 #frlen=`echo ${cubel}/2 | bc`
 maxDensity=`echo "scale=4; 1.0+10000.0/${thickn}" | bc -l`E12
 poly=1
-nGrains=6
+nGrains=2
+if [ $# -gt 2 ] ; then nGrains=$3; fi
 nTDs=1
 gb=0
 nfrs=500
-nMesh=11
-nfrsPerGrain=40
+nMesh=41
+nfrsPerGrain=100
 nTimesThick1=3
 nTimesThick2=3
 cubeln=`echo "${nGrains}*${thickn}" | bc`
@@ -50,7 +53,7 @@ rTol=`echo "scale=7;${maxSeg}*sqrt(2)/32" | bc -l`
 rc=`echo "scale=7;0.1+4.0*${rTol}" | bc -l`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
 minDT=`echo "scale=3; ${thickn}/15" | bc`E-13
-echo "Thickness=$thick b, $thickn nm, maxSeg=${maxSeg}b, rTol =$rTol, minDT=$minDT, maxDensity=$maxDensity, rc=$rc"
+echo "Thickness=$thick b, $thickn nm, ${nGrains} grains,  maxSeg=${maxSeg}b, rTol =$rTol, minDT=$minDT, maxDensity=$maxDensity, rc=$rc"
 sed -i "/grainSize/cgrainSize = ${thick}" ${ctrlFile}
 sed -i "/^rTol =/crTol = ${rTol}" $ctrlFile
 sed -i "/^rc =/crc = ${rc}" $ctrlFile
@@ -59,7 +62,9 @@ sed -i "/^minDT =/cminDT = ${minDT}" $ctrlFile
 
 amu=90
 polar=90
-if [ $# == 1 ]; then line=`sed -n "${1}p" data`; polar=`echo ${line} | cut -d " " -f 7`; amu=`echo ${line} | cut -d " " -f 8`; echo "edotPolar = [$polar $amu]" ; sed -i "/^edotPolar =/cedotPolar = [ $polar $amu ]" $ctrlFile; fi
+point=23
+
+if [ $# -gt 0 ]; then line=`sed -n "${1}p" data`; polar=`echo ${line} | cut -d " " -f 7`; amu=`echo ${line} | cut -d " " -f 8`; echo "edotPolar = [$polar $amu]" ; sed -i "/^edotPolar =/cedotPolar = [ $polar $amu ]" $ctrlFile; point=$1; fi
 
 sed -i "/meshNumX/cmeshNumX = $nMesh" $ctrlFile;
 sed -i "/meshNumY/cmeshNumY = $nMesh" $ctrlFile;
@@ -119,7 +124,7 @@ case $srctype in
 ######################################################################################
     4|IV)
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${polar},${amu};;
+    -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${polar},${amu} | tee $logFile ;;
 #   -polycrystal 1 -nGrain ${nGrains}  -pbc 0  ;;
 #   -polycrystal 1 -nGrain 2  -pbc 0 -nTDs 1 -gb 1;;
 #   -burgID 5 -planeID 1 \
@@ -141,9 +146,17 @@ case $srctype in
      echo "input error!"
      exit 1 ;;
 esac
-info="# paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir $polar,$amu"
-./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 
-sed -i "1i$info" Copper.data
-sed -i "1i#`date`" Copper.data
-cp Copper.data input/Copper.data
-echo "cp Copper.data > input/Copper.data"
+
+percentage=`cat $logFile | grep "%" | cut -d "%" -f 1`
+finish=`echo "${percentage}>15.0" | bc`
+if [[ ${finish} -eq 0 ]] ; 
+    then ./gen $point $thickn $nGrains; 
+else
+    ./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 
+    sed -i "1i# ${percentage}% of primary srcs" Copper.data
+    info="# paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir $polar,$amu"
+    sed -i "1i$info" Copper.data
+    sed -i "1i#`date`" Copper.data
+    cp Copper.data input/Copper.data
+    echo "cp Copper.data > input/Copper.data"
+fi

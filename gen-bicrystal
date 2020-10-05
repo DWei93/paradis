@@ -25,11 +25,18 @@
 
 #frlen=00
 ctrlFile=input/Copper.ctrl
+logFile=input/CreateFR.log
 cubeln=250
-nMesh=11
+nMesh=31
 nfrs=500
 nTDs=0
-if [ $cubeln -ge 3000 ]; then heightRatio=1; else heightRatio=2; fi
+if [ $cubeln -ge 3000 ]; then heightRatio=1; 
+elif [ $cubeln -ge 1000 ]; then heightRatio=2; 
+elif [ $cubeln -ge 500 ] ; then heightRatio=3; 
+else heightRatio=4; fi
+
+#if [ $nfrs -lt 750 ]; then nfrs=20; fi
+
 nMeshZ=`echo "${heightRatio}*${nMesh}" | bc `
 cubel=`echo ${cubeln}/0.2556 | bc`
 frlen=`echo ${cubel}/3 | bc`
@@ -37,8 +44,8 @@ maxSeg=`echo ${cubel}/15 |bc `
 nGrains=2
 thick=`echo ${cubel}/${nGrains}| bc`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
-echo "Thickness=$thick b, $thickn nm"
 maxDisDen=`echo "(1+10*(1000/${cubeln}))" | bc`
+echo "Thickness=$thick b, $thickn nm, density=$maxDisDen E12"
 maxDensity=${maxDisDen}E12;
 polycrystal=${1}
 single=${2}
@@ -61,24 +68,23 @@ if [ ${polycrystal} == "1" ]; then
     sed -i "/dirname/cdirname = \"res.bicrtal-d-${cubeln}nm-${2}-degree-$3\"" ${ctrlFile}
     sed -i "/grainSize/cgrainSize = ${thick}" ${ctrlFile}
 else
-    degree=`sed -n '1p' ${3}`
+    degree=`sed -n '1p' $logFile`
     sed -i "/dirname/cdirname = \"res.single-${single}-d-${cubeln}nm-${degree}\"" ${ctrlFile}
     sed -i "/grainSize/cgrainSize = ${cubel}" ${ctrlFile}
     srctype=2
     if [ ${single} = "1" ]; then
-        lnum=`grep  -n "basis orientation:" ${3} | cut -d : -f 1`
+        lnum=`grep  -n "basis orientation:" $logFile | cut -d : -f 1`
     else
-        lnum=`grep  -n "twin orientation:" ${3} | cut -d : -f 1`
+        lnum=`grep  -n "twin orientation:" $logFile | cut -d : -f 1`
     fi
 
-    echo "num=$lnum"
     let lnum=$lnum+1
-    l1=`sed -n "${lnum}p" ${3}`
+    l1=`sed -n "${lnum}p" $logFile`
     x1=`echo ${l1} | cut -d " " -f 2 `
     x2=`echo ${l1} | cut -d " " -f 3 `
     x3=`echo ${l1} | cut -d " " -f 4 | cut -d "}" -f 1`
     let lnum=$lnum+1
-    l2=`sed -n "${lnum}p" ${3}`
+    l2=`sed -n "${lnum}p" $logFile`
     y1=`echo ${l2} | cut -d " " -f 2 `
     y2=`echo ${l2} | cut -d " " -f 3 `
     y3=`echo ${l2} | cut -d " " -f 4 | cut -d "}" -f 1`
@@ -108,7 +114,7 @@ case $srctype in
     2|II)
     info="# ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed  -polycrystal 0 -pbc 7 -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity}  -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 "
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 0 -pbc 7 \
+    -polycrystal 0 -pbc 7 -loadDir 0,0,1\
     -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity} \
     -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 ;;
 
@@ -146,9 +152,11 @@ case $srctype in
     5|V)
 
     info="#./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1 -nTDs $nTDs";
-    (echo "${2}-degree" ; ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity \
-    -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee createFR.log;;
+
+    echo "$info"
+    (echo "${2}-degree" ;  ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -loadDir 0,0,1 \
+    -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;
 
 #    -xMatDir ${xdir} -yMatDir ${ydir} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
 #    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
@@ -158,8 +166,15 @@ case $srctype in
      exit 1 ;;
 esac
 
-./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 
-sed -i "1i$info" Copper.data
-sed -i "1i#`date`" Copper.data
-cp Copper.data input/Copper.data
-echo "cp Copper.data > input/Copper.data"
+percentage=`cat $logFile | grep "%" | cut -d "%" -f 1`
+finish=`echo "${percentage}>15.0" | bc`
+
+if [[ ${finish} -eq 0 ]] ;  then 
+    ./gen-bicrystal $1 $2 $3; 
+else
+    ./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 
+    sed -i "1i$info" Copper.data
+    sed -i "1i#`date`" Copper.data
+    cp Copper.data input/Copper.data
+    echo "cp Copper.data > input/Copper.data"
+fi

@@ -1019,7 +1019,6 @@ void InitGrain(Home_t *home, Param_t *param){
                 sort(slipSys.begin(), slipSys.end(),cmp3); 
     
                 maxSchmid = slipSys[0].schmid;
-                printf("max %f\n",  maxSchmid);
 
                 grain->maxSchmid = maxSchmid;
 
@@ -3639,7 +3638,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
 bool PartialDislocations(Home_t *home, Node_t *node1, Node_t *node2, real8 *p1, real8 *p2)
 {
     real8 burg[3], plane[3], resBurg[3], p3[3];
-    int armID = GetArmID(home, node1, node2);
+    int armID = GetArmID(node1, node2);
     BurgInfo_t  *bd = GetBurgData(home, node1, node2);
 
     burg[0] = node1->burgX[armID];
@@ -3708,6 +3707,54 @@ bool PartialDislocations(Home_t *home, Node_t *node1, Node_t *node2, real8 *p1, 
     VECTOR_COPY(p2, burgList[disArray[0][1].burgID]);
     return true;
 }
+
+bool PartialDislocations(BurgInfo_t *bd, real8 *burg, real8 *plane, real8 *p1, real8 *p2)
+{
+    real8 resBurg[3], p3[3];
+
+    int bID = BurgID_FCC(bd, burg);
+    int bType = BurgType_FCC(burg);
+    int pID = PlaneID_FCC(bd, plane); 
+    int dID[2]={-1,-1};
+
+    if(bID<6 && pID<4 && bType==BASIC_BURG){
+        if(bID==0){ // DC
+            if(pID==0){dID[0]=10; dID[1]=9;}else if(pID==1){dID[0]=6; dID[1]=13;}
+        }else if(bID==1){
+            if(pID==2){dID[0]=11; dID[1]=8;}else if(pID==3){dID[0]=7; dID[1]=12;}
+        }else if (bID==2){
+            if(pID==1){dID[0]=6; dID[1]=16;}else if(pID==2){dID[0]=14; dID[1]=8;}
+        }else if(bID==3){
+            if(pID==0){dID[0]=15; dID[1]=9;}else if(pID==3){dID[0]=7; dID[1]=17;}
+        }else if(bID==4){
+            if(pID==0){dID[0]=10; dID[1]=15;}else if(pID==2){dID[0]=14; dID[1]=11;}
+        }else if(bID==5){
+            if(pID==1){dID[0]=16; dID[1]=13;}else if(pID==3){dID[0]=12; dID[1]=17;}
+        }
+        if(dID[0]>-1 && dID[1]>-1){
+            VECTOR_COPY(p1, bd->burgList[dID[0]]);
+            VECTOR_COPY(p2, bd->burgList[dID[1]]);
+            
+            if(DotProduct(p1,burg)<0){NegativeVector(p1,p1);}
+            if(DotProduct(p2,burg)<0){NegativeVector(p2,p2);}
+        
+            if(DotProduct(bd->burgList[bID], burg)<0){
+                VECTOR_COPY(p3,p1);
+                VECTOR_COPY(p1,p2);
+                VECTOR_COPY(p2,p3);
+            }       
+            resBurg[0] = burg[0] - p1[0] - p2[0];
+            resBurg[1] = burg[1] - p1[1] - p2[1];
+            resBurg[2] = burg[2] - p1[2] - p2[2];
+            if(Normal(resBurg) < 0.05){
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+
 void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
                     real8 glidePlane[3], Node_t *node1, Node_t *node2)
 {

@@ -220,7 +220,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
             fprintf(fp, "AUXDATA plastic_strain = \"%10.7f\"\n", val);
             fprintf(fp, "AUXDATA fileName = \"%s\"\n", fileName);
 #else
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_gg, tau_ext,ifMag\n");
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_sf, tau_ext,ifMag\n");
             val = param->timeNow*1.0E9;
 		    fprintf(fp, "zone T = \"%d\", i = %d, SOLUTIONTIME = %d,  F=POINT\n", home->cycle, numArms, home->cycle); 
             val = fabs(param->eRate*param->timeNow*1.0E2);
@@ -419,6 +419,8 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 /*
  *              This part is for output of junction investigation
  */
+                StackingFaultForce(home, prx, pry, prz, param->sfEnergy/param->burgMag, node->signSF[j], n, f1, f2);
+                tau_gg=Normal(f1)*2.0E-6/length; NormalizeVec(f1); 
 				
 #if CHECK_DOMAIN
                 fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %7.4f %d %d %d %d %d %d %d %e %d %d\n", 

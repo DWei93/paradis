@@ -2861,6 +2861,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         }
         n1[0] = 0.0;	n1[1] = 0.0;	n1[2] = 0.0;
         real8 maximalLen, a1, a2, randmVal;
+        bool partialDislocation;
 
 /*
  *      Set up an array of dislocation line directions that
@@ -2924,9 +2925,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
             	
             for(chain = 0; chain < xn; ){
              
-                numPoints = (inArgs->extended == 0) ? 3 : 4;
 
-                if(xn > nSlips && chain < nSlips && (maxDensity*volume*burgMag*burgMag/srcLenMax > nSlips)){
+                if(xn > nSlips && chain < nSlips && (2*maxDensity*volume*burgMag*burgMag/srcLenMax > nSlips)){
                     ranNum = chain%nSlips;
                 }else{
                     randmVal= randm(&seed);
@@ -2973,6 +2973,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
                     time = 0;
                     while(true){
+                        if(time>100)break;
                         time++;
                         randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
                         randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
@@ -3034,6 +3035,12 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,15);
                             NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,15);
                             if(inGrain1 != inGrain0 || inGrain1 != inGrain2 || onGB1 != onGB0 || onGB1 != onGB2)continue;
+
+                            VECTOR_COPY(p0, p1); inGrain0=inGrain1; onGB0 = onGB1;
+                            for (i = 0; i < 3; i++) {
+                                p1[i] = p0[i] - (srcLen * randomLine[i])/2.0;
+                                p2[i] = p0[i] + (srcLen * randomLine[i])/2.0;
+                            } 
                         }else{
                             
                             VECTOR_COPY(p0, p1); inGrain0=inGrain1; onGB0 = onGB1;
@@ -3124,11 +3131,11 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             VECTOR_COPY(basePos, p0);
                             cross(n0, randomLine, glideDir);
                             NormalizeVec(glideDir);
-                            p0[0] -= (separateLength*glideDir[0]*0.5);
+                            p0[0] -= (separateLength*glideDir[0]*0.5); // drag partial dislocation
                             p0[1] -= (separateLength*glideDir[1]*0.5);
                             p0[2] -= (separateLength*glideDir[2]*0.5);
 
-                            p3[0] = p0[0] + separateLength*glideDir[0];
+                            p3[0] = p0[0] + separateLength*glideDir[0]; // leading partial dislocation
                             p3[1] = p0[1] + separateLength*glideDir[1];
                             p3[2] = p0[2] + separateLength*glideDir[2];
                             NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,15);
@@ -3145,63 +3152,15 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
                         break;
                     }
-                    if(time>100)printf("chain=%d: iterate times %d\n",chain,time);
+                    if(time>100)continue;
                     break;
                 }
 
                 if(inArgs->extended != 0){
-                    if(!GeometricCriterion(bd, b, randomLine, n0, 2,
-                       burgList, disArray))continue;
-
-                    if(disArray.size() != 1)printf("Warning: the extened dislcoation has some wrong\n");
-                    if(disArray[0].size() != 2)printf("Warning: the extened dislcoation has some wrong\n");
-                    
-                    VECTOR_COPY(b1, burgList[disArray[0][0].burgID]);
-                    VECTOR_COPY(b2, burgList[disArray[0][1].burgID]);
-
-                    appliedDir = abs(inArgs->extended)-1; 
-                    sign = (inArgs->extended > 0) ? 1.0 : -1.0;
-                    VECTOR_ZERO(str[0]);
-                    VECTOR_ZERO(str[1]);
-                    VECTOR_ZERO(str[2]);
-                    if(appliedDir < 3){
-                        str[appliedDir][appliedDir] = sign * 1.0E8;
-                    }else{
-                        switch(appliedDir){
-                            case 3:
-                                str[1][2] = sign * 1.0E8;
-                                str[2][1] = str[1][2];
-                                break;
-                            case 4:
-                                str[0][2] = sign * 1.0E8;
-                                str[2][0] = str[0][2];
-                                break;
-                            case 5:
-                                str[0][1] = sign * 1.0E8;
-                                str[1][0] = str[0][1];
-                                break;
-                            default:
-                                Fatal("Wrong extend type");
-                                break;
-                        }
-                    }
-
-                    ExtPKForce(str, b[0], b[1], b[2], 
-                               basePos[0], basePos[1], basePos[2],
-                               p1[0], p1[1], p1[2], f1, f2);
-                    ExtPKForce(str, b1[0], b1[1], b1[2], 
-                               basePos[0], basePos[1], basePos[2],
-                               p1[0], p1[1], p1[2], f3, f4);
-                    if(DotProduct(f1, f3) < 0){
-                        VECTOR_COPY(btemp, b1);
-                        VECTOR_COPY(b1, b2);
-                        VECTOR_COPY(b2, btemp);
-                        ExtPKForce(str, b1[0], b1[1], b1[2], 
-                                   basePos[0], basePos[1], basePos[2],
-                                   p1[0], p1[1], p1[2], f3, f4);
-                        if(DotProduct(f1, f3) < 0)printf("Warning: in %s at %d", __FILE__, __LINE__);
-                    }
-                }
+                    if(!PartialDislocations(bd, b, n0, b1, b2)){
+                        partialDislocation = true;
+                    }else partialDislocation = false;
+                }else partialDislocation= false;
 
                 if(primary[ranNum]>0.99) primarySrcLen += srcLen;
                 percen[ranNum] += srcLen;
@@ -3319,13 +3278,14 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
  *              Reallocate the node array with sufficient size to add
  *              all the new nodes defining this chain.
  */          
+                numPoints = (inArgs->extended == 0 || partialDislocation) ? 3 : 4;
                 newNodeIndex = inData->nodeCount;
                 inData->nodeCount += numPoints;
                 inData->node = (Node_t *)realloc(inData->node, inData->nodeCount
                                                    * sizeof(Node_t));
                 memset(&inData->node[newNodeIndex], 0, sizeof(Node_t) * numPoints);
 		 	   
-                if(inArgs->extended == 0){
+                if(inArgs->extended == 0 || partialDislocation){
 /*           
  *                   Set up the 3 nodes we're using to define the dislocation line.
  *                   First do point p0.
@@ -3349,13 +3309,13 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->nbrTag[1].domainID = dislocType;
                      node->nbrTag[1].index    = baseNodeID + 2;
                   
-                     node->burgX[0] = b[0];
-                     node->burgY[0] = b[1];
-                     node->burgZ[0] = b[2];
+                     node->burgX[0] = -b[0];
+                     node->burgY[0] = -b[1];
+                     node->burgZ[0] = -b[2];
                   
-                     node->burgX[1] = -b[0];
-                     node->burgY[1] = -b[1];
-                     node->burgZ[1] = -b[2];
+                     node->burgX[1] = b[0];
+                     node->burgY[1] = b[1];
+                     node->burgZ[1] = b[2];
                   
 /*                
  *                   For screw dislocations, use the glide plane from the table.
@@ -3391,9 +3351,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->nbrTag[0].domainID = dislocType;
                      node->nbrTag[0].index    = baseNodeID;
                   
-                     node->burgX[0] = -b[0];
-                     node->burgY[0] = -b[1];
-                     node->burgZ[0] = -b[2];
+                     node->burgX[0] = b[0];
+                     node->burgY[0] = b[1];
+                     node->burgZ[0] = b[2];
                      node->nx[0] = n0[0];
                      node->ny[0] = n0[1];
                      node->nz[0] = n0[2];
@@ -3418,9 +3378,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->nbrTag[0].domainID = dislocType;
                      node->nbrTag[0].index    = baseNodeID;
                   
-                     node->burgX[0] = b[0];
-                     node->burgY[0] = b[1];
-                     node->burgZ[0] = b[2];
+                     node->burgX[0] = -b[0];
+                     node->burgY[0] = -b[1];
+                     node->burgZ[0] = -b[2];
                      node->nx[0] = n0[0];
                      node->ny[0] = n0[1];
                      node->nz[0] = n0[2];
@@ -3444,15 +3404,15 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->nbrTag[1].domainID = dislocType;
                      node->nbrTag[1].index    = baseNodeID + 2;
                   
-                     node->burgX[0] = b1[0];
-                     node->burgY[0] = b1[1];
-                     node->burgZ[0] = b1[2];
-                     node->signSF[0] = 1.0;
+                     node->burgX[0] = -b1[0];
+                     node->burgY[0] = -b1[1];
+                     node->burgZ[0] = -b1[2];
+                     node->signSF[0] = -1.0;
                   
-                     node->burgX[1] = -b1[0];
-                     node->burgY[1] = -b1[1];
-                     node->burgZ[1] = -b1[2];
-                     node->signSF[1] = -1.0;
+                     node->burgX[1] = b1[0];
+                     node->burgY[1] = b1[1];
+                     node->burgZ[1] = b1[2];
+                     node->signSF[1] = 1.0;
                   
                      node->nx[0] = n0[0];
                      node->ny[0] = n0[1];
@@ -3484,18 +3444,18 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->nbrTag[1].domainID = dislocType;
                      node->nbrTag[1].index    = baseNodeID+3;
                   
-                     node->burgX[0] = -b1[0];
-                     node->burgY[0] = -b1[1];
-                     node->burgZ[0] = -b1[2];
-                     node->signSF[0] = -1.0;
+                     node->burgX[0] = b1[0];
+                     node->burgY[0] = b1[1];
+                     node->burgZ[0] = b1[2];
+                     node->signSF[0] = 1.0;
                      node->nx[0] = n0[0];
                      node->ny[0] = n0[1];
                      node->nz[0] = n0[2];
                   
-                     node->burgX[1] = -b2[0];
-                     node->burgY[1] = -b2[1];
-                     node->burgZ[1] = -b2[2];
-                     node->signSF[1] = 1.0;
+                     node->burgX[1] = b2[0];
+                     node->burgY[1] = b2[1];
+                     node->burgZ[1] = b2[2];
+                     node->signSF[1] = -1.0;
                      node->nx[1] = n0[0];
                      node->ny[1] = n0[1];
                      node->nz[1] = n0[2];
@@ -3521,18 +3481,18 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->nbrTag[1].domainID = dislocType;
                      node->nbrTag[1].index    = baseNodeID+3;
                   
-                     node->burgX[0] = b1[0];
-                     node->burgY[0] = b1[1];
-                     node->burgZ[0] = b1[2];
-                     node->signSF[0] = 1.0;
+                     node->burgX[0] = -b1[0];
+                     node->burgY[0] = -b1[1];
+                     node->burgZ[0] = -b1[2];
+                     node->signSF[0] = -1.0;
                      node->nx[0] = n0[0];
                      node->ny[0] = n0[1];
                      node->nz[0] = n0[2];
 
-                     node->burgX[1] = b2[0];
-                     node->burgY[1] = b2[1];
-                     node->burgZ[1] = b2[2];
-                     node->signSF[1] = -1.0;
+                     node->burgX[1] = -b2[0];
+                     node->burgY[1] = -b2[1];
+                     node->burgZ[1] = -b2[2];
+                     node->signSF[1] = 1.0;
                      node->nx[1] = n0[0];
                      node->ny[1] = n0[1];
                      node->nz[1] = n0[2];
@@ -3558,15 +3518,15 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->nbrTag[1].domainID = dislocType;
                      node->nbrTag[1].index    = baseNodeID + 2;
                   
-                     node->burgX[0] = b2[0];
-                     node->burgY[0] = b2[1];
-                     node->burgZ[0] = b2[2];
-                     node->signSF[0] = -1.0;
+                     node->burgX[0] = -b2[0];
+                     node->burgY[0] = -b2[1];
+                     node->burgZ[0] = -b2[2];
+                     node->signSF[0] = 1.0;
                   
-                     node->burgX[1] = -b2[0];
-                     node->burgY[1] = -b2[1];
-                     node->burgZ[1] = -b2[2];
-                     node->signSF[1] = 1.0;
+                     node->burgX[1] = b2[0];
+                     node->burgY[1] = b2[1];
+                     node->burgZ[1] = b2[2];
+                     node->signSF[1] = -1.0;
                   
                      node->nx[0] = n0[0];
                      node->ny[0] = n0[1];
