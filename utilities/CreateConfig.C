@@ -3035,12 +3035,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,15);
                             NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,15);
                             if(inGrain1 != inGrain0 || inGrain1 != inGrain2 || onGB1 != onGB0 || onGB1 != onGB2)continue;
-
-                            VECTOR_COPY(p0, p1); inGrain0=inGrain1; onGB0 = onGB1;
-                            for (i = 0; i < 3; i++) {
-                                p1[i] = p0[i] - (srcLen * randomLine[i])/2.0;
-                                p2[i] = p0[i] + (srcLen * randomLine[i])/2.0;
-                            } 
                         }else{
                             
                             VECTOR_COPY(p0, p1); inGrain0=inGrain1; onGB0 = onGB1;

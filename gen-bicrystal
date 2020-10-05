@@ -50,6 +50,10 @@ maxDensity=${maxDisDen}E12;
 polycrystal=${1}
 single=${2}
 
+eRate=-5000
+sed -i "/^eRate/ceRate = $eRate" $ctrlFile
+sed -i "/^edotPolar/cedotPolar = [ 0.0 0.0 ]" $ctrlFile
+
 rTol=`echo "scale=7;${maxSeg}*sqrt(2)/33" | bc -l`
 rc=`echo "scale=7;0.1+4.0*${rTol}" | bc -l`
 sed -i "/^rTol =/crTol = ${rTol}" $ctrlFile
@@ -65,7 +69,7 @@ PI=3.1415926535897932385
 if [ ${polycrystal} == "1" ]; then
     srctype=5
     angle=`echo "scale=16; ${2}.0 * ${PI} / 180.0 " | bc -l`
-    sed -i "/dirname/cdirname = \"res.bicrtal-d-${cubeln}nm-${2}-degree-$3\"" ${ctrlFile}
+    sed -i "/dirname/cdirname = \"res.bicrytal-d-${cubeln}nm-${2}-degree-$3\"" ${ctrlFile}
     sed -i "/grainSize/cgrainSize = ${thick}" ${ctrlFile}
 else
     degree=`sed -n '1p' $logFile`
