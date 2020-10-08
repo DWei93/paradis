@@ -104,7 +104,8 @@ FuncData_t funcData[FTYPE_MAX] = {
         {FTYPE_FCC,              FNAME_FCC},
         {FTYPE_FCC_IRRAD,        FNAME_FCC_IRRAD},
         {FTYPE_FCC_PERFECT_LOOP, FNAME_FCC_PERFECT_LOOP},
-        {FTYPE_EDGE,             FNAME_EDGE}
+        {FTYPE_EDGE,             FNAME_EDGE},
+        {FTYPE_SINGLE_ARM,             FNAME_SINGLE_ARM}
 };
 
 
@@ -223,7 +224,12 @@ static void Usage(char *program)
         printf("               [-nchains <numchains>] [-nloops <numloops>] \n");
         printf("               [-seed <seedval] [-type <configtype>]\n");
         printf("\n");
-
+        printf("    For <type> 'single-arm'\n");
+        printf("\n");
+        printf("    %10s [-cubel <cubelength>] [-help] \n", program);
+        printf("               [-nfrsrcs <mumChains>] [-maxseg <maxseglen] \n");
+        printf("               [-seed <seedval] [-type <configtype>]\n");
+        printf("\n");
         return;
 }
 
@@ -542,6 +548,22 @@ static void PrintArgs(InArgs_t *inArgs)
                 printf("Size of Hexagonal Loops:  %d\n", inArgs->hexl);
                 printf("Seed Value:               %d\n", inArgs->seed);
                 break;
+            case FTYPE_SINGLE_ARM:
+                if(inArgs->polycrystal){
+                    printf("Polycrystal: ");    
+                }else{
+                    printf("Single crystal: ");
+                }
+                if(inArgs->extended)printf("generate extended dislocation");
+                printf("\n");
+
+                printf("Number of sources:        %d\n", inArgs->numFRSrcs);
+                printf("Seed Value:               %d\n", inArgs->seed);
+	            printf("HeightRatio:              %f\n",inArgs->heightRatio);
+	            printf("deltaNums:                %d\n",inArgs->deltaNums);
+	            printf("nLayers:                  %d\n",inArgs->nLayers);
+                break;
+
         }
 
         return;
@@ -1137,7 +1159,7 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
             fclose(fp);
 	    fclose(fpTecplot);
             fp = (FILE *)NULL;
-            printf("\nTotal node count:         %d\n", totalNodeCount);
+            printf("\nTotal node count:%d\n", totalNodeCount);
         }
 
         return;
@@ -1376,6 +1398,9 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
                 CreateFCCPerfectLoop();
                 break;
 */
+        case FTYPE_SINGLE_ARM:
+                CreateSingleArmSource(&home, &inData, &inArgs, &totDislocLen);
+                break;
         }
 
 /*

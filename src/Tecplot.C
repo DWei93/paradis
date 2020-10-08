@@ -399,6 +399,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 nodePos[0] = x; nodePos[1]=y; nodePos[2]=z;
                 nbrPos[0] = x2; nbrPos[1]=y2; nbrPos[2]=z2;
                 tau_ext = ExtShearStress(param, burg, nodePos, nbrPos, n)/1E6;
+                if(!Numerical(tau_ext))tau_ext=0.0;
 
                 if(param->polycrystal==0)index=0;
                 else{
@@ -421,6 +422,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
  */
                 StackingFaultForce(home, prx, pry, prz, param->sfEnergy/param->burgMag, node->signSF[j], n, f1, f2);
                 tau_gg=Normal(f1)*2.0E-6/length; NormalizeVec(f1); 
+                if(!Numerical(tau_gg))tau_gg=0.0;
 				
 #if CHECK_DOMAIN
                 fprintf(fp, "%7.1f %7.1f %7.1f %6.1f %6.1f %6.1f %7.4f %7.4f %d %d %d %d %d %d %d %e %d %d\n", 

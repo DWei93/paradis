@@ -2121,6 +2121,41 @@ int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]){
 	return(0);
 }
 
+bool IntersectionOfRayBox(Param_t *param, real8 *dir, real8 *p, real8 *interPos, int &constraint){
+	real8	box[3], n[3], np[3], vec1[3];
+
+	box[0] = param->xBoundMax;
+	box[1] = param->yBoundMax;
+	box[2] = param->zBoundMax;
+
+	if(ExceedBox(param, p)){
+	    Fatal("IntersectionOfRayBox: the line exceed the box{%f,%f,%f}\n",p[0],p[1],p[2]);
+	}
+
+    constraint = -1;
+    bool first=true;
+    int     type=NO_INTERSECTION;
+    for(int i=0; i<3; i++){
+        if(fabs(dir[i])<1E-3)continue;
+
+        n[0]=(i!=0)?0.0:Sign(dir[i]);
+        n[1]=(i!=1)?0.0:Sign(dir[i]);
+        n[2]=(i!=2)?0.0:Sign(dir[i]);
+        np[0]=(i!=0)?0.0:Sign(dir[i])*box[i];
+        np[1]=(i!=1)?0.0:Sign(dir[i])*box[i];
+        np[2]=(i!=2)?0.0:Sign(dir[i])*box[i];
+
+        if(first){
+            type=LinePlaneIntersection(dir, p, n, np, vec1, interPos);
+            if(POINT_INTERSECTION==type){first=false; constraint = i+1;}
+        }else{
+            type=SegmentPlaneIntersection(p, interPos, n, np, vec1);
+            if(POINT_INTERSECTION==type){constraint = i+1; VECTOR_COPY(interPos,vec1);}
+        }
+    }
+    
+	return (constraint>0);
+}
 
 /*---------------------------------------------------------------------------
  *

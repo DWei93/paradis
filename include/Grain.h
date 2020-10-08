@@ -340,4 +340,5 @@ bool PartialDislocations(BurgInfo_t *bd, real8 *burg, real8 *plane, real8 *p1, r
 void CentorPos(Param_t *param, real8 *p1, real8 *p2, real8 *p);
 void AdjustPenetratedNode(Home_t *home, Node_t *node);
 real8 GlideShearStress(Home_t *home, Node_t *node);
+bool IntersectionOfRayBox(Param_t *param, real8 *dir, real8 *p, real8 *interPos, int &constraint);
 #endif

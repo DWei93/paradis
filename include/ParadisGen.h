@@ -83,6 +83,7 @@ void  WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock);
 int GetBurgID_FCCFromArm(Home_t *home, Node_t *node, int segID);
 void CreateLoopSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen);
 void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen);
+void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen);
 
 
 /*
@@ -97,7 +98,8 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
 #define FTYPE_FCC_IRRAD		5
 #define FTYPE_FCC_PERFECT_LOOP	6
 #define FTYPE_EDGE		7
-#define FTYPE_MAX		8
+#define FTYPE_SINGLE_ARM		8
+#define FTYPE_MAX		9
 
 #define FNAME_SCREW		"screw"
 #define FNAME_EDGE		"edge"
@@ -107,6 +109,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
 #define FNAME_FCC		"fcc"
 #define FNAME_FCC_IRRAD		"fcc-irrad"
 #define FNAME_FCC_PERFECT_LOOP	"fcc-perfect-loop"
+#define FNAME_SINGLE_ARM	"single-arm"
 
 
 /*

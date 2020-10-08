@@ -26,10 +26,13 @@
 #frlen=00
 ctrlFile=input/Copper.ctrl
 logFile=input/CreateFR.log
-cubeln=250
+cubeln=4300
 nMesh=31
-nfrs=500
+nfrs=15000
 nTDs=0
+pbc=7
+schmid=0.408
+type=3
 if [ $cubeln -ge 3000 ]; then heightRatio=1; 
 elif [ $cubeln -ge 1000 ]; then heightRatio=2; 
 elif [ $cubeln -ge 500 ] ; then heightRatio=3; 
@@ -39,13 +42,19 @@ else heightRatio=4; fi
 
 nMeshZ=`echo "${heightRatio}*${nMesh}" | bc `
 cubel=`echo ${cubeln}/0.2556 | bc`
-frlen=`echo ${cubel}/3 | bc`
 maxSeg=`echo ${cubel}/15 |bc `
 nGrains=2
 thick=`echo ${cubel}/${nGrains}| bc`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
-maxDisDen=`echo "(1+10*(1000/${cubeln}))" | bc`
-echo "Thickness=$thick b, $thickn nm, density=$maxDisDen E12"
+maxDisDen=`echo "scale=3;2.0*(1+10*(1000.0/${cubeln}))" | bc -l`
+frlen=`echo "scale=3;1000/sqrt(${maxDisDen})/0.2556" | bc -l`
+frlenn=`echo "scale=3;${frlen}*0.2556" | bc`
+
+tauy1=`echo "scale=3; 0.18*54600*l($frlen)/${frlen}/$schmid" | bc -l`
+tauy2=`echo "scale=3; 0.5*54600*0.2556*0.001*sqrt($maxDisDen)" | bc -l`
+tauy=`echo "scale=2;$tauy1+$tauy2" | bc -l`
+
+echo "cubel=$cubel b, $cubeln nm, density=${maxDisDen}E12, frlen=${frlen}b, ${frlenn}nm, predicted stress=${tauy}=${tauy1}+${tauy2} MPa"
 maxDensity=${maxDisDen}E12;
 polycrystal=${1}
 single=${2}
@@ -55,6 +64,8 @@ sed -i "/^eRate/ceRate = $eRate" $ctrlFile
 sed -i "/^edotPolar/cedotPolar = [ 0.0 0.0 ]" $ctrlFile
 
 rTol=`echo "scale=7;${maxSeg}*sqrt(2)/33" | bc -l`
+if [ `echo "${rTol}>20.0" | bc` ] ; then rTol=20; fi;
+
 rc=`echo "scale=7;0.1+4.0*${rTol}" | bc -l`
 sed -i "/^rTol =/crTol = ${rTol}" $ctrlFile
 sed -i "/^rc =/crc = ${rc}" $ctrlFile
@@ -105,7 +116,7 @@ case $srctype in
 #
 ######################################################################################
     1|I)
-    ./bin/paradisgen -type 3  -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  \
+    ./bin/paradisgen -type $type  -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  \
     -polycrystal 0  -pbc 0 -extend 0  -srcLenType 0 \
     -xMatDir 1,0,0 -zMatDir 0,0,1 ;;
 
@@ -116,11 +127,12 @@ case $srctype in
 #
 ######################################################################################
     2|II)
-    info="# ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed  -polycrystal 0 -pbc 7 -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity}  -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 "
-    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 0 -pbc 7 -loadDir 0,0,1\
+    info="# ./bin/paradisgen -type ${type} -pbc $pbc -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed  -polycrystal 0 -pbc 7 -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity}  -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 "
+    (echo "$info"
+    ./bin/paradisgen -type $type -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    -polycrystal 0 -pbc $pbc -loadDir 0,0,1\
     -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity} \
-    -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 ;;
+    -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 ) | tee $logFile;;
 
 #    -xMatDir 1,0,0 -yMatDir 0,1,0 \
 #    -polycrystal 0 -pbc 7 -extended 4\
@@ -155,14 +167,15 @@ case $srctype in
 ######################################################################################
     5|V)
 
-    info="#./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1 -nTDs $nTDs";
+    info="#./bin/paradisgen -type ${type} -frlen ${frlen} -pbc $pbc -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1 -nTDs $nTDs";
 
     echo "$info"
-    (echo "${2}-degree" ;  ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -loadDir 0,0,1 \
-    -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;
+    (echo "${2}-degree" ;  ./bin/paradisgen -type ${type} -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    -polycrystal 1 -nGrain 2 -pbc $pbc -maxDensity $maxDensity -loadDir 0,0,1 \
+    -yMatDir -1,-1,-1 -zMatDir 1,-1,0  -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;
+#   -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;
 
-#    -xMatDir ${xdir} -yMatDir ${ydir} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
+
 #    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
 #    -xMatDir 0.707106781186548,-0.707106781186548,0.0 -yMatDir 0.642228525188087,0.642228525188087,-0.418431646591735 \
     *)
@@ -170,15 +183,16 @@ case $srctype in
      exit 1 ;;
 esac
 
-percentage=`cat $logFile | grep "%" | cut -d "%" -f 1`
-finish=`echo "${percentage}>15.0" | bc`
+nodeCount=`cat $logFile | grep "Total node count" | cut -d ":" -f 2`
+if [[ `echo "${nodeCount}>8000" | bc` -eq 1 ]] ; then ncells=16;
+elif [[ `echo "${nodeCount}>4000" | bc` -eq 1 ]] ; then ncells=8;
+else ncells=4; fi
+sed -i "/^numXcells/cnumXcells = $ncells" $ctrlFile
+sed -i "/^numYcells/cnumYcells = $ncells" $ctrlFile
+sed -i "/^numZcells/cnumZcells = $ncells" $ctrlFile
 
-if [[ ${finish} -eq 0 ]] ;  then 
-    ./gen-bicrystal $1 $2 $3; 
-else
-    ./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 
-    sed -i "1i$info" Copper.data
-    sed -i "1i#`date`" Copper.data
-    cp Copper.data input/Copper.data
-    echo "cp Copper.data > input/Copper.data"
-fi
+./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 
+sed -i "1i$info" Copper.data
+sed -i "1i#`date`" Copper.data
+cp Copper.data input/Copper.data
+echo "cp Copper.data > input/Copper.data"

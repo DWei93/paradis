@@ -139,7 +139,7 @@ case $srctype in
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 0 -nGrain 1 -pbc 7 -maxDensity $maxDensity \
-    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 -out SAS/${2} > /dev/null 2>&1;;
+   -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 -out SAS/${2} > /dev/null 2>&1;;
 
 #    -xMatDir ${xdir} -yMatDir ${ydir} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
 #    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
@@ -154,6 +154,15 @@ finish=`echo "${percentage}>15.0" | bc`
 if [[ ${finish} -eq 0 ]] ; 
     then ./gen $point $thickn $nGrains; 
 else
+    
+    nodeCount=`cat $logFile | grep "Total node count" | cut -d ":" -f 2`
+    if [[ `echo "${nodeCount}>8000" | bc` -eq 1 ]] ; then ncells=16;
+    elif [[ `echo "${nodeCount}>4000" | bc` -eq 1 ]] ; then ncells=8;
+    else ncells=4; fi
+    sed -i "/^numXcells/cnumXcells = $ncells" $ctrlFile
+    sed -i "/^numYcells/cnumYcells = $ncells" $ctrlFile
+    sed -i "/^numZcells/cnumZcells = $ncells" $ctrlFile
+
     ./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 
     sed -i "1i# ${percentage}% of primary srcs" Copper.data
     info="# paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir $polar,$amu"
