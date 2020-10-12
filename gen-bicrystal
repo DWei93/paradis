@@ -26,17 +26,18 @@
 #frlen=00
 ctrlFile=input/Copper.ctrl
 logFile=input/CreateFR.log
-cubeln=4300
+cubeln=750
+if [ $# -ge 3 ] ; then cubeln=$3; fi
 nMesh=31
-nfrs=15000
+#nfrs=15000
+nfrs=20000
 nTDs=0
 pbc=7
 schmid=0.408
 type=3
 if [ $cubeln -ge 3000 ]; then heightRatio=1; 
 elif [ $cubeln -ge 1000 ]; then heightRatio=2; 
-elif [ $cubeln -ge 500 ] ; then heightRatio=3; 
-else heightRatio=4; fi
+else heightRatio=3; fi
 
 #if [ $nfrs -lt 750 ]; then nfrs=20; fi
 
@@ -64,7 +65,7 @@ sed -i "/^eRate/ceRate = $eRate" $ctrlFile
 sed -i "/^edotPolar/cedotPolar = [ 0.0 0.0 ]" $ctrlFile
 
 rTol=`echo "scale=7;${maxSeg}*sqrt(2)/33" | bc -l`
-if [ `echo "${rTol}>20.0" | bc` ] ; then rTol=20; fi;
+if [ `echo "${rTol}>20.0" | bc` -eq 1 ] ; then rTol=20; fi;
 
 rc=`echo "scale=7;0.1+4.0*${rTol}" | bc -l`
 sed -i "/^rTol =/crTol = ${rTol}" $ctrlFile
@@ -172,8 +173,8 @@ case $srctype in
     echo "$info"
     (echo "${2}-degree" ;  ./bin/paradisgen -type ${type} -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc $pbc -maxDensity $maxDensity -loadDir 0,0,1 \
-    -yMatDir -1,-1,-1 -zMatDir 1,-1,0  -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;
-#   -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;
+    -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;
+#   -yMatDir -1,-1,-1 -zMatDir 1,-1,0  -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;
 
 
 #    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
