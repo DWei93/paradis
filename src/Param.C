@@ -328,6 +328,7 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 
         BindVar(CPList, "eAmp", &param->eAmp, V_DBL, 1, VFLAG_NULL);
 
+        BindVar(CPList, "maxCycle", &param->maxCycle, V_DBL, 1, VFLAG_NULL);
 /*
  *      To specify input sample axes in laboratory frame
  */

@@ -558,12 +558,21 @@ void WriteProp(Home_t *home, int property)
                                2.0*param->totTwinpStn[3]*am*an +
                                2.0*param->totTwinpStn[4]*an*al +
                                2.0*param->totTwinpStn[5]*al*am;
+                    if (param->loadType==4){
+                        fprintf(fp, "%e %e %e ",sign*param->netCyclicStrain*1.0E2, sign*sigijk/1.0E6, sign*pstnijk*1.0E2);
+                        if(param->polycrystal) fprintf(fp, "%e ", sign*ptstnijk*1.0E2);
 
-                    fprintf(fp, "%e %e %e ",sign*param->eRate*1.0E2*param->timeNow, sign*sigijk/1.0E6, sign*pstnijk*1.0E2);
-                    if(param->polycrystal) fprintf(fp, "%e ", sign*ptstnijk*1.0E2);
+                        if(fabs(param->stainCycle) > param->maxCycle)param->finish = 1;
+                        
+                    }else{
+                        fprintf(fp, "%e %e %e ",sign*param->eRate*1.0E2*param->timeNow, sign*sigijk/1.0E6, sign*pstnijk*1.0E2);
+                        if(param->polycrystal) fprintf(fp, "%e ", sign*ptstnijk*1.0E2);
 
-                    if(fabs(param->eRate*param->timeNow) > param->maxStn)param->finish = 1;
-                    if(fabs(pstnijk) > param->maxPst)param->finish = 1;
+                        if(fabs(param->eRate*param->timeNow) > param->maxStn)param->finish = 1;
+                        if(fabs(pstnijk) > param->maxPst)param->finish = 1;
+                    }
+
+                    
 
 
 #ifndef VELOCITY_STATISTICS

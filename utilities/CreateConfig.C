@@ -3552,7 +3552,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 		            finish = 0;
 	            }
             }  /* for (chain = 0; chain < numChains; ) */
-		
+            printf("layer %d: xn=%d, chain=%d\n",layer,xn,chain+1);
 	    }/* for(layer=0; layer<nLayers;...)*/
         printf("Slip systems | location  | burgID | planeID  | Schmid Factor | percentage\n"); 
         for(i=0; i<nSlips; i++){
@@ -4527,7 +4527,7 @@ void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, rea
             }
             	
             for(chain = 0; chain < xn; ){
-             
+ 
 
                 if(xn > nSlips && chain < nSlips && (2*maxDensity*volume*burgMag*burgMag/srcLenMax > nSlips)){
                     ranNum = chain%nSlips;
