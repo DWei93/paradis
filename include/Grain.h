@@ -314,6 +314,7 @@ bool IsOnGB(Node_t *node);
 void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainID = -1);
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB);
 void FreeBurgInfoStr(BurgInfo_t *burgData);
+bool comByBarrier(std::vector<Dislocation_t> p, std::vector<Dislocation_t> q);
 int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                        real8 *plane, int flag, 
                        std::vector< std::vector<double> >&       burgList, 
@@ -341,4 +342,8 @@ void CentorPos(Param_t *param, real8 *p1, real8 *p2, real8 *p);
 void AdjustPenetratedNode(Home_t *home, Node_t *node);
 real8 GlideShearStress(Home_t *home, Node_t *node);
 bool IntersectionOfRayBox(Param_t *param, real8 *dir, real8 *p, real8 *interPos, int &constraint);
+void PlaneBoxIntersections(real8 *n, real8 *p, real8 *box, std::vector<std::vector<real8> > &vertices);
+void GlidePlaneOfDislocation(Home_t *home, real8 *n, real8 *p, std::vector<real8> &vertices, std::vector<int> &f_vert,  std::vector<int> &types);
+void GlidePlanesInNeighborGrain(Home_t *home, real8 *n, real8 *p, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<int> &types);
+void DrawGlidePlanes(FILE *fp, char *zoneName, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<int> &info);
 #endif

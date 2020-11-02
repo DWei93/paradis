@@ -27,6 +27,8 @@
 #include <memory.h>
 
 #include <vector>
+#include <algorithm>
+#include <numeric>
 
 void ExtPKForce(real8 str[3][3],
                 real8 bx, real8 by, real8 bz,
@@ -2691,80 +2693,196 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
  *                        all created dislocations.
  *
  *-------------------------------------------------------------------------*/
-
-#define INTERACTION_TEST 0
-
-void GetFreePath(Param_t *param, real8 pos1[3], real8 pos2[3], real8 n[0], Grain_t *grain, 
-                 real8 *interDir, real8 &lambda_SAS1, real8 &lambda_GB1, real8 &lambda_SAS2, real8 &lambda_GB2)
+#define INITIAL_ANALYSIS 1
+#if INITIAL_ANALYSIS
+void ProbeFreePath(real8 *p1, real8 *p2, std::vector<real8> &vertices, std::vector<int> &f_vert, 
+        std::vector<int> &types, std::vector<real8> &dPoint, real8 *tbInterDir, real8 *tbInterPos)
 {
-    int         i, j, k, m, th, type; 
-    real8       interPos[3], poss[2][3], vec1[3], vec2[3], vec3[3], dis;
-    Plane_t     plane;
-
-    lambda_GB1 = 0.0;
-    lambda_GB2 = 0.0;
-    lambda_SAS1 = 1E10;
-    lambda_SAS2 = 1E10;
-
-    VECTOR_COPY(plane.point, pos1);
-    VECTOR_COPY(plane.normal, n);
-    VECTOR_ZERO(interDir);
-
-    for(k=0; k<grain->surface.size(); k++){
-        type = PlanePlaneIntersection(
-                  plane.normal, plane.point,
-                  grain->surface[k].normal, grain->surface[k].point, vec1, vec2); 
-        
-        if(type != LINE_INTERSECTION)continue;
-
-        th = 0;
-        for(m=0; m<grain->surface.size(); m++){
-            if(m==k)continue;
-            type = LinePlaneIntersection(vec1, vec2, grain->surface[m].normal,
-                         grain->surface[m].point, vec3, interPos);
-
-            if(type != POINT_INTERSECTION)continue;
-
-            if(fabs(interPos[0]) > param->xBoundMax+1.0){
-                continue;
-            }
-            if(fabs(interPos[1]) > param->yBoundMax+1.0){
-                continue;
-            }
-            if(fabs(interPos[2]) > param->zBoundMax+1.0){
-                continue;
-            }
-
-            VECTOR_COPY(poss[th], interPos);
-
-            if(th == 1){
-                th = 0;
-                break;
-            }else{
-                th++;
-            }
-        }
-
-        if(k == 0){
-            VECTOR_COPY(interDir, vec1);
-            PointLineIntersection(pos1, vec1, vec2, vec3, &dis);
-            lambda_GB1 = fabs(dis);
-            PointLineIntersection(pos2, vec1, vec2, vec3, &dis);
-            lambda_GB2 = fabs(dis);
-        }else{
-            PointLineIntersection(pos1, vec1, vec2, vec3, &dis);
-            lambda_SAS1 = MIN(fabs(dis), lambda_SAS1);
-            PointLineIntersection(pos2, vec1, vec2, vec3, &dis);
-            lambda_SAS2 = MIN(fabs(dis), lambda_SAS2);
-        }
+    // point[1] minimal distances for type 0 boundary (PBC boundary) 
+    // point[2] minimal distances for type 1 boundary (surface ) 
+    // point[3], point[4] distances for type 2 boundary (TB) 
     
+    int type;
+    dPoint[1]=-1; dPoint[2]=-1; dPoint[3]=-1; dPoint[4]=-1;
+    real8 p[2][3]={{p1[0],p1[1],p1[2]},{p2[0],p2[1],p2[2]}};
+    real8 lp1[3], lp2[3], ldir[3], lp[3], dis, vec[3];
+    real8 d[2];
+    for (int i=0; i<types.size();i++){
+        type = types[i];
+        d[0]=-1; d[1]=-0.0;
+        for(int j=0;j<2;j++){
+            Coordinate(vertices,i,lp1);
+            Coordinate(vertices,(i==types.size()-1)?0:i+1,lp2);
+            CoordAdd(0.5,lp1,0.5,lp2,lp);
+            CoordMinus(lp2,lp1,ldir);
+            if(Normal(ldir)<1E-5)continue;
+            NormalizeVec(ldir);
+            PointLineIntersection(p[j], ldir, lp, vec, &dis); 
+            if(type==0){
+                printf("type0: dis=%f, {%f,%f,%f} ldir={%f,%f,%f} pdir{%f,%f,%f}\n", 
+                       dis, p[j][0],p[j][1],p[j][2],ldir[0],ldir[1],ldir[2],lp[0],lp[1],lp[2]);
+            }
+            if(d[0]<0){d[0]=dis;}else if(d[0]<dis){d[1]=dis;}else{d[1]=d[0];d[0]=dis;} //min
+        }
+        if(type==0){
+            if(dPoint[1]<0){dPoint[1]=d[1];}else if(dPoint[1]>d[1]){dPoint[1]=d[1];}
+        }else if(type==1){
+            if(dPoint[2]<0){dPoint[2]=d[1];}else if(dPoint[2]>d[1]){dPoint[2]=d[1];}
+        }else if(type==2){
+            if(dPoint[4]<0){
+                dPoint[4]=d[1]; dPoint[3]=d[0];
+                VECTOR_COPY(tbInterDir, ldir);
+                VECTOR_COPY(tbInterPos, lp);
+                printf("new inter line:{%f,%f,%f}--{%f,%f,%f}\n",ldir[0],ldir[1],ldir[2],lp[0],lp[1],lp[2]);
+            }else if(dPoint[4]-d[1]>1E-3){
+                dPoint[4]=d[1]; dPoint[3]=d[0];
+                VECTOR_COPY(tbInterDir, ldir);
+                VECTOR_COPY(tbInterPos, lp);
+                printf("new inter line:{%f,%f,%f}--{%f,%f,%f}\n",ldir[0],ldir[1],ldir[2],lp[0],lp[1],lp[2]);
+            }else if(dPoint[4]-d[1]>-1E3 && dPoint[3]>d[0]){
+                dPoint[4]=d[1]; dPoint[3]=d[0];
+                VECTOR_COPY(tbInterDir, ldir);
+                VECTOR_COPY(tbInterPos, lp);
+                printf("new inter line:{%f,%f,%f}--{%f,%f,%f}\n",ldir[0],ldir[1],ldir[2],lp[0],lp[1],lp[2]);
+            }
+        }
     }
-
     return;
 }
 
-void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
-						 real8 *totDislocLen)
+void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, real8 *b, real8 *n0, std::vector<real8> &dPoint){
+
+    //dPoint[5]: Schmid factor of origin slip system 
+    //dPoint[6]: Schnid factor of outgong slip system, it should be noted that 
+    //           when the factor is negative, the dislocation cannot pass the twin boundary
+    //dPoint[7], dPoint[8]: Schmid factor of twinning dislocations
+    printf("%s: 0\n",__func__);
+    Param_t *param = home->param;
+    int inGrain, onGB;
+    NodeLocation(home, lp[0],lp[1],lp[2], inGrain, onGB);
+    if(onGB<0)Fatal("%s: somthing wrong with intersection line {%f,%f,%f} -- {%f,%f,%f}",__func__,ldir[0],ldir[1],ldir[2],lp[0],lp[1],lp[2]);
+
+    GB_t *gb = home->GBKeys[onGB];
+    BurgInfo_t *bd=GetBurgData(home,-1,onGB);
+
+    real8 lp2[3], f1[3], f2[3], f3[3], f4[3], b1[3], b2[3], n1[3]; CoordAdd(lp,ldir,lp2);
+    std::vector<std::vector<Dislocation_t> >    disArray;
+    std::vector<std::vector<real8> >            burgList;
+    std::vector<std::vector<Dislocation_t> >::iterator      itDisList;
+
+    ExtPKForce(str, b[0], b[1], b[2], lp[0],lp[1],lp[2], lp2[0], lp2[1], lp2[2], f1, f2);
+    NormalComponent(f2,n0,f1);
+    real8 s0=2*Normal(f1);
+    if(fabs(s0-dPoint[5])>1E-3)Fatal("s0=%f, dPoint[5]=%f",s0,dPoint[5]);
+    
+    Matrix33Vector3Multiply(param->rotateNormal, n0, n1);
+    if(!GeometricCriterion(bd, b, ldir, n0, 0, burgList, disArray))Fatal("can not find out configures");
+
+    int j,k;
+    real8 barrierFactor, crossProd[3], vec[3];
+    bool isScrew = fabs(DotProduct(b,param->TBNormal))<1E-2?true:false;
+
+    for(j=0; j<disArray.size(); ){
+        barrierFactor = -1.0;
+        for(k=0; k<disArray[j].size(); k++){
+            barrierFactor += disArray[j][k].energyFactor;
+            cross(gb->n, bd->planeList[disArray[j][k].planeID], crossProd);
+            VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
+            if(Normal(crossProd) < 1.0E-2){
+                if(BurgType_FCC(vec) == BASIC_BURG)break;
+            }else{
+                if(BurgType_FCC(vec) != BASIC_BURG)break;
+            }
+        }
+  
+        if(k != disArray[j].size() || (isScrew && 
+           barrierFactor > 1E-3 || barrierFactor >0.667) 
+          || (disArray[j].size()==1 && fabs(DotProduct(n0, bd->planeList[disArray[j][0].planeID]))>0.95)){
+            itDisList = disArray.begin() + j;
+            disArray.erase(itDisList);
+        }else{
+            j++;
+        }
+    }
+    sort(disArray.begin(), disArray.end(), comByBarrier); 
+#if 1
+    real8 outBurg[3];
+    if(!isScrew){
+        printf("non-screw dislocation decomposition (%g,%g,%g) %d %d:\n", b[0],b[1],b[2], BurgID_FCC(bd, b),
+                PlaneID_FCC(bd,n0));
+        for(int set=0; set<disArray.size(); set++){
+            printf("set %d: ",set);
+            barrierFactor = -1.0;
+            for(int disl=0; disl<disArray[set].size(); disl++){
+                VECTOR_COPY(b1,burgList[disArray[set][disl].burgID]);
+                VECTOR_COPY(n1,bd->planeList[disArray[set][disl].planeID]);
+                ExtPKForce(str, b1[0], b1[1], b1[2], lp[0],lp[1],lp[2], lp2[0], lp2[1], lp2[2], f3, f4);
+                NormalComponent(f4,n1,f3);
+                if(set==0){
+                    if(BurgType_FCC(b1)==BASIC_BURG){
+                        if(DotProduct(f3,f1)>=0){dPoint[6]=2.0*Normal(f3);}
+                        else{
+                            dPoint[6]=0;
+                            printf("non screw dPoint[6]=%f<=0\n",-2.0*Normal(f3));
+                        }
+                    }else{
+                        dPoint[7]=2.0*Normal(f3)*sqrt(3);
+                    }
+                }
+                outBurg[0] = burgList[disArray[set][disl].burgID][0];
+                outBurg[1] = burgList[disArray[set][disl].burgID][1];
+                outBurg[2] = burgList[disArray[set][disl].burgID][2];
+                barrierFactor += disArray[set][disl].energyFactor;
+                printf("[%d %s %f](%d in %d) ", BurgID_FCC(bd,outBurg), 
+                       BurgType_FCC(outBurg)==BASIC_BURG?"perfect":"partial",disArray[set][disl].energyFactor,
+                       disArray[set][disl].planeID,
+                       bd->planeInGrain[disArray[set][disl].planeID]);
+            }
+            printf("-- barrier=%f\n",barrierFactor);
+        }
+    }else {printf("screw dislocation decomposition (%g,%g,%g) %d:\n", b[0],b[1],b[2], BurgID_FCC(bd, b));
+        for(int set=0; set<disArray.size(); set++){
+            printf("set %d: ",set);
+            for(int disl=0; disl<disArray[set].size(); disl++){
+                VECTOR_COPY(b1,burgList[disArray[set][disl].burgID]);
+                VECTOR_COPY(n1,bd->planeList[disArray[set][disl].planeID]);
+                ExtPKForce(str, b1[0], b1[1], b1[2], lp[0],lp[1],lp[2], lp2[0], lp2[1], lp2[2], f3, f4);
+                NormalComponent(f4,n1,f3);
+                if(set==0){
+                    if(disl==0)dPoint[7]=2.0*Normal(f3)*sqrt(3); else dPoint[8]=2.0*Normal(f3)*sqrt(3);
+                }else if(set==1){
+                    if(disl==0){
+                        if(DotProduct(f3,f1)>=0){dPoint[6]=2.0*Normal(f3);}
+                        else{
+                            dPoint[6]=0;
+                            printf("screw dPoint[6]=%f<=0\n",-2.0*Normal(f3));
+                        }
+                    }
+                }
+                outBurg[0] = burgList[disArray[set][disl].burgID][0];
+                outBurg[1] = burgList[disArray[set][disl].burgID][1];
+                outBurg[2] = burgList[disArray[set][disl].burgID][2];
+                printf("[%d %s](%d in %d) ", BurgID_FCC(bd,outBurg), 
+                       BurgType_FCC(outBurg)==BASIC_BURG?"perfect":"partial",
+                       disArray[set][disl].planeID,
+                       bd->planeInGrain[disArray[set][disl].planeID]);
+            }
+            printf("\n");
+        }
+        if(disArray.size()<2)Fatal("stop");
+    }
+#endif
+     if(isScrew){
+         printf("aaaaaaaaaaaaaaaaaaaaaaaaaaa Screw: dPoint: %f %f %f %f\n",dPoint[5],dPoint[6],dPoint[7],dPoint[8]);
+     }else{
+         printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaa Non-Screw: dPoint: %f %f %f %f\n",dPoint[5],dPoint[6],dPoint[7],dPoint[8]);
+     }
+
+    return;
+}
+#endif
+
+void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen)
 {
         int      i, lineIndex, chain, baseNodeID, numPoints=3,ranNum;
         int      newNodeIndex, lastBlock, burgIndex;
@@ -2772,16 +2890,16 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         int      x0, d, nLayers, xn, layer, time;
         int      startRemeshIndex = 0;
         real8    srcLen, thickness,lenRange;
-        real8    p0[3], p1[3], p2[3], p3[3], randomLine[3];
+        real8    p0[3], p1[3], p2[3], p3[3], randomLine[3], p[3];
         real8	 randomAngle, edge, srcLenMin, srcLenMax;
         int	     cubeLength, numSources,  seed, dislocType;
         int	     polycrystal, nGrain, finish;
         int      firstBurgIndex, srcLenType;
-        int      inGrain1, onGB1, inGrain2, onGB2, inGrain0, onGB0;
+        int      inGrain1, onGB1, inGrain2, onGB2, inGrain0, onGB0, inGrain, onGB;
         int      inGrain3, onGB3;
         real8	 twinRatio, maxSeg, maxDensity, burgMag = 2.556E-10;
         real8	 volume, glideDir[3];
-        real8	 tnx[4], tny[4], tnz[4], burg[12][3], cubeSize,heightSize;
+        real8	 tnx[4], tny[4], tnz[4], burg[12][3], cubeSize, heightSize;
         real8	 n0[3], b[3], n1[3];	/* plane normal vector, burgers, normal vector*/
         Node_t   *node;
         Param_t  *param;
@@ -2804,19 +2922,23 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
         real8   normalABC[3], lambda_FR, lambda_SAS1, lambda_GB1, lambda_SAS2, lambda_GB2, interDir[3];
         real8   barrierFactor, crossProd[3], vec[3];
-        real8   vec1[3], vec2[3], s0,  paras[4][4], zaxis[3] = {0,0,1}, schmid;
+        real8   vec1[3], vec2[3], s0,  paras[4][4], zaxis[3] = {0,0,1};
         int l; real8 dis;
 
         normalABC[0] = 1;
         normalABC[1] = 1;
         normalABC[2] = 1;
+        for(i=0;i<3;i++)for(j=0;j<3;j++)str[i][j]=inArgs->loadDir[i]*inArgs->loadDir[j];
 
-#ifdef SAS_ANALYZE
-        FILE    *fp;
-        
-        if((fp = fopen(inArgs->outFile, "w")) == (FILE *)NULL){
-            Fatal("can not open file %s", inArgs->outFile);
-        }
+#if     INITIAL_ANALYSIS
+        std::vector<real8> vertices, dPoint(17);
+        std::vector<std::vector<real8> > data;
+        std::vector<int> info(4), types, f_vert;
+        real8 tbInterDir[3], tbInterPos[3];
+        FILE    *fp, *fp1; char zoneName[256];
+        if((fp = fopen(inArgs->outFile, "w")) == (FILE *)NULL){Fatal("can not open file %s", inArgs->outFile);}
+        if((fp1 = fopen("glide-planes.plt", "w")) == (FILE *)NULL){Fatal("can not open file %s", "glide-planes.plt");}
+        fprintf(fp1,"variables = x, y, z, inGrain, onGB, burgID, planeID\n");
 #endif
 
 /*
@@ -2848,12 +2970,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         lenRange = srcLenMax - srcLenMin;
 
         bool freeLine=(param->xBoundType != Periodic && param->yBoundType != Periodic && param->zBoundType != Periodic);
-
         real8 n3[3];
 
-        if(numSources <= 0){
-            singleSrcTest = 1;
-        }
+        if(numSources <= 0){singleSrcTest = 1;}
         	
         if(polycrystal){
             gb = home->GBKeys[0];
@@ -2915,16 +3034,11 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         for(i=0;i<nSlips;i++)Proba[i]/=Proba[nSlips-1];
         
         for (layer = 0; layer < nLayers; layer++) {
-
 	        if(finish)break;
-
-            xn = layer * d + x0;
-            if(xn <= 0){
-                xn = 0;
-                continue;
-            }
+            xn = layer * d + x0; if(xn <= 0){xn = 0; printf("layer %d: xn=%d\n",layer,xn); continue; }
             	
             for(chain = 0; chain < xn; ){
+        printf("sadasda 1\n");
              
                 if(xn > nSlips && chain < nSlips && (2*maxDensity*volume*burgMag*burgMag/srcLenMax > nSlips)){
                     ranNum = chain%nSlips;
@@ -2935,12 +3049,13 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 gpBurgIndex = slip_sys[ranNum][0]; gpIndex=slip_sys[ranNum][1];
     
                 finished = 0;
+        printf("sadasda 2\n");
                 while(!finished){
 #if 1
                     p1[0] = (randm(&seed)-0.5) * cubeSize;
                     p1[1] = (randm(&seed)-0.5) * cubeSize;			
                     p1[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
-
+                    VECTOR_COPY(p,p1); 
 #else
                     VECTOR_ZERO(p0);
                     p0[1] = -1000;
@@ -2948,9 +3063,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 #endif
 
                     NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1,15);
-                    bd = GetBurgData(home, inGrain1, onGB1);
+                    bd = GetBurgData(home, inGrain1, onGB1); inGrain=inGrain1; onGB=onGB1;
                     if(onGB1 > -1)continue;
-
 #if 1
                     if(gpBurgIndex>=6){
                         ClosedGB(home, p1, &gb);
@@ -2972,8 +3086,11 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     if(!PerpendicularDirection(n0,b))Fatal("burg is not perpendicular to glide plane");
 
                     time = 0;
+        printf("sadasda 2.1\n");
                     while(true){
                         if(time>100)break;
+         
+        printf("sadasda 2.1.0\n");
                         time++;
                         randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
                         randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
@@ -2985,7 +3102,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
                         }
                         if(polycrystal>0 && gpIndex != 3){
-                            edge = home->grainKeys[inGrain1]->thick/0.942809;
+                            edge = home->grainKeys[inGrain]->thick/0.942809;
                         }else edge = cubeLength;
                         NormalizeVec(randomLine);
 #if 0
@@ -2995,6 +3112,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
  *                     Length of the frank read source should be a random length
  *                     between srcLenMin and srcLenMax.
  */          
+        printf("sadasda 2.1.1\n");
 	                    switch(srcLenType){
 	                        case 0:
                                 if (lenRange > 0) {
@@ -3027,16 +3145,20 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
                         if(home->nGBs>1)srcLen *= primary[ranNum];
 
+        printf("sadasda 2.1.2\n");
+                        inGrain1=inGrain; onGB1=onGB;
+                        VECTOR_COPY(p1,p);
                         if(home->nGBs<=1 || gpIndex==3){
                             for (i = 0; i < 3; i++) {
-                                p0[i] = p1[i] + (srcLen * randomLine[i])/2.0;
-                                p2[i] = p1[i] + (srcLen * randomLine[i]);
+                                p0[i] = p[i] + (srcLen * randomLine[i])/2.0;
+                                p2[i] = p[i] + (srcLen * randomLine[i]);
                             } 
                             NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,15);
                             NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,15);
                             if(inGrain1 != inGrain0 || inGrain1 != inGrain2 || onGB1 != onGB0 || onGB1 != onGB2)continue;
                         }else{
                             
+        printf("sadasda 2.1.2.1\n");
                             VECTOR_COPY(p0, p1); inGrain0=inGrain1; onGB0 = onGB1;
                             for (i = 0; i < 3; i++) {
                                 p1[i] = p0[i] - (srcLen * randomLine[i])/2.0;
@@ -3046,6 +3168,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2, 15);
                             grain = home->grainKeys[inGrain0];
 
+        printf("sadasda 2.1.2.2\n");
                             if(!(onGB1<0 && inGrain1==inGrain0) && !(onGB2<0 && inGrain2==inGrain0)){
                                 a1 = atan(grain->thick/0.942809/(srcLen));
                                 cross(param->TBNormal, n0, vec1); NormalizeVec(vec1);
@@ -3120,6 +3243,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
                             srcLen = PointPointDistance(p1,p2);
                         }
+        printf("sadasda 2.1.3\n");
 
                         if(inArgs->extended != 0){
                             VECTOR_COPY(basePos, p0);
@@ -3138,10 +3262,14 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                             if(onGB0 > -1 || onGB3 > -1 || inGrain0 != inGrain2 || inGrain3 != inGrain2)continue;
                         }   
 
+        printf("sadasda 2.1.4\n");
                         if(srcLenType == 0 || inArgs->gb==true){
+        printf("sadasda 2.1.5\n");
                             if(!InCuboid(param, p0, 0) || !InCuboid(param, p1, 0) || !InCuboid(param, p2, 0)){
+        printf("sadasda 2.1.6\n");
                                 continue;
                             }
+        printf("sadasda 2.1.7\n");
 	                    }
 
                         break;
@@ -3149,6 +3277,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     if(time>100)continue;
                     break;
                 }
+        printf("sadasda 3\n");
 
                 if(inArgs->extended != 0){
                     if(!PartialDislocations(bd, b, n0, b1, b2)){
@@ -3159,114 +3288,32 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 if(primary[ranNum]>0.99) primarySrcLen += srcLen;
                 percen[ranNum] += srcLen;
 	            totSrcLen += srcLen;				
-#ifdef SAS_ANALYZE
-                if(polycrystal){
-                    lambda_FR = srcLen/2;
-                    GetFreePath(param, p1, p2, n0, home->grainKeys[inGrain0], 
-                                interDir, lambda_SAS1, lambda_GB1, lambda_SAS2, lambda_GB2);
-
-                    ExtPKForce(str, b[0], b[1], b[2], 
-                               p1[0], p1[1], p1[2],
-                               p2[0], p2[1], p2[2], f1, f2);
-                   
-                    real8 dis; 
-                    PointPlaneIntersection(p0, gb->n, gb->p, vec, &dis);
-                    vec[0] -= p0[0];
-                    vec[1] -= p0[1];
-                    vec[2] -= p0[2];
-                    if(DotProduct(vec, f1) < 0){
-                        lambda_GB1 = -lambda_GB1;
-                        lambda_GB2 = -lambda_GB2;
-                    }
-
-                    s0 = DotProduct(zaxis, n0)*DotProduct(zaxis, b);
-                    VECTOR_ZERO(paras[0]);
-                    VECTOR_ZERO(paras[1]);
-                    VECTOR_ZERO(paras[2]);
-                    VECTOR_ZERO(paras[3]);
-
-                    real8   schmidList[2] = {0,0}, maxSchmid = -1;
-                    int     maxSet = 0;
+#if     INITIAL_ANALYSIS
+                snprintf(zoneName,sizeof(zoneName),"CurrenGrain-%d.%d",baseNodeID,inGrain0);
+                info[0]=inGrain0; info[1]=onGB0; info[2]=gpBurgIndex; info[3]=gpIndex;
+                GlidePlaneOfDislocation(home, n0, p, vertices, f_vert, types);
+                DrawGlidePlanes(fp1, zoneName, vertices, f_vert, info);
                 
-                    if(lambda_GB1 != 0.0 && fabs(s0) > 1.0E-2){
-                        std::vector<std::vector< Dislocation_t> >().swap(disArray);
-                        std::vector<std::vector<double> >().swap(burgList);
+                dPoint[0] = srcLen;
+                ProbeFreePath(p1, p2, vertices, f_vert, types, dPoint, tbInterDir, tbInterPos);
+                printf("planeID=%d burgID=%d dPoint: %f %f %f %f\n",gpIndex,gpBurgIndex,dPoint[1],dPoint[2],dPoint[3],dPoint[4]);
 
-                        if(!GeometricCriterion(gbd, b, interDir, n0, 1,
-                            burgList, disArray)){
-                            Fatal("something wrong with geometric criterion");
-                        }
+                dPoint[5]=proba[ranNum]; dPoint[6]=-1; dPoint[7]=-1; dPoint[8]=-1;
+                if(dPoint[4]>=0)ProbeScmidFactors(home, str, tbInterDir, tbInterPos, b, n0, dPoint);
+                dPoint[10]=AreaOfPolygon(f_vert, vertices, 0)/volume/burgMag;
 
-/*
- *                      Now, we don't need the resultant configure including a lattice burg on GB,
- *                      or a partial burg in Grain.
- */
-                        for(j=0; j<disArray.size(); ){
-                            barrierFactor = -1.0;
-                            for(k=0; k<disArray[j].size(); k++){
-                                barrierFactor += disArray[j][k].energyFactor;
-                                cross(gb->n, gbd->planeList[disArray[j][k].planeID], crossProd);
-                                VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
-                                if(Normal(crossProd) < 1.0E-2){
-                                    if(BurgType_FCC(vec) == BASIC_BURG)break;
-                                }else{
-                                    if(BurgType_FCC(vec) != BASIC_BURG)break;
-                                }
-                            }
-  
-                            if(k != disArray[j].size() || j > 0 && 
-                               barrierFactor > 0){
-                                itDisList = disArray.begin() + j;
-                                disArray.erase(itDisList);
-                            }else{
-                                j++;
-                            }
-                        }
-                        if(disArray.size()>2)Fatal("someting wrong with disArray");
-                    
-                        for(j=0; j<disArray.size(); j++){
-                            if(disArray[j].size()>2)Fatal("someting wrong with disArray[%d]", j);     
+                snprintf(zoneName,sizeof(zoneName),"NeiGrain-%d.%d",baseNodeID,inGrain0);
+                GlidePlanesInNeighborGrain(home, n0, p, vertices, f_vert, types);
+                DrawGlidePlanes(fp1, zoneName, vertices, f_vert, info);
+                dPoint[10]=AreaOfPolygon(f_vert, vertices, 0);
+                dPoint[10]=AreaOfPolygon(f_vert, vertices, 0)/volume/burgMag;
 
-                            for(k=0; k<disArray[j].size(); k++){
-                                paras[2*j+k][0] = disArray[j][k].energyFactor;
-                                VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
-                                paras[2*j+k][1] = Normal(vec);
-                                NormalizeVec(vec);
-                                schmid = DotProduct(zaxis, vec)*DotProduct(zaxis, gbd->planeList[disArray[j][k].planeID]);
-
-	                            if(fabs(paras[2*j+k][1] - 1.0E0) < 1.0E-2){
-                                    paras[2*j+k][2] = (schmid*s0 > 0) ? schmid : 0;
-	                            }else{
-                                    paras[2*j+k][2] = schmid;
-                                }
-                                paras[2*j+k][2] = fabs(paras[2*j+k][2]);
-                                
-                            }
-                            schmidList[j] = DotProduct(zaxis,b)*DotProduct(zaxis, gbd->planeList[disArray[j][0].planeID]);
-                        }
-                    }
-                    
-                    for(j=0; j<2; j++){
-                        if(fabs(schmidList[j]) > maxSchmid){
-                            maxSet = j;
-                            maxSchmid = fabs(schmidList[j]);
-                        }
-                    }
-
-                    fprintf(fp,"%e %e %e %e   ", lambda_FR, lambda_SAS1, lambda_GB1, fabs(s0));
-                    for(j=2*maxSet; j<2*maxSet+2; j++){
-                        fprintf(fp, "%e %e %e ", paras[j][0], paras[j][1], paras[j][2]);
-                    }
-                    fprintf(fp, "\n");
-
-                    fprintf(fp,"%e %e %e %e ", lambda_FR, lambda_SAS2, lambda_GB2, fabs(s0));
-                    for(j=2*maxSet; j<2*maxSet+2; j++){
-                        fprintf(fp, "%e %e %e ", paras[j][0], paras[j][1], paras[j][2]);
-                    }
-                    fprintf(fp, "\n");
-
-                }
-#endif 
+                dPoint[11]=b[0]; dPoint[12]=b[1]; dPoint[13]=b[2]; 
+                dPoint[14]=n0[0]; dPoint[15]=n0[1]; dPoint[16]=n0[2]; 
+                
+                for(i=0;i<dPoint.size();i++)fprintf(fp, "%g ",fabs(dPoint[i])<1E-9?0:dPoint[i]);
+                fprintf(fp,"\n");
+#endif
 /*           
  *              Reallocate the node array with sufficient size to add
  *              all the new nodes defining this chain.
@@ -3278,6 +3325,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                                                    * sizeof(Node_t));
                 memset(&inData->node[newNodeIndex], 0, sizeof(Node_t) * numPoints);
 		 	   
+                printf("draw glide planes 2\n");
                 if(inArgs->extended == 0 || partialDislocation){
 /*           
  *                   Set up the 3 nodes we're using to define the dislocation line.
@@ -3530,6 +3578,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->nz[1] = n0[2];
 
                 }
+                printf("draw glide planes 3\n");
 /*           
  *              The initial segments created are not necessarily limited to
  *              param->maxSegLen, so a call to InitRemesh() is needed to
@@ -3544,6 +3593,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 chain++;
                 baseNodeID = inData->nodeCount;
                 startRemeshIndex = baseNodeID;
+                printf("draw glide planes 4\n");
 
 	            if(totSrcLen> maxDensity*volume*burgMag*burgMag){
 		            finish = 1;
@@ -3569,8 +3619,10 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                "%4.2f%% of srcs are of primary slip systems\n",
                 chain, chain/home->nGrains, primarySrcLen*100/totSrcLen);
 
-#ifdef SAS_ANALYZE
-        fclose(fp);
+
+
+#if     INITIAL_ANALYSIS
+        fclose(fp); fclose(fp1);
 #endif
         
 	    IncDislocationDensity(inData, totDislocLen);
@@ -4405,20 +4457,14 @@ void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, rea
 
         real8   normalABC[3], lambda_FR, lambda_SAS1, lambda_GB1, lambda_SAS2, lambda_GB2, interDir[3];
         real8   barrierFactor, crossProd[3], vec[3];
-        real8   vec1[3], vec2[3], s0,  paras[4][4], zaxis[3] = {0,0,1}, schmid;
+        real8   vec1[3], vec2[3], s0,  paras[4][4], zaxis[3] = {0,0,1};
         int l; real8 dis;
 
         normalABC[0] = 1;
         normalABC[1] = 1;
         normalABC[2] = 1;
 
-#ifdef SAS_ANALYZE
-        FILE    *fp;
-        
-        if((fp = fopen(inArgs->outFile, "w")) == (FILE *)NULL){
-            Fatal("can not open file %s", inArgs->outFile);
-        }
-#endif
+
 
 /*
  *      Grap the command-line argument values needed for this function
@@ -4631,115 +4677,6 @@ void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, rea
                 percen[ranNum] += srcLen;
 	            totSrcLen += srcLen;
 
-#ifdef SAS_ANALYZE
-                if(polycrystal){
-                    lambda_FR = srcLen/2;
-                    GetFreePath(param, p1, p2, n0, home->grainKeys[inGrain0], 
-                                interDir, lambda_SAS1, lambda_GB1, lambda_SAS2, lambda_GB2);
-
-                    ExtPKForce(str, b[0], b[1], b[2], 
-                               p1[0], p1[1], p1[2],
-                               p2[0], p2[1], p2[2], f1, f2);
-                   
-                    real8 dis; 
-                    PointPlaneIntersection(p0, gb->n, gb->p, vec, &dis);
-                    vec[0] -= p0[0];
-                    vec[1] -= p0[1];
-                    vec[2] -= p0[2];
-                    if(DotProduct(vec, f1) < 0){
-                        lambda_GB1 = -lambda_GB1;
-                        lambda_GB2 = -lambda_GB2;
-                    }
-
-                    s0 = DotProduct(zaxis, n0)*DotProduct(zaxis, b);
-                    VECTOR_ZERO(paras[0]);
-                    VECTOR_ZERO(paras[1]);
-                    VECTOR_ZERO(paras[2]);
-                    VECTOR_ZERO(paras[3]);
-
-                    real8   schmidList[2] = {0,0}, maxSchmid = -1;
-                    int     maxSet = 0;
-                
-                    if(lambda_GB1 != 0.0 && fabs(s0) > 1.0E-2){
-                        std::vector<std::vector< Dislocation_t> >().swap(disArray);
-                        std::vector<std::vector<double> >().swap(burgList);
-
-                        if(!GeometricCriterion(gbd, b, interDir, n0, 1,
-                            burgList, disArray)){
-                            Fatal("something wrong with geometric criterion");
-                        }
-
-
-/*
- *                      Now, we don't need the resultant configure including a lattice burg on GB,
- *                      or a partial burg in Grain.
- */
-                        for(j=0; j<disArray.size(); ){
-                            barrierFactor = -1.0;
-                            for(k=0; k<disArray[j].size(); k++){
-                                barrierFactor += disArray[j][k].energyFactor;
-                                cross(gb->n, gbd->planeList[disArray[j][k].planeID], crossProd);
-                                VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
-                                if(Normal(crossProd) < 1.0E-2){
-                                    if(BurgType_FCC(vec) == BASIC_BURG)break;
-                                }else{
-                                    if(BurgType_FCC(vec) != BASIC_BURG)break;
-                                }
-                            }
-  
-                            if(k != disArray[j].size() || j > 0 && 
-                               barrierFactor > 0){
-                                itDisList = disArray.begin() + j;
-                                disArray.erase(itDisList);
-                            }else{
-                                j++;
-                            }
-                        }
-                        if(disArray.size()>2)Fatal("someting wrong with disArray");
-                    
-                        for(j=0; j<disArray.size(); j++){
-                            if(disArray[j].size()>2)Fatal("someting wrong with disArray[%d]", j);     
-
-                            for(k=0; k<disArray[j].size(); k++){
-                                paras[2*j+k][0] = disArray[j][k].energyFactor;
-                                VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
-                                paras[2*j+k][1] = Normal(vec);
-                                NormalizeVec(vec);
-                                schmid = DotProduct(zaxis, vec)*DotProduct(zaxis, gbd->planeList[disArray[j][k].planeID]);
-
-	                            if(fabs(paras[2*j+k][1] - 1.0E0) < 1.0E-2){
-                                    paras[2*j+k][2] = (schmid*s0 > 0) ? schmid : 0;
-	                            }else{
-                                    paras[2*j+k][2] = schmid;
-                                }
-                                paras[2*j+k][2] = fabs(paras[2*j+k][2]);
-                                
-                            }
-                            schmidList[j] = DotProduct(zaxis,b)*DotProduct(zaxis, gbd->planeList[disArray[j][0].planeID]);
-                        }
-                    }
-                    
-                    for(j=0; j<2; j++){
-                        if(fabs(schmidList[j]) > maxSchmid){
-                            maxSet = j;
-                            maxSchmid = fabs(schmidList[j]);
-                        }
-                    }
-
-                    fprintf(fp,"%e %e %e %e   ", lambda_FR, lambda_SAS1, lambda_GB1, fabs(s0));
-                    for(j=2*maxSet; j<2*maxSet+2; j++){
-                        fprintf(fp, "%e %e %e ", paras[j][0], paras[j][1], paras[j][2]);
-                    }
-                    fprintf(fp, "\n");
-
-                    fprintf(fp,"%e %e %e %e ", lambda_FR, lambda_SAS2, lambda_GB2, fabs(s0));
-                    for(j=2*maxSet; j<2*maxSet+2; j++){
-                        fprintf(fp, "%e %e %e ", paras[j][0], paras[j][1], paras[j][2]);
-                    }
-                    fprintf(fp, "\n");
-
-                }
-#endif 
 /*           
  *              Reallocate the node array with sufficient size to add
  *              all the new nodes defining this chain.
@@ -5061,9 +4998,6 @@ void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, rea
                "%4.2f%% of srcs are of primary slip systems\n",
                 chain, chain/home->nGrains, primarySrcLen*100/totSrcLen);
 
-#ifdef SAS_ANALYZE
-        fclose(fp);
-#endif
         
 	    IncDislocationDensity(inData, totDislocLen);
 	    param->nodeCount = inData->nodeCount;

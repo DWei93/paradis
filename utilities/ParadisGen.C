@@ -418,6 +418,7 @@ static void InitDefaultValues(InArgs_t *inArgs)
 
         inArgs->nTDs = -1;
         inArgs->gb = false; 
+		snprintf(inArgs->outFile, sizeof(inArgs->outFile), "InitialAnalysis.dat");
         return;
 }
 
@@ -868,7 +869,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	                NormalizeVec(inArgs->TBCryst);
                         break;
                 case OPT_OUT_FILE:
-		            snprintf(inArgs->outFile, sizeof(inArgs->outFile), "%s", argValue);
+		                snprintf(inArgs->outFile, sizeof(inArgs->outFile), "%s", argValue);
                         break;
 	            case OPT_LOAD_DIR:
 	                token = strtok(argValue,",");
