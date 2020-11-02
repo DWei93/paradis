@@ -4260,12 +4260,6 @@ void PlaneBoxIntersections(real8 *n, real8 *p, real8 *box, std::vector<std::vect
         }        
     }
 
-    for(i=0;i<allVerts.size()/2;i++){
-        printf("edge %d: (%f,%f,%f)--(%f,%f,%f)\n",i,
-                allVerts[i*2+0][0],allVerts[2*i+0][1],allVerts[2*i+0][2],
-                allVerts[i*2+1][0],allVerts[2*i+1][1],allVerts[2*i+1][2]);
-    }
-
     vertices.push_back(allVerts[0]);
     vertices.push_back(allVerts[1]);
     VECTOR_COPY(v,allVerts[1]);
@@ -4282,7 +4276,6 @@ void PlaneBoxIntersections(real8 *n, real8 *p, real8 *box, std::vector<std::vect
                 VECTOR_COPY(v,allVerts[j]);
                 vertices.push_back(v);
                 used[i]=true; used[j]=true;
-                printf("edg %d %d\n",i,j);
                 break;
             }
         }
@@ -4292,9 +4285,6 @@ void PlaneBoxIntersections(real8 *n, real8 *p, real8 *box, std::vector<std::vect
     if(fabs(vertices.front()[0]-vertices.back()[0])<1E-5&&
        fabs(vertices.front()[1]-vertices.back()[1])<1E-5&&
        fabs(vertices.front()[2]-vertices.back()[2])<1E-5)vertices.erase(vertices.end());
-
-    for(i=0;i<vertices.size();i++){printf("{%f,%f,%f}-",vertices[i][0],vertices[i][1],vertices[i][2]);};
-    printf("\n");
     return;
 }
 
@@ -4321,11 +4311,9 @@ void PlaneBoxIntersections(Param_t *param, real8 *n, real8 *p, std::vector<std::
                 if(j<2)types[i] = (param->xBoundType == Periodic)?0:1;
                 else if(j<4)types[i] = (param->yBoundType == Periodic)?0:1;
                 else types[i] = (param->zBoundType == Periodic)?0:1;
-                printf("i=%d, j=%d, line inrersection %d %d\n",i,j,i,(i==types.size()-1)?0:i+1);
                 break;
             }
         }
-        printf("edge: {%f,%f,%f}--{%f,%f,%f} type=%d\n", p1[0],p1[1],p1[2],p2[0],p2[1],p2[2], types[i]);
         if(types[i]<0)Fatal("something wrong in %s",__func__);
     }
     return;
@@ -4336,51 +4324,53 @@ void GlidePlaneOfDislocation(Home_t *home, real8 *n, real8 *p, std::vector<real8
     Param_t *param = home->param;
     std::vector<std::vector<real8> > locVertices;
     PlaneBoxIntersections(param, n,p, locVertices, types);
-    for(int i=0;i<locVertices.size();i++)printf("{%f,%f,%f}--",locVertices[i][0],locVertices[i][1],locVertices[i][2]);
-    printf("\n");
-    if(param->polycrystal==0)return;
-
-    printf("GlidePlaneOfDislocation: 0\n");
+    std::vector<int> typesBak(types.size());
+    std::vector<std::vector<real8> > newVertices; std::vector<int> newTypes;
+    if(param->polycrystal==0){
+        vertices.resize(locVertices.size()*3);
+        f_vert.resize(locVertices.size()+1);
+        f_vert[0]=locVertices.size();
+        for(int i=0;i<locVertices.size();i++){
+            vertices[3*i+0] = locVertices[i][0];
+            vertices[3*i+1] = locVertices[i][1];
+            vertices[3*i+2] = locVertices[i][2];
+            f_vert[1+i] = i;
+        }
+        if(types.size()>0){
+            newTypes.resize(types.size());
+            for(int i=0;i<types.size();i++){newTypes[i]=types[i];}
+            for(int i=0;i<types.size();i++){
+                types[i]=MIN(newTypes[i],newTypes[(i==types.size()-1)?0:i+1]);
+            }
+        }
+        return;
+    }
+    for(int i=0;i<types.size();i++)typesBak[i]=types[i];
     int inGrain, onGB, type;
     NodeLocation(home, p[0], p[1], p[2], inGrain, onGB);
     if(inGrain<0)return;
 
-    printf("GlidePlaneOfDislocation: 1\n");
-    std::vector<std::vector<real8> > newVertices; std::vector<int> newTypes;
     Grain_t *grain = home->grainKeys[inGrain];
     GB_t *gb; real8 pgb[3], ngb[3], p1[3],p2[3],vec[3];
     std::vector<real8> v(3);
-    printf("GlidePlaneOfDislocation: 2\n");
     for(int i=0;i<grain->nBounds;i++){
-        printf("GlidePlaneOfDislocation: 2.1\n");
         gb = grain->GB[i];
         VECTOR_COPY(pgb,gb->p); 
-        printf("GlidePlaneOfDislocation: 2.2\n");
         ngb[0] = grain->sign[i]*gb->n[0]; 
         ngb[1] = grain->sign[i]*gb->n[1]; 
         ngb[2] = grain->sign[i]*gb->n[2]; 
         PBCPOSITION(param, p[0],p[1],p[2],pgb,pgb+1,pgb+2);
-        if(grain->type==FOLDED_GRAIN){
-            printf("FOLDED_GRAIN: {%f,%f,%f}--{%f,%f,%f}\n", p[0],p[1],p[2], pgb[0],pgb[1],pgb[2]);
-        }
-        printf("GlidePlaneOfDislocation: 2.3 %d\n",int(types.size()));
         for(int j=0; j<types.size(); j++){
-            printf("GlidePlaneOfDislocation: 2.31\n");
             VECTOR_COPY(p1, locVertices[j]);
             VECTOR_COPY(p2, locVertices[(j==types.size()-1)?0:j+1]);
             if(PointPlaneDistance(p1,ngb,pgb)<0){
                 newVertices.push_back(locVertices[j]); newTypes.push_back(types[j]);
-                printf("inner locVertices : {%f,%f,%f}\n", locVertices[j][0],locVertices[j][1],locVertices[j][2]);
             }
             type=SegmentPlaneIntersection(p1, p2, ngb, pgb, vec);
-            if(type==POINT_INTERSECTION){VECTOR_COPY(v,vec);newVertices.push_back(v); newTypes.push_back(2+gb->GBID); printf("intersection locVertices: %f %f %f\n",v[0],v[1],v[2]);}
+            if(type==POINT_INTERSECTION){VECTOR_COPY(v,vec);newVertices.push_back(v); newTypes.push_back(2+gb->GBID);}
         }
         types.swap(newTypes); locVertices.swap(newVertices); newTypes.clear(); newVertices.clear();
     }
-    if(grain->type==FOLDED_GRAIN){
-        printf("FOLDED: %d locVertices\n",int(locVertices.size()));
-    }
-    printf("GlidePlaneOfDislocation: 3\n");
 
     vertices.resize(locVertices.size()*3);
     f_vert.resize(locVertices.size()+1);
@@ -4394,10 +4384,7 @@ void GlidePlaneOfDislocation(Home_t *home, real8 *n, real8 *p, std::vector<real8
 
     if(types.size()>0){
         newTypes.resize(types.size());
-        printf("type0: ");
-        for(int i=0;i<types.size();i++){newTypes[i]=types[i]; printf(" %d",types[i]);}
-        printf("\n");
-        printf("new type0: ");
+        for(int i=0;i<types.size();i++){newTypes[i]=types[i];}
         for(int i=0;i<types.size();i++){
             if(newTypes[i]>=2 && newTypes[(i==types.size()-1)?0:i+1]>=2){
                if(newTypes[i]!=newTypes[(i==types.size()-1)?0:i+1]){
@@ -4408,10 +4395,11 @@ void GlidePlaneOfDislocation(Home_t *home, real8 *n, real8 *p, std::vector<real8
             }else{
                 types[i]=MIN(newTypes[i],newTypes[(i==types.size()-1)?0:i+1]);
             }
-            printf(" %d",types[i]);
         }
     }
-    printf("\nGlidePlaneOfDislocation: 4\n");
+    bool allOnTB=true;
+    for(int i=0;i<types.size();i++)if(types[i]!=2){allOnTB=false; break;}
+    if(allOnTB)types.swap(typesBak);
     return;    
 }
 
@@ -4461,14 +4449,7 @@ void GlidePlanesInNeighborGrain(Home_t *home, real8 *n, real8 *p, std::vector<re
 
 void DrawGlidePlanes(FILE *fp, char *zoneName, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<int> &info)
 {
-    printf("f_vert %d\n",int(f_vert.size()));
-    for(int i=0;i<f_vert.size();i++)printf("%d ",f_vert[i]);
-    printf("\n");
-    for(int i=0;i<f_vert.size();i=i+f_vert[i]+1){
-        printf("%d \n",i);
-        DrawPolygon(fp, f_vert, vertices, i, zoneName, info);
-    }
-    printf("\n");
+    for(int i=0;i<f_vert.size();i=i+f_vert[i]+1)DrawPolygon(fp, f_vert, vertices, i, zoneName, info);
     return;
 }
 
