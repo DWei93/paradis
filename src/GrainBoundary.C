@@ -2638,9 +2638,11 @@ void GBCrossSlip(Home_t *home)
                         if(BurgType_FCC(vec) != BASIC_BURG)break;
                     }
                 }
-  
-                if(k != disArray[j].size() || (isScrew && 
-                   barrierFactor > 0)){
+            
+                if(k != disArray[j].size() ||  // fail to penetrate
+                   (isScrew && barrierFactor > 1E-3) ||  // screw energy criteria
+                   (!isScrew && barrierFactor >0.667) || // non-screw energy criteria
+                   (disArray[j].size()==1 && fabs(DotProduct(normal, gbd->planeList[disArray[j][0].planeID]))>0.95)){ // origin plane is not needed
                     itDisList = disArray.begin() + j;
                     disArray.erase(itDisList);
                 }else{
@@ -2649,6 +2651,7 @@ void GBCrossSlip(Home_t *home)
             }
 #endif
             if(disArray.size() == 0)continue;
+            sort(disArray.begin(), disArray.end(), comByBarrier); 
 #if 0
             if(!isScrew){
                 printf("non-screw dislocation decomposition (%g,%g,%g) %d %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg),
