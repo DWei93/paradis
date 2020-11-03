@@ -1,0 +1,203 @@
+#!/bin/bash
+
+######################################################################################
+#
+#                     Script of  Generation of FCC FR source 
+#    The default orientation of cell is
+#                      | Normalize[{ 1,-1, 0}] |
+#                      | Normalize[{ 1, 1, 1}] |
+#                      | Normalize[{-1,-1, 2}] |
+#    which is matrix orientation of PBC polycrystal with twin. 
+#    if you want to change the orientation of simulation cell, you can use follwing
+#    two ways:
+#      (1)  <-xMatDir ux,uy,uz -yMatDir vx,vy,vz> or
+#           <-zMatDir wx,wy,wz -yMatDir vx,vy,vz> or
+#           <-zMatDir wx,wy,wz -xMatDir ux,uy,uz> 
+#           we just need two directions of axis.
+#      (2)  <-TBAngle angle(radian system)>
+#           TBAngle is the angle between Z axis and normal of ABC glide plane, if
+#	    twin exist, the normal of ABC represent TB plane. Besides, the another
+#           two independ variables in rotate matrix is random.
+#    if the above two ways are both in command line, first one is default.
+#    $1 is the type of simulation, $2 is randm seed.
+#                    
+######################################################################################
+
+#frlen=00
+ctrlFile=input/Copper.ctrl
+logFile=input/CreateFR.log
+cubeln=750
+if [ $# -ge 3 ] ; then cubeln=$3; fi
+nMesh=31
+#nfrs=15000
+nfrs=20000
+nTDs=0
+pbc=7
+schmid=0.408
+type=3
+if [ $cubeln -ge 3000 ]; then heightRatio=1; 
+elif [ $cubeln -ge 1000 ]; then heightRatio=2; 
+else heightRatio=3; fi
+
+#if [ $nfrs -lt 750 ]; then nfrs=20; fi
+
+nMeshZ=`echo "${heightRatio}*${nMesh}" | bc `
+cubel=`echo ${cubeln}/0.2556 | bc`
+maxSeg=`echo ${cubel}/15 |bc `
+nGrains=2
+thick=`echo ${cubel}/${nGrains}| bc`
+thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
+maxDisDen=`echo "scale=3;2.0*(1+10*(1000.0/${cubeln}))" | bc -l`
+frlen=`echo "scale=3;1000/sqrt(${maxDisDen})/0.2556" | bc -l`
+frlenn=`echo "scale=3;${frlen}*0.2556" | bc`
+
+tauy1=`echo "scale=3; 0.18*54600*l($frlen)/${frlen}/$schmid" | bc -l`
+tauy2=`echo "scale=3; 0.5*54600*0.2556*0.001*sqrt($maxDisDen)" | bc -l`
+tauy=`echo "scale=2;$tauy1+$tauy2" | bc -l`
+
+echo "cubel=$cubel b, $cubeln nm, density=${maxDisDen}E12, frlen=${frlen}b, ${frlenn}nm, predicted stress=${tauy}=${tauy1}+${tauy2} MPa"
+maxDensity=${maxDisDen}E12;
+polycrystal=${1}
+single=${2}
+
+
+deltaNums=0
+nLayers=1
+
+eRate=5000
+sed -i "/^eRate/ceRate = $eRate" $ctrlFile
+sed -i "/^edotPolar/cedotPolar = [ 0.0 0.0 ]" $ctrlFile
+
+rTol=`echo "scale=7;${maxSeg}*sqrt(2)/33" | bc -l`
+if [ `echo "${rTol}>20.0" | bc` -eq 1 ] ; then rTol=20; fi;
+
+rc=`echo "scale=7;0.1+4.0*${rTol}" | bc -l`
+sed -i "/^rTol =/crTol = ${rTol}" $ctrlFile
+sed -i "/^rc =/crc = ${rc}" $ctrlFile
+sed -i "/meshNumX/cmeshNumX = $nMesh" $ctrlFile;
+sed -i "/meshNumY/cmeshNumY = $nMesh" $ctrlFile;
+sed -i "/meshNumZ/cmeshNumZ = $nMeshZ" $ctrlFile;
+
+minDT=`echo "scale=3; ${thickn}/60" | bc -l`E-13
+sed -i "/^minDT/cminDT = ${minDT}" $ctrlFile;
+
+PI=3.1415926535897932385
+if [ ${polycrystal} == "1" ]; then
+    srctype=5
+    angle=`echo "scale=16; ${2}.0 * ${PI} / 180.0 " | bc -l`
+    sed -i "/dirname/cdirname = \"res.bicrytal-d-${cubeln}nm-${2}-degree-$3\"" ${ctrlFile}
+    sed -i "/grainSize/cgrainSize = ${thick}" ${ctrlFile}
+else
+    degree=`sed -n '1p' $logFile`
+    sed -i "/dirname/cdirname = \"res.single-${single}-d-${cubeln}nm-${degree}\"" ${ctrlFile}
+    sed -i "/grainSize/cgrainSize = ${cubel}" ${ctrlFile}
+    srctype=2
+    if [ ${single} = "1" ]; then
+        lnum=`grep  -n "basis orientation:" $logFile | cut -d : -f 1`
+    else
+        lnum=`grep  -n "twin orientation:" $logFile | cut -d : -f 1`
+    fi
+
+    let lnum=$lnum+1
+    l1=`sed -n "${lnum}p" $logFile`
+    x1=`echo ${l1} | cut -d " " -f 2 `
+    x2=`echo ${l1} | cut -d " " -f 3 `
+    x3=`echo ${l1} | cut -d " " -f 4 | cut -d "}" -f 1`
+    let lnum=$lnum+1
+    l2=`sed -n "${lnum}p" $logFile`
+    y1=`echo ${l2} | cut -d " " -f 2 `
+    y2=`echo ${l2} | cut -d " " -f 3 `
+    y3=`echo ${l2} | cut -d " " -f 4 | cut -d "}" -f 1`
+
+    xdir=`echo "${x1}${x2}${x3}"`
+    ydir=`echo "${y1}${y2}${y3}"`
+
+fi
+
+case $srctype in
+######################################################################################
+#
+#    Type I: oringin code, PBC
+#
+######################################################################################
+    1|I)
+    ./bin/paradisgen -type $type  -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  \
+    -polycrystal 0  -pbc 0 -extend 0  -srcLenType 0 \
+    -xMatDir 1,0,0 -zMatDir 0,0,1 ;;
+
+#    -polycrystal 0 -pbc 0 \
+######################################################################################
+#
+#    Type II: free surface, single crystal, gradient sources distribution
+#
+######################################################################################
+    2|II)
+    info="# ./bin/paradisgen -type ${type} -pbc $pbc -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed  -polycrystal 0 -pbc 7 -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen $maxDensity -heightRatio ${heightRatio} -deltaNums $deltaNums  -nLayers $nLayers "
+    (echo "$info"
+    ./bin/paradisgen -type $type -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    -polycrystal 0 -pbc $pbc -loadDir 0,0,1\
+    -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen $maxDensity \
+    -heightRatio ${heightRatio} -deltaNums $deltaNums -nLayers $nLayers ) | tee $logFile;;
+
+#    -xMatDir 1,0,0 -yMatDir 0,1,0 \
+#    -polycrystal 0 -pbc 7 -extended 4\
+
+######################################################################################
+#    
+#    Type III: polycrystal, only have grain boundaries.
+#    ./bin/paradisgen -type 3 -frlen 2000 -cubel 4000 -maxseg 100 -nfrsrcs 10 $seed \
+#    -polycrystal 1 -nGrain 1 -pbc 0 \
+#    -xMatDir 1,0,0 -yMatDir 0,1,0 ;; 
+#    
+######################################################################################
+    3|III)
+    echo "can not suppose this type" 
+    exit 1 ;;
+
+######################################################################################
+#    
+#    Type IV: polycrystal with twin, PBC, simulate RVE
+# 
+######################################################################################
+    4|IV)
+    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs 1 -maxDensity $maxDensity -gb 1 ;;
+#   -polycrystal 1 -nGrain ${nGrains}  -pbc 0  ;;
+#   -polycrystal 1 -nGrain 2  -pbc 0 -nTDs 1 -gb 1;;
+#   -burgID 5 -planeID 1 \
+######################################################################################
+#    
+#    Type V: bicrystal with twin boundary, simulate sample
+#
+######################################################################################
+    5|V)
+
+    info="#./bin/paradisgen -type ${type} -frlen ${frlen} -pbc $pbc -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum $deltaNums -nLayers $nLayers -nTDs $nTDs";
+
+    echo "$info"
+    (echo "${2}-degree" ;  ./bin/paradisgen -type ${type} -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    -polycrystal 1 -nGrain 2 -pbc $pbc -maxDensity $maxDensity -loadDir 0,0,1 \
+    -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum $deltaNums -nLayers $nLayers -nTDs $nTDs)| tee $logFile;;
+#   -yMatDir -1,-1,-1 -zMatDir 1,-1,0  -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;
+
+
+#    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
+#    -xMatDir 0.707106781186548,-0.707106781186548,0.0 -yMatDir 0.642228525188087,0.642228525188087,-0.418431646591735 \
+    *)
+     echo "input error!"
+     exit 1 ;;
+esac
+
+nodeCount=`cat $logFile | grep "Total node count" | cut -d ":" -f 2`
+if [[ `echo "${nodeCount}>8000" | bc` -eq 1 ]] ; then ncells=16;
+elif [[ `echo "${nodeCount}>4000" | bc` -eq 1 ]] ; then ncells=8;
+else ncells=4; fi
+sed -i "/^numXcells/cnumXcells = $ncells" $ctrlFile
+sed -i "/^numYcells/cnumYcells = $ncells" $ctrlFile
+sed -i "/^numZcells/cnumZcells = $ncells" $ctrlFile
+
+./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 
+sed -i "1i$info" Copper.data
+sed -i "1i#`date`" Copper.data
+cp Copper.data input/Copper.data
+echo "cp Copper.data > input/Copper.data"
