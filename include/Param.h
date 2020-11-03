@@ -213,7 +213,7 @@ struct _param {
         real8 dCyclicStrain; /* Incremental strain under cyclic load */
         int   numLoadCycle;  /* Number of cyclic cycles */
         real8 eAmp;          /* Strain amplitude used with cyclic loading */
-        real8 stainCycle;    /* current loading cycle */
+        int   stainCycle;    /* current loading cycle */
         real8 acumStrain;    /* accumulated strain */
         real8 sgnLoad;       /* sign of load */
         int   maxCycle;      /* Maximum number of cyclic cycles */

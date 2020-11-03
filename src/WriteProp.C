@@ -561,7 +561,7 @@ void WriteProp(Home_t *home, int property)
                     if (param->loadType==4){
                         fprintf(fp, "%e %e %e ",param->netCyclicStrain*1.0E2, sigijk/1.0E6, pstnijk*1.0E2);
                         if(param->polycrystal) fprintf(fp, "%e ", ptstnijk*1.0E2);
-                        if(fabs(param->stainCycle) > param->maxCycle)param->finish = 1;
+                        if(fabs(param->stainCycle) >= param->maxCycle)param->finish = 1;
                         
                     }else{
                         fprintf(fp, "%e %e %e ",sign*param->eRate*1.0E2*param->timeNow, sign*sigijk/1.0E6, sign*pstnijk*1.0E2);

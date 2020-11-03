@@ -466,11 +466,11 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
  */ 
                 dStress= modulus * (dCyclicStrain - dpl_stn);
         
-                totCyclicStrain = fabs(erate*timeNow); 
-                numLoadCycle    = rint(0.5*totCyclicStrain/eAmp);
-                numLoadCycle2   = rint(0.5*totCyclicStrain/eAmp-0.5);
-        
-                netCyclicStrain = fmod(totCyclicStrain, 2*eAmp); 
+                totCyclicStrain   = fabs(erate*timeNow); 
+                numLoadCycle      = rint(0.5*totCyclicStrain/eAmp);
+                numLoadCycle2     = rint(0.5*totCyclicStrain/eAmp-0.5);
+                param->stainCycle = int (0.25*totCyclicStrain/eAmp);
+                netCyclicStrain   = fmod(totCyclicStrain, 2*eAmp); 
         
                 if (fabs(netCyclicStrain) > eAmp) {
                     netCyclicStrain = 2*eAmp - netCyclicStrain;
