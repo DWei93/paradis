@@ -324,6 +324,7 @@ int Mobility_Wei(Home_t *home, Node_t *node)
 	node->vY = nVel[1];
 	node->vZ = nVel[2];
 
+#if 0
 	if(SurfaceNode(node))factor = 20.0;
 	    
 	velocity = sqrt(node->vX * node->vX+
@@ -334,6 +335,6 @@ int Mobility_Wei(Home_t *home, Node_t *node)
 	    node->vY = node->vY * param->vshr /velocity/factor ;
 	    node->vZ = node->vZ * param->vshr /velocity/factor ;
 	}
-
+#endif
     return(0);
 }

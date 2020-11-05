@@ -111,7 +111,7 @@ OPT = -O3
 # DEFS += -DDEBUG
 DEFS += -DSIMLPLE_REACTION_ON_GB
 #DEFS += -DGSIZE_EFFECT
-DEFS += -DTB_PINNING
+#DEFS += -DTB_PINNING
 #######################################################################
 #
 #    Specify some miscellaneous definitions that may be used
