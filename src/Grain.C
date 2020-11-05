@@ -132,7 +132,6 @@ void DrawPolygon(FILE *fp, std::vector<int> &f_vert,std::vector<double> &v,int s
             for(j=0; j<n; j++)if(record[0][j] == f_vert[(i<startID+n-1?i+1:startID)])break;
             fprintf(fp, " %d\n", record[1][j]);
         }
-
         
     }else{
         for(int i=startID+1; i<startID+n-1; i++){
@@ -145,6 +144,52 @@ void DrawPolygon(FILE *fp, std::vector<int> &f_vert,std::vector<double> &v,int s
     }
     return;
 }
+
+void DrawPolygon(FILE *fp, std::vector<int> &f_vert,std::vector<double> &v,int startID, char *zoneName, std::vector<real8> &vec, bool startFromCentor=false){
+    real8 centor[3];
+    int n;
+    if(startFromCentor){
+        CentroidOfPolygon(f_vert,v,startID, centor);
+    }
+    n=f_vert[startID++];
+    if(startFromCentor)fprintf(fp,"Zone T = \"%s\", N = %d, E = %d, F = FEPOINT, ET = TRIANGLE\n", zoneName, n+1, n);
+    else fprintf(fp,"Zone T = \"%s\", N = %d, E = %d, F = FEPOINT, ET = TRIANGLE\n", zoneName, n, n-2);
+
+    std::vector<std::vector<int> > record(2);
+    record[0].resize(n);    record[1].resize(n);
+
+    for(int i=startID; i<startID+n; i++){
+        fprintf(fp, "%g %g %g", v[f_vert[i]*3], v[f_vert[i]*3+1], v[f_vert[i]*3+2]);
+        for(int j=0; j<vec.size(); j++)fprintf(fp," %g", vec[j]); 
+        fprintf(fp, "\n");
+        record[0][i-startID] = f_vert[i];   record[1][i-startID] = i-startID+1;        
+    }
+
+    if(startFromCentor){
+        fprintf(fp, "%g %g %g", centor[0], centor[1], centor[2]);
+        for(int j=0; j<vec.size(); j++)fprintf(fp," %g", vec[j]); 
+        fprintf(fp, "\n");
+
+        for(int i=startID; i<startID+n; i++){
+            int j;
+            for(j=0; j<n; j++)if(record[0][j] == f_vert[i])break;
+            fprintf(fp, "%d %d",n+1, record[1][j]);
+            for(j=0; j<n; j++)if(record[0][j] == f_vert[(i<startID+n-1?i+1:startID)])break;
+            fprintf(fp, " %d\n", record[1][j]);
+        }
+        
+    }else{
+        for(int i=startID+1; i<startID+n-1; i++){
+            int j;
+            for(j=1; j<n-1; j++)if(record[0][j] == f_vert[i])break;
+            fprintf(fp, "1 %d", record[1][j]);
+            for(j=2; j<n; j++)if(record[0][j] == f_vert[i+1])break;
+            fprintf(fp, " %d\n", record[1][j]);
+        }
+    }
+    return;
+}
+
 void DrawTetrahedron(FILE *fp, real8 rotMatrix[3][3], real8 r, real8 pos[3], std::vector<int> &vec, char *baseName)
 {
     const real8 a=0.57735026918962576451;
@@ -4453,8 +4498,11 @@ void DrawGlidePlanes(FILE *fp, char *zoneName, std::vector<real8> &vertices, std
     return;
 }
 
-
-
+void DrawGlidePlanes(FILE *fp, char *zoneName, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<real8> &info)
+{
+    for(int i=0;i<f_vert.size();i=i+f_vert[i]+1)DrawPolygon(fp, f_vert, vertices, i, zoneName, info);
+    return;
+}
 
 
 

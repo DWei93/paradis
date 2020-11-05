@@ -2892,14 +2892,14 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         for(i=0;i<3;i++)for(j=0;j<3;j++)str[i][j]=inArgs->loadDir[i]*inArgs->loadDir[j];
 
 #if     INITIAL_ANALYSIS
-        std::vector<real8> vertices, dPoint(17);
+        std::vector<real8> vertices, neiVertices, dPoint(17), info(21);
         std::vector<std::vector<real8> > data;
-        std::vector<int> info(4), types, f_vert;
+        std::vector<int> types, neiTypes, f_vert, neiF_vert;
         real8 tbInterDir[3], tbInterPos[3];
         FILE    *fp, *fp1; char zoneName[256];
         if((fp = fopen(inArgs->outFile, "w")) == (FILE *)NULL){Fatal("can not open file %s", inArgs->outFile);}
         if((fp1 = fopen("glide-planes.plt", "w")) == (FILE *)NULL){Fatal("can not open file %s", "glide-planes.plt");}
-        fprintf(fp1,"variables = x, y, z, inGrain, onGB, burgID, planeID\n");
+        fprintf(fp1,"variables = x, y, z, inGrain, onGB, burgID, planeID, lfr, dpb, dsb, dtb1, dtb2, si, so, std1, std2, areai, areao, bx, by, bz, nx, ny, nz\n");
 #endif
 
 /*
@@ -3235,28 +3235,32 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                 percen[ranNum] += srcLen;
 	            totSrcLen += srcLen;				
 #if     INITIAL_ANALYSIS
+                dPoint[0]=srcLen;
                 snprintf(zoneName,sizeof(zoneName),"CurrenGrain-%d.%d",baseNodeID,inGrain0);
-                info[0]=inGrain0; info[1]=onGB0; info[2]=gpBurgIndex; info[3]=gpIndex;
+                info[0]=double(inGrain0); info[1]=double(onGB0); info[2]=double(gpBurgIndex); info[3]=double(gpIndex);
                 GlidePlaneOfDislocation(home, n0, p, vertices, f_vert, types);
-                DrawGlidePlanes(fp1, zoneName, vertices, f_vert, info);
                 
                 ProbeFreePath(p1, p2, vertices, f_vert, types, dPoint, tbInterDir, tbInterPos);
 
                 dPoint[5]=proba[ranNum]; dPoint[6]=-1; dPoint[7]=-1; dPoint[8]=-1;
                 dPoint[9]=AreaOfPolygon(f_vert, vertices, 0)/volume/burgMag; // area of original glide plane
-                if(dPoint[4]>=1E-4){
-                    ProbeScmidFactors(home, str, tbInterDir, tbInterPos, b, n0, dPoint);
-                    snprintf(zoneName,sizeof(zoneName),"NeiGrain-%d.%d",baseNodeID,inGrain0);
-                    GlidePlanesInNeighborGrain(home, n0, p, vertices, f_vert, types);
-                    DrawGlidePlanes(fp1, zoneName, vertices, f_vert, info);
-                    dPoint[10]=AreaOfPolygon(f_vert, vertices, 0)/volume/burgMag;
-                }else{
-                    dPoint[10]=-1;
-                }
-
                 dPoint[11]=b[0]; dPoint[12]=b[1]; dPoint[13]=b[2]; 
                 dPoint[14]=n0[0]; dPoint[15]=n0[1]; dPoint[16]=n0[2]; 
                 
+                if(dPoint[4]>=1E-4){
+                    ProbeScmidFactors(home, str, tbInterDir, tbInterPos, b, n0, dPoint);
+                    snprintf(zoneName,sizeof(zoneName),"NeiGrain-%d.%d",baseNodeID,inGrain0);
+                    GlidePlanesInNeighborGrain(home, n0, p, neiVertices, neiF_vert, neiTypes);
+                    dPoint[10]=AreaOfPolygon(f_vert, neiVertices, 0)/volume/burgMag;
+                }else{
+                    dPoint[10]=-1;
+                }
+                for(i=0;i<17;i++)info[4+i]=dPoint[i];
+                DrawGlidePlanes(fp1, zoneName, vertices, f_vert, info);
+                if(dPoint[4]>=1E-4){
+                    DrawGlidePlanes(fp1, zoneName, neiVertices, neiF_vert, info);
+                }
+
                 for(i=0;i<dPoint.size();i++)fprintf(fp, "%g ",fabs(dPoint[i])<1E-9?0:dPoint[i]);
                 fprintf(fp,"\n");
 #endif
