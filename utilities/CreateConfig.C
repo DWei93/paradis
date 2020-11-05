@@ -2693,7 +2693,7 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
  *                        all created dislocations.
  *
  *-------------------------------------------------------------------------*/
-#define INITIAL_ANALYSIS 0
+#define INITIAL_ANALYSIS 1
 #if INITIAL_ANALYSIS
 void ProbeFreePath(real8 *p1, real8 *p2, std::vector<real8> &vertices, std::vector<int> &f_vert, 
         std::vector<int> &types, std::vector<real8> &dPoint, real8 *tbInterDir, real8 *tbInterPos)
@@ -2758,10 +2758,18 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
     GB_t *gb = home->GBKeys[onGB];
     BurgInfo_t *bd=GetBurgData(home,-1,onGB);
 
-    real8 lp2[3], f1[3], f2[3], f3[3], f4[3], b1[3], b2[3], n1[3]; CoordAdd(lp,ldir,lp2);
+    std::vector<std::vector<real8> > *bl;
+    int keyLineID = KeyLineID_FCC(bd, ldir);
+    int burgID = BurgID_FCC(bd, b);
+    Decom_t *dec = GetDecompositionResults(bd, burgID, keyLineID);
     std::vector<std::vector<Dislocation_t> >    disArray;
-    std::vector<std::vector<real8> >            burgList;
-    std::vector<std::vector<Dislocation_t> >::iterator      itDisList;
+    for (int i=0; i<dec->disArray.size();i++){
+        if(dec->disArray[i].size()==1 && fabs(DotProduct(n0, bd->planeList[dec->disArray[i][0].planeID]))>0.95)continue;
+        disArray.push_back(dec->disArray[i]);
+    }
+
+    real8 lp2[3], f1[3], f2[3], f3[3], f4[3], b1[3], b2[3], n1[3]; CoordAdd(lp,ldir,lp2);
+    bl = &(dec->burgList);
 
     ExtPKForce(str, b[0], b[1], b[2], lp[0],lp[1],lp[2], lp2[0], lp2[1], lp2[2], f1, f2);
     NormalComponent(f2,n0,f1);
@@ -2769,40 +2777,14 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
     if(fabs(s0-dPoint[5])>1E-3)Fatal("s0=%f, dPoint[5]=%f, ldir={%f,%f,%f}",s0,dPoint[5],ldir[0],ldir[1],ldir[2]);
     
     Matrix33Vector3Multiply(param->rotateNormal, n0, n1);
-    if(!GeometricCriterion(bd, b, ldir, n0, 0, burgList, disArray))Fatal("can not find out configures");
 
-    int j,k;
-    real8 barrierFactor, crossProd[3], vec[3];
+
     bool isScrew = fabs(DotProduct(b,param->TBNormal))<1E-2?true:false;
-
-    for(j=0; j<disArray.size(); ){
-        barrierFactor = -1.0;
-        for(k=0; k<disArray[j].size(); k++){
-            barrierFactor += disArray[j][k].energyFactor;
-            cross(gb->n, bd->planeList[disArray[j][k].planeID], crossProd);
-            VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
-            if(Normal(crossProd) < 1.0E-2){
-                if(BurgType_FCC(vec) == BASIC_BURG)break;
-            }else{
-                if(BurgType_FCC(vec) != BASIC_BURG)break;
-            }
-        }
-  
-        if(k != disArray[j].size() || (isScrew && 
-           barrierFactor > 1E-3 || barrierFactor >0.667) 
-          || (disArray[j].size()==1 && fabs(DotProduct(n0, bd->planeList[disArray[j][0].planeID]))>0.95)){
-            itDisList = disArray.begin() + j;
-            disArray.erase(itDisList);
-        }else{
-            j++;
-        }
-    }
-    sort(disArray.begin(), disArray.end(), comByBarrier); 
 
     if(!isScrew){
         for(int set=0; set<disArray.size(); set++){
             for(int disl=0; disl<disArray[set].size(); disl++){
-                VECTOR_COPY(b1,burgList[disArray[set][disl].burgID]);
+                VECTOR_COPY(b1,(*bl)[disArray[set][disl].burgID]);
                 VECTOR_COPY(n1,bd->planeList[disArray[set][disl].planeID]);
                 ExtPKForce(str, b1[0], b1[1], b1[2], lp[0],lp[1],lp[2], lp2[0], lp2[1], lp2[2], f3, f4);
                 NormalComponent(f4,n1,f3);
@@ -2821,7 +2803,7 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
     }else {
         for(int set=0; set<disArray.size(); set++){
             for(int disl=0; disl<disArray[set].size(); disl++){
-                VECTOR_COPY(b1,burgList[disArray[set][disl].burgID]);
+                VECTOR_COPY(b1,(*bl)[disArray[set][disl].burgID]);
                 VECTOR_COPY(n1,bd->planeList[disArray[set][disl].planeID]);
                 ExtPKForce(str, b1[0], b1[1], b1[2], lp[0],lp[1],lp[2], lp2[0], lp2[1], lp2[2], f3, f4);
                 NormalComponent(f4,n1,f3);
@@ -2837,7 +2819,6 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
                 }
             }
         }
-        if(disArray.size()<2)Fatal("stop");
     }
     return;
 }

@@ -121,6 +121,13 @@ const int slip_sys[N_SS][3]={
  *     glide planes for material for which we dynamically calculate
  *     those values.
  */
+typedef struct {
+    int burgID; 
+    int keyLineID;
+    std::vector<std::vector<Dislocation_t> > disArray;
+    std::vector<std::vector<real8> > burgList;
+} Decom_t;
+
 struct _burgInfo {
         int     numBurgVectors;           /* Total number of burgers vectors */
                                           /* in <burgList> below             */
@@ -156,6 +163,7 @@ struct _burgInfo {
         
         int     **planeOnBurgID;
 
+        std::vector<Decom_t>  dcps; //only for GB
 };
 
 typedef struct {
@@ -249,6 +257,7 @@ Node_t *GetinDataNodeFromTag(InData_t *inData, Tag_t tag);
 BurgInfo_t* GetBurgData(Home_t *home, Node_t *node1, Node_t *node2);
 BurgInfo_t* GetBurgData(Home_t *home, int inGrain, int onGB);
 int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3]);
+int KeyLineID_FCC(BurgInfo_t *burgData, real8 line[3]);
 int	BurgType_FCC(real8 burg[3]);
 int PlaneID_FCC(BurgInfo_t *burgData, real8 plane[3]);
 int PlaneType_FCC(BurgInfo_t *burgData, int planeID);
@@ -347,4 +356,5 @@ void GlidePlaneOfDislocation(Home_t *home, real8 *n, real8 *p, std::vector<real8
 void GlidePlanesInNeighborGrain(Home_t *home, real8 *n, real8 *p, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<int> &types);
 void DrawGlidePlanes(FILE *fp, char *zoneName, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<int> &info);
 void DrawGlidePlanes(FILE *fp, char *zoneName, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<real8> &info);
+Decom_t *GetDecompositionResults(BurgInfo_t *gbd, int burgID, int keyLineID);
 #endif

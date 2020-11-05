@@ -2308,8 +2308,6 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
     return;
 }
 
-#define MAX_DISSIP 1
-
 void GBCrossSlip(Home_t *home)
 {
     int     i, j, k,l, nBurgsSplit, nNbrsOnGB;
@@ -2349,6 +2347,12 @@ void GBCrossSlip(Home_t *home)
     std::vector<std::vector<std::vector<real8> > >          disPosArray;
     std::vector<real8>                                      temBurgList;
     std::vector<int>                                        temPlaneIDList;
+
+    int keyLineID;
+    int burgID;
+    Decom_t *dec;
+    bool simpleWay;
+    real8 signBurg;
 
     BurgInfo_t  *gbd;
     GB_t        *gb;
@@ -2615,65 +2619,93 @@ void GBCrossSlip(Home_t *home)
 
             norm = Normal(burg);
 
+
             std::vector<std::vector< Dislocation_t> >().swap(disArray);
             std::vector<std::vector<double> >().swap(burgList);
 
             isScrew = fabs(DotProduct(burg,gb->n))/norm<0.1?true:false;
 
-            if(!GeometricCriterion(gbd, burg, interLine.direction, normal, 0,
-                   burgList, disArray))continue;
-#if 1
-/*
- *          Now, we don't need the resultant configure including a partial burg in Grain.
- */
-            for(j=0; j<disArray.size(); ){
-                barrierFactor = -1.0;
-                for(k=0; k<disArray[j].size(); k++){
-                    barrierFactor += disArray[j][k].energyFactor;
-                    cross(gb->n, gbd->planeList[disArray[j][k].planeID], crossProd);
-                    VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
-                    if(Normal(crossProd) < 1.0E-2){
-                        if(BurgType_FCC(vec) == BASIC_BURG)break;
-                    }else{
-                        if(BurgType_FCC(vec) != BASIC_BURG)break;
-                    }
-                }
-            
-                if(k != disArray[j].size() ||  // fail to penetrate
-                   (isScrew && barrierFactor > 1E-3) ||  // screw energy criteria
-                   (!isScrew && barrierFactor >0.667) || // non-screw energy criteria
-                   (disArray[j].size()==1 && fabs(DotProduct(normal, gbd->planeList[disArray[j][0].planeID]))>0.95)){ // origin plane is not needed
-                    itDisList = disArray.begin() + j;
-                    disArray.erase(itDisList);
-                }else{
-                    j++;
-                }
-            }
-#endif
-            if(disArray.size() == 0)continue;
-            sort(disArray.begin(), disArray.end(), comByBarrier); 
-#if 0
-            if(!isScrew){
-                printf("non-screw dislocation decomposition (%g,%g,%g) %d %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg),
-                        PlaneID_FCC(gbd,normal));
-            }else {printf("screw dislocation decomposition (%g,%g,%g) %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg));
+            keyLineID = KeyLineID_FCC(gbd, interLine.direction);
+            burgID = BurgID_FCC(gbd, burg);
 
-                for(int set=0; set<disArray.size(); set++){
-                    printf("set %d: ",set);
-                    for(int disl=0; disl<disArray[set].size(); disl++){
-                        outBurg[0] = burgList[disArray[set][disl].burgID][0];
-                        outBurg[1] = burgList[disArray[set][disl].burgID][1];
-                        outBurg[2] = burgList[disArray[set][disl].burgID][2];
-                        printf("[%d %s](%d in %d) ", BurgID_FCC(gbd,outBurg), 
-                               BurgType_FCC(outBurg)==BASIC_BURG?"perfect":"partial",
-                               disArray[set][disl].planeID,
-                               gbd->planeInGrain[disArray[set][disl].planeID]);
+            simpleWay = false;
+            if(burgID<gbd->numBurgVectors){
+                signBurg = DotProduct(burg, gbd->burgList[burgID])/Normal(gbd->burgList[burgID]);
+                if(signBurg>0.98)signBurg=1.0;
+                else if(signBurg<-0.98)signBurg=-1.0;
+                if(fabs(signBurg)>0.99){
+                    dec = GetDecompositionResults(gbd, burgID, keyLineID);
+                    if(dec != (Decom_t *)NULL){
+                        for (j=0; j<dec->disArray.size();j++){
+                            if(dec->disArray[j].size()==1 && fabs(DotProduct(normal, gbd->planeList[dec->disArray[j][0].planeID]))>0.95)continue;
+                            disArray.push_back(dec->disArray[j]);
+                        }
+                        burgList.resize(dec->burgList.size());
+                        for(j=0;j<burgList.size();j++){
+                            burgList[j].resize(3);
+                            burgList[j][0]=signBurg*dec->burgList[j][0];
+                            burgList[j][1]=signBurg*dec->burgList[j][1];
+                            burgList[j][2]=signBurg*dec->burgList[j][2];
+                        }
+                        simpleWay = true;
                     }
-                    printf("\n");
                 }
             }
+            if(simpleWay == false){
+                if(!GeometricCriterion(gbd, burg, interLine.direction, normal, 0,
+                       burgList, disArray))continue;
+#if 1           
+/*              
+ *              Now, we don't need the resultant configure including a partial burg in Grain.
+ */             
+                for(j=0; j<disArray.size(); ){
+                    barrierFactor = -1.0;
+                    for(k=0; k<disArray[j].size(); k++){
+                        barrierFactor += disArray[j][k].energyFactor;
+                        cross(gb->n, gbd->planeList[disArray[j][k].planeID], crossProd);
+                        VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
+                        if(Normal(crossProd) < 1.0E-2){
+                            if(BurgType_FCC(vec) == BASIC_BURG)break;
+                        }else{
+                            if(BurgType_FCC(vec) != BASIC_BURG)break;
+                        }
+                    }
+                
+                    if(k != disArray[j].size() ||  // fail to penetrate
+                       (isScrew && barrierFactor > 1E-3) ||  // screw energy criteria
+                       (!isScrew && barrierFactor >0.667) || // non-screw energy criteria
+                       (disArray[j].size()==1 && fabs(DotProduct(normal, gbd->planeList[disArray[j][0].planeID]))>0.95)){ // origin plane is not needed
+                        itDisList = disArray.begin() + j;
+                        disArray.erase(itDisList);
+                    }else{
+                        j++;
+                    }
+                }
+#endif          
+                if(disArray.size() == 0)continue;
+                sort(disArray.begin(), disArray.end(), comByBarrier); 
+#if 1           
+                if(!isScrew){
+                    printf("non-screw dislocation decomposition (%g,%g,%g) %d %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg),
+                            PlaneID_FCC(gbd,normal));
+                }else {printf("screw dislocation decomposition (%g,%g,%g) %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg));
+                
+                    for(int set=0; set<disArray.size(); set++){
+                        printf("set %d: ",set);
+                        for(int disl=0; disl<disArray[set].size(); disl++){
+                            outBurg[0] = burgList[disArray[set][disl].burgID][0];
+                            outBurg[1] = burgList[disArray[set][disl].burgID][1];
+                            outBurg[2] = burgList[disArray[set][disl].burgID][2];
+                            printf("[%d %s](%d in %d) ", BurgID_FCC(gbd,outBurg), 
+                                   BurgType_FCC(outBurg)==BASIC_BURG?"perfect":"partial",
+                                   disArray[set][disl].planeID,
+                                   gbd->planeInGrain[disArray[set][disl].planeID]);
+                        }
+                        printf("\n");
+                    }
+                }
 #endif
-                      
+            } 
 //          CentorPos(param, newNbr1Pos, newNbr2Pos, newNodePos);
             VECTOR_COPY(newNodePos, interLine.point);
             PointLineIntersection(nbr1Pos, interLine.direction, interLine.point,

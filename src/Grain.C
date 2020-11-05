@@ -3148,6 +3148,72 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
     for(i=0; i<keyLineList.size(); i++){
         VECTOR_COPY(gbd->keyLineList[i], keyLineList[i]);
     }
+
+    std::vector<std::vector<int> > keyLineOnPlaneID(gbd->numKeyLines);
+    gbd->keyLineOnPlaneID = (int **)malloc(gbd->numKeyLines*sizeof(int *));
+    gbd->numPlanesPerKeyLine = (int *)malloc(gbd->numKeyLines*sizeof(int));
+
+    for(i=0;i<gbd->numKeyLines;i++){
+        for(j=0;j<gbd->numPlanes;j++){
+            if(fabs(DotProduct(gbd->planeList[j],gbd->keyLineList[i]))<1E-2){
+                keyLineOnPlaneID[i].push_back(j);
+            }
+        }
+        gbd->numPlanesPerKeyLine[i] = int(keyLineOnPlaneID[i].size());
+        gbd->keyLineOnPlaneID[i] = (int *)malloc(sizeof(int)*keyLineOnPlaneID[i].size());
+    }
+    for(i=0;i<gbd->numKeyLines;i++){
+        for(j=0;j<keyLineOnPlaneID[i].size();j++){
+            gbd->keyLineOnPlaneID[i][j] = keyLineOnPlaneID[i][j];
+        }
+    }
+
+    int k,l;
+    real8 *b, *n, *ldir; 
+    std::vector<std::vector<Dislocation_t> >::iterator      itDisList;
+    real8 barrierFactor, crossProd[3];
+    bool isScrew;   
+    Decom_t dcp;
+
+    for(i=0;i<gbd->numBurgVectors;i++){
+        b = gbd->burgList[i];
+        for(j=0;j<gbd->numKeyLines;j++){
+            ldir=gbd->keyLineList[j];
+            for(k=0;k<gbd->numPlanesPerKeyLine[j];k++){
+                n=gbd->planeList[gbd->keyLineOnPlaneID[j][k]];
+                if(fabs(DotProduct(b,n)/Normal(b))<1E-2)break;
+            }
+            if(k==gbd->numPlanesPerKeyLine[j])continue;
+            if(!GeometricCriterion(gbd, b, ldir, n, 0, dcp.burgList, dcp.disArray))continue;
+
+            isScrew = fabs(DotProduct(b,GB->n))<1E-2?true:false;
+            for(k=0; k<dcp.disArray.size(); ){
+                barrierFactor = -1.0;
+                for(l=0; l<dcp.disArray[k].size(); l++){
+                    barrierFactor += dcp.disArray[k][l].energyFactor;
+                    cross(GB->n, gbd->planeList[dcp.disArray[k][l].planeID], crossProd);
+                    VECTOR_COPY(vec, dcp.burgList[dcp.disArray[k][l].burgID]);
+                    if(Normal(crossProd) < 1.0E-2){
+                        if(BurgType_FCC(vec) == BASIC_BURG)break;
+                    }else{
+                        if(BurgType_FCC(vec) != BASIC_BURG)break;
+                    }
+                }
+            
+                if(l != dcp.disArray[k].size() || 
+                   (isScrew &&  barrierFactor > 1E-3) || barrierFactor >0.667){
+                    itDisList = dcp.disArray.begin() + k;
+                    dcp.disArray.erase(itDisList);
+                }else{
+                    k++;
+                }
+            }
+            if(dcp.disArray.size()<=0)continue;
+            sort(dcp.disArray.begin(), dcp.disArray.end(), comByBarrier); 
+            dcp.burgID = i; dcp.keyLineID = j;
+            gbd->dcps.push_back(dcp);
+        }
+    }
     
 #if 0
     printf("Burgs info:\n");
@@ -3177,6 +3243,15 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
     return;
 }
 
+Decom_t *GetDecompositionResults(BurgInfo_t *gbd, int burgID, int keyLineID)
+{
+    for (int i=0; i<gbd->dcps.size(); i++){
+        if(gbd->dcps[i].burgID==burgID && gbd->dcps[i].keyLineID == keyLineID){
+            return &(gbd->dcps[i]);
+        }
+    }
+    return (Decom_t *)NULL;
+}
 
 void SumOfValuesIsConstant(int n, int sum, std::vector<int>& valueList, int tot, 
                             std::vector<std::vector<int> >& valueLists, int maxVar)
