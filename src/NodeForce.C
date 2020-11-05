@@ -1402,6 +1402,16 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
             VECTOR_ADD(fseg1node1, f1);
             VECTOR_ADD(fseg1node2, f2);
 
+#ifdef IMAGEFORCE
+/*
+ *           If we're including grain boundary or free surface, 
+ *           add the image force in now.
+ */          
+             ImageForce(home, node1, node2, f1, f2);
+             VECTOR_ADD(fseg1node1, f1);
+             VECTOR_ADD(fseg1node2, f2);
+#endif
+
             StackingFaultForce(home, dx, dy, dz, param->sfEnergy/param->burgMag, signSF, 
                                normal, f1, f2); 
 
