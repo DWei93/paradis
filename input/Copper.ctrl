@@ -30,9 +30,9 @@ numZcells = 8
 #
 # Mesh numbers for tecmesh
 #
-meshNumX = 11
-meshNumY = 11
-meshNumZ = 11
+meshNumX = 41
+meshNumY = 41
+meshNumZ = 41
 
 #  Dynamic load balancing
 #
@@ -43,9 +43,9 @@ DLBfreq = 3
 elasticinteraction = 1
 #a0 = [ 1.68098 1.12421 1.01163 0.187646 ]
 enableCrossSlip =   1
-rTol = 1.6713432
-rc =  8
-grainSize = 277
+rTol = .7071067
+rc = 2.9284268
+grainSize = 97
 loadType = 1
 maxstep =  40000000
 #maxstep =  50000
@@ -72,17 +72,17 @@ fmCorrectionTbl =   "fm-ctab.Cu.m2.t5.dat"
 #  Loading conditions
 #  
 indxErate = 8
-eRate = 5.0E3
+eRate = 5000
 #eRate =  0.0E0
 strRate = -4.0E16
 #strRate = 0.0
 #plaRateCtr = 2.0E4
 
-edotPolar = [ 9.0000000e+01 9.0000000e+01 ]
+edotPolar = [ 7.5000000e+01 8.3000000e+01 ]
 
 appliedStress = [
 	0.0e0
-	2.0e8
+	0.0e0
 	0.0e0
 	0.0e0
 	0.0e0
@@ -98,7 +98,7 @@ shearModulus =   54.6e9  # Voight Average
 gbStrength = -1
 tbStrength = [
     17.0E6
-    700.0E6 
+    500.0E6 
 ]
 burgMag =   2.55600e-10 
 pois = 3.240000e-01
@@ -129,4 +129,4 @@ savetimers = 0
 savetimersfreq = 10
 velfile = 0
 velfilefreq = 1000
-minDT = 3.0E-13
+minDT = 1.666E-13

@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <math.h>
 #include "Math.h"
+#include "Force.h"
 
 static void NodeofEle(Param_t *param, int eleNum, int node[8]){
 
@@ -283,7 +284,6 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
             f1[0]/=(nodeLen*1E6); f1[1]/=(nodeLen*1E6); f1[2]/=(nodeLen*1E6);
             fMag=Normal(f); ifMag=Normal(f1);
 
-
             NormalizeVec(f1); NormalizeVec(f);
             if(!Numerical(f)){VECTOR_ZERO(f);}
             if(!Numerical(f1)){VECTOR_ZERO(f1);}
@@ -400,6 +400,11 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 nbrPos[0] = x2; nbrPos[1]=y2; nbrPos[2]=z2;
                 tau_ext = ExtShearStress(param, burg, nodePos, nbrPos, n)/1E6;
                 if(!Numerical(tau_ext))tau_ext=0.0;
+#if 1
+                SelfForce(0, 1, 0.324,burg[0],burg[1],burg[2],x,y,z,x2,y2,z2,param->rc,param->Ecore,f,f1);
+                fMag=Normal(f);
+#endif
+
 
                 if(param->polycrystal==0)index=0;
                 else{
