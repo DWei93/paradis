@@ -216,7 +216,7 @@ struct _param {
         int   stainCycle;    /* current loading cycle */
         real8 acumStrain;    /* accumulated strain */
         real8 sgnLoad;       /* sign of load */
-        int   maxCycle;      /* Maximum number of cyclic cycles */
+        real8   maxCycle;      /* Maximum number of cyclic cycles */
 /*
  *      Values for specifying axes for a user-defined laboratory frame
  */
