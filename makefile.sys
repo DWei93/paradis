@@ -74,9 +74,9 @@
 #    (defined by user in makefile)
 #
 CC_PARALLEL.linux       = mpiicc
-CPP_PARALLEL.linux      = mpiicpc
+CPP_PARALLEL.linux      = mpicxx
 CCFLAG_PARALLEL.linux   = -DPARALLEL=1
-CPPFLAG_PARALLEL.linux  = 
+CPPFLAG_PARALLEL.linux  = -DPARALLEL=1
 
 CC_SERIAL.linux         = icc
 CPP_SERIAL.linux        = icpc
