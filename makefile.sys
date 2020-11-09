@@ -97,7 +97,7 @@ XLIB_LIB.linux          = -L$(XLIB_LIBDIR.linux) -lX11 -lpthread
 XLIB_INCS.linux         =
 
 MPI_LIBDIR.linux        = 
-MPI_LIB.linux           = -lmpich
+MPI_LIB.linux           = -fopenmp
 MPI_INCS.linux          = 
 
 HDF_LIBDIR.linux        = -Xlinker -rpath -Xlinker \
@@ -112,10 +112,10 @@ OPENMP_FLAG.linux       = -openmp
 #    Identify any additional libraries and paths needed for compilation
 #    on this system type
 #
-LIB_PARALLEL.linux      = -lm
+LIB_PARALLEL.linux      = -lm -lpthread
 INCS_PARALLEL.linux     =
 
-LIB_SERIAL.linux        = -lm
+LIB_SERIAL.linux        = -lm -lpthread
 INCS_SERIAL.linux       =
 
 
