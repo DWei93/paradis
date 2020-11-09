@@ -326,7 +326,7 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
 
     if(glideStress < 0.0)return false;
 
-    if(PartialDislocations(home, node, node, pBurg1, pBurg2)==false)return false;
+    if(PartialDislocations(home, node, nbr2, pBurg1, pBurg2)==false)return false;
     CoordMinus(pBurg2,pBurg1,EsciagBurg);
     NormalizeVec(EsciagBurg);
 
@@ -2684,7 +2684,7 @@ void GBCrossSlip(Home_t *home)
 #endif          
                 if(disArray.size() == 0)continue;
                 sort(disArray.begin(), disArray.end(), comByBarrier); 
-#if 1           
+#if 0           
                 if(!isScrew){
                     printf("non-screw dislocation decomposition (%g,%g,%g) %d %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg),
                             PlaneID_FCC(gbd,normal));
