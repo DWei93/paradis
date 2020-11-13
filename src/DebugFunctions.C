@@ -475,6 +475,7 @@ void DebugGB(Home_t *home, int flag){
     return;
 #else
     home->flag = flag;
+    if(home->cycle<=1)return;
 #endif
 	int 	i,j,k,l, crossSlipNode, sameNode;
 	int	    normalID, inGrain, onGB;
@@ -497,7 +498,7 @@ void DebugGB(Home_t *home, int flag){
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
 
-#if 0
+#if 1
         if ((node->numNbrs == 1) && (node->constraint == UNCONSTRAINED)) {
             PrintNode(node);
             snprintf(name,50,"singly-%d-%d",home->cycle, flag);
@@ -511,11 +512,22 @@ void DebugGB(Home_t *home, int flag){
         vec1[0] = node->x;
         vec1[1] = node->y;
         vec1[2] = node->z;
+        NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
         if(flag < 18 || flag > 22){
-            NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
-            if(inGrain != node->inGrain && !IsOnGB(node)){
-                PrintNode(node);
+            if(inGrain != node->inGrain && !IsOnGB(node) || IsOnGB(node) && onGB != node->onGB){
+                PrintNode(home, node);
+                snprintf(name,50,"debug517-%d-%d",home->cycle, flag);
+                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
                 Fatal("Task %d, flag %d - 0\n", home->myDomain, flag);
+            }
+        }else{
+            if(!IsOnGB(node) && abs(node->inGrain - inGrain)==2){
+                PrintNode(home,node);
+                PrintNeighbor(home, node);
+                printf("Task %d, flag %d: %d != %d \n", home->myDomain,flag, node->inGrain, inGrain);
+                snprintf(name,50,"debug525-%d-%d",home->cycle, flag);
+                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
+                Fatal("Task %d, flag %d: %d != %d \n", home->myDomain,flag, node->inGrain, inGrain);
             }
         }
 #endif
@@ -675,7 +687,6 @@ void DebugGB(Home_t *home, int flag){
         }
     }
 
-    return;
 	node = home->ghostNodeQ;
 
     while (node) {
@@ -685,6 +696,5 @@ void DebugGB(Home_t *home, int flag){
     
         node = node->next;
     }
-
 }
 

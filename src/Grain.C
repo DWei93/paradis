@@ -1740,6 +1740,7 @@ bool GetPublicGB(Home_t *home, Grain_t *grain1, Grain_t *grain2, GB_t **GB, real
     }else{
         real8 dis=ClosedGB(home,pos,GB); return true;
     }
+    printf("Warning in %s: %d %d\n", __func__,grain1->grainID, grain2->grainID);
     return(0);
 }
 

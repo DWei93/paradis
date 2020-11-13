@@ -320,6 +320,11 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
     real8 burg[3]={node->burgX[1], node->burgY[1], node->burgZ[1]};
 	real8 glideStress = GlideShearStress(home,node,gbN);
 
+    real8 dis = NodeDistance(home, nbr1, nbr2);
+    if(dis < 0.5*home->param->minSeg){
+        return true;
+    }
+
     if(fabs(DotProduct(burg, gbN)) > 0.05){ // non-screw dislocation
         return (glideStress > param->tbStrength[1]);
     }
@@ -1206,6 +1211,7 @@ void HandleGrainBoundary(Home_t *home)
                     if(IsOnGB(nbrNode1) || nbrNode1->numNbrs > 1)continue;
                     if(nbrNode1->myTag.domainID != home->myDomain)continue;
                     if(NodeDistance(home, node, nbrNode1) > 0.5*param->minSeg)continue;
+                    if(nbrNode1->constraint == 7)continue;
 
                     vec1[0] = nbrNode1->x;
                     vec1[1] = nbrNode1->y;
@@ -1232,8 +1238,18 @@ void HandleGrainBoundary(Home_t *home)
         oldGrain  = home->grainKeys[oldInGrain];
         currGrain = home->grainKeys[currInGrain];
         real8 refPos[3]={node->x, node->y, node->z};
-        if(!GetPublicGB(home,oldGrain, currGrain, &gb,refPos)){
-            Fatal("in %s at %d", __FILE__, __LINE__);
+        if(!GetPublicGB(home,oldGrain, currGrain, &gb, refPos)){
+            vec1[0]=node->oldx; vec1[1]=node->oldy; vec1[2]=node->oldz;
+            dis=ClosedGB(home,vec1,&gb);
+            if(NewPosToGB(home, node, -1, gb->GBID, refPos, vec2)){
+                PrintNode(home, node);
+                Fatal("in %s at %d", __FILE__, __LINE__);
+            }else{
+                RepositionNode(home, vec2, &node->myTag, 1);
+                AssignGrain(home, node, -1, gb->GBID);
+                printf("Warning in %s at %d: a grain node penetrated at least two TBs\n",__func__,__LINE__);
+                continue;
+            }
         }
 
         CoordMinus(refPos,gb->p,vec1);
@@ -1268,12 +1284,6 @@ void HandleGrainBoundary(Home_t *home)
                 vec2[2] = node->oldz;
                 if(Normal(vec1)<1E-2)PullBack(home, node);
                 NormalizeVec(vec1);
-                oldGrain  = home->grainKeys[oldInGrain];
-                currGrain = home->grainKeys[currInGrain];
-                real8 refPos[3]={node->x, node->y, node->z};
-                if(!GetPublicGB(home,oldGrain, currGrain, &gb,refPos)){
-                    Fatal("in %s at %d", __FILE__, __LINE__);
-                }
                 if(LinePlaneIntersection(vec1, vec2, gb->n, gb->p, vec, newPos)
                    == POINT_INTERSECTION){
                     FoldBox(param, newPos, newPos+1, newPos+2);
@@ -1411,7 +1421,7 @@ void HandleGrainBoundary(Home_t *home)
         normal[1] = GBPlane.normal[1];
         normal[2] = GBPlane.normal[2];
 		
-        if((fabs(DotProduct(burg,normal))<0.001) &&
+        if((fabs(DotProduct(burg,normal))<0.05) &&
 			(numNbrOnGB > 0)){
 /*		
  *	    Energy rule for screw dislocation with at least a nbr on GB, so we can
