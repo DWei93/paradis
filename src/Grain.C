@@ -4443,6 +4443,7 @@ void PlaneBoxIntersections(Param_t *param, real8 *n, real8 *p, std::vector<std::
 void GlidePlaneOfDislocation(Home_t *home, real8 *n, real8 *p, std::vector<real8> &vertices, std::vector<int> &f_vert,  std::vector<int> &types)
 {
     Param_t *param = home->param;
+    FoldBox(param, p, p+1,p+2);
     std::vector<std::vector<real8> > locVertices;
     PlaneBoxIntersections(param, n,p, locVertices, types);
     std::vector<int> typesBak(types.size());
@@ -4518,6 +4519,7 @@ void GlidePlaneOfDislocation(Home_t *home, real8 *n, real8 *p, std::vector<real8
             }
         }
     }
+    if(types.size()==0)Fatal("types.size==0");
     bool allOnTB=true;
     for(int i=0;i<types.size();i++)if(types[i]!=2){allOnTB=false; break;}
     if(allOnTB)types.swap(typesBak);

@@ -125,6 +125,9 @@ case $srctype in
 # 
 ######################################################################################
     4|IV)
+    echo "./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${polar},${amu}"
+
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${polar},${amu} | tee $logFile ;;
 #   -polycrystal 1 -nGrain ${nGrains}  -pbc 0  ;;
@@ -139,7 +142,7 @@ case $srctype in
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 0 -nGrain 1 -pbc 7 -maxDensity $maxDensity \
-   -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 -out SAS/${2} > /dev/null 2>&1;;
+    -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 ;;
 
 #    -xMatDir ${xdir} -yMatDir ${ydir} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;
 #    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;

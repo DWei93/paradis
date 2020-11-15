@@ -2693,7 +2693,7 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
  *                        all created dislocations.
  *
  *-------------------------------------------------------------------------*/
-#define INITIAL_ANALYSIS 1
+#define INITIAL_ANALYSIS 0
 #if INITIAL_ANALYSIS
 void ProbeFreePath(real8 *p1, real8 *p2, std::vector<real8> &vertices, std::vector<int> &f_vert, 
         std::vector<int> &types, std::vector<real8> &dPoint, real8 *tbInterDir, real8 *tbInterPos)
@@ -3202,7 +3202,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 
                         break;
                     }
-                    if(time>100)goto RandomPosition;
+                    if(time>100){
+                        goto RandomPosition;
+                    }
                     break;
                 }
 
