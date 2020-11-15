@@ -446,9 +446,9 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
         int    nodeOrphaned = 0;
         real8  bx, by, bz;
         real8  nx, ny, nz;
-        real8  bsum[3];
+        real8  bsum[3], plane[3], lDir[3];
         Node_t *nbrNode;
-
+        BurgInfo_t *bd;
 
         thisDomain = home->myDomain;
 
@@ -484,14 +484,13 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
                     if (fabs(by) < 1.0e-06) by = 0.0;
                     if (fabs(bz) < 1.0e-06) bz = 0.0;
 
+                    nbrNode = GetNeighborNode(home, node, j);
+                    if (nbrNode == (Node_t *)NULL) {
+                        Fatal("Neighbor not found at %s line %d\n",
+                               __FILE__, __LINE__);
+                    }
+
                     if (fabs((bx * bx) + (by * by) + (bz * bz)) < 1.0e-6) {
-
-                        nbrNode = GetNeighborNode(home, node, j);
-
-                        if (nbrNode == (Node_t *)NULL) {
-                            Fatal("Neighbor not found at %s line %d\n",
-                                   __FILE__, __LINE__);
-                        }
 						
                         ChangeArmBurg(home, node, &nbrNode->myTag,
                                       0.0, 0.0, 0.0,
@@ -534,14 +533,6 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
                         ny = 0.0;
                         nz = 0.0;
 
-                        nbrNode = GetNeighborNode(home, node, j);
-
-                        if (nbrNode == (Node_t *)NULL) {
-                            Fatal("Neighbor not found at %s line %d\n",
-                                   __FILE__, __LINE__);
-                        }
-    
-                        
 /*
  *                      We don't yet know what glide plane to use for this
  *                      new segment.  If both the old segments had the same
@@ -556,7 +547,7 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
 
                         if (fabs((node->nx[i] * node->nx[j]) +
                                  (node->ny[i] * node->ny[j]) +
-                                 (node->nz[i] * node->nz[j]))  > 0.999) {
+                                 (node->nz[i] * node->nz[j]))  > 0.98) {
                               nx = node->nx[i];
                               ny = node->ny[i];
                               nz = node->nz[i];
@@ -564,57 +555,89 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
                         }
 
                         if (needGlide) {
-                          for (arm = 0; arm < node->numNbrs; arm++) {
-                              bsum[0] = node->burgX[arm] + bx;
-                              bsum[1] = node->burgY[arm] + by;
-                              bsum[2] = node->burgZ[arm] + bz;
-                              if (DotProduct(bsum, bsum) < 1.0e-4) {
-                                  if(GetPlaneType_FCC(home,node, nbrNode)==GLIDE_PLANE){
-                                    real8 lDir[3]={node->x-nbrNode->x, node->y-nbrNode->y,node->z-nbrNode->z};  
-                                    ZImage(home->param, lDir, lDir+1, lDir+2);
-                                    NormalizeVec(lDir); if(Normal(lDir)<1E-10)continue;
-                                    if(fabs(dot_product(lDir[0],lDir[1],lDir[2],node->nx[arm],node->ny[arm],node->nz[arm])) > 1.0E-1){
-                                        printf("%s: verified bug in %s at %d\n", __func__,__FILE__,__LINE__);
+                            bd = GetBurgData(home, node, nbrNode);
+                            lDir[0]=nbrNode->x-node->x; lDir[1]=nbrNode->y-node->y; lDir[2]=nbrNode->z-node->z;
+                            ZImage(home->param, lDir, lDir+1, lDir+2);
+                            NormalizeVec(lDir);
+                            VECTOR_ZERO(plane);
+                            for (arm = 0; arm < node->numNbrs; arm++) {
+                                bsum[0] = node->burgX[arm] + bx;
+                                bsum[1] = node->burgY[arm] + by;
+                                bsum[2] = node->burgZ[arm] + bz;
+                                if (DotProduct(bsum, bsum) > 1.0e-2){
+//                                  printf("%s %d %d,%d: skip 1 {%f,%f,%f}",__func__,home->cycle,node->myTag.domainID,node->myTag.index,bsum[0],bsum[1],bsum[2]);
+                                    continue;
+                                }
+                                plane[0]=node->nx[arm]; plane[1]=node->ny[arm]; plane[2]=node->nz[arm];
+                                if(PlaneID_FCC(bd,plane)>=bd->numPlanes){
+//                                  printf("Warning in %s at %d: can not verifiy glide plane {%f,%f,%f}\n",__func__,__LINE__,plane[0],plane[1],plane[2]);
+                                    continue;
+                                }
+
+                                if(Normal(lDir)>1E-10){
+                                    if(fabs(DotProduct(lDir,plane)) > 1.0E-1){
+//                                      PrintNode(home,node);
+//                                      printf("%s: verified bug in %s at %d\n", __func__,__FILE__,__LINE__);
                                         continue;
                                     }
-                                  }
-                                  nx = node->nx[arm];
-                                  ny = node->ny[arm];
-                                  nz = node->nz[arm];
-                                  needGlide = 0;
-                                  break;
-                              }
-                          }
+                                }
+                                nx = node->nx[arm];
+                                ny = node->ny[arm];
+                                nz = node->nz[arm];
+                                needGlide = 0;
+                                break;
+                            }
                         }
 
                         if (needGlide) {
-                          for (arm = 0; arm < nbrNode->numNbrs; arm++) {
-                              bsum[0] = nbrNode->burgX[arm] + bx;
-                              bsum[1] = nbrNode->burgY[arm] + by;
-                              bsum[2] = nbrNode->burgZ[arm] + bz;
-                              if (DotProduct(bsum, bsum) < 1.0e-4) {
-                                  nx = nbrNode->nx[arm];
-                                  ny = nbrNode->ny[arm];
-                                  nz = nbrNode->nz[arm];
-                                  needGlide = 0;
-                                  if(GetPlaneType_FCC(home,node, nbrNode)==GLIDE_PLANE){
-                                    real8 lDir[3]={node->x-nbrNode->x, node->y-nbrNode->y,node->z-nbrNode->z};  
-                                    ZImage(home->param, lDir, lDir+1, lDir+2);
-                                    NormalizeVec(lDir); if(Normal(lDir)<1E-10)continue;
-                                    if(fabs(dot_product(lDir[0],lDir[1],lDir[2],node->nx[arm],node->ny[arm],node->nz[arm])) > 1.0E-1)continue;
-                                  }
-                                  break;
-                              }
-                          }
+                            for (arm = 0; arm < nbrNode->numNbrs; arm++) {
+                                bsum[0] = nbrNode->burgX[arm] - bx;
+                                bsum[1] = nbrNode->burgY[arm] - by;
+                                bsum[2] = nbrNode->burgZ[arm] - bz;
+                                if (DotProduct(bsum, bsum) > 1.0e-2){
+//                                  printf("%s %d %d,%d: skip {%f,%f,%f}",__func__,home->cycle,nbrNode->myTag.domainID,nbrNode->myTag.index,bsum[0],bsum[1],bsum[2]);
+                                    continue;
+                                }
+                                nx = nbrNode->nx[arm];
+                                ny = nbrNode->ny[arm];
+                                nz = nbrNode->nz[arm];
+                                plane[0]=nx; plane[1]=ny; plane[2]=nz;
+                                if(PlaneID_FCC(bd,plane)>=bd->numPlanes){
+//                                  printf("Warning in %s at %d: can not verifi`y glide plane {%f,%f,%f}\n",__func__,__LINE__,plane[0],plane[1],plane[2]);
+                                    continue;
+                                }
+                                if(Normal(lDir)>1E-10){
+                                    if(fabs(DotProduct(lDir,plane)) > 1.0E-1){
+//                                      PrintNode(home,node);
+//                                      printf("%s: verified bug in %s at %d\n", __func__,__FILE__,__LINE__);
+                                        continue;
+                                    }
+                                }
+                                needGlide = 0;
+                                break;
+                            }
                         }
-
-#if 0
-	                char name[50];
-	                printf("RD: Task %d ",home->myDomain);
-                        snprintf(name,50,"RD%06d.%d.1",home->cycle,home->myDomain);
-                        Tecplot(home, name, 0, 0, 0, 0, 0, 1);
-	                PrintTag(node);
-	                PrintTag(nbrNode);
+#ifdef DEBUG
+                        /*
+ *                       * if we really can not find a resasonable glide plane for the double-linked segement,
+ *                       * we have this task to FindGlidePlane in ChangeArmBurg
+ *                       */
+                        if(fabs(nx)<1.0E-10 && fabs(ny)<1.0E-10 && fabs(nz)<1.0E-10){
+                            if(Normal(plane)>1E-10){
+                                nx=plane[0]; ny=plane[1]; nz=plane[2];
+                                printf("Warning in %s at %d: can not find a glide plane {%f,%f,%f}\n",
+                                       __func__,__LINE__, plane[0],plane[1],plane[2]);
+                            }else{
+                                PrintNode(home, node);
+                                PrintNeighbor(home, node);
+	                            char name[50];
+	                            printf("RD: Task %d ",home->myDomain);
+                                snprintf(name,50,"RD%06d.%d.1",home->cycle,home->myDomain);
+                                Tecplot(home, name, 0, 0, 0, 0, 0, 1);
+                                plane[0]=bx; plane[1]=by; plane[2]=bz;
+                                printf("Warning in %s at %d: can not find glide plane b={%f,%f,%f}, burgID=%d\n",__func__,__LINE__,bx,by,bz,BurgID_FCC(bd,plane));
+                            }
+                        }
 #endif
                         ChangeArmBurg(home, node, &nbrNode->myTag,
                                       bx, by, bz, nx, ny, nz,
