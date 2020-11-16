@@ -567,13 +567,13 @@ void DebugGB(Home_t *home, int flag){
             }
 
 
-            if(NodeDistance(home,node,nbr)>1000){
+            if(NodeDistance(home,node,nbr)>home->param->maxSeg*3){
                 PrintNode(home, node);
                 PrintNode(home, nbr);
                 snprintf(name,50,"longseg-%d-%d",home->cycle, flag);
-                printf("Task %d, wrong multi-arm node, flag %d \n", 
-                        home->myDomain, flag);
                 Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
+                Fatal("Task %d, long-segnode, flag %d \n", 
+                        home->myDomain, flag);
             }
 
             vec[0] = node->burgX[j];

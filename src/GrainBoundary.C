@@ -322,6 +322,16 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
 
     real8 dis = NodeDistance(home, nbr1, nbr2);
     if(dis < 0.5*home->param->minSeg){
+#ifdef DEBUG
+        char name[50];
+        printf("Task %d, cycle %d Warning: a small segment is not considered Constriction criteria"
+                " (%d,%d){%f,%f,%f}--(%d,%d){%f,%f,%f}--(%d,%d){%f,%f,%f}\n", home->myDomain, home->cycle,
+                nbr1->myTag.domainID, nbr1->myTag.index, nbr1->x, nbr1->y, nbr1->z,
+                node->myTag.domainID, node->myTag.index, node->x, node->y, node->z,
+                nbr2->myTag.domainID, nbr2->myTag.index, nbr2->x, nbr2->y, nbr2->z);
+        snprintf(name,50,"neg-Constrction-criteria-%d-%d",home->cycle, home->myDomain);
+        Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
+#endif 
         return true;
     }
 

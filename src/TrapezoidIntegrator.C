@@ -719,8 +719,8 @@ void TrapezoidIntegrator(Home_t *home)
                     nodeVec[2] = node->z - oldz;
                     	
                     localMaxDisp = MAX(localMaxDisp, Normal(nodeVec));
-#if 0	
-                    if(isnan(errMax) || isinf(errMax) || errMax > 200){
+#ifdef DEBUG
+                    if(isnan(errMax) || isinf(errMax) || Normal(nodeVec) > param->maxSeg){
 			            PrintNode(home,node);
                         real8 nodeVel[3]={node->vX,node->vY,node->vZ}, currVel[3]={node->currvX,node->currvY,node->currvZ};
                         real8 v1=Normal(nodeVel)*2.556E-10, v2=Normal(currVel)*2.556E-10;
@@ -927,7 +927,7 @@ void TrapezoidIntegrator(Home_t *home)
         }
 		
 	
-		if(globalMaxDisp < param->rann){
+		if(globalMaxDisp < param->maxSeg){
 			param->preDecreaseDT = 0;
 		}else{
 			param->preDecreaseDT = 1;

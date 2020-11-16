@@ -47,7 +47,6 @@ static void MeshCoarsen(Home_t *home)
         real8   newPos[3], f0seg1[3], f1seg1[3];
         real8   gp0[3], gp1[3], tmp3[3];
         real8   burg[3],vec[3],vecStored;
-        real8   dis;
 	    real8	mergedGrain;
 	    int	    riskySeg1, riskySeg2, armID;    
         Tag_t   nbr1Tag, nbr2Tag, oldTag1, oldTag2, oldTag3;
@@ -61,7 +60,6 @@ static void MeshCoarsen(Home_t *home)
         int     planeType, nbrInGrain;
         int     inGrain, onGB;
         int     armInGrain1, armInGrain2, armOnGB1, armOnGB2;
-        GB_t    *gb;
 
         thisDomain = home->myDomain;
         param      = home->param;
@@ -76,6 +74,11 @@ static void MeshCoarsen(Home_t *home)
         areaMin    = param->remeshAreaMin;
         areaMin2   = areaMin * areaMin;
         delta      = 1.0e-16;
+
+        GB_t    *gb;
+        real8   dis;
+        int     oldOnGB;
+        real8 ld1[3],ld2[3];
 
         localCoarsenCnt = 0;
         globalCoarsenCnt = 0;
@@ -206,6 +209,18 @@ static void MeshCoarsen(Home_t *home)
 
             hasRemoteNbr  = (node->myTag.domainID != nbr1->myTag.domainID);
             hasRemoteNbr |= (node->myTag.domainID != nbr2->myTag.domainID);
+            
+#ifdef DEBUG
+            bool smallSegOnTB = NodeDistance(home, nbr1,nbr2)<param->minSeg*0.5 && IsOnGB(node) && IsOnGB(nbr1) && IsOnGB(nbr2);
+            if(smallSegOnTB){
+                printf("%d %d in %s at %d: ",
+                home->myDomain, home->cycle, __FILE__, __LINE__);
+                PrintTag(home, nbr1);
+                PrintTag(home, node);
+                PrintTag(home, nbr2);
+                printf("\n");
+            }
+#endif
 
 /*
  *          Calculate the lengths of the node's 2 arms plus
@@ -269,14 +284,19 @@ static void MeshCoarsen(Home_t *home)
                 gp1[0] = node->nx[1];
                 gp1[1] = node->ny[1];
                 gp1[2] = node->nz[1];
-
+#if 1
                 if(IsOnGB(node) && IsOnGB(nbr1) && IsOnGB(nbr2) &&
                    node->onGB == nbr1->onGB && node->onGB == nbr2->onGB){
-                    real8 ld1[3]={vec1x,vec1y,vec1z}; NormalizeVec(ld1);
-                    real8 ld2[3]={vec2x,vec2y,vec2z}; NormalizeVec(ld2);        
+                    ld1[0]=vec1x; ld1[1]=vec1y; ld1[2]=vec1z;
+                    ld2[0]=vec2x; ld2[1]=vec2y; ld2[2]=vec2z;
                     if(AlignedDirection(ld1,ld2,0.9))violateGlidePlanesOK = 1;
+#ifdef DEBUG
+                    if(smallSegOnTB)printf("%d %d in %s at %d: {%f,%f,%f}dot{%f,%f,%f}=%d\n",
+                        home->myDomain, home->cycle, __FILE__, __LINE__,
+                        ld1[0],ld1[1],ld1[2],ld2[0],ld2[1],ld2[2],violateGlidePlanesOK);
+#endif
                 }
-
+#endif
 /*
  *              Glide planes are being used, but if we are allowing
  *              some 'fuzziness' in the planes there are a couple
@@ -356,6 +376,11 @@ static void MeshCoarsen(Home_t *home)
  */
             if (((hasRemoteNbr == 0) && (r3 > cutoffLength1)) ||
                 ((hasRemoteNbr == 1) && (r3 > cutoffLength2))) {
+#ifdef DEBUG
+                    if(smallSegOnTB)printf("%d %d in %s at %d: hasRemoteNbr=%d, r3=%f, cutoffLength1=%f, cutoffLength2=%f\n",
+                        home->myDomain, home->cycle, __FILE__, __LINE__,
+                        hasRemoteNbr, r3, cutoffLength1, cutoffLength2);
+#endif
                 continue;
             }
 
@@ -462,6 +487,11 @@ static void MeshCoarsen(Home_t *home)
                 }else{
                     if(IsOnGB(nbr1) && IsOnGB(nbr2))continue;
                 }
+#ifdef DEBUG
+                    if(smallSegOnTB)printf("%d %d in %s at %d: (nbr1->flags & NO_MESH_COARSEN)=%d, r1=%f, r2=%f, violateGlidePlanesOK=%d\n",
+                        home->myDomain, home->cycle, __FILE__, __LINE__,
+                        (nbr1->flags & NO_MESH_COARSEN), r1, r2, violateGlidePlanesOK);
+#endif
 
 /*
  *              If the first neighbor is not exempt from a coarsen
@@ -487,7 +517,18 @@ static void MeshCoarsen(Home_t *home)
                         }else{
                             mergeDone = 0;
                         }
+#ifdef DEBUG
+                    if(smallSegOnTB)printf("%d %d in %s at %d: mergeDone=%d\n",
+                        home->myDomain, home->cycle, __FILE__, __LINE__,
+                        mergeDone);
+#endif
                     }
+
+#ifdef DEBUG
+                    if(smallSegOnTB)printf("%d %d in %s at %d: mergeDone=%d\n",
+                        home->myDomain, home->cycle, __FILE__, __LINE__,
+                        mergeDone);
+#endif
 
                     if(node->inGrain >-1 && nbr1->onGB > -1){
                         gp0[0] = node->nx[0];
@@ -507,6 +548,11 @@ static void MeshCoarsen(Home_t *home)
                         MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
                               &mergedNode, &mergeStatus, globalOp);
                         mergeDone = mergeStatus & MERGE_SUCCESS;
+#ifdef DEBUG
+                    if(smallSegOnTB)printf("%d %d in %s at %d: mergeDone=%d\n",
+                        home->myDomain, home->cycle, __FILE__, __LINE__,
+                        mergeDone);
+#endif
                     }
                 }
 /*
@@ -514,6 +560,11 @@ static void MeshCoarsen(Home_t *home)
  *              the other neighbor.
  */
 
+#ifdef DEBUG
+                    if(smallSegOnTB)printf("%d %d in %s at %d: mergeDone=%d\n",
+                        home->myDomain, home->cycle, __FILE__, __LINE__,
+                        mergeDone);
+#endif
                 if (mergeDone == 0) {
                     if (((nbr2->flags & NO_MESH_COARSEN) == 0) &&
                         (!(violateGlidePlanesOK==1 && r2 >= 1.0)) && 
@@ -521,6 +572,11 @@ static void MeshCoarsen(Home_t *home)
                         newPos[0] = nbr2->x;
                         newPos[1] = nbr2->y;
                         newPos[2] = nbr2->z;
+#ifdef DEBUG
+                    if(smallSegOnTB)printf("%d %d in %s at %d: mergeDone=%d\n",
+                        home->myDomain, home->cycle, __FILE__, __LINE__,
+                        mergeDone);
+#endif
 
                         if(violateGlidePlanesOK == 0){
                             if(BeforeMergeNodes(home, node, nbr2, newPos, &dis, type)){
@@ -537,6 +593,11 @@ static void MeshCoarsen(Home_t *home)
                         }
 
                         FoldBox(home->param,newPos, newPos+1, newPos+2);
+#ifdef DEBUG
+                    if(smallSegOnTB)printf("%d %d in %s at %d: mergeDone=%d\n",
+                        home->myDomain, home->cycle, __FILE__, __LINE__,
+                        mergeDone);
+#endif
 
                         if(node->inGrain >-1 && nbr2->onGB > -1){
                             gp1[0] = node->nx[1];
@@ -551,6 +612,11 @@ static void MeshCoarsen(Home_t *home)
                         MergeNode(home, OPCLASS_REMESH, node, nbr2, newPos,
                                   &mergedNode, &mergeStatus, globalOp);
                         mergeDone = mergeStatus & MERGE_SUCCESS;
+#ifdef DEBUG
+                    if(smallSegOnTB)printf("%d %d in %s at %d: mergeDone=%d\n",
+                        home->myDomain, home->cycle, __FILE__, __LINE__,
+                        mergeDone);
+#endif
                     }
                 }
 
@@ -607,10 +673,10 @@ static void MeshCoarsen(Home_t *home)
                 }
         
                 mergedNode->flags |= NO_MESH_COARSEN;
-#if 0
-                if(IsOnGB(mergedNode)){
+#if 1
+                if(IsOnGB(mergedNode) && mergedNode->constraint!=7){
 
-                    nbrInGrain = -1;
+                    nbrInGrain = -1; oldOnGB = mergedNode->onGB;
                     for(q=0; q<mergedNode->numNbrs; q++){
                         nbr = GetNodeFromTag(home, mergedNode->nbrTag[q]);
                         if (nbr == (Node_t *)NULL)break;
@@ -632,25 +698,47 @@ static void MeshCoarsen(Home_t *home)
                             mergedNode->inGrain = nbrInGrain;
                             mergedNode->onGB = -1;
                         }
+                        vec[0] = mergedNode->x;
+                        vec[1] = mergedNode->y;
+                        vec[2] = mergedNode->z;
+                        if(NewPosToGB(home, mergedNode, mergedNode->inGrain, oldOnGB, vec, newPos)){
+                            PrintNode(home, mergedNode);
+                            if(globalOp){
+                                AssignGrain(home, mergedNode, -1, oldOnGB);
+                            }else{
+                                mergedNode->inGrain = -1;
+                                mergedNode->onGB = oldOnGB;
+                            }
+                            printf("Warning in %s at %d: can not find new position of the merged grain node\n",__FILE__,__LINE__); 
+                        }else{
+                            FoldBox(home->param, newPos, newPos+1, newPos+2);
+                            RepositionNode(home, newPos, &mergedNode->myTag, globalOp);
+                        }
                     }
                 }
 
                 NodeLocation(home, mergedNode->x, mergedNode->y, mergedNode->z, inGrain, onGB);
                 if(inGrain != mergedNode->inGrain && !IsOnGB(mergedNode)){
-                    GB_t    *gb;
-                    real8   dis;
-
+                    PrintNode(home, mergedNode);
+                    printf("WARNING in %s at %d: %d %f %f\n",__FILE__,__LINE__, violateGlidePlanesOK, r1, r2);
+                }else if(onGB != mergedNode->onGB && IsOnGB(mergedNode)){
+                    if(onGB>-1)Fatal("%s %d: %d!=%d",__FILE__,__LINE__,onGB,mergedNode->onGB);
                     vec[0] = mergedNode->x;
                     vec[1] = mergedNode->y;
                     vec[2] = mergedNode->z;
-                    dis = ClosedGB(home, vec. &gb);
-                    if(fabs(dis) > 1){
-                        printf("Warning (%d){%f,%f}: \n", violateGlidePlanesOK, r1, r2);
-                        PrintNode(mergedNode);
-                        printf(" at %s in %d\n", __FILE__, __LINE__);
+                    dis = ClosedGB(home, vec, &gb);
+                    if(fabs(dis) < 1.0){
+                        if(NewPosToGB(home, mergedNode, -1, mergedNode->onGB, vec, newPos)){
+                            PointPlaneIntersection(vec, gb->n, gb->p, newPos, &dis);
+#ifdef DEBUG
+                            printf("remove err in %s at %d: distance=%f\n",__FILE__,__LINE__,dis);
+#endif
+                        }
+                        FoldBox(home->param, newPos, newPos+1, newPos+2);
+                        RepositionNode(home, newPos, &mergedNode->myTag, globalOp);
                     }else{
-                        PrintNode(mergedNode);
-                        printf("Dis: \n", violateGlidePlanesOK, r1, r2);
+                        PrintNode(home, mergedNode);
+                        printf("WARNING in %s at %d: %d %f %f\n",__FILE__,__LINE__, violateGlidePlanesOK, r1, r2);
                     }
                 }
 #endif
@@ -1371,3 +1459,4 @@ void RemeshRule_2(Home_t *home)
         DebugGB(home, 502);
         return;
 }
+

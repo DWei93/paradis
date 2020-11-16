@@ -624,7 +624,6 @@ int RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp)
  *                       */
                         if(fabs(nx)<1.0E-10 && fabs(ny)<1.0E-10 && fabs(nz)<1.0E-10){
                             if(Normal(plane)>1E-10){
-                                nx=plane[0]; ny=plane[1]; nz=plane[2];
                                 printf("Warning in %s at %d: can not find a glide plane {%f,%f,%f}\n",
                                        __func__,__LINE__, plane[0],plane[1],plane[2]);
                             }else{

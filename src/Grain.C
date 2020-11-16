@@ -1767,7 +1767,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
     if(node->constraint ==7){
         printf("Task %s %d: ",__func__,home->myDomain);
         PrintTag(home, node);
-        printf("move from {%g,%g,%g} to grain %d\n",pos[0],pos[1],pos[2],inGrain);
+        Fatal("move from {%g,%g,%g} to grain %d\n",pos[0],pos[1],pos[2],inGrain);
     }
     if(onGB < 0 || onGB >= home->nGBs)Fatal("in %s at %d", __FILE__, __LINE__);
 	if(node == (Node_t *)NULL){
@@ -1844,7 +1844,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
     NormalizeVec(vec);
     type = LinePlaneIntersection(vec, pos, plane.normal, plane.point, vec1, vec2);
     if(type == NO_INTERSECTION){
-#if 0
+#ifdef DEBUG
         printf("Warning: NewPosToGB, Line {%f,%f,%f}--{%f,%f,%f}; ", 
                vec[0], vec[1], vec[2], pos[0], pos[1], pos[2]);
         printf("Plane {%f,%f,%f}--{%f,%f,%f} == {%f,%f,%f}\n", 

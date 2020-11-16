@@ -1711,7 +1711,7 @@ void PrintNode(Home_t *home, Node_t *node)
             if(nbr == (Node_t *)NULL){
                 printf("null nbr[%d,%d]\n",node->nbrTag[i].domainID,node->nbrTag[i].index);
             }else{
-                printf("%d\n", GetBurgID_FCC(home, node, nbr));
+                printf("%d -- length=%f\n", GetBurgID_FCC(home, node, nbr), NodeDistance(home, node, nbr));
             }
         }
 
