@@ -284,7 +284,7 @@ static void MeshCoarsen(Home_t *home)
                 gp1[0] = node->nx[1];
                 gp1[1] = node->ny[1];
                 gp1[2] = node->nz[1];
-#if 1
+#if 0
                 if(IsOnGB(node) && IsOnGB(nbr1) && IsOnGB(nbr2) &&
                    node->onGB == nbr1->onGB && node->onGB == nbr2->onGB){
                     ld1[0]=vec1x; ld1[1]=vec1y; ld1[2]=vec1z;
@@ -671,6 +671,7 @@ static void MeshCoarsen(Home_t *home)
                 if ((nbr1 == (Node_t *)NULL) || (nbr2 == (Node_t *)NULL)) {
                     continue;
                 }
+                if(mergedNode==(Node_t *)NULL)Fatal("%s %d: mergedNode is null",__FILE__,__LINE__);
         
                 mergedNode->flags |= NO_MESH_COARSEN;
 #if 1
@@ -692,6 +693,11 @@ static void MeshCoarsen(Home_t *home)
                         if (!DomainOwnsSeg(home, OPCLASS_REMESH, thisDomain, &nbr->myTag))break;
                     }
                     if(nbrInGrain > -1 && q == mergedNode->numNbrs){
+#ifdef DEBUG
+                        printf("%d %d %s %d: beforce changing GB node",home->myDomain, home->cycle,__FILE__,__LINE__);
+                        PrintTag(home, mergedNode);
+                        printf("\n");
+#endif
                         if(globalOp){
                             AssignGrain(home, mergedNode, nbrInGrain, -1);
                         }else{
@@ -714,6 +720,11 @@ static void MeshCoarsen(Home_t *home)
                             FoldBox(home->param, newPos, newPos+1, newPos+2);
                             RepositionNode(home, newPos, &mergedNode->myTag, globalOp);
                         }
+#ifdef DEBUG
+                        printf("%d %d %s %d: after changing GB node",home->myDomain, home->cycle,__FILE__,__LINE__);
+                        PrintTag(home, mergedNode);
+                        printf("\n");
+#endif
                     }
                 }
 

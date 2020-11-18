@@ -556,8 +556,8 @@ void ParadisStep(Home_t *home)
  *      allocated memory blocks looking for corruption in any of the
  *      block headers or trailers.
  */
-#ifdef DEBUG_MEM
-        ParadisMemCheck();
+#ifdef debug_mem
+        paradismemcheck();
 #endif
 
         CheckMemUsage(home, "ParadisStep-complete");

@@ -37,7 +37,7 @@ schmid=0.408
 type=3
 if [ $cubeln -ge 3000 ]; then heightRatio=1; 
 elif [ $cubeln -ge 1000 ]; then heightRatio=2; 
-else heightRatio=3; fi
+else heightRatio=2; fi
 
 #if [ $nfrs -lt 750 ]; then nfrs=20; fi
 
@@ -133,7 +133,7 @@ case $srctype in
     ./bin/paradisgen -type $type -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 0 -pbc $pbc -loadDir 0,0,1\
     -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity} \
-    -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 ) | tee $logFile;;
+    -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 ) | tee input/CreateFR-single${single}.log;;
 
 #    -xMatDir 1,0,0 -yMatDir 0,1,0 \
 #    -polycrystal 0 -pbc 7 -extended 4\

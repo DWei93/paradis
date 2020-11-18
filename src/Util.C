@@ -1003,6 +1003,9 @@ int InterpolateBL(real8 *x, real8 *y, real8 *val, int numElem,
  *------------------------------------------------------------------------*/
 real8 Normal(real8 a[3])
 {
+#ifdef DEBUG
+       if(!Numerical(a))Fatal("%s: {%f,%f,%f}",__func__,a[0],a[1],a[2]);
+#endif
         return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]) );
 }
 
@@ -1020,6 +1023,9 @@ real8 Normal(real8 a[3])
  *------------------------------------------------------------------------*/
 void Normalize(real8 *ax, real8 *ay, real8 *az)
 {
+#ifdef DEBUG
+       if(!Numerical(*ax, *ay, *az))Fatal("%s: {%f,%f,%f}",__func__,*ax,*ay,*az);
+#endif
         real8 a2, a;
 
         a2 = ((*ax)*(*ax) + (*ay)*(*ay) + (*az)*(*az));
@@ -1048,6 +1054,9 @@ void Normalize(real8 *ax, real8 *ay, real8 *az)
 void NormalizeVec(real8 vec[3])
 {
         real8 a2, a;
+#ifdef DEBUG
+       if(!Numerical(vec))Fatal("%s: {%f,%f,%f}",__func__,vec[0],vec[1],vec[2]);
+#endif
 
         a2 = (vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
 

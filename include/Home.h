@@ -89,6 +89,9 @@
 
 #ifdef __cplusplus
 extern "C" void ParadisMemCheck(void);
+#ifdef DEBUG
+int ParadisMemCheck(Home_t *home);
+#endif
 extern "C" void ParadisFree(char *fileName, int lineNum, void *ptr);
 extern "C" void *ParadisMalloc(char *fileName, int lineNum, size_t size);
 extern "C" void *ParadisCalloc(char *fileName, int lineNum, size_t numElem,
@@ -97,6 +100,9 @@ extern "C" void *ParadisRealloc(char *fileName, int lineNum, void *ptr,
                     size_t size);
 #else
 void ParadisMemCheck(void);
+#ifdef DEBUG
+int ParadisMemCheck(Home_t *home);
+#endif
 void ParadisFree(char *fileName, int lineNum, void *ptr);
 void *ParadisMalloc(char *fileName, int lineNum, size_t size);
 void *ParadisCalloc(char *fileName, int lineNum, size_t numElem, size_t size);

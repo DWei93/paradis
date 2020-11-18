@@ -39,7 +39,7 @@ int Mobility_Wei(Home_t *home, Node_t *node)
     int i, j, nc, nconstraint, nlc, TBBurg, armID21, nodeOnGB;
     real8 normx[MAX_NBRS], normy[MAX_NBRS], normz[MAX_NBRS];
     real8 lineX[MAX_NBRS], lineY[MAX_NBRS], lineZ[MAX_NBRS];
-    real8 a, b, velocity;
+    real8 a, b, velocity, nbrV, maxV;
     real8 dx, dy, dz, lx, ly, lz, lr, LtimesB, lxb;
     real8 lcx, lcy, lcz, normdotlc;
     Node_t *nbr;
@@ -47,7 +47,7 @@ int Mobility_Wei(Home_t *home, Node_t *node)
     real8 bx, by, bz, br, dangle;
     real8 glideConstraintsCrystal[3][3], imageForce[3];
     real8 nForce[3], glideForce[3], glideConstraints[3][3], n[3], sig;
-    real8 factor = 1.0, pinForce;
+    real8 factor, pinForce;
 
     static real8 params[4][3]={
                                {2.56938E-5, 1.03497E8 , 1.4982E7  },
@@ -324,17 +324,34 @@ int Mobility_Wei(Home_t *home, Node_t *node)
 	node->vY = nVel[1];
 	node->vZ = nVel[2];
 
-#if 0
-	if(SurfaceNode(node))factor = 20.0;
-	    
-	velocity = sqrt(node->vX * node->vX+
-			   node->vY * node->vY+
-			   node->vZ * node->vZ);
-	if(velocity > param->vshr/factor && param->vshr > 0){
-	    node->vX = node->vX * param->vshr /velocity/factor ;
-	    node->vY = node->vY * param->vshr /velocity/factor ;
-	    node->vZ = node->vZ * param->vshr /velocity/factor ;
-	}
+#ifdef DEBUG
+    if(!Numerical(nVel)){
+        PrintNode(home, node);
+        Fatal("the velocity is not numerical");
+    }
 #endif
+    if(SurfaceNode(node)){
+        maxV=param->vshr>0?param->vshr/20:1630.0/param->burgMag/20.0;
+	    velocity = sqrt(node->vX*node->vX + node->vY*node->vY + node->vZ*node->vZ);
+        for (i = 0; i < nc; i++) {
+            if((nbr = GetNeighborNode(home, node, i)) == (Node_t *)NULL) continue;
+            if(!SurfaceNode(nbr))continue;
+            if(nbr->numNbrs>2)continue;
+            nbrV = sqrt(nbr->vX*nbr->vX + nbr->vY*nbr->vY + nbr->vZ*nbr->vZ);
+            if(!Numerical(nbrV))continue;
+            maxV = MIN(nbrV, maxV); 
+        }
+        if(velocity>maxV){
+            maxV /= velocity;
+            node->vX *=maxV;
+            node->vY *=maxV;
+            node->vZ *=maxV;
+#ifdef DEBUG
+            if(!Numerical(node->vX, node->vY, node->vZ))Fatal("surface node velocity !!");
+	        velocity = sqrt(node->vX*node->vX + node->vY*node->vY + node->vZ*node->vZ);
+            if(velocity>param->vshr/20.0)Fatal("surface node velocity !!");
+#endif
+        }
+    }
     return(0);
 }

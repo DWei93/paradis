@@ -470,7 +470,7 @@ void CheckNodeNANS(Node_t *node){
 }
 
 void DebugGB(Home_t *home, int flag){
-//  printf("%d %d\n",home->myDomain,flag);
+//  printf("%d %d %d\n",home->myDomain,flag,home->cycle);
 #ifndef DEBUG
     return;
 #else
@@ -492,7 +492,14 @@ void DebugGB(Home_t *home, int flag){
 	char    subdir[256], stepdir[256], filename[256];
 
 	param = home->param;
+#if    0
+    if(-1==ParadisMemCheck(home)){
+        snprintf(name,50,"MemCheck-%d-%d",home->cycle, flag);
+        Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
+        Fatal("DebugGB: MemCheck %d %d",home->myDomain, flag);
 
+    }
+#endif
 //    if(flag >= 4 && flag == 5){
 //    }
 	for(i=0; i<home->newNodeKeyPtr; i++){

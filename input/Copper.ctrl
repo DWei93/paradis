@@ -30,9 +30,9 @@ numZcells = 4
 #
 # Mesh numbers for tecmesh
 #
-meshNumX = 41
-meshNumY = 41
-meshNumZ = 41
+meshNumX = 31
+meshNumY = 31
+meshNumZ = 62
 
 #  Dynamic load balancing
 #
@@ -43,13 +43,13 @@ DLBfreq = 3
 elasticinteraction = 1
 #a0 = [ 1.68098 1.12421 1.01163 0.187646 ]
 enableCrossSlip =   1
-rTol = 46.0945212
-rc = 184.4780848
-grainSize = 7824
+rTol = 8.3567161
+rc = 33.5268644
+grainSize = 2934
 loadType = 0
 #maxstep =  40000000
-maxstep =  50000
-dirname = "res."
+maxstep =  20000
+dirname = "res.single-2-d-750nm-90-degree"
 remeshRule = 2
 enforceGlidePlanes =  1
 splitMultiNodeFreq =   1  
@@ -57,7 +57,7 @@ splitMultiNodeFreq =   1
 #  Simulation time and timestepping controls
 #  
 maxStn = 2.0E-2
-maxPst = 5.0E-3
+maxPst = 2.2E-3
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
 wallTime = 240
@@ -72,13 +72,13 @@ fmCorrectionTbl =   "fm-ctab.Cu.m2.t5.dat"
 #  Loading conditions
 #  
 indxErate = 8
-eRate = 5000
+eRate = -5000
 #eRate =  0.0E0
 strRate = -4.0E16
 #strRate = 0.0
 #plaRateCtr = 2.0E4
 
-edotPolar = [ 9.0000000e+01 9.5000000e+01 ]
+edotPolar = [ 0.0 0.0 ]
 
 appliedStress = [
 	0.0e0
@@ -129,4 +129,4 @@ savetimers = 0
 savetimersfreq = 10
 velfile = 0
 velfilefreq = 1000
-minDT = 133.333E-13
+minDT = 6.250E-13
