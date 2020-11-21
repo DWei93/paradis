@@ -58,8 +58,9 @@
 #      gcc             Generic Linux system build using gnu compilers
 #
 
+SYS = linux
 #SYS = linux.opteron
-SYS = gcc
+#SYS = gcc
 
 #
 #    Set the execution MODE to PARALLEL to enable compile-time support
@@ -108,7 +109,7 @@ OPT = -O3
 #
 #DEFS += -DIMAGEFORCE
 #OPENMP_MODE = ON
-# DEFS += -DDEBUG
+#DEFS += -DDEBUG
 DEFS += -DSIMLPLE_REACTION_ON_GB
 #DEFS += -DGSIZE_EFFECT
 #DEFS += -DTB_PINNING

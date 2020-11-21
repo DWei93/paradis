@@ -4,22 +4,20 @@
 #
 #                     Script of  Generation of FCC FR source 
 #    The default orientation of cell is
-#                      | Normalize[{ 1,-1, 0}] |
-#                      | Normalize[{ 1, 1, 1}] |
-#                      | Normalize[{-1,-1, 2}] |
-#    which is matrix orientation of PBC polycrystal with twin. 
+#                      | Normalize[{ -1,  1, 0}] | = AB
+#                      | Normalize[{ -1, -1, 2}] | = C\delta
+#                      | Normalize[{  1,  1, 1}] | = D\delta = TB normal
+#
+#    For multulayer PBC cells, the default orientaion should be rotated 5 degree with D\delta to
+#    remove border annihiation effectes of effects of non-TB slip systems
 #    if you want to change the orientation of simulation cell, you can use follwing
 #    two ways:
 #      (1)  <-xMatDir ux,uy,uz -yMatDir vx,vy,vz> or
 #           <-zMatDir wx,wy,wz -yMatDir vx,vy,vz> or
 #           <-zMatDir wx,wy,wz -xMatDir ux,uy,uz> 
 #           we just need two directions of axis.
-#      (2)  <-TBAngle angle(radian system)>
-#           TBAngle is the angle between Z axis and normal of ABC glide plane, if
-#	    twin exist, the normal of ABC represent TB plane. Besides, the another
-#           two independ variables in rotate matrix is random.
-#    if the above two ways are both in command line, first one is default.
-#    $1 is the type of simulation, $2 is randm seed.
+#      (2)  <-rotate rotAngle,rotDir[0],rotDir[1],rotDirp[2]>
+#           We can rotate the local coordinate system again based on the matrix orientation of (1)
 #                    
 ######################################################################################
 

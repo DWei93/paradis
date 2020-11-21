@@ -146,7 +146,7 @@ Option_t optList[OPT_MAX] = {
 	    {OPT_XMATDIR,   "xMatDir",	    3, 1},
 	    {OPT_YMATDIR,   "yMatDir",	    3, 1},
 	    {OPT_ZMATDIR,   "zMatDir",	    3, 1},
-	    {OPT_TBANGLE,   "TBAngle",	    3, 1},
+	    {OPT_ROTATE,    "rotate",       3, 1},
 	    {OPT_SRCLENTYPE,"srcLenType",	3, 1},
 	    {OPT_MAXDENSITY,"maxDensity",	4, 1},
         {OPT_EXTENDED,  "extended",     3, 1},
@@ -401,7 +401,10 @@ static void InitDefaultValues(InArgs_t *inArgs)
         VECTOR_COPY(inArgs->yMatDir,o2[1]);
         VECTOR_COPY(inArgs->zMatDir,o2[2]);
 #endif
-	    inArgs->TBAngle = 0;
+	    inArgs->rotAngle = 0;
+        inArgs->rotDir[0]=1.0; 
+        inArgs->rotDir[1]=0.0; 
+        inArgs->rotDir[2]=0.0; 
 	    inArgs->maxDensity = 5.0E14;
 
         inArgs->burgID = -1;
@@ -593,7 +596,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 {
         int     setDefaultRadius = 1;
         int     i, j, k;
-	    int	existDir[3];
+	    int	existDir[3], vec[3];
 	    int	orientationType, existCount;
         char    *argName;
         char    *argValue;
@@ -829,19 +832,29 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	                token = strtok(argValue,",");
 	                inArgs->zMatDir[0] = atof(token);
 	                token = strtok(NULL,",");
-                        if (token == (char *)NULL) Fatal("orientation wrong");
+                    if (token == (char *)NULL) Fatal("orientation wrong");
 	                inArgs->zMatDir[1] = atof(token);
 	                token = strtok(NULL,",");
-                        if (token == (char *)NULL) Fatal("orientation wrong");
+                    if (token == (char *)NULL) Fatal("orientation wrong");
 	                inArgs->zMatDir[2] = atof(token);
 	                NormalizeVec(inArgs->zMatDir);
 	                existDir[2] = 1;
 	                orientationType = 1;
 	                    break;
-	            case OPT_TBANGLE:
-	                inArgs->TBAngle = atof(argValue);
-	                orientationType = 4;
-	                    break;
+	            case OPT_ROTATE:
+	                token = strtok(argValue,",");
+	                inArgs->rotAngle = atof(argValue);
+                    if ((token = strtok(NULL,",")) != (char *)NULL){
+                        vec[0] = atof(token); 
+                        if ((token = strtok(NULL,",")) != (char *)NULL){
+                            vec[1] = atof(token); 
+                            if ((token = strtok(NULL,",")) != (char *)NULL){
+                                vec[2] = atof(token); 
+                                VECTOR_COPY(inArgs->rotDir,vec);
+                            }
+                        }
+                    }
+	                   break;
 	            case OPT_SRCLENTYPE:
 	                inArgs->srcLenType = atoi(argValue);
 	                    break;
@@ -905,69 +918,40 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 
 	    if(orientationType == 0)return;
 
-	    if(orientationType == 1){
-	        existCount = 0;
-	        for(i=0; i<3; i++){
-	            if(existDir[i] == 0)orientationType = i+1;
-		        if(existDir[i] == 1)existCount++;
-	        }
+	    existCount = 0;
+	    for(i=0; i<3; i++){
+	        if(existDir[i] == 0)orientationType = i+1;
+		    if(existDir[i] == 1)existCount++;
+	    }
     
-	        if(existCount == 2 && orientationType >= 1 && orientationType <= 3){
-	            if(orientationType == 1){
-	                cross(inArgs->yMatDir, inArgs->zMatDir, inArgs->xMatDir);
-	 	            NormalizeVec(inArgs->xMatDir);
-	            }else if (orientationType == 2){
-	                cross(inArgs->zMatDir, inArgs->xMatDir, inArgs->yMatDir);
-	 	            NormalizeVec(inArgs->yMatDir);
-	            }else{
-	                cross(inArgs->xMatDir, inArgs->yMatDir, inArgs->zMatDir);
-	 	            NormalizeVec(inArgs->zMatDir);
-	            }
+	    if(existCount == 2 && orientationType >= 1 && orientationType <= 3){
+	        if(orientationType == 1){
+	            cross(inArgs->yMatDir, inArgs->zMatDir, inArgs->xMatDir);
+	 	        NormalizeVec(inArgs->xMatDir);
+	        }else if (orientationType == 2){
+	            cross(inArgs->zMatDir, inArgs->xMatDir, inArgs->yMatDir);
+	 	        NormalizeVec(inArgs->yMatDir);
+	        }else{
+	            cross(inArgs->xMatDir, inArgs->yMatDir, inArgs->zMatDir);
+	 	        NormalizeVec(inArgs->zMatDir);
 	        }
-	    }else{
-	        real8    a1[3] = {1,-1,0}, temR1[3][3];
-	        real8    a2[3] = {1, 0,0}, temR2[3][3], temR3[3][3];
-	        real8    a3[3] = {0, 0,1}, temR4[3][3], abc[3] = {1,1,1};
-	    	real8    matrixOrientation[3][3], abcLab[3];
-	        real8    angle, angleZTB = 9.553166181245092e-01;
-	        int	     seed;
-#if 1
-            real8   temp0[3][3] = {{-1,1,0},{-1,-1,2},{1,1,1}};
-            real8   axisx[3] = {1,0,0};
-            NormalizeVec(temp0[0]);
-            NormalizeVec(temp0[1]);
-            NormalizeVec(temp0[2]);
-    
-            RotateWithAxis(axisx, inArgs->TBAngle, temR1);
-
-            Matrix33Mult33(temR1, temp0, matrixOrientation);
-#else   	
-	        seed = inArgs->seed;
-	        NormalizeVec(a1);
-	    	RotateWithAxis(a1, angleZTB, temR1);
-            
-	        NormalizeVec(a2);
-	        RotateWithAxis(a2, inArgs->TBAngle, temR2);
-            
-	        Matrix33Mult33(temR2, temR1, temR3);
-        	
-	        NormalizeVec(a3);
-	        angle = 2 * PI * randm(&seed);
-	    	RotateWithAxis(a3, angle, temR1);
-            
-	        Matrix33Mult33(temR1, temR3, temR4);
-        	NormalizeVec(abc);
-            Matrix33Vector3Multiply(temR4, abc, abcLab);
-            
-	        angle = 2 * PI * randm(&seed);
-            RotateWithAxis(abcLab, angle, temR1);
-	        Matrix33Mult33(temR1, temR4, matrixOrientation);
-#endif       	
-	        VECTOR_COPY(inArgs->xMatDir,matrixOrientation[0])
-	        VECTOR_COPY(inArgs->yMatDir,matrixOrientation[1])
-	   	    VECTOR_COPY(inArgs->zMatDir,matrixOrientation[2])
-           
-	    }      
+	    }
+        
+        if(fabs(inArgs->rotAngle)>1.0E-2){
+            real8   temp0[3][3]={
+                                {inArgs->xMatDir[0],inArgs->xMatDir[1],inArgs->xMatDir[2]},
+                                {inArgs->yMatDir[0],inArgs->yMatDir[1],inArgs->yMatDir[2]},
+                                {inArgs->zMatDir[0],inArgs->zMatDir[1],inArgs->zMatDir[2]}
+                                };
+            real8 tempRot[3][3], matrixOrientation[3][3];
+            NormalizeVec(inArgs->rotDir);
+            RotateWithAxis(inArgs->rotDir, inArgs->rotAngle, tempRot);
+            Matrix33Mult33(tempRot, temp0, matrixOrientation);
+	        VECTOR_COPY(inArgs->xMatDir, matrixOrientation[0])
+	        VECTOR_COPY(inArgs->yMatDir, matrixOrientation[1])
+	   	    VECTOR_COPY(inArgs->zMatDir, matrixOrientation[2])
+            printf("rotAngle=%f, rotDir={%g,%g,%g}\n",inArgs->rotAngle, inArgs->rotDir[0],inArgs->rotDir[1],inArgs->rotDir[2]);
+        }
        	
         return;
 }          
