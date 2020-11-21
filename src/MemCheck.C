@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include "Home.h"
 
 /*
  *      Define the number of bytes that will be prepended
@@ -127,8 +128,31 @@ void ParadisMemCheck(void)
 
         return;
 }
+#ifdef DEBUG
+int ParadisMemCheck(Home_t *home)
+{
+        int   i;
+        char  hdr[PARADIS_MEM_HEADER_LEN];
+        char  trlr[PARADIS_MEM_TRAILER_LEN];
 
+        memset(hdr, 'H', PARADIS_MEM_HEADER_LEN);
+        memset(trlr, 'T', PARADIS_MEM_TRAILER_LEN);
 
+        for (i = 0; i < memBlocksUsed; i++) {
+            if (memcmp(memBlocks[i].header, hdr, PARADIS_MEM_HEADER_LEN) != 0) {
+                printf("ERROR! memBlock[%d] header corruption!\n", i);
+                return home->flag;
+            }
+            if (memcmp(memBlocks[i].trailer, trlr,
+                       PARADIS_MEM_TRAILER_LEN) != 0) {
+                printf("ERROR! memBlock[%d] trailer corruption!\n", i);
+                return home->flag;
+            }
+        }
+
+        return -1;
+}
+#endif
 /*---------------------------------------------------------------------------
  *
  *      Function:       ParadisFree

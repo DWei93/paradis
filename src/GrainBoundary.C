@@ -1143,7 +1143,7 @@ void HandleGrainBoundary(Home_t *home)
 	real8		x,y,z,burgj[3], burgk[3], vec[3], mergPos[3], dis;
 	real8		burg[3], normal[3], nDir1[3], nDir2[3], gbPlane[3];
 	real8		mergePos[3], distance, newInGrain, newPos[3];
-    real8       vec1[3], vec2[3], p[3];
+    real8       vec1[3], vec2[3], p[3], refPos[3];
 	Param_t		*param;
 	Node_t		*node, *nbrNode1, *nbrNode2, *nbr1, *nbr2, *mergedNode;
 	Plane_t		GBPlane;
@@ -1247,8 +1247,11 @@ void HandleGrainBoundary(Home_t *home)
 
         oldGrain  = home->grainKeys[oldInGrain];
         currGrain = home->grainKeys[currInGrain];
-        real8 refPos[3]={node->x, node->y, node->z};
+        refPos[0]=node->x; refPos[1]=node->y; refPos[2]=node->z;
         if(!GetPublicGB(home,oldGrain, currGrain, &gb, refPos)){
+#ifdef DEBUG
+            printf("Warning: %s %d: can not find gb\n",__FILE__,__LINE__);
+#endif
             vec1[0]=node->oldx; vec1[1]=node->oldy; vec1[2]=node->oldz;
             dis=ClosedGB(home,vec1,&gb);
             if(NewPosToGB(home, node, -1, gb->GBID, refPos, vec2)){
@@ -1261,6 +1264,9 @@ void HandleGrainBoundary(Home_t *home)
                 continue;
             }
         }
+#ifdef DEBUG
+        if(gb ==(GB_t *)NULL)Fatal("gb in %s at %d is null",__FILE__,__LINE__);
+#endif
 
         CoordMinus(refPos,gb->p,vec1);
         if(DotProduct(gb->n, vec1)>0){
@@ -2704,7 +2710,7 @@ void GBCrossSlip(Home_t *home)
 #endif          
                 if(disArray.size() == 0)continue;
                 sort(disArray.begin(), disArray.end(), comByBarrier); 
-#if 0           
+#ifdef DEBUG
                 if(!isScrew){
                     printf("non-screw dislocation decomposition (%g,%g,%g) %d %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg),
                             PlaneID_FCC(gbd,normal));

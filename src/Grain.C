@@ -1682,7 +1682,8 @@ real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB){
 	GB_t 	    *temGB;
 	    
     if(!home->param->polycrystal)return(0.0);
-   
+    *GB = (GB_t *)NULL;
+
     int     i;
     FoldBox(home->param, vec, vec+1, vec+2);
     for(i=0; i<home->nGBs; i++){
@@ -1702,6 +1703,7 @@ real8 ClosedGB(Home_t *home, real8 px, real8 py, real8 pz, GB_t **GB){
 	GB_t 	    *temGB;
 	    
     if(!home->param->polycrystal)return(0.0);
+    *GB = (GB_t *)NULL;
    
     int     i;
     FoldBox(home->param, vec, vec+1, vec+2);
@@ -3851,6 +3853,9 @@ bool PartialDislocations(Home_t *home, Node_t *node1, Node_t *node2, real8 *p1, 
         if(Normal(resBurg) < 0.05){
             return true;
         }
+#ifdef DEBUG
+        printf("Warning in %s at %d: can not find partial dislocations of slip system [%d](%d)\n",__FILE__,__LINE__,bID,pID);
+#endif
 
     }
 

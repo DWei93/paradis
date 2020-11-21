@@ -59,7 +59,6 @@
 #
 
 SYS = linux
-#SYS = linux.opteron
 #SYS = gcc
 
 #
@@ -110,6 +109,7 @@ OPT = -O3
 #DEFS += -DIMAGEFORCE
 #OPENMP_MODE = ON
 #DEFS += -DDEBUG
+#DEFS += -DDEBUG_MEM
 DEFS += -DSIMLPLE_REACTION_ON_GB
 #DEFS += -DGSIZE_EFFECT
 #DEFS += -DTB_PINNING

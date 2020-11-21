@@ -136,6 +136,12 @@ inline bool Numerical(double *vec){
             !isnan(vec[1]) && !isinf(vec[1]) &&
             !isnan(vec[2]) && !isinf(vec[2]));
 }
+inline bool Numerical(double ax, double ay, double az){
+    return (!isnan(ax) && !isinf(ax) &&
+            !isnan(ay) && !isinf(ay) &&
+            !isnan(az) && !isinf(az));
+
+}
 
 /** Determine the vector if is nomalized */
 inline bool IsNormalized(double *vec, double error=ANGLE_ERROR2);

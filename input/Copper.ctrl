@@ -57,7 +57,7 @@ splitMultiNodeFreq =   1
 #  Simulation time and timestepping controls
 #  
 maxStn = 2.0E-2
-maxPst = 5.0E-3
+maxPst = 2.2E-3
 timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-13
 wallTime = 240
