@@ -1603,7 +1603,7 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce)
 	real8 	burg[3], fricMag, dot, armGBForce[3];
 	real8	rann, armf[3], forceGB[3], segCentor[3];
 	real8	oriNForce[3], gForce[3], burgNor[3], norForce[3];
-	int	    i, cacuGBForce, fricForce, armInGrain, armOnGB;
+	int	    i, cacuGBForce=1, fricForce, armInGrain, armOnGB;
     GB_t    *gb;
 	Node_t	*nbr;
 	Param_t *param;
@@ -1881,7 +1881,7 @@ void AdjustSurfaceNode(Home_t *home)
 	Param_t *param = home->param;
 	int 	i, j, numNodePtr, thisDomain, splitOK, switchNode;
     int     inGrain, onGB, armInGrain, armOnGB, globalOp, optClass = OPCLASS_REMESH;
-	real8	nodePos[3], nbrPos[3], nbrConstraint;
+	real8	nodePos[3], nbrPos[3], nbrConstraint=0;
 	real8	interPos[3], oldPos[3], dis, dot, eps=1.0E-4, margin=(param->gbStrength>0)?2.0E-4:0.0;;
 	real8	newPos[3], burg0[3], burgj[3], vec[3], normal[3];
 	Node_t  *node, *nbr, *newNode, *node1, *node2;
@@ -2340,7 +2340,7 @@ void GBCrossSlip(Home_t *home)
     int     opClass, thisDomain;
     int     inGrain, onGB, globalOp = 1;
     int     type, armID, normalID, nbrArmID;
-    int     maxShearSet, localGBID, nbrGrain;
+    int     maxShearSet, localGBID, nbrGrain=-1;
     int     mergeStatus, sideCrossSlipNode;
     bool    firstCrossSlipNode;
     bool    violateIntersectDir;
@@ -2355,7 +2355,7 @@ void GBCrossSlip(Home_t *home)
     real8   newPos[3], maxShear;
     real8   segForceOrig[4][3], gArmForceDir[3], signDir[3];
     Line_t  interLine;
-    Node_t  *node, *nbr1, *nbr2, *nbr, *gbNbr, *newNode;
+    Node_t  *node, *nbr1, *nbr2, *nbr, *gbNbr=(Node_t *)NULL, *newNode;
     Node_t  *mergedNode;
     int     NM1, NM2;
     bool    zeroLenJunc1, zeroLenJunc2;
@@ -2881,6 +2881,7 @@ void GBCrossSlip(Home_t *home)
             maxShear = 0;
             maxShearSet = -1;
             noiseForce = param->shearModulus*noiseFactor;
+            energySet = -1;
             for(j=0; j<disArray.size(); j++){
 //              printf("%d: j=%d, shear=%5.2e, energy=%5.2f\n",home->myDomain,j,maxShearList[j],energyList[j]);
                 if(maxShearList[j] > maxShear+noiseForce){

@@ -1261,8 +1261,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
         if (home->myDomain == 0) {
 
 
-            dataFile = (char *)NULL;
-            ctrlFile = (char*)"control.script";
+            dataFile = (char *)"Copper.data";
+            ctrlFile = (char*)"Copper.ctrl";
 
             for (i = 1; i < argc; i++) {
                 if (!strcmp(argv[i], "-r")) {

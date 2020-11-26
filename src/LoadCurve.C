@@ -631,7 +631,8 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
             case 7:
                 C   = param->elasticConstantMatrix;
                 Sij = param->elasticConstantMatrixInv;
-    
+                Fatal("dpstn unitialized here");
+                for(int el=0;el<6;el++)dpstn[6]=0.0;
                 effPlaRate = sqrt((dpstn[0]*dpstn[0]+ 
                                    dpstn[1]*dpstn[1]+ 
                                    dpstn[2]*dpstn[2]+ 

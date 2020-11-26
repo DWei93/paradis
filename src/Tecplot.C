@@ -54,7 +54,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 {
         int      i, j, thisDomain, arm;
         int      newNodeKeyPtr, narm;
-        int      burgID, normalID; 
+        int      burgID=0, normalID; 
         int	     armInGrain, armOnGB;
         real8    x,y,z, sfForce[3];
         real8    x2,y2,z2;

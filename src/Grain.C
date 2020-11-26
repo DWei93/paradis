@@ -308,6 +308,7 @@ void InitGrain(Home_t *home, Param_t *param){
 	    param->useLabFrame = 1;
 	}
 
+    type =0;
     if(param->polycrystal == 0){
         if(param->xBoundType == Periodic && 
            param->yBoundType == Periodic && 
@@ -2489,7 +2490,7 @@ void NodeImageForce(Home_t *home, Node_t *node, real8 *f)
 int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                              real8 *vec1, real8 *vec2)
 {
-    int     type, armID12, armID21;
+    int     type=NO_INTERSECTION, armID12, armID21;
     int     numGlideConstraintsNode1, numGlideConstraintsNode2;
     real8   glideConstraintsNode1[3][3], glideConstraintsNode2[3][3]; 
     bool    zeroLenJunc1, zeroLenJunc2;
@@ -3172,7 +3173,7 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
     }
 
     int k,l;
-    real8 *b, *n, *ldir; 
+    real8 *b, *n=(real8 *)NULL, *ldir; 
     std::vector<std::vector<Dislocation_t> >::iterator      itDisList;
     real8 barrierFactor, crossProd[3];
     bool isScrew;   
@@ -3187,6 +3188,7 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
                 if(fabs(DotProduct(b,n)/Normal(b))<1E-2)break;
             }
             if(k==gbd->numPlanesPerKeyLine[j])continue;
+            if(n==(real8 *)NULL)Fatal("%s %d: can not find normal",__FILE__,__LINE__);
             if(!GeometricCriterion(gbd, b, ldir, n, 0, dcp.burgList, dcp.disArray))continue;
 
             isScrew = fabs(DotProduct(b,GB->n))<1E-2?true:false;
@@ -3259,7 +3261,7 @@ Decom_t *GetDecompositionResults(BurgInfo_t *gbd, int burgID, int keyLineID)
 void SumOfValuesIsConstant(int n, int sum, std::vector<int>& valueList, int tot, 
                             std::vector<std::vector<int> >& valueLists, int maxVar)
 {
-    int i, j, nextSum;
+    int i, j, nextSum=0;
 
     if(n == 0)return;
     for(i=0; i<= maxVar && i<= sum; i++){

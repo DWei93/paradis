@@ -710,7 +710,7 @@ void WriteProp(Home_t *home, int property)
                 }
 #endif
                 if (home->myDomain == 0) {
-                    real8 totGain, totLoss;
+                    real8 totGain=0.0, totLoss=0.0;
 
                     for (i = 0; i < numBurgVectors; i++) {
                         totGain += totDensityChange[i];

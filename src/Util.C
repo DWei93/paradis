@@ -883,7 +883,7 @@ int InterpolateBL(real8 *x, real8 *y, real8 *val, int numElem,
                   real8 targetX, real8 targetY, real8 *result)
 {
         int    yLow, yHigh, i;
-        int    xLowMin, xLowMax, xHighMin, xHighMax;
+        int    xLowMin, xLowMax, xHighMin=0, xHighMax;
         real8  t, u;
         real8  lowX, highX, lowY, highY;
         real8  val1, val2, val3, val4, tmpVal;
