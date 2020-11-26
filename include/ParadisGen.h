@@ -42,7 +42,8 @@ typedef struct {
 	    real8   xMatDir[3];
 	    real8   yMatDir[3];
 	    real8   zMatDir[3];
-	    real8	TBAngle;
+	    real8	rotAngle;
+        real8   rotDir[3];
 	    int	    srcLenType;
 	    real8	maxDensity;
         int     extended;
@@ -159,7 +160,7 @@ typedef	enum{
 	OPT_XMATDIR,
 	OPT_YMATDIR,
 	OPT_ZMATDIR,
-	OPT_TBANGLE,
+	OPT_ROTATE,
 	OPT_SRCLENTYPE,
 	OPT_MAXDENSITY,
     OPT_EXTENDED,

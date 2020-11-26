@@ -4,22 +4,20 @@
 #
 #                     Script of  Generation of FCC FR source 
 #    The default orientation of cell is
-#                      | Normalize[{ 1,-1, 0}] |
-#                      | Normalize[{ 1, 1, 1}] |
-#                      | Normalize[{-1,-1, 2}] |
-#    which is matrix orientation of PBC polycrystal with twin. 
+#                      | Normalize[{ -1,  1, 0}] | = AB
+#                      | Normalize[{ -1, -1, 2}] | = C\delta
+#                      | Normalize[{  1,  1, 1}] | = D\delta = TB normal
+#
+#    For multulayer PBC cells, the default orientaion should be rotated 5 degree with D\delta to
+#    remove border annihiation effectes of effects of non-TB slip systems
 #    if you want to change the orientation of simulation cell, you can use follwing
 #    two ways:
 #      (1)  <-xMatDir ux,uy,uz -yMatDir vx,vy,vz> or
 #           <-zMatDir wx,wy,wz -yMatDir vx,vy,vz> or
 #           <-zMatDir wx,wy,wz -xMatDir ux,uy,uz> 
 #           we just need two directions of axis.
-#      (2)  <-TBAngle angle(radian system)>
-#           TBAngle is the angle between Z axis and normal of ABC glide plane, if
-#	    twin exist, the normal of ABC represent TB plane. Besides, the another
-#           two independ variables in rotate matrix is random.
-#    if the above two ways are both in command line, first one is default.
-#    $1 is the type of simulation, $2 is randm seed.
+#      (2)  <-rotate rotAngle,rotDir[0],rotDir[1],rotDirp[2]>
+#           We can rotate the local coordinate system again based on the matrix orientation of (1)
 #                    
 ######################################################################################
 
@@ -33,6 +31,11 @@ nMesh=31
 nfrs=20000
 nTDs=0
 pbc=7
+xMatDir=-1,1,0
+yMatDir=-1,-1,2
+if [ $# -ge 4 ]; then
+    rotDir=$4;
+fi
 schmid=0.408
 type=3
 if [ $cubeln -ge 3000 ]; then heightRatio=1; 
@@ -168,12 +171,13 @@ case $srctype in
 ######################################################################################
     5|V)
 
-    info="#./bin/paradisgen -type ${type} -frlen ${frlen} -pbc $pbc -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1 -nTDs $nTDs";
+    info="#./bin/paradisgen -type ${type} -frlen ${frlen} -pbc $pbc -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -rotate ${angle},${rotDir} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1 -nTDs $nTDs -xMatDir ${xMatDir} -yMatDir ${yMatDir}";
 
     echo "$info"
     (echo "${2}-degree" ;  ./bin/paradisgen -type ${type} -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc $pbc -maxDensity $maxDensity -loadDir 0,0,1 \
-    -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;
+    -rotate ${angle},${rotDir} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 \
+    -nLayers 1  -nTDs $nTDs -xMatDir ${xMatDir} -yMatDir ${yMatDir})| tee $logFile;;
 #   -yMatDir -1,-1,-1 -zMatDir 1,-1,0  -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;
 
 
