@@ -58,8 +58,8 @@
 #      gcc             Generic Linux system build using gnu compilers
 #
 
-SYS = linux
-#SYS = gcc
+#SYS = linux
+SYS = gcc
 
 #
 #    Set the execution MODE to PARALLEL to enable compile-time support
@@ -112,7 +112,8 @@ OPT = -O3
 #DEFS += -DDEBUG_MEM
 DEFS += -DSIMLPLE_REACTION_ON_GB
 #DEFS += -DGSIZE_EFFECT
-#DEFS += -DTB_PINNING
+DEFS += -DTB_PINNING
+DEFS += -DSTRONG_GLIDE_STRESS
 #######################################################################
 #
 #    Specify some miscellaneous definitions that may be used

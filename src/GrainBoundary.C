@@ -162,7 +162,7 @@ Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int glo
 *	calculate the glide force towards GB of the node	
 *
 *****************************************************************************/
-
+#ifndef STRONG_GLIDE_STRESS
 real8 GlideShearStress(Home_t *home, Node_t *node, real8 *n){
 
     int	    i,armID21;
@@ -276,6 +276,142 @@ real8 GlideShearStress(Home_t *home, Node_t *node){
     if(numEff <1E-10)return 0.0;
     else return (Normal(f)/numEff);
 }
+#else
+real8 GlideShearStress(Home_t *home, Node_t *node){
+    int     NM;
+    bool    zeroLenJunc;
+    real8   GC[3][3];
+    real8   nForce[3]={node->fX, node->fY, node->fZ};
+
+    if (NM==3)return 0.0;
+
+    GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc);
+    ApplyConstraintsToVelocity(NM, GC, nForce);
+
+    real8 lxb=0.0, lDir[3], n0[3], gDir[3];
+
+    if(NM==1){
+        if(node->numNbrs==2){
+            Node_t *nbr1, *nbr2;
+            nbr1 = GetNeighborNode(home, node, 0);
+            nbr2 = GetNeighborNode(home, node, 1);
+            n0[0] = node->nx[0]; n0[1]=node->ny[0]; n0[2]=node->nz[0];
+            if(nbr1==(Node_t *)NULL || nbr2==(Node_t *)NULL){
+                if(nbr1==(Node_t *)NULL && nbr2==(Node_t *)NULL){
+                    PrintNode(home, node);
+                    printf("Warning in %s %d\n",__FILE__,__LINE__);
+                    return 1.0E9;
+                }else if(nbr1==(Node_t *)NULL){
+                    lDir[0]=nbr2->x-node->x;
+                    lDir[1]=nbr2->y-node->y;
+                    lDir[2]=nbr2->z-node->z;
+                    lxb=Normal(lDir)*(node->burgX[0]*node->burgX[0]+node->burgY[0]*node->burgY[0]+node->burgZ[0]*node->burgZ[0]);
+                    NormalizeVec(lDir);
+                }else{
+                    lDir[0]=nbr1->x-node->x;
+                    lDir[1]=nbr1->y-node->y;
+                    lDir[2]=nbr1->z-node->z;
+                    lxb=Normal(lDir)*(node->burgX[0]*node->burgX[0]+node->burgY[0]*node->burgY[0]+node->burgZ[0]*node->burgZ[0]);
+                    NormalizeVec(lDir);
+                }
+             }else{
+                lDir[0] = nbr2->x - nbr1->x; 
+                lDir[1] = nbr2->y - nbr1->y; 
+                lDir[2] = nbr2->z - nbr1->z; 
+                lxb=0.5*Normal(lDir)*(node->burgX[0]*node->burgX[0]+node->burgY[0]*node->burgY[0]+node->burgZ[0]*node->burgZ[0]);
+                NormalizeVec(lDir);
+            }
+            cross(n0,lDir,gDir);
+            if(Normal(gDir)<1E-10 || lxb < 1E-10)return 1.0E9;
+            NormalizeVec(gDir);
+            ParallelComponent(nForce,gDir,nForce);
+            return Normal(nForce)/lxb;
+        }else if (node->numNbrs>2){
+            lxb = NodeLengthXMag(home, node);
+            return Normal(nForce)/lxb;
+        }else{
+            PrintNode(home,node);
+            Fatal("numNbrs==1 and plane constraints");
+        }
+    }else{
+       lxb = NodeLengthXMag(home, node);
+       return Normal(nForce)/lxb;
+    }
+    return 0.0;
+}
+
+real8 GlideShearStress(Home_t *home, Node_t *node, real8 *n){
+    int     NM;
+    bool    zeroLenJunc;
+    real8   GC[3][3];
+    real8   nForce[3]={node->fX, node->fY, node->fZ};
+
+    if (NM==3)return 0.0;
+
+    GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc);
+    ApplyConstraintsToVelocity(NM, GC, nForce);
+
+    real8 lxb=0.0, lDir[3], n0[3], gDir[3];
+
+    if(NM==1){
+        if(node->numNbrs==2){
+            Node_t *nbr1, *nbr2;
+            nbr1 = GetNeighborNode(home, node, 0);
+            nbr2 = GetNeighborNode(home, node, 1);
+            n0[0] = node->nx[0]; n0[1]=node->ny[0]; n0[2]=node->nz[0];
+            if(nbr1==(Node_t *)NULL || nbr2==(Node_t *)NULL){
+                if(nbr1==(Node_t *)NULL && nbr2==(Node_t *)NULL){
+                    PrintNode(home, node);
+                    printf("Warning in %s %d\n",__FILE__,__LINE__);
+                    return 1.0E9;
+                }else if(nbr1==(Node_t *)NULL){
+                    lDir[0]=nbr2->x-node->x;
+                    lDir[1]=nbr2->y-node->y;
+                    lDir[2]=nbr2->z-node->z;
+                    lxb=Normal(lDir)*(node->burgX[0]*node->burgX[0]+node->burgY[0]*node->burgY[0]+node->burgZ[0]*node->burgZ[0]);
+                    NormalizeVec(lDir);
+                }else{
+                    lDir[0]=nbr1->x-node->x;
+                    lDir[1]=nbr1->y-node->y;
+                    lDir[2]=nbr1->z-node->z;
+                    lxb=Normal(lDir)*(node->burgX[0]*node->burgX[0]+node->burgY[0]*node->burgY[0]+node->burgZ[0]*node->burgZ[0]);
+                    NormalizeVec(lDir);
+                }
+             }else{
+                lDir[0] = nbr2->x - nbr1->x; 
+                lDir[1] = nbr2->y - nbr1->y; 
+                lDir[2] = nbr2->z - nbr1->z; 
+                lxb=0.5*Normal(lDir)*(node->burgX[0]*node->burgX[0]+node->burgY[0]*node->burgY[0]+node->burgZ[0]*node->burgZ[0]);
+                NormalizeVec(lDir);
+            }
+            cross(n0,lDir,gDir);
+            if(Normal(gDir)<1E-10 || lxb < 1E-10)return 1.0E9;
+            NormalizeVec(gDir);
+            ParallelComponent(nForce,gDir,nForce);
+            
+            real8 interDir[3];
+            cross(n0,n, interDir);
+            if(Normal(interDir)<1E-5)return 1.0E9;
+            NormalizeVec(interDir);
+            cross(n0, interDir, gDir);
+            if(Normal(gDir)<1E-5)return 1.0E9;
+
+            ParallelComponent(nForce,gDir,nForce);
+            return Normal(nForce)/lxb;
+        }else if(node->numNbrs>2){
+            lxb = NodeLengthXMag(home, node);
+            return Normal(nForce)/lxb;
+        }else{
+            PrintNode(home,node);
+            Fatal("numNbrs==1 and plane constraints");
+        }
+    }else{
+       lxb = NodeLengthXMag(home, node);
+       return Normal(nForce)/lxb;
+    }
+    return 0.0;
+}
+#endif
 
 void AdjustPenetratedNode(Home_t *home, Node_t *node){
     if(node->inGrain < 0)return;
