@@ -45,21 +45,21 @@ elasticinteraction = 1
 enableCrossSlip =   1
 rTol = 8.3567161
 rc = 33.5268644
-grainSize = 2934
+grainSize = 1467
 loadType = 0
 #maxstep =  40000000
 maxstep =  20000
-dirname = "res.single-2-d-750nm-90-degree"
+dirname = "res."
 remeshRule = 2
 enforceGlidePlanes =  1
 splitMultiNodeFreq =   1  
 #
 #  Simulation time and timestepping controls
 #  
-maxStn = 2.0E-2
-maxPst = 2.2E-3
+maxStn = 1.0E-2
+maxPst = 1.0E-2
 timestepIntegrator =   "trapezoid"
-nextDT = 1.0e-13
+nextDT = 1.0e-15
 wallTime = 240
 #
 #  Fast Multipole Method controls
@@ -72,7 +72,7 @@ fmCorrectionTbl =   "fm-ctab.Cu.m2.t5.dat"
 #  Loading conditions
 #  
 indxErate = 8
-eRate = -5000
+eRate = 5000
 #eRate =  0.0E0
 strRate = -4.0E16
 #strRate = 0.0
@@ -96,10 +96,9 @@ mobilityLaw =   "Wei"
 shearModulus =   54.6e9  # Voight Average
 #shearModulus =  46.554e9  # in jin paper
 gbStrength = -1
-tbStrength = [
-    17.0E6
-    500.0E6 
-]
+tbStrength = [ 17.0E6 500.0E6 ]
+EsciagParams = [ 49.0E6 0.11 0.26 ]
+
 burgMag =   2.55600e-10 
 pois = 3.240000e-01
 

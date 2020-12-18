@@ -494,7 +494,7 @@ struct _param {
         real8   TBNormal[3], TBNormalCryst[3];
         real8   rotateNormal[3][3];
 	    real8	matrixOrientation[3][3];
-	    real8   gbStrength, tbStrength[2];
+	    real8   gbStrength, tbStrength[2], EsciagParams[3];
 	    real8	fricStress;
         real8   a0[4];
         real8   grainSize;

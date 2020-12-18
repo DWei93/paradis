@@ -840,6 +840,11 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 		param->tbStrength[0] = -1.0;
 		param->tbStrength[1] = -1.0;
 
+		BindVar(CPList, "EsciagParams", &param->EsciagParams, V_DBL, 3, VFLAG_NULL);
+        param->EsciagParams[0] = -1;
+        param->EsciagParams[1] = 0.0;
+        param->EsciagParams[2] = 0.0;
+
 		BindVar(CPList, "grainSize", &param->grainSize,
 				V_DBL, 1, VFLAG_NULL);
         param->grainSize = -1;

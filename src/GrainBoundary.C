@@ -497,9 +497,9 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
     real8 cStress;
 #if 1
     if(EsciagStress<0){
-        cStress = 49.0E6+0.11*EsciagStress;
+        cStress = param->EsciagParams[0]+param->EsciagParams[1]*EsciagStress;
     }else{
-        cStress = 49.0E6+0.26*EsciagStress;
+        cStress = param->EsciagParams[0]+param->EsciagParams[2]*EsciagStress;
     }
 #else
     cStress = 141E6 + 0.16*EsciagStress;
