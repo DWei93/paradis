@@ -59,7 +59,7 @@
 #
 
 #SYS = linux
-SYS = gcc
+SYS = linux.opteron
 
 #
 #    Set the execution MODE to PARALLEL to enable compile-time support
@@ -112,7 +112,7 @@ OPT = -O3
 #DEFS += -DDEBUG_MEM
 DEFS += -DSIMLPLE_REACTION_ON_GB
 #DEFS += -DGSIZE_EFFECT
-DEFS += -DTB_PINNING
+#DEFS += -DTB_PINNING
 DEFS += -DSTRONG_GLIDE_STRESS
 #######################################################################
 #
@@ -297,3 +297,4 @@ INCS_SERIAL     = $(INCS_SERIAL.$(SYS)) $(XLIB_INCS) $(HDF_INCS) $(GEOS_ON_INCS)
 F90             = $(F90.$(SYS))
 F90_LIB         = $(F90_LIB.$(SYS))
 F90_OPTS        = $(F90_OPTS.$(SYS))
+
