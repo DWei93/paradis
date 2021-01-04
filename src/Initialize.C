@@ -1491,7 +1491,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
             ReadBinDataFile(home, inData, dataFile);
         } else {
             ReadNodeDataFile(home, inData, dataFile);
-            printf("Reading data file %s complete!\n", dataFile);
+            if(home->myDomain==0)printf("Reading data file %s complete!\n", dataFile);
         }
 	
 		
