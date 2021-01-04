@@ -1261,8 +1261,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
         if (home->myDomain == 0) {
 
 
-            dataFile = (char *)"Copper.data";
-            ctrlFile = (char*)"Copper.ctrl";
+            dataFile = (char *)NULL;
+            ctrlFile = (char*)NULL;
 
             for (i = 1; i < argc; i++) {
                 if (!strcmp(argv[i], "-r")) {
@@ -1491,6 +1491,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
             ReadBinDataFile(home, inData, dataFile);
         } else {
             ReadNodeDataFile(home, inData, dataFile);
+            printf("Reading data file %s complete!\n", dataFile);
         }
 	
 		
