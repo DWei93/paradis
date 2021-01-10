@@ -3534,10 +3534,11 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
              
                
                 chain++;
+	            IncDislocationDensity(inData, baseNodeID, totDislocLen);
                 baseNodeID = inData->nodeCount;
                 startRemeshIndex = baseNodeID;
 
-	            if(totSrcLen> maxDensity*volume*burgMag*burgMag){
+	            if(*totDislocLen> maxDensity*volume*burgMag*burgMag){
 		            finish = 1;
 		            break;
 	            }else{
@@ -3567,7 +3568,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         fclose(fp); fclose(fp1);
 #endif
         
-	    IncDislocationDensity(inData, totDislocLen);
 	    param->nodeCount = inData->nodeCount;
 	    WriteInitialNodeData(home, inData, 1);
 	    FreeInNodeArray(inData, inData->nodeCount);
