@@ -489,8 +489,8 @@ static void CheckArgSanity(InArgs_t *inArgs)
 static void PrintArgs(InArgs_t *inArgs)
 {
         printf("\n");
-        printf("Dislocation Type:         %s\n",
-               funcData[inArgs->type].funcName);
+        printf("Dislocation Type:         %s(%s dislocation)\n",
+               funcData[inArgs->type].funcName,inArgs->extended==1?"extended":"perfect");
         printf("Cube Length:              %d\n",inArgs->cubeLength);
 		
 		
