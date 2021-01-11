@@ -2749,7 +2749,7 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainI
 #endif
 /* 
  *          compound Roman-Roman burgers vectors    (3) 
- *          magnitude: Sqrt(2)
+ *          magnitude: Sqrt(2) Hirth Locks
  */
            { 1.414213562373095,        0.0e+00,                   0.0e+00            },      // DC+BA -- 18
            { 0.0e+00,                  1.414213562373095,         0.0e+00            },      // DC+AB -- 19

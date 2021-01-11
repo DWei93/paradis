@@ -2864,7 +2864,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         std::vector<std::vector<Dislocation_t> >::iterator      itDisList;
 
         real8   normalABC[3], lambda_FR, lambda_SAS1, lambda_GB1, lambda_SAS2, lambda_GB2, interDir[3];
-        real8   barrierFactor, crossProd[3], vec[3];
+        real8   barrierFactor, crossProd[3], vec[3], intDir[3];
         real8   vec1[3], vec2[3], s0,  paras[4][4], zaxis[3] = {0,0,1};
         int l; real8 dis;
 
@@ -3103,21 +3103,20 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                         }else{
                             
                             VECTOR_COPY(p0, p1); inGrain0=inGrain1; onGB0 = onGB1;
-                            for (i = 0; i < 3; i++) {
-                                p1[i] = p0[i] - (srcLen * randomLine[i])/2.0;
-                                p2[i] = p0[i] + (srcLen * randomLine[i])/2.0;
-                            } 
-                            NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1, 15);
-                            NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2, 15);
+                            cross(n0, param->TBNormal, intDir);
+                            if(Normal(intDir)<1E-3)Fatal("%s at %d",__func__,__LINE__);
+                            NormalizeVec(intDir);
+                            cross(n0, intDir, n1);
+                            if(Normal(intDir)<1E-3)Fatal("%s at %d",__func__,__LINE__);
+                            NormalizeVec(n1);
                             grain = home->grainKeys[inGrain0];
-
-                            if(!(onGB1<0 && inGrain1==inGrain0) && !(onGB2<0 && inGrain2==inGrain0)){
-                                a1 = atan(grain->thick/0.942809/(srcLen));
-                                cross(param->TBNormal, n0, vec1); NormalizeVec(vec1);
-                                cross(vec1, n0, vec2); NormalizeVec(vec2);
-                                CoordAdd(((randm(&seed)>0.5)?-1.0:1.0)*cos(a1),vec1,((randm(&seed)>0.5)?-1.0:1.0)*sin(a1),vec2, randomLine);
-                                NormalizeVec(randomLine);
-                
+                            if(srcLen>grain->thick/0.942809){
+                                randomAngle = asin(grain->thick/0.942809/srcLen);
+                                srcLen *=2;
+                                randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
+                                for(i = 0; i < 3; i++){
+                                    randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
+                                }
                                 for(i=0;i<grain->nBounds;i++){
                                     gb = grain->GB[i];
                                     gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
@@ -3133,7 +3132,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                     }
                                 }
                                 if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
-
+                                
                                 for(i=0;i<grain->nBounds;i++){
                                     gb = grain->GB[i];
                                     gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
@@ -3149,40 +3148,87 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                     }
                                 }
                                 if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
-                            }else if(!(onGB1<0 && inGrain1==inGrain0)){
-                                for(i=0;i<grain->nBounds;i++){
-                                    gb = grain->GB[i];
-                                    gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
-                                    gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
-                                    gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
+                            }else{
+                                for (i = 0; i < 3; i++) {
+                                    p1[i] = p0[i] - (srcLen * randomLine[i])/2.0;
+                                    p2[i] = p0[i] + (srcLen * randomLine[i])/2.0;
+                                } 
+                                NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1, 15);
+                                NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2, 15);
+                                grain = home->grainKeys[inGrain0];
                                 
-                                    if(DotProduct(gbNormal,randomLine)<0){
-                                        VECTOR_COPY(vec2, gb->p);
-                                        PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
-                                        LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p1);
-                                        inGrain1=-1; onGB1 = gb->GBID;
-                                        break;
+                                if(!(onGB1<0 && inGrain1==inGrain0) && !(onGB2<0 && inGrain2==inGrain0)){
+                                    randomAngle = asin(grain->thick/0.942809/srcLen);
+                                    randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
+                                    for(i = 0; i < 3; i++){
+                                        randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
                                     }
-                                }
-                                if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
-                            }else if(!(onGB2<0 && inGrain2==inGrain0)){
-                                for(i=0;i<grain->nBounds;i++){
-                                    gb = grain->GB[i];
-                                    gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
-                                    gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
-                                    gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
                                 
-                                    if(DotProduct(gbNormal,randomLine)>0){
-                                        VECTOR_COPY(vec2, gb->p);
-                                        PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
-                                        LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p2);
-                                        inGrain2=-1; onGB2 = gb->GBID;
-                                        break;
+                                    for(i=0;i<grain->nBounds;i++){
+                                        gb = grain->GB[i];
+                                        gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
+                                        gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
+                                        gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
+                                    
+                                        if(DotProduct(gbNormal,randomLine)<0){
+                                            VECTOR_COPY(vec2, gb->p);
+                                            PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                            LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p1);
+                                            inGrain1=-1; onGB1 = gb->GBID;
+                                            break;
+                                        }
                                     }
+                                    if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
+                                
+                                    for(i=0;i<grain->nBounds;i++){
+                                        gb = grain->GB[i];
+                                        gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
+                                        gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
+                                        gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
+                                    
+                                        if(DotProduct(gbNormal,randomLine)>0){
+                                            VECTOR_COPY(vec2, gb->p);
+                                            PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                            LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p2);
+                                            inGrain2=-1; onGB2 = gb->GBID;
+                                            break;
+                                        }
+                                    }
+                                    if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
+                                }else if(!(onGB1<0 && inGrain1==inGrain0)){
+                                    for(i=0;i<grain->nBounds;i++){
+                                        gb = grain->GB[i];
+                                        gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
+                                        gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
+                                        gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
+                                    
+                                        if(DotProduct(gbNormal,randomLine)<0){
+                                            VECTOR_COPY(vec2, gb->p);
+                                            PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                            LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p1);
+                                            inGrain1=-1; onGB1 = gb->GBID;
+                                            break;
+                                        }
+                                    }
+                                    if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
+                                }else if(!(onGB2<0 && inGrain2==inGrain0)){
+                                    for(i=0;i<grain->nBounds;i++){
+                                        gb = grain->GB[i];
+                                        gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
+                                        gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
+                                        gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
+                                    
+                                        if(DotProduct(gbNormal,randomLine)>0){
+                                            VECTOR_COPY(vec2, gb->p);
+                                            PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                            LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p2);
+                                            inGrain2=-1; onGB2 = gb->GBID;
+                                            break;
+                                        }
+                                    }
+                                    if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
                                 }
-                                if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
                             }
-
                             srcLen = PointPointDistance(p1,p2);
                         }
 
