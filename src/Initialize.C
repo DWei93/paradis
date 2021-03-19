@@ -1477,6 +1477,14 @@ void Initialize(Home_t *home,int argc, char *argv[])
             if(home->myDomain==0)FormatVector(param->edotdir, "edot direction");
         }
 
+        if(param->loadType == 6){
+            int singleDir=false;
+            for(j=0; j<6; j++){
+                if(param->loadDir[j]>1E-2)
+                    if(singleDir==false)singleDir=true; else if (home->myDomain == 0)Fatal("loadType=6: only support single direction loading!");
+            }
+        }
+
 /*
  *      Each process needs to get some information about which IO group
  *      it is in before the nodal data files are read in.

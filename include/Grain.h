@@ -74,6 +74,8 @@ typedef struct {
 #define PARTIAL_BURG    0x0002
 #define JUNCTION_BURG   0x0004
 
+#define CLS_TEST    1
+
 typedef	enum{
     ZERO_BURG,
     BASIC_BURG,

@@ -75,9 +75,9 @@ void WriteProp(Home_t *home, int property)
         char    fileName[256], var[256];
         FILE    *fp;
         Param_t *param;
+        int     loadDirID;
 
-
-       param = home->param;
+        param = home->param;
 #ifdef VELOCITY_STATISTICS
         real8   nav_a = 0.0, nav_ia = 0.0;
         int     dissStartID = 3*param->nVelBins;
@@ -315,8 +315,7 @@ void WriteProp(Home_t *home, int property)
                 fprintf(fp,"%e %e %e\n", param->timeNow, pstnijk, ptstnijk);
                 fclose(fp);
         
-                if ((param->loadType == 1) || (param->loadType == 4) || 
-                     (param->loadType == 7)) {
+                if ((param->loadType > 0)) {
         
                     snprintf(fileName, sizeof(fileName),
                              "%s/stress_Plastic_strain", DIR_PROPERTIES);
@@ -513,6 +512,9 @@ void WriteProp(Home_t *home, int property)
                         case 1:
                             sign = Sign(param->eRate);
                             break;
+                        case 6:
+                            sign = Sign(param->eRate);
+                            break;
                         case 7:
                             sign = Sign(param->strRate);
                             break;
@@ -537,33 +539,41 @@ void WriteProp(Home_t *home, int property)
 					}
         
                     fprintf(fp,"%d ", home->cycle);
-
-                    sigijk = param->appliedStress[0]*al*al     +
-                             param->appliedStress[1]*am*am     +
-                             param->appliedStress[2]*an*an     +
-                             2.0*param->appliedStress[3]*am*an +
-                             2.0*param->appliedStress[4]*an*al +
-                             2.0*param->appliedStress[5]*al*am;
-
-                    pstnijk =  param->totpStn[0]*al*al     +
-                               param->totpStn[1]*am*am     +
-                               param->totpStn[2]*an*an     +
-                               2.0*param->totpStn[3]*am*an +
-                               2.0*param->totpStn[4]*an*al +
-                               2.0*param->totpStn[5]*al*am;
-                 
-                    ptstnijk = param->totTwinpStn[0]*al*al     +
-                               param->totTwinpStn[1]*am*am     +
-                               param->totTwinpStn[2]*an*an     +
-                               2.0*param->totTwinpStn[3]*am*an +
-                               2.0*param->totTwinpStn[4]*an*al +
-                               2.0*param->totTwinpStn[5]*al*am;
+                    if (param->loadType != 6){
+                        sigijk = param->appliedStress[0]*al*al     +
+                                 param->appliedStress[1]*am*am     +
+                                 param->appliedStress[2]*an*an     +
+                                 2.0*param->appliedStress[3]*am*an +
+                                 2.0*param->appliedStress[4]*an*al +
+                                 2.0*param->appliedStress[5]*al*am;
+                        
+                        pstnijk =  param->totpStn[0]*al*al     +
+                                   param->totpStn[1]*am*am     +
+                                   param->totpStn[2]*an*an     +
+                                   2.0*param->totpStn[3]*am*an +
+                                   2.0*param->totpStn[4]*an*al +
+                                   2.0*param->totpStn[5]*al*am;
+                        
+                        ptstnijk = param->totTwinpStn[0]*al*al     +
+                                   param->totTwinpStn[1]*am*am     +
+                                   param->totTwinpStn[2]*an*an     +
+                                   2.0*param->totTwinpStn[3]*am*an +
+                                   2.0*param->totTwinpStn[4]*an*al +
+                                   2.0*param->totTwinpStn[5]*al*am;
+                    }else{
+                        for(auto j=0; j<6;j++){
+                            if (param->loadDir[j]>1E-2){loadDirID=j; break;}
+                        }
+                        sigijk = param->appliedStress[loadDirID];
+                        pstnijk = param->totpStn[loadDirID];
+                        ptstnijk = param->totTwinpStn[loadDirID];
+                    }
                     if (param->loadType==4){
                         fprintf(fp, "%e %e %e ",param->netCyclicStrain*1.0E2, sigijk/1.0E6, pstnijk*1.0E2);
                         if(param->polycrystal) fprintf(fp, "%e ", ptstnijk*1.0E2);
                         if(fabs(param->stainCycle) >= param->maxCycle)param->finish = 1;
                         
-                    }else{
+                    }else {
                         fprintf(fp, "%e %e %e ",sign*param->eRate*1.0E2*param->timeNow, sign*sigijk/1.0E6, sign*pstnijk*1.0E2);
                         if(param->polycrystal) fprintf(fp, "%e ", sign*ptstnijk*1.0E2);
 

@@ -92,6 +92,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 		real8   dpstn[6], dsig[6], destn[6];
         real8   tmpdSig[6];
 		real8   (*C)[6], (*Sij)[6];
+        real8   Si[6];
         real8   effPlaRate;
         Param_t *param;
         
@@ -310,66 +311,6 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 param->totstraintensor[5] = erate * param->timeNow *  al*am;
 				
 #else
-				for (i = 0; i < 6; i++) {
-                    dpstn[i] = param->delpStrain[i];
-                }
-
-/*
- *              Set pointers to the precomputed 6x6 elastic constant
- *              matrix (C) and its inverse, the compliance matrix (Sij)
- */
-                C   = param->elasticConstantMatrix;
-                Sij = param->elasticConstantMatrixInv;
-				
-                effPlaRate = sqrt((dpstn[0]*dpstn[0]+ 
-                                   dpstn[1]*dpstn[1]+ 
-                                   dpstn[2]*dpstn[2]+ 
-                               2.0*dpstn[3]*dpstn[3]+ 
-                               2.0*dpstn[4]*dpstn[4]+ 
-                               2.0*dpstn[5]*dpstn[5])*2.0/3.0)/param->lastDT;
-
-                if(param->plaRateCtr <= 0.0 || 
-                  (param->plaRateCtr > 0 && effPlaRate <= param->plaRateCtr)){
-                    dstn[0] = param->loadDir[0]*dtt*erate;
-                    dstn[1] = param->loadDir[1]*dtt*erate;
-                    dstn[2] = param->loadDir[2]*dtt*erate;
-                    dstn[3] = param->loadDir[3]*dtt*erate;
-                    dstn[4] = param->loadDir[4]*dtt*erate;
-                    dstn[5] = param->loadDir[5]*dtt*erate;
-                }
-
-                dsig[0] = (dstn[0] - dpstn[0]) /Sij[0][0];
-                dsig[1] = (dstn[1] - dpstn[1]) /Sij[1][1];
-                dsig[2] = (dstn[2] - dpstn[2]) /Sij[2][2];
-                dsig[3] = 2.0 * (dstn[3] - dpstn[3]) /Sij[3][3];
-                dsig[4] = 2.0 * (dstn[4] - dpstn[4]) /Sij[4][4];
-                dsig[5] = 2.0 * (dstn[5] - dpstn[5]) /Sij[5][5];
-
-				
-				for(i=0; i<6; i++){
-					for(j=0; j<6; j++){
-						destn[i] += Sij[i][j] * dsig[j];
-					}
-					param->elasticStrainTensor[i] += destn[i];
-				}
-				
-				for(i=0; i<6; i++){
-					param->appliedStress[i] += dsig[i];
-					
-				}
-				
-                deltaStress[0][0] = dsig[0];
-                deltaStress[1][1] = dsig[1];
-                deltaStress[2][2] = dsig[2];
-
-                deltaStress[1][2] = dsig[3];
-                deltaStress[2][0] = dsig[4];
-                deltaStress[0][1] = dsig[5];
-
-                deltaStress[2][1] = deltaStress[1][2];
-                deltaStress[0][2] = deltaStress[2][0];
-                deltaStress[1][0] = deltaStress[0][1];
-
 #endif
 //                if(home->myDomain == 0)printf("Loading %e %e %e %e\n", erate*dtt, dpstn[3], deltaStress[2][1]/dtt, param->appliedStress[3]);
                 break;
@@ -624,6 +565,51 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
  *          User defined load-time curve
  */
             case 6:
+				for (i = 0; i < 6; i++) {
+                    dpstn[i] = param->delpStrain[i];
+                }
+
+/*
+ *              Set pointers to the precomputed 6x6 elastic constant
+ *              matrix (C) and its inverse, the compliance matrix (Sij)
+ */
+                C   = param->elasticConstantMatrix;
+                Sij = param->elasticConstantMatrixInv;
+                Si[0]=Sij[0][0]; Si[1]=Sij[1][1]; Si[2]=Sij[2][2];
+                Si[3]=0.5*Sij[3][3]; Si[4]=0.5*Sij[4][4]; Si[5]=0.5*Sij[5][5];
+				
+                for (i=0;i<6;i++){
+                    if(param->loadDir[i]>1E-2){
+                        dsig[i] = (param->loadDir[i]*dtt*erate - dpstn[i])/Si[i];
+                    }else{
+                        dsig[i]=0.0;
+                    }
+                }
+
+				for(i=0; i<6; i++){
+					for(j=0; j<6; j++){
+						destn[i] += Sij[i][j] * dsig[j];
+					}
+					param->elasticStrainTensor[i] += destn[i];
+				}
+				
+				for(i=0; i<6; i++){
+					param->appliedStress[i] += dsig[i];
+					
+				}
+				
+                deltaStress[0][0] = dsig[0];
+                deltaStress[1][1] = dsig[1];
+                deltaStress[2][2] = dsig[2];
+
+                deltaStress[1][2] = dsig[3];
+                deltaStress[2][0] = dsig[4];
+                deltaStress[0][1] = dsig[5];
+
+                deltaStress[2][1] = deltaStress[1][2];
+                deltaStress[0][2] = deltaStress[2][0];
+                deltaStress[1][0] = deltaStress[0][1];
+
                 break;
 /*
  *          Stress loading with plastic strain control

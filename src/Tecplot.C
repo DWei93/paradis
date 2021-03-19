@@ -287,6 +287,8 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
             NormalizeVec(f1); NormalizeVec(f);
             if(!Numerical(f)){VECTOR_ZERO(f);}
             if(!Numerical(f1)){VECTOR_ZERO(f1);}
+            if(!Numerical(ifMag))ifMag=0.0;
+            if(!Numerical(fMag))fMag=0.0;
           
 /*
  *          Don't assume PBC is enabled...
