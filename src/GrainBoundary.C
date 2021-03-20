@@ -162,121 +162,6 @@ Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int glo
 *	calculate the glide force towards GB of the node	
 *
 *****************************************************************************/
-#ifndef STRONG_GLIDE_STRESS
-real8 GlideShearStress(Home_t *home, Node_t *node, real8 *n){
-
-    int	    i,armID21;
-    real8	normal[3],disLength;
-    real8	intersection[3];
-    real8	glideDir[3], ldir[3];
-    real8	fGlide=0.0;
-    Node_t  *nbr;
-    Param_t *param=home->param;
-    
-    if(node == (Node_t *)NULL){
-        printf("Task %d: %s, line %d -- Node = NULL",
-               home->myDomain, __FILE__, __LINE__);
-        return(0);
-    }
-
-
-    real8 burgMag, numEff=0, armf[3];
-    for(i=0;i<node->numNbrs;i++){
-        nbr = GetNeighborNode(home,node,i);
-        if(nbr==(Node_t *)NULL) continue;
-        normal[0] = node->nx[i];	
-        normal[1] = node->ny[i];	
-        normal[2] = node->nz[i];	
-
-        cross(normal,n,intersection);
-        NormalizeVec(intersection);
-
-        burgMag = sqrt(node->burgX[i]*node->burgX[i]
-                     +node->burgY[i]*node->burgY[i]
-                     +node->burgZ[i]*node->burgZ[i]);
-        ldir[0] = nbr->x-node->x;
-        ldir[1] = nbr->y-node->y;
-        ldir[2] = nbr->z-node->z;
-        ZImage(param,ldir, ldir+1, ldir+2);
-        disLength = Normal(ldir)*burgMag;
-
-        if(disLength<1E-2)continue;
-        NormalizeVec(ldir);
-        if(!AlignedDirection(ldir, intersection, 0.85))continue;
-        armID21 = GetArmID(home, nbr, node);
-        if(armID21 <0)Fatal("can not find inverse armID in %s",__func__);
-
-        armf[0] = node->armfx[i]+nbr->armfx[armID21];
-        armf[1] = node->armfy[i]+nbr->armfy[armID21];
-        armf[2] = node->armfz[i]+nbr->armfz[armID21];
-#if 1
-        cross(normal,intersection,glideDir);
-        NormalizeVec(glideDir);
-
-        ParallelComponent(armf, glideDir, armf);
-#endif
-        fGlide += (Sign(DotProduct(n,armf))*Normal(armf)/disLength);
-        numEff += 1.0;
-    }
-
-    if(numEff <1E-10)return 0.0;
-    else return (fGlide/numEff);
-}
-
-real8 GlideShearStress(Home_t *home, Node_t *node){
-
-    int	    i,armID21;
-    real8	normal[3],disLength;
-    real8	intersection[3];
-    real8	glideDir[3], ldir[3];
-    real8	fGlide=0.0;
-    Node_t  *nbr;
-    Param_t *param=home->param;
-    
-    if(node == (Node_t *)NULL){
-        printf("Task %d: %s, line %d -- Node = NULL",
-               home->myDomain, __FILE__, __LINE__);
-        return(0);
-    }
-
-    real8 burgMag, numEff=0, armf[3], f[3]={0,0,0};
-    for(i=0;i<node->numNbrs;i++){
-        nbr = GetNeighborNode(home,node,i);
-        if(nbr==(Node_t *)NULL) continue;
-        normal[0] = node->nx[i];	
-        normal[1] = node->ny[i];	
-        normal[2] = node->nz[i];	
-
-        burgMag = sqrt(node->burgX[i]*node->burgX[i]
-                     +node->burgY[i]*node->burgY[i]
-                     +node->burgZ[i]*node->burgZ[i]);
-        ldir[0] = nbr->x-node->x;
-        ldir[1] = nbr->y-node->y;
-        ldir[2] = nbr->z-node->z;
-        ZImage(param,ldir, ldir+1, ldir+2);
-        disLength = Normal(ldir)*burgMag;
-
-        if(disLength<1E-2)continue;
-        armID21 = GetArmID(home, nbr, node);
-        if(armID21 <0)Fatal("can not find inverse armID in %s",__func__);
-
-        armf[0] = node->armfx[i]+nbr->armfx[armID21];
-        armf[1] = node->armfy[i]+nbr->armfy[armID21];
-        armf[2] = node->armfz[i]+nbr->armfz[armID21];
-
-        cross(normal,ldir,glideDir);
-        NormalizeVec(glideDir);
-        ParallelComponent(armf, glideDir, armf);
-        f[0] += armf[0]/disLength;
-        f[1] += armf[1]/disLength;
-        f[2] += armf[2]/disLength;
-        numEff += 1.0;
-    }
-
-    if(numEff <1E-10)return 0.0;
-    else return (Normal(f)/numEff);
-}
-#else
 real8 GlideShearStress(Home_t *home, Node_t *node){
     int     NM;
     bool    zeroLenJunc;
@@ -343,7 +228,7 @@ real8 GlideShearStress(Home_t *home, Node_t *node){
 real8 GlideShearStress(Home_t *home, Node_t *node, real8 *n){
     int     NM;
     bool    zeroLenJunc;
-    real8   GC[3][3];
+    real8   GC[3][3], sign;
     real8   nForce[3]={node->fX, node->fY, node->fZ};
 
     if (NM==3)return 0.0;
@@ -397,29 +282,36 @@ real8 GlideShearStress(Home_t *home, Node_t *node, real8 *n){
             if(Normal(gDir)<1E-5)return 1.0E9;
 
             ParallelComponent(nForce,gDir,nForce);
-            return Normal(nForce)/lxb;
+            sign = DotProduct(nForce, n)>0?1.0:-1.0;
+            return sign*Normal(nForce)/lxb;
         }else if(node->numNbrs>2){
             lxb = NodeLengthXMag(home, node);
-            return Normal(nForce)/lxb;
+            sign = DotProduct(nForce, n)>0?1.0:-1.0;
+            return sign*Normal(nForce)/lxb;
         }else{
             PrintNode(home,node);
             Fatal("numNbrs==1 and plane constraints");
         }
     }else{
        lxb = NodeLengthXMag(home, node);
-       return Normal(nForce)/lxb;
+        sign = DotProduct(nForce, n)>0?1.0:-1.0;
+        return sign*Normal(nForce)/lxb;
     }
     return 0.0;
 }
-#endif
 
 void AdjustPenetratedNode(Home_t *home, Node_t *node){
     if(node->inGrain < 0)return;
     int currInGrain, currOnGB;
     NodeLocation(home, node->x, node->y, node->z, currInGrain, currOnGB);
-    if(currInGrain == node->inGrain)return;
+    if(currInGrain == node->inGrain || currInGrain < 0)return;
+    
+    real8 refDir[3]={node->x-node->oldx, node->y-node->oldy, node->z-node->oldz};
+    real8 pos[3]={node->x, node->y, node->z};
+    ZImage(home->param, refDir, refDir+1, refDir+2);
+    GetGBNormal(home, node->inGrain, currInGrain, refDir, pos);
 
-    real8 gStress = GlideShearStress(home, node);
+    real8 gStress = GlideShearStress(home, node, refDir);
     real8 cStress;
     Param_t *param = home->param;
     if(node->numNbrs > 1){
@@ -1427,7 +1319,7 @@ void HandleGrainBoundary(Home_t *home)
         }		
 
         if(node->numNbrs > 2 || (crossSlipNode==1)){
-            if(fabs(GlideShearStress(home, node, gb->n)) > param->tbStrength[1]){
+            if(fabs(GlideShearStress(home, node, gbPlane)) > param->tbStrength[1]){
                 vec1[0] = node->vX;
                 vec1[1] = node->vY;
                 vec1[2] = node->vZ;
@@ -1927,7 +1819,7 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce)
 inline bool ChangeGBConstraint(Home_t *home, Node_t *node, real8 *n){
     if(GBIntersectNode(home, node))return false;
 
-    real8 fGlide = GlideShearStress(home, node, n);
+    real8 fGlide = fabs(GlideShearStress(home, node, n));
     fGlide *=((dot_product(node->fX,node->fY,node->fZ,n[0],n[1],n[2])>0)?1.0:-1.0);
     if(fGlide > home->param->gbStrength || fGlide<0){
         node->constraint =0;
@@ -1984,7 +1876,7 @@ void ApplyPosConstraint(Home_t *home, Node_t *node){
                 if(pos[2]>0){n[2]=1; p[2]=param->zBoundMax-a;}else{n[2]=-1; p[2]=param->zBoundMin+a;}
             }
                 
-            fGlide = GlideShearStress(home, node, n);
+            fGlide = fabs(GlideShearStress(home, node, n));
             fGlide *=((dot_product(node->fX,node->fY,node->fZ,n[0],n[1],n[2])>0)?1.0:-1.0);
             if(fGlide < param->gbStrength){
                 if(SegmentPlaneIntersection(pos,oldPos,n,p,interPos)!=POINT_INTERSECTION){

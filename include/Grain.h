@@ -351,6 +351,7 @@ bool PartialDislocations(BurgInfo_t *bd, real8 *burg, real8 *plane, real8 *p1, r
 
 void CentorPos(Param_t *param, real8 *p1, real8 *p2, real8 *p);
 void AdjustPenetratedNode(Home_t *home, Node_t *node);
+void    GetGBNormal(Home_t *home, int oldInGrain, int currInGrain, real8  *refDir, real8 *pos);
 real8 GlideShearStress(Home_t *home, Node_t *node);
 bool IntersectionOfRayBox(Param_t *param, real8 *dir, real8 *p, real8 *interPos, int &constraint);
 void PlaneBoxIntersections(real8 *n, real8 *p, real8 *box, std::vector<std::vector<real8> > &vertices);

@@ -1733,7 +1733,7 @@ bool GetPublicGB(Home_t *home, Grain_t *grain1, Grain_t *grain2, GB_t **GB, real
 
     int id, i;
     if(home->nGrains!=2){
-        for(i=0; i<grain1->nBounds; i++){
+        for(i=0; i<grain2->nBounds; i++){
             id = GetGBIndexOfGrain(grain1, grain2->GB[i]->GBID);
             if(id > -1){
                 *GB = grain1->GB[id];
@@ -4590,6 +4590,37 @@ void DrawGlidePlanes(FILE *fp, char *zoneName, std::vector<real8> &vertices, std
 }
 
 
+void  GetGBNormal(Home_t *home, int oldInGrain, int currInGrain, real8  *refDir, real8 *pos)
+{
+    Grain_t *grain1 = home->grainKeys[oldInGrain];
+    Grain_t *grain2 = home->grainKeys[currInGrain];
+    int id, i;
+    real8 *n;
+    for(i=0; i<grain2->nBounds; i++){
+        id = GetGBIndexOfGrain(grain1, grain2->GB[i]->GBID);
+        if(id > -1){
+            n = grain1->GB[id]->n;
+            refDir[0] = grain1->sign[id]*n[0];
+            refDir[1] = grain1->sign[id]*n[1];
+            refDir[2] = grain1->sign[id]*n[2];
+            break;
+        } 
+    }
+    if(id==grain2->nBounds){
+        GB_t *gb;
+        real8 dis=ClosedGB(home,pos,&gb);
+        if(dis>0){
+            refDir[0] = gb->n[0];
+            refDir[1] = gb->n[1];
+            refDir[2] = gb->n[2];
+        }else{
+            refDir[0] = -gb->n[0];
+            refDir[1] = -gb->n[1];
+            refDir[2] = -gb->n[2];
+        }
+    }
+    return;
+}
 
 
 
