@@ -3115,7 +3115,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                 srcLen *=2;
                                 randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
                                 for(i = 0; i < 3; i++){
-                                    randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
+                                    randomLine[i] = n1[i] * sin(randomAngle) + intDir[i] * cos(randomAngle);
                                 }
                                 for(i=0;i<grain->nBounds;i++){
                                     gb = grain->GB[i];
