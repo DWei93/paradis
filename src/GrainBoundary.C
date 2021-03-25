@@ -306,19 +306,63 @@ void AdjustPenetratedNode(Home_t *home, Node_t *node){
     NodeLocation(home, node->x, node->y, node->z, currInGrain, currOnGB);
     if(currInGrain == node->inGrain || currInGrain < 0)return;
     
+    Param_t *param = home->param;
     real8 refDir[3]={node->x-node->oldx, node->y-node->oldy, node->z-node->oldz};
     real8 pos[3]={node->x, node->y, node->z};
-    ZImage(home->param, refDir, refDir+1, refDir+2);
+    ZImage(param, refDir, refDir+1, refDir+2);
     GetGBNormal(home, node->inGrain, currInGrain, refDir, pos);
 
     real8 gStress = GlideShearStress(home, node, refDir);
     real8 cStress;
-    Param_t *param = home->param;
     if(node->numNbrs > 1){
         if(node->numNbrs>2) cStress = param->tbStrength[1];
         else{
            if(fabs(dot_product(node->burgX[0], node->burgY[0], node->burgZ[0], param->TBNormal[0], param->TBNormal[1], param->TBNormal[2])) < 0.1){
-                cStress = param->tbStrength[0];
+                Node_t *nbr = GetNeighborNode(home, node, 0);
+                if(nbr == (Node_t *)NULL){
+                    cStress = param->tbStrength[0];
+                }else{
+                    real8 pBurg1[3], pBurg2[3], EsciagStress, EsciagBurg[3];
+                    real8 burg[3] = {node->burgX[0], node->burgY[0], node->burgZ[0]};
+                    real8 plane[3]={node->nx[0], node->ny[0], node->nz[0]};
+                    BurgInfo_t *bd = GetBurgData(home, node, nbr);
+                    real8 posDir[3] = {nbr->x-node->x, nbr->y-node->y, nbr->z-node->z}, intDir[3];
+                    ZImage(param, posDir, posDir+1, posDir+2);
+                    cross(plane, param->TBNormal, intDir);
+                    if(DotProduct(intDir,posDir)<0){
+                        intDir[0] = -intDir[0];
+                        intDir[1] = -intDir[1];
+                        intDir[2] = -intDir[2];
+                    }
+
+                    if(Normal(posDir)<1E-2 || Normal(intDir)<1E-2 || PartialDislocations(bd, burg, plane, pBurg1, pBurg2)==false){
+                        cStress = param->tbStrength[0];
+                    }else{
+                        CoordMinus(pBurg2, pBurg1, EsciagBurg);
+                        NormalizeVec(EsciagBurg);
+                        NormalizeVec(intDir);
+                        real8 extstress[3][3], f1[3], f2[3], stress, g[3];
+                        extstress[0][0] = param->appliedStress[0];
+                        extstress[1][1] = param->appliedStress[1];
+                        extstress[2][2] = param->appliedStress[2];
+                        extstress[1][2] = param->appliedStress[3];
+                        extstress[2][0] = param->appliedStress[4];
+                        extstress[0][1] = param->appliedStress[5];
+                        extstress[2][1] = extstress[1][2];
+                        extstress[0][2] = extstress[2][0];
+                        extstress[1][0] = extstress[0][1];
+                        ExtPKForce(extstress, EsciagBurg[0], EsciagBurg[1], EsciagBurg[2], 0, 0, 0, intDir[0],intDir[1],intDir[2],f1,f2);
+                        NormalComponent(f1,plane,g);
+
+                        if(DotProduct(refDir, g)>0){
+                            EsciagStress = 2.0*Normal(g);
+                            cStress = param->EsciagParams[0]+param->EsciagParams[2]*EsciagStress;
+                        }else{
+                            EsciagStress = -2.0*Normal(g);
+                            cStress = param->EsciagParams[0]+param->EsciagParams[1]*EsciagStress;
+                        }
+                    }
+                }
             } else{
                 cStress = param->tbStrength[1];
             }
@@ -373,19 +417,29 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
     CoordMinus(pBurg2,pBurg1,EsciagBurg);
     NormalizeVec(EsciagBurg);
 
+    real8 forces[5][3] = {{nbr1->fX, nbr1->fY, nbr1->fZ}, {nbr2->fX, nbr2->fY, nbr2->fZ}, {node->fX, node->fY, node->fZ}, 
+                          {node->armfx[0], node->armfy[0], node->armfz[0]}, {node->armfx[1], node->armfy[1], node->armfz[1]}};
+
 	ChangeArmBurg(home, nbr1, &node->myTag, EsciagBurg[0],EsciagBurg[1],EsciagBurg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	ChangeArmBurg(home, node, &nbr2->myTag, EsciagBurg[0],EsciagBurg[1],EsciagBurg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	ChangeArmBurg(home, nbr2, &node->myTag, -EsciagBurg[0],-EsciagBurg[1],-EsciagBurg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	ChangeArmBurg(home, node, &nbr1->myTag, -EsciagBurg[0],-EsciagBurg[1],-EsciagBurg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	SetOneNodeForce(home, node);
 	real8 EsciagStress = GlideShearStress(home,node,gbN);
+#if 1
+    nbr1->fX = forces[0][0];       nbr1->fY = forces[0][1];       nbr1->fZ = forces[0][2];
+    nbr2->fX = forces[1][0];       nbr2->fY = forces[1][1];       nbr2->fZ = forces[1][2];
+    node->fX = forces[2][0];       node->fY = forces[2][1];       node->fZ = forces[2][2];
+    node->armfx[0] = forces[3][0]; node->armfy[0] = forces[3][1]; node->armfz[0] = forces[3][2];
+    node->armfx[1] = forces[4][0]; node->armfy[1] = forces[4][1]; node->armfz[1] = forces[4][2];
+#else
 
 	ChangeArmBurg(home, nbr1, &node->myTag, burg[0],burg[1],burg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	ChangeArmBurg(home, node, &nbr2->myTag, burg[0],burg[1],burg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	ChangeArmBurg(home, nbr2, &node->myTag, -burg[0],-burg[1],-burg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	ChangeArmBurg(home, node, &nbr1->myTag, -burg[0],-burg[1],-burg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	SetOneNodeForce(home, node);
-
+#endif
     real8 cStress;
 #if 1
     if(EsciagStress<0){
