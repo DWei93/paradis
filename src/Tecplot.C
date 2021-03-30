@@ -73,7 +73,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         FILE     *fp;
         Plane_t	 plane;
         struct stat statbuf;
-        real8   al, am, an, amag, sigijk, pstnijk, dpstnijk;
+        real8   al, am, an, amag, sigijk, pstnijk, dpstnijk, ptstnijk;
         real8   vec[3], f[3], f1[3], f2[3], length, fMag,ifMag,n[3],val, nodePos[3], nbrPos[3];
         int     armID21;
         real8   tau_g, tau_gg, tau_ext;
@@ -156,28 +156,44 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
  *      needed.
  */
         if (firstInGroup) {
-            al = param->edotdir[0];
-            am = param->edotdir[1];
-            an = param->edotdir[2];
-            
-            amag = sqrt(al*al+am*am+an*an);
-            
-            al /= amag;
-            am /= amag;
-            an /= amag;
-            sigijk = param->appliedStress[0]*al*al     +
+            if(param->loadType != 6){
+                al = param->edotdir[0];
+                am = param->edotdir[1];
+                an = param->edotdir[2];
+                
+                amag = sqrt(al*al+am*am+an*an);
+                
+                al /= amag;
+                am /= amag;
+                an /= amag;
+                sigijk = param->appliedStress[0]*al*al     +
                      param->appliedStress[1]*am*am     +
                      param->appliedStress[2]*an*an     +
                      2.0*param->appliedStress[3]*am*an +
                      2.0*param->appliedStress[4]*an*al +
                      2.0*param->appliedStress[5]*al*am;
 
-            pstnijk =  param->totpStn[0]*al*al     +
+                pstnijk =  param->totpStn[0]*al*al     +
                        param->totpStn[1]*am*am     +
                        param->totpStn[2]*an*an     +
                        2.0*param->totpStn[3]*am*an +
                        2.0*param->totpStn[4]*an*al +
                        2.0*param->totpStn[5]*al*am;
+                ptstnijk = param->totTwinpStn[0]*al*al     +
+                           param->totTwinpStn[1]*am*am     +
+                           param->totTwinpStn[2]*an*an     +
+                           2.0*param->totTwinpStn[3]*am*an +
+                           2.0*param->totTwinpStn[4]*an*al +
+                           2.0*param->totTwinpStn[5]*al*am;
+            }else{
+                int loadDirID;
+                for(j=0; j<6;j++){
+                    if (param->loadDir[j]>1E-2){loadDirID=j; break;}
+                }
+                sigijk = param->appliedStress[loadDirID];
+                pstnijk = param->totpStn[loadDirID];
+                ptstnijk = param->totTwinpStn[loadDirID];
+            }
 /*
  *          First task in the I/O group must open the data file for writing
  *          to overwrite any existing file of the same name.
@@ -210,27 +226,34 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 cycle = home->cycle;
                 num = 0;
             }
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,index, dom, id\n");
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,index, dom, id, fx, fy, fz, fMag, tau_g, ifMag\n");
 		    fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
             val = param->timeNow*1.0E9;
             val = fabs(param->eRate*param->timeNow*1.0E2);
             fprintf(fp, "AUXDATA strain = \"%10.7f\"\n", val);
             val = fabs(sigijk/1.0E6);
             fprintf(fp, "AUXDATA stress = \"%10.7f\"\n", val);
+            if(param->maxSchmid >= 0.0){
+                fprintf(fp, "AUXDATA shear_stress = \"%10.7f\"\n", val*param->maxSchmid);
+            }
             val = fabs(pstnijk*1.0E2);
             fprintf(fp, "AUXDATA plastic_strain = \"%10.7f\"\n", val);
-            fprintf(fp, "AUXDATA fileName = \"%s\"\n", fileName);
+            fprintf(fp, "AUXDATA fileName = \"%s\"\n", baseFileName);
 #else
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_sf, tau_ext,ifMag\n");
             val = param->timeNow*1.0E9;
 		    fprintf(fp, "zone T = \"%d\", i = %d, SOLUTIONTIME = %d,  F=POINT\n", home->cycle, numArms, home->cycle); 
             val = fabs((param->loadType!=4)?param->eRate*param->timeNow*1.0E2:param->netCyclicStrain*1.0E2);
-            fprintf(fp, "AUXDATA strain = \"%7.2f\"\n", val);
+            fprintf(fp, "AUXDATA strain = \"%.2f\"\n", val);
             val = (param->loadType!=4)?fabs(sigijk/1.0E6):sigijk/1.0E6;
-            fprintf(fp, "AUXDATA stress = \"%7.2f\"\n", val);
+            fprintf(fp, "AUXDATA stress = \"%.2f\"\n", val);
+            if(param->maxSchmid >= 0.0){
+                fprintf(fp, "AUXDATA shear_stress = \"%.2f\"\n", val*param->maxSchmid);
+            }
             val = (param->loadType!=4)?fabs(pstnijk*1.0E2):pstnijk*1.0E2;
             fprintf(fp, "AUXDATA plastic_strain = \"%7.3f\"\n", val);
-            fprintf(fp, "AUXDATA fileName = \"%s\"\n", fileName);
+            fprintf(fp, "AUXDATA twinning_deform = \"%7.3f\"\n", fabs(ptstnijk*100.0));
+            fprintf(fp, "AUXDATA fileName = \"%s\"\n", baseFileName);
 #endif
 	    }
 #endif	
@@ -441,9 +464,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                             index, node->myTag.domainID, node->myTag.index);
 	            }else{
 #if CHECK_GB_TOPO
-                    fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %d\n", 
+                    fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %d %g %g %g %g %g %g\n", 
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                            index, node->myTag.domainID, node->myTag.index);
+                            index, node->myTag.domainID, node->myTag.index, f[0], f[1], f[2], fMag, tau_g, ifMag);
 #else
                     fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g\n", 
                             x,y,z,prx/2,pry/2,prz/2,
@@ -564,13 +587,29 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 
                 constraint = node->constraint;
 
+	            GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints, zeroLenJunc);
+                f[0] = node->fX; f[1]=node->fY; f[2]=node->fZ;
+                ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, f);
+                NodeImageForce(home, node,  f1);
+                ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, f1);
+                nodeLen =  NodeLengthXMag(home, node);
+                f[0]/=(nodeLen*1E6); f[1]/=(nodeLen*1E6); f[2]/=(nodeLen*1E6);
+                f1[0]/=(nodeLen*1E6); f1[1]/=(nodeLen*1E6); f1[2]/=(nodeLen*1E6);
+                fMag=Normal(f); ifMag=Normal(f1);
+                
+                NormalizeVec(f1); NormalizeVec(f);
+                if(!Numerical(f)){VECTOR_ZERO(f);}
+                if(!Numerical(f1)){VECTOR_ZERO(f1);}
+                if(!Numerical(ifMag))ifMag=0.0;
+                if(!Numerical(fMag))fMag=0.0;
+
                 if((NodeOnGB(home, node) & INTERSECT_NODE)>0){
                     if(narm==2)constraint = 4; else if(narm==3) constraint = 5; else constraint =6;
                 }
 
-                fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %d 0\n", 
+                fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %d 0 %g %g %g %g %g %g\n", 
                         x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                        index, node->myTag.domainID, node->myTag.index);
+                        index, node->myTag.domainID, node->myTag.index, f[0], f[1], f[2], fMag, tau_g, ifMag);
 	        }
 			
             node = node->next;
