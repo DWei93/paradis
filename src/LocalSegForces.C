@@ -2967,7 +2967,8 @@ void LocalSegForces(Home_t *home, int reqType)
                 }
             }
 
-#ifdef IMAGEFORCE
+//#ifdef IMAGE_FORCE
+#if 1
 /*
  *          If we're including grain boundary or free surface, 
  *          add the image force in now.

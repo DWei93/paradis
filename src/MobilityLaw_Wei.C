@@ -201,21 +201,27 @@ int Mobility_Wei(Home_t *home, Node_t *node)
 	/* Velocity is simply proportional to total force per unit length */
 	GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints, zeroLenJunc);
     ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, nForce);
-#if 1
+#if 0
     NodeImageForce(home, node, imageForce);
     ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, imageForce);
+#if 1
     if(DotProduct(nForce,imageForce)<0){
         if(Normal(nForce)>Normal(imageForce)){
-            nForce[0] -= imageForce[0];
-            nForce[1] -= imageForce[1];
-            nForce[2] -= imageForce[2];
+            nForce[0] += imageForce[0];
+            nForce[1] += imageForce[1];
+            nForce[2] += imageForce[2];
         }else{
-            node->vX =0.0;
-            node->vY =0.0;
-            node->vZ =0.0;
+            node->vX = 0.0;           
+            node->vY = 0.0;
+            node->vZ = 0.0;
             return (0);
         }
     }
+#else 
+        nForce[0] -= imageForce[0];
+        nForce[1] -= imageForce[1];
+        nForce[2] -= imageForce[2];
+#endif
 #endif
 
 #ifdef TB_PINNING

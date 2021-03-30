@@ -1402,7 +1402,8 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
             VECTOR_ADD(fseg1node1, f1);
             VECTOR_ADD(fseg1node2, f2);
 
-#ifdef IMAGEFORCE
+//#ifdef IMAGE_FORCE
+#if 1
 /*
  *           If we're including grain boundary or free surface, 
  *           add the image force in now.

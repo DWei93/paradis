@@ -162,145 +162,10 @@ Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int glo
 *	calculate the glide force towards GB of the node	
 *
 *****************************************************************************/
-real8 GlideShearStress(Home_t *home, Node_t *node){
-    int     NM;
-    bool    zeroLenJunc;
-    real8   GC[3][3];
-    real8   nForce[3]={node->fX, node->fY, node->fZ};
 
-    if (NM==3)return 0.0;
-
-    GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc);
-    ApplyConstraintsToVelocity(NM, GC, nForce);
-
-    real8 lxb=0.0, lDir[3], n0[3], gDir[3];
-
-    if(NM==1){
-        if(node->numNbrs==2){
-            Node_t *nbr1, *nbr2;
-            nbr1 = GetNeighborNode(home, node, 0);
-            nbr2 = GetNeighborNode(home, node, 1);
-            n0[0] = node->nx[0]; n0[1]=node->ny[0]; n0[2]=node->nz[0];
-            if(nbr1==(Node_t *)NULL || nbr2==(Node_t *)NULL){
-                if(nbr1==(Node_t *)NULL && nbr2==(Node_t *)NULL){
-                    PrintNode(home, node);
-                    printf("Warning in %s %d\n",__FILE__,__LINE__);
-                    return 1.0E9;
-                }else if(nbr1==(Node_t *)NULL){
-                    lDir[0]=nbr2->x-node->x;
-                    lDir[1]=nbr2->y-node->y;
-                    lDir[2]=nbr2->z-node->z;
-                    lxb=Normal(lDir)*(node->burgX[0]*node->burgX[0]+node->burgY[0]*node->burgY[0]+node->burgZ[0]*node->burgZ[0]);
-                    NormalizeVec(lDir);
-                }else{
-                    lDir[0]=nbr1->x-node->x;
-                    lDir[1]=nbr1->y-node->y;
-                    lDir[2]=nbr1->z-node->z;
-                    lxb=Normal(lDir)*(node->burgX[0]*node->burgX[0]+node->burgY[0]*node->burgY[0]+node->burgZ[0]*node->burgZ[0]);
-                    NormalizeVec(lDir);
-                }
-             }else{
-                lDir[0] = nbr2->x - nbr1->x; 
-                lDir[1] = nbr2->y - nbr1->y; 
-                lDir[2] = nbr2->z - nbr1->z; 
-                lxb=0.5*Normal(lDir)*(node->burgX[0]*node->burgX[0]+node->burgY[0]*node->burgY[0]+node->burgZ[0]*node->burgZ[0]);
-                NormalizeVec(lDir);
-            }
-            cross(n0,lDir,gDir);
-            if(Normal(gDir)<1E-10 || lxb < 1E-10)return 1.0E9;
-            NormalizeVec(gDir);
-            ParallelComponent(nForce,gDir,nForce);
-            return Normal(nForce)/lxb;
-        }else if (node->numNbrs>2){
-            lxb = NodeLengthXMag(home, node);
-            return Normal(nForce)/lxb;
-        }else{
-            PrintNode(home,node);
-            Fatal("numNbrs==1 and plane constraints");
-        }
-    }else{
-       lxb = NodeLengthXMag(home, node);
-       return Normal(nForce)/lxb;
-    }
-    return 0.0;
-}
-
-real8 GlideShearStress(Home_t *home, Node_t *node, real8 *n){
-    int     NM;
-    bool    zeroLenJunc;
-    real8   GC[3][3], sign;
-    real8   nForce[3]={node->fX, node->fY, node->fZ};
-
-    if (NM==3)return 0.0;
-
-    GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc);
-    ApplyConstraintsToVelocity(NM, GC, nForce);
-
-    real8 lxb=0.0, lDir[3], n0[3], gDir[3];
-
-    if(NM==1){
-        if(node->numNbrs==2){
-            Node_t *nbr1, *nbr2;
-            nbr1 = GetNeighborNode(home, node, 0);
-            nbr2 = GetNeighborNode(home, node, 1);
-            n0[0] = node->nx[0]; n0[1]=node->ny[0]; n0[2]=node->nz[0];
-            if(nbr1==(Node_t *)NULL || nbr2==(Node_t *)NULL){
-                if(nbr1==(Node_t *)NULL && nbr2==(Node_t *)NULL){
-                    PrintNode(home, node);
-                    printf("Warning in %s %d\n",__FILE__,__LINE__);
-                    return 1.0E9;
-                }else if(nbr1==(Node_t *)NULL){
-                    lDir[0]=nbr2->x-node->x;
-                    lDir[1]=nbr2->y-node->y;
-                    lDir[2]=nbr2->z-node->z;
-                    lxb=Normal(lDir)*(node->burgX[0]*node->burgX[0]+node->burgY[0]*node->burgY[0]+node->burgZ[0]*node->burgZ[0]);
-                    NormalizeVec(lDir);
-                }else{
-                    lDir[0]=nbr1->x-node->x;
-                    lDir[1]=nbr1->y-node->y;
-                    lDir[2]=nbr1->z-node->z;
-                    lxb=Normal(lDir)*(node->burgX[0]*node->burgX[0]+node->burgY[0]*node->burgY[0]+node->burgZ[0]*node->burgZ[0]);
-                    NormalizeVec(lDir);
-                }
-             }else{
-                lDir[0] = nbr2->x - nbr1->x; 
-                lDir[1] = nbr2->y - nbr1->y; 
-                lDir[2] = nbr2->z - nbr1->z; 
-                lxb=0.5*Normal(lDir)*(node->burgX[0]*node->burgX[0]+node->burgY[0]*node->burgY[0]+node->burgZ[0]*node->burgZ[0]);
-                NormalizeVec(lDir);
-            }
-            cross(n0,lDir,gDir);
-            if(Normal(gDir)<1E-10 || lxb < 1E-10)return 1.0E9;
-            NormalizeVec(gDir);
-            ParallelComponent(nForce,gDir,nForce);
-            
-            real8 interDir[3];
-            cross(n0,n, interDir);
-            if(Normal(interDir)<1E-5)return 1.0E9;
-            NormalizeVec(interDir);
-            cross(n0, interDir, gDir);
-            if(Normal(gDir)<1E-5)return 1.0E9;
-
-            ParallelComponent(nForce,gDir,nForce);
-            sign = DotProduct(nForce, n)>0?1.0:-1.0;
-            return sign*Normal(nForce)/lxb;
-        }else if(node->numNbrs>2){
-            lxb = NodeLengthXMag(home, node);
-            sign = DotProduct(nForce, n)>0?1.0:-1.0;
-            return sign*Normal(nForce)/lxb;
-        }else{
-            PrintNode(home,node);
-            Fatal("numNbrs==1 and plane constraints");
-        }
-    }else{
-       lxb = NodeLengthXMag(home, node);
-        sign = DotProduct(nForce, n)>0?1.0:-1.0;
-        return sign*Normal(nForce)/lxb;
-    }
-    return 0.0;
-}
 
 void AdjustPenetratedNode(Home_t *home, Node_t *node){
+    return;
     if(node->inGrain < 0)return;
     int currInGrain, currOnGB;
     NodeLocation(home, node->x, node->y, node->z, currInGrain, currOnGB);
@@ -392,7 +257,10 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
     real8 burg[3]={node->burgX[1], node->burgY[1], node->burgZ[1]};
 	real8 glideStress = GlideShearStress(home,node,gbN);
 
-    real8 dis = NodeDistance(home, nbr1, nbr2);
+    real8 xi[3]={nbr2->x-nbr1->x, nbr2->y-nbr1->y, nbr2->z-nbr1->z};
+    ZImage(param, xi, xi+1, xi+2);
+
+    real8 dis = Normal(xi);
     if(dis < 0.5*home->param->minSeg){
 #ifdef DEBUG
         char name[50];
@@ -406,6 +274,7 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
 #endif 
         return true;
     }
+    NormalizeVec(xi);
 
     if(fabs(DotProduct(burg, gbN)) > 0.05){ // non-screw dislocation
         return (glideStress > param->tbStrength[1]);
@@ -426,31 +295,37 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
 	ChangeArmBurg(home, node, &nbr1->myTag, -EsciagBurg[0],-EsciagBurg[1],-EsciagBurg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	SetOneNodeForce(home, node);
 	real8 EsciagStress = GlideShearStress(home,node,gbN);
-#if 1
-    nbr1->fX = forces[0][0];       nbr1->fY = forces[0][1];       nbr1->fZ = forces[0][2];
-    nbr2->fX = forces[1][0];       nbr2->fY = forces[1][1];       nbr2->fZ = forces[1][2];
-    node->fX = forces[2][0];       node->fY = forces[2][1];       node->fZ = forces[2][2];
-    node->armfx[0] = forces[3][0]; node->armfy[0] = forces[3][1]; node->armfz[0] = forces[3][2];
-    node->armfx[1] = forces[4][0]; node->armfy[1] = forces[4][1]; node->armfz[1] = forces[4][2];
-#else
+
+    real8 leadDir[3], tem1[3], tem2[3];
+    cross(pBurg2, burg, tem1); NormalizeVec(tem1);
+    cross(tem1, xi, tem2); NormalizeVec(tem2);
+    if(DotProduct(burg,xi)>0){
+        VECTOR_COPY(leadDir, tem2);
+    }else{
+        leadDir[0] = -tem2[0];
+        leadDir[1] = -tem2[1];
+        leadDir[2] = -tem2[2];
+    }
+    
+    if(DotProduct(leadDir, gbN)* EsciagStress > 0)EsciagStress = fabs(EsciagStress); else EsciagStress = -fabs(EsciagStress);
 
 	ChangeArmBurg(home, nbr1, &node->myTag, burg[0],burg[1],burg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	ChangeArmBurg(home, node, &nbr2->myTag, burg[0],burg[1],burg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	ChangeArmBurg(home, nbr2, &node->myTag, -burg[0],-burg[1],-burg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
 	ChangeArmBurg(home, node, &nbr1->myTag, -burg[0],-burg[1],-burg[2],plane[0],plane[1],plane[2],0, DEL_SEG_NONE);
-	SetOneNodeForce(home, node);
-#endif
+    nbr1->fX = forces[0][0];       nbr1->fY = forces[0][1];       nbr1->fZ = forces[0][2];
+    nbr2->fX = forces[1][0];       nbr2->fY = forces[1][1];       nbr2->fZ = forces[1][2];
+    node->fX = forces[2][0];       node->fY = forces[2][1];       node->fZ = forces[2][2];
+    node->armfx[0] = forces[3][0]; node->armfy[0] = forces[3][1]; node->armfz[0] = forces[3][2];
+    node->armfx[1] = forces[4][0]; node->armfy[1] = forces[4][1]; node->armfz[1] = forces[4][2];
+
     real8 cStress;
-#if 1
     if(EsciagStress<0){
         cStress = param->EsciagParams[0]+param->EsciagParams[1]*EsciagStress;
     }else{
         cStress = param->EsciagParams[0]+param->EsciagParams[2]*EsciagStress;
     }
-#else
-    cStress = 141E6 + 0.16*EsciagStress;
 
-#endif
     if(cStress <= glideStress)return true;
     return false;
 }
@@ -1663,7 +1538,7 @@ void HandleGrainBoundary(Home_t *home)
 		if(node->numNbrs == 0) RemoveNode(home,node,globalOp);
 #endif
 	}
-
+#ifdef DEBUG
 	for(i=0;i<home->newNodeKeyPtr;i++){
         if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
         if(IsOnGB(node))continue;
@@ -1674,6 +1549,7 @@ void HandleGrainBoundary(Home_t *home)
             printf("HandleGrainBoundary: a penetrated not coopered\n");
         }
     }
+#endif
 	return;
 
 }
@@ -1930,8 +1806,7 @@ void ApplyPosConstraint(Home_t *home, Node_t *node){
                 if(pos[2]>0){n[2]=1; p[2]=param->zBoundMax-a;}else{n[2]=-1; p[2]=param->zBoundMin+a;}
             }
                 
-            fGlide = fabs(GlideShearStress(home, node, n));
-            fGlide *=((dot_product(node->fX,node->fY,node->fZ,n[0],n[1],n[2])>0)?1.0:-1.0);
+            fGlide = GlideShearStress(home, node, n);
             if(fGlide < param->gbStrength){
                 if(SegmentPlaneIntersection(pos,oldPos,n,p,interPos)!=POINT_INTERSECTION){
                     VECTOR_COPY(interPos,oldPos);
@@ -3324,5 +3199,490 @@ bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8
     }
 
     return(0);
+}
+
+real8 GlideShearStress(Home_t *home, Node_t *node, real8 *n){
+
+    int	    i,armID21;
+    real8	normal[3],disLength;
+    real8	intersection[3];
+    real8	glideDir[3], ldir[3], gdir[3];
+    real8	fGlide=0.0;
+    Node_t  *nbr;
+    Param_t *param=home->param;
+    
+    if(node == (Node_t *)NULL){
+        printf("Task %d: %s, line %d -- Node = NULL",
+               home->myDomain, __FILE__, __LINE__);
+        return(0);
+    }
+
+
+    int numGlideConstraints;
+    real8 nodeForce[3] = {node->fX, node->fY, node->fZ}, glideConstraints[3][3];
+
+    real8 imageForce[3];
+    NodeImageForce(home, node, imageForce);
+    CoordMinus(nodeForce, imageForce, nodeForce);
+    ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, nodeForce);
+
+    if(Normal(nodeForce)<1E-1 || numGlideConstraints == 3)return 0.0;
+    real8 sign = (Sign(DotProduct(nodeForce,n)));
+    real8 og = sign*Normal(nodeForce)/NodeLengthXMag(home, node);
+
+    if(numGlideConstraints > 1 || node->numNbrs != 2){
+        return og;
+    }else{
+        normal[0] = node->nx[0];
+        normal[1] = node->ny[0];
+        normal[2] = node->nz[0];
+        Node_t *nbr1 = GetNeighborNode(home, node, 0);
+        Node_t *nbr2 = GetNeighborNode(home, node, 1);
+        if(nbr1 == (Node_t *)NULL || nbr2 == (Node_t *)NULL) return 0.0;
+        ldir[0] = nbr2->x-nbr1->x;
+        ldir[1] = nbr2->y-nbr1->y;
+        ldir[2] = nbr2->z-nbr1->z;
+        ZImage(param,ldir, ldir+1, ldir+2);
+        if (Normal(ldir)<1.0E-1)return 0.0;
+        NormalizeVec(ldir);
+        if(fabs(DotProduct(ldir, normal))>1.0E-1)return 0.0;
+
+        cross(normal, n, intersection);
+        if(Normal(intersection)<1.0E-1)return 0.0;
+        NormalizeVec(intersection);
+        if(fabs(DotProduct(ldir, intersection)) < 0.95)return 0.0;
+
+        real8 ldir1[3]={nbr1->x-node->x, nbr1->y-node->y, nbr1->z-node->z};
+        real8 ldir2[3]={nbr2->x-node->x, nbr2->y-node->y, nbr2->z-node->z};
+        ZImage(param, ldir1, ldir1+1, ldir1+2);
+        ZImage(param, ldir2, ldir2+1, ldir2+2);
+        if(Normal(ldir1)<1.0E-1 || Normal(ldir2)<1.0E-1) return 0.0;
+        NormalizeVec(ldir1);
+        NormalizeVec(ldir2);
+        if(DotProduct(ldir1, ldir2) > -0.9)return 0.0;
+
+        cross(intersection, normal, gdir);
+        
+        if(Normal(gdir)<1.0E-1)return 0.0;
+        NormalizeVec(gdir);
+        ParallelComponent(nodeForce, gdir, nodeForce);
+        sign =(Sign(DotProduct(nodeForce,n)));
+        real8 ng= sign*Normal(nodeForce)/NodeLengthXMag(home, node);
+        
+        return ng;
+    }
+    return 0.0;
+}
+
+real8 GlideShearStress(Home_t *home, Node_t *node){
+
+    int	    i,armID21;
+    real8	normal[3],disLength;
+    real8	intersection[3];
+    real8	glideDir[3], ldir[3], gdir[3];
+    real8	fGlide=0.0;
+    Node_t  *nbr;
+    Param_t *param=home->param;
+    
+    if(node == (Node_t *)NULL){
+        printf("Task %d: %s, line %d -- Node = NULL",
+               home->myDomain, __FILE__, __LINE__);
+        return(0);
+    }
+
+    int numGlideConstraints;
+    real8 nodeForce[3] = {node->fX, node->fY, node->fZ}, glideConstraints[3][3];
+
+    real8 imageForce[3];
+    NodeImageForce(home, node, imageForce);
+    CoordMinus(nodeForce, imageForce, nodeForce);
+    ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, nodeForce);
+    if(Normal(nodeForce)<1E-1 || numGlideConstraints == 3)return 0.0;
+
+    real8 og = Normal(nodeForce)/NodeLengthXMag(home, node);
+ 
+    if(numGlideConstraints > 1 || node->numNbrs != 2){
+        return Normal(nodeForce)/NodeLengthXMag(home, node);
+    }else{
+        normal[0] = node->nx[0];
+        normal[1] = node->ny[0];
+        normal[2] = node->nz[0];
+        Node_t *nbr1 = GetNeighborNode(home, node, 0);
+        Node_t *nbr2 = GetNeighborNode(home, node, 1);
+        if(nbr1 == (Node_t *)NULL || nbr2 == (Node_t *)NULL) return og;
+        ldir[0] = nbr2->x-nbr1->x;
+        ldir[1] = nbr2->y-nbr1->y;
+        ldir[2] = nbr2->z-nbr1->z;
+        ZImage(param,ldir, ldir+1, ldir+2);
+        if (Normal(ldir)<1.0E-1)return og;
+        NormalizeVec(ldir);
+        if(fabs(DotProduct(ldir, normal))>1.0E-1)return og;
+
+        real8 ldir1[3]={nbr1->x-node->x, nbr1->y-node->y, nbr1->z-node->z};
+        real8 ldir2[3]={nbr2->x-node->x, nbr2->y-node->y, nbr2->z-node->z};
+        ZImage(param, ldir1, ldir1+1, ldir1+2);
+        ZImage(param, ldir2, ldir2+1, ldir2+2);
+        if(Normal(ldir1)<1.0E-1 || Normal(ldir2)<1.0E-1) return og;
+        NormalizeVec(ldir1);
+        NormalizeVec(ldir2);
+        if(DotProduct(ldir1, ldir2) > -0.9)return og;
+
+        cross(ldir, normal, gdir);
+        if(Normal(gdir)<1.0E-1)return og;
+        NormalizeVec(gdir);
+        ParallelComponent(nodeForce, gdir, nodeForce);
+        return Normal(nodeForce)/NodeLengthXMag(home, node);
+    }
+    return 0.0;
+}
+
+/*---------------------------------------------------------------------------
+ *
+ *      Function:     ImageForce
+ *      Description:  
+ *
+ *      Arguments:
+ *          x1,y1,z1  Coordinates of segment's first endpoint
+ *          x2,y2,z2  Coordinates of segment's second endpoint
+ *          bx,by,bz  Components of burgers vector from first endpoint
+ *                    to second endpoint
+ *          f1        Array in which to return image force at pos1
+ *          f2        Array in which to return image force at pos2
+ *
+ *-------------------------------------------------------------------------*/
+void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f2[3])
+{
+    Param_t *param = home->param;
+
+    real8       rc=param->rc;
+    real8       dis, burgMag, burg[3], segCentor[3], tbStrength, xi[3], bedge[3];
+    real8       ldir[3],pdir[3], a = 5.85938, err=1.0E-3, amax=10*rc; 
+    real8       gausFac[2] = {0.211324865405187, // (1-sqrt(3)/3)/2
+                              0.7886751345948128}; // (1+sqrt(3)/3)/2
+    real8       coff=0.0, length, nor[3], gDir[3], gbNormal[3], pos[3], pBound[3], nBound[3], vel[3];
+    GB_t        *gb;
+    Grain_t     *grain;
+    int         armID, i, j, type, armInGrain,armOnGB,curInGrain, curOnGB;
+    real8       node1Pos[3]={node1->x,node1->y,node1->z}, node2Pos[3]={node2->x,node2->y,node2->z};
+    FoldBox(param,node1Pos,node1Pos+1,node1Pos+2);
+    FoldBox(param,node2Pos,node2Pos+1,node2Pos+2);
+    
+    bool    cacGB1, cacGB2, cacTB1, cacTB2;
+
+    VECTOR_ZERO(f1);
+    VECTOR_ZERO(f2);
+    armID = GetArmID(home, node1, node2);
+    if(armID == -1)return;
+
+    burg[0] = node1->burgX[armID];
+    burg[1] = node1->burgY[armID];
+    burg[2] = node1->burgZ[armID];
+
+    nor[0] = node1->nx[armID];
+    nor[1] = node1->ny[armID];
+    nor[2] = node1->nz[armID];
+
+    burgMag = Normal(burg);
+    NormalizeVec(burg);
+
+    real8 gbStrength = param->gbStrength;
+    bool cacGBStress = (gbStrength>0);
+
+    CoordMinus(node2Pos,node1Pos,xi);
+    cacGBStress |= (Normal(xi)<3*param->maxSeg);
+
+    ZImage(param, xi, xi+1, xi+2);
+    length = Normal(xi);
+    if(length < 1.0E-2)return;
+    NormalizeVec(xi);
+    GetArmGrain(home, node1, node2, armInGrain, armOnGB);
+    NormalComponent(burg,xi,bedge);
+
+    real8 old1Pos[3]={node1->oldx,node1->oldy,node1->oldz}, old2Pos[3]={node2->oldx,node2->oldy,node2->oldz};
+    FoldBox(param,old1Pos,old1Pos+1,old1Pos+2);
+    FoldBox(param,old2Pos,old2Pos+1,old2Pos+2);
+    PBCPOSITION(param,old1Pos[0],old1Pos[1],old1Pos[2],node1Pos,node1Pos+1,node1Pos+2);
+    PBCPOSITION(param,old2Pos[0],old2Pos[1],old2Pos[2],node2Pos,node2Pos+1,node2Pos+2);
+    cacGB1 = fabs(node1Pos[0])<param->xBoundMax-rc && fabs(node1Pos[1])<param->yBoundMax-rc && fabs(node1Pos[2])<param->zBoundMax-rc;
+    cacGB2 = fabs(node2Pos[0])<param->xBoundMax-rc && fabs(node2Pos[1])<param->yBoundMax-rc && fabs(node2Pos[2])<param->zBoundMax-rc;
+    cacGBStress |= (cacGB1 && cacGB2);
+
+
+    cacTB1 = (node1->onGB < 0);
+    cacTB2 = (node2->onGB < 0);
+
+    FoldBox(param,node1Pos,node1Pos+1,node1Pos+2);
+    FoldBox(param,node2Pos,node2Pos+1,node2Pos+2);
+
+    bool cacTBForce;
+    if(armOnGB<0 && param->polycrystal>0){
+        cacTBForce = true;
+        if(PerpendicularDirection(burg,param->TBNormal,0.05)==false){
+            tbStrength = param->tbStrength[1];
+        } else{
+            BurgInfo_t *bd = GetBurgData(home, node1, node2);
+            real8 intDir[3], pBurg1[3], pBurg2[3], EsciagBurg[3];
+            int armID21 = GetArmID(node2, node1);
+            if(armID21 < 0)Fatal("%s: armID <0",__func__);
+            cross(nor, param->TBNormal, intDir);
+            if(DotProduct(intDir,xi)<0){
+                intDir[0] = -intDir[0];
+                intDir[1] = -intDir[1];
+                intDir[2] = -intDir[2];
+            }
+        
+            if(Normal(intDir)<1E-2 || PartialDislocations(bd, burg, nor, pBurg1, pBurg2)==false){
+                tbStrength = param->EsciagParams[0];
+            }else{
+                real8 leadDir[3], tem1[3], tem2[3];
+                cross(pBurg2, burg, tem1); NormalizeVec(tem1);
+                cross(tem1, xi, tem2); NormalizeVec(tem2);
+                if(DotProduct(burg,xi)>0){
+                    VECTOR_COPY(leadDir, tem2);
+                }else{
+                    leadDir[0] = -tem2[0];
+                    leadDir[1] = -tem2[1];
+                    leadDir[2] = -tem2[2];
+                }
+
+                CoordMinus(pBurg2, pBurg1, EsciagBurg);
+                NormalizeVec(EsciagBurg);
+                NormalizeVec(intDir);
+                real8 extstress[3][3], f1[3], f2[3], g[3];
+                extstress[0][0] = param->appliedStress[0];
+                extstress[1][1] = param->appliedStress[1];
+                extstress[2][2] = param->appliedStress[2];
+                extstress[1][2] = param->appliedStress[3];
+                extstress[2][0] = param->appliedStress[4];
+                extstress[0][1] = param->appliedStress[5];
+                extstress[2][1] = extstress[1][2];
+                extstress[0][2] = extstress[2][0];
+                extstress[1][0] = extstress[0][1];
+                ExtPKForce(extstress, EsciagBurg[0], EsciagBurg[1], EsciagBurg[2], 0, 0, 0, intDir[0],intDir[1],intDir[2],f1,f2);
+                NormalComponent(f1,nor,g);
+        
+                if(DotProduct(leadDir, g)>0){
+                    tbStrength = param->EsciagParams[0]+2.0*param->EsciagParams[2]*Normal(g);
+                }else{
+                    tbStrength = param->EsciagParams[0]-2.0*param->EsciagParams[1]*Normal(g);
+                }
+            }
+        }
+    }else{
+        cacTBForce = false;
+    }
+
+    for(i=0; i<2; i++){
+        pos[0] = node1Pos[0] + length*gausFac[i]*xi[0];
+        pos[1] = node1Pos[1] + length*gausFac[i]*xi[1];
+        pos[2] = node1Pos[2] + length*gausFac[i]*xi[2];
+        FoldBox(param, pos, pos+1, pos+2);
+/*
+ *      GB image force
+ */
+        if(cacGBStress){
+            if(param->xBoundType==Periodic){
+                nBound[0]=1.0; nBound[1]=0; nBound[2]=0;
+                pBound[0]=param->xBoundMin+rc; pBound[1]=0; pBound[2]=0;
+                type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
+                if(type==LINE_INTERSECTION){
+                    CoordMinus(pos,pdir,ldir); 
+                    dis=Normal(ldir);
+                    if(dis>err && dis<amax){
+                        NormalizeVec(ldir);
+                        coff = (dis>rc?gbStrength * a/(a+dis-rc):gbStrength);
+                        NormalComponent(ldir,xi,gDir);
+                        NormalizeVec(gDir);
+                            f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                }
+                pBound[0]=param->xBoundMax-rc; pBound[1]=0; pBound[2]=0;
+                type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
+                if(type==LINE_INTERSECTION){
+                    CoordMinus(pos,pdir,ldir); 
+                    dis=Normal(ldir);
+                    if(dis>err && dis<amax){
+                        NormalizeVec(ldir);
+                        coff = (dis>rc?gbStrength * a/(a+dis-rc):gbStrength);
+                        NormalComponent(ldir,xi,gDir);
+                        NormalizeVec(gDir);
+                            f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                }
+            }
+
+            if(param->yBoundType==Periodic){
+                nBound[0]=0.0; nBound[1]=1.0; nBound[2]=0;
+                pBound[0]=0; pBound[1]=param->yBoundMin+rc; pBound[2]=0;
+                type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
+                if(type==LINE_INTERSECTION){
+                    CoordMinus(pos,pdir,ldir); 
+                    dis=Normal(ldir);
+                    if(dis>err && dis<amax){
+                        NormalizeVec(ldir);
+                        coff = (dis>rc?gbStrength * a/(a+dis-rc):gbStrength);
+                        NormalComponent(ldir,xi,gDir);
+                        NormalizeVec(gDir);
+                            f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                }
+                pBound[0]=0; pBound[1]=param->yBoundMax-rc; pBound[2]=0;
+                type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
+                if(type==LINE_INTERSECTION){
+                    CoordMinus(pos,pdir,ldir); 
+                    dis=Normal(ldir);
+                    if(dis>err && dis<amax){
+                        NormalizeVec(ldir);
+                        coff = (dis>rc?gbStrength * a/(a+dis-rc):gbStrength);
+                        NormalComponent(ldir,xi,gDir);
+                        NormalizeVec(gDir);
+                            f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                }
+            }
+
+            if(param->zBoundType==Periodic){
+                nBound[0]=0.0; nBound[1]=0.0; nBound[2]=1.0;
+                pBound[0]=0; pBound[1]=0; pBound[2]=param->zBoundMin+rc;
+                type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
+                if(type==LINE_INTERSECTION){
+                    CoordMinus(pos,pdir,ldir); 
+                    dis=Normal(ldir);
+                    if(dis>err && dis<amax){
+                        NormalizeVec(ldir);
+                        coff = (dis>rc?gbStrength * a/(a+dis-rc):gbStrength);
+                        NormalComponent(ldir,xi,gDir);
+                        NormalizeVec(gDir);
+                            f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                }
+                pBound[0]=0; pBound[1]=0; pBound[2]=param->zBoundMax-rc;
+                type = PlanePlaneIntersection(nor,pos,nBound,pBound,ldir,pdir);
+                if(type==LINE_INTERSECTION){
+                    CoordMinus(pos,pdir,ldir); 
+                    dis=Normal(ldir);
+                    if(dis>err && dis<amax){
+                        NormalizeVec(ldir);
+                        coff = (dis>rc?gbStrength * a/(a+dis-rc):gbStrength);
+                        NormalComponent(ldir,xi,gDir);
+                        NormalizeVec(gDir);
+                            f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                }
+            }
+        }
+/*
+ *      TB image force
+ */
+        if(!cacTBForce)continue; 
+
+        NodeLocation(home, pos[0], pos[1], pos[2], curInGrain, curOnGB);
+        if(curInGrain<0)continue;
+        if(curInGrain != armInGrain){
+            GetPublicGB(home, home->grainKeys[curInGrain], home->grainKeys[armInGrain], &gb, pos);
+            type = PlanePlaneIntersection(nor,pos,gb->n,gb->p,ldir,pdir);
+            if(type==LINE_INTERSECTION){
+                CoordMinus(pdir,pos,ldir); 
+                dis=Normal(ldir);
+                if(dis>err){
+                    NormalizeVec(ldir);
+                    coff = tbStrength;
+                    NormalComponent(ldir,xi,gDir);
+                    NormalizeVec(gDir);
+
+                    if(cacTB1){
+                        f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                        f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                        f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                    if(cacTB2){
+                        f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                        f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                        f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                    }
+                } 
+            }
+        }else{
+            grain=home->grainKeys[armInGrain];
+            for(j=0; j<grain->nBounds; j++){
+                gb = grain->GB[j];
+                type = PlanePlaneIntersection(nor,pos,gb->n,gb->p,ldir,pdir);
+                if(type==LINE_INTERSECTION){
+                    CoordMinus(pos,pdir,ldir); 
+                    dis=Normal(ldir);
+                    if(dis>err && dis <amax){
+                        NormalizeVec(ldir);
+                        coff = (dis>rc?tbStrength * a/(a+dis-rc):tbStrength);
+                        NormalComponent(ldir,xi,gDir);
+                        NormalizeVec(gDir);
+                        if(cacTB1){
+                            f1[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f1[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                        }
+            
+                        if(cacTB2){
+                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
+                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
+                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                        }
+                        
+                    }
+                }
+            }
+        }
+        
+    }
+
+    return;
+}
+
+void NodeImageForce(Home_t *home, Node_t *node, real8 *f)
+{
+    real8 armf1[3],armf2[3];
+    VECTOR_ZERO(f); 
+    Node_t *nbr;
+    for(int i=0; i<node->numNbrs; i++){
+        nbr=GetNeighborNode(home, node, i); 
+        if(nbr==(Node_t *)NULL)continue;
+        ImageForce(home, node, nbr, armf1, armf2);
+        f[0] += armf1[0];
+        f[1] += armf1[1];
+        f[2] += armf1[2];
+    }
+    if(!Numerical(f)){
+        VECTOR_ZERO(f);
+    }
+    return;
 }
 
