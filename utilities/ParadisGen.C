@@ -418,6 +418,9 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->loadDir[0] = 0;
         inArgs->loadDir[1] = 0;
         inArgs->loadDir[2] = 1;
+        inArgs->loadDir[3] = 0;
+        inArgs->loadDir[4] = 0;
+        inArgs->loadDir[5] = 0;
 
         inArgs->nTDs = -1;
         inArgs->gb = false; 
@@ -896,11 +899,33 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                         edotdir[1]=sin(degree*inArgs->loadDir[0])*sin(degree*inArgs->loadDir[1]);
                         edotdir[0]=sin(degree*inArgs->loadDir[0])*cos(degree*inArgs->loadDir[1]);
                         VECTOR_COPY(inArgs->loadDir, edotdir);
-                    }else{
-	                    inArgs->loadDir[2] = atof(token);
+                        printf("loading direction : {%f,%f,%f}\n", inArgs->loadDir[0], inArgs->loadDir[1],inArgs->loadDir[2]);
+                        break;
                     }
-	                NormalizeVec(inArgs->loadDir);
-                    printf("loading direction : {%f,%f,%f}\n", inArgs->loadDir[0], inArgs->loadDir[1],inArgs->loadDir[2]);
+	                inArgs->loadDir[2] = atof(token);
+                    
+	                token = strtok(NULL,",");
+                    if (token == (char *)NULL){
+	                    NormalizeVec(inArgs->loadDir);
+                        printf("loading direction : {%f,%f,%f}\n", inArgs->loadDir[0], inArgs->loadDir[1],inArgs->loadDir[2]);
+                        break;
+                    }
+
+                    inArgs->loadDir[3] = atof(token);
+	                token = strtok(NULL,",");
+                    if (token == (char *)NULL){
+                        Fatal("load direction wrong");
+                    }
+                    inArgs->loadDir[4] = atof(token);
+	                token = strtok(NULL,",");
+                    if (token == (char *)NULL){
+                        Fatal("load direction wrong");
+                    }
+
+                    inArgs->loadDir[5] = atof(token);
+                    printf("loading type 6: {%f,%f,%f,%f,%f,%f}\n", 
+                            inArgs->loadDir[0], inArgs->loadDir[1], inArgs->loadDir[2],
+                            inArgs->loadDir[3], inArgs->loadDir[4], inArgs->loadDir[5]);
 	                break;
                 case OPT_NTDS:
                     inArgs->nTDs = atoi(argValue);
@@ -1222,6 +1247,7 @@ int main(int argc, char *argv[])
 
         param->maxSeg = inArgs.maxSegLen;
 	    param->minSeg = inArgs.maxSegLen/2.0;
+        param->maxSchmid = -1.0;
 		
 	    param->polycrystal = inArgs.polycrystal;
 	    param->nGrain = inArgs.nGrain;

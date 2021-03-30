@@ -1251,7 +1251,14 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         for(i=0;i<3;i++){
             str[i][i] = inArgs->loadDir[i];
         }
+        str[0][1] = inArgs->loadDir[5];
+        str[1][0] = inArgs->loadDir[5];
 
+        str[1][2] = inArgs->loadDir[3];
+        str[2][1] = inArgs->loadDir[3];
+
+        str[0][2] = inArgs->loadDir[4];
+        str[2][0] = inArgs->loadDir[4];
 /*
  *      Grap the command-line argument values needed for this function
  */
@@ -2871,7 +2878,17 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         normalABC[0] = 1;
         normalABC[1] = 1;
         normalABC[2] = 1;
-        for(i=0;i<3;i++)for(j=0;j<3;j++)str[i][j]=inArgs->loadDir[i]*inArgs->loadDir[j];
+        for(i=0;i<3;i++)str[i][i]=inArgs->loadDir[i];
+        str[0][1] = inArgs->loadDir[5];
+        str[1][0] = inArgs->loadDir[5];
+
+        str[1][2] = inArgs->loadDir[3];
+        str[2][1] = inArgs->loadDir[3];
+
+        str[0][2] = inArgs->loadDir[4];
+        str[2][0] = inArgs->loadDir[4];
+
+        bool strEle = (Normal((inArgs->loadDir+3))>1.0E-1);
 
 #if     INITIAL_ANALYSIS
         std::vector<real8> vertices, neiVertices, dPoint(17), info(21);
@@ -2964,14 +2981,29 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         for(i=0; i<nSlips; i++){
             j = slip_sys[i][2]>-1?slip_sys[i][2]:0;
             bd=GetBurgData(home, j, -1);
-            proba[i] = fabs(DotProduct(inArgs->loadDir, bd->burgList[slip_sys[i][0]])*
+            if(!strEle){
+                proba[i] = fabs(DotProduct(inArgs->loadDir, bd->burgList[slip_sys[i][0]])*
                             DotProduct(inArgs->loadDir,bd->planeList[slip_sys[i][1]])/Normal(bd->burgList[slip_sys[i][0]]));
+            }else{
+                b[0] = bd->burgList[slip_sys[i][0]][0];
+                b[1] = bd->burgList[slip_sys[i][0]][1];
+                b[2] = bd->burgList[slip_sys[i][0]][2];
+                
+                n0[0] = bd->burgList[slip_sys[i][1]][0];
+                n0[1] = bd->burgList[slip_sys[i][1]][1];
+                n0[2] = bd->burgList[slip_sys[i][1]][2];
+                
+                proba[i] = fabs(b[0]*(n0[0]*str[0][0] + n0[1]*str[0][1] + n0[2]*str[0][2]) + 
+                                b[1]*(n0[0]*str[0][1] + n0[1]*str[1][1] + n0[2]*str[1][2]) + 
+                                b[2]*(n0[0]*str[0][2] + n0[1]*str[1][2] + n0[2]*str[2][2]))/Normal(b);
+            }
             if(proba[i]>maxSchmid){
                 maxSchmid = proba[i];
             }
             if(home->nGBs>1)Proba[i]=proba[i]; else Proba[i]=1.0;
             percen[i]=0.0;
         }
+        param->maxSchmid = maxSchmid;
         for(i=0;i<nSlips;i++)if(fabs(proba[i]-maxSchmid)<1E-4)primary[i]=1.0; else primary[i]=MAX(proba[i]/maxSchmid, 0.33333);
         for(i=1;i<nSlips;i++)Proba[i]+=Proba[i-1];
         for(i=0;i<nSlips;i++)Proba[i]/=Proba[nSlips-1];
@@ -3005,9 +3037,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                     bd = GetBurgData(home, inGrain1, onGB1); 
                     if(onGB1 > -1)continue;
 #if TEST
-                    gpIndex = 3;
-                    gpBurgIndex = 5;
-                    ranNum = 10;
+                    gpIndex = 2;
+                    gpBurgIndex = 1;
+                    ranNum = 6;
 #endif   
                     if(gpBurgIndex>=6){
                         ClosedGB(home, p1, &gb);
@@ -3269,7 +3301,24 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                 if(inArgs->extended != 0){
                     if(!PartialDislocations(bd, b, n0, b1, b2)){
                         partialDislocation = true;
-                    }else partialDislocation = false;
+                    }else {
+                        partialDislocation = false;
+                        real8 leadDir[3], tem1[3], tem2[3];
+                        cross(b2,b,tem1); NormalizeVec(tem1);
+                        cross(tem1, randomLine, tem2); NormalizeVec(tem2);
+                        if(DotProduct(b, randomLine)>0){
+                            VECTOR_COPY(leadDir, tem2);
+                        }else{
+                            leadDir[0] =-tem2[0];
+                            leadDir[1] =-tem2[1];
+                            leadDir[2] =-tem2[2];
+                        }
+                        if(DotProduct(leadDir, glideDir)<0){
+                            VECTOR_COPY(tem1, p3);
+                            VECTOR_COPY(p3,p0);
+                            VECTOR_COPY(p0, tem1);
+                        } 
+                    }
                 }else partialDislocation= false;
 
                 if(primary[ranNum]>0.99) primarySrcLen += srcLen;
