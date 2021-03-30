@@ -27,6 +27,7 @@ thickn=500
 if [ $# -gt 1 ] ; then thickn=$2; fi
 #frlen=`echo ${cubel}/2 | bc`
 maxDensity=`echo "scale=4; 1.0+10000.0/${thickn}" | bc -l`E12
+maxDensity=4.1E13
 poly=1
 nGrains=2
 if [ $# -gt 2 ] ; then nGrains=$3; fi
@@ -45,14 +46,15 @@ cubel=`echo "${cubeln}/0.2556" | bc`
 nfrs=`echo "${nfrsPerGrain}*${nGrains}" | bc`
 thick=`echo ${cubel}/${nGrains}| bc`
 frlen=`echo ${thick}*${nTimesThick1} | bc`,`echo ${thick}*${nTimesThick2} | bc`
+frlen=`echo "750/0.2556" | bc`
 
-maxSeg1=`echo ${cubel}/15 | bc `
+maxSeg1=`echo ${cubel}/20 | bc `
 maxSeg2=`echo ${thick}/6 | bc `
 if [ ${maxSeg1} -gt ${maxSeg2} ]; then maxSeg=${maxSeg2}; else maxSeg=${maxSeg1}; fi
 rTol=`echo "scale=7;${maxSeg}*sqrt(2)/32" | bc -l`
 rc=`echo "scale=7;0.1+4.0*${rTol}" | bc -l`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
-minDT=`echo "scale=3; ${thickn}/15" | bc`E-13
+minDT=`echo "scale=3; ${thickn}/20" | bc`E-13
 echo "Thickness=$thick b, $thickn nm, ${nGrains} grains,  maxSeg=${maxSeg}b, rTol =$rTol, minDT=$minDT, maxDensity=$maxDensity, rc=$rc"
 sed -i "/grainSize/cgrainSize = ${thick}" ${ctrlFile}
 sed -i "/^rTol =/crTol = ${rTol}" $ctrlFile
@@ -64,7 +66,20 @@ amu=90
 polar=90
 point=23
 
-if [ $# -gt 0 ]; then line=`sed -n "${1}p" data`; polar=`echo ${line} | cut -d " " -f 7`; amu=`echo ${line} | cut -d " " -f 8`; echo "edotPolar = [$polar $amu]" ; sed -i "/^edotPolar =/cedotPolar = [ $polar $amu ]" $ctrlFile; point=$1; fi
+if [[ `sed -n "/^loadType/p" $ctrlFile | cut -d " " -f 3` != "6" ]]; then 
+    if [ $# -gt 0 ]; then 
+        line=`sed -n "${1}p" data`; 
+        polar=`echo ${line} | cut -d " " -f 7`; 
+        amu=`echo ${line} | cut -d " " -f 8`; 
+        echo "edotPolar = [$polar $amu]" ; 
+        sed -i "/^edotPolar =/cedotPolar = [ $polar $amu ]" $ctrlFile; 
+        point=$1; 
+    fi
+    loadDir=${polar},${amu}
+else
+    loadDir=0,0,0,0,1,0
+    echo "loadType=6: $loadDir"
+fi
 
 sed -i "/meshNumX/cmeshNumX = $nMesh" $ctrlFile;
 sed -i "/meshNumY/cmeshNumY = $nMesh" $ctrlFile;
@@ -124,10 +139,10 @@ case $srctype in
 ######################################################################################
     4|IV)
     echo "./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${polar},${amu}"
+    -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir}"
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${polar},${amu} | tee $logFile ;;
+    -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} | tee $logFile ;;
 #   -polycrystal 1 -nGrain ${nGrains}  -pbc 0  ;;
 #   -polycrystal 1 -nGrain 2  -pbc 0 -nTDs 1 -gb 1;;
 #   -burgID 5 -planeID 1 \

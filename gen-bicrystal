@@ -46,7 +46,7 @@ else heightRatio=2; fi
 
 nMeshZ=`echo "${heightRatio}*${nMesh}" | bc `
 cubel=`echo ${cubeln}/0.2556 | bc`
-maxSeg=`echo ${cubel}/15 |bc `
+maxSeg=`echo ${cubel}/20 |bc `
 nGrains=2
 thick=`echo ${cubel}/${nGrains}| bc`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`

@@ -43,10 +43,11 @@ DLBfreq = 3
 elasticinteraction = 1
 #a0 = [ 1.68098 1.12421 1.01163 0.187646 ]
 enableCrossSlip =   1
-rTol = 23.0251635
-rc = 92.2006540
-grainSize = 3912
+rTol = 7.2036500
+rc = 28.9146000
+grainSize = 978
 loadType = 0
+loadDir = [ 0.0 0.0 0.0 0.0 1.0 0.0 ]
 #maxstep =  40000000
 maxstep =  20000
 dirname = "res."
@@ -78,7 +79,7 @@ strRate = -4.0E16
 #strRate = 0.0
 #plaRateCtr = 2.0E4
 
-edotPolar = [ 0.0000000e+00 0.0000000e+00 ]
+edotPolar = [ 9.0000000e+01 9.5000000e+01 ]
 
 appliedStress = [
 	0.0e0
@@ -117,7 +118,7 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 4000
+tecplotfreq = 2000
 saveprop = 1
 savepropfreq = 400
 tecmesh = 1
@@ -128,4 +129,4 @@ savetimers = 0
 savetimersfreq = 10
 velfile = 0
 velfilefreq = 1000
-minDT = 66.666E-13
+minDT = 12.500E-13
