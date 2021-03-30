@@ -1006,57 +1006,58 @@ void DataParamInit(Param_t *param, ParamList_t *DPList)
         param->dataDecompGeometry[1] = 1;
         param->dataDecompGeometry[2] = 1;
 		
-#if 1
-	BindVar(DPList, "maxSeg", &param->maxSeg, V_DBL, 1, VFLAG_NULL);
-	param->maxSeg = 200;
-	
-	BindVar(DPList, "minSeg", &param->minSeg, V_DBL, 1, VFLAG_NULL);
-	param->minSeg = 100;
-#endif		
-	BindVar(DPList, "polycrystal", &param->polycrystal, V_INT, 1, VFLAG_NULL);
-	param->polycrystal = 1;
+		BindVar(DPList, "maxSeg", &param->maxSeg, V_DBL, 1, VFLAG_NULL);
+		param->maxSeg = 200;
 		
-	BindVar(DPList, "nGrain", &param->nGrain, V_INT, 1, VFLAG_NULL);
-	param->nGrain = 2;
+		BindVar(DPList, "maxSchmid", &param->maxSchmid, V_DBL, 1, VFLAG_NULL);
+		param->maxSchmid = -1;
 		
-	BindVar(DPList, "twinRatio", &param->twinRatio, V_DBL, 1, VFLAG_NULL);
-	param->twinRatio = 0.5;
-	
-	BindVar(DPList, "xBoundType", &param->xBoundType, V_INT, 1, VFLAG_NULL);
-	param->xBoundType = (BoundType_t)0;
-
-	BindVar(DPList, "yBoundType", &param->yBoundType, V_INT, 1, VFLAG_NULL);
-	param->yBoundType = (BoundType_t)0;
-
-	BindVar(DPList, "zBoundType", &param->zBoundType, V_INT, 1, VFLAG_NULL);
-	param->zBoundType = (BoundType_t)0;
-
-	BindVar(DPList, "xBoundMin", &param->xBoundMin, V_DBL, 1, VFLAG_NULL);
-	BindVar(DPList, "yBoundMin", &param->yBoundMin, V_DBL, 1, VFLAG_NULL);
-	BindVar(DPList, "zBoundMin", &param->zBoundMin, V_DBL, 1, VFLAG_NULL);
-
-	BindVar(DPList, "xBoundMax", &param->xBoundMax, V_DBL, 1, VFLAG_NULL);
-	BindVar(DPList, "yBoundMax", &param->yBoundMax, V_DBL, 1, VFLAG_NULL);
-	BindVar(DPList, "zBoundMax", &param->zBoundMax, V_DBL, 1, VFLAG_NULL);
-
-	BindVar(DPList, "matrixOrientationX", &param->matrixOrientation[0], V_DBL, 3, VFLAG_NULL);
-	BindVar(DPList, "matrixOrientationY", &param->matrixOrientation[1], V_DBL, 3, VFLAG_NULL);
-	BindVar(DPList, "matrixOrientationZ", &param->matrixOrientation[2], V_DBL, 3, VFLAG_NULL);
-
-	BindVar(DPList, "TBNormal", &param->TBNormal, V_DBL, 3,
-            VFLAG_NULL);
-    param->TBNormal[0] = 1.0;  
-    param->TBNormal[1] = 1.0;  
-    param->TBNormal[2] = 1.0;  
-
-	BindVar(DPList, "TBNormalCryst", &param->TBNormalCryst, V_DBL, 3,
-            VFLAG_NULL);
-    param->TBNormalCryst[0] = 1.0;  
-    param->TBNormalCryst[1] = 1.0;  
-    param->TBNormalCryst[2] = 1.0;  
-
-	param->preDecreaseDT = 0;
-	param->markPreDTDisable = 0;
-	param->finish = 0;
-    return;
+		BindVar(DPList, "minSeg", &param->minSeg, V_DBL, 1, VFLAG_NULL);
+		param->minSeg = 100;
+		BindVar(DPList, "polycrystal", &param->polycrystal, V_INT, 1, VFLAG_NULL);
+		param->polycrystal = 1;
+			
+		BindVar(DPList, "nGrain", &param->nGrain, V_INT, 1, VFLAG_NULL);
+		param->nGrain = 2;
+			
+		BindVar(DPList, "twinRatio", &param->twinRatio, V_DBL, 1, VFLAG_NULL);
+		param->twinRatio = 0.5;
+		
+		BindVar(DPList, "xBoundType", &param->xBoundType, V_INT, 1, VFLAG_NULL);
+		param->xBoundType = (BoundType_t)0;
+    
+		BindVar(DPList, "yBoundType", &param->yBoundType, V_INT, 1, VFLAG_NULL);
+		param->yBoundType = (BoundType_t)0;
+    
+		BindVar(DPList, "zBoundType", &param->zBoundType, V_INT, 1, VFLAG_NULL);
+		param->zBoundType = (BoundType_t)0;
+    
+		BindVar(DPList, "xBoundMin", &param->xBoundMin, V_DBL, 1, VFLAG_NULL);
+		BindVar(DPList, "yBoundMin", &param->yBoundMin, V_DBL, 1, VFLAG_NULL);
+		BindVar(DPList, "zBoundMin", &param->zBoundMin, V_DBL, 1, VFLAG_NULL);
+    
+		BindVar(DPList, "xBoundMax", &param->xBoundMax, V_DBL, 1, VFLAG_NULL);
+		BindVar(DPList, "yBoundMax", &param->yBoundMax, V_DBL, 1, VFLAG_NULL);
+		BindVar(DPList, "zBoundMax", &param->zBoundMax, V_DBL, 1, VFLAG_NULL);
+    
+		BindVar(DPList, "matrixOrientationX", &param->matrixOrientation[0], V_DBL, 3, VFLAG_NULL);
+		BindVar(DPList, "matrixOrientationY", &param->matrixOrientation[1], V_DBL, 3, VFLAG_NULL);
+		BindVar(DPList, "matrixOrientationZ", &param->matrixOrientation[2], V_DBL, 3, VFLAG_NULL);
+    
+		BindVar(DPList, "TBNormal", &param->TBNormal, V_DBL, 3,
+                VFLAG_NULL);
+        param->TBNormal[0] = 1.0;  
+        param->TBNormal[1] = 1.0;  
+        param->TBNormal[2] = 1.0;  
+    
+		BindVar(DPList, "TBNormalCryst", &param->TBNormalCryst, V_DBL, 3,
+                VFLAG_NULL);
+        param->TBNormalCryst[0] = 1.0;  
+        param->TBNormalCryst[1] = 1.0;  
+        param->TBNormalCryst[2] = 1.0;  
+    
+		param->preDecreaseDT = 0;
+		param->markPreDTDisable = 0;
+		param->finish = 0;
+        return;
 }
