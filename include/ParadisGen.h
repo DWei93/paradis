@@ -51,7 +51,7 @@ typedef struct {
         real8   TBCryst[3];
         
         char    outFile[256];
-        real8   loadDir[3]; 
+        real8   loadDir[6]; 
         int     nTDs;
         bool    gb;
 }InArgs_t;
