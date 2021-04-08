@@ -266,6 +266,7 @@ void InitGrain(Home_t *home, Param_t *param){
 	int	    inner = 0, interType;
 	Plane_t plane;
 	Line_t  edge;
+    real8 tem[3], f_pk[3], f_pkg[3];
 
 	/*the following variables are placed in param.h*/
 	int		    numTGrains;
@@ -371,7 +372,10 @@ void InitGrain(Home_t *home, Param_t *param){
             for(k=0; k<2; k++){
                 slip.planeID = bd->burgOnPlaneID[j][k];
                 VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
-                slip.schmid = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
+                Matrix33Vector3Multiply(param->loadTensor,slip.burg,tem);
+                cross(tem,slip.burg,f_pk);
+                NormalComponent(f_pk, slip.normal, f_pkg);
+                slip.schmid = Normal(f_pkg)/Normal(slip.burg);
                 grain->slipSys.push_back(slip);
             }
         }
@@ -387,12 +391,20 @@ void InitGrain(Home_t *home, Param_t *param){
                 for(k=0; k<2; k++){
                     slip.planeID = bd->burgOnPlaneID[j][k];
                     VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
-                    slip.schmid = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
+                    Matrix33Vector3Multiply(param->loadTensor,slip.burg,tem);
+                    cross(tem,slip.burg,f_pk);
+                    NormalComponent(f_pk, slip.normal, f_pkg);
+                    slip.schmid = Normal(f_pkg)/Normal(slip.burg);
                     slipSys.push_back(slip);
                 }
             }
             sort(slipSys.begin(), slipSys.end(),cmp3); 
-    
+#if 0
+            for(auto &iter:slipSys){
+                printf("%d[%g,%g,%g] %d(%g,%g,%g) %g\n",iter.burgID,iter.burg[0],iter.burg[1],iter.burg[2],
+                      iter.planeID,iter.normal[0],iter.normal[1],iter.normal[2],iter.schmid);
+            }
+#endif    
             maxSchmid = slipSys[0].schmid;
 
             for(j=1; j<slipSys.size(); j++){
@@ -401,6 +413,7 @@ void InitGrain(Home_t *home, Param_t *param){
             slipSys.resize(j);
 
             param->maxSchmid = maxSchmid;
+            printf("Max Schmid factor: %g\n",param->maxSchmid);
 	        FormatMatrix(param->matrixOrientation,"Orientation");
 
             for(i=0; i<6; i++){
@@ -1059,7 +1072,11 @@ void InitGrain(Home_t *home, Param_t *param){
                     for(k=0; k<2; k++){
                         slip.planeID = bd->burgOnPlaneID[j][k];
                         VECTOR_COPY(slip.normal, bd->planeList[bd->burgOnPlaneID[j][k]]);
-                        slip.schmid = fabs(DotProduct(slip.normal, zaxis)*DotProduct(slip.burg,zaxis));
+
+                        Matrix33Vector3Multiply(param->loadTensor,slip.burg,tem);
+                        cross(tem,slip.burg,f_pk);
+                        NormalComponent(f_pk, slip.normal, f_pkg);
+                        slip.schmid = Normal(f_pkg)/Normal(slip.burg);
                         slipSys.push_back(slip);
                     }
                 }

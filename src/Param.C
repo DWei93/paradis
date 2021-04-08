@@ -178,6 +178,9 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 	    BindVar(CPList, "maxPst", &param->maxPst, V_DBL, 1, VFLAG_NULL);
 	    param->maxPst = 1.0E-2;
 
+	    BindVar(CPList, "maxDisDen", &param->maxDisDen, V_DBL, 1, VFLAG_NULL);
+	    param->maxDisDen = 1.0E20;
+
         BindVar(CPList, "timeNow", &param->timeNow, V_DBL, 1, VFLAG_NULL);
 
         BindVar(CPList, "timeStart", &param->timeStart, V_DBL, 1, VFLAG_NULL);

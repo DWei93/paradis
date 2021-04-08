@@ -73,7 +73,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         FILE     *fp;
         Plane_t	 plane;
         struct stat statbuf;
-        real8   al, am, an, amag, sigijk, pstnijk, dpstnijk, ptstnijk;
+        real8   al, am, an, amag, sigijk, pstnijk, dpstnijk, ptstnijk, bl, bm, bn;
         real8   vec[3], f[3], f1[3], f2[3], length, fMag,ifMag,n[3],val, nodePos[3], nbrPos[3];
         int     armID21;
         real8   tau_g, tau_gg, tau_ext;
@@ -156,7 +156,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
  *      needed.
  */
         if (firstInGroup) {
-            if(param->loadType != 6){
+            if(param->loadType!=6){
                 al = param->edotdir[0];
                 am = param->edotdir[1];
                 an = param->edotdir[2];
@@ -166,34 +166,36 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 al /= amag;
                 am /= amag;
                 an /= amag;
-                sigijk = param->appliedStress[0]*al*al     +
-                     param->appliedStress[1]*am*am     +
-                     param->appliedStress[2]*an*an     +
-                     2.0*param->appliedStress[3]*am*an +
-                     2.0*param->appliedStress[4]*an*al +
-                     2.0*param->appliedStress[5]*al*am;
-
-                pstnijk =  param->totpStn[0]*al*al     +
-                       param->totpStn[1]*am*am     +
-                       param->totpStn[2]*an*an     +
-                       2.0*param->totpStn[3]*am*an +
-                       2.0*param->totpStn[4]*an*al +
-                       2.0*param->totpStn[5]*al*am;
-                ptstnijk = param->totTwinpStn[0]*al*al     +
-                           param->totTwinpStn[1]*am*am     +
-                           param->totTwinpStn[2]*an*an     +
-                           2.0*param->totTwinpStn[3]*am*an +
-                           2.0*param->totTwinpStn[4]*an*al +
-                           2.0*param->totTwinpStn[5]*al*am;
+                bl=al; bm=am; bn=an;
             }else{
-                int loadDirID;
-                for(j=0; j<6;j++){
-                    if (param->loadDir[j]>1E-2){loadDirID=j; break;}
-                }
-                sigijk = param->appliedStress[loadDirID];
-                pstnijk = param->totpStn[loadDirID];
-                ptstnijk = param->totTwinpStn[loadDirID];
+                al = param->loadDir[0];
+                am = param->loadDir[1];
+                an = param->loadDir[2];
+                bl = param->loadDir[3];
+                bm = param->loadDir[4];
+                bn = param->loadDir[5];
+            
             }
+            sigijk = param->appliedStress[0]*al*bl        +
+                     param->appliedStress[1]*am*bm        +
+                     param->appliedStress[2]*an*bn        +
+                     param->appliedStress[3]*(am*bn+an*bm)+
+                     param->appliedStress[4]*(an*bl+al*bn)+ 
+                     param->appliedStress[5]*(al*bm+bl*am);
+            
+            pstnijk =  param->totpStn[0]*al*bl        +
+                       param->totpStn[1]*am*bm        +
+                       param->totpStn[2]*an*bn        +
+                       param->totpStn[3]*(am*bn+an*bm)+
+                       param->totpStn[4]*(an*bl+al*bn)+
+                       param->totpStn[5]*(al*bm+bl*am);
+            
+            ptstnijk = param->totTwinpStn[0]*al*bl        +
+                       param->totTwinpStn[1]*am*bm        +
+                       param->totTwinpStn[2]*an*bn        +
+                       param->totTwinpStn[3]*(am*bn+an*bm)+
+                       param->totTwinpStn[4]*(an*bl+al*bn)+
+                       param->totTwinpStn[5]*(al*bm+bl*am);
 /*
  *          First task in the I/O group must open the data file for writing
  *          to overwrite any existing file of the same name.

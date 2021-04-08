@@ -1470,18 +1470,45 @@ void Initialize(Home_t *home,int argc, char *argv[])
             }
         }
 
-        if(fabs(param->edotdir[0])<1E-10 && abs(param->edotdir[1])<1E-10 && abs(param->edotdir[2])<1E-10){
-            param->edotdir[2]=cos(degree*param->edotPolar[0]);
-            param->edotdir[1]=sin(degree*param->edotPolar[0])*sin(degree*param->edotPolar[1]);
-            param->edotdir[0]=sin(degree*param->edotPolar[0])*cos(degree*param->edotPolar[1]);
-            if(home->myDomain==0)FormatVector(param->edotdir, "edot direction");
-        }
-
         if(param->loadType == 6){
-            int singleDir=false;
-            for(j=0; j<6; j++){
-                if(param->loadDir[j]>1E-2)
-                    if(singleDir==false)singleDir=true; else if (home->myDomain == 0)Fatal("loadType=6: only support single direction loading!");
+            for(i=0;i<3;i++)for(j=0;j<3;j++) 
+                param->loadTensor[i][j] = (param->loadDir[i]*param->loadDir[j+3] + param->loadDir[j]*param->loadDir[i+3]);
+            param->indxErate=6;
+            if(home->myDomain ==0){
+                printf("Load Type: shear loading; indxErate = %d, n={%g,%g,%g} t={%g,%g,%g}\n",
+                         param->indxErate, param->loadDir[0],param->loadDir[1],param->loadDir[2],  
+                         param->loadDir[3],param->loadDir[4],param->loadDir[5]);
+                FormatMatrix(param->loadTensor,"Elemental param->loadTensoress");
+            }
+        }else if (param->loadType==0){
+            param->loadTensor[0][0] = param->appliedStress[0];
+            param->loadTensor[1][1] = param->appliedStress[1];
+            param->loadTensor[2][2] = param->appliedStress[2];
+            param->loadTensor[1][2] = param->appliedStress[3];
+            param->loadTensor[0][2] = param->appliedStress[4];
+            param->loadTensor[0][1] = param->appliedStress[5];
+            param->loadTensor[2][1] = param->loadTensor[1][2]; param->loadTensor[2][0] = param->loadTensor[0][2]; param->loadTensor[1][0] = param->loadTensor[0][1];
+            if(home->myDomain ==0){
+                printf("Load Type: creep\n");
+                FormatMatrix(param->loadTensor, "Applied param->loadTensoress");
+            }
+        }else{
+            if(home->myDomain==0)printf("Load Type: uniaxil loading\n");
+            param->indxErate=1;
+            if(fabs(param->edotdir[0])<1E-10 && abs(param->edotdir[1])<1E-10 && abs(param->edotdir[2])<1E-10){
+                param->edotdir[2]=cos(degree*param->edotPolar[0]);
+                param->edotdir[1]=sin(degree*param->edotPolar[0])*sin(degree*param->edotPolar[1]);
+                param->edotdir[0]=sin(degree*param->edotPolar[0])*cos(degree*param->edotPolar[1]);
+                if(home->myDomain==0){
+                    printf("Loading polar: theta=%g, omiga=%g\n", param->edotPolar[0], param->edotPolar[1]);
+                }
+            }
+
+            for(i=0;i<3;i++)for(j=0;j<3;j++) param->loadTensor[i][j] = param->edotdir[i]*param->edotdir[j];
+            if(home->myDomain ==0){
+                printf("Load Type: uniaxil loading, direction {%g,%g,%g}, indxErate = %d\n",
+                       param->edotdir[0],param->edotdir[1],param->edotdir[2], param->indxErate);
+                FormatMatrix(param->loadTensor, "Loading tensor");
             }
         }
 

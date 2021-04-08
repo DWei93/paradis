@@ -205,6 +205,7 @@ struct _param {
                              /* eRate                                   */
         real8 edotPolar[2];  /*polar angle and azimuthal angle of loading axis, units in degree*/
         real8 loadDir[6];    /* Loading factors of six conponents */
+        real8 loadTensor[3][3];
         real8 strRate;       /* Stress rate. Used when loadType == 6 */ 
         real8 plaRateCtr;    /* Plastic rate for controlling loading */
 
@@ -508,6 +509,7 @@ struct _param {
 	    int	    finish;
 	    real8	maxStn;
 	    real8	maxPst;
+        real8   maxDisDen;
         real8   meshSizeX;
         real8   meshSizeY;
         real8   meshSizeZ;

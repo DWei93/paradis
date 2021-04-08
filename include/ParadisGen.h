@@ -48,6 +48,7 @@ typedef struct {
 	    real8	maxDensity;
         int     extended;
 	    int     burgID, planeID;
+        real8   lineAngle, pos[3];
         real8   TBCryst[3];
         
         char    outFile[256];
@@ -164,8 +165,7 @@ typedef	enum{
 	OPT_SRCLENTYPE,
 	OPT_MAXDENSITY,
     OPT_EXTENDED,
-    OPT_BURGID,
-    OPT_PLANEID,
+    OPT_SINGLE_SOURCE_TEST,
     OPT_TBCRYST,
     OPT_OUT_FILE,
     OPT_LOAD_DIR,

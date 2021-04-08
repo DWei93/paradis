@@ -150,8 +150,7 @@ Option_t optList[OPT_MAX] = {
 	    {OPT_SRCLENTYPE,"srcLenType",	3, 1},
 	    {OPT_MAXDENSITY,"maxDensity",	4, 1},
         {OPT_EXTENDED,  "extended",     3, 1},
-        {OPT_BURGID,    "burgID",       3, 1},
-        {OPT_PLANEID,   "planeID",      3, 1},
+        {OPT_SINGLE_SOURCE_TEST,   "sst",      3, 1},
         {OPT_TBCRYST,   "TBCryst",      3, 1},
         {OPT_OUT_FILE,   "outFile",      3, 1},
         {OPT_LOAD_DIR,   "loadDir",      3, 1},
@@ -406,9 +405,11 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->rotDir[1]=0.0; 
         inArgs->rotDir[2]=0.0; 
 	    inArgs->maxDensity = 5.0E14;
+        inArgs->numFRSrcs = -1;
 
         inArgs->burgID = -1;
         inArgs->planeID = -1;
+        VECTOR_ZERO(inArgs->pos);
 
         inArgs->TBCryst[0] = 1;
         inArgs->TBCryst[1] = 1;
@@ -425,6 +426,7 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->nTDs = -1;
         inArgs->gb = false; 
 		snprintf(inArgs->outFile, sizeof(inArgs->outFile), "InitialAnalysis.dat");
+
         return;
 }
 
@@ -867,12 +869,40 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                 case OPT_EXTENDED:
                     inArgs->extended = atoi(argValue);
                         break;
-                case OPT_BURGID:
-                    inArgs->burgID = atoi(argValue);
-                        break;
-                case OPT_PLANEID:
-                    inArgs->planeID = atoi(argValue);
-                        break;
+                case OPT_SINGLE_SOURCE_TEST:
+	                token = strtok(argValue,",");
+	                inArgs->burgID = atoi(token);
+	                token = strtok(NULL,",");
+                    if (token == (char *)NULL) Fatal("Single Source Test: no plane ID");
+	                inArgs->planeID = atoi(token);
+	                token = strtok(NULL,",");
+                    if (token == (char *)NULL){
+                         printf("Single Source Test: default screw dislocation source, lineAngle = 0 degree\n");
+                    }else{
+                        inArgs->lineAngle = atof(token);
+                        printf("Single Source Test: lineAngle = %f degrees\n",inArgs->lineAngle);
+                    }
+
+	                token = strtok(NULL,",");
+                    if (token == (char *)NULL){
+                         printf("Single Source Test: default position {0,0,0}\n");
+                    }else{
+                        inArgs->pos[0] = atof(token);
+	                    token = strtok(NULL,",");
+                        if (token == (char *)NULL){
+                            Fatal("Single Source Test: wrong position");
+                        }else{
+                            inArgs->pos[1] = atof(token);
+	                        token = strtok(NULL,",");
+                            if (token == (char *)NULL){
+                                Fatal("Single Source Test: wrong position");
+                            }else{
+                                inArgs->pos[2] = atof(token);
+                                printf("Single Source Test: position = {%g,%g,%g}\n",inArgs->pos[0],inArgs->pos[1],inArgs->pos[2]);
+                            }
+                        }
+                    }
+                    break;
                 case OPT_TBCRYST:
 	                token = strtok(argValue,",");
 	                inArgs->TBCryst[0] = atof(token);

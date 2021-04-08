@@ -27,13 +27,13 @@ thickn=500
 if [ $# -gt 1 ] ; then thickn=$2; fi
 #frlen=`echo ${cubel}/2 | bc`
 maxDensity=`echo "scale=4; 1.0+10000.0/${thickn}" | bc -l`E12
-maxDensity=4.1E13
+maxDensity=4.1E15
 poly=1
 nGrains=2
 if [ $# -gt 2 ] ; then nGrains=$3; fi
 nTDs=1
 gb=0
-nfrs=500
+nfrs=18
 nMesh=41
 nfrsPerGrain=100
 nTimesThick1=3
@@ -46,7 +46,6 @@ cubel=`echo "${cubeln}/0.2556" | bc`
 nfrs=`echo "${nfrsPerGrain}*${nGrains}" | bc`
 thick=`echo ${cubel}/${nGrains}| bc`
 frlen=`echo ${thick}*${nTimesThick1} | bc`,`echo ${thick}*${nTimesThick2} | bc`
-frlen=`echo "750/0.2556" | bc`
 
 maxSeg1=`echo ${cubel}/20 | bc `
 maxSeg2=`echo ${thick}/6 | bc `

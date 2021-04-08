@@ -65,7 +65,7 @@ using namespace std;
 void WriteProp(Home_t *home, int property)
 {
         int     i, numItems, tmpOffset, numBurgVectors;
-        real8   al, am, an, amag, sigijk, pstnijk, dpstnijk;
+        real8   al, am, an, amag, sigijk, pstnijk, dpstnijk, bl, bm, bn;
         real8   ptstnijk;
         real8   *localDensityVals  = (real8 *)NULL;
         real8   *globalDensityVals = (real8 *)NULL;
@@ -97,16 +97,26 @@ void WriteProp(Home_t *home, int property)
                        2.0*dpstn[5]*dpstn[5])*2.0/3.0)/param->lastDT;
 
 	    TC = Sign(param->eRate);
-        al = param->edotdir[0];
-        am = param->edotdir[1];
-        an = param->edotdir[2];
+        if(param->loadType!=6){
+            al = param->edotdir[0];
+            am = param->edotdir[1];
+            an = param->edotdir[2];
+            
+            amag = sqrt(al*al+am*am+an*an);
+            
+            al /= amag;
+            am /= amag;
+            an /= amag;
+            bl=al; bm=am; bn=an;
+        }else{
+            al = param->loadDir[0];
+            am = param->loadDir[1];
+            an = param->loadDir[2];
+            bl = param->loadDir[3];
+            bm = param->loadDir[4];
+            bn = param->loadDir[5];
 
-        amag = sqrt(al*al+am*am+an*an);
-
-        al /= amag;
-        am /= amag;
-        an /= amag;
-        
+        }
         
         switch(property) {
         case DENSITY:
@@ -164,19 +174,21 @@ void WriteProp(Home_t *home, int property)
                     Fatal("can not open file %s", fileName);
                 }
 
-                pstnijk =  param->totpStn[0]*al*al     +
-                           param->totpStn[1]*am*am     +
-                           param->totpStn[2]*an*an     +
-                           2.0*param->totpStn[3]*am*an +
-                           2.0*param->totpStn[4]*an*al +
-                           2.0*param->totpStn[5]*al*am;
+        
+                pstnijk =  param->totpStn[0]*al*bl        +
+                           param->totpStn[1]*am*bm        +
+                           param->totpStn[2]*an*bn        +
+                           param->totpStn[3]*(am*bn+an*bm)+
+                           param->totpStn[4]*(an*bl+al*bn)+
+                           param->totpStn[5]*(al*bm+bl*am);
 
-                ptstnijk = param->totTwinpStn[0]*al*al     +
-                           param->totTwinpStn[1]*am*am     +
-                           param->totTwinpStn[2]*an*an     +
-                           2.0*param->totTwinpStn[3]*am*an +
-                           2.0*param->totTwinpStn[4]*an*al +
-                           2.0*param->totTwinpStn[5]*al*am;
+                ptstnijk = param->totTwinpStn[0]*al*bl        +
+                           param->totTwinpStn[1]*am*bm        +
+                           param->totTwinpStn[2]*an*bn        +
+                           param->totTwinpStn[3]*(am*bn+an*bm)+
+                           param->totTwinpStn[4]*(an*bl+al*bn)+
+                           param->totTwinpStn[5]*(al*bm+bl*am);
+        
 /*
  *              First print the standard stuff that's common
  *              regardless of which mobility (BCC, FCC, etc)
@@ -285,26 +297,26 @@ void WriteProp(Home_t *home, int property)
 #endif
 
             if (home->myDomain == 0) {
-                sigijk = param->appliedStress[0]*al*al     +
-                         param->appliedStress[1]*am*am     +
-                         param->appliedStress[2]*an*an     +
-                         2.0*param->appliedStress[3]*am*an +
-                         2.0*param->appliedStress[4]*an*al +
-                         2.0*param->appliedStress[5]*al*am;
+                sigijk = param->appliedStress[0]*al*bl        +
+                         param->appliedStress[1]*am*bm        +
+                         param->appliedStress[2]*an*bn        +
+                         param->appliedStress[3]*(am*bn+an*bm)+
+                         param->appliedStress[4]*(an*bl+al*bn)+ 
+                         param->appliedStress[5]*(al*bm+bl*am);
         
-                pstnijk =  param->totpStn[0]*al*al     +
-                           param->totpStn[1]*am*am     +
-                           param->totpStn[2]*an*an     +
-                           2.0*param->totpStn[3]*am*an +
-                           2.0*param->totpStn[4]*an*al +
-                           2.0*param->totpStn[5]*al*am;
+                pstnijk =  param->totpStn[0]*al*bl        +
+                           param->totpStn[1]*am*bm        +
+                           param->totpStn[2]*an*bn        +
+                           param->totpStn[3]*(am*bn+an*bm)+
+                           param->totpStn[4]*(an*bl+al*bn)+
+                           param->totpStn[5]*(al*bm+bl*am);
 
-                ptstnijk = param->totTwinpStn[0]*al*al     +
-                           param->totTwinpStn[1]*am*am     +
-                           param->totTwinpStn[2]*an*an     +
-                           2.0*param->totTwinpStn[3]*am*an +
-                           2.0*param->totTwinpStn[4]*an*al +
-                           2.0*param->totTwinpStn[5]*al*am;
+                ptstnijk = param->totTwinpStn[0]*al*bl        +
+                           param->totTwinpStn[1]*am*bm        +
+                           param->totTwinpStn[2]*an*bn        +
+                           param->totTwinpStn[3]*(am*bn+an*bm)+
+                           param->totTwinpStn[4]*(an*bl+al*bn)+
+                           param->totTwinpStn[5]*(al*bm+bl*am);
         
                 snprintf(fileName, sizeof(fileName), "%s/time_Plastic_strain",
                          DIR_PROPERTIES);
@@ -539,35 +551,26 @@ void WriteProp(Home_t *home, int property)
 					}
         
                     fprintf(fp,"%d ", home->cycle);
-                    if (param->loadType != 6){
-                        sigijk = param->appliedStress[0]*al*al     +
-                                 param->appliedStress[1]*am*am     +
-                                 param->appliedStress[2]*an*an     +
-                                 2.0*param->appliedStress[3]*am*an +
-                                 2.0*param->appliedStress[4]*an*al +
-                                 2.0*param->appliedStress[5]*al*am;
-                        
-                        pstnijk =  param->totpStn[0]*al*al     +
-                                   param->totpStn[1]*am*am     +
-                                   param->totpStn[2]*an*an     +
-                                   2.0*param->totpStn[3]*am*an +
-                                   2.0*param->totpStn[4]*an*al +
-                                   2.0*param->totpStn[5]*al*am;
-                        
-                        ptstnijk = param->totTwinpStn[0]*al*al     +
-                                   param->totTwinpStn[1]*am*am     +
-                                   param->totTwinpStn[2]*an*an     +
-                                   2.0*param->totTwinpStn[3]*am*an +
-                                   2.0*param->totTwinpStn[4]*an*al +
-                                   2.0*param->totTwinpStn[5]*al*am;
-                    }else{
-                        for(auto j=0; j<6;j++){
-                            if (param->loadDir[j]>1E-2){loadDirID=j; break;}
-                        }
-                        sigijk = param->appliedStress[loadDirID];
-                        pstnijk = param->totpStn[loadDirID];
-                        ptstnijk = param->totTwinpStn[loadDirID];
-                    }
+                    sigijk = param->appliedStress[0]*al*bl        +
+                             param->appliedStress[1]*am*bm        +
+                             param->appliedStress[2]*an*bn        +
+                             param->appliedStress[3]*(am*bn+an*bm)+
+                             param->appliedStress[4]*(an*bl+al*bn)+ 
+                             param->appliedStress[5]*(al*bm+bl*am);
+                    
+                    pstnijk =  param->totpStn[0]*al*bl        +
+                               param->totpStn[1]*am*bm        +
+                               param->totpStn[2]*an*bn        +
+                               param->totpStn[3]*(am*bn+an*bm)+
+                               param->totpStn[4]*(an*bl+al*bn)+
+                               param->totpStn[5]*(al*bm+bl*am);
+                    
+                    ptstnijk = param->totTwinpStn[0]*al*bl        +
+                               param->totTwinpStn[1]*am*bm        +
+                               param->totTwinpStn[2]*an*bn        +
+                               param->totTwinpStn[3]*(am*bn+an*bm)+
+                               param->totTwinpStn[4]*(an*bl+al*bn)+
+                               param->totTwinpStn[5]*(al*bm+bl*am);
                     if (param->loadType==4){
                         fprintf(fp, "%e %e %e ",param->netCyclicStrain*1.0E2, sigijk/1.0E6, pstnijk*1.0E2);
                         if(param->polycrystal) fprintf(fp, "%e ", ptstnijk*1.0E2);
@@ -577,8 +580,14 @@ void WriteProp(Home_t *home, int property)
                         fprintf(fp, "%e %e %e ",sign*param->eRate*1.0E2*param->timeNow, sign*sigijk/1.0E6, sign*pstnijk*1.0E2);
                         if(param->polycrystal) fprintf(fp, "%e ", sign*ptstnijk*1.0E2);
 
-                        if(fabs(param->eRate*param->timeNow) > param->maxStn)param->finish = 1;
-                        if(fabs(pstnijk) > param->maxPst)param->finish = 1;
+                        if(fabs(param->eRate*param->timeNow) > param->maxStn){
+                            if(home->myDomain==0)printf("Finish: max strain: \n", param->maxStn);
+                            param->finish = 1;
+                        }
+                        if(fabs(pstnijk) > param->maxPst){
+                            if(home->myDomain==0)printf("Finish: max strain: \n", param->maxPst);
+                            param->finish = 1;
+                        }
                     }
 
 
@@ -674,12 +683,12 @@ void WriteProp(Home_t *home, int property)
         case EPSDOT:
             if (home->myDomain == 0) {
                 if (param->realdt > 1.e-20){
-                    dpstnijk =  param->delpStrain[0]*al*al     +
-                                param->delpStrain[1]*am*am     +
-                                param->delpStrain[2]*an*an     +
-                                2.0*param->delpStrain[3]*am*an +
-                                2.0*param->delpStrain[4]*an*al +
-                                2.0*param->delpStrain[5]*al*am;
+                    dpstnijk =  param->delpStrain[0]*al*bl     +
+                                param->delpStrain[1]*am*bm     +
+                                param->delpStrain[2]*an*bn     +
+                                param->delpStrain[3]*(am*bn +bm*an)+
+                                param->delpStrain[4]*(an*bl +bn*al)+
+                                param->delpStrain[5]*(al*bm +bl*am);
         
                     snprintf(fileName, sizeof(fileName), "%s/epsdot",
                              DIR_PROPERTIES);

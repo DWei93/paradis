@@ -81,7 +81,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         int     numLoadCycle, numLoadCycle2;       
         real8   youngs, erate, dtt;
         real8   shr, dstn[6];
-        real8   modulus, dpl_stn, dStress, amag, al, am, an;
+        real8   modulus, dpl_stn, dStress, amag, al, am, an, bl, bm, bn;
         real8   sigijk, stn_cut;
         real8   phi1, phi2, phi3;
         real8   Rspin[3][3];
@@ -89,7 +89,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         real8   pstnijk, eAmp, timeNow, cTimeOld;
         real8   dCyclicStrain;
         real8   totCyclicStrain, netCyclicStrain;
-		real8   dpstn[6], dsig[6], destn[6];
+		real8   dpstn[6], dsig[6], destn[6], str[3][3];
         real8   tmpdSig[6];
 		real8   (*C)[6], (*Sij)[6];
         real8   Si[6];
@@ -213,19 +213,49 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 /*
  *      Compute nodal velocity : bug is fixed. Vector is address
  */
-        tempedot[0] = param->edotdir[0];
-        tempedot[1] = param->edotdir[1];
-        tempedot[2] = param->edotdir[2];
+        if(loadtype != 6){
+             tempedot[0] = param->edotdir[0];
+             tempedot[1] = param->edotdir[1];
+             tempedot[2] = param->edotdir[2];
+             
+             temppassedot[0] = 0.0;
+             temppassedot[1] = 0.0;
+             temppassedot[2] = 0.0;
+             
+             Matrix33Vector3Multiply(Rspin, tempedot, temppassedot);
+             
+             param->edotdir[0] = temppassedot[0];
+             param->edotdir[1] = temppassedot[1];
+             param->edotdir[2] = temppassedot[2];
+        }else{
+             tempedot[0] = param->loadDir[0];
+             tempedot[1] = param->loadDir[1];
+             tempedot[2] = param->loadDir[2];
+             
+             temppassedot[0] = 0.0;
+             temppassedot[1] = 0.0;
+             temppassedot[2] = 0.0;
+             
+             Matrix33Vector3Multiply(Rspin, tempedot, temppassedot);
+             
+             param->loadDir[0] = temppassedot[0];
+             param->loadDir[1] = temppassedot[1];
+             param->loadDir[2] = temppassedot[2];
 
-        temppassedot[0] = 0.0;
-        temppassedot[1] = 0.0;
-        temppassedot[2] = 0.0;
-        
-        Matrix33Vector3Multiply(Rspin, tempedot, temppassedot);
-        
-        param->edotdir[0] = temppassedot[0];
-        param->edotdir[1] = temppassedot[1];
-        param->edotdir[2] = temppassedot[2];
+             tempedot[0] = param->loadDir[3];
+             tempedot[1] = param->loadDir[4];
+             tempedot[2] = param->loadDir[5];
+             
+             temppassedot[0] = 0.0;
+             temppassedot[1] = 0.0;
+             temppassedot[2] = 0.0;
+             
+             Matrix33Vector3Multiply(Rspin, tempedot, temppassedot);
+             
+             param->loadDir[3] = temppassedot[0];
+             param->loadDir[4] = temppassedot[1];
+             param->loadDir[5] = temppassedot[2];
+        }
         
 #if 0
         printf("phi = %e %e %e \n", phi1, phi2, phi3);
@@ -267,7 +297,6 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
  *          constant strain rate
  */
             case 1:
-#if	1
 /*
  *              Cover for specific loading direction also
  */
@@ -310,9 +339,6 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 param->totstraintensor[4] = erate * param->timeNow *  an*al;
                 param->totstraintensor[5] = erate * param->timeNow *  al*am;
 				
-#else
-#endif
-//                if(home->myDomain == 0)printf("Loading %e %e %e %e\n", erate*dtt, dpstn[3], deltaStress[2][1]/dtt, param->appliedStress[3]);
                 break;
         
 /*
@@ -565,6 +591,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
  *          User defined load-time curve
  */
             case 6:
+#if 0
 				for (i = 0; i < 6; i++) {
                     dpstn[i] = param->delpStrain[i];
                 }
@@ -609,7 +636,58 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 deltaStress[2][1] = deltaStress[1][2];
                 deltaStress[0][2] = deltaStress[2][0];
                 deltaStress[1][0] = deltaStress[0][1];
+#else
 
+/*
+ *              Cover for specific loading direction also
+ */
+                al = param->loadDir[0];
+                am = param->loadDir[1];
+                an = param->loadDir[2];
+                bl = param->loadDir[3];
+                bm = param->loadDir[4];
+                bn = param->loadDir[5];
+
+                dpl_stn= param->delpStrain[0] * al*bl          +       
+                         param->delpStrain[1] * am*bm          +       
+                         param->delpStrain[2] * an*bn          +       
+                         param->delpStrain[3] *(am*bn + an*bm) +
+                         param->delpStrain[4] *(an*bl + al*bn) +
+                         param->delpStrain[5] *(al*bm + am*bl) ;   
+        
+                if (indxerate <= 3) {
+                   modulus = youngs;
+                } else {
+                   modulus = 2.0 * shr;
+                }
+
+/*
+ *              local in the [l m n] frame
+ */
+                dStress= modulus * (erate*dtt - dpl_stn);
+        
+/*#if 0
+                printf("al=%e,am=%e,an=%e\n", al, am, an);
+                printf("erate=%e,dtt=%e,dpl_stn=%e\n", erate, dtt, dpl_stn);
+                printf("modulus=%e,dStress=%e\n", modulus, dStress);
+ *
+ *              global (100)-(010)-(001) frame
+ */
+                param->appliedStress[0] += dStress * al*bl               ;
+                param->appliedStress[1] += dStress * am*bm               ;
+                param->appliedStress[2] += dStress * an*bn               ;
+                param->appliedStress[3] += dStress *(am*bn + an*bm) * 0.5;
+                param->appliedStress[4] += dStress *(an*bl + al*bn) * 0.5;
+                param->appliedStress[5] += dStress *(al*bm + am*bl) * 0.5;
+        
+                param->totstraintensor[0] = erate * param->timeNow * al*bl               ;
+                param->totstraintensor[1] = erate * param->timeNow * am*bm               ;
+                param->totstraintensor[2] = erate * param->timeNow * an*bn               ;
+                param->totstraintensor[3] = erate * param->timeNow *(am*bn + an*bm) * 0.5;
+                param->totstraintensor[4] = erate * param->timeNow *(an*bl + al*bn) * 0.5;
+                param->totstraintensor[5] = erate * param->timeNow *(al*bm + am*bl) * 0.5;
+				
+#endif
                 break;
 /*
  *          Stress loading with plastic strain control

@@ -1248,17 +1248,20 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         VECTOR_ZERO(str[1]);
         VECTOR_ZERO(str[2]);
 
-        for(i=0;i<3;i++){
-            str[i][i] = inArgs->loadDir[i];
+        if(Normal((inArgs->loadDir+3))>1.0E-1){
+            for(i=0;i<3;i++)str[i][i]=inArgs->loadDir[i];
+            str[0][1] = inArgs->loadDir[5];
+            str[1][0] = inArgs->loadDir[5];
+            
+            str[1][2] = inArgs->loadDir[3];
+            str[2][1] = inArgs->loadDir[3];
+            
+            str[0][2] = inArgs->loadDir[4];
+            str[2][0] = inArgs->loadDir[4];
+        }else{
+            for(i=0;i<3;i++)for(int j=0;j<3;j++) str[i][j] = inArgs->loadDir[i]*inArgs->loadDir[j];
         }
-        str[0][1] = inArgs->loadDir[5];
-        str[1][0] = inArgs->loadDir[5];
-
-        str[1][2] = inArgs->loadDir[3];
-        str[2][1] = inArgs->loadDir[3];
-
-        str[0][2] = inArgs->loadDir[4];
-        str[2][0] = inArgs->loadDir[4];
+        FormatMatrix(str,"Element stress");
 /*
  *      Grap the command-line argument values needed for this function
  */
@@ -2831,7 +2834,6 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
 }
 #endif
 
-#define TEST 0
 void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen)
 {
         int      i, lineIndex, chain, baseNodeID, numPoints=3,ranNum;
@@ -2840,7 +2842,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         int      x0, d, nLayers, xn, layer, time;
         int      startRemeshIndex = 0;
         real8    srcLen, thickness,lenRange;
-        real8    p0[3], p1[3], p2[3], p3[3], randomLine[3], p[3];
+        real8    p0[3], p1[3], p2[3], p3[3], randomLine[3], p[3], p31[3],p32[3],p01[3],p02[3];
         real8	 randomAngle, edge, srcLenMin, srcLenMax;
         int	     cubeLength, numSources,  seed, dislocType;
         int	     polycrystal, nGrain, finish;
@@ -2857,7 +2859,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         real8	 rotMatrix[3][3],rotLine[3],rotBurg[3],rotPlane[3], btemp[3];
         int      intID, burgID, planeID;
         real8    pi = 3.1415926535897932385, totSrcLen;
-        real8    separateLength = 40.0;
+        real8    separateLength = 20.0;
         bool        finished, singleSrcTest = 0;
         BurgInfo_t  *bd, *gbd;
         GB_t        *gb;
@@ -2878,17 +2880,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         normalABC[0] = 1;
         normalABC[1] = 1;
         normalABC[2] = 1;
-        for(i=0;i<3;i++)str[i][i]=inArgs->loadDir[i];
-        str[0][1] = inArgs->loadDir[5];
-        str[1][0] = inArgs->loadDir[5];
-
-        str[1][2] = inArgs->loadDir[3];
-        str[2][1] = inArgs->loadDir[3];
-
-        str[0][2] = inArgs->loadDir[4];
-        str[2][0] = inArgs->loadDir[4];
-
-        bool strEle = (Normal((inArgs->loadDir+3))>1.0E-1);
 
 #if     INITIAL_ANALYSIS
         std::vector<real8> vertices, neiVertices, dPoint(17), info(21);
@@ -2921,6 +2912,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         maxSeg      = (real8)inArgs->maxSegLen;
         burgID      = inArgs->burgID;
         planeID     = inArgs->planeID;
+
         	
         param = inData->param;
         d = inArgs->deltaNums;
@@ -2932,8 +2924,45 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         bool freeLine=(param->xBoundType != Periodic && param->yBoundType != Periodic && param->zBoundType != Periodic);
         real8 n3[3];
 
-        if(numSources <= 0){singleSrcTest = 1;}
+        if((burgID >-1 && planeID > -1)){singleSrcTest = 1; numSources = 1;}
         	
+        if(singleSrcTest){
+            VECTOR_COPY(p0,inArgs->pos);
+            NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1,2);
+            bd = GetBurgData(home, inGrain1, onGB1); 
+            VECTOR_COPY(n0, bd->planeList[planeID]);
+            VECTOR_COPY(b , bd->burgList[burgID]);
+            NormalizeVec(b);
+        }
+        if(singleSrcTest == true && (fabs(DotProduct(inArgs->loadDir,b)*DotProduct(inArgs->loadDir,n0))<1.0E-1)){
+            if(fabs(DotProduct(n0,b))>1.0E-1){
+                FormatVector(b,"b");
+                FormatVector(n0,"n0");
+                Fatal("Single Source Test: dislocation is not on it glide plane");
+            }
+//          for(i=0;i<3;i++)for(j=0;j<3;j++) str[i][j] = 0.5*(b[i]*n0[j]+b[j]*n0[i]);
+            for(i=0;i<3;i++)for(j=0;j<3;j++) str[i][j] = (b[i]*n0[j]+b[j]*n0[i]);
+            VECTOR_COPY(param->loadDir, n0);
+            VECTOR_COPY(&(param->loadDir[3]), b);
+            printf("Single Source Test: shear n={%g,%g,%g}, t={%g,%g,%g}\n",n0[0],n0[1],n0[2],b[0],b[1],b[2]);
+        }else{
+            if(Normal((inArgs->loadDir+3))>1.0E-1){
+                for(i=0;i<3;i++)str[i][i]=inArgs->loadDir[i];
+                str[0][1] = inArgs->loadDir[5];
+                str[1][0] = inArgs->loadDir[5];
+                
+                str[1][2] = inArgs->loadDir[3];
+                str[2][1] = inArgs->loadDir[3];
+                
+                str[0][2] = inArgs->loadDir[4];
+                str[2][0] = inArgs->loadDir[4];
+            }else{
+                for(i=0;i<3;i++)for(j=0;j<3;j++) str[i][j] = inArgs->loadDir[i]*inArgs->loadDir[j];
+                printf("Uniaxial loading: n={%g,%g,%g}\n",inArgs->loadDir[0], inArgs->loadDir[1], inArgs->loadDir[2]);
+            }
+        }
+        FormatMatrix(str,"Element stress");
+
         if(polycrystal){
             gb = home->GBKeys[0];
             gbd = &(gb->burgData);
@@ -2978,28 +3007,28 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         percen = (real8 *)malloc(nSlips*sizeof(real8));
         primary = (real8 *)malloc(nSlips*sizeof(real8));
 
+        real8 f_pk[3],f_pkg[3],tem[3], bedge[3];
+
         for(i=0; i<nSlips; i++){
             j = slip_sys[i][2]>-1?slip_sys[i][2]:0;
             bd=GetBurgData(home, j, -1);
-            if(!strEle){
-                proba[i] = fabs(DotProduct(inArgs->loadDir, bd->burgList[slip_sys[i][0]])*
-                            DotProduct(inArgs->loadDir,bd->planeList[slip_sys[i][1]])/Normal(bd->burgList[slip_sys[i][0]]));
-            }else{
-                b[0] = bd->burgList[slip_sys[i][0]][0];
-                b[1] = bd->burgList[slip_sys[i][0]][1];
-                b[2] = bd->burgList[slip_sys[i][0]][2];
-                
-                n0[0] = bd->burgList[slip_sys[i][1]][0];
-                n0[1] = bd->burgList[slip_sys[i][1]][1];
-                n0[2] = bd->burgList[slip_sys[i][1]][2];
-                
-                proba[i] = fabs(b[0]*(n0[0]*str[0][0] + n0[1]*str[0][1] + n0[2]*str[0][2]) + 
-                                b[1]*(n0[0]*str[0][1] + n0[1]*str[1][1] + n0[2]*str[1][2]) + 
-                                b[2]*(n0[0]*str[0][2] + n0[1]*str[1][2] + n0[2]*str[2][2]))/Normal(b);
-            }
+            b[0] = bd->burgList[slip_sys[i][0]][0];
+            b[1] = bd->burgList[slip_sys[i][0]][1];
+            b[2] = bd->burgList[slip_sys[i][0]][2];
+            
+            n0[0] = bd->planeList[slip_sys[i][1]][0];
+            n0[1] = bd->planeList[slip_sys[i][1]][1];
+            n0[2] = bd->planeList[slip_sys[i][1]][2];
+    
+            Matrix33Vector3Multiply(str,b,tem);
+            cross(tem,b,f_pk);
+            NormalComponent(f_pk, n0, f_pkg);
+            proba[i] = Normal(f_pkg)/Normal(b);
+
             if(proba[i]>maxSchmid){
                 maxSchmid = proba[i];
             }
+
             if(home->nGBs>1)Proba[i]=proba[i]; else Proba[i]=1.0;
             percen[i]=0.0;
         }
@@ -3025,22 +3054,26 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                 finished = 0;
                 while(!finished){
                     RandomPosition:
-#if TEST
-                    VECTOR_ZERO(p0);
-#else
-                    p1[0] = (randm(&seed)-0.5) * cubeSize;
-                    p1[1] = (randm(&seed)-0.5) * cubeSize;			
-                    p1[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
-#endif
-
-                    NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1,15);
+                    if(singleSrcTest){
+                        VECTOR_COPY(p0,inArgs->pos);
+                    }else{
+                        p1[0] = (randm(&seed)-0.5) * cubeSize;
+                        p1[1] = (randm(&seed)-0.5) * cubeSize;			
+                        p1[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
+                    }
+                    NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1,2);
                     bd = GetBurgData(home, inGrain1, onGB1); 
                     if(onGB1 > -1)continue;
-#if TEST
-                    gpIndex = 2;
-                    gpBurgIndex = 1;
-                    ranNum = 6;
-#endif   
+                    if(singleSrcTest){
+                        gpBurgIndex = burgID;
+                        gpIndex = planeID;
+                        for(i=0;i<nSlips;i++){
+                            if(slip_sys[i][0]==burgID && slip_sys[i][1]==planeID && 
+                              (planeID==3 || (slip_sys[i][2] == (inGrain1%2))))break;
+                        }
+                        ranNum=i;
+                    }
+
                     if(gpBurgIndex>=6){
                         ClosedGB(home, p1, &gb);
                         bd = &(gb->burgData);
@@ -3061,14 +3094,14 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                         if(time>100)break;
          
                         time++;
-                        randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
-                        randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
-                        
+                        if(singleSrcTest){
+                            randomAngle = inArgs->lineAngle*pi/180.0;
+                        }else{
+                            randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
+                            randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
+                        }
                         cross(n0, b, n1);
                         NormalizeVec(n1);
-#if TEST
-                        randomAngle=pi/2; // edge
-#endif
                 	    
                         for(i = 0; i < 3; i++){
                             randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
@@ -3077,9 +3110,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                             edge = home->grainKeys[inGrain]->thick/0.942809;
                         }else edge = cubeLength;
                         NormalizeVec(randomLine);
-#if 0
-                        VECTOR_ZERO(p1); VECTOR_ZERO(randomLine); randomLine[0]=1;
-#endif
 /*           
  *                     Length of the frank read source should be a random length
  *                     between srcLenMin and srcLenMax.
@@ -3113,11 +3143,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                 break;
 	                    }
 
-#if TEST
-
-#else
-                        if(home->nGBs>1)srcLen *= primary[ranNum];
-#endif
+                    
+                        if(singleSrcTest==false &&home->nGBs>1)srcLen *= primary[ranNum];
 
                         inGrain1=inGrain; onGB1=onGB; VECTOR_COPY(p1,p);
                         if(home->nGBs<=1 || gpIndex==3){
@@ -3125,8 +3152,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                 p0[i] = p[i] + (srcLen * randomLine[i])/2.0;
                                 p2[i] = p[i] + (srcLen * randomLine[i]);
                             } 
-                            NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,15);
-                            NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,15);
+                            NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,2);
+                            NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,2);
                             if(onGB>-1){
                                 if(onGB0 != onGB || onGB2 != onGB)continue;
                             }else{
@@ -3185,8 +3212,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                     p1[i] = p0[i] - (srcLen * randomLine[i])/2.0;
                                     p2[i] = p0[i] + (srcLen * randomLine[i])/2.0;
                                 } 
-                                NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1, 15);
-                                NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2, 15);
+                                NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1, 2);
+                                NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2, 2);
                                 grain = home->grainKeys[inGrain0];
                                 
                                 if(!(onGB1<0 && inGrain1==inGrain0) && !(onGB2<0 && inGrain2==inGrain0)){
@@ -3275,8 +3302,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                             p3[0] = p0[0] + separateLength*glideDir[0]; // leading partial dislocation
                             p3[1] = p0[1] + separateLength*glideDir[1];
                             p3[2] = p0[2] + separateLength*glideDir[2];
-                            NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,15);
-                            NodeLocation(home, p3[0],  p3[1], p3[2], inGrain3, onGB3,15);
+                            NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,2);
+                            NodeLocation(home, p3[0],  p3[1], p3[2], inGrain3, onGB3,2);
                     
                             if(onGB>-1){
                                 if(onGB0 != onGB || onGB3 != onGB)continue;
@@ -3642,10 +3669,12 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
             }  /* for (chain = 0; chain < numChains; ) */
             printf("layer %d: xn=%d, chain=%d\n",layer,xn,chain+1);
 	    }/* for(layer=0; layer<nLayers;...)*/
+                                                                               
         printf("Slip systems | location  | burgID | planeID  | Schmid Factor | percentage\n"); 
         for(i=0; i<nSlips; i++){
             printf("    %3d      |   %3s     |   %3d  |   %3d    |    %5.3f      |  %5.2f  \n",
-                i+1, (slip_sys[i][0]>=6)?"TB":((slip_sys[i][1]==3)?"M/T":(slip_sys[i][2]==0?"M":"T")), slip_sys[i][0], slip_sys[i][1], proba[i], percen[i]*100/totSrcLen);
+                i+1, (slip_sys[i][0]>=6)?"TB":((slip_sys[i][1]==3)?"M/T":(slip_sys[i][2]==0?"M":"T")), slip_sys[i][0], 
+                slip_sys[i][1], proba[i], percen[i]*100/totSrcLen);
         }
 
         free(proba);
@@ -3877,7 +3906,7 @@ void CreateLoopSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *t
             cenPos[2] = (randm(&seed)-0.5)*cubeLength;
             
             if(home->nGBs>0){
-                NodeLocation(home, cenPos[0], cenPos[1], cenPos[2], inGrain0, onGB0,15);
+                NodeLocation(home, cenPos[0], cenPos[1], cenPos[2], inGrain0, onGB0,2);
                 if(onGB0 > -1) continue;
                 ranNum = (i<N_SS && nLoops>N_SS)?i:int(1.0E5*randm(&seed))%N_SS;
                 if(slip_sys[ranNum][2]==0 || slip_sys[ranNum][2]==1){
@@ -4130,7 +4159,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
             cenPos[0] = (randm(&seed)-0.5)*cubeLength;
             cenPos[1] = (randm(&seed)-0.5)*cubeLength;
             cenPos[2] = (randm(&seed)-0.5)*cubeLength;
-            NodeLocation(home, cenPos[0], cenPos[1], cenPos[2], inGrain, onGB,15);
+            NodeLocation(home, cenPos[0], cenPos[1], cenPos[2], inGrain, onGB,2);
             if((inArgs->polycrystal==1 && inGrain == grainID && onGB <0) || (inArgs->polycrystal==0))break;
         }
 
@@ -4196,7 +4225,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
             }
             CoordMinus(lPoiList[j],cenPos,lDirList[j]); normalize_vec(lDirList[j]);
             CoordAdd(1.0,cenPos,rList[j],lDirList[j],lPoiList[j]);
-            NodeLocation(home, lPoiList[j][0],lPoiList[j][1],lPoiList[j][2], ig, og,15);
+            NodeLocation(home, lPoiList[j][0],lPoiList[j][1],lPoiList[j][2], ig, og,2);
             if((og<0 && inGrain==ig) || (!AlignedDirection(bd->planeList[3],n[j]))){
                 cross(n0,n[j],lDirList[j]); normalize_vec(lDirList[j]);
                 continue;
@@ -4205,7 +4234,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
             r=10.0;
             while(true){
                 CoordAdd(1.0,cenPos,r,lDirList[j],lPoiList[j]);
-                NodeLocation(home, lPoiList[j][0],lPoiList[j][1],lPoiList[j][2], ig, og,15);
+                NodeLocation(home, lPoiList[j][0],lPoiList[j][1],lPoiList[j][2], ig, og,2);
                 if(ig!=inGrain)break;
                 r+=10.0;
             }

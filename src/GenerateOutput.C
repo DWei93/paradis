@@ -544,7 +544,7 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
                 *outputTypes |= GEN_PROPERTIES_DATA;
             }else if(home->cycle == 1){
                 *outputTypes |= GEN_PROPERTIES_DATA;
-            }
+            }else if (param->finish == 1)*outputTypes |= GEN_PROPERTIES_DATA;
         }
 
 /*
@@ -1368,11 +1368,6 @@ void GenerateOutput(Home_t *home, int stage, const char *msg)
             }
         }
 
-/*
- *      Determine what types of output need to be generated at
- *      this stage.
- */
-        GetOutputTypes(home, stage, &outputTypes);
 
 /*
  *      If we are writing either properties data or a restart file,
@@ -1384,7 +1379,16 @@ void GenerateOutput(Home_t *home, int stage, const char *msg)
         MPI_Allreduce(&localDensity, &globalDensity, 1, MPI_DOUBLE,
                       MPI_SUM, MPI_COMM_WORLD);
         param->disloDensity = globalDensity;
+        if(param->maxDisDen < globalDensity){
+            param->finish = 1;
+            if(home->myDomain==0)printf("Finish: dislocation density > maximum\n");
+        }
 #endif
+/*
+ *      Determine what types of output need to be generated at
+ *      this stage.
+ */
+        GetOutputTypes(home, stage, &outputTypes);
 
 #ifndef NO_XWINDOW
 /*
@@ -1444,7 +1448,10 @@ void GenerateOutput(Home_t *home, int stage, const char *msg)
 
         if(param->wallTime > 0){
             totalTime = ((real8)(clock()-param->timestart))/CLOCKS_PER_SEC/3600.0;
-            if(totalTime > 0.98*param->wallTime)param->finish = 1;
+            if(totalTime > 0.98*param->wallTime){
+                if(home->myDomain==0)printf("Finish: total time\n");
+                param->finish = 1;
+            }
 
 #ifdef PARALLEL
             finishLoc = param->finish;
