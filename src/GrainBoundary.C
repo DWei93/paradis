@@ -2319,7 +2319,7 @@ void GBCrossSlip(Home_t *home)
     real8   GC1[3][3], GC2[3][3], debris[3], energySet;
     real8 outBurg[3];
 
-    bool    isScrew;
+    bool    isScrew, superBurg;
     Param_t *param;
 
     std::vector<real8>                                      maxShearList;
@@ -2612,11 +2612,12 @@ void GBCrossSlip(Home_t *home)
             burgID = BurgID_FCC(gbd, burg);
 
             simpleWay = false;
+            superBurg = ((fabs(Normal(burg)-Normal(gbd->burgList[burgID]))>1E-1)?true:false);
             if(burgID<gbd->numBurgVectors){
                 signBurg = DotProduct(burg, gbd->burgList[burgID])/Normal(gbd->burgList[burgID]);
                 if(signBurg>0.98)signBurg=1.0;
                 else if(signBurg<-0.98)signBurg=-1.0;
-                if(fabs(signBurg)>0.99){
+                if(fabs(signBurg)>0.99 && superBurg==false){
                     dec = GetDecompositionResults(gbd, burgID, keyLineID);
                     if(dec != (Decom_t *)NULL){
                         for (j=0; j<dec->disArray.size();j++){
@@ -2824,7 +2825,9 @@ void GBCrossSlip(Home_t *home)
                     if(!IsOnGB(node)){
                         NodeLocation(home, vec[0], vec[1], vec[2], inGrain, onGB);
                         if(inGrain != node->inGrain){
-                            break;
+                            if(superBurg){
+                                VECTOR_COPY(disPosArray[j][k], newNodePos);
+                            }else break;
                         }
                     }
                 }

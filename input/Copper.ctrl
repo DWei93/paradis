@@ -45,6 +45,7 @@ elasticinteraction = 1
 enableCrossSlip =   1
 rTol = 7.2036500
 rc = 28.9146000
+Ecore = -1
 grainSize = 978
 loadType = 0
 loadDir = [ 0.0 0.0 1.0 -1.0 0.0 0.0 ]
@@ -93,7 +94,8 @@ appliedStress = [
 #  Material and mobility parameters
 #  
 mobilityLaw =   "Wei"  
-shearModulus =   54.6e9  # Voight Average
+shearModulus =   48.0e9  # Imrich
+#shearModulus =   54.6e9  # Voight Average
 #shearModulus =  46.554e9  # in jin paper
 gbStrength = -1
 tbStrength = [ 50.0E6 500.0E6 ]
