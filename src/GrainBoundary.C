@@ -3359,7 +3359,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 
     real8       rc=param->rc;
     real8       dis, burgMag, burg[3], segCentor[3], tbStrength, xi[3], bedge[3];
-    real8       ldir[3],pdir[3], a = rc, err=1.0E-3, amax=10*rc; 
+    real8       ldir[3],pdir[3], a = 5.85938, err=1.0E-3, amax=10*rc; 
     real8       gausFac[2] = {0.211324865405187, // (1-sqrt(3)/3)/2
                               0.7886751345948128}; // (1+sqrt(3)/3)/2
     real8       coff=0.0, length, nor[3], gDir[3], gbNormal[3], pos[3], pBound[3], nBound[3], vel[3];
