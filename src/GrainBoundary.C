@@ -3362,7 +3362,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     real8       ldir[3],pdir[3], a = 5.85938, err=1.0E-3, amax=10*rc; 
     real8       gausFac[2] = {0.211324865405187, // (1-sqrt(3)/3)/2
                               0.7886751345948128}; // (1+sqrt(3)/3)/2
-    real8       coff=0.0, length, nor[3], gDir[3], gbNormal[3], pos[3], pBound[3], nBound[3], vel[3];
+    real8       coff=0.0, length, nor[3], gDir[3], gbNormal[3], pos[3], pBound[3], nBound[3], vel[3],costheta;
     GB_t        *gb;
     Grain_t     *grain;
     int         armID, i, j, type, armInGrain,armOnGB,curInGrain, curOnGB;
@@ -3641,11 +3641,12 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                 gb = grain->GB[j];
                 type = PlanePlaneIntersection(nor,pos,gb->n,gb->p,ldir,pdir);
                 if(type==LINE_INTERSECTION){
+                    costheta = fabs(DotProduct(ldir,xi));
                     CoordMinus(pos,pdir,ldir); 
                     dis=Normal(ldir);
                     if(dis>err && dis <amax){
                         NormalizeVec(ldir);
-                        coff = (dis>rc?tbStrength * a/(a+dis-rc):tbStrength);
+                        coff = (dis>rc?tbStrength*a*costheta/(a+dis-rc):tbStrength*costheta);
                         NormalComponent(ldir,xi,gDir);
                         NormalizeVec(gDir);
                         if(cacTB1){
