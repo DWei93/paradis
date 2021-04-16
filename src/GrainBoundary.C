@@ -3399,6 +3399,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     if(length < 1.0E-2)return;
     NormalizeVec(xi);
     GetArmGrain(home, node1, node2, armInGrain, armOnGB);
+    bool intersectTB = (node1->onGB>-1 || node2->onGB>-1);
     NormalComponent(burg,xi,bedge);
 
     real8 old1Pos[3]={node1->oldx,node1->oldy,node1->oldz}, old2Pos[3]={node2->oldx,node2->oldy,node2->oldz};
@@ -3647,6 +3648,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                     if(dis>err && dis <amax){
                         NormalizeVec(ldir);
                         coff = (dis>rc?tbStrength*a*costheta/(a+dis-rc):tbStrength*costheta);
+                        if(intersectTB)coff *= 0.5;
                         NormalComponent(ldir,xi,gDir);
                         NormalizeVec(gDir);
                         if(cacTB1){
