@@ -1218,7 +1218,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         int	     polycrystal, nGrain, finish;
         int      firstBurgIndex, srcLenType;
         int      inGrain1, onGB1, inGrain2, onGB2, inGrain0, onGB0;
-        int      inGrain3, onGB3;
+        int      inGrain3, onGB3, constraint1=0, constraint2=0;
         real8	 twinRatio, maxSeg, maxDensity, burgMag = 2.556E-10;
         real8	 volume, glideDir[3];
         real8	 tnx[4], tny[4], tnz[4], burg[12][3], cubeSize,heightSize;
@@ -1352,18 +1352,33 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
                     if(!PerpendicularDirection(b,param->TBNormal)){break;}
-                    VECTOR_COPY(randomLine, b);
+                    
+                    RE_ANGLE:
+                    randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
+                    randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
 
-                    for (i = 0; i < 3; i++) {
-                        p1[i] = p0[i] + (srcLen * randomLine[i]*0.5);
-                        p2[i] = p0[i] - (srcLen * randomLine[i]*0.5);
-                    } 
+                    CoordAdd(cos(randomAngle),b,sin(randomAngle),n0, randomLine);
+                    NormalizeVec(randomLine);
+
+                    if(inArgs->pbcVal>0){
+                        constraint1=0; constraint2=0;
+                        if(!IntersectionOfRayBox(param, randomLine, p0, p1, constraint1))continue;
+                        NegativeVector(randomLine, randomLine);
+                        if(!IntersectionOfRayBox(param, randomLine, p0, p2, constraint2))continue;
+                    }else{
+                        for (i = 0; i < 3; i++) {
+                            p1[i] = p0[i] + (srcLen * randomLine[i]*0.5);
+                            p2[i] = p0[i] - (srcLen * randomLine[i]*0.5);
+                        } 
+                    }
 
                     NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1,15);
                     NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,15);
              
                     if(onGB1 > -1 || inGrain0 != inGrain1 || onGB2 > -1 || inGrain2 != inGrain1){
-                        continue;
+                        if(inArgs->pbcVal>0){
+                            goto RE_ANGLE;
+                        }else continue;
                     }	                
 
                     if(inArgs->extended != 0){
@@ -1394,12 +1409,12 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         p5[1] = p2[1] + separateLength*glideDir[1];
                         p5[2] = p2[2] + separateLength*glideDir[2];
 #if 1
-                        NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,15);
-                        NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1,15);
-                        NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,15);
-                        NodeLocation(home, p3[0],  p3[1], p3[2], inGrain3, onGB3,15);
-                        NodeLocation(home, p4[0],  p4[1], p4[2], inGrain4, onGB4,15);
-                        NodeLocation(home, p5[0],  p3[1], p5[2], inGrain5, onGB5,15);
+                        NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,2);
+                        NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1,2);
+                        NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,2);
+                        NodeLocation(home, p3[0],  p3[1], p3[2], inGrain3, onGB3,2);
+                        NodeLocation(home, p4[0],  p4[1], p4[2], inGrain4, onGB4,2);
+                        NodeLocation(home, p5[0],  p3[1], p5[2], inGrain5, onGB5,2);
                     
                         if(onGB0 > -1 || onGB3 > -1 || onGB1 > -1 || onGB2 > -1 ||
                            onGB4 > -1 || onGB5 > -1 || inGrain4 != inGrain0 || inGrain5 != inGrain0 ||
@@ -1534,7 +1549,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->y = p1[1];
                      node->z = p1[2];
                   
-                     node->constraint = UNCONSTRAINED;
+                     node->constraint = constraint1;
                      node->inGrain = inGrain1;
                      node->onGB = onGB1;
                      AllocNodeArms(node, 2);
@@ -1570,7 +1585,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                      node->y = p2[1];
                      node->z = p2[2];
                   
-                     node->constraint = UNCONSTRAINED;
+                     node->constraint = constraint2;
                      node->inGrain = inGrain2;
                      node->onGB = onGB2;
                      AllocNodeArms(node, 2);
