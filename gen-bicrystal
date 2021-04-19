@@ -38,6 +38,7 @@ if [ $# -ge 4 ]; then
 fi
 schmid=0.408
 type=3
+srcLenType=1
 if [ $cubeln -ge 3000 ]; then heightRatio=1; 
 elif [ $cubeln -ge 1000 ]; then heightRatio=2; 
 else heightRatio=2; fi
@@ -121,7 +122,7 @@ case $srctype in
 ######################################################################################
     1|I)
     ./bin/paradisgen -type $type  -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  \
-    -polycrystal 0  -pbc 0 -extend 0  -srcLenType 0 \
+    -polycrystal 0  -pbc 0 -extend 0  -srcLenType $srcLenType \
     -xMatDir 1,0,0 -zMatDir 0,0,1 ;;
 
 #    -polycrystal 0 -pbc 0 \
@@ -131,10 +132,10 @@ case $srctype in
 #
 ######################################################################################
     2|II)
-    info="# ./bin/paradisgen -type ${type} -pbc $pbc -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed  -polycrystal 0 -pbc 7 -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity}  -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 "
+    info="# ./bin/paradisgen -type ${type} -pbc $pbc -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed  -polycrystal 0 -pbc 7 -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity}  -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 -srcLenType $srcLenType"
     (echo "$info"
     ./bin/paradisgen -type $type -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 0 -pbc $pbc -loadDir 0,0,1\
+    -polycrystal 0 -pbc $pbc -loadDir 0,0,1 -srcLenType $srcLenType \
     -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity} \
     -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 ) | tee input/CreateFR-single${single}.log;;
 
@@ -171,11 +172,11 @@ case $srctype in
 ######################################################################################
     5|V)
 
-    info="#./bin/paradisgen -type ${type} -frlen ${frlen} -pbc $pbc -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -rotate ${angle},${rotDir} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1 -nTDs $nTDs -xMatDir ${xMatDir} -yMatDir ${yMatDir}";
+    info="#./bin/paradisgen -type ${type} -frlen ${frlen} -pbc $pbc -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -rotate ${angle},${rotDir} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1 -nTDs $nTDs -xMatDir ${xMatDir} -yMatDir ${yMatDir} -srcLenType $srcLenType";
 
     echo "$info"
     (echo "${2}-degree" ;  ./bin/paradisgen -type ${type} -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 1 -nGrain 2 -pbc $pbc -maxDensity $maxDensity -loadDir 0,0,1 \
+    -polycrystal 1 -nGrain 2 -pbc $pbc -maxDensity $maxDensity -loadDir 0,0,1 -srcLenType $srcLenType \
     -rotate ${angle},${rotDir} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 \
     -nLayers 1  -nTDs $nTDs -xMatDir ${xMatDir} -yMatDir ${yMatDir})| tee $logFile;;
 #   -yMatDir -1,-1,-1 -zMatDir 1,-1,0  -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;

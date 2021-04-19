@@ -1217,7 +1217,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         int	     cubeLength, numSources,  seed, dislocType;
         int	     polycrystal, nGrain, finish;
         int      firstBurgIndex, srcLenType;
-        int      inGrain1, onGB1, inGrain2, onGB2, inGrain0, onGB0;
+        int      inGrain1, onGB1=-1, inGrain2=-1, onGB2=-1, inGrain0=-1, onGB0=-1;
         int      inGrain3, onGB3, constraint1=0, constraint2=0;
         real8	 twinRatio, maxSeg, maxDensity, burgMag = 2.556E-10;
         real8	 volume, glideDir[3];
@@ -1351,7 +1351,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
    
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
-                    if(!PerpendicularDirection(b,param->TBNormal)){break;}
+                    if(inArgs->pbcVal==0 &&!PerpendicularDirection(b,param->TBNormal)){break;}
                     
                     RE_ANGLE:
                     randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
@@ -2891,6 +2891,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         real8   barrierFactor, crossProd[3], vec[3], intDir[3];
         real8   vec1[3], vec2[3], s0,  paras[4][4], zaxis[3] = {0,0,1};
         int l; real8 dis;
+        int constraint2=0;
 
         normalABC[0] = 1;
         normalABC[1] = 1;
@@ -3162,11 +3163,18 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                         if(singleSrcTest==false &&home->nGBs>1)srcLen *= primary[ranNum];
 
                         inGrain1=inGrain; onGB1=onGB; VECTOR_COPY(p1,p);
+                        constraint2 = PINNED_NODE;
                         if(home->nGBs<=1 || gpIndex==3){
                             for (i = 0; i < 3; i++) {
                                 p0[i] = p[i] + (srcLen * randomLine[i])/2.0;
                                 p2[i] = p[i] + (srcLen * randomLine[i]);
                             } 
+                            if(srcLenType==1){
+                                if(!InCuboid(param, p2,0)){
+                                    if(!IntersectionOfRayBox(param, randomLine, p1, p2, constraint2))continue;
+                                    CoordAdd(0.5,p1,0.5,p2,p0);
+                                }
+                            }
                             NodeLocation(home, p0[0],  p0[1], p0[2], inGrain0, onGB0,2);
                             NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,2);
                             if(onGB>-1){
@@ -3492,7 +3500,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                      node->y = p2[1];
                      node->z = p2[2];
                   
-                     node->constraint = PINNED_NODE;
+                     node->constraint = constraint2;
                      node->inGrain = inGrain2;
                      node->onGB = onGB2;
                      AllocNodeArms(node, 1);
