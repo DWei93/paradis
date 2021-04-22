@@ -299,6 +299,7 @@ void ParadisStep(Home_t *home)
             TrapezoidIntegrator(home);
         }
         DebugGB(home,18);
+//      DumpDeltaPlasticStrain(home, 0);
 
 
 /*
@@ -336,6 +337,7 @@ void ParadisStep(Home_t *home)
 #endif
         }
 
+//      DumpDeltaPlasticStrain(home, 1);
         DebugGB(home,21);
         if(param->gbStrength>0 || param->polycrystal && param->nGrain>1){
             ClearOpList(home);
@@ -372,10 +374,6 @@ void ParadisStep(Home_t *home)
         GetDensityDelta(home);
         DebugGB(home,25);
 
-/*
- *      Calculate the new plastic strain.
- */
-        DeltaPlasticStrain(home);
         DebugGB(home,26);
 
 /*
@@ -383,7 +381,7 @@ void ParadisStep(Home_t *home)
  *      determine if any output needs to be generated at this stage, and
  *      call the appropriate I/O functions if necessary.
  */
-        GenerateOutput(home, STAGE_CYCLE,"-1cycle");
+//      DumpDeltaPlasticStrain(home, 2);
         DebugGB(home,1);
 
 /*
@@ -410,6 +408,7 @@ void ParadisStep(Home_t *home)
  *      (if necessary) the cross-slip function appropriate to the
  *      type of material in use.
  */
+//      DumpDeltaPlasticStrain(home, 3);
         CrossSlip(home);
         DebugGB(home,3);
 #if CHECK_GB_TOPO
@@ -419,8 +418,10 @@ void ParadisStep(Home_t *home)
  *      Search for dislocation segments in close proximity to each other
  *      and if necessary handle any collision between them.
  */
+//      DumpDeltaPlasticStrain(home, 4);
         HandleCollisions(home);
 		
+//      DumpDeltaPlasticStrain(home, 5);
         DebugGB(home,4);
 
 #ifdef PARALLEL
@@ -488,6 +489,13 @@ void ParadisStep(Home_t *home)
         GenerateOutput(home, STAGE_DEBUG, "-4Remesh");
 #endif
 /*
+ *      Calculate the new plastic strain.
+ */
+        DeltaPlasticStrain(home);
+ //     DumpDeltaPlasticStrain(home, 6);
+        GenerateOutput(home, STAGE_CYCLE,"-1cycle");
+/*
+
  *      Define load curve and calculate change in applied stress this cycle
  */
         DebugGB(home,9);

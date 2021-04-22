@@ -41,6 +41,7 @@ if [ $# -ge 4 ]; then
 fi
 schmid=0.441
 type=3
+srcLenType=1
 if [ $cubeln -ge 3000 ]; then heightRatio=1; 
 elif [ $cubeln -ge 1000 ]; then heightRatio=2; 
 else heightRatio=2; fi

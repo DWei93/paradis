@@ -422,6 +422,7 @@ struct _param {
         real8 delpStrain[6],delSig[6],totpStn[6];
         real8 delpTwinStrain[6], totTwinpStn[6];
         real8 delpSpin[6],totpSpn[6];
+        real8 mergeDpSt[6], mergeDpSp[3];
 
 /*
  *      Added for strain decomposition and density flux decomp.

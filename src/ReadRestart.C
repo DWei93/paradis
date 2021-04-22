@@ -766,6 +766,7 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
                            &node->x, &node->y, &node->z,
                            &numNbrs, &node->constraint, &node->inGrain, &node->onGB);
 
+                    node->oldx = node->x; node->oldy = node->y; node->oldz = node->z;
                     AllocNodeArms(node, numNbrs); 
 /*
  *                  Read in data for each arm of the node

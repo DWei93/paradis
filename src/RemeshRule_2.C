@@ -284,11 +284,12 @@ static void MeshCoarsen(Home_t *home)
                 gp1[0] = node->nx[1];
                 gp1[1] = node->ny[1];
                 gp1[2] = node->nz[1];
-#if 0
+#if 1
                 if(IsOnGB(node) && IsOnGB(nbr1) && IsOnGB(nbr2) &&
                    node->onGB == nbr1->onGB && node->onGB == nbr2->onGB){
                     ld1[0]=vec1x; ld1[1]=vec1y; ld1[2]=vec1z;
                     ld2[0]=vec2x; ld2[1]=vec2y; ld2[2]=vec2z;
+                    NormalizeVec(ld1); NormalizeVec(ld2);
                     if(AlignedDirection(ld1,ld2,0.9))violateGlidePlanesOK = 1;
 #ifdef DEBUG
                     if(smallSegOnTB)printf("%d %d in %s at %d: {%f,%f,%f}dot{%f,%f,%f}=%d\n",
@@ -498,7 +499,7 @@ static void MeshCoarsen(Home_t *home)
  *              operation, attempt to merge the nodes.
  */
                 if (((nbr1->flags & NO_MESH_COARSEN) == 0) &&
-                    (!(violateGlidePlanesOK==1 && r1 >= 1.0)) && 
+                    (!(violateGlidePlanesOK==1 && r1 >= 0.2*param->minSeg)) && 
                     (!(IsOnGB(node) && IsOnGB(nbr2) && !IsOnGB(nbr1)))){
                     newPos[0] = nbr1->x;
                     newPos[1] = nbr1->y;
@@ -561,13 +562,13 @@ static void MeshCoarsen(Home_t *home)
  */
 
 #ifdef DEBUG
-                    if(smallSegOnTB)printf("%d %d in %s at %d: mergeDone=%d\n",
+                    if(smallSegOnTB)printf("%d %d in %s at %d: mergeDone=%d, mergeStatus=%d\n",
                         home->myDomain, home->cycle, __FILE__, __LINE__,
-                        mergeDone);
+                        mergeDone,mergeStatus);
 #endif
                 if (mergeDone == 0) {
                     if (((nbr2->flags & NO_MESH_COARSEN) == 0) &&
-                        (!(violateGlidePlanesOK==1 && r2 >= 1.0)) && 
+                        (!(violateGlidePlanesOK==1 && r2 >= 0.2*param->minSeg)) && 
                         (!(IsOnGB(node) && IsOnGB(nbr1) && !IsOnGB(nbr2)))){
                         newPos[0] = nbr2->x;
                         newPos[1] = nbr2->y;
@@ -945,7 +946,7 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
             oldTag1 = node->myTag;
             oldTag2 = nbr->myTag;
 
-			
+
             splitStatus = SplitNode(home, OPCLASS_REMESH,
                                     node, nodePos, newPos,
                                     nodeVel, newVel,
@@ -1057,6 +1058,8 @@ static void MeshRefine(Home_t *home)
         Tag_t   oldTag1, oldTag2;
         Node_t  *node, *nbr, *nbr1, *nbr2, *splitNode1, *splitNode2;
         Param_t *param;
+
+        real8 oldSeg[6], newSeg[9], curSeg[3];
 
 
 /*
@@ -1222,7 +1225,7 @@ static void MeshRefine(Home_t *home)
                     }
 
                     armID = GetArmID(home, node, nbr);
-
+#if 0
 			        if(home->param->polycrystal && IsOnGB(node) && IsOnGB(nbr)){
 
                         dis = NodeDistance(home, node, nbr);
@@ -1237,6 +1240,8 @@ static void MeshRefine(Home_t *home)
                            fabs(dis) < 5 && BurgType_FCC(burg) == BASIC_BURG)continue;
 				
 			        }
+#endif
+                    
 
                     didBisect = TrySegBisect(home, &node, nbr, armID, segLen,
                                              vec, area2, areaMax2, darea2dt,
@@ -1322,7 +1327,7 @@ static void MeshRefine(Home_t *home)
         
                         oldTag1 = node->myTag;
                         oldTag2 = nbr1->myTag;
-						
+#if 0						
 			            if(home->param->polycrystal && IsOnGB(node) && IsOnGB(nbr1)){
 
                             dis = NodeDistance(home, node, nbr1);
@@ -1340,11 +1345,11 @@ static void MeshRefine(Home_t *home)
                             }
 				
 			            }
-
+#endif
                         NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
                         if(inGrain != node->inGrain && !IsOnGB(node)){
-//                          PrintNode(node);
-//                          printf("Warning: refine - 0\n");
+                            PrintNode(node);
+                            printf("Warning: refine - 0\n");
                         }
 
                         splitStatus = SplitNode(home, OPCLASS_REMESH,
