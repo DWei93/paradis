@@ -782,6 +782,9 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
     int         newInGrain, newOnGB;
     bool        switchedArm, passGB;
     real8       nodeVel[3], currPos[3], oldPos[3], posClosedGB[3];
+#if 0
+    real8       oldCen[3], oldPos2[3];
+#endif
     real8       dis, dirGBNode[3], node1Pos[3], node2Pos[3];
     real8       vec1[3], vec2[3], newVel[3], nForce[3], norm;
     real8       centorPos[3], lDir[3], peneLength, planeBurg[3];
@@ -827,13 +830,14 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
     oldPos[1] = node->oldy;
     oldPos[2] = node->oldz;
 
+
     type = PointPlaneIntersection(currPos, gb->n,
                                   gb->p, posClosedGB, &dis);
     if(fabs(dis) < 1E-10)return(0);
 
     vec1[0] = currPos[0] - oldPos[0];
-    vec1[0] = currPos[0] - oldPos[0];
-    vec1[0] = currPos[0] - oldPos[0];
+    vec1[1] = currPos[1] - oldPos[1];
+    vec1[2] = currPos[2] - oldPos[2];
     ZImage(param, vec1, vec1+1, vec1+2);
     if(DotProduct(vec1, nodeVel) <= 0)return(0);
 
@@ -846,7 +850,14 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 	nbrNode2 = GetNeighborNode(home,node,1);
 	
 	if(nbrNode1 == (Node_t *)NULL || nbrNode2 == (Node_t *)NULL)return(0);
-	
+
+#if 0	
+    oldPos2[0] = nbrNode2->oldx; oldPos2[1] = nbrNode2->oldy; oldPos2[2] = nbrNode2->oldz;
+    CoordMinus(oldPos2, oldPos, oldCen); ZImage(param, oldCen, oldCen+1, oldCen+2);
+    CoordAdd(0.5,oldCen,1.0,oldPos,oldCen);
+    FoldBox(param, oldCen, oldCen+1, oldCen+2);
+#endif
+    
 	node1 = (Node_t *)NULL; 
 	node2 = (Node_t *)NULL; 
 	
@@ -862,7 +873,9 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
  *	Insert a new native node and select two segements to deal with
  */
 	globalOp = 1;
-
+#ifdef DEBUG
+    real8 oldPst = SegDeltaPlasticStrain(home, node, nbrNode2)+SegDeltaPlasticStrain(home, node, nbrNode1);
+#endif
 	if((localNode = InsertNode(home,node,nbrNode2,oldPos,
         globalOp,OPCLASS_SEPARATION)) == (Node_t *)NULL) {
 	    return(0);
@@ -878,8 +891,18 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 	    node2 = localNode;
 	}
 	
+#if 0
+    node1->oldx = oldPos[0]; node1->oldy = oldPos[1]; node1->oldz = oldPos[2];
+    node2->oldx = oldCen[0]; node2->oldy = oldCen[1]; node2->oldz = oldCen[2];
+#endif
 	RepositionNode(home, node2Pos, &node2->myTag, globalOp);
 	RepositionNode(home, node1Pos, &node1->myTag, globalOp);
+
+#ifdef DEBUG
+    real8 newPst = SegDeltaPlasticStrain(home, nbrNode1, node1)+SegDeltaPlasticStrain(home, node1, node2)+SegDeltaPlasticStrain(home, node2, nbrNode2);
+    printf("PenFirst: %d %d %d: at %d {%f,%f,%f}->{%f,%f,%f}-{%f,%f,%f} %e=%e-%e\n", home->cycle, home->myDomain, node->myTag.index, __LINE__,
+           node1->oldx, node1->oldy, node1->oldz, node1->x, node1->y, node1->z, node2->x, node2->y, node2->z, newPst-oldPst, newPst, oldPst);
+#endif
 
     AssignGrain(home, node1, -1, gb->GBID);
     AssignGrain(home, node2, -1, gb->GBID);
@@ -938,10 +961,16 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
 
     if(!FindIntersectionWithGB(home, node, nbrNode1, GBPlane, &interLine))return 0;
     VECTOR_COPY(newPos, interLine.point);
-
+#ifdef DEBUG
+    real8 oldPst = SegDeltaPlasticStrain(home, nbrNode1, node) + SegDeltaPlasticStrain(home, nbrNode2, node);
+#endif
     FoldBox(param, newPos, newPos+1, newPos+2);
 	RepositionNode(home, newPos, &node->myTag, 1);
-
+#ifdef DEBUG
+    real8 newPst = SegDeltaPlasticStrain(home, nbrNode1, node) + SegDeltaPlasticStrain(home, nbrNode2, node);
+    printf("PenSide: %d %d %d: at %d {%f,%f,%f}->{%f,%f,%f} %e=%e-%e\n", home->cycle, home->myDomain, node->myTag.index, __LINE__,
+           node->oldx, node->oldy, node->oldz, node->x, node->y, node->z, newPst-oldPst, newPst, oldPst);
+#endif
     AssignGrain(home, node, -1, nbrNode2->onGB);
     return(1);
 }
@@ -1010,8 +1039,16 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
 
     }
     FoldBox(param, vec2, vec2+1, vec2+2);
-//  printf("PenetrationLast (gb: %g): (%g,%g,%g)-->(%g,%g,%f)\n", GBPlane->point[1], nodePos[0],nodePos[1],nodePos[2],vec2[0],vec2[1],vec2[2]);
+#ifdef DEBUG
+    printf("PenetrationLast (gb: %g): (%g,%g,%g)-->(%g,%g,%f)\n", GBPlane->point[1], nodePos[0],nodePos[1],nodePos[2],vec2[0],vec2[1],vec2[2]);
+    real8 oldPst = SegDeltaPlasticStrain(home, nbrNode1, node) + SegDeltaPlasticStrain(home, nbrNode2, node);
+#endif
 	RepositionNode(home, vec2, &node->myTag, 1);
+#ifdef DEBUG
+    real8 newPst = SegDeltaPlasticStrain(home, nbrNode1, node) + SegDeltaPlasticStrain(home, nbrNode2, node);
+    printf("PenLast: %d %d %d: at %d {%f,%f,%f}->{%f,%f,%f} %e=%e-%e\n", home->cycle, home->myDomain, node->myTag.index, __LINE__,
+           node->oldx, node->oldy, node->oldz, node->x, node->y, node->z, newPst-oldPst, newPst, oldPst);
+#endif
     AssignGrain(home, node, -1, nbrNode2->onGB);
     return(1);
 }
@@ -1259,15 +1296,27 @@ void HandleGrainBoundary(Home_t *home)
                 NormalizeVec(vec1);
                 if(LinePlaneIntersection(vec1, vec2, gb->n, gb->p, vec, newPos)
                    == POINT_INTERSECTION){
+#ifdef DEBUG
+                    printf("%d %d %d: at %d {%f,%f,%f}->{%f,%f,%f} physic node pull to GB\n", home->cycle, home->myDomain, node->myTag.index, __LINE__,
+                           node->x, node->y, node->z,newPos[0],newPos[1],newPos[2]);
+#endif
                     FoldBox(param, newPos, newPos+1, newPos+2);
 	                RepositionNode(home, newPos, &node->myTag, 1);
                     AssignGrain(home, node, -1, gb->GBID);
                 }else{
                     PullBack(home, node);
+#ifdef DEBUG
+                    printf("%d %d %d: at %d {%f,%f,%f}->{%f,%f,%f} physic node pull back\n", home->cycle, home->myDomain, node->myTag.index, __LINE__,
+                           node->x, node->y, node->z, node->oldx, node->oldy, node->oldz);
+#endif
                 }
     
             }else{
                 PullBack(home, node);
+#ifdef DEBUG
+                printf("%d %d %d: at %d {%f,%f,%f}->{%f,%f,%f} physic node pull back\n", home->cycle, home->myDomain, node->myTag.index, __LINE__,
+                       node->x, node->y, node->z, node->oldx, node->oldy, node->oldz);
+#endif
             }
             continue;
         }
@@ -1379,11 +1428,21 @@ void HandleGrainBoundary(Home_t *home)
         normal[0] = node->nx[0];
         normal[1] = node->ny[0];
         normal[2] = node->nz[0];
-        if(ConstrictionCriteria(home, node, nbrNode1, nbrNode2, gbPlane, normal)==false){
-            PullBack(home,node);
-            continue;
-	    }
 
+        if(numNbrOnGB<2){
+            if(ConstrictionCriteria(home, node, nbrNode1, nbrNode2, gbPlane, normal)==false){
+#ifdef DEBUG
+                real8 oldPst = SegDeltaPlasticStrain(home, node, nbrNode2)+SegDeltaPlasticStrain(home, node, nbrNode1);
+#endif
+                PullBack(home,node);
+#ifdef DEBUG
+                real8 newPst = SegDeltaPlasticStrain(home, nbrNode1, node) + SegDeltaPlasticStrain(home, nbrNode2, node);
+                printf("%d %d %d %d: at %d {%f,%f,%f}->{%f,%f,%f} physic node pull back %e=%e-%e\n", home->cycle, home->myDomain, node->myTag.index,numNbrOnGB, __LINE__,
+                       node->x, node->y, node->z, node->oldx, node->oldy, node->oldz,newPst-oldPst,newPst,oldPst);
+#endif
+                continue;
+	        }
+        }
 #endif
 #endif
 
@@ -2310,7 +2369,7 @@ void GBCrossSlip(Home_t *home)
     real8   newNodePos[3], newNbr1Pos[3], newNbr2Pos[3], newGBNbrPos[3];
     real8   barrierFactor, oriShear, newVel[3], outBurgNorm[3], outPlane[3];
     real8   newPos[3], maxShear;
-    real8   segForceOrig[4][3], gArmForceDir[3], signDir[3];
+    real8   segForceOrig[4][3], glideShear[3], signDir[3], tdLengthXb, gdir[3], gShearStress;
     Line_t  interLine;
     Node_t  *node, *nbr1, *nbr2, *nbr, *gbNbr=(Node_t *)NULL, *newNode;
     Node_t  *mergedNode;
@@ -2538,8 +2597,9 @@ void GBCrossSlip(Home_t *home)
             test1 = test1*test1;
             if(test1Max - test1 > test1Max * s2thetacrit)continue;
 
+            VECTOR_COPY(vec2, GC1[2]); NormalizeVec(vec2);
 	        GetGlideConstraintList(home, gbNbr, &NM2, GC2, zeroLenJunc2);
-            if(sideCrossSlipNode == 2){
+            if(sideCrossSlipNode == 2){ // gbNode is a physical node
                 switch (NM2){
                     case 2:
                         if(fabs(DotProduct(GC1[2], GC2[2]) > 0.95)){
@@ -2553,23 +2613,39 @@ void GBCrossSlip(Home_t *home)
                         break;
                     default:
                         PrintNode(home, gbNbr);
+#ifdef DEBUG
                         printf("%s: a concentrated side segment occured on TB",__func__);
-                        sideCrossSlipNode == 1;
+#endif
+                        sideCrossSlipNode == 1; // gb node is a non-physical node
                         break;
                 }
+            }
+
+            armID = GetArmID(home, node, gbNbr);
+            nbrArmID = GetArmID(home, gbNbr, node);
+            normal[0] = node->nx[armID];  normal[1] = node->ny[armID];   normal[2] = node->nz[armID]; 
+            burg[0] = node->burgX[armID];  burg[1] = node->burgY[armID];  burg[2] = node->burgZ[armID];
+            norm = Normal(burg);
+            tdLengthXb =norm*Normal(vec1);
+
+            glideShear[0] = (node->armfx[armID] + gbNbr->armfx[nbrArmID])/tdLengthXb;
+            glideShear[1] = (node->armfy[armID] + gbNbr->armfy[nbrArmID])/tdLengthXb;
+            glideShear[2] = (node->armfz[armID] + gbNbr->armfz[nbrArmID])/tdLengthXb;
+            cross(normal, vec2, gdir); 
+            if(Normal(gdir)<1E-3)continue;  NormalizeVec(gdir); 
+
+            ParallelComponent(glideShear, gdir, glideShear);
+            gShearStress = Normal(glideShear);
+            isScrew = fabs(DotProduct(burg,gb->n))/norm<0.1?true:false;
+            if(isScrew){
+                if(gShearStress < 0.8*param->tbStrength[0]) continue;
+            }else {
+                if(gShearStress < 0.8*param->tbStrength[1]) continue;
             }
 
             if(nbrGrain > -1){
 
                 grain = home->grainKeys[nbrGrain];
-
-                armID = GetArmID(home, node, gbNbr);
-                nbrArmID = GetArmID(home, gbNbr, node);
-                gArmForceDir[0] = (node->armfx[armID] + gbNbr->armfx[nbrArmID]);
-                gArmForceDir[1] = (node->armfy[armID] + gbNbr->armfy[nbrArmID]);
-                gArmForceDir[2] = (node->armfz[armID] + gbNbr->armfz[nbrArmID]);
-                NormalizeVec(gArmForceDir);
-
                 localGBID = GetGBIndexOfGrain(grain, gb->GBID);
                 if(localGBID == -1){
                     Fatal("In file %s at line %d", __FILE__, __LINE__);
@@ -2578,8 +2654,13 @@ void GBCrossSlip(Home_t *home)
                 signDir[0] = -grain->sign[localGBID]*gb->n[0];
                 signDir[1] = -grain->sign[localGBID]*gb->n[1];
                 signDir[2] = -grain->sign[localGBID]*gb->n[2];
-
-                if(DotProduct(gArmForceDir, signDir) > 0)sideCrossSlipNode = 3;
+                if(DotProduct(glideShear, signDir) > 0)sideCrossSlipNode = 3;
+                else{
+#ifdef DEBUG
+                    printf("%d: a TD segment can not be emitted into grain due to reverse glide direction \n",home->myDomain);
+#endif
+                    continue;
+                }
             }
 
             VECTOR_COPY(interLine.direction,GC1[2]);
@@ -2601,7 +2682,6 @@ void GBCrossSlip(Home_t *home)
             normal[2] = node->nz[0];
 
             norm = Normal(burg);
-
 
             std::vector<std::vector< Dislocation_t> >().swap(disArray);
             std::vector<std::vector<double> >().swap(burgList);
@@ -2808,14 +2888,11 @@ void GBCrossSlip(Home_t *home)
                     vec[0] = node->vX;
                     vec[1] = node->vY;
                     vec[2] = node->vZ;
+                    NormalizeVec(vec);
 
-                    vec[0] *= (param->nextDT/10.0);
-                    vec[1] *= (param->nextDT/10.0);
-                    vec[2] *= (param->nextDT/10.0);
-
-                    vec[0] += newNodePos[0];
-                    vec[1] += newNodePos[1];
-                    vec[2] += newNodePos[2];
+                    vec[0] = 5.0E-4*vec[0]+newNodePos[0];
+                    vec[1] = 5.0E-4*vec[1]+newNodePos[1];
+                    vec[2] = 5.0E-4*vec[2]+newNodePos[2];
 
                     VECTOR_COPY(disPosArray[j][k], vec);
 
@@ -3055,7 +3132,7 @@ void GBCrossSlip(Home_t *home)
             }
 	        RepositionNode(home, newPos, &gbNbr->myTag, 0);
 
-            if(sideCrossSlipNode == 2 && NM2 != 3){
+            if(NM2 != 3){
                 vec1[0] = newPos[0] - interLine.point[0];
                 vec1[1] = newPos[1] - interLine.point[1];
                 vec1[2] = newPos[2] - interLine.point[2];
@@ -3164,6 +3241,11 @@ bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8
                 Fatal("in %s at %d", __FILE__, __LINE__);
 #endif
             }
+#ifdef DEBUG
+            printf("%d %d :Splited Node on TB is adusted. {%f,%f,%f}->{%f,%f,%f} ", 
+                    home->cycle, home->myDomain, currPos[0],currPos[1],currPos[2], pos[0],pos[1],pos[2]);
+            PrintTag(node); printf("\n");
+#endif
             return(1);
         }
     }else{
@@ -3196,7 +3278,11 @@ bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8
             if(NewPosToGB(home, node, node->inGrain, currOnGB, currPos, pos)){
                 Fatal("in %s at %d", __FILE__, __LINE__);
             }
-
+#ifdef DEBUG
+            printf("%d %d Splited Node in Grain is adusted. {%f,%f,%f}->{%f,%f,%f} ", 
+                    home->cycle, home->myDomain, currPos[0],currPos[1],currPos[2], pos[0],pos[1],pos[2]);
+            PrintTag(node); printf("\n");
+#endif
             return(1);
         }
     }
