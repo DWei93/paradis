@@ -22,14 +22,13 @@
 ######################################################################################
 
 core=1.0
+mu=48.0
 PI=3.1415926535897932385
 ctrlFile=input/Copper.ctrl
 logFile=input/CreateFR.log
 thickn=500
 if [ $# -gt 1 ] ; then thickn=$2; fi
 #frlen=`echo ${cubel}/2 | bc`
-maxDensity=`echo "scale=4; 1.0+10000.0/${thickn}" | bc -l`E12
-maxDensity=4.1E15
 poly=1
 nGrains=2
 if [ $# -gt 2 ] ; then nGrains=$3; fi
@@ -37,9 +36,9 @@ nTDs=1
 gb=0
 nfrs=18
 nMesh=41
-nfrsPerGrain=100
+nfrsPerGrain=12000
 nTimesThick1=3
-eRate=5000
+eRate=500000
 sed -i "/^eRate/ceRate = $eRate" $ctrlFile
 nTimesThick2=3
 cubeln=`echo "${nGrains}*${thickn}" | bc`
@@ -55,7 +54,11 @@ if [ ${maxSeg1} -gt ${maxSeg2} ]; then maxSeg=${maxSeg2}; else maxSeg=${maxSeg1}
 rTol=`echo "scale=7;${maxSeg}*sqrt(2)/32" | bc -l`
 rc=`echo "scale=7;0.1+4.0*${rTol}" | bc -l`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
-minDT=`echo "scale=3; ${thickn}/20" | bc`E-13
+
+#maxDensity=`echo "scale=5;480/${thickn}" |bc -l`E13
+maxDensity=3.0E13
+
+minDT=`echo "scale=3; ${thickn}/20*5000/${eRate}" | bc`E-13
 echo "Thickness=$thick b, $thickn nm, ${nGrains} grains,  maxSeg=${maxSeg}b, rTol =$rTol, minDT=$minDT, maxDensity=$maxDensity, rc=$rc"
 sed -i "/grainSize/cgrainSize = ${thick}" ${ctrlFile}
 sed -i "/^rTol =/crTol = ${rTol}" $ctrlFile
@@ -64,7 +67,8 @@ sed -i "/^minDT =/cminDT = ${minDT}" $ctrlFile
 #sed -i "/dirname/cdirname = \"res.relax-t-${thickn}nm\"" ${ctrlFile}
 
 ecore=`echo "scale=7;(${mu}/(4.0*${PI}))*l(${rc}/${core})" | bc -l`E9
-sed -i "/^ecore =/cecore = ${ecore}" $ctrlfile
+sed -i "/^Ecore =/cEcore = ${ecore}" $ctrlFile
+sed -i "/^shearModulus =/cshearModulus = ${mu}E9" $ctrlFile
 
 amu=90
 polar=90
@@ -146,6 +150,7 @@ case $srctype in
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} | tee $logFile ;;
+#   -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} | tee $logFile ;;
 #   -polycrystal 1 -nGrain ${nGrains}  -pbc 0  ;;
 #   -polycrystal 1 -nGrain 2  -pbc 0 -nTDs 1 -gb 1;;
 #   -burgID 5 -planeID 1 \

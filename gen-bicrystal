@@ -22,6 +22,9 @@
 ######################################################################################
 
 #frlen=00
+core=1.0
+mu=48.0
+PI=3.1415926535897932385
 ctrlFile=input/Copper.ctrl
 logFile=input/CreateFR.log
 cubeln=750
@@ -36,7 +39,7 @@ yMatDir=-1,-1,2
 if [ $# -ge 4 ]; then
     rotDir=$4;
 fi
-schmid=0.408
+schmid=0.441
 type=3
 if [ $cubeln -ge 3000 ]; then heightRatio=1; 
 elif [ $cubeln -ge 1000 ]; then heightRatio=2; 
@@ -46,19 +49,24 @@ else heightRatio=2; fi
 
 nMeshZ=`echo "${heightRatio}*${nMesh}" | bc `
 cubel=`echo ${cubeln}/0.2556 | bc`
-maxSeg=`echo ${cubel}/20 |bc `
+maxSeg1=`echo ${cubel}/20 |bc `
 nGrains=2
 thick=`echo ${cubel}/${nGrains}| bc`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
-maxDisDen=`echo "scale=3;2.0*(1+10*(1000.0/${cubeln}))" | bc -l`
+maxDisDen=`echo "scale=3;-0.0148621*${cubeln}+102.972" | bc -l`
+maxDisDen=`echo "scale=4; 2.0*(1+10000.0/${cubeln})" | bc -l`
+maxDisDen=20.0
 frlen=`echo "scale=3;1000/sqrt(${maxDisDen})/0.2556" | bc -l`
+frlen=`echo "scale=5;${cubel}/3" | bc`
 frlenn=`echo "scale=3;${frlen}*0.2556" | bc`
+maxSeg2=`echo ${frlen}/6 |bc `
+srcLenType=0
 
-tauy1=`echo "scale=3; 0.18*54600*l($frlen)/${frlen}/$schmid" | bc -l`
-tauy2=`echo "scale=3; 0.5*54600*0.2556*0.001*sqrt($maxDisDen)" | bc -l`
-tauy=`echo "scale=2;$tauy1+$tauy2" | bc -l`
+if [[ `echo "${maxSeg1}>${maxSeg2}" | bc` == "1" ]]; then maxSeg=$maxSeg2; echo "maxSge is equal to L_FR/10"; else maxSeg=$maxSeg1; fi
 
-echo "cubel=$cubel b, $cubeln nm, density=${maxDisDen}E12, frlen=${frlen}b, ${frlenn}nm, predicted stress=${tauy}=${tauy1}+${tauy2} MPa"
+tauy=`echo "scale=3; 0.18*${mu}*1000*l($frlen)/${frlen}/$schmid" | bc -l`
+
+echo "cubel=$cubel b, $cubeln nm, density=${maxDisDen}E12, frlen=${frlen}b, ${frlenn}nm, predicted stress=${tauy}  MPa"
 maxDensity=${maxDisDen}E12;
 polycrystal=${1}
 single=${2}
@@ -77,10 +85,9 @@ sed -i "/meshNumX/cmeshNumX = $nMesh" $ctrlFile;
 sed -i "/meshNumY/cmeshNumY = $nMesh" $ctrlFile;
 sed -i "/meshNumZ/cmeshNumZ = $nMeshZ" $ctrlFile;
 
-minDT=`echo "scale=3; ${thickn}/60" | bc -l`E-13
+minDT=`echo "scale=3; ${maxSeg}/12" | bc -l`E-13
 sed -i "/^minDT/cminDT = ${minDT}" $ctrlFile;
 
-PI=3.1415926535897932385
 if [ ${polycrystal} == "1" ]; then
     srctype=5
     angle=`echo "scale=16; ${2}.0 * ${PI} / 180.0 " | bc -l`
@@ -113,6 +120,10 @@ else
 
 fi
 
+ecore=`echo "scale=7;(${mu}/(4.0*${PI}))*l(${rc}/${core})" | bc -l`E9
+sed -i "/^Ecore =/cEcore = ${ecore}" $ctrlFile
+sed -i "/^shearModulus =/cshearModulus = ${mu}E9" $ctrlFile
+
 case $srctype in
 ######################################################################################
 #
@@ -121,7 +132,7 @@ case $srctype in
 ######################################################################################
     1|I)
     ./bin/paradisgen -type $type  -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  \
-    -polycrystal 0  -pbc 0 -extend 0  -srcLenType 0 \
+    -polycrystal 0  -pbc 0 -extend 0  -srcLenType $srcLenType \
     -xMatDir 1,0,0 -zMatDir 0,0,1 ;;
 
 #    -polycrystal 0 -pbc 0 \
@@ -131,11 +142,11 @@ case $srctype in
 #
 ######################################################################################
     2|II)
-    info="# ./bin/paradisgen -type ${type} -pbc $pbc -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed  -polycrystal 0 -pbc 7 -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity}  -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 "
+    info="# ./bin/paradisgen -type ${type} -pbc $pbc -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed  -polycrystal 0 -pbc 7 -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity}  -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 -srcLenType $srcLenType "
     (echo "$info"
     ./bin/paradisgen -type $type -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 0 -pbc $pbc -loadDir 0,0,1\
-    -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity} \
+    -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity} -srcLenType $srcLenType\
     -heightRatio ${heightRatio} -deltaNums 0 -nLayers 1 ) | tee input/CreateFR-single${single}.log;;
 
 #    -xMatDir 1,0,0 -yMatDir 0,1,0 \
@@ -160,7 +171,7 @@ case $srctype in
 ######################################################################################
     4|IV)
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs 1 -maxDensity $maxDensity -gb 1 ;;
+    -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs 1 -maxDensity $maxDensity -gb 1 -srcLenType $srcLenType;;
 #   -polycrystal 1 -nGrain ${nGrains}  -pbc 0  ;;
 #   -polycrystal 1 -nGrain 2  -pbc 0 -nTDs 1 -gb 1;;
 #   -burgID 5 -planeID 1 \
@@ -171,14 +182,18 @@ case $srctype in
 ######################################################################################
     5|V)
 
-    info="#./bin/paradisgen -type ${type} -frlen ${frlen} -pbc $pbc -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -rotate ${angle},${rotDir} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1 -nTDs $nTDs -xMatDir ${xMatDir} -yMatDir ${yMatDir}";
+    info="#./bin/paradisgen -type ${type} -frlen ${frlen} -pbc $pbc -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -rotate ${angle},${rotDir} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1 -nTDs $nTDs -xMatDir ${xMatDir} -yMatDir ${yMatDir} -srcLenType $srcLenType ";
 
     echo "$info"
+#   (echo "${2}-degree" ;  ./bin/paradisgen -type ${type} -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+#   -polycrystal 1 -nGrain 2 -pbc $pbc -maxDensity $maxDensity -loadDir 0,0,1 \
+#   -rotate ${angle},${rotDir} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 \
+#   -nLayers 1  -nTDs $nTDs -xMatDir ${xMatDir} -yMatDir ${yMatDir})| tee $logFile;;
     (echo "${2}-degree" ;  ./bin/paradisgen -type ${type} -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc $pbc -maxDensity $maxDensity -loadDir 0,0,1 \
-    -rotate ${angle},${rotDir} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 \
-    -nLayers 1  -nTDs $nTDs -xMatDir ${xMatDir} -yMatDir ${yMatDir})| tee $logFile;;
-#   -yMatDir -1,-1,-1 -zMatDir 1,-1,0  -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;
+    -rotate ${angle},${rotDir} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -srcLenType $srcLenType \
+    -nLayers 1  -nTDs $nTDs -yMatDir 1,1,1  -zMatDir -3,-4,7) | tee $logFile;;
+#   -zMatDir -1,-1,-1 -xMatDir 1,-1,0  -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;
 
 
 #    -twinRatio 0.5 -heightRatio 1 -deltaNum 0 -nLayers 1 ;;
