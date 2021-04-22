@@ -3078,6 +3078,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                         p1[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
                     }
                     NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1,2);
+                    if(srcLenType==1 && !InCuboid(param, p1, -param->maxSeg))goto RandomPosition;
                     bd = GetBurgData(home, inGrain1, onGB1); 
                     if(onGB1 > -1)continue;
                     if(singleSrcTest){
@@ -3143,7 +3144,10 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 	 	                        break;
                         
 	 	                    case 1:
-	 	                        srcLen = -log(randm(&seed))/sqrt(maxDensity)/burgMag;
+                                while(true){
+	 	                            srcLen = -log(randm(&seed))/sqrt(maxDensity)/burgMag;
+                                    if(srcLen>param->maxSeg)break;
+                                }
 	 	                        break;
                             case 2:
                                 if (lenRange > 0) {
