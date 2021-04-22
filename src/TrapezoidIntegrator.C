@@ -626,6 +626,17 @@ void TrapezoidIntegrator(Home_t *home)
         param = home->param;
 	    minDT = param->minDT;
 
+        param->mergeDpSt[0] = 0.0;
+        param->mergeDpSt[1] = 0.0;
+        param->mergeDpSt[2] = 0.0;
+        param->mergeDpSt[3] = 0.0;
+        param->mergeDpSt[4] = 0.0;
+        param->mergeDpSt[5] = 0.0;
+
+        param->mergeDpSp[0] = 0.0;
+        param->mergeDpSp[1] = 0.0;
+        param->mergeDpSp[2] = 0.0;
+
 		if(param->limitDisplacement && param->preDecreaseDT){
 			
 			param->nextDT *= param->dtDecrementFact;

@@ -533,7 +533,7 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
  *            time to dump files, no check of the current
  *            cycle against the dump frequency will be done.
  */
-        if (param->saveprop && (stage == STAGE_CYCLE)) {
+        if (param->saveprop && (stage == STAGE_CYCLE) || (stage == STAGE_DEBUG)) {
             if (param->savepropdt > 0.0) {
                 dumpTime = param->saveproptime + param->savepropdt;
                 if (timeNow >= dumpTime) {
@@ -544,7 +544,11 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
                 *outputTypes |= GEN_PROPERTIES_DATA;
             }else if(home->cycle == 1){
                 *outputTypes |= GEN_PROPERTIES_DATA;
-            }else if (param->finish == 1)*outputTypes |= GEN_PROPERTIES_DATA;
+            }else if (param->finish == 1){
+                *outputTypes |= GEN_PROPERTIES_DATA;
+            }else if(stage == STAGE_DEBUG){
+                *outputTypes |= GEN_PROPERTIES_DATA;
+            }
         }
 
 /*
@@ -1430,6 +1434,7 @@ void GenerateOutput(Home_t *home, int stage, const char *msg)
  */
         if ((outputTypes & GEN_PROPERTIES_DATA) != 0) {
 
+#if 0
             WriteProp(home, DENSITY);  /* Actually, length of disloctions   */
                                        /* both total and broken down by     */
                                        /* groups of burgers vector types    */
@@ -1440,7 +1445,7 @@ void GenerateOutput(Home_t *home, int stage, const char *msg)
             WriteProp(home, EPSDOT);   /* Resultant strain rate (scalar)    */
 
             WriteProp(home, ALL_EPS);  /* Plastic strain tensor             */
-
+#endif
             WriteProp(home, EPS);      /* Resultant plastic strain (scalar) */
 
         }

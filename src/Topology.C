@@ -1150,7 +1150,7 @@ void SplitMultiNodes(Home_t *home)
         bool    gbNode=false;
 
         std::vector<int>    nbrInGrain;
-
+        int     inGrain, onGB;
 
 /*
  *      Only do multinode splits on cycles that are multiples
@@ -1528,25 +1528,14 @@ void SplitMultiNodes(Home_t *home)
                             dirx = -splitNode1->vX * invvNorm;
                             diry = -splitNode1->vY * invvNorm;
                             dirz = -splitNode1->vZ * invvNorm;
+
                             splitNode1->x -= (splitDist*(1.0+eps)*dirx);
                             splitNode1->y -= (splitDist*(1.0+eps)*diry);
                             splitNode1->z -= (splitDist*(1.0+eps)*dirz);
-
-                            vec[0] = splitNode1->x;
-                            vec[1] = splitNode1->y;
-                            vec[2] = splitNode1->z;
-
-                            if(AdjustSplitedNodePosition(home, splitNode1, vec, pos)){
-                                splitNode1->x = pos[0];
-                                splitNode1->y = pos[1];
-                                splitNode1->z = pos[2];
-
-                                if(node != splitNode1){
-                                    splitNode1->oldx = pos[0];
-                                    splitNode1->oldy = pos[1];
-                                    splitNode1->oldz = pos[2];
-                                }
-                            }
+            
+                            NodeLocation(home, splitNode1->x, splitNode1->y, splitNode1->z, inGrain, onGB);
+                            if((splitNode1->onGB>-1 && onGB != splitNode1->onGB) ||
+                               (splitNode1->onGB==-1 && inGrain != splitNode1->inGrain))mobError=1;
 /*
  *                          If the split node is a grain node, we should ensure
  *                          that it can not cross the grain.
@@ -1562,95 +1551,86 @@ void SplitMultiNodes(Home_t *home)
                             splitNode2->y += (splitDist*(1.0+eps)*diry);
                             splitNode2->z += (splitDist*(1.0+eps)*dirz);
 
-                            vec[0] = splitNode2->x;
-                            vec[1] = splitNode2->y;
-                            vec[2] = splitNode2->z;
-
-                            if(AdjustSplitedNodePosition(home, splitNode2, vec, pos)){
-                                splitNode2->x = pos[0];
-                                splitNode2->y = pos[1];
-                                splitNode2->z = pos[2];
-                              
-                                if(node != splitNode2){
-                                    splitNode2->oldx = pos[0];
-                                    splitNode2->oldy = pos[1];
-                                    splitNode2->oldz = pos[2];
-                                }
-                            }
+                            NodeLocation(home, splitNode2->x, splitNode2->y, splitNode2->z, inGrain, onGB);
+                            if((splitNode2->onGB>-1 && onGB != splitNode2->onGB) ||
+                               (splitNode2->onGB==-1 && inGrain != splitNode2->inGrain))mobError=1;
 
                             FoldBox(param, &splitNode2->x, &splitNode2->y,
                                   &splitNode2->z);
                         }
-
-                        SetOneNodeForce(home, splitNode1);
-                        SetOneNodeForce(home, splitNode2);
-
-/*
- *                      When the original node was split above, both new
- *                      nodes were left at the original position.  If a
- *                      new segment was created connecting the nodes, it
- *                      intially zero length and therefore had no glide-
- *                      plane, but the mobility fuynction can handle zero-
- *                      length segs.  After calculating velocities, though
- *                      we've shifted the nodes making the connecting
- *                      segment (if any) non-zero length, so now we have
- *                      to explicitly set the glide plane of that seg
- *                      because some of the mobility functions depend on
- *                      the glide plane being set for non-zero length segs
- *                        
- *                      Added by Wei Cai, 2009/09/07
- */
-                        armIndex = GetArmID(home, splitNode1, splitNode2);
-
-                        if (armIndex >= 0 ) {
-                            real8 burg[3], dirvec[3], nplane[3];
-
-/*
- *                          Calculate glide plane normal as
- *                          n = cross ( burg(x,y,z), dir(x,y,z))
- */
-                            burg[0] = splitNode1->burgX[armIndex];
-                            burg[1] = splitNode1->burgY[armIndex];
-                            burg[2] = splitNode1->burgZ[armIndex];
-
-                            dirvec[0] = dirx;
-                            dirvec[1] = diry;
-                            dirvec[2] = dirz;
-
-                            FindGlidePlane(home, burg, dirvec,
-                                         nplane, splitNode1, splitNode2);
-
-/*
- *                          If the new segment is screw the glide
- *                          plane is undefined.  If that's the case, we
- *                          need to randomly select a glide plane
- *                          appropriate to the burgers vector.
- */
-                            if (DotProduct(nplane, nplane) < 1.0e-03) {
-                                PickScrewGlidePlane(home, burg, nplane, splitNode1, splitNode2);
+                        if(mobError==0){
+                            pos1[0] = splitNode1->x; pos1[1] = splitNode1->y; pos1[2] = splitNode1->z;
+                            pos2[0] = splitNode2->x; pos2[1] = splitNode2->y; pos2[2] = splitNode2->z;
+                            
+                            SetOneNodeForce(home, splitNode1);
+                            SetOneNodeForce(home, splitNode2);
+                            
+/*                          
+ *                          When the original node was split above, both new
+ *                          nodes were left at the original position.  If a
+ *                          new segment was created connecting the nodes, it
+ *                          intially zero length and therefore had no glide-
+ *                          plane, but the mobility fuynction can handle zero-
+ *                          length segs.  After calculating velocities, though
+ *                          we've shifted the nodes making the connecting
+ *                          segment (if any) non-zero length, so now we have
+ *                          to explicitly set the glide plane of that seg
+ *                          because some of the mobility functions depend on
+ *                          the glide plane being set for non-zero length segs
+ *                            
+ *                          Added by Wei Cai, 2009/09/07
+ */                         
+                            armIndex = GetArmID(home, splitNode1, splitNode2);
+                            
+                            if (armIndex >= 0 ) {
+                                real8 burg[3], dirvec[3], nplane[3];
+                            
+/*                          
+ *                              Calculate glide plane normal as
+ *                              n = cross ( burg(x,y,z), dir(x,y,z))
+ */                         
+                                burg[0] = splitNode1->burgX[armIndex];
+                                burg[1] = splitNode1->burgY[armIndex];
+                                burg[2] = splitNode1->burgZ[armIndex];
+                            
+                                dirvec[0] = dirx;
+                                dirvec[1] = diry;
+                                dirvec[2] = dirz;
+                            
+                                FindGlidePlane(home, burg, dirvec,
+                                             nplane, splitNode1, splitNode2);
+                            
+/*                          
+ *                              If the new segment is screw the glide
+ *                              plane is undefined.  If that's the case, we
+ *                              need to randomly select a glide plane
+ *                              appropriate to the burgers vector.
+ */                         
+                                if (DotProduct(nplane, nplane) < 1.0e-03) {
+                                    PickScrewGlidePlane(home, burg, nplane, splitNode1, splitNode2);
+                                }
+                            
+                                Normalize(&nplane[0], &nplane[1], &nplane[2]);
+                            
+                                splitNode1->nx[armIndex] = nplane[0];
+                                splitNode1->ny[armIndex] = nplane[1];
+                                splitNode1->nz[armIndex] = nplane[2];
+                            
+                                armIndex = GetArmID(home, splitNode2,
+                                                  splitNode1);
+                            
+                                splitNode2->nx[armIndex] = nplane[0];
+                                splitNode2->ny[armIndex] = nplane[1];
+                                splitNode2->nz[armIndex] = nplane[2];
                             }
-
-                            Normalize(&nplane[0], &nplane[1], &nplane[2]);
-
-                            splitNode1->nx[armIndex] = nplane[0];
-                            splitNode1->ny[armIndex] = nplane[1];
-                            splitNode1->nz[armIndex] = nplane[2];
-
-                            armIndex = GetArmID(home, splitNode2,
-                                              splitNode1);
-
-                            splitNode2->nx[armIndex] = nplane[0];
-                            splitNode2->ny[armIndex] = nplane[1];
-                            splitNode2->nz[armIndex] = nplane[2];
+                            
+                            mobError  = EvaluateMobility(home, splitNode1);
+                            mobError |= EvaluateMobility(home, splitNode2);
+                            
+                            vDiffx = splitNode2->vX - splitNode1->vX;
+                            vDiffy = splitNode2->vY - splitNode1->vY;
+                            vDiffz = splitNode2->vZ - splitNode1->vZ;
                         }
-
-                        mobError  = EvaluateMobility(home, splitNode1);
-                        mobError |= EvaluateMobility(home, splitNode2);
-
-                        vDiffx = splitNode2->vX - splitNode1->vX;
-                        vDiffy = splitNode2->vY - splitNode1->vY;
-                        vDiffz = splitNode2->vZ - splitNode1->vZ;
-
                     } else {
                         vDiffx = -1.0;
                         vDiffy = -1.0;
@@ -1716,6 +1696,8 @@ void SplitMultiNodes(Home_t *home)
                         powerMax = powerTest;
                         setIndex = j;
 
+                        pos1[0] = splitNode1->x; pos1[1] = splitNode1->y; pos1[2] = splitNode1->z;
+                        pos2[0] = splitNode2->x; pos2[1] = splitNode2->y; pos2[2] = splitNode2->z;
 /*
  *                      Save the forces on all segments of
  *                      the two nodes resulting from this
@@ -2332,9 +2314,9 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
         (*splitNode1)->oldy = oldPos[1];
         (*splitNode1)->oldz = oldPos[2];
 
-        (*splitNode2)->oldx = pos2[0];
-        (*splitNode2)->oldy = pos2[1];
-        (*splitNode2)->oldz = pos2[2];
+        (*splitNode2)->oldx = oldPos[0];
+        (*splitNode2)->oldy = oldPos[1];
+        (*splitNode2)->oldz = oldPos[2];
 /*
  *      If the node being split was pinned or fixed at a specific
  *      position then the node left at position <pos1> must become a
@@ -2460,6 +2442,9 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 	    free(tarmList);
 
         if(AdjustSplitedNodePosition(home, (*splitNode1), pos1, pos)){
+            PrintNode(home, (*splitNode1));
+            printf("%d %d: splitedNode {%f,%f,%f}->{%f,%f,%f}\n", home->myDomain, home->cycle,
+                    (*splitNode1)->x,(*splitNode1)->y,(*splitNode1)->z,pos[0],pos[1],pos[2]);
             (*splitNode1)->x = pos[0];
             (*splitNode1)->y = pos[1];
             (*splitNode1)->z = pos[2];
@@ -2469,6 +2454,9 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
         }
  
         if(AdjustSplitedNodePosition(home, (*splitNode2), pos2, pos)){
+            PrintNode(home, (*splitNode2));
+            printf("%d %d: splitedNode {%f,%f,%f}->{%f,%f,%f}\n", home->myDomain, home->cycle,
+                    (*splitNode2)->x,(*splitNode2)->y,(*splitNode2)->z,pos[0],pos[1],pos[2]);
             (*splitNode2)->x = pos[0];
             (*splitNode2)->y = pos[1];
             (*splitNode2)->z = pos[2];
@@ -2476,11 +2464,6 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                 RepositionNode(home,pos,&(*splitNode2)->myTag,globalOp);
             }
         }
- 
-        newNode->oldx = newNode->x;
-        newNode->oldy = newNode->y;
-        newNode->oldz = newNode->z;
-
 
 /*
  *	    We will probably be re-evaluating forces on this new node.  In
@@ -2659,6 +2642,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	Tag_t	tmpTag, *nbr1Tag, *nbr2Tag;
 
 	thisDomain = home->myDomain;
+    Param_t *param = home->param;
 
 	targetNode  = node1;
 	deadNode    = node1;
@@ -2672,7 +2656,16 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 		return;
 	}
 
-
+    real8 dpst1[6], dpst2[6], dpsp1[3], dpsp2[3];
+    real8  dpst_merge[6]={0,0,0,0,0,0}, dpsp_merge[3]={0,0,0};
+    real8 node1Pos[3]={node1->x, node1->y, node1->z};
+    real8 node2Pos[3]={node2->x, node2->y, node2->z};   
+    node1->x = position[0]; node1->y = position[1]; node1->z = position[2];
+    node2->x = position[0]; node2->y = position[1]; node2->z = position[2];
+    NodalDeltaPlasticStrain(home, node1, dpst1, dpsp1);
+    NodalDeltaPlasticStrain(home, node2, dpst2, dpsp2);
+    node1->x = node1Pos[0]; node1->y = node1Pos[1]; node1->z = node1Pos[2];
+    node2->x = node2Pos[0]; node2->y = node2Pos[1]; node2->z = node2Pos[2];
 /*
  *  Check if we are permitted to delete node1.  In order
  *  for a node to be deletable, it must satisfy the following:
@@ -2918,6 +2911,19 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 
 	RemoveNode(home, deadNode, globalOp);
 
+    if(targetNode != (Node_t *)NULL){
+        NodalDeltaPlasticStrain(home, targetNode, dpst_merge, dpsp_merge);
+    }
+    param->mergeDpSt[0] += (dpst1[0]+dpst2[0]-dpst_merge[0]);
+    param->mergeDpSt[1] += (dpst1[1]+dpst2[1]-dpst_merge[1]);
+    param->mergeDpSt[2] += (dpst1[2]+dpst2[2]-dpst_merge[2]);
+    param->mergeDpSt[3] += (dpst1[3]+dpst2[3]-dpst_merge[3]);
+    param->mergeDpSt[4] += (dpst1[4]+dpst2[4]-dpst_merge[4]);
+    param->mergeDpSt[5] += (dpst1[5]+dpst2[5]-dpst_merge[5]);
+    
+    param->mergeDpSp[0] += (dpsp1[0]+dpsp2[0]-dpsp_merge[0]);
+    param->mergeDpSp[1] += (dpsp1[1]+dpsp2[1]-dpsp_merge[1]);
+    param->mergeDpSp[2] += (dpsp1[2]+dpsp2[2]-dpsp_merge[2]);
 
 /*
  *  Check for multiple links between the target node and any other
@@ -2989,9 +2995,9 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
     (*newNodePtr)->vY = 0.0;
     (*newNodePtr)->vZ = 0.0;
     
-    (*newNodePtr)->oldx = (*newNodePtr)->x;
-    (*newNodePtr)->oldy = (*newNodePtr)->y;
-    (*newNodePtr)->oldz = (*newNodePtr)->z;
+    (*newNodePtr)->oldx = node1->oldx;
+    (*newNodePtr)->oldy = node1->oldy;
+    (*newNodePtr)->oldz = node1->oldz;
 
     (*newNodePtr)->constraint = UNCONSTRAINED;
 
