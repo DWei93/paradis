@@ -581,11 +581,11 @@ void WriteProp(Home_t *home, int property)
                         if(param->polycrystal) fprintf(fp, "%e ", sign*ptstnijk*1.0E2);
 
                         if(fabs(param->eRate*param->timeNow) > param->maxStn){
-                            if(home->myDomain==0)printf("Finish: max strain: \n", param->maxStn);
+                            if(home->myDomain==0)printf("Finish: max strain: %e\n", param->maxStn);
                             param->finish = 1;
                         }
                         if(fabs(pstnijk) > param->maxPst){
-                            if(home->myDomain==0)printf("Finish: max strain: \n", param->maxPst);
+                            if(home->myDomain==0)printf("Finish: max strain: %e\n", param->maxPst);
                             param->finish = 1;
                         }
                     }

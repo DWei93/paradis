@@ -3443,12 +3443,12 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
 {
     Param_t *param = home->param;
 
-    real8       rc=param->rc;
+    real8       rc=MIN(param->rTol,5);
     real8       dis, burgMag, burg[3], segCentor[3], tbStrength, xi[3], bedge[3];
-    real8       ldir[3],pdir[3], a = rc, err=1.0E-3, amax=10*rc; 
+    real8       ldir[3],pdir[3], a = MIN(1.0,rc), err=1.0E-3, amax=MIN(20,30*rc); 
     real8       gausFac[2] = {0.211324865405187, // (1-sqrt(3)/3)/2
                               0.7886751345948128}; // (1+sqrt(3)/3)/2
-    real8       coff=0.0, length, nor[3], gDir[3], gbNormal[3], pos[3], pBound[3], nBound[3], vel[3];
+    real8       coff=0.0, length, nor[3], gDir[3], gbNormal[3], pos[3], pBound[3], nBound[3], vel[3],costheta;
     GB_t        *gb;
     Grain_t     *grain;
     int         armID, i, j, type, armInGrain,armOnGB,curInGrain, curOnGB;
@@ -3485,6 +3485,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     if(length < 1.0E-2)return;
     NormalizeVec(xi);
     GetArmGrain(home, node1, node2, armInGrain, armOnGB);
+    bool intersectTB = (node1->onGB>-1 || node2->onGB>-1);
     NormalComponent(burg,xi,bedge);
 
     real8 old1Pos[3]={node1->oldx,node1->oldy,node1->oldz}, old2Pos[3]={node2->oldx,node2->oldy,node2->oldz};
@@ -3727,11 +3728,13 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                 gb = grain->GB[j];
                 type = PlanePlaneIntersection(nor,pos,gb->n,gb->p,ldir,pdir);
                 if(type==LINE_INTERSECTION){
+                    costheta = fabs(DotProduct(ldir,xi));
                     CoordMinus(pos,pdir,ldir); 
                     dis=Normal(ldir);
                     if(dis>err && dis <amax){
                         NormalizeVec(ldir);
-                        coff = (dis>rc?tbStrength * a/(a+dis-rc):tbStrength);
+                        coff = (dis>rc?tbStrength*a*costheta/(a+dis-rc):tbStrength*costheta);
+                        if(intersectTB)coff *= 0.5;
                         NormalComponent(ldir,xi,gDir);
                         NormalizeVec(gDir);
                         if(cacTB1){
