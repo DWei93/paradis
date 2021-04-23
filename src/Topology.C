@@ -2442,9 +2442,11 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 	    free(tarmList);
 
         if(AdjustSplitedNodePosition(home, (*splitNode1), pos1, pos)){
+#if 0
             PrintNode(home, (*splitNode1));
             printf("%d %d: splitedNode {%f,%f,%f}->{%f,%f,%f}\n", home->myDomain, home->cycle,
                     (*splitNode1)->x,(*splitNode1)->y,(*splitNode1)->z,pos[0],pos[1],pos[2]);
+#endif
             (*splitNode1)->x = pos[0];
             (*splitNode1)->y = pos[1];
             (*splitNode1)->z = pos[2];
@@ -2454,9 +2456,11 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
         }
  
         if(AdjustSplitedNodePosition(home, (*splitNode2), pos2, pos)){
+#if 0
             PrintNode(home, (*splitNode2));
             printf("%d %d: splitedNode {%f,%f,%f}->{%f,%f,%f}\n", home->myDomain, home->cycle,
                     (*splitNode2)->x,(*splitNode2)->y,(*splitNode2)->z,pos[0],pos[1],pos[2]);
+#endif
             (*splitNode2)->x = pos[0];
             (*splitNode2)->y = pos[1];
             (*splitNode2)->z = pos[2];
