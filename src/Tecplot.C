@@ -66,7 +66,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         real8    normal[3], normalCryst[3];
         real8	 minDistance, pos[3];
         real8	 velocity, displacement, vecOldNew[3];
-        real8    burg[3];
+        real8    burg[3], burgMag;
         char     fileName[256];
         Node_t   *node, *nbrNode;
         Param_t  *param;
@@ -330,6 +330,23 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 z = z - Lz*rint(z/Lz);
             }
         
+            constraint = node->constraint;
+
+            if(numGlideConstraints==3){
+                constraint = ((node->onGB>-1)?7:4);
+            }else if(numGlideConstraints==2){
+                if(node->numNbrs==1)constraint=1; // surface node
+                else if (node->numNbrs==2){
+                    constraint = (node->onGB>-1?5:2);
+                }else{
+                    if(node->onGB>-1){
+                        if((NodeOnGB(home, node) & GB_NODE)>0)constraint=6; else constraint=5;
+                    }else{
+                        constraint = 3;
+                    }
+                }
+            }else constraint=0;
+
             for (j = 0; j < node->numNbrs; j++) {
 #if 0
 /*
@@ -432,8 +449,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 fMag=Normal(f);
 #endif
 
-                if(param->polycrystal==0)index=0;
-                else{
+                if(param->polycrystal==0){
+                    index = normalID;
+                }else{
                     if(AlignedVector(param->TBNormal, n)){
                         if(burgID>6 && burgID<22)index=4; else index=3;
                     }else{
@@ -442,11 +460,14 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                         else index = 1;
                     }
                 }
-                if((GetPlaneType_FCC(home, node, nbrNode) & GLIDE_PLANE) == 0)index=5;
-                constraint = node->constraint;
-                nodeOnGB = NodeOnGB(home, node);
-                if((nodeOnGB & INTERSECT_NODE)>0 && (constraint!=7)){
-                    if((nodeOnGB &GB_NODE)==0)constraint = 4; else if(narm <=3) constraint = 5; else constraint =6;
+                if((GetPlaneType_FCC(home, node, nbrNode) & GLIDE_PLANE) == 0){
+                    burgMag=Normal(burg);
+                    if(burgID < 6) index=5;
+                    else if (fabs(1.41421356-burgMag)<0.05)index=6;
+                    else if(fabs(0.816497-burgMag)<0.05) index = 7; //stair rod
+                    else if(fabs(1.63299-burgMag)<0.05) index = 8; //stair rod
+                    else index = 9;
+
                 }
 /*
  *              This part is for output of junction investigation
