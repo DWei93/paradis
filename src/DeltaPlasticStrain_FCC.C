@@ -305,6 +305,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 
         bmagsq = param->burgMag * param->burgMag;
         param->disloDensity = 0.0;
+        param->disloDensity_TB = 0.0;
 
         memset(Ltot, 0, sizeof(Ltot));
         memset(areaSwept, 0, sizeof(areaSwept));
@@ -349,7 +350,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         int    k, l;
         int    nodeIndex;
         int    threadID, threadIterStart, threadIterEnd;
-        real8  thread_disloDensity=0.0;
+        real8  thread_disloDensity=0.0, thread_disloDensity_TB=0.0;
         real8  *thread_partialDensity;
         real8  thread_dstn[3][3], thread_dspn[3][3], thread_dyad[3][3];
         real8  thread_dtstn[3][3];
@@ -359,6 +360,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         real8  thread_delAccumulation[8], thread_disLength[3], f1[3], f2[3];
 
         thread_disloDensity = 0.0;
+        thread_disloDensity_TB = 0.0;
         thread_delAccumulation[0] = 0.0;
         thread_delAccumulation[1] = 0.0;
         thread_delAccumulation[2] = 0.0;
@@ -808,6 +810,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
  */
                deltaDensity = size * param->burgVolFactor;
                thread_disloDensity += deltaDensity;
+               if(burgType == SHOCKLEY_BURG)thread_disloDensity_TB+=deltaDensity;
                Normalize(&nx, &ny, &nz);
            
                deltax1x= node->x - node->oldx;
@@ -1311,6 +1314,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             }
 
             param->disloDensity += thread_disloDensity;
+            param->disloDensity_TB += thread_disloDensity_TB;
 
         }  /* end "omp critical" section */
 

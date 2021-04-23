@@ -535,13 +535,14 @@ void WriteProp(Home_t *home, int property)
                     }
 
 					if(home->cycle == 1){
-					    fprintf(fp, "variables = step,"); 
+					    fprintf(fp, "variables = step, "); 
 
-                        fprintf(fp, "strain, stress, plastic_strain,");
-                        if(param->polycrystal) fprintf(fp, "twinning_deformation,");
+                        fprintf(fp, "strain, stress, plastic_strain, ");
+                        if(param->polycrystal) fprintf(fp, "twinning_deformation, ");
 
 #ifndef VELOCITY_STATISTICS
-                        fprintf(fp, "disDen, effPlaRate\n");
+                        if(param->polycrystal) fprintf(fp, "disDen, disDen_TB\n");
+                        else fprintf(fp, "disDen\n"); 
 #else
                         fprintf(fp, "disDen, effPlaRate, neg_v_squa_active, pos_v_squa_active, v_squa_active," 
                                     "v_squa_inactive, neg_tauv_active, pos_tauv_active," 
@@ -592,7 +593,8 @@ void WriteProp(Home_t *home, int property)
 
 
 #ifndef VELOCITY_STATISTICS
-                    fprintf(fp, "%e %e\n", param->disloDensity, effPlaRate);
+                    if(param->polycrystal) fprintf(fp, "%e  %e\n",param->disloDensity, param->disloDensity_TB);
+                    else fprintf(fp, "%e\n",param->disloDensity); 
 #else
                     fprintf(fp, "%e %e %e %e %e %e %e %e %e %e %e %e %e %e\n", param->disloDensity, effPlaRate, param->accumulation[0]/param->cumulativeTime, 
                                                        param->accumulation[1]/param->cumulativeTime, 

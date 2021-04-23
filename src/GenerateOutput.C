@@ -1333,7 +1333,7 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
 void GenerateOutput(Home_t *home, int stage, const char *msg)
 {
         int     outputTypes = 0, finishLoc, finishGlo;
-        real8   localDensity, globalDensity, totalTime;
+        real8   localDensity[2], globalDensity[2], totalTime;
         char    fileName[128];
         time_t  tp;
         Param_t *param;
@@ -1370,24 +1370,25 @@ void GenerateOutput(Home_t *home, int stage, const char *msg)
 		        }
               	outputPrint++;
             }
-        }
 
 
-/*
- *      If we are writing either properties data or a restart file,
- *      accumulate the total dislocation density for the entire system
- *      to be written further on.
- */
 #ifdef PARALLEL
-        localDensity = param->disloDensity;
-        MPI_Allreduce(&localDensity, &globalDensity, 1, MPI_DOUBLE,
-                      MPI_SUM, MPI_COMM_WORLD);
-        param->disloDensity = globalDensity;
-        if(param->maxDisDen < globalDensity){
-            param->finish = 1;
-            if(home->myDomain==0)printf("Finish: dislocation density > maximum\n");
-        }
+/*
+ *          If we are writing either properties data or a restart file,
+ *          accumulate the total dislocation density for the entire system
+ *          to be written further on.
+ */
+            localDensity[0] = param->disloDensity;
+            localDensity[1] = param->disloDensity_TB;
+            MPI_Allreduce(localDensity, globalDensity, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            param->disloDensity = globalDensity[0];
+            param->disloDensity_TB = globalDensity[1];
+            if(param->maxDisDen < globalDensity[0]){
+                param->finish = 1;
+                if(home->myDomain==0)printf("Finish: dislocation density > maximum\n");
+            }
 #endif
+        }
 /*
  *      Determine what types of output need to be generated at
  *      this stage.

@@ -471,8 +471,8 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "Total density. Informational only; ignored on input",
                 (void *)NULL, V_COMMENT, 1, VFLAG_NULL);
 
-        BindVar(CPList, "disloDensity", &param->disloDensity, V_DBL, 1,
-                VFLAG_NULL);
+        BindVar(CPList, "disloDensity", &param->disloDensity, V_DBL, 1, VFLAG_NULL);
+        BindVar(CPList, "disloDensity_TB", &param->disloDensity_TB, V_DBL, 1, VFLAG_NULL);
 
 /*
  *      Velocity statistics

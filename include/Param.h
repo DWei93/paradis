@@ -405,6 +405,7 @@ struct _param {
                                      /* depending on the type of mobility */
                                      /* being used.                       */
         real8 disloDensity;
+        real8 disloDensity_TB;
 
         real8 delSegLength;  /* accumulated length of deleted segments    */
                              /* since most recent write to result_density */
