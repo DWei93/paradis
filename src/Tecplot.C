@@ -334,6 +334,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 
             if(numGlideConstraints==3){
                 constraint = ((node->onGB>-1)?7:4);
+                if (node->numNbrs==2){
+                    if(fabs(dot_product(node->nx[0],node->ny[0],node->nz[0], node->nx[1], node->ny[1], node->nz[1]))>0.98)constraint = 0; 
+                } 
             }else if(numGlideConstraints==2){
                 if(node->numNbrs==1)constraint=1; // surface node
                 else if (node->numNbrs==2){
