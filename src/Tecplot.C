@@ -454,7 +454,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 #endif
 
                 if(param->polycrystal==0){
-                    index = normalID;
+                    index = normalID+1;
                 }else{
                     if(AlignedVector(param->TBNormal, n)){
                         if(burgID>6 && burgID<22)index=4; else index=3;
