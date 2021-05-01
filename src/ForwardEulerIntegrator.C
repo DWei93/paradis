@@ -160,6 +160,17 @@ void ForwardEulerIntegrator(Home_t *home)
 
         param=home->param;
 
+        param->mergeDpSt[0] = 0.0;
+        param->mergeDpSt[1] = 0.0;
+        param->mergeDpSt[2] = 0.0;
+        param->mergeDpSt[3] = 0.0;
+        param->mergeDpSt[4] = 0.0;
+        param->mergeDpSt[5] = 0.0;
+
+        param->mergeDpSp[0] = 0.0;
+        param->mergeDpSp[1] = 0.0;
+        param->mergeDpSp[2] = 0.0;
+
         vmax  = 0.0;
         vmax2 = 0.0;
 
