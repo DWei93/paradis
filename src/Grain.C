@@ -258,7 +258,7 @@ void InitGrain(Home_t *home, Param_t *param){
     std::vector<SlipSys_t>  slipSys;
     SlipSys_t               slip;
     BurgInfo_t  *bd;
-    int         slipIndex, inGrain;
+    int         slipIndex, inGrain, onGB;
     GB_t        *gb;
 
 	real8   hMatrix, p[4][3];
@@ -517,6 +517,19 @@ void InitGrain(Home_t *home, Param_t *param){
 
             }
 
+            fclose(fp);
+
+		    snprintf(fileName, sizeof(fileName), "planes.plt");
+		    if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
+			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
+		    }
+
+            char zoneName[256];
+            real8 centor[3]={0,0,0}, r=param->xBoundMax/3;
+            snprintf(zoneName,sizeof(zoneName),"tetrahedron-0");
+            std::vector<int> indexs(2); indexs[0]=0;
+	        fprintf(fp, "Variables = x, y, z, id1, id2\n");
+            DrawTetrahedron(fp, home->rotMatrix, r, centor, indexs, zoneName);
             fclose(fp);
 
 		    snprintf(fileName, sizeof(fileName), "Thompson.plt");
@@ -902,13 +915,52 @@ void InitGrain(Home_t *home, Param_t *param){
             surList[4].point[2] = param->zBoundMin;
             surList[5].point[2] = param->zBoundMax;
 
+            char pfileName[256];
+            FILE *pfp;
+
 		    snprintf(fileName, sizeof(fileName), "TB.plt");
+		    snprintf(pfileName, sizeof(pfileName), "planes.plt");
 
 		    if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
 			    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
 		    }
             
+		    if ((pfp = fopen(pfileName, "w")) == (FILE *)NULL) {
+			    Fatal("InitGrain: Open error %d on %s\n", errno, pfileName);
+		    }
 	        fprintf(fp, "Variables = x, y, z, v1, v2, v3, burgID, normalID, schmid, inGrain\n");
+	        fprintf(pfp, "Variables = x, y, z, id1, id2\n");
+
+            char zoneName[256]; std::vector<int> indexs(2); real8 r=param->xBoundMax/3.0; ;
+            std::vector<std::vector<real8> > vertices;
+            std::vector<int> types, f_vert;
+            indexs[0]=4; indexs[1]=4;
+            i=0;
+            gb = home->GBKeys[i];
+            snprintf(zoneName,sizeof(zoneName),"GB-%d",i);
+            PlaneBoxIntersections(param, gb->n, gb->p, vertices, types);
+            f_vert.resize(vertices.size()+1); f_vert[0]=int(vertices.size());
+            for (i=0;i<vertices.size();i++)f_vert[i+1]=i;
+
+            std::vector<real8> vert(vertices.size()*3);
+            for(i=0;i<vertices.size();i++){
+                vert[3*i] = vertices[i][0];
+                vert[3*i+1] = vertices[i][1];
+                vert[3*i+2] = vertices[i][2];
+            }
+            DrawGlidePlanes(pfp, zoneName, vert, f_vert, indexs);
+
+            real8 centor[2][3]={{gb->n[0]*r,gb->n[1]*r,gb->n[2]*r},{-gb->n[0]*r,-gb->n[1]*r,-gb->n[2]*r}};
+
+            for(i=0;i<2;i++){
+                NodeLocation(home, centor[i][0], centor[i][1], centor[i][2], inGrain, onGB);
+                if(inGrain<0)Fatal("wrong");
+                grain =  home->grainKeys[inGrain];
+                snprintf(zoneName,sizeof(zoneName),"tetrahedron-%d",grain->grainID);
+                indexs[0]=i; indexs[1]=i;
+                DrawTetrahedron(pfp, grain->orientation, r, centor[i], indexs, zoneName);
+            }
+            fclose(pfp);
 
             for(i=0; i<6; i++){
                 type = PlanePlaneIntersection(surList[i].normal, surList[i].point,
@@ -4334,13 +4386,11 @@ void DrawGlidePlanes(FILE *fp, char *zoneName, std::vector<real8> &vertices, std
     for(int i=0;i<f_vert.size();i=i+f_vert[i]+1)DrawPolygon(fp, f_vert, vertices, i, zoneName, info);
     return;
 }
-
 void DrawGlidePlanes(FILE *fp, char *zoneName, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<real8> &info)
 {
     for(int i=0;i<f_vert.size();i=i+f_vert[i]+1)DrawPolygon(fp, f_vert, vertices, i, zoneName, info);
     return;
 }
-
 
 void  GetGBNormal(Home_t *home, int oldInGrain, int currInGrain, real8  *refDir, real8 *pos)
 {

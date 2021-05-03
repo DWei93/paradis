@@ -3699,7 +3699,11 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
         NodeLocation(home, pos[0], pos[1], pos[2], curInGrain, curOnGB);
         if(curInGrain<0)continue;
         if(curInGrain != armInGrain){
-            GetPublicGB(home, home->grainKeys[curInGrain], home->grainKeys[armInGrain], &gb, pos);
+            if(0==GetPublicGB(home, home->grainKeys[curInGrain], home->grainKeys[armInGrain], &gb, pos)){
+                PrintNode(home, node1);
+                PrintNode(home, node2);
+                Fatal("%d %d: somthing wrong",home->myDomain, home->cycle);
+            }
             type = PlanePlaneIntersection(nor,pos,gb->n,gb->p,ldir,pdir);
             if(type==LINE_INTERSECTION){
                 CoordMinus(pdir,pos,ldir); 

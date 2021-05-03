@@ -356,6 +356,7 @@ real8 GlideShearStress(Home_t *home, Node_t *node);
 real8 GlideShearStress(Home_t *home, Node_t *node, real8 *n);
 bool IntersectionOfRayBox(Param_t *param, real8 *dir, real8 *p, real8 *interPos, int &constraint);
 void PlaneBoxIntersections(real8 *n, real8 *p, real8 *box, std::vector<std::vector<real8> > &vertices);
+void PlaneBoxIntersections(Param_t *param, real8 *n, real8 *p, std::vector<std::vector<real8> > &vertices, std::vector<int> &types);
 void GlidePlaneOfDislocation(Home_t *home, real8 *n, real8 *p, std::vector<real8> &vertices, std::vector<int> &f_vert,  std::vector<int> &types);
 void GlidePlanesInNeighborGrain(Home_t *home, real8 *n, real8 *p, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<int> &types);
 void DrawGlidePlanes(FILE *fp, char *zoneName, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<int> &info);
