@@ -345,26 +345,28 @@ int Mobility_Wei(Home_t *home, Node_t *node)
 #endif
     if(SurfaceNode(node)){
         maxV=param->vshr>0?param->vshr/20:1630.0/param->burgMag/20.0;
-	    velocity = sqrt(node->vX*node->vX + node->vY*node->vY + node->vZ*node->vZ);
-        for (i = 0; i < nc; i++) {
-            if((nbr = GetNeighborNode(home, node, i)) == (Node_t *)NULL) continue;
-            if(!SurfaceNode(nbr))continue;
-            if(nbr->numNbrs>2)continue;
-            nbrV = sqrt(nbr->vX*nbr->vX + nbr->vY*nbr->vY + nbr->vZ*nbr->vZ);
-            if(!Numerical(nbrV))continue;
-            maxV = MIN(nbrV, maxV); 
-        }
-        if(velocity>maxV){
-            maxV /= velocity;
-            node->vX *=maxV;
-            node->vY *=maxV;
-            node->vZ *=maxV;
+    }else{
+        maxV=param->vshr;
+    }
+	velocity = sqrt(node->vX*node->vX + node->vY*node->vY + node->vZ*node->vZ);
+    for (i = 0; i < nc; i++) {
+        if((nbr = GetNeighborNode(home, node, i)) == (Node_t *)NULL) continue;
+        if(!SurfaceNode(nbr))continue;
+        if(nbr->numNbrs>2)continue;
+        nbrV = sqrt(nbr->vX*nbr->vX + nbr->vY*nbr->vY + nbr->vZ*nbr->vZ);
+        if(!Numerical(nbrV))continue;
+        maxV = MIN(nbrV, maxV); 
+    }
+    if(velocity>maxV){
+        maxV /= velocity;
+        node->vX *=maxV;
+        node->vY *=maxV;
+        node->vZ *=maxV;
 #ifdef DEBUG
-            if(!Numerical(node->vX, node->vY, node->vZ))Fatal("surface node velocity !!");
-	        velocity = sqrt(node->vX*node->vX + node->vY*node->vY + node->vZ*node->vZ);
-            if(velocity>param->vshr/20.0)Fatal("surface node velocity !!");
+        if(!Numerical(node->vX, node->vY, node->vZ))Fatal("surface node velocity !!");
+	    velocity = sqrt(node->vX*node->vX + node->vY*node->vY + node->vZ*node->vZ);
+        if(velocity>param->vshr/20.0)Fatal("surface node velocity !!");
 #endif
-        }
     }
     return(0);
 }
