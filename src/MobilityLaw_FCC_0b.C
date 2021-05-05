@@ -30,7 +30,7 @@
 
 int Mobility_FCC_0b(Home_t *home, Node_t *node)
 {
-	int     i, numNbrs, numNorms,grainNode; 
+	int     i, numNbrs, grainNode; 
 	int     numNonZeroLenSegs = 0, hasShortSeg = 0;
 	int	    numGlideConstraints;
 	real8   dx, dy, dz;
@@ -137,227 +137,212 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 /*
  *  Get the normal for the first segment in both the lab and crystal frames
  */
-    GetGlideConstraintList(home, node, 
-                           &numGlideConstraints, glideConstraints, zeroLenJunc);
+    GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints, zeroLenJunc);
 
-/*
- *  Glide constraints have been set, now initialize the velocity
- */
-	node->vX = 0.0e0;
-	node->vY = 0.0e0;
-	node->vZ = 0.0e0;
+    if(numGlideConstraints==3){
+	    node->vX = 0.0e0;
+	    node->vY = 0.0e0;
+	    node->vZ = 0.0e0;
+        return 0;
+    }
 
 /*
  *  Begin construction of the node drag matrix
  *  Loop over all arms of the node, adding each arm's contribution
  *  to the drag matrix.
  */
-		if (numNorms < 2) {
-		    for (i = 0; i < numNbrs; i++) {
-			real8 b[3], d[3], m[3], n[3], nCryst[3];
+	for (i = 0; i < numNbrs; i++) {
+		real8 b[3], d[3], m[3], n[3];
 
-			b[0] = node->burgX[i];
-			b[1] = node->burgY[i];
-			b[2] = node->burgZ[i];
+		b[0] = node->burgX[i];
+		b[1] = node->burgY[i];
+		b[2] = node->burgZ[i];
 
-			bMag2 = (b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
-			invbMag2 = 1.0 / bMag2;
-
-	/*
-	 *              Calculate the length of the arm and its tangent line direction
-	 */
-			nbrNode = GetNeighborNode(home, node, i);
-
-			if (nbrNode == (Node_t *)NULL) {
-			    printf("WARNING: Neighbor not found at %s line %d\n",
-				   __FILE__, __LINE__);
-			    continue;
-			}
-
-			d[0] = nbrNode->x - node->x;
-			d[1] = nbrNode->y - node->y;
-			d[2] = nbrNode->z - node->z;
-
-			ZImage(param, &d[0], &d[1], &d[2]);
-
-			mag2 = d[0]*d[0] + d[1]*d[1] + d[2]*d[2];
-
-	/*
-	 *              If the segment is zero length (which can happen when
-	 *              the mobility function is being called from SplitMultiNodes())
-	 *              just skip the segment.
-	 */
-			if (mag2 < eps) {
-			    continue;
-			}
-
-			mag     = sqrt(mag2);
-			halfMag = mag/2.0;
-			invMag  = 1.0 / mag;
-
-			d[0] *= invMag;
-			d[1] *= invMag;
-			d[2] *= invMag;
-
-	/*
-	 *              If the node has a very short segment, we need to flag it
-	 *              for later
-	 */
-	            if (mag < shortSegCutoff) {
-	                hasShortSeg = 1;
-                    shortSegRatio = MIN(shortSegRatio, mag/param->minSeg);
-                }
+		bMag2 = (b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
+		invbMag2 = 1.0 / bMag2;
 
 /*
- *              Calculate how close to screw the arm is
+ *      Calculate the length of the arm and its tangent line direction
  */
-                costheta = (d[0]*b[0] + d[1]*b[1] + d[2]*b[2]);
-                costheta2 = (costheta*costheta) * invbMag2;
+		nbrNode = GetNeighborNode(home, node, i);
+
+		if (nbrNode == (Node_t *)NULL) {
+		    printf("WARNING: Neighbor not found at %s line %d\n",
+			   __FILE__, __LINE__);
+		    continue;
+		}
+
+		d[0] = nbrNode->x - node->x;
+		d[1] = nbrNode->y - node->y;
+		d[2] = nbrNode->z - node->z;
+
+		ZImage(param, &d[0], &d[1], &d[2]);
+
+		mag2 = d[0]*d[0] + d[1]*d[1] + d[2]*d[2];
+
+/*
+ *      If the segment is zero length (which can happen when
+ *      the mobility function is being called from SplitMultiNodes())
+ *      just skip the segment.
+ */
+		if (mag2 < eps) {
+		    continue;
+		}
+
+		mag     = sqrt(mag2);
+		halfMag = mag/2.0;
+		invMag  = 1.0 / mag;
+
+		d[0] *= invMag;
+		d[1] *= invMag;
+		d[2] *= invMag;
+
+/*
+ *      If the node has a very short segment, we need to flag it
+ *      for later
+ */
+        if (mag < shortSegCutoff) {
+            hasShortSeg = 1;
+            shortSegRatio = MIN(shortSegRatio, mag/param->minSeg);
+        }
+
+/*
+ *      Calculate how close to screw the arm is
+ */
+        costheta = (d[0]*b[0] + d[1]*b[1] + d[2]*b[2]);
+        costheta2 = (costheta*costheta) * invbMag2;
     
 /*
- *              arms not on [1 1 1] planes don't move as readily as
- *              other arms, so must be handled specially.
+ *      arms not on [1 1 1] planes don't move as readily as
+ *      other arms, so must be handled specially.
  *
- *              If needed, rotate a copy of the glide plane vector from the
- *              laboratory frame to the crystal frame.
+ *      If needed, rotate a copy of the glide plane vector from the
+ *      laboratory frame to the crystal frame.
  */
-                n[0] = node->nx[i];
-                n[1] = node->ny[i];
-                n[2] = node->nz[i];
+        n[0] = node->nx[i];
+        n[1] = node->ny[i];
+        n[2] = node->nz[i];
 
-                if (param->useLabFrame) {
-                   VectorLabToCrystal(home, node, nbrNode, n, nCryst);
-                } else {
-                    VECTOR_COPY(nCryst, n);
-                }
-
-                if (fabs(nCryst[0] * nCryst[1] * nCryst[2]) < eps) {
-                    if (numNbrs == 2) {
-                        Btotal[0][0] += halfMag * Beclimb;
-                        Btotal[1][1] += halfMag * Beclimb;
-                        Btotal[2][2] += halfMag * Beclimb;
-                    } else {
-                        Btotal[0][0] += halfMag * (d[0]*d[0]*BlmBecl + Beclimb);
-                        Btotal[0][1] += halfMag * (d[0]*d[1]*BlmBecl);
-                        Btotal[0][2] += halfMag * (d[0]*d[2]*BlmBecl);
-                        Btotal[1][1] += halfMag * (d[1]*d[1]*BlmBecl + Beclimb);
-                        Btotal[1][2] += halfMag * (d[1]*d[2]*BlmBecl);
-                        Btotal[2][2] += halfMag * (d[2]*d[2]*BlmBecl + Beclimb);
-                    }
-                } else  {
+        if((GetPlaneType_FCC(home, node, nbrNode)& GLIDE_PLANE)==0){
+            if (numNbrs == 2) {
+                Btotal[0][0] += halfMag * Beclimb;
+                Btotal[1][1] += halfMag * Beclimb;
+                Btotal[2][2] += halfMag * Beclimb;
+            } else {
+                Btotal[0][0] += halfMag * (d[0]*d[0]*BlmBecl + Beclimb);
+                Btotal[0][1] += halfMag * (d[0]*d[1]*BlmBecl);
+                Btotal[0][2] += halfMag * (d[0]*d[2]*BlmBecl);
+                Btotal[1][1] += halfMag * (d[1]*d[1]*BlmBecl + Beclimb);
+                Btotal[1][2] += halfMag * (d[1]*d[2]*BlmBecl);
+                Btotal[2][2] += halfMag * (d[2]*d[2]*BlmBecl + Beclimb);
+            }
+        } else  {
 /*
- *                  Arm is a regular glide arm, so build the drag matrix
- *                  assuming the dislocation is screw type
+ *          Arm is a regular glide arm, so build the drag matrix
+ *          assuming the dislocation is screw type
  */
-                    Btotal[0][0] += halfMag * (d[0]*d[0] * BlmBsc + Bscrew);
-                    Btotal[0][1] += halfMag * (d[0]*d[1] * BlmBsc);
-                    Btotal[0][2] += halfMag * (d[0]*d[2] * BlmBsc);
-                    Btotal[1][1] += halfMag * (d[1]*d[1] * BlmBsc + Bscrew);
-                    Btotal[1][2] += halfMag * (d[1]*d[2] * BlmBsc);
-                    Btotal[2][2] += halfMag * (d[2]*d[2] * BlmBsc + Bscrew);
+            Btotal[0][0] += halfMag * (d[0]*d[0] * BlmBsc + Bscrew);
+            Btotal[0][1] += halfMag * (d[0]*d[1] * BlmBsc);
+            Btotal[0][2] += halfMag * (d[0]*d[2] * BlmBsc);
+            Btotal[1][1] += halfMag * (d[1]*d[1] * BlmBsc + Bscrew);
+            Btotal[1][2] += halfMag * (d[1]*d[2] * BlmBsc);
+            Btotal[2][2] += halfMag * (d[2]*d[2] * BlmBsc + Bscrew);
 
 /*
- *                  Now correct the drag matrix for dislocations that are
- *                  not screw
+ *          Now correct the drag matrix for dislocations that are
+ *          not screw
  */
-                    if ((1.0 - costheta2) > eps) {
+            if ((1.0 - costheta2) > eps) {
 
-                        cross(n, d, m);
-
-                        Bglide = sqrt(invBedge2 + (invBscrew2-invBedge2) *
-                                      costheta2);
-                        Bglide = 1.0 / Bglide;
-                        Bclimb = sqrt(Beclimb2 + (Bscrew2 - Beclimb2) *
-                                      costheta2);
+                cross(n, d, m);
+                Bglide = sqrt(invBedge2 + (invBscrew2-invBedge2) * costheta2);
+                Bglide = 1.0 / Bglide;
+                Bclimb = sqrt(Beclimb2 + (Bscrew2 - Beclimb2) * costheta2);
 
 #ifdef NAN_CHECK
-                        if (isnan(Bglide) != 0) {
-                            Fatal("Mobility_FCC_0b: Bglide = NaN\n"
-                                "  Bglide = sqrt(invBedge2 + "
-                                "(invBscrew2-invBedge2)*costheta2)\n"
-                                "  where invBedge2 = %lf, invBscrew2 = %lf, "
-                                "costheta2 = %lf", invBedge2, invBscrew2,
-                                costheta2);
-                        }
-
-                        if (isnan(Bclimb) != 0) {
-                            Fatal("Mobility_FCC_0b: Bclimb = NaN\n"
-                                "  Bclimb = sqrt(Beclimb2 + "
-                                "(Bscrew2-Beclimb2)*costheta2)\n"
-                                "  where Beclimb2 = %lf, Bscrew2 = %lf, "
-                                "costheta2 = %lf", Beclimb2, Bscrew2,
-                                costheta2);
-                        }
-#endif
-                        BclmBsc = Bclimb - Bscrew;
-                        BglmBsc = Bglide - Bscrew;
-
-
-                        Btotal[0][0] += halfMag * (n[0]*n[0] * BclmBsc +
-                                        m[0]*m[0] * BglmBsc);
-                        Btotal[0][1] += halfMag * (n[0]*n[1] * BclmBsc +
-                                        m[0]*m[1] * BglmBsc);
-                        Btotal[0][2] += halfMag * (n[0]*n[2] * BclmBsc +
-                                        m[0]*m[2] * BglmBsc);
-                        Btotal[1][1] += halfMag * (n[1]*n[1] * BclmBsc +
-                                        m[1]*m[1] * BglmBsc);
-                        Btotal[1][2] += halfMag * (n[1]*n[2] * BclmBsc +
-                                        m[1]*m[2] * BglmBsc);
-                        Btotal[2][2] += halfMag * (n[2]*n[2] * BclmBsc +
-                                        m[2]*m[2] * BglmBsc);
-                    }
-                }  /* End non-[0 0 1] arm */
-            }  /* End loop over arms */
-
-            Btotal[1][0] = Btotal[0][1];
-            Btotal[2][0] = Btotal[0][2];
-            Btotal[2][1] = Btotal[1][2];
-
-/*
- *          At this point we should check if the matrix is invertable and
- *          if it isn't, find the eigen values and eigen vectors of the drag
- *          matrix, then invert the drag matrix keeping zero eigen values
- *          as zero.
- *
- *          FIX ME!  For now, we're assuming the matrix is invertable.
+                if (isnan(Bglide) != 0) {
+                    Fatal("Mobility_FCC_0b: Bglide = NaN\n"
+                        "  Bglide = sqrt(invBedge2 + "
+                        "(invBscrew2-invBedge2)*costheta2)\n"
+                        "  where invBedge2 = %lf, invBscrew2 = %lf, "
+                        "costheta2 = %lf", invBedge2, invBscrew2,
+                        costheta2);
+                }
+        
+                if (isnan(Bclimb) != 0) {
+                    Fatal("Mobility_FCC_0b: Bclimb = NaN\n"
+                        "  Bclimb = sqrt(Beclimb2 + "
+                        "(Bscrew2-Beclimb2)*costheta2)\n"
+                        "  where Beclimb2 = %lf, Bscrew2 = %lf, "
+                        "costheta2 = %lf", Beclimb2, Bscrew2,
+                        costheta2);
+                }
+#endif 
+                BclmBsc = Bclimb - Bscrew;
+                BglmBsc = Bglide - Bscrew;
+        
+                Btotal[0][0] += halfMag * (n[0]*n[0] * BclmBsc +
+                                m[0]*m[0] * BglmBsc);
+                Btotal[0][1] += halfMag * (n[0]*n[1] * BclmBsc +
+                                m[0]*m[1] * BglmBsc);
+                Btotal[0][2] += halfMag * (n[0]*n[2] * BclmBsc +
+                                m[0]*m[2] * BglmBsc);
+                Btotal[1][1] += halfMag * (n[1]*n[1] * BclmBsc +
+                                m[1]*m[1] * BglmBsc);
+                Btotal[1][2] += halfMag * (n[1]*n[2] * BclmBsc +
+                                m[1]*m[2] * BglmBsc);
+                Btotal[2][2] += halfMag * (n[2]*n[2] * BclmBsc +
+                                m[2]*m[2] * BglmBsc);
+                }
+            }  /* End non-[0 0 1] arm */
+        }  /* End loop over arms */
+        
+        Btotal[1][0] = Btotal[0][1];
+        Btotal[2][0] = Btotal[0][2];
+        Btotal[2][1] = Btotal[1][2];
+        
+/*      
+ *      At this point we should check if the matrix is invertable and
+ *      if it isn't, find the eigen values and eigen vectors of the drag
+ *      matrix, then invert the drag matrix keeping zero eigen values
+ *      as zero.
+ *      
+ *      FIX ME!  For now, we're assuming the matrix is invertable.
  */
 
-	    DoResistance(home, node, nForce);
-
-            if (Matrix33Invert(Btotal, invBtotal) == 0) {
-                Fatal("Mobility_FCC_0b: Cannot invert 3X3 matrix!");
-            }
-
-            Matrix33Vector3Multiply(invBtotal, nForce, nVel);
-
-/*
- *          Now that the nVel has been set, apply glide corrections
- */
-            if (numNorms == 0){
-
-                temp = nVel[0] * glideConstraints[0][0] +
-                       nVel[1] * glideConstraints[0][1] +
-                       nVel[2] * glideConstraints[0][2];
-
-                nVel[0] -= temp * glideConstraints[0][0];
-                nVel[1] -= temp * glideConstraints[0][1];
-                nVel[2] -= temp * glideConstraints[0][2];
-
-            } else { /*numNorms==1*/
-
-                temp = nVel[0] * glideConstraints[2][0] +
-                       nVel[1] * glideConstraints[2][1] +
-                       nVel[2] * glideConstraints[2][2];
-
-                nVel[0] = temp * glideConstraints[2][0];
-                nVel[1] = temp * glideConstraints[2][1];
-                nVel[2] = temp * glideConstraints[2][2];
-            }
-
-            node->vX = nVel[0];
-            node->vY = nVel[1];
-            node->vZ = nVel[2];
+        if (Matrix33Invert(Btotal, invBtotal) == 0) {
+           Fatal("Mobility_FCC_0b: Cannot invert 3X3 matrix!");
         }
+
+        Matrix33Vector3Multiply(invBtotal, nForce, nVel);
+
+/*
+ *      Now that the nVel has been set, apply glide corrections
+ */
+        if (numGlideConstraints == 1){
+
+           temp = nVel[0] * glideConstraints[0][0] +
+                  nVel[1] * glideConstraints[0][1] +
+                  nVel[2] * glideConstraints[0][2];
+
+           nVel[0] -= temp * glideConstraints[0][0];
+           nVel[1] -= temp * glideConstraints[0][1];
+           nVel[2] -= temp * glideConstraints[0][2];
+
+       } else { // line constraint
+
+           temp = nVel[0] * glideConstraints[2][0] +
+                  nVel[1] * glideConstraints[2][1] +
+                  nVel[2] * glideConstraints[2][2];
+
+           nVel[0] = temp * glideConstraints[2][0];
+           nVel[1] = temp * glideConstraints[2][1];
+           nVel[2] = temp * glideConstraints[2][2];
+       }
+
+       node->vX = nVel[0];
+       node->vY = nVel[1];
+       node->vZ = nVel[2];
 
 /*
  *      Sometimes nodes oscillate at high frequency causing timestep to drop.
@@ -400,5 +385,5 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 
 	}	
 
-        return(0);
+    return(0);
 }

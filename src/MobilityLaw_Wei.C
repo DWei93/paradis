@@ -55,12 +55,11 @@ int Mobility_Wei(Home_t *home, Node_t *node)
                                {1.18461E-5, 1.05257E8 , 8.9693E7  },
                                {1.84995E-5, 2.12353E8 , 3.20935E7 } 
                               };
-    static real8 cs = 1630.0;
-
     param = home->param;
 	
+    static real8 cs = 1630.0/param->burgMag;
+
     bool zeroLenJunc;
-	
     nc = node->numNbrs;
 	
 /*
@@ -69,6 +68,13 @@ int Mobility_Wei(Home_t *home, Node_t *node)
  */
     if ((node->constraint == PINNED_NODE) ||
         NodeHasSessileBurg(home, node)){
+        node->vX = 0.0;
+        node->vY = 0.0;
+        node->vZ = 0.0;
+        return(0);
+    }
+	GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints, zeroLenJunc);
+    if (numGlideConstraints==3){
         node->vX = 0.0;
         node->vY = 0.0;
         node->vZ = 0.0;
@@ -96,6 +102,8 @@ int Mobility_Wei(Home_t *home, Node_t *node)
         node->vZ = 0.0;
         return(0);
     }
+
+
 
 /*
  *  Find total dislocation length times drag coefficent (LtimesB)
@@ -199,7 +207,6 @@ int Mobility_Wei(Home_t *home, Node_t *node)
     nForce[2] = node->fZ;
 #endif
 	/* Velocity is simply proportional to total force per unit length */
-	GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints, zeroLenJunc);
     ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, nForce);
 #if 0
     NodeImageForce(home, node, imageForce);
