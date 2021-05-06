@@ -120,12 +120,12 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 	    ZImage(param, &dx, &dy, &dz);
 
 /*
- *          This assumes that lengths are given in terms of burgers vector units
+ *      This assumes that lengths are given in terms of burgers vector units
  */
 	    if ((dx*dx + dy*dy + dz*dz) > eps) {
 	        numNonZeroLenSegs++;
 	    }
-	}
+    }
 
 	if (numNonZeroLenSegs == 0) {
 	    node->vX = 0.0;
@@ -255,6 +255,7 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
             if ((1.0 - costheta2) > eps) {
 
                 cross(n, d, m);
+                NormalizeVec(m);
                 Bglide = sqrt(invBedge2 + (invBscrew2-invBedge2) * costheta2);
                 Bglide = 1.0 / Bglide;
                 Bclimb = sqrt(Beclimb2 + (Bscrew2 - Beclimb2) * costheta2);
@@ -293,86 +294,67 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
                                 m[1]*m[2] * BglmBsc);
                 Btotal[2][2] += halfMag * (n[2]*n[2] * BclmBsc +
                                 m[2]*m[2] * BglmBsc);
-                }
-            }  /* End non-[0 0 1] arm */
-        }  /* End loop over arms */
-        
-        Btotal[1][0] = Btotal[0][1];
-        Btotal[2][0] = Btotal[0][2];
-        Btotal[2][1] = Btotal[1][2];
-        
-/*      
- *      At this point we should check if the matrix is invertable and
- *      if it isn't, find the eigen values and eigen vectors of the drag
- *      matrix, then invert the drag matrix keeping zero eigen values
- *      as zero.
- *      
- *      FIX ME!  For now, we're assuming the matrix is invertable.
- */
-
-        if (Matrix33Invert(Btotal, invBtotal) == 0) {
-           Fatal("Mobility_FCC_0b: Cannot invert 3X3 matrix!");
-        }
-
-        Matrix33Vector3Multiply(invBtotal, nForce, nVel);
-
-/*
- *      Now that the nVel has been set, apply glide corrections
- */
-        if (numGlideConstraints == 1){
-
-           temp = nVel[0] * glideConstraints[0][0] +
-                  nVel[1] * glideConstraints[0][1] +
-                  nVel[2] * glideConstraints[0][2];
-
-           nVel[0] -= temp * glideConstraints[0][0];
-           nVel[1] -= temp * glideConstraints[0][1];
-           nVel[2] -= temp * glideConstraints[0][2];
-
-       } else { // line constraint
-
-           temp = nVel[0] * glideConstraints[2][0] +
-                  nVel[1] * glideConstraints[2][1] +
-                  nVel[2] * glideConstraints[2][2];
-
-           nVel[0] = temp * glideConstraints[2][0];
-           nVel[1] = temp * glideConstraints[2][1];
-           nVel[2] = temp * glideConstraints[2][2];
-       }
-
-       node->vX = nVel[0];
-       node->vY = nVel[1];
-       node->vZ = nVel[2];
-
-/*
- *      Sometimes nodes oscillate at high frequency causing timestep to drop.
- *      Usually, these are 2-nodes that have short segments attached.  So, if
- *      we find a 2-node that has a least 1 short segment, and the velocity
- *      of the node has changed direction since the previous cycle, slow
- *      the node down for this cycle.  Hopefully this will help dampen the
- *      oscillation and improve the timestep.
- */
-        if ((numNbrs == 2) && (hasShortSeg)) {
-            if (((node->vX * node->oldvX) < 0.0) ||
-                ((node->vY * node->oldvY) < 0.0) ||
-                ((node->vZ * node->oldvZ) < 0.0)) {
-                node->vX *= shortSegRatio;
-                node->vY *= shortSegRatio;
-                node->vZ *= shortSegRatio;
             }
+        }  /* End non-[0 0 1] arm */
+    }  /* End loop over arms */
+    
+    Btotal[1][0] = Btotal[0][1];
+    Btotal[2][0] = Btotal[0][2];
+    Btotal[2][1] = Btotal[1][2];
+    
+/*  
+ *  At this point we should check if the matrix is invertable and
+ *  if it isn't, find the eigen values and eigen vectors of the drag
+ *  matrix, then invert the drag matrix keeping zero eigen values
+ *  as zero.
+ *  
+ *  FIX ME!  For now, we're assuming the matrix is invertable.
+ */
+
+    if (Matrix33Invert(Btotal, invBtotal) == 0) {
+       Fatal("Mobility_FCC_0b: Cannot invert 3X3 matrix!");
+    }
+
+    Matrix33Vector3Multiply(invBtotal, nForce, nVel);
+
+/*
+ *  Now that the nVel has been set, apply glide corrections
+ */
+    ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, nVel);
+
+    node->vX = nVel[0];
+    node->vY = nVel[1];
+    node->vZ = nVel[2];
+
+/*
+ *  Sometimes nodes oscillate at high frequency causing timestep to drop.
+ *  Usually, these are 2-nodes that have short segments attached.  So, if
+ *  we find a 2-node that has a least 1 short segment, and the velocity
+ *  of the node has changed direction since the previous cycle, slow
+ *  the node down for this cycle.  Hopefully this will help dampen the
+ *  oscillation and improve the timestep.
+ */
+    if ((numNbrs == 2) && (hasShortSeg)) {
+        if (((node->vX * node->oldvX) < 0.0) ||
+            ((node->vY * node->oldvY) < 0.0) ||
+            ((node->vZ * node->oldvZ) < 0.0)) {
+            node->vX *= shortSegRatio;
+            node->vY *= shortSegRatio;
+            node->vZ *= shortSegRatio;
         }
+    }
 		
 
 #ifdef _FEM
 /*
- *      The velocity of any surface node along the negative surface
- *      normal direction should be zero to prevent the node moving into
- *      the box.  Make a call to adjsut the velocity accordingly.
+ *  The velocity of any surface node along the negative surface
+ *  normal direction should be zero to prevent the node moving into
+ *  the box.  Make a call to adjsut the velocity accordingly.
  *
- *      Note: If the node moves outside the box, it's allowed here, then
- *      position is adjusted in AdjustNodePosition().
+ *  Note: If the node moves outside the box, it's allowed here, then
+ *  position is adjusted in AdjustNodePosition().
  */
-//        AdjustSurfaceNodeVel(home, node);
+//    AdjustSurfaceNodeVel(home, node);
 #endif
 
 	velocity = sqrt(node->vX * node->vX+
