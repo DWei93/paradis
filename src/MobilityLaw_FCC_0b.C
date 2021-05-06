@@ -46,7 +46,7 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 	real8   eps = 1.0e-12;
 	real8   tor=1.e-5;
 	real8   shortSegRatio = 1.0;
-	real8   nForce[3], nVel[3];
+	real8   nForce[3]={node->fX, node->fY, node->fZ}, nVel[3];
 	real8   Btotal[3][3] = {{0.0, 0.0, 0.0},
 	                        {0.0, 0.0, 0.0},
 	                        {0.0, 0.0, 0.0}};
