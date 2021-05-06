@@ -13,7 +13,6 @@
 #include "FEM.h"
 #endif
 
-#define MIN_DELTA_T 1.0e-11
 
 
 /*------------------------------------------------------------------------
@@ -266,7 +265,7 @@ void ForwardEulerIntegrator(Home_t *home)
                 }
             }
 
-            if (newDT < MIN_DELTA_T) newDT = MIN_DELTA_T;
+            if (newDT < param->minDT) newDT = param->minDT;
 
         }
 
