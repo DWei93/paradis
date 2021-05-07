@@ -25,7 +25,7 @@ numZdoms = 1
 #
 numXcells = 4
 numYcells = 4
-numZcells = 4
+numZcells = 5
 
 #
 # Mesh numbers for tecmesh
@@ -43,10 +43,10 @@ DLBfreq = 3
 elasticinteraction = 1
 #a0 = [ 1.68098 1.12421 1.01163 0.187646 ]
 enableCrossSlip =   1
-rTol = 7.2036500
-rc = 28.9146000
-Ecore = -1
-grainSize = 978
+rTol = .5745242
+rc = 2.3980968
+Ecore = 3.3410138E9
+grainSize = 78
 loadType = 0
 loadDir = [ 0.0 0.0 1.0 -1.0 0.0 0.0 ]
 #maxstep =  40000000
@@ -79,7 +79,7 @@ strRate = -4.0E16
 #strRate = 0.0
 #plaRateCtr = 2.0E4
 
-edotPolar = [ 9.0000000e+01 9.5000000e+01 ]
+edotPolar = [ 7.5000000e+01 7.7000000e+01 ]
 
 appliedStress = [
 	0.0e0
@@ -94,7 +94,8 @@ appliedStress = [
 #  Material and mobility parameters
 #  
 mobilityLaw =   "FCC_0b"
-shearModulus =   48.0e9  # Imrich
+#mobilityLaw =   "Wei"
+shearModulus = 48.0E9
 #shearModulus =   54.6e9  # Voight Average
 #shearModulus =  46.554e9  # in jin paper
 gbStrength = -1
@@ -130,4 +131,5 @@ savetimers = 0
 savetimersfreq = 10
 velfile = 0
 velfilefreq = 1000
-minDT = 12.500E-13
+minDT = 1.000E-13
+maxDT = 5.000E-13
