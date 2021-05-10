@@ -25,7 +25,7 @@ numZdoms = 1
 #
 numXcells = 4
 numYcells = 4
-numZcells = 5
+numZcells = 4
 
 #
 # Mesh numbers for tecmesh
@@ -43,15 +43,14 @@ DLBfreq = 3
 elasticinteraction = 1
 #a0 = [ 1.68098 1.12421 1.01163 0.187646 ]
 enableCrossSlip =   1
-rTol = .5745242
-rc = 2.3980968
-Ecore = 3.3410138E9
-grainSize = 78
+rTol = 7.2036500
+rc = 28.9146000
+Ecore = 12.8508572E9
+grainSize = 978
 loadType = 0
 loadDir = [ 0.0 0.0 1.0 -1.0 0.0 0.0 ]
 #maxstep =  40000000
-maxstep =  20000
-dirname = "res."
+maxstep =  10000
 remeshRule = 2
 enforceGlidePlanes =  1
 splitMultiNodeFreq =   1  
@@ -61,6 +60,7 @@ splitMultiNodeFreq =   1
 maxStn = 1.0E-2
 maxPst = 1.0E-2
 timestepIntegrator =   "forward-euler"
+#timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-15
 wallTime = 240
 #
@@ -79,7 +79,7 @@ strRate = -4.0E16
 #strRate = 0.0
 #plaRateCtr = 2.0E4
 
-edotPolar = [ 7.5000000e+01 7.7000000e+01 ]
+edotPolar = [ 9.0000000e+01 9.5000000e+01 ]
 
 appliedStress = [
 	0.0e0
@@ -93,8 +93,9 @@ appliedStress = [
 #
 #  Material and mobility parameters
 #  
-mobilityLaw =   "FCC_0b"
-#mobilityLaw =   "Wei"
+dirname = "res."
+#mobilityLaw =   "FCC_nl"
+mobilityLaw =   "FCC_nl"
 shearModulus = 48.0E9
 #shearModulus =   54.6e9  # Voight Average
 #shearModulus =  46.554e9  # in jin paper
@@ -131,5 +132,5 @@ savetimers = 0
 savetimersfreq = 10
 velfile = 0
 velfilefreq = 1000
-minDT = 1.000E-13
-maxDT = 5.000E-13
+minDT = 12.500E-13
+maxDT = 62.500E-13

@@ -804,6 +804,11 @@ void SetRemainingDefaults(Home_t *home)
             param->mobilityFunc = Mobility_FCC_climb;
             param->numBurgGroups = 7;
             param->allowFuzzyGlidePlanes = 1;
+        } else if (strcmp(param->mobilityLaw, "FCC_nl") == 0) {
+            param->materialType = MAT_TYPE_FCC;
+            param->mobilityType = MOB_FCC_NL;
+            param->mobilityFunc = Mobility_FCC_Nolinear;
+            param->numBurgGroups = 7;
         } else {
             Fatal("Unknown mobility function %s", param->mobilityLaw);
         }

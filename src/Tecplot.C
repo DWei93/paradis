@@ -6,6 +6,7 @@
 #include <math.h>
 #include "Math.h"
 #include "Force.h"
+#include "Math.h"
 
 static void NodeofEle(Param_t *param, int eleNum, int node[8]){
 
@@ -66,7 +67,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         real8    normal[3], normalCryst[3];
         real8	 minDistance, pos[3];
         real8	 velocity, displacement, vecOldNew[3];
-        real8    burg[3], burgMag;
+        real8    burg[3], burgMag, vMag;
         char     fileName[256];
         Node_t   *node, *nbrNode;
         Param_t  *param;
@@ -242,7 +243,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
             fprintf(fp, "AUXDATA plastic_strain = \"%10.7f\"\n", val);
             fprintf(fp, "AUXDATA fileName = \"%s\"\n", baseFileName);
 #else
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_sf, tau_ext,ifMag\n");
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_sf, tau_ext,ifMag, velocity\n");
             val = param->timeNow*1.0E9;
 		    fprintf(fp, "zone T = \"%d\", i = %d, SOLUTIONTIME = %d,  F=POINT\n", home->cycle, numArms, home->cycle); 
             val = fabs((param->loadType!=4)?param->eRate*param->timeNow*1.0E2:param->netCyclicStrain*1.0E2);
@@ -350,6 +351,8 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                     }
                 }
             }else constraint=0;
+
+            vMag = sqrt(node->vX*node->vX+node->vY*node->vY+node->vZ*node->vZ)*param->burgMag;
 
             for (j = 0; j < node->numNbrs; j++) {
 #if 0
@@ -495,10 +498,10 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,constraint,
                             index, node->myTag.domainID, node->myTag.index, f[0], f[1], f[2], fMag, tau_g, ifMag);
 #else
-                    fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g\n", 
+                    fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g\n", 
                             x,y,z,prx/2,pry/2,prz/2,
                             narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                            index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag);
+                            index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag);
 #endif
 	        }
 #endif	

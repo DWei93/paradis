@@ -77,6 +77,7 @@ PARADIS_CPP_SRCS = GrainBoundary.C \
       MobilityLaw_FCC_0.C      \
       MobilityLaw_FCC_0b.C     \
       MobilityLaw_FCC_climb.C  \
+      MobilityLaw_FCC_Nolinear.C  \
       NodeForce.C              \
       NodeVelocity.C           \
       OsmoticForce.C           \
