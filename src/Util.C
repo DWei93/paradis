@@ -1004,7 +1004,10 @@ int InterpolateBL(real8 *x, real8 *y, real8 *val, int numElem,
 real8 Normal(real8 a[3])
 {
 #ifdef DEBUG
-       if(!Numerical(a))Fatal("%s: {%f,%f,%f}",__func__,a[0],a[1],a[2]);
+    if(!Numerical(a)){
+//      throw "Division by zero condition!";
+        Fatal("Normal of vector is nan!");
+    }
 #endif
         return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]) );
 }
@@ -1654,6 +1657,7 @@ void PrintNode(Home_t *home, Node_t *node)
 {
         int     i;
         Node_t  *nbr;
+        Param_t *param = home->param;
 
         if (node == (Node_t *)NULL) {
 	        printf("node is NULL\n");
@@ -1690,9 +1694,10 @@ void PrintNode(Home_t *home, Node_t *node)
 /*
  *      Print the nodal velocity and total node force
  */
-        printf("  node(%d,%d) v = {%e,%e,%e}\n",
+        printf("  node(%d,%d) v = {%e,%e,%e} = %f m/s, oldv={%e,%e,%e} = %f m/s\n",
                node->myTag.domainID, node->myTag.index, 
-               node->vX, node->vY, node->vZ);
+               node->vX, node->vY, node->vZ, normal(node->vX, node->vY, node->vZ)*param->burgMag,
+               node->oldvX, node->oldvY, node->oldvZ, normal(node->oldvX, node->oldvY, node->oldvZ)*param->burgMag);
         printf("  node(%d,%d) f = {%e,%e,%e}\n",
                node->myTag.domainID, node->myTag.index, 
                node->fX, node->fY, node->fZ);

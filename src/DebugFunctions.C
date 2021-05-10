@@ -182,42 +182,42 @@ void CheckForNANS(Home_t *home, real8 flag)
             if (isnan(node->x) ||
                 isnan(node->y) ||
                 isnan(node->z)) {
-                PrintNode(node);
+                PrintNode(home, node);
                 Fatal("Node position contains NaNs.  Aborting! %3.1f",flag);
             }
              
             if (isinf(node->x) ||
                 isinf(node->y) ||
                 isinf(node->z)) {
-                PrintNode(node);
+                PrintNode(home, node);
                 Fatal("Node position contains Infs.  Aborting! %3.1f",flag);
             }
              
             if (isnan(node->vX) ||
                 isnan(node->vY) ||
                 isnan(node->vZ)) {
-                PrintNode(node);
+                PrintNode(home, node);
                 Fatal("Node velocity contains NaNs.  Aborting! %3.1f",flag);
             }
              
             if (isinf(node->vX) ||
                 isinf(node->vY) ||
                 isinf(node->vZ)) {
-                PrintNode(node);
+                PrintNode(home, node);
                 Fatal("Node velocity contains Infs.  Aborting! %3.1f",flag);
             }
              
             if (isnan(node->fX) ||
                 isnan(node->fY) ||
                 isnan(node->fZ)) {
-                PrintNode(node);
+                PrintNode(home, node);
                 Fatal("Node force contains NaNs.  Aborting! %3.1f",flag);
             }
              
             if (isinf(node->fX) ||
                 isinf(node->fY) ||
                 isinf(node->fZ)) {
-                PrintNode(node);
+                PrintNode(home, node);
                 Fatal("Node force contains Infs.  Aborting! %3.1f",flag);
             }
              
@@ -470,6 +470,7 @@ void CheckNodeNANS(Node_t *node){
 }
 
 void DebugGB(Home_t *home, int flag){
+//   CheckForNANS(home, flag);
 //  printf("%d %d %d\n",home->myDomain,flag,home->cycle);
 #ifndef DEBUG
     return;

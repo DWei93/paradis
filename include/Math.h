@@ -38,6 +38,8 @@ extern void Fatal(const char *format, ...);
 /** normal of a vector */
 inline double normal(double *a)
 {return sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);}
+inline double normal(double x, double y, double z)
+{return sqrt(x*x + y*y + z*z);}
 
 /** Normalize vector 
  *  \param[in,out] vec vector to be normalized */
@@ -105,6 +107,8 @@ inline void NormalComponent(double *a, double *dir, double *vec){
 template<class v>
 inline void VectorCopy(v *dest, v *source){dest[0] = source[0];dest[1] = source[1];dest[2] = source[2];}
 template<class v>
+inline void VectorCopy(v *dest, v s1, v s2, v s3){dest[0] = s1;dest[1] = s2;dest[2] = s3;}
+template<class v>
 inline void LongVectorCopy(v *dest, v *source, int num){memcpy(dest, source, num*sizeof(v));}
 
 /* Two opearations of Coodinate*/
@@ -115,6 +119,23 @@ inline void CoordAdd(q f1, v *a, q f2, v *b, v c[3]){
 c[0]=f1*a[0]+f2*b[0]; c[1]=f1*a[1]+f2*b[1]; c[2]=f1*a[2]+f2*b[2];}
 template<class v> 
 inline void CoordMinus(v *a, v *b, v c[3]){c[0]=a[0]-b[0]; c[1]=a[1]-b[1]; c[2]=a[2]-b[2];}
+template<class v>
+inline void VectorAddSelf(v *a, v *b){a[0]+=b[0]; a[1]+=b[1]; a[2]+=b[2];}
+template<class v>
+inline void VectorMinusSelf(v *a, v *b){a[0]-=b[0]; a[1]-=b[1]; a[2]-=b[2];}
+template<class v>
+inline void VectorTimesSelf(v *a, v *b){a[0]*=b[0]; a[1]*=b[1]; a[2]*=b[2];}
+template<class v>
+inline void VectorDivideSelf(v *a, v *b){a[0]/=b[0]; a[1]/=b[1]; a[2]/=b[2];}
+
+template<class v>
+inline void VectorAddSelf(v *a, v b){a[0]+=b; a[1]+=b; a[2]+=b;}
+template<class v>
+inline void VectorMinusSelf(v *a, v b){a[0]-=b; a[1]-=b; a[2]-=b;}
+template<class v>
+inline void VectorTimesSelf(v *a, v b){a[0]*=b; a[1]*=b; a[2]*=b;}
+template<class v>
+inline void VectorDivideSelf(v *a, v b){a[0]/=b; a[1]/=b; a[2]/=b;}
 
 /*return a coordinate from a vector*/
 template<class v>
