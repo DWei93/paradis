@@ -3031,6 +3031,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
             b[0] = bd->burgList[slip_sys[i][0]][0];
             b[1] = bd->burgList[slip_sys[i][0]][1];
             b[2] = bd->burgList[slip_sys[i][0]][2];
+            NormalizeVec(b);
             
             n0[0] = bd->planeList[slip_sys[i][1]][0];
             n0[1] = bd->planeList[slip_sys[i][1]][1];
