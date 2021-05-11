@@ -1874,6 +1874,12 @@ void Initialize(Home_t *home,int argc, char *argv[])
         
 //	    param->vshr = sqrt(param->YoungsModulus/param->massDensity)/param->burgMag;
         param->vshr = 1.63E3/param->burgMag;
+        if (strcmp(param->timestepIntegrator, "forward-euler") == 0) {
+            if(param->rmax>10*param->rTol){
+                param->rmax = 10.0*param->rTol;
+            }
+            if(home->myDomain == 0)printf("Forward Euler integrator: rmax = %g, minDT=%g\n:", param->rmax,param->minDT);
+        }
 
 	    if(home->myDomain == 0)printf("shear Wave velocity: %6.2f m/s.\n",
 	    param->vshr * param->burgMag);
