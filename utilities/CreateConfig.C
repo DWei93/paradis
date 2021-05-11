@@ -3045,11 +3045,34 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                 maxSchmid = proba[i];
             }
 
-            if(home->nGBs>1)Proba[i]=proba[i]; else Proba[i]=1.0;
             percen[i]=0.0;
         }
         param->maxSchmid = maxSchmid;
-        for(i=0;i<nSlips;i++)if(fabs(proba[i]-maxSchmid)<1E-4)primary[i]=1.0; else primary[i]=MAX(proba[i]/maxSchmid, 0.33333);
+        real8 nPrimary = 0.0, pPris=0.0, pTot=0.0, pcoe=1.0/3.0, criPorPri=0.15, newPro;
+        for(i=0;i<nSlips;i++){
+            if(fabs(proba[i]-maxSchmid)<1E-4){
+                primary[i]=1.0;
+            }else{
+                primary[i]=MAX(proba[i]/maxSchmid, pcoe);
+            }
+            if(home->nGBs>1){
+                Proba[i]=(i>20)?MIN(MAX(pcoe*maxSchmid,proba[i])*real8(inArgs->nTDs*home->nGBs),maxSchmid):MAX(proba[i],0.5*pcoe*maxSchmid);
+            }else{
+                Proba[i]=1.0;
+            }
+            if(fabs(proba[i]-maxSchmid)<1E-4){
+                nPrimary += 1.0;
+                pPris += Proba[i];
+            }
+            pTot +=  Proba[i];
+        }
+
+        if(home->nGBs>1){
+            if(pPris/pTot<criPorPri){
+                real8 nk=(pPris - pTot*criPorPri)/(criPorPri -1.0)/nPrimary;
+                for(i=0;i<nSlips;i++)if(fabs(proba[i]-maxSchmid)<1E-4)Proba[i] += nk;
+            }
+        }
         for(i=1;i<nSlips;i++)Proba[i]+=Proba[i-1];
         for(i=0;i<nSlips;i++)Proba[i]/=Proba[nSlips-1];
         
@@ -3697,11 +3720,13 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
             printf("layer %d: xn=%d, chain=%d\n",layer,xn,chain+1);
 	    }/* for(layer=0; layer<nLayers;...)*/
                                                                                
-        printf("Slip systems | location  | burgID | planeID  | Schmid Factor | percentage\n"); 
+        real8 lastProba = 0.0;
+        printf("Slip systems | location  | burgID | planeID  | Schmid Factor | probability | percentage\n"); 
         for(i=0; i<nSlips; i++){
-            printf("    %3d      |   %3s     |   %3d  |   %3d    |    %5.3f      |  %5.2f  \n",
+            printf("    %3d      |   %3s     |   %3d  |   %3d    |    %5.3f      |    %5.2f    |   %5.2f  \n",
                 i+1, (slip_sys[i][0]>=6)?"TB":((slip_sys[i][1]==3)?"M/T":(slip_sys[i][2]==0?"M":"T")), slip_sys[i][0], 
-                slip_sys[i][1], proba[i], percen[i]*100/totSrcLen);
+                slip_sys[i][1], proba[i], (Proba[i]-lastProba)*100.0, percen[i]*100/totSrcLen);
+            lastProba = Proba[i];
         }
 
         free(proba);
@@ -4047,6 +4072,7 @@ void SliptArm(InData_t *inData, int id1, int id2, real8 burg[3], real8 n[3], int
     Node_t *node1 = &inData->node[id1];
     Node_t *node2 = &inData->node[id2];
     memset(&inData->node[inData->nodeCount-1], 0, sizeof(Node_t) * 1);
+    memset(&inData->node[inData->nodeCount-2], 0, sizeof(Node_t) * 1);
     Node_t *newNode1 = &inData->node[inData->nodeCount-2];
     Node_t *newNode2 = &inData->node[inData->nodeCount-1];
 
@@ -4152,9 +4178,9 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
     int         nLoops = inArgs->numLoops;
     int         seed = inArgs->seed;
     const real8 cubeLength = real8(inArgs->cubeLength);
-    const real8  radius = inArgs->radius<=sqrt(3)/2?inArgs->radius*cubeLength:inArgs->radius;
-    const real8  radius2 = inArgs->radius2;
-    const real8 radius3 = inArgs->radius3;
+    const real8 radius = inArgs->radius<=sqrt(3)/2?inArgs->radius*cubeLength:inArgs->radius;
+    const real8 radius2 = inArgs->radius<=sqrt(3)/2?inArgs->radius2*cubeLength:inArgs->radius2;
+    const real8 radius3 = inArgs->radius<=sqrt(3)/2?inArgs->radius3*cubeLength:inArgs->radius3;
     const real8 invVol=1.0E0/(pow(cubeLength,3.0)*pow(2.556e-10,2));
     const real8 maxDensity = inArgs->maxDensity;
     BurgInfo_t  *bd; Grain_t *grain; GB_t *gb;
@@ -4246,6 +4272,13 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
         CoordAdd(1.0, cenPos,  rList[3], &n[3][0], &p[3][0]);
 
         for(int j=0; j<4; j++){
+            int nextIndex = j==3?0:j+1;
+            int lastIndex = j==0?3:j-1;
+            real8 vec[3];
+            CoordMinus(p[nextIndex],p[j],vec);
+            if(Normal(vec)<1E-1)Fatal("rList %g %g %g %g",-rList[0],-rList[1],rList[2],rList[3]);
+        }
+        for(int j=0; j<4; j++){
             onGBList[j] = -1;
             if(LINE_INTERSECTION!=PlanePlaneIntersection(n0,cenPos,n[j],p[j],lDirList[j],lPoiList[j])){
                 Fatal("can not find line intersection");
@@ -4292,7 +4325,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
         bool dangerLoop = (pid1!=3 && pid2!=3 && !AlignedDirection(n0, bd->planeList[3]))?true:false;
         if(dangerLoop){
             int j; for(j=0; j<4; j++){
-                NodeLocation(home, p[j][0],p[j][1],p[j][2], ig, og,15); if(ig!=inGrain)break;
+                NodeLocation(home, p[j][0],p[j][1],p[j][2], ig, og, 0.5); if(ig!=inGrain)break;
             }
             if(j<4){
                 real8 ldir1[3]; CoordMinus(p[2],p[0],ldir1); normalize_vec(ldir1);
@@ -4312,7 +4345,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
                         factor *= 0.98;
                         for(l=0; l<4; l++){
                             CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
-                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og,15);
+                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og, 0.5);
                             if(ig!=inGrain||og>-1)break;
                         }
                     }
@@ -4342,14 +4375,14 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
                             factor *= 1.1;
                             for(l=0; l<4; l++){
                                 CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
-                                NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og,15);
+                                NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og, 0.5);
                                 if(ig!=inGrain||og>-1)break;
                             }
                         }
                         factor /= 1.1;
                         for(l=0; l<4; l++){
                             CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
-                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og,15);
+                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og, 0.5);
                             if(ig!=inGrain || onGB>-1)Fatal("shit {%g,%g,%g}",p[l][0],p[l][1],p[l][2]);
                         }
                     
@@ -4386,14 +4419,14 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
                             factor *= 1.1;
                             for(l=0; l<4; l++){
                                 CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
-                                NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og,15);
+                                NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og, 0.5);
                                 if(ig!=inGrain||og>-1)break;
                             }
                         }
                         factor /= 1.1;
                         for(l=0; l<4; l++){
                             CoordAdd(1.0,cenPos,factor,lList[l],p[l]);
-                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og,15);
+                            NodeLocation(home, p[l][0],p[l][1],p[l][2], ig, og, 0.5);
                             nodeGBList[l] = -1;
                             if(ig!=inGrain || onGB>-1)Fatal("shit {%g,%g,%g}",p[l][0],p[l][1],p[l][2]);
                         }

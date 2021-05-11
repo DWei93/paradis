@@ -728,7 +728,6 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                         break;
                     }
                     inArgs->radius2 = atof(token);
-
                     
                     token = strtok(NULL, ",");
                     if (token == (char *)NULL) {
