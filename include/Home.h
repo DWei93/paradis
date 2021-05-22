@@ -416,6 +416,8 @@ struct _home {
 		int			nGrains;
 
         GB_t        **GBKeys;
+        real8       *tbPosz;
+        real8       *layerPosz;
         int         nGBs;
 
 #ifdef DEBUG        

@@ -426,6 +426,7 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->nTDs = -1;
         inArgs->gb = false; 
 		snprintf(inArgs->outFile, sizeof(inArgs->outFile), "InitialAnalysis.dat");
+		snprintf(inArgs->gradientStructure, sizeof(inArgs->gradientStructure), "0");
 
         return;
 }
@@ -501,6 +502,7 @@ static void PrintArgs(InArgs_t *inArgs)
 		
         printf("Maximum Segment Length    %lf\n",inArgs->maxSegLen);
         printf("Data File:                %s\n",inArgs->outputFile);
+        printf("Gradient Structure:       %s\n",inArgs->gradientStructure);
 
         switch (inArgs->type) {
             case FTYPE_EDGE:
@@ -606,6 +608,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
         char    *argName;
         char    *argValue;
         char    *token;
+        char    oriArg[256];
 
         const real8 degree=1.745329251994330e-02;
         real8  edotdir[3];
@@ -798,7 +801,26 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	                inArgs->polycrystal	= atof(argValue);
 	                    break;
 	            case OPT_NGRAIN:
-	                inArgs->nGrain = atoi(argValue);
+                        snprintf(oriArg, sizeof(oriArg), "%s", argValue);
+	                    token = strtok(argValue,"x");
+                        if((token=strtok(NULL,"x"))==(char *)NULL){
+	                        inArgs->nGrain = atoi(argValue);
+                        }else{
+                            snprintf(argValue, sizeof(oriArg), "%s", oriArg);
+                            snprintf(inArgs->gradientStructure, sizeof(inArgs->gradientStructure), "%s", oriArg);
+                            printf("Gradient Structure: %s\n", inArgs->gradientStructure);
+                            token = strtok(argValue,"x");
+                            inArgs->nGrain = 0;
+                            while(token != (char *)NULL){
+                                printf("%sX",token);
+                                token = strtok(NULL,",");
+                                if(token == (char *)NULL)Fatal("can not find the grain number");
+                                printf("%d, ",atoi(token));
+                                inArgs->nGrain += atoi(token);
+                                token = strtok(NULL,"x");
+                            }
+                            printf(", nGrains=%d\n",inArgs->nGrain);
+                        }
 	                    break;
 	            case OPT_TWIN_RATIO:
 	                inArgs->twinRatio = atof(argValue);
@@ -1277,6 +1299,8 @@ int main(int argc, char *argv[])
         param->maxSeg = inArgs.maxSegLen;
 	    param->minSeg = inArgs.maxSegLen/2.0;
         param->maxSchmid = -1.0;
+
+        snprintf(param->gradientStructure, sizeof(param->gradientStructure), "%s", inArgs.gradientStructure);
 		
 	    param->polycrystal = inArgs.polycrystal;
 	    param->nGrain = inArgs.nGrain;

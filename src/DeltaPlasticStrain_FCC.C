@@ -347,7 +347,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
  */
 #pragma omp parallel
    {
-        int    k, l;
+        int    k, l, m;
         int    nodeIndex;
         int    threadID, threadIterStart, threadIterEnd;
         real8  thread_disloDensity=0.0, thread_disloDensity_TB=0.0;
@@ -439,7 +439,9 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                int  binID[2];
                int  burgType, nbrArmID, iBin;
                bool active, positive;
-                real8   velocity, coeff[2];
+               real8   velocity, coeff[2];
+               int  meshNx, meshNy, meshNz, eleID[27];
+               real8    lenPer[27];
 
                nbr = GetNeighborNode(home, node, segIndex);
 
@@ -705,9 +707,9 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                 Fatal("in %s at %d", __FILE__, __LINE__);
             }
 	         
+	        eleNum = Coor2EleNum(home,pp,meshNx,meshNy,meshNz);
 	        FoldBox(param,&pp[0],&pp[1],&pp[2]);
-	         
-	        eleNum = Coor2EleNum(home,pp);
+            DecomposeSegmentInRubik(home, meshNx,meshNy,meshNz, p1,p2, lenPer, eleID);
 			   
 	        ex = nbr->x - node->oldx; 
 	        ey = nbr->y - node->oldy; 
@@ -753,31 +755,31 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             for (k = 0; k < 3; k++){
                 for (l = 0; l < 3; l++){
                     tmpDstn = (thread_dyad[l][k]+thread_dyad[k][l]) *
-                               0.5/param->simVol;
-                    thread_dstn[l][k] += tmpDstn;
+                               0.5;
+                    thread_dstn[l][k] += tmpDstn/param->simVol;
 
                     if(burgType == SHOCKLEY_BURG){
-                        thread_dtstn[l][k] += tmpDstn;
+                        thread_dtstn[l][k] += tmpDstn/param->simVol;
                     }
 			 	  
 	                if(l==k){
 #pragma omp critical (CRIT_DPS_FCC_A)
                         {
-                            home->pstnEle[eleNum][l] += tmpDstn; // element
+                            for(m=0;m<27;m++)home->pstnEle[eleID[m]][l] += tmpDstn*lenPer[m]; // element
                         }
                     }
 
 	                if(l<k){
 #pragma omp critical (CRIT_DPS_FCC_A)
                         {
-                            home->pstnEle[eleNum][l+k+2] += tmpDstn; // element
+                            for(m=0;m<27;m++)home->pstnEle[eleID[m]][l+k+2] += tmpDstn*lenPer[m]; // element
                         }
                     }
 			 	  
                     thread_dspn[l][k] += (thread_dyad[l][k] -
                                          thread_dyad[k][l]) *
                                         0.5/param->simVol;
-                    localstrain[l][k] += tmpDstn;
+                    localstrain[l][k] += tmpDstn/param->simVol;
                 }
             }
 

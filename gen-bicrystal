@@ -65,7 +65,7 @@ else
     nfrs=24
 fi
 
-frlen=`echo "scale=3;400/0.2556" | bc -l`
+frlen=`echo "scale=3;80/0.2556" | bc -l`
 frlenMin=`echo "scale=3;40/0.2556" | bc -l`
 frlenn=`echo "scale=3;${frlen}*0.2556" | bc`
 maxSeg2=`echo ${frlen}/6 |bc `
@@ -73,13 +73,11 @@ srcLenType=0
 
 if [[ `echo "${maxSeg1}>${maxSeg2}" | bc` == "1" ]]; then maxSeg=$maxSeg2; echo "maxSge is equal to L_FR/10"; else maxSeg=$maxSeg1; fi
 
-tauy=`echo "scale=3; 0.18*${mu}*1000*l($frlen)/${frlen}/$schmid" | bc -l`
-
 maxDensity=${maxDisDen}E12;
 polycrystal=${1}
 single=${2}
 
-eRate=-5000
+eRate=-50000
 sed -i "/^eRate/ceRate = $eRate" $ctrlFile
 sed -i "/^edotPolar/cedotPolar = [ 0.0 0.0 ]" $ctrlFile
 
@@ -228,10 +226,12 @@ sed -i "/^numZcells/cnumZcells = $ncells" $ctrlFile
 primary=`cat $log | grep "%" | cut -d "%" -f 1`
 if [[ `echo "${primary}<1" | bc -l` -eq 1 ]];
     then ./gen-bicrystal $1 $2 $3; 
+    exit 0
 fi 
 nchains=`cat $log | grep "chains has" | cut -d " " -f 1`
 if [[ `echo "${nchains}<24" | bc -l` -eq 1 ]];
-    then ./gen-bicrystal $1 $2 $3; 
+    then  ./gen-bicrystal $1 $2 $3; 
+    exit 0
 fi 
 
 ./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 

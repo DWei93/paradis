@@ -281,8 +281,8 @@ void InitGrain(Home_t *home, Param_t *param){
     std::vector<std::vector<Plane_t> > surArray(2);
     std::vector<int>        records, records1;
     FILE     *fp, *fp1;
-    char     fileName[256];
-
+    char     fileName[256], *token, argValue[256];
+    real8       thick, thick_tot;
     int         th, color, l, burgID, maxBurg, numMaxSchmids;
 
     real8       cryst[3], lab[3];
@@ -359,6 +359,7 @@ void InitGrain(Home_t *home, Param_t *param){
         home->grainKeys[0] = (Grain_t *)calloc(1, sizeof(Grain_t));
         grain = home->grainKeys[0];
         grain->nBounds = 0;
+        grain->lenAmpl = 1.0;
         grain->thick = param->xBoundMax*2;
         GenerateFCCBurgInfo(&(grain->burgData), param->matrixOrientation, -1);
 
@@ -643,34 +644,34 @@ void InitGrain(Home_t *home, Param_t *param){
     RotateWithAxis(param->TBNormal, PI, param->rotateNormal);
 
 #else
-        real8   CDeltaLab[3] = {-1,-1,2}, CDelta[3];
-        real8   planeABC[3] = {1,1,1};
-        NormalizeVec(CDeltaLab);
-        NormalizeVec(planeABC); 
-        Matrix33Vector3Multiply(param->matrixOrientation, CDeltaLab, CDelta);
+    real8   CDeltaLab[3] = {-1,-1,2}, CDelta[3];
+    real8   planeABC[3] = {1,1,1};
+    NormalizeVec(CDeltaLab);
+    NormalizeVec(planeABC); 
+    Matrix33Vector3Multiply(param->matrixOrientation, CDeltaLab, CDelta);
 
-        RotateWithAxis(CDelta, PI, temR);
-        Matrix33Mult33(temR, param->matrixOrientation, TwinOrientation);
+    RotateWithAxis(CDelta, PI, temR);
+    Matrix33Mult33(temR, param->matrixOrientation, TwinOrientation);
 
-        Matrix33Vector3Multiply(param->matrixOrientation, planeABC, param->TBNormal);
-        RotateWithAxis(param->TBNormal, PI, param->rotateNormal);
+    Matrix33Vector3Multiply(param->matrixOrientation, planeABC, param->TBNormal);
+    RotateWithAxis(param->TBNormal, PI, param->rotateNormal);
 
-	    if(home->myDomain == 0){
-	        FormatMatrix(param->matrixOrientation,"basis orientation");
-	        printf("\n");
-	        FormatMatrix(TwinOrientation,"twin orientation");
-	        printf("\n");
-	        FormatVector(param->TBNormal, "twin boundary normal");
-	        printf("\n");
+	if(home->myDomain == 0){
+	    FormatMatrix(param->matrixOrientation,"basis orientation");
+	    printf("\n");
+	    FormatMatrix(TwinOrientation,"twin orientation");
+	    printf("\n");
+	    FormatVector(param->TBNormal, "twin boundary normal");
+	    printf("\n");
 
-            real8 loadCrystDir[3], matrixOrientationInv[3][3];
-	        invFlag = Matrix33Invert(param->matrixOrientation, matrixOrientationInv);
-	        if(!invFlag){
-	            Fatal("Invert matrix orientation faild!\n");
-	        }
-            Matrix33Vector3Multiply(matrixOrientationInv, param->edotdir, loadCrystDir);
-            FormatVector(loadCrystDir, "loading crystal direction");
+        real8 loadCrystDir[3], matrixOrientationInv[3][3];
+	    invFlag = Matrix33Invert(param->matrixOrientation, matrixOrientationInv);
+	    if(!invFlag){
+	        Fatal("Invert matrix orientation faild!\n");
 	    }
+        Matrix33Vector3Multiply(matrixOrientationInv, param->edotdir, loadCrystDir);
+        FormatVector(loadCrystDir, "loading crystal direction");
+	}
 
 #endif
 /*
@@ -678,16 +679,45 @@ void InitGrain(Home_t *home, Param_t *param){
  *	polycrystal, twin, RVE, XOZ plane is twin plane
  */
     if(type == 4){
-#if 0
-	    halfTwinThick = twinRatio * ly / (real8)numTGrains;
-	    HalfMatrixThick = ly / (real8)numTGrains - halfTwinThick;
-	    if (HalfMatrixThick <= 0){
-	        printf("the thickness of matrix is %f\n ", HalfMatrixThick);
-	        Fatal("the thickness of matrix is negative value at %s line %d\n", __FILE__, __LINE__);
-	    }
-#else
-        real8 thick = 2*lz/((real8)nGrain);       
-#endif	    	
+        bool gradient =  (strcmp(param->gradientStructure, "0") != 0);
+        std::vector<real8>  lambdas(home->nGrains), segLenRatio(home->nGrains);
+        home->tbPosz = (real8 *)malloc(home->nGrains*sizeof(real8));
+
+        if(gradient){
+            param->multilayer = true;
+            snprintf(argValue,sizeof(argValue),"%s",param->gradientStructure);
+            token = strtok(argValue,"x");
+            j=0; thick_tot = 0;
+            real8 minThick=param->Lz;
+            while(token != (char *)NULL){
+                thick = atof(token);
+                token = strtok(NULL,",");
+                if(token == (char *)NULL)Fatal("can not find the grain number");
+                for(i=j;i<j+atoi(token);i++){
+                    if(i>=home->nGrains)Fatal("%s at %d",__func__,__LINE__);
+                    lambdas[i] = thick;
+                    thick_tot += thick;
+                    segLenRatio[i] = thick;
+                    if(thick<minThick)minThick=thick;
+                }
+                j+=atoi(token);
+                token = strtok(NULL,"x");
+            }
+            real8 lastPos = param->zBoundMin;
+            for(i=0;i<home->nGrains;i++){
+                segLenRatio[i] /= minThick;
+                lambdas[i] *= (param->Lz/thick_tot);
+                home->tbPosz[i] = lastPos+lambdas[i];
+                lastPos = home->tbPosz[i];
+            }
+        }else{
+           thick = param->Lz/(real8(nGrain)); 
+           for(i=0;i<home->nGrains;i++){
+                home->tbPosz[i] = -lz + (((real8)i)+0.5)*thick;
+                lambdas[i] = thick;
+                segLenRatio[i] = 1.0;
+           }
+        }
 
 	    snprintf(fileName, sizeof(fileName), "planes.plt");
 		if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
@@ -701,12 +731,10 @@ void InitGrain(Home_t *home, Param_t *param){
             home->GBKeys[i]->GBID = i;
             VECTOR_ZERO(home->GBKeys[i]->n);
             VECTOR_ZERO(home->GBKeys[i]->p);
+
             home->GBKeys[i]->n[2] = 1.0;
-#if 0
-            home->GBKeys[i]->p[1] = -ly + HalfMatrixThick + 2*((real8)i)*halfTwinThick;
-#else
-            home->GBKeys[i]->p[2] = -lz + (((real8)i)+0.5)*thick;
-#endif
+            home->GBKeys[i]->p[2] = home->tbPosz[i]; 
+
             home->GBKeys[i]->nbrGrain[0] = i;
             home->GBKeys[i]->nbrGrain[1] = ((i == home->nGrains -1) ? 0 : i+1);
         }
@@ -717,15 +745,13 @@ void InitGrain(Home_t *home, Param_t *param){
 	        InitGrainStructure(grain, 2);
     
 	        grain->type = i==0?FOLDED_GRAIN:ODINARY_GRAIN;
-#if 0
-	        grain->cy = -ly + (2 * ((real8)i) - 1) * (HalfMatrixThick + halfTwinThick);
-#else
-	        grain->cz = -lz + double(i)*thick;
-#endif
+	        grain->cz = home->tbPosz[i]-lambdas[i]*0.5;
             grain->cx = 0.0;
             grain->cy = 0.0;
             grain->grainID = i;
-            grain->thick = thick;
+            grain->thick = lambdas[i];
+
+            grain->lenAmpl = segLenRatio[i];
 
             GBID = i -1;
             if(GBID < 0) GBID = nGrain - 1;
@@ -747,31 +773,39 @@ void InitGrain(Home_t *home, Param_t *param){
 	        }
         }
 
-        char zoneName[256]; std::vector<int> indexs(2); real8 r=thick/3.0; real8 tPos[3];
+        char zoneName[256]; std::vector<int> indexs(2); real8 r; real8 tPos[3];
         indexs[0]=i; indexs[1]=4;
         for(i=0; i<home->nGBs; i++){
             GenerateGBBurgInfo(home, home->GBKeys[i]);    
-  
             gb = home->GBKeys[i];
-
             snprintf(zoneName,sizeof(zoneName),"GB-%d",i);
             DrawGrainBoundary(fp, param, gb->p[2], zoneName, indexs);
+        }
+        if(fabs(gb->p[2]-param->zBoundMax)<1.0){
+            snprintf(zoneName,sizeof(zoneName),"GB-%d",i);
+            DrawGrainBoundary(fp, param, param->zBoundMin, zoneName, indexs);
         }
 
         grain = home->grainKeys[0];
         tPos[0]=grain->cx;  tPos[1]=grain->cy;
-        tPos[2]=-lz;
-        snprintf(zoneName,sizeof(zoneName),"tetrahedron-0-1");
-        DrawTetrahedron(fp, grain->orientation, r, tPos, indexs, zoneName);
-        
-        tPos[2]=lz;
-        snprintf(zoneName,sizeof(zoneName),"tetrahedron-0-2");
-        DrawTetrahedron(fp, grain->orientation, r, tPos, indexs, zoneName);
-
+        r = grain->thick/3;
+        if(fabs(param->zBoundMin-grain->cz)<1){
+            tPos[2]=-lz;
+            snprintf(zoneName,sizeof(zoneName),"tetrahedron-0-1");
+            DrawTetrahedron(fp, grain->orientation, r, tPos, indexs, zoneName);
+            tPos[2]=lz;
+            snprintf(zoneName,sizeof(zoneName),"tetrahedron-0-2");
+            DrawTetrahedron(fp, grain->orientation, r, tPos, indexs, zoneName);
+        }else{
+            tPos[2]=grain->cz;
+            snprintf(zoneName,sizeof(zoneName),"tetrahedron-0-1");
+            DrawTetrahedron(fp, grain->orientation, r, tPos, indexs, zoneName);
+        }
         for(i=1; i<home->nGrains; i++){
             grain = home->grainKeys[i];
-            tPos[0]=grain->cx;  tPos[1]=grain->cy;  tPos[2]=grain->cz-0.15*thick;
+            tPos[0]=grain->cx;  tPos[1]=grain->cy;  tPos[2]=grain->cz-0.0*grain->thick;
             snprintf(zoneName,sizeof(zoneName),"tetrahedron-%d",i);
+            r = grain->thick/3;
             DrawTetrahedron(fp, grain->orientation, r, tPos, indexs, zoneName);
         }
 
@@ -868,6 +902,8 @@ void InitGrain(Home_t *home, Param_t *param){
         grain->sign[0] = 1.0;
         grain->GB[0] = home->GBKeys[0];
         grain->thick = 2*param->xBoundMax;
+        grain->lenAmpl = 1.0;
+
         memcpy(grain->orientation, param->matrixOrientation, sizeof(real8 [3][3]));
         GenerateFCCBurgInfo(&(grain->burgData), grain->orientation, grain->grainID);
 	    invFlag = Matrix33Invert(grain->orientation, grain->orientationInv);
@@ -883,6 +919,7 @@ void InitGrain(Home_t *home, Param_t *param){
         grain->thick = 2*param->xBoundMax;
         grain->sign[0] = -1.0;
         grain->GB[0] = home->GBKeys[0];
+        grain->lenAmpl = 1.0;
     
         memcpy(grain->orientation, TwinOrientation, sizeof(real8 [3][3]));
         GenerateFCCBurgInfo(&(grain->burgData), grain->orientation, grain->grainID);
@@ -1232,10 +1269,49 @@ void NodeLocation(Home_t *home, real8 pos[3], int& inGrain, int& onGB, real8 err
 	Grain_t		*grain;
 	Param_t		*param;
 
-    inGrain = -1;
-    onGB = -1;
 	param = home->param;
 
+    if(param->multilayer){
+        real8 z=pos[2], *tbPosz = home->tbPosz;
+        z -= rint((z)*param->invLz) * param->Lz;
+
+        if(z<tbPosz[0]){
+            if(z<tbPosz[0]-err){
+                if(z>param->zBoundMin+err){
+                    inGrain = 0; onGB=-1;
+                }else if(z>param->zBoundMin){
+                    inGrain = 0; onGB = home->nGBs-1;
+                }else if(z<param->zBoundMin){
+                    inGrain = home->nGBs-1; onGB=home->nGBs-1;
+                }else{
+                    inGrain = -1; onGB=home->nGBs-1;
+                }
+            }else{
+                inGrain = 0; onGB = 0;
+            }
+            return;
+        }
+
+        int first=0, last=home->nGrains-1, mid=(last+first)/2;
+
+        while(last-first>1){
+            if(z<tbPosz[mid]){
+                last = mid; mid = (last+first)/2;
+            }else if(z>tbPosz[mid]){
+                first = mid; mid=(last+first)/2;
+            }else{
+                onGB = mid; inGrain = -1; return;
+            }
+        }
+        inGrain = last;
+        if(z-tbPosz[first]<err) onGB = first;
+        else if(tbPosz[last]-z<err) onGB = last;
+        else onGB = -1;
+        return;
+    }
+
+    inGrain = -1;
+    onGB = -1;
 	if(param->polycrystal == 0){
         return;
     }
@@ -1243,7 +1319,6 @@ void NodeLocation(Home_t *home, real8 pos[3], int& inGrain, int& onGB, real8 err
 	nGrains = home->nGrains;
 
     FoldBox(param, pos, pos+1, pos+2);
-
     for(i=0; i<nGrains; i++){
         if(breakLoop)break;
         grain = home->grainKeys[i];
@@ -1839,7 +1914,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
 
     if(node->constraint ==7){
         printf("Task %s %d: ",__func__,home->myDomain);
-        PrintTag(home, node);
+        PrintNode(home, node);
         Fatal("move from {%g,%g,%g} to grain %d\n",pos[0],pos[1],pos[2],inGrain);
     }
     if(onGB < 0 || onGB >= home->nGBs)Fatal("in %s at %d", __FILE__, __LINE__);
@@ -2119,9 +2194,8 @@ int	IsZeroVector(real8 *vec){
  *	Get the element number the corrent position belongs to.
  *
  *****************************************************************************/
-int Coor2EleNum(Home_t *home,real8 position[3]){
-
-	int	nx,ny,nz;
+int Coor2EleNum(Home_t *home, real8 position[3], int &nx, int &ny, int &nz)
+{
 	real8	eleLx,eleLy,eleLz;
     Param_t *param;
 
@@ -2132,15 +2206,31 @@ int Coor2EleNum(Home_t *home,real8 position[3]){
 
 	nx = (position[0] + param->Lx/2)/eleLx;
 	ny = (position[1] + param->Ly/2)/eleLy;
-	nz = (position[2] + param->Lz/2)/eleLz;
-
 	if(nx == param->meshNumX) nx--;
 	if(ny == param->meshNumY) ny--;
-	if(nz == param->meshNumZ) nz--;
 
+    real8 *layerPosz = home->layerPosz;
+    if(position[2]<=layerPosz[0]){
+        nz = 0;
+    }else if(position[2] >= layerPosz[param->meshNumZ]-1){
+        nz = param->meshNumZ-1;
+    }else{
+        int first=0, last=param->meshNumZ-1, mid=(last+first)/2;
+        while(last-first>1){
+            if(position[2]<layerPosz[mid]){
+                last = mid; mid = (last+first)/2;
+            }else if(position[2]>layerPosz[mid]){
+                first = mid; mid=(last+first)/2;
+            }else{
+                nz = mid; break;
+            }
+        }
+        if(last-first<=1)nz = last;
+    }
 	return(nz*param->meshNumX*param->meshNumY + ny*param->meshNumX +nx);
-
 }
+
+
 
 void PrintTag(Node_t *node){
 
@@ -2272,7 +2362,6 @@ bool IntersectionOfRayBox(Param_t *param, real8 *dir, real8 *p, real8 *interPos,
             if(POINT_INTERSECTION==type){constraint = i+1; VECTOR_COPY(interPos,vec1);}
         }
     }
-    
 	return (constraint>0);
 }
 
@@ -4148,15 +4237,6 @@ void CentorPos(Param_t *param, real8 *p1, real8 *p2, real8 *p)
 }
 
 
-bool inline InBox(real8 *p, real8 *box, real8 err=-1E-8){
-    return( p[0]-box[0] > err && 
-            box[1]-p[0] > err && 
-            p[1]-box[2] > err && 
-            box[3]-p[1] > err && 
-            p[2]-box[4] > err && 
-            box[5]-p[2] > err);
-}
-
 void PlaneBoxIntersections(real8 *n, real8 *p, real8 *box, std::vector<std::vector<real8> > &vertices)
 {
     int     i,j,ti,tj,k;
@@ -4425,8 +4505,130 @@ void  GetGBNormal(Home_t *home, int oldInGrain, int currInGrain, real8  *refDir,
 }
 
 
+real8 LengthAmplification(Home_t *home, int inGrain, int onGB)
+{
+    Param_t *param = home->param;
+    if(param->polycrystal==0)return 1.0;
 
+    if(onGB>-1){
+        real8 lenAmpl1 = home->grainKeys[(onGB<home->nGrains-1)?onGB+1:0]->lenAmpl;
+        real8 lenAmpl2 = home->grainKeys[onGB]->lenAmpl;
+        return MIN(lenAmpl1, lenAmpl2);
+    }else{
+        return home->grainKeys[inGrain]->lenAmpl;
+    }
+    return 1.0;
+}
 
+bool GetElementBound(Param_t *param, int nx, int ny, int nz, real8 box[6], int &eleID)
+{
+    if(nx<0){
+        if(param->xBoundType == Periodic){
+            nx+=param->meshNumX;
+            box[0] = param->xBoundMin + real8(nx)*param->meshSizeX - param->Lx;
+            box[1] = param->xBoundMin + real8(nx+1)*param->meshSizeX - param->Lx;
+        }else{
+            return false;
+        }
+    }else if(nx>param->meshNumX-1){
+        if(param->xBoundType == Periodic){
+            nx-=param->meshNumX;
+            box[0] = param->xBoundMin + real8(nx)*param->meshSizeX + param->Lx;
+            box[1] = param->xBoundMin + real8(nx+1)*param->meshSizeX + param->Lx;
+        }else{
+            return false;
+        }
+    }else{
+        box[0] = param->xBoundMin + real8(nx)*param->meshSizeX;
+        box[1] = param->xBoundMin + real8(nx+1)*param->meshSizeX;
+    }
 
+    if(ny<0){
+        if(param->yBoundType == Periodic){
+            ny+=param->meshNumY;
+            box[2] = param->yBoundMin + real8(ny)*param->meshSizeY - param->Ly;
+            box[3] = param->yBoundMin + real8(ny+1)*param->meshSizeY - param->Ly;
+        }else{
+            return false;
+        }
+    }else if(ny>param->meshNumY-1){
+        if(param->xBoundType == Periodic){
+            ny-=param->meshNumY;
+            box[2] = param->yBoundMin + real8(ny)*param->meshSizeY + param->Ly;
+            box[3] = param->yBoundMin + real8(ny+1)*param->meshSizeY + param->Ly;
+        }else{
+            return false;
+        }
+    }else{
+        box[2] = param->yBoundMin + real8(ny)*param->meshSizeY;
+        box[3] = param->yBoundMin + real8(ny+1)*param->meshSizeY;
+    }
 
+    if(nz<0){
+        if(param->zBoundType == Periodic){
+            nz+=param->meshNumZ;
+            box[4] = (nz>0)?param->layerPosz[nz-1]-param->Lz:param->zBoundMin-param->Lz;
+            box[5] = param->layerPosz[nz]-param->Lz;
+        }else{
+            return false;
+        }
+    }else if(nz>param->meshNumZ-1){
+        if(param->zBoundType == Periodic){
+            nz-=param->meshNumZ;
+            box[4] = (nz>0)?param->layerPosz[nz-1]+param->Lz:param->zBoundMin+param->Lz;
+            box[5] = param->layerPosz[nz]+param->Lz;
+        }else{
+            return false;
+        }
+    }else{
+        box[4] = (nz>0)?param->layerPosz[nz-1]:param->zBoundMin;
+        box[5] = param->layerPosz[nz];
+    }
+    eleID = nz*param->meshNumX*param->meshNumY + ny*param->meshNumX + nx;
+    return true;
+}
 
+void DecomposeSegmentInRubik(Home_t *home, int nx, int ny, int nz, real8 node1Pos[3], real8 node2Pos[3], real8 length[27], int eleID[27])
+{
+    Param_t *param = home->param;
+    real8 box[6], lenTot=0.0, len;
+    int i,j,k,l=0;
+    for (i=nx-1; i<nx+2; i++)for(j=ny-1; j<ny+2; j++)for(k=nz-1; k<nz+2; k++){
+        if(GetElementBound(param, i,j,k, box, eleID[l])){
+            len = DecomposeSegmentInBox(node1Pos,node2Pos,box);
+            length[l++] = len;
+            lenTot += len;
+        }else{
+            eleID[l] = 0;
+            length[l++] = 0.0; 
+        }
+    }
+
+    real8 realLen=normal(node1Pos[0]-node2Pos[0], node1Pos[1]-node2Pos[1], node1Pos[2]-node2Pos[2]);
+    if(fabs(1.0-lenTot)>1E-2){
+        FormatVector(node1Pos, "node1 Pos");
+        FormatVector(node2Pos, "node2 Pos");
+
+        l=0;
+        for (i=nx-1; i<nx+2; i++)for(j=ny-1; j<ny+2; j++)for(k=nz-1; k<nz+2; k++){
+            if(GetElementBound(param, i,j,k, box, eleID[l])){
+                len = DecomposeSegmentInBox(node1Pos,node2Pos,box);
+                printf("l=%d eleID=%d: i=%d, j=%d, k=%d len=%f box={%.2f,%.2f,%.2f,%.2f,%.2f,%.2f}\n", l, eleID[l], i,j,k,len,box[0],box[1],box[2],box[3],box[4],box[5]);
+                l++;
+            }else{
+                printf("l=%d: i=%d, j=%d, k=%d skip\n", l, i,j,k);
+                l++;
+            }
+        }
+        Fatal("%s: realLen=%f lenTot=%f deltaLen=%f\n",__func__, realLen, lenTot, realLen-lenTot);
+    }else{
+        printf("skip!!\n");
+    }
+
+#if 0
+    printf("%s %d:",__func__,param->meshNumX*param->meshNumZ*param->meshNumY);
+    for(l=0;l<27;l++)printf("%f,%d ",length[l],eleID[l]); 
+    printf("\n");
+#endif
+    return;
+}

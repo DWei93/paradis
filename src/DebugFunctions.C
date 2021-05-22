@@ -470,13 +470,11 @@ void CheckNodeNANS(Node_t *node){
 }
 
 void DebugGB(Home_t *home, int flag){
-//   CheckForNANS(home, flag);
-//  printf("%d %d %d\n",home->myDomain,flag,home->cycle);
 #ifndef DEBUG
     return;
+    CheckForNANS(home, flag);
 #else
     home->flag = flag;
-    if(home->cycle<=1)return;
 #endif
 	int 	i,j,k,l, crossSlipNode, sameNode;
 	int	    normalID, inGrain, onGB;
@@ -506,6 +504,10 @@ void DebugGB(Home_t *home, int flag){
 	for(i=0; i<home->newNodeKeyPtr; i++){
 		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
 
+        if(node->numNbrs==0){
+            PrintNode(home, node);
+            Fatal("zero neighbors %s",flag);
+        }
 #if 1
         if ((node->numNbrs == 1) && (node->constraint == UNCONSTRAINED)) {
             PrintNode(node);
@@ -526,7 +528,7 @@ void DebugGB(Home_t *home, int flag){
                 PrintNode(home, node);
                 snprintf(name,50,"debug517-%d-%d",home->cycle, flag);
                 Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                Fatal("Task %d, flag %d - 0\n", home->myDomain, flag);
+                Fatal("Task %d, flag %d - 0 NodeLocation(%d,%d) \n", home->myDomain, flag, inGrain, onGB);
             }
         }else{
             if(!IsOnGB(node) && abs(node->inGrain - inGrain)==2){
@@ -574,14 +576,16 @@ void DebugGB(Home_t *home, int flag){
                 }
             }
 
-
-            if(NodeDistance(home,node,nbr)>home->param->maxSeg*3){
+            int armInGrain, armOnGB;
+            GetArmGrain(home, nbr, node, armInGrain, armOnGB);
+            real8 lamp = LengthAmplification(home, armInGrain, armOnGB);
+            if(NodeDistance(home,node,nbr)>home->param->maxSeg*3*lamp){
                 PrintNode(home, node);
                 PrintNode(home, nbr);
                 snprintf(name,50,"longseg-%d-%d",home->cycle, flag);
                 Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                Fatal("Task %d, long-segnode, flag %d \n", 
-                        home->myDomain, flag);
+                Fatal("Task %d, long-segnode, flag %d , lamp=%f\n", 
+                        home->myDomain, flag, lamp);
             }
 
             vec[0] = node->burgX[j];

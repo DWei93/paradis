@@ -137,6 +137,10 @@ void ReleaseMemory(Home_t *home)
             free(home->grainKeys);
             home->grainKeys = NULL;
         }
+        if(param->multilayer){
+            free(home->tbPosz);
+        }
+        free(home->layerPosz);
 
 /*
  *      Free the heap used for recycling nodes that have bee deleted

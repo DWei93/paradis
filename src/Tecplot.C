@@ -8,7 +8,7 @@
 #include "Force.h"
 #include "Math.h"
 
-static void NodeofEle(Param_t *param, int eleNum, int node[8]){
+static void NodeofEle(Param_t *param, int eleNum, int node[8], int numNbrEle[8]){
 
 	int	nx,ny,nz;
 
@@ -16,17 +16,82 @@ static void NodeofEle(Param_t *param, int eleNum, int node[8]){
 	ny = eleNum%(param->meshNumX*param->meshNumY)/param->meshNumX; 
 	nz = eleNum/(param->meshNumX*param->meshNumY); 
 
-	node[0] = nx + ny*(param->meshNumX+1) + nz*(param->meshNumX+1)*(param->meshNumY+1);
-	node[1] = node[0] + 1;
-	node[2] = node[0] + param->meshNumX+1;
-	node[3] = node[2] + 1;
-	node[4] = node[0] + (param->meshNumX+1)*(param->meshNumY+1);
-	node[5] = node[4] + 1;
-	node[6] = node[4] + param->meshNumX+1;
-	node[7] = node[6] + 1;
+	node[0] = nx + ny*(param->meshNumX+1) + nz*(param->meshNumX+1)*(param->meshNumY+1); // nx, ny, nz
+	node[1] = node[0] + 1; // nx+1, ny, nz
+	node[2] = node[0] + param->meshNumX+1; // nx, ny+1, nz
+	node[3] = node[2] + 1; // nx+1, ny+1, nz
+	node[4] = node[0] + (param->meshNumX+1)*(param->meshNumY+1);  // nx, ny,nz+1
+	node[5] = node[4] + 1; // nx+1, ny, nz+1
+	node[6] = node[4] + param->meshNumX+1; // nx, ny+1, nz+1
+	node[7] = node[6] + 1; // nx+1, ny+1, nz+1
+
+    numNbrEle[0]=8;numNbrEle[1]=8;numNbrEle[2]=8;numNbrEle[3]=8;
+    numNbrEle[4]=8;numNbrEle[5]=8;numNbrEle[6]=8;numNbrEle[7]=8;
+
+    if(param->xBoundType == Periodic){
+        if(nx==param->meshNumX-1){
+            node[1] -= (param->meshNumX);
+            node[3] -= (param->meshNumX);
+            node[5] -= (param->meshNumX);
+            node[7] -= (param->meshNumX);
+        }        
+    }else{
+        if(nx==param->meshNumX-1){
+            numNbrEle[1] /=2;
+            numNbrEle[3] /=2;
+            numNbrEle[5] /=2;
+            numNbrEle[7] /=2;
+        }else if(nx==0){
+            numNbrEle[0] /=2;
+            numNbrEle[2] /=2;
+            numNbrEle[4] /=2;
+            numNbrEle[6] /=2;
+        }
+    }
 	
+    if(param->yBoundType == Periodic){
+        if(ny==param->meshNumY-1){
+            node[2] -= (param->meshNumX+1)*(param->meshNumY);
+            node[3] -= (param->meshNumX+1)*(param->meshNumY);
+            node[6] -= (param->meshNumX+1)*(param->meshNumY);
+            node[7] -= (param->meshNumX+1)*(param->meshNumY);
+        }        
+    }else{
+        if(ny==param->meshNumY-1){
+            numNbrEle[2] /=2;
+            numNbrEle[3] /=2;
+            numNbrEle[6] /=2;
+            numNbrEle[7] /=2;
+        }else if(ny==0){
+            numNbrEle[0] /=2;
+            numNbrEle[1] /=2;
+            numNbrEle[4] /=2;
+            numNbrEle[5] /=2;
+        }
+    }
+
+    if(param->zBoundType == Periodic){
+        if(nz==param->meshNumZ-1){
+            node[4] -= (param->meshNumX+1)*(param->meshNumY+1)*(param->meshNumZ);
+            node[5] -= (param->meshNumX+1)*(param->meshNumY+1)*(param->meshNumZ);
+            node[6] -= (param->meshNumX+1)*(param->meshNumY+1)*(param->meshNumZ);
+            node[7] -= (param->meshNumX+1)*(param->meshNumY+1)*(param->meshNumZ);
+        }        
+    }else{
+        if(nz==param->meshNumZ-1){
+            numNbrEle[4] /=2;
+            numNbrEle[5] /=2;
+            numNbrEle[6] /=2;
+            numNbrEle[7] /=2;
+        }else if(nz==0){
+            numNbrEle[0] /=2;
+            numNbrEle[1] /=2;
+            numNbrEle[2] /=2;
+            numNbrEle[3] /=2;
+        }
+    }
+
 	return;
-	
 }	
 
 /*---------------------------------------------------------------------------
@@ -685,13 +750,14 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
              int writePrologue, int writeEpilogue, int numSegs)
 {
-	int      i, j;
+	int      i, j, k;
 	int      newNodeKeyPtr;
 	int	     eleNum,iBurg;
 	real8    prx,pry,prz,burg[3];
 	real8    bX, bY, bZ;
 	real8    Lx, Ly, Lz;
-	real8	 midPos[3],deltDen;
+	real8	 midPos[3],deltDen[27];
+    int      eleID[27];
 	real8	 burgMag;
 	char     fileNameEle[256];
 	Node_t   *node, *nbrNode;
@@ -699,37 +765,54 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	FILE     *fpEle;
 
 	int		nodeEle[8],nx,ny,nz;
-	int		imageNode[8],imageNum;
     int     meshNodeNumX, meshNodeNumY, meshNodeNumZ, totNodeNum;
     int     totEleNum;
-	real8 	**nodeContour;
 	real8	eleLx,eleLy,eleLz;
 	real8	effPlaStn,currDisDen;
-
-	real8	**totPlaStn;
-	real8	**totDisDen;
+    real8   nodePos[3], nbrPos[3], disLen;
 
     real8     *locVals, *gloVals;
+    real8     *layerPosz;
 
+    int       numNbrEle[8];
 	param      = home->param;
+
+    layerPosz = (real8 *)malloc(sizeof(real8)*param->meshNumZ);
+    int     meshNumX=param->meshNumX, meshNumY=param->meshNumY, meshNumZ=param->meshNumZ;
 
 	Lx = param->Lx;
 	Ly = param->Ly;
 	Lz = param->Lz;
 
-    meshNodeNumX = param->meshNumX + 1;
-    meshNodeNumY = param->meshNumY + 1;
-    meshNodeNumZ = param->meshNumZ + 1;
+    real8 tbThick=0.5;
+    if (fabs(home->layerPosz[0]-param->zBoundMin) < 0.1)layerPosz[0]=param->zBoundMin+tbThick;
+    else layerPosz[0]=home->layerPosz[0];
+
+    for(i=1;i<param->meshNumZ;i++){
+        if(home->layerPosz[i]-layerPosz[i-1]<0.1){
+            layerPosz[i-1] -= tbThick;
+            layerPosz[i] = home->layerPosz[i]+tbThick;
+        }else{
+            layerPosz[i] = home->layerPosz[i];
+        }
+    }
+    if(layerPosz[meshNumZ-1]>home->layerPosz[meshNumZ-1])
+        layerPosz[meshNumZ-1] = home->layerPosz[meshNumZ-1];
+
+    meshNodeNumX = meshNumX + 1;
+    meshNodeNumY = meshNumY + 1;
+    meshNodeNumZ = meshNumZ + 1;
     totNodeNum = meshNodeNumX*meshNodeNumY*meshNodeNumZ;
 
-    totEleNum = param->meshNumX*param->meshNumY*param->meshNumZ;
-    nodeContour = (real8 **)malloc(totNodeNum*sizeof(real8*));
+    totEleNum = meshNumX*meshNumY*meshNumZ;
+	real8 	**nodeContour;
+    nodeContour = (real8 **)calloc(totNodeNum, sizeof(real8 *));
     for(i=0; i<totNodeNum; i++){
-        nodeContour[i] = (real8*)malloc(3*sizeof(real8));
+        nodeContour[i] = (real8*)calloc(3, sizeof(real8));
+        nodeContour[i][0] = 0.0;
+        nodeContour[i][1] = 0.0;
+        nodeContour[i][2] = 0.0;
     }
-
-    totPlaStn = (real8 **)malloc(totEleNum*sizeof(real8*));        
-    totDisDen = (real8 **)malloc(totEleNum*sizeof(real8*));        
 
     locVals = (real8 *)calloc(totEleNum*6, sizeof(real8));
     gloVals = (real8 *)calloc(totEleNum*6, sizeof(real8));
@@ -738,21 +821,13 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
         locVals[i] = 0.0;
         gloVals[i] = 0.0;
     }
-    
-    for(i=0; i<totEleNum; i++){
-        totPlaStn[i] = (real8 *)calloc(6,sizeof(real8));
-        totDisDen[i] = (real8 *)calloc(6,sizeof(real8));
-        for(j=0; j<6; j++){
-            totPlaStn[i][j] = 0.0;
-            totDisDen[i][j] = 0.0;
-        }
-    }
 
 	eleLx = param->meshSizeX;
 	eleLy = param->meshSizeY;
 	eleLz = param->meshSizeZ;
 
 	/*	Zero the arrays of dislocation density in each element.	*/
+
 
 	for(i=0; i<totEleNum; i++){
 	    home->disDenEle[i][0] = 0.0;
@@ -763,28 +838,28 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	    home->disDenEle[i][5] = 0.0;
 	}
 	
-	/*
-	 *      Set data file name.  Only append a sequence number to
-	 *      the data file name if the data is to be spread across
-	 *      multiple files.
-	 */
+/*
+ *  Set data file name.  Only append a sequence number to
+ *  the data file name if the data is to be spread across
+ *  multiple files.
+ */
 	if (firstInGroup) {
 		snprintf(fileNameEle, sizeof(fileNameEle), "%s/%s.plt",
 				 DIR_TECMESH, baseFileName);
-		/*
-		 *          First task in the I/O group must open the data file for writing
-		 *          to overwrite any existing file of the same name.
-		 */
+/*
+ *      First task in the I/O group must open the data file for writing
+ *      to overwrite any existing file of the same name.
+ */
 
 		if ((fpEle = fopen(fileNameEle, "w")) == (FILE *)NULL) {
 			Fatal("tec_plot_mesh: Open error %d on %s\n", errno, fileNameEle);
 		}
 	}
 
-	/*
-	 *      Generate the plot data for the segments associated with this
-	 *      domain's data
-	 */
+/*
+ *  Generate the plot data for the segments associated with this
+ *  domain's data
+ */
 	newNodeKeyPtr = home->newNodeKeyPtr;
 
 	for (i = 0; i < newNodeKeyPtr; i++) {
@@ -799,6 +874,10 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 			
 			if (OrderNodes(node, nbrNode) != -1) continue;
 
+            VectorCopy(nodePos, node->x, node->y, node->z);
+            VectorCopy(nbrPos, nbrNode->x, nbrNode->y, nbrNode->z);
+
+
 			prx = nbrNode->x - node->x;
 			pry = nbrNode->y - node->y;
 			prz = nbrNode->z - node->z;
@@ -810,12 +889,14 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 			midPos[0] = node->x + prx*0.5;
 			midPos[1] = node->y + pry*0.5;
 			midPos[2] = node->z + prz*0.5;
+            disLen = normal(prx,pry,prz);
 
 			FoldBox(param,&midPos[0],&midPos[1],&midPos[2]);
 			
-			eleNum = Coor2EleNum(home, midPos);
+			eleNum = Coor2EleNum(home, midPos, nx, ny, nz);
 
-			deltDen = sqrt(prx*prx + pry*pry + prz*prz)*param->burgVolFactor;
+            PBCPOSITION(param, midPos[0], midPos[1], midPos[2], nodePos, nodePos+1, nodePos+2);
+            PBCPOSITION(param, midPos[0], midPos[1], midPos[2], nbrPos, nbrPos+1, nbrPos+2);
 
 			bX = node->burgX[j];
 			bY = node->burgY[j];
@@ -828,9 +909,11 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 			burg[2] = bZ;
 			
 			iBurg = BurgType_FCC(burg);
+            DecomposeSegmentInRubik(home, nx,ny,nz, nodePos, nbrPos, deltDen, eleID);
 
-			home->disDenEle[eleNum][iBurg] += deltDen;
-			
+            for(k=0;k<27;k++){
+                home->disDenEle[eleID[k]][iBurg] += disLen*deltDen[k]*burgMag;
+            }
 		}
 	}
 
@@ -846,9 +929,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
         }
     }
 
-	MPI_Reduce(locVals, gloVals, 6*totEleNum, MPI_DOUBLE,
-			   MPI_SUM, 0, MPI_COMM_WORLD);
-
+	MPI_Reduce(locVals, gloVals, 6*totEleNum, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     for (i=0; i<totEleNum; i++){
         for(j = 0; j<6; j++){
             home->disDenEle[i][j] = gloVals[i*6+j];
@@ -856,157 +937,88 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
     }
 #endif
 
+    printf("%s -10\n",__func__);
 	if (firstInGroup) {
-		for(i=0;i<totEleNum;i++){
-		    totPlaStn[i][0] = home->pstnEle[i][0];
-		    totPlaStn[i][1] = home->pstnEle[i][1];
-		    totPlaStn[i][2] = home->pstnEle[i][2];
-		    totPlaStn[i][3] = home->pstnEle[i][3];
-		    totPlaStn[i][4] = home->pstnEle[i][4];
-		    totPlaStn[i][5] = home->pstnEle[i][5];
-    
-		    totDisDen[i][0] = home->disDenEle[i][0];
-		    totDisDen[i][1] = home->disDenEle[i][1];
-		    totDisDen[i][2] = home->disDenEle[i][2];
-		    totDisDen[i][3] = home->disDenEle[i][3];
-		    totDisDen[i][4] = home->disDenEle[i][4];
-		    totDisDen[i][5] = home->disDenEle[i][5];
-		}
-
-	    for(i=0;i<totNodeNum;i++){
-		    VECTOR_ZERO(nodeContour[i]);
-	    }
+    printf("%s -9\n",__func__);
 	
 //	    fprintf(fpEle,"solutiontime = %e\n", param->timeNow);
 	    fprintf(fpEle, "Variables = \"X\", \"Y\", \"Z\",\"plaStn"
 				"\",\"disDen\"\n"); 
-	    fprintf(fpEle, "Zone T = \"%d\", SOLUTIONTIME = %d, N= %d  E= %d F=FEPOINT ET=Brick\n",
-				home->cycle, home->cycle,totNodeNum,totEleNum); 
+	    fprintf(fpEle, "Zone T = \"%d\", SOLUTIONTIME = %d, I = %d, J = %d, K = %d\n",
+				home->cycle, home->cycle,  meshNodeNumX, meshNodeNumY, meshNodeNumZ); 
 
+    printf("%s -8\n",__func__);
 	    for(i=0;i<totEleNum;i++){
 
-			effPlaStn=sqrt((totPlaStn[i][0]*totPlaStn[i][0] +
-							totPlaStn[i][1]*totPlaStn[i][1] +
-							totPlaStn[i][2]*totPlaStn[i][2] +
-							2*totPlaStn[i][3]*totPlaStn[i][3] +
-							2*totPlaStn[i][4]*totPlaStn[i][4] +
-							2*totPlaStn[i][5]*totPlaStn[i][5])*2/3);
+			effPlaStn=sqrt((home->pstnEle[i][0]*home->pstnEle[i][0] +
+							home->pstnEle[i][1]*home->pstnEle[i][1] +
+							home->pstnEle[i][2]*home->pstnEle[i][2] +
+							2*home->pstnEle[i][3]*home->pstnEle[i][3] +
+							2*home->pstnEle[i][4]*home->pstnEle[i][4] +
+							2*home->pstnEle[i][5]*home->pstnEle[i][5])*2/3);
 
-			currDisDen = totDisDen[i][0] + totDisDen[i][1] + 
-						 totDisDen[i][2] + totDisDen[i][3] +
-						 totDisDen[i][4] + totDisDen[i][5]; 
+			currDisDen = home->disDenEle[i][0] + home->disDenEle[i][1] + 
+						 home->disDenEle[i][2] + home->disDenEle[i][3] +
+						 home->disDenEle[i][4] + home->disDenEle[i][5]; 
 
-			NodeofEle(param, i,nodeEle);	
+			NodeofEle(param, i, nodeEle, numNbrEle);	
 			
 			for(j=0;j<8;j++){
 
-				nodeContour[nodeEle[j]][0] += effPlaStn;
-				nodeContour[nodeEle[j]][1] += currDisDen;
+				nodeContour[nodeEle[j]][0] += effPlaStn/real8(numNbrEle[j]);
+				nodeContour[nodeEle[j]][1] += currDisDen/real8(numNbrEle[j]);
 				nodeContour[nodeEle[j]][2] ++;
 
 			}
 			
 	    }
 
+    printf("%s -7\n",__func__);
 	    for(i=0;i<totNodeNum;i++){
-
-			imageNode[0] = i;		
-			
-			imageNum = 1;
 
 			nx = i%meshNodeNumX;
 			ny = i%(meshNodeNumX*meshNodeNumY)/meshNodeNumX; 
 			nz = i/(meshNodeNumX*meshNodeNumY); 
+
+            j=0;
+            if(param->xBoundType==Periodic && nx==meshNumX){
+                j -= (meshNumX);
+            }
+            if(param->yBoundType==Periodic && ny==meshNumY){
+                j -= (meshNumX+1)*(meshNumY);
+            }
+            if(param->zBoundType==Periodic && nz==meshNumZ){
+                j -= (meshNumX+1)*(meshNumY+1)*(meshNumZ);
+            }
+            nodeContour[i][0]=nodeContour[i+j][0];
+            nodeContour[i][1]=nodeContour[i+j][1];
+            nodeContour[i][2]=nodeContour[i+j][2];
 			
-			if(nodeContour[i][2] > 8){
-
-				fprintf(fpEle,"%10.3e %10.2e %10.2e %10.2e %10.2e\n",
-						nx*eleLx-Lx/2, ny*eleLy-Ly/2,nz*eleLz-Lz/2,
-						nodeContour[i][0],nodeContour[i][1]);
-				continue;
-			}
-			/*
-			 * 		For surface with periodic boundary condition.
-			 */
-			if((nx==0||nx==meshNodeNumX)&&param->xBoundType == Periodic){
-				
-				imageNode[1] = i+ (nx==0?1:-1)*(meshNodeNumX-1);
-				imageNum *= 2;
-			}
-
-			if((ny==0||ny==meshNodeNumY)&&param->yBoundType == Periodic){
-				
-				for(j=0;j<imageNum;j++){
-					imageNode[imageNum+j] = imageNode[j] + (ny==0?1:-1)*
-											meshNodeNumX*(meshNodeNumZ-1);
-				}
-				imageNum *= 2;
-			}
-
-			if((nz==0||nz==meshNodeNumZ)&&param->zBoundType == Periodic){
-				
-				for(j=0;j<imageNum;j++){
-					imageNode[imageNum+j] = imageNode[j] + (nz==0?1:-1)*
-											meshNodeNumX*meshNodeNumY*(meshNodeNumZ-1);
-				}
-				imageNum *= 2;
-			}
-			
-			for(j=1;j<imageNum;j++){
-
-				nodeContour[i][0] += nodeContour[imageNode[j]][0];
-				nodeContour[i][1] += nodeContour[imageNode[j]][1];
-			}
-			
-			nodeContour[i][2] *= imageNum;
-			
-			nodeContour[i][0] /= nodeContour[i][2];
-			nodeContour[i][1] /= nodeContour[i][2];
-
-			if(imageNum != 1) nodeContour[i][2] = 9;
-
-			for(j=1;j<imageNum;j++){
-
-				VECTOR_COPY(nodeContour[imageNode[j]], nodeContour[i]);
-			}
-			
-			fprintf(fpEle,"%10.2e %10.2e %10.2e %10.2e %10.2e\n",
-					nx*eleLx-Lx/2,ny*eleLy-Ly/2,nz*eleLz-Lz/2,
+			fprintf(fpEle,"%.2f %.2f %.2f %.2g %.2g\n",
+					nx*eleLx-Lx/2, ny*eleLy-Ly/2,nz==0?-Lz/2:layerPosz[nz-1],
 					nodeContour[i][0],nodeContour[i][1]);
 
 	    }
 
-	    for(i=0;i<totEleNum;i++){
-
-			NodeofEle(param, i,nodeEle);	
-			
-			fprintf(fpEle, "%8d %8d %8d %8d %8d %8d %8d %8d\n", nodeEle[0]+1,
-					nodeEle[1]+1,nodeEle[3]+1,nodeEle[2]+1,nodeEle[4]+1,
-					nodeEle[5]+1,nodeEle[7]+1,nodeEle[6]+1);
-	    }
-        
-
+    printf("%s -6\n",__func__);
 	    fclose(fpEle);
 	}
 
-    for(i=0; i<totNodeNum; i++){
-        free(nodeContour[i]);
+    printf("%s 1\n",__func__);
+    for(int k=0;k<totNodeNum; k++){
+        if(nodeContour[k]!=nullptr)free(nodeContour[k]); nodeContour[k] = NULL;
     }
+    printf("%s 2\n",__func__);
     free(nodeContour);
+    printf("%s 3\n",__func__);
     nodeContour = NULL;
-
-    for(i=0; i<totEleNum; i++){
-        free(totPlaStn[i]);
-        free(totDisDen[i]);
-    }
-
-    free(totPlaStn);
-    free(totDisDen);
-    totPlaStn = NULL;
-    totDisDen = NULL;
+    printf("%s 4\n",__func__);
 
     free(locVals);
+    printf("%s 5\n",__func__);
     free(gloVals);
-
+    printf("%s 6\n",__func__);
+    free(layerPosz);
+    printf("%s 7\n",__func__);
 	return;
 }

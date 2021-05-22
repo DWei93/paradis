@@ -579,4 +579,20 @@ inline void BubbleSort2D(double *x, double *y, int n){
 
 bool FourPointCoplanar(double x1, double y1, double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4,double y4, double z4, double err = LENGTH_ERROR);
 
+/** Decompose segment in a box
+ *  \param[in] x1,y1,z1 coordinate of first point on the segement
+ *  \param[in] x2,y2,z2 coordinate of first point on the segement
+ *  \param[in] box the range of box: xmin, xmax, ymin, ymax, zmin, zmax
+ */
+double DecomposeSegmentInBox(double *p1, double *p2, double *box);
+
+bool inline InBox(double *p, double *box, double err=LENGTH_ERROR){
+    return( p[0]-box[0] > err && 
+            box[1]-p[0] > err && 
+            p[1]-box[2] > err && 
+            box[3]-p[1] > err && 
+            p[2]-box[4] > err && 
+            box[5]-p[2] > err);
+}
+
 #endif

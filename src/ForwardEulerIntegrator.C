@@ -140,7 +140,7 @@ void ForwardEulerIntegrator(Home_t *home)
         int      i, doAll = 1;
         real8    vx, vy, vz, v2, vmax, vmax2;
         real8    oldDT, newDT, deltaTT;
-        real8    temp1, temp2, rmaxFact;
+        real8    temp1, temp2, rmaxFact, lamp;
         real8    dirChange, magV, magOldV, magDeltaV;
         real8    xDelta, yDelta, zDelta, deltaVLimit, deltaAdjFact;
         Param_t  *param;
@@ -217,6 +217,7 @@ void ForwardEulerIntegrator(Home_t *home)
                            node->oldvY*node->oldvY +
                            node->oldvZ*node->oldvZ);
 
+            lamp = LengthAmplification(home, node->inGrain, node->onGB);
 /*
  *          If new velocity is non-zero and the node has not
  *          reversed its direction of movement, check if there
@@ -236,12 +237,12 @@ void ForwardEulerIntegrator(Home_t *home)
 
                     if (temp1 < deltaVLimit) {
                         temp2 = oldDT * (1.25 - (temp1 * deltaAdjFact));
-                        if ((temp2 < newDT) && (magV*newDT > rmaxFact)) {
+                        if ((temp2 < newDT) && (magV*newDT > rmaxFact*lamp)) {
                             newDT = temp2;
                         }
                     } else {
                         temp2 = oldDT / (1 + temp1);
-                        if ((temp2 < newDT) && (magV*newDT > rmaxFact)) {
+                        if ((temp2 < newDT) && (magV*newDT > rmaxFact*lamp)) {
                             newDT = temp2;
                         }
                     }
@@ -256,7 +257,7 @@ void ForwardEulerIntegrator(Home_t *home)
 
                     magDeltaV = sqrt(xDelta*xDelta + yDelta*yDelta + zDelta*zDelta);
 
-                    if ((magDeltaV * newDT) > (rmaxFact)) {
+                    if ((magDeltaV * newDT) > (rmaxFact*lamp)) {
                         temp2 = 0.40 * oldDT;
                         if (temp2 < newDT) {
                             newDT = temp2;
@@ -294,7 +295,7 @@ void ForwardEulerIntegrator(Home_t *home)
         param->deltaTT = deltaTT;
 #endif
 
-	param->timeStart = param->timeNow;
+	    param->timeStart = param->timeNow;
 
 /*
  *      Update the force and velocity for ghost nodes, and then reposition

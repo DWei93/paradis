@@ -1026,6 +1026,9 @@ void DataParamInit(Param_t *param, ParamList_t *DPList)
 		BindVar(DPList, "twinRatio", &param->twinRatio, V_DBL, 1, VFLAG_NULL);
 		param->twinRatio = 0.5;
 		
+        BindVar(DPList, "gradientStructure", param->gradientStructure, V_STRING, 1, VFLAG_NULL);
+        snprintf(param->gradientStructure,sizeof(param->gradientStructure),"0");
+
 		BindVar(DPList, "xBoundType", &param->xBoundType, V_INT, 1, VFLAG_NULL);
 		param->xBoundType = (BoundType_t)0;
     

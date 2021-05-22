@@ -1064,9 +1064,10 @@ static void VerifyBurgersVectors(Home_t *home)
                 nbr = GetNeighborNode(home, node, armID);
 
                 if (nbr == (Node_t *)NULL) {
+                    PrintNode(node);
                     Fatal("VerifyBurgersVectors(): Lookup of node "
-                          "(%d,%d) failed!", node->nbrTag[armID].domainID,
-                          node->nbrTag[armID].index);
+                          "(%d,%d) failed! cellIdx=%d, cellCount=%d", node->nbrTag[armID].domainID,
+                          node->nbrTag[armID].index, node->cellIdx, home->cellCount);
                 }
 
 /*
@@ -1215,7 +1216,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
         int          maxNumThreads = 1;
         int          doBinRead;
         char         *sep, *start;
-        char         tmpDataFile[256], testFile[256], tmpTableFile[256];
+        char         tmpDataFile[256], testFile[256], tmpTableFile[40];
         char         *ctrlFile;
         char         *dataFile, *tableFile;
         const   char* temp;
@@ -1228,6 +1229,14 @@ void Initialize(Home_t *home,int argc, char *argv[])
         char token[256];
         FILE *fp = (FILE *)NULL;
         tableFile = (char *)NULL;
+
+        char        workingDir[512], absTableFile[600];
+
+#ifndef _XT4
+        char *reStr = getcwd(workingDir, sizeof(workingDir) - 1);
+#else
+        snprintf(workingDir,sizeof(workingDir),"..");
+#endif
 
         real8 *pstn, degree=1.745329251994330e-02;
 /*
@@ -1714,69 +1723,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
         }
 #endif
 
-        param->meshSizeX = param->Lx/(real8)param->meshNumX;
-        param->meshSizeY = param->Ly/(real8)param->meshNumY;
-        param->meshSizeZ = param->Lz/(real8)param->meshNumZ;
-
-        totMeshNum = param->meshNumX*param->meshNumY*param->meshNumZ;
-        home->pstnEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
-        home->disDenEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
-
-        for(i=0; i<totMeshNum; i++){
-            home->pstnEle[i] = (real8 *)calloc(6, sizeof(real8)); 
-        }
-
-        for(i=0; i<totMeshNum; i++){
-           home->disDenEle[i] = (real8 *)calloc(6, sizeof(real8)); 
-        }
-
-/*
- *      Reading the plastic strain restart file
- */
-
-        if(home->myDomain == 0){
-
-            if (tableFile == (char *)NULL) {
-                strcpy(tmpTableFile, ctrlFile);
-                start = strrchr(tmpTableFile, '/');
-                if (start == (char *)NULL) start = tmpTableFile;
-                sep = strrchr(start, '.');
-                if ((sep != (char *)NULL) && (sep > start)) *sep = 0;
-                strcat(tmpTableFile, TABLE_FILE_SUFFIX);
-                tableFile = tmpTableFile;
-            }
-
-            maxTokenLen = sizeof(token);
-            tokenType = TOKEN_GENERIC;
-            fp = fopen(tmpTableFile, "r");
-            if (fp != (FILE *)NULL) {
-                printf("Initialize: Parsing plastic strain file %s\n", tableFile);
-                tokenType = GetNextToken(fp, token, maxTokenLen);
-                if (strcmp(token, "pstnEle") != 0){
-                    Fatal("Read Table File: can not read pstEle 1");
-                }
-                tokenType = GetNextToken(fp, token, maxTokenLen);
-                if(tokenType != TOKEN_EQUAL)Fatal("Read Table File: can not read pstEle 2");
-                tokenType = GetNextToken(fp, token, maxTokenLen);
-                if(tokenType != TOKEN_BEGIN_VAL_LIST)Fatal("Read Table File: can not read pstEle 3");
-            
-                for(i=0; i<totMeshNum; i++){
-                    for(j=0; j<6; j++){
-                        if((tokenType = GetNextToken(fp, token, maxTokenLen)) != TOKEN_GENERIC){
-                            Fatal("Read Table File: can not read pstEle 4");
-                        }
-                        home->pstnEle[i][j] = atof(token);
-                    }
-                }
-                tokenType = GetNextToken(fp, token, maxTokenLen);
-                if(tokenType != TOKEN_END_VAL_LIST)Fatal("Read Table File: can not read pstEle 5 %s",token);
-                printf("Initialize: Plastic strain file parsing complete\n");
-                fclose(fp);
-            }else{
-                if(param->cycleStart)printf("Warning: can not open plastic strain field file %s, errno=%d\n",tableFile,errno);
-            }
-        }     
-
 /*
  *      Create the output directory (and sub-directories) and reset the
  *      current working directory to the top level output directory.
@@ -1797,10 +1743,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *      loop to the end.
  */
         SortNativeNodes(home);
-		
         CommSendGhosts(home);
-	
-    
+
 /*
  *      Have each processor look at all segments attached to its local
  *      nodes and verify that the burgers vector is the same at both
@@ -1870,6 +1814,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
 /*
  *	Iinitialize grain
  */
+        param->multilayer = false;
 	    InitGrain(home, param);
         
 //	    param->vshr = sqrt(param->YoungsModulus/param->massDensity)/param->burgMag;
@@ -1878,11 +1823,113 @@ void Initialize(Home_t *home,int argc, char *argv[])
             if(param->rmax>10*param->rTol){
                 param->rmax = 10.0*param->rTol;
             }
-            if(home->myDomain == 0)printf("Forward Euler integrator: rmax = %g, minDT=%g\n:", param->rmax,param->minDT);
+            if(home->myDomain == 0)printf("Forward Euler integrator: rmax = %g, minDT=%g\n", param->rmax,param->minDT);
         }
 
 	    if(home->myDomain == 0)printf("shear Wave velocity: %6.2f m/s.\n",
 	    param->vshr * param->burgMag);
+
+        param->meshSizeX = param->Lx/(real8)param->meshNumX;
+        param->meshSizeY = param->Ly/(real8)param->meshNumY;
+        param->meshSizeZ = param->Lz/(real8)param->meshNumZ;
+
+        if(param->multilayer == false){
+            totMeshNum = param->meshNumX*param->meshNumY*param->meshNumZ;
+            home->layerPosz = (real8 *)malloc(sizeof(real8)*param->meshNumZ);
+            for(i=0;i<param->meshNumZ;i++){
+                home->layerPosz[i]=(real8(i+1))*param->meshSizeZ+param->zBoundMin;
+            }
+        }else{
+             Grain_t *grain;
+             std::vector<real8> layerPosz(1);
+             real8 mz=param->meshSizeZ, lower=param->zBoundMin, gmz, ngmz;
+             real8 transThick=10.0, tbThick=1.0E-4; 
+             int k;
+             j=0;
+             layerPosz[0] = lower+tbThick;
+             for(i=0;i<home->nGrains;i++){
+                grain = home->grainKeys[i];
+                ngmz = MAX(floor((grain->thick-2*transThick-2*tbThick)/mz),1.0);
+                gmz = (grain->thick-2*transThick-2*tbThick)/ngmz;
+                layerPosz.push_back(layerPosz[j++]+transThick);
+                for(k=0;k<int(ngmz);k++)layerPosz.push_back(layerPosz[j++]+gmz);
+                layerPosz.push_back(layerPosz[j++]+transThick);
+                layerPosz.push_back(layerPosz[j++]+2.0*tbThick);
+             }
+             layerPosz.back()-=tbThick;
+
+///          printf("Layer %d: ",int(layerPosz.size()));
+///          for(i=0;i<layerPosz.size();i++)printf(" %f",layerPosz[i]);
+///          printf("\n");
+///          Fatal("Finish Test");
+            param->meshNumZ = int(layerPosz.size());
+            home->layerPosz = (real8 *)malloc(sizeof(real8)*param->meshNumZ);
+            for(i=0;i<param->meshNumZ;i++)home->layerPosz[i]=layerPosz[i];
+            totMeshNum = param->meshNumX*param->meshNumY*param->meshNumZ;
+        }
+
+        param->layerPosz = home->layerPosz;
+        home->pstnEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
+        home->disDenEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
+
+        for(i=0; i<totMeshNum; i++){
+            home->pstnEle[i] = (real8 *)calloc(6, sizeof(real8)); 
+        }
+
+        for(i=0; i<totMeshNum; i++){
+           home->disDenEle[i] = (real8 *)calloc(6, sizeof(real8)); 
+        }
+
+/*
+ *      Reading the plastic strain restart file
+ */
+
+        if(home->myDomain == 0){
+
+            if (tableFile == (char *)NULL) {
+                strcpy(tmpTableFile, ctrlFile);
+                start = strrchr(tmpTableFile, '/');
+                if (start == (char *)NULL) start = tmpTableFile;
+                sep = strrchr(start, '.');
+                if ((sep != (char *)NULL) && (sep > start)) *sep = 0;
+                strcat(tmpTableFile, TABLE_FILE_SUFFIX);
+                tableFile = tmpTableFile;
+            }
+
+            snprintf(absTableFile, sizeof(absTableFile), "%s/%s",workingDir, tableFile);
+
+            maxTokenLen = sizeof(token);
+            tokenType = TOKEN_GENERIC;
+            fp = fopen(absTableFile, "r");
+            if (fp != (FILE *)NULL) {
+                printf("Initialize: Parsing plastic strain file %s\n", absTableFile);
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if (strcmp(token, "pstnEle") != 0){
+                    Fatal("Read Table File: can not read pstEle 1");
+                }
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if(tokenType != TOKEN_EQUAL)Fatal("Read Table File: can not read pstEle 2");
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if(tokenType != TOKEN_BEGIN_VAL_LIST)Fatal("Read Table File: can not read pstEle 3");
+            
+                for(i=0; i<totMeshNum; i++){
+                    for(j=0; j<6; j++){
+                        if((tokenType = GetNextToken(fp, token, maxTokenLen)) != TOKEN_GENERIC){
+                            Fatal("Read Table File: can not read pstEle 4");
+                        }
+                        home->pstnEle[i][j] = atof(token);
+                    }
+                }
+                tokenType = GetNextToken(fp, token, maxTokenLen);
+                if(tokenType != TOKEN_END_VAL_LIST)Fatal("Read Table File: can not read pstEle 5 %s",token);
+                printf("Initialize: Plastic strain file parsing complete\n");
+                fclose(fp);
+            }else{
+                if(param->cycleStart)printf("Warning: can not open plastic strain field file %s, errno=%d\n",tableFile,errno);
+            }
+        }     
+
+
 #ifdef VELOCITY_STATISTICS
         param->velMax = 1.5E3;
         param->velMin = 1.0E-3;

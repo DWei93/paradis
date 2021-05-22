@@ -2549,8 +2549,9 @@ void LocalSegForces(Home_t *home, int reqType)
                     nbr = GetNeighborNode(home, node, arm);
 
                     if (nbr == (Node_t *)NULL) {
-                        Fatal("WARNING: Neighbor not found at %s line %d\n",
-                               __FILE__, __LINE__);
+                        PrintNode(home, node);
+                        Fatal("Neighbor not found at %s line %d, cellIdx=%d\n",
+                               __FILE__, __LINE__, node->cellIdx);
                         continue;
                     }
 

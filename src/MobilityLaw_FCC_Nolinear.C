@@ -140,7 +140,7 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
     static real8 ve_max = 1529.63902/param->burgMag, ke=8.58E-9;	
     static real8 vts_max = 1585.57223/param->burgMag, kts=7.91E-9;	
     static real8 vte_max = 1877.26443/param->burgMag, kte=6.24E-9;	
-    static real8 cutoff_coe = 0.95;
+    static real8 cutoff_coe = 0.99;
     static real8 vs_max_c=vs_max*cutoff_coe, ve_max_c=ve_max*cutoff_coe, vts_max_c =vts_max*cutoff_coe, vte_max_c=vte_max*cutoff_coe;
     static real8 v_max=param->vshr; /*v_max needs to be slightly lower than vs_max*/
     static real8 Beclimb = 15.6E-4;
@@ -181,7 +181,7 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
     real8 lineTensor[3][3], glideTensor[3][3], climbTensor[3][3];
     real8 bs,be,inv_bs,inv_be,sbForceMag, ebForceMag, vRatio_s, vRatio_e, lterm, tau, bForceMag;
     bool partialBurg;
-    int iter, maxStep=15;
+    int iter, maxStep=30;
     real8 v1g, v1l, v2g, v2l, va1gs, va1ge, va2ge, va2gs;
     vMag = Sign(DotProduct(nForce,vTest))*Normal(vTest);
     for(iter=0; iter<maxStep &&  fErr>fTol; iter++){

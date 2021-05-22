@@ -50,7 +50,7 @@ typedef struct {
 	    int     burgID, planeID;
         real8   lineAngle, pos[3];
         real8   TBCryst[3];
-        
+        char    gradientStructure[256];       
         char    outFile[256];
         real8   loadDir[6]; 
         int     nTDs;
@@ -79,7 +79,7 @@ void  CreateFCCIrradConfig(Home_t *home, InData_t *inData, int cubeLength,
           real8 *totDislocLen, int dislocType);
 void  CreateFCCPerfectLoop(Home_t *home, InData_t *inData, int cubeLength,
           int numChains, int seed, real8 *totDislocLen, int dislocType);
-void  InitRemesh(InData_t *inData, int domValue, int startIndex);
+void  InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex);
 real8 randm(int *seed);
 void  WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock);
 int GetBurgID_FCCFromArm(Home_t *home, Node_t *node, int segID);

@@ -501,6 +501,9 @@ struct _param {
 	    real8	fricStress;
         real8   a0[4];
         real8   grainSize;
+        char    gradientStructure[MAX_STRING_LEN]; 
+        bool    multilayer;
+        real8   *layerPosz;
 /*
  *		
  */
@@ -517,7 +520,7 @@ struct _param {
         real8   meshSizeZ;
         int     meshNumX, meshNumY, meshNumZ;
         int     randomInternalForce;
-        double     fMeshSizeX, fMeshSizeY, fNumX, fNumY;
+        double  fMeshSizeX, fMeshSizeY, fNumX, fNumY;
 
         real8       maxSchmid;
         clock_t     timestart;

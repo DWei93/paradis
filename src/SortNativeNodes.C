@@ -35,21 +35,27 @@ void AssignNodeToCell(Home_t *home, Node_t *node)
         cellYsize = (param->maxSideY - param->minSideY) / param->nYcells;
         cellZsize = (param->maxSideZ - param->minSideZ) / param->nZcells;
 
+        real8 x = node->x;
+        real8 y = node->y;
+        real8 z = node->z;
 /*
  *      put the node on its proper cell. If the index exceeds this domains
  *      range of native cells, put in the nearest native cell
  */
-        iCell = (int)((node->x - probXmin) / cellXsize);
+        if(param->xBoundType == Periodic)if(x>=param->maxSideX)x=probXmin;
+        iCell = (int)((x - probXmin) / cellXsize);
         if (iCell < param->iCellNatMin) iCell = param->iCellNatMin;
         if (iCell > param->iCellNatMax) iCell = param->iCellNatMax;
         iCell++;   /* compensate for periodic cells */
 
-        jCell = (int)((node->y - probYmin) / cellYsize);
+        if(param->yBoundType == Periodic)if(y>=param->maxSideY)y=probYmin;
+        jCell = (int)((y - probYmin) / cellYsize);
         if (jCell < param->jCellNatMin) jCell = param->jCellNatMin;
         if (jCell > param->jCellNatMax) jCell = param->jCellNatMax;
         jCell++;   /* compensate for periodic cells */
 
-        kCell = (int)((node->z - probZmin) / cellZsize);
+        if(param->zBoundType == Periodic)if(z>=param->maxSideZ)z=probZmin;
+        kCell = (int)((z - probZmin) / cellZsize);
         if (kCell < param->kCellNatMin) kCell = param->kCellNatMin;
         if (kCell > param->kCellNatMax) kCell = param->kCellNatMax;
         kCell++;   /* compensate for periodic cells */
@@ -74,6 +80,8 @@ void SortNativeNodes (Home_t *home)
    real8 cellXsize, cellYsize, cellZsize ;
    Cell_t *cell ;
    Node_t *node ;
+
+   real8 x,y,z;
 
    TimerStart(home, SORT_NATIVE_NODES);
 
@@ -107,36 +115,41 @@ void SortNativeNodes (Home_t *home)
 
    for (i = 0 ; i < home->newNodeKeyPtr ; i++) {
 
-      node = home->nodeKeys[i] ;
-      if (!node) continue ;
-
-      iCell = (int)((node->x - probXmin) / cellXsize) ;
-      if (iCell < param->iCellNatMin) iCell = param->iCellNatMin ;
-      if (iCell > param->iCellNatMax) iCell = param->iCellNatMax ;
-      iCell++ ;   /* compensate for periodic cells */
-
-      jCell = (int)((node->y - probYmin) / cellYsize) ;
-      if (jCell < param->jCellNatMin) jCell = param->jCellNatMin ;
-      if (jCell > param->jCellNatMax) jCell = param->jCellNatMax ;
-      jCell++ ;   /* compensate for periodic cells */
-
-      kCell = (int)((node->z - probZmin) / cellZsize) ;
-      if (kCell < param->kCellNatMin) kCell = param->kCellNatMin ;
-      if (kCell > param->kCellNatMax) kCell = param->kCellNatMax ;
-      kCell++ ;   /* compensate for periodic cells */
-
-      cellIdx = EncodeCellIdx (home, iCell, jCell, kCell) ;
-      cell = home->cellKeys[cellIdx] ;
-      node->nextInCell = cell->nodeQ ;
-      cell->nodeQ = node ;
-      cell->nodeCount++ ;
-
-      node->cellIdx = cellIdx ;
-      node->native = 1 ;
+        node = home->nodeKeys[i] ;
+        if (!node) continue ;
+        
+        x=node->x; y=node->y; z=node->z;
+        
+        if(param->xBoundType == Periodic)if(x>=param->maxSideX)x=probXmin;
+        iCell = (int)((x - probXmin) / cellXsize);
+        if (iCell < param->iCellNatMin) iCell = param->iCellNatMin;
+        if (iCell > param->iCellNatMax) iCell = param->iCellNatMax;
+        iCell++;   /* compensate for periodic cells */
+        
+        if(param->yBoundType == Periodic)if(y>=param->maxSideY)y=probYmin;
+        jCell = (int)((y - probYmin) / cellYsize);
+        if (jCell < param->jCellNatMin) jCell = param->jCellNatMin;
+        if (jCell > param->jCellNatMax) jCell = param->jCellNatMax;
+        jCell++;   /* compensate for periodic cells */
+        
+        if(param->zBoundType == Periodic)if(z>=param->maxSideZ)z=probZmin;
+        kCell = (int)((z - probZmin) / cellZsize);
+        if (kCell < param->kCellNatMin) kCell = param->kCellNatMin;
+        if (kCell > param->kCellNatMax) kCell = param->kCellNatMax;
+        kCell++;   /* compensate for periodic cells */
+        
+        cellIdx = EncodeCellIdx (home, iCell, jCell, kCell) ;
+        cell = home->cellKeys[cellIdx] ;
+        node->nextInCell = cell->nodeQ ;
+        cell->nodeQ = node ;
+        cell->nodeCount++ ;
+        
+        node->cellIdx = cellIdx ;
+        node->native = 1 ;
 
    }
 
-        TimerStop(home, SORT_NATIVE_NODES);
+   TimerStop(home, SORT_NATIVE_NODES);
 
-        return;
+   return;
 }

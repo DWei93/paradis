@@ -47,9 +47,10 @@ cubel=`echo "${cubeln}/0.2556" | bc`
 nfrs=`echo "${nfrsPerGrain}*${nGrains}" | bc`
 thick=`echo ${cubel}/${nGrains}| bc`
 frlen=`echo ${thick}*${nTimesThick1} | bc`,`echo ${thick}*${nTimesThick2} | bc`
+frlen=3
 
 maxSeg1=`echo ${cubel}/20 | bc `
-maxSeg2=`echo ${thick}/6 | bc `
+maxSeg2=`echo ${thick}/5 | bc `
 if [ ${maxSeg1} -gt ${maxSeg2} ]; then maxSeg=${maxSeg2}; else maxSeg=${maxSeg1}; fi
 rTol=`echo "scale=7;${maxSeg}*sqrt(2)/32" | bc -l`
 rc=`echo "scale=7;0.1+4.0*${rTol}" | bc -l`
@@ -75,6 +76,8 @@ sed -i "/^shearModulus =/cshearModulus = ${mu}E9" $ctrlFile
 amu=90
 polar=90
 point=23
+
+if [[ $# -ge 4 ]]; then nGrains=$4; fi
 
 if [[ `sed -n "/^loadType/p" $ctrlFile | cut -d " " -f 3` != "6" ]]; then 
     if [ $# -gt 0 ]; then 
@@ -180,7 +183,6 @@ finish=`echo "${percentage}>15.0" | bc`
 if [[ ${finish} -eq 0 ]] ; 
     then ./gen $point $thickn $nGrains; 
 else
-    
     nodeCount=`cat $logFile | grep "Total node count" | cut -d ":" -f 2`
     if [[ `echo "${nodeCount}>8000" | bc` -eq 1 ]] ; then ncells=16;
     elif [[ `echo "${nodeCount}>4000" | bc` -eq 1 ]] ; then ncells=8;

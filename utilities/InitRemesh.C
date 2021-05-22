@@ -57,15 +57,17 @@ static Node_t *LookupInNode(InData_t *inData, Tag_t *tag, int *index)
         return(found);
 }
 
-void InitRemesh(InData_t *inData, int domValue, int startIndex)
+void InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex)
 {
 	int		oldNodeCount, newNodeCount;
 	int		idxA, idxB, idxBA, armAB, armBA;
 	int		idxNew, ncount, found, armPrev, inew;
 	real8		maxSeg2, r2, r, xa, ya, za, frac;
 	real8		Lx, Ly, Lz, dx, dy, dz;
-	Node_t          *nodeA, *nodeB, *prevNewNode, *newNode;
+	Node_t      *nodeA, *nodeB, *prevNewNode, *newNode;
 	Param_t		*param;
+    real8       lamp;
+    int         armInGrain, armOnGB;
 
 	param = inData->param;
 
@@ -89,6 +91,16 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 
 			nodeB = LookupInNode(inData, &nodeA->nbrTag[armAB],
                                              &idxB);
+            
+            if(nodeA->onGB>-1 && nodeB->onGB>-1){
+                if(nodeA->onGB==nodeB->onGB)lamp = LengthAmplification(home, nodeA->inGrain, nodeA->onGB);
+                else if (nodeA->onGB>nodeB->onGB) lamp = LengthAmplification(home, nodeB->onGB, -1);
+                else lamp = LengthAmplification(home, nodeA->onGB, -1);
+            }else if(nodeA->onGB>-1){
+                lamp = LengthAmplification(home, nodeB->inGrain, nodeB->onGB);
+            }else {
+                lamp = LengthAmplification(home, nodeA->inGrain, nodeA->onGB);
+            }
 			if (idxB < idxA) {
 
 /*
@@ -101,10 +113,10 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 				dz = nodeB->z - nodeA->z; 
 //  			ZImage(param,&dx,&dy,&dz);
 				r2 = dx*dx + dy*dy + dz*dz;
-				if (r2 > maxSeg2) {
+				if (r2 > maxSeg2 *lamp*lamp) {
 					r = sqrt(r2);
 					newNodeCount +=
-						(int)ceil(r/param->maxSeg) - 1;
+						(int)ceil(r/param->maxSeg/lamp) - 1;
 				}
 
 			}
@@ -142,6 +154,15 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
 			
 			if (idxB > idxA) continue; /* don't double-dip */
 
+            if(nodeA->onGB>-1 && nodeB->onGB>-1){
+                if(nodeA->onGB==nodeB->onGB)lamp = LengthAmplification(home, nodeA->inGrain, nodeA->onGB);
+                else if (nodeA->onGB>nodeB->onGB) lamp = LengthAmplification(home, nodeB->onGB, -1);
+                else lamp = LengthAmplification(home, nodeA->onGB, -1);
+            }else if(nodeA->onGB>-1){
+                lamp = LengthAmplification(home, nodeB->inGrain, nodeB->onGB);
+            }else {
+                lamp = LengthAmplification(home, nodeA->inGrain, nodeA->onGB);
+            }
 			dx = nodeB->x - xa;
 			dy = nodeB->y - ya;
 			dz = nodeB->z - za;
@@ -160,14 +181,14 @@ void InitRemesh(InData_t *inData, int domValue, int startIndex)
             }
 #endif
 			r2 = dx*dx + dy*dy + dz*dz;
-			if (r2 > maxSeg2) {
+			if (r2 > maxSeg2 *lamp*lamp) {
 
 /*
  *				calculate the number of new nodes needed
  *				between the two points.
  */
 				r = sqrt(r2);
-				ncount = (int) ceil(r/param->maxSeg) - 1;
+				ncount = (int) ceil(r/param->maxSeg/lamp) - 1;
 				frac = 1.0 / (ncount+1);
 
 /*

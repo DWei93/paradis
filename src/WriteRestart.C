@@ -236,6 +236,7 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
                       node->myTag.domainID, node->myTag.index);
             }
 
+            FoldBox(param, &node->x, &node->y, &node->z);
             fprintf(fp,
                     " %d,%d %.17f %.17f %.17f %d %d %d %d\n",
                     node->myTag.domainID, node->myTag.index,

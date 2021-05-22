@@ -17,8 +17,8 @@
 #
 #  Domain geometry
 #
-numXdoms = 2
-numYdoms = 2
+numXdoms = 1
+numYdoms = 1
 numZdoms = 1
 #
 #  Cell geometry
@@ -43,14 +43,14 @@ DLBfreq = 3
 elasticinteraction = 1
 #a0 = [ 1.68098 1.12421 1.01163 0.187646 ]
 enableCrossSlip =   1
-rTol = 7.2036500
-rc = 28.9146000
-Ecore = 12.8508572E9
-grainSize = 978
-loadType = 0
+rTol = .6629125
+rc = 2.7516500
+Ecore = 3.8663218E9
+grainSize = 78
+loadType = 1
 loadDir = [ 0.0 0.0 1.0 -1.0 0.0 0.0 ]
 #maxstep =  40000000
-maxstep =  10000
+maxstep =  100000
 remeshRule = 2
 enforceGlidePlanes =  1
 splitMultiNodeFreq =   1  
@@ -83,7 +83,7 @@ edotPolar = [ 9.0000000e+01 9.5000000e+01 ]
 
 appliedStress = [
 	0.0e0
-	0.0e0
+	3.0e8
 	0.0e0
 	0.0e0
 	0.0e0
@@ -93,7 +93,7 @@ appliedStress = [
 #
 #  Material and mobility parameters
 #  
-dirname = "res."
+dirname = "res.Test-5"
 #mobilityLaw =   "FCC_nl"
 mobilityLaw =   "FCC_nl"
 shearModulus = 48.0E9
@@ -121,16 +121,17 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 2000
+#tecplotfreq = 2000
+tecplotfreq = 400
 saveprop = 1
 savepropfreq = 400
 tecmesh = 1
-tecmeshfreq = 40000
+tecmeshfreq = 400
 savecn = 1
-savecnfreq = 10000
+savecnfreq = 1000
 savetimers = 0
 savetimersfreq = 10
 velfile = 0
 velfilefreq = 1000
-minDT = 12.500E-13
-maxDT = 62.500E-13
+minDT = 1.000E-13
+maxDT = 5.000E-13

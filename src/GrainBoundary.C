@@ -527,6 +527,8 @@ bool FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
                        n1OldPos, n1OldPos+1, n1OldPos+2);
     PBCPOSITION(param, n1OldPos[0], n1OldPos[1], n1OldPos[2], 
                        n2OldPos, n2OldPos+1, n2OldPos+2);
+    PBCPOSITION(param, n1Pos[0], n1Pos[1], n1Pos[2], 
+                        &(GBPlane->point[0]),  &(GBPlane->point[1]),  &(GBPlane->point[2]));
     centor[0] = (n1Pos[0] +  n2Pos[0] + n1OldPos[0] + n2OldPos[0])*0.25;
     centor[1] = (n1Pos[1] +  n2Pos[1] + n1OldPos[1] + n2OldPos[1])*0.25;
     centor[2] = (n1Pos[2] +  n2Pos[2] + n1OldPos[2] + n2OldPos[2])*0.25;
@@ -1263,12 +1265,14 @@ void HandleGrainBoundary(Home_t *home)
 #endif
 
         CoordMinus(refPos,gb->p,vec1);
+        FoldBox(param, refPos, refPos+1, refPos+2);
         if(DotProduct(gb->n, vec1)>0){
             VECTOR_COPY(gbPlane, gb->n);
         }else{
             NegativeVector(gb->n, gbPlane);
         }
         VECTOR_COPY(GBPlane.point, gb->p);
+        PBCPOSITION(param, refPos[0], refPos[1], refPos[2], &(GBPlane.point[0]),  &(GBPlane.point[1]),  &(GBPlane.point[0]));
         VECTOR_COPY(GBPlane.normal, gb->n);
 
 /*	

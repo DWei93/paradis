@@ -34,7 +34,7 @@ static void MeshCoarsen(Home_t *home)
         int     localCoarsenCnt, globalCoarsenCnt, hasRemoteNbr;
 	    int	    breakLoop = 0, type;
         real8   tmpMag2, vec1[3], vec2[3];
-        real8   cellLength, cutoffLength1, cutoffLength2;
+        real8   cellLength, cutoffLength1, cutoffLength2, lamp;
         real8   vec1x, vec1y, vec1z;
         real8   vec2x, vec2y, vec2z;
         real8   vec3x, vec3y, vec3z;
@@ -210,6 +210,10 @@ static void MeshCoarsen(Home_t *home)
             hasRemoteNbr  = (node->myTag.domainID != nbr1->myTag.domainID);
             hasRemoteNbr |= (node->myTag.domainID != nbr2->myTag.domainID);
             
+            GetArmGrain(home, nbr1, node, armInGrain1, armOnGB1);
+            GetArmGrain(home, nbr2, node, armInGrain2, armOnGB2);
+
+            lamp = MIN(LengthAmplification(home, armInGrain1, armOnGB1), LengthAmplification(home, armInGrain2, armOnGB2));
 #ifdef DEBUG
             bool smallSegOnTB = NodeDistance(home, nbr1,nbr2)<param->minSeg*0.5 && IsOnGB(node) && IsOnGB(nbr1) && IsOnGB(nbr2);
             if(smallSegOnTB){
@@ -272,7 +276,7 @@ static void MeshCoarsen(Home_t *home)
                 int   connectionID; 
                 if ((r1 < 1.0) ||
                     (r2 < 1.0) ||
-                    ((MAX(r1, r2) < MAX(1.0, 0.20 * param->minSeg) &&
+                    ((MAX(r1, r2) < MAX(1.0, 0.20 * param->minSeg * lamp) &&
                      (Connected(nbr1, nbr2, &connectionID))))) {
                     violateGlidePlanesOK = 1;
                 }
@@ -430,8 +434,8 @@ static void MeshCoarsen(Home_t *home)
  *          node should be removed.
  */
 
-            if (((area2 < areaMin2) && (darea2dt < 0.0)) ||
-                ((r1 < param->minSeg) || (r2 < param->minSeg))) {
+            if (((area2 < areaMin2 * lamp *lamp) && (darea2dt < 0.0)) ||
+                ((r1 < param->minSeg * lamp) || (r2 < param->minSeg * lamp))) {
         
                 EstCoarsenForces(home, nbr1, node, nbr2, f0seg1, f1seg1);
         
@@ -475,8 +479,6 @@ static void MeshCoarsen(Home_t *home)
                 oldTag3 = nbr2->myTag;
                                   
                 if(IsOnGB(node)){
-                    GetArmGrain(home, nbr1, node, armInGrain1, armOnGB1);
-                    GetArmGrain(home, nbr2, node, armInGrain2, armOnGB2);
                     if(!violateGlidePlanesOK){
                         if(armOnGB1 != armOnGB2)continue;
                         if(armInGrain1 != armInGrain2)continue;
@@ -499,7 +501,7 @@ static void MeshCoarsen(Home_t *home)
  *              operation, attempt to merge the nodes.
  */
                 if (((nbr1->flags & NO_MESH_COARSEN) == 0) &&
-                    (!(violateGlidePlanesOK==1 && r1 >= 0.2*param->minSeg)) && 
+                    (!(violateGlidePlanesOK==1 && r1 >= 0.2*param->minSeg*lamp)) && 
                     (!(IsOnGB(node) && IsOnGB(nbr2) && !IsOnGB(nbr1)))){
                     newPos[0] = nbr1->x;
                     newPos[1] = nbr1->y;
@@ -568,7 +570,7 @@ static void MeshCoarsen(Home_t *home)
 #endif
                 if (mergeDone == 0) {
                     if (((nbr2->flags & NO_MESH_COARSEN) == 0) &&
-                        (!(violateGlidePlanesOK==1 && r2 >= 0.2*param->minSeg)) && 
+                        (!(violateGlidePlanesOK==1 && r2 >= 0.2*param->minSeg*lamp)) && 
                         (!(IsOnGB(node) && IsOnGB(nbr1) && !IsOnGB(nbr2)))){
                         newPos[0] = nbr2->x;
                         newPos[1] = nbr2->y;
@@ -872,6 +874,7 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
         Tag_t   oldTag1, oldTag2;
         Node_t  *node, *splitNode1, *splitNode2;
         Param_t *param;
+        real8   lamp;
 
         thisDomain = home->myDomain;
         param = home->param;
@@ -879,6 +882,9 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
         armCount = 1;
         didBisect = 0;
         node = *origNode;
+        int armInGrain, armOnGB;
+        GetArmGrain(home, nbr, node, armInGrain, armOnGB);
+        lamp = LengthAmplification(home, armInGrain, armOnGB);
 
 #if 0
 /*
@@ -906,9 +912,9 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
  */
 
 		
-        if ((segLen > param->maxSeg) ||
-            ((area2 > areaMax2) &&
-             (segLen >= param->minSeg * 2.0) &&
+        if ((segLen > param->maxSeg * lamp) ||
+            ((area2 > areaMax2 * lamp*lamp) &&
+             (segLen >= param->minSeg * 2.0 * lamp) &&
              (darea2dt >= 0.0))) {
 /*
  *          When bisecting a segment, we always move exactly one arm
@@ -1060,7 +1066,8 @@ static void MeshRefine(Home_t *home)
         Param_t *param;
 
         real8 oldSeg[6], newSeg[9], curSeg[3];
-
+        real8 lamp;
+        int armInGrain, armOnGB;
 
 /*
  *      Initialize some of the constants we'll need during this call.
@@ -1286,8 +1293,9 @@ static void MeshRefine(Home_t *home)
                     ZImage(param, &vec1[0], &vec1[1], &vec1[2]);
         
                     r1 = vec1[0]*vec1[0] + vec1[1]*vec1[1] + vec1[2]*vec1[2];
-        
-                    if (r1 > maxSeg2) {
+                    GetArmGrain(home, nbr1, node, armInGrain, armOnGB);
+                    lamp = LengthAmplification(home, armInGrain, armOnGB);
+                    if (r1 > maxSeg2 *lamp*lamp) {
         
                         newPos[0] = node->x + (vec1[0] * 0.5);
                         newPos[1] = node->y + (vec1[1] * 0.5);

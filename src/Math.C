@@ -560,3 +560,88 @@ bool FourPointCoplanar(double x1, double y1, double z1, double x2, double y2, do
     if(fabs(PointPlaneDistance(p,n,cen)) < err)return true;
     return false; 
 }
+
+bool IntersectionOfRayBox(double *p1, double *p2, double *box){
+    int type=NO_INTERSECTION; 
+    double n[3], p[3], sign;
+    for(int i=0;i<6;i++){
+        sign = ((i%2)==0?-1.0:1.0);
+        n[0]=0.0; n[1]=0.0; n[2]=0.0;
+        p[0]=0.0; p[1]=0.0; p[2]=0.0;
+        n[i/2]=sign;
+        p[i/2]=box[i];
+        type |= SegmentPlaneIntersection(p1,p2,n,p,p2);
+    }
+    return type;
+}
+bool IntersectionOfRayBox(double *p1, double *p2, double *box, double *intersection){
+    VECTOR_COPY(intersection,p2);
+    int type=NO_INTERSECTION; 
+    double n[3], p[3], sign;
+    for(int i=0;i<6;i++){
+        sign = ((i%2)==0?-1.0:1.0);
+        n[0]=0.0; n[1]=0.0; n[2]=0.0;
+        p[0]=0.0; p[1]=0.0; p[2]=0.0;
+        n[i/2]=sign;
+        p[i/2]=box[i];
+        type |= SegmentPlaneIntersection(p1,intersection,n,p,intersection);
+    }
+    return type;
+}
+
+/** Decompose segment in a box
+ *  \param[in] x1,y1,z1 coordinate of first point on the segement
+ *  \param[in] x2,y2,z2 coordinate of first point on the segement
+ *  \param[in] box the range of box: xmin, xmax, ymin, ymax, zmin, zmax
+ */
+
+double DecomposeSegmentInBox(double *p1, double *p2, double *box)
+{
+    int x1Loc,x2Loc,y1Loc,y2Loc,z1Loc,z2Loc;
+    int xLoc, yLoc, zLoc;
+
+    if(p1[0]<box[0])x1Loc=-1; else if(p1[0]<=box[1])x1Loc=0; else x1Loc=1;
+    if(p2[0]<box[0])x2Loc=-1; else if(p2[0]<=box[1])x2Loc=0; else x2Loc=1;
+    xLoc=x1Loc*x2Loc; if(xLoc>0)return 0.0;
+
+    if(p1[1]<box[2])y1Loc=-1; else if(p1[1]<=box[3])y1Loc=0; else y1Loc=1;
+    if(p2[1]<box[2])y2Loc=-1; else if(p2[1]<=box[3])y2Loc=0; else y2Loc=1;
+    yLoc=y1Loc*y2Loc; if(yLoc>0)return 0.0;
+
+    if(p1[2]<box[4])z1Loc=-1; else if(p1[2]<=box[5])z1Loc=0; else z1Loc=1;
+    if(p2[2]<box[4])z2Loc=-1; else if(p2[2]<=box[5])z2Loc=0; else z2Loc=1;
+    zLoc=z1Loc*z2Loc; if(zLoc>0)return 0.0;
+
+    bool inner1=(x1Loc==0 && y1Loc==0 && z1Loc==0);
+    bool inner2=(x2Loc==0 && y2Loc==0 && z2Loc==0);
+    if((inner1) && (inner2))return 1.0;
+
+    double pos1[3], pos2[3];
+    if(!inner2 && !inner1){
+        IntersectionOfRayBox(p1, p2, box, pos1);
+        IntersectionOfRayBox(p2, p1, box, pos2);
+
+        if(InBox(pos1,box,-1E-2)==false || InBox(pos2,box,-1E-2)==false){
+
+        printf("ski pouter %f %f {%f,%f,%f}-{%f,%f,%f}--{%f,%f,%f}-{%f,%f,%f}\n",
+                normal(pos1[0]-pos2[0], pos1[1]-pos2[1], pos1[2]-pos2[2]), normal(p1[0]-p2[0],p1[1]-p2[1],p1[2]-p2[2]),
+                p1[0],p1[1],p1[2],pos1[0],pos1[1],pos1[2],
+                pos2[0],pos2[1],pos2[2],p2[0],p2[1],p2[2]);
+            return 0.0;
+        }
+
+        printf("outer %f %f {%f,%f,%f}-{%f,%f,%f}--{%f,%f,%f}-{%f,%f,%f}\n",
+                normal(pos1[0]-pos2[0], pos1[1]-pos2[1], pos1[2]-pos2[2]), normal(p1[0]-p2[0],p1[1]-p2[1],p1[2]-p2[2]),
+                p1[0],p1[1],p1[2],pos1[0],pos1[1],pos1[2],
+                pos2[0],pos2[1],pos2[2],p2[0],p2[1],p2[2]);
+    }else if(inner2){
+        VECTOR_COPY(pos1,p2); VECTOR_COPY(pos2, p1);
+        IntersectionOfRayBox(pos1,pos2,box);
+        printf("inner2 %f %f\n",normal(pos1[0]-pos2[0], pos1[1]-pos2[1], pos1[2]-pos2[2]), normal(p1[0]-p2[0],p1[1]-p2[1],p1[2]-p2[2]));
+    }else{
+        VECTOR_COPY(pos1,p1); VECTOR_COPY(pos2, p2);
+        IntersectionOfRayBox(pos1,pos2,box);
+        printf("inner1 %f %f\n",normal(pos1[0]-pos2[0], pos1[1]-pos2[1], pos1[2]-pos2[2]), normal(p1[0]-p2[0],p1[1]-p2[1],p1[2]-p2[2]));
+    }
+    return normal(pos1[0]-pos2[0], pos1[1]-pos2[1], pos1[2]-pos2[2])/normal(p1[0]-p2[0],p1[1]-p2[1],p1[2]-p2[2]);
+}

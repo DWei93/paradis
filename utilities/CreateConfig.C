@@ -583,7 +583,7 @@ void CreatePrismaticLoop(Home_t *home, InData_t *inData, int cubeLength,
  */
             if (lastBlock) {
                 IncDislocationDensity(inData, totDislocLen);
-                InitRemesh(inData, dislocType, startRemeshIndex);
+                InitRemesh(home, inData, dislocType, startRemeshIndex);
                 param->nodeCount = inData->nodeCount;
                 WriteInitialNodeData(home, inData, lastBlock);
                 FreeInNodeArray(inData, inData->nodeCount);
@@ -854,7 +854,7 @@ void CreateScrewConfig(Home_t *home, InData_t *inData, int cubeLength,
  *          When we've generated the nodal data for the final chain,
  *          write the current block of nodal data to the file.
  */
-            InitRemesh(inData, dislocType, startRemeshIndex);
+            InitRemesh(home, inData, dislocType, startRemeshIndex);
 
             lastBlock = (ic == numChains - 1);
             if (lastBlock) {
@@ -1058,7 +1058,7 @@ void CreateFCCIrradConfig(Home_t *home, InData_t *inData, int cubeLength,
  *          exceeds the threshhold write the current block of nodal data
  *          to the file.
  */
-            InitRemesh(inData, dislocType, startRemeshIndex);
+            InitRemesh(home, inData, dislocType, startRemeshIndex);
 
 /*
  *          We won't write nodal data out here, but rather after the
@@ -1169,7 +1169,7 @@ void CreateFCCIrradConfig(Home_t *home, InData_t *inData, int cubeLength,
  *          When we've generated the nodal data for the final chain,
  *          write the block of nodal data to the file.
  */
-            InitRemesh(inData, dislocType, startRemeshIndex);
+            InitRemesh(home, inData, dislocType, startRemeshIndex);
 
             lastBlock = (ic == (numLoops - 1));
             if (lastBlock) {
@@ -1857,7 +1857,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
  *              When we've generated the nodal data for the final chain,
  *              write the block of nodal data to the file.
  */	         
-                InitRemesh(inData, dislocType, startRemeshIndex);
+                InitRemesh(home, inData, dislocType, startRemeshIndex);
 //                lastBlock = (chain == (numSources - 1));
              
                
@@ -2162,7 +2162,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, int cubeLength,
  *          When we've generated the nodal data for the final chain,
  *          write the block of nodal data to the file.
  */
-            InitRemesh(inData, dislocType, startRemeshIndex);
+            InitRemesh(home, inData, dislocType, startRemeshIndex);
 
             lastBlock = (ic == (numChains - 1));
             if (lastBlock) {
@@ -2675,7 +2675,7 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
  *          When we've generated the nodal data for the final chain,
  *          write the block of nodal data to the file.
  */
-            InitRemesh(inData, dislocType, startRemeshIndex);
+            InitRemesh(home, inData, dislocType, startRemeshIndex);
 
             lastBlock = (chain == (numChains - 1));
 
@@ -2879,7 +2879,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         BurgInfo_t  *bd, *gbd;
         GB_t        *gb;
         Grain_t     *grain;
-        	
+        real8   margin;	
         real8                                       str[3][3], gbNormal[3];
         int                                         appliedDir, j, k;
         real8                                       sign;
@@ -2933,8 +2933,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         param = inData->param;
         d = inArgs->deltaNums;
         cubeSize	=	(real8)cubeLength;
-        if(srcLenMax<0) {srcLenMax = -srcLenMax; srcLenType = 2;} 
-        if(srcLenMin<0) {srcLenMin = -srcLenMin; srcLenType = 2;}
+        if(srcLenMax<10)  srcLenType = 2; 
+        if(srcLenMin<10)  srcLenType = 2;
         lenRange = srcLenMax - srcLenMin;
 
         bool freeLine=(param->xBoundType != Periodic && param->yBoundType != Periodic && param->zBoundType != Periodic);
@@ -3077,6 +3077,22 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         for(i=1;i<nSlips;i++)Proba[i]+=Proba[i-1];
         for(i=0;i<nSlips;i++)Proba[i]/=Proba[nSlips-1];
         
+        int     ranGrain;
+        real8   lowerBound, totPor;
+        std::vector<real8> posProba;
+        if(param->multilayer){
+            posProba.resize(home->nGrains);
+            real8 totPor=0.0;
+            for(i=0;i<home->nGrains;i++){
+                totPor += 1.0/LengthAmplification(home, i, -1);
+                posProba[i] = totPor;
+            }
+            j=0;
+            for (i=0;i<home->nGrains; i++){
+                posProba[i] /= totPor;
+            }
+        }
+
         for (layer = 0; layer < nLayers; layer++) {
 	        if(finish)break;
             xn = layer * d + x0; if(xn <= 0){xn = 0; printf("layer %d: xn=%d\n",layer,xn); continue; }
@@ -3097,9 +3113,20 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                     if(singleSrcTest){
                         VECTOR_COPY(p0,inArgs->pos);
                     }else{
-                        p1[0] = (randm(&seed)-0.5) * cubeSize;
-                        p1[1] = (randm(&seed)-0.5) * cubeSize;			
-                        p1[2] = randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
+                        p1[0] = (randm(&seed)-0.5) * cubeSize*0.99;
+                        p1[1] = (randm(&seed)-0.5) * cubeSize*0.99;			
+
+                        if(param->multilayer){
+                            randmVal = randm(&seed);
+                            for(i=0;i<home->nGrains;i++)if(randmVal<posProba[i]&& (randmVal>((i==0)?0:posProba[i-1]))){
+                                ranGrain = i; break;
+                            }
+                            lowerBound = (i==0)?param->zBoundMin:home->tbPosz[i-1];
+                            
+                            p1[2] = 0.99*randm(&seed)*(home->tbPosz[i]-lowerBound) + lowerBound;
+                        }else{
+                            p1[2] = 0.99*randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
+                        }
                     }
                     NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1,2);
                     if(srcLenType==1 && !InCuboid(param, p1, -param->maxSeg))goto RandomPosition;
@@ -3147,8 +3174,14 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                         for(i = 0; i < 3; i++){
                             randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
                         }
-                        if(polycrystal>0 && gpIndex != 3){
-                            edge = home->grainKeys[inGrain]->thick/0.942809;
+                        if(polycrystal>0){
+                            if(onGB==-1){
+                                edge = home->grainKeys[inGrain]->thick;
+                            }else{
+                                edge = home->grainKeys[onGB]->thick;
+                                edge += home->grainKeys[(onGB<home->nGrains-1)?onGB+1:0]->thick;
+                                edge *= 0.5;
+                            }
                         }else edge = cubeLength;
                         NormalizeVec(randomLine);
 /*           
@@ -3227,33 +3260,22 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                 for(i = 0; i < 3; i++){
                                     randomLine[i] = n1[i] * sin(randomAngle) + intDir[i] * cos(randomAngle);
                                 }
+                                j=0;
                                 for(i=0;i<grain->nBounds;i++){
                                     gb = grain->GB[i];
-                                    gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
-                                    gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
-                                    gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
-                                
-                                    if(DotProduct(gbNormal,randomLine)<0){
-                                        VECTOR_COPY(vec2, gb->p);
-                                        PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                    gbNormal[0] = gb->n[0];
+                                    gbNormal[1] = gb->n[1];
+                                    gbNormal[2] = gb->n[2];
+                                    VECTOR_COPY(vec2, gb->p);
+                                    PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                    if(j==0){
                                         LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p1);
                                         inGrain1=-1; onGB1 = gb->GBID;
-                                        break;
-                                    }
-                                }
-                                if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
-                                
-                                for(i=0;i<grain->nBounds;i++){
-                                    gb = grain->GB[i];
-                                    gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
-                                    gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
-                                    gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
-                                
-                                    if(DotProduct(gbNormal,randomLine)>0){
-                                        VECTOR_COPY(vec2, gb->p);
-                                        PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                        j=1;
+                                    }else{
                                         LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p2);
                                         inGrain2=-1; onGB2 = gb->GBID;
+                                        j=1;
                                         break;
                                     }
                                 }
@@ -3274,33 +3296,22 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                         randomLine[i] = n1[i] * sin(randomAngle) + b[i] * cos(randomAngle);
                                     }
                                 
+                                    j=0;
                                     for(i=0;i<grain->nBounds;i++){
                                         gb = grain->GB[i];
-                                        gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
-                                        gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
-                                        gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
-                                    
-                                        if(DotProduct(gbNormal,randomLine)<0){
-                                            VECTOR_COPY(vec2, gb->p);
-                                            PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                        gbNormal[0] = gb->n[0];
+                                        gbNormal[1] = gb->n[1];
+                                        gbNormal[2] = gb->n[2];
+                                        VECTOR_COPY(vec2, gb->p);
+                                        PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                        if(j==0){
                                             LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p1);
                                             inGrain1=-1; onGB1 = gb->GBID;
-                                            break;
-                                        }
-                                    }
-                                    if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
-                                
-                                    for(i=0;i<grain->nBounds;i++){
-                                        gb = grain->GB[i];
-                                        gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
-                                        gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
-                                        gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
-                                    
-                                        if(DotProduct(gbNormal,randomLine)>0){
-                                            VECTOR_COPY(vec2, gb->p);
-                                            PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                            j=1;
+                                        }else{
                                             LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p2);
                                             inGrain2=-1; onGB2 = gb->GBID;
+                                            j=1;
                                             break;
                                         }
                                     }
@@ -3308,15 +3319,15 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                 }else if(!(onGB1<0 && inGrain1==inGrain0)){
                                     for(i=0;i<grain->nBounds;i++){
                                         gb = grain->GB[i];
-                                        gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
-                                        gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
-                                        gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
-                                    
-                                        if(DotProduct(gbNormal,randomLine)<0){
-                                            VECTOR_COPY(vec2, gb->p);
-                                            PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
-                                            LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p1);
-                                            inGrain1=-1; onGB1 = gb->GBID;
+                                        gbNormal[0] = gb->n[0];
+                                        gbNormal[1] = gb->n[1];
+                                        gbNormal[2] = gb->n[2];
+                                        VECTOR_COPY(vec2, gb->p);
+                                        PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+
+                                        if(POINT_INTERSECTION==SegmentPlaneIntersection(p0,p1,gbNormal,vec2,vec1)){
+                                            inGrain1 =-1; onGB1=gb->GBID;
+                                            VECTOR_COPY(p1,vec1);
                                             break;
                                         }
                                     }
@@ -3324,15 +3335,15 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                 }else if(!(onGB2<0 && inGrain2==inGrain0)){
                                     for(i=0;i<grain->nBounds;i++){
                                         gb = grain->GB[i];
-                                        gbNormal[0] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[0];
-                                        gbNormal[1] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[1];
-                                        gbNormal[2] = (grain->type==FOLDED_GRAIN?-1:1)*grain->sign[i]*gb->n[2];
-                                    
-                                        if(DotProduct(gbNormal,randomLine)>0){
-                                            VECTOR_COPY(vec2, gb->p);
-                                            PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
-                                            LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p2);
-                                            inGrain2=-1; onGB2 = gb->GBID;
+                                        gbNormal[0] = gb->n[0];
+                                        gbNormal[1] = gb->n[1];
+                                        gbNormal[2] = gb->n[2];
+                                        VECTOR_COPY(vec2, gb->p);
+                                        PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+
+                                        if(POINT_INTERSECTION==SegmentPlaneIntersection(p0,p2,gbNormal,vec2,vec1)){
+                                            inGrain2 =-1; onGB2=gb->GBID; 
+                                            VECTOR_COPY(p2,vec1);
                                             break;
                                         }
                                     }
@@ -3702,7 +3713,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
  *              When we've generated the nodal data for the final chain,
  *              write the block of nodal data to the file.
  */	         
-                InitRemesh(inData, dislocType, startRemeshIndex);
+                InitRemesh(home, inData, dislocType, startRemeshIndex);
 //                lastBlock = (chain == (numSources - 1));
              
                
@@ -3909,7 +3920,7 @@ void CreateEdges(Home_t *home, InData_t *inData, int cubeLength,
  *          When we've generated the nodal data for the final chain,
  *          write the current block of nodal data to the file.
  */
-            InitRemesh(inData, dislocType, startRemeshIndex);
+            InitRemesh(home, inData, dislocType, startRemeshIndex);
 			
             lastBlock = (ic == numChains - 1);
             if (lastBlock) {
@@ -4529,7 +4540,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
         }
 
 	    IncDislocationDensity(inData, startRemeshIndex, totDislocLen);
-        InitRemesh(inData, 0, startRemeshIndex);
+        InitRemesh(home, inData, 0, startRemeshIndex);
         baseNodeID = inData->nodeCount;
         startRemeshIndex = baseNodeID;
     } 
@@ -4545,7 +4556,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
 
 void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen)
 {
-        int      i, lineIndex, chain, baseNodeID, numPoints=3,ranNum;
+        int      i, lineIndex, chain, baseNodeID, numPoints=3,ranNum, ranGrain;
         int      newNodeIndex, lastBlock, burgIndex;
         int      isScrew, gpIndex, gpBurgIndex;
         int      x0, d, nLayers, xn, layer, time;
@@ -4591,6 +4602,7 @@ void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, rea
         normalABC[1] = 1;
         normalABC[2] = 1;
 
+        real8   lowerBound;
 
 
 /*
@@ -4689,6 +4701,20 @@ void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, rea
         for(i=1;i<nSlips;i++)Proba[i]+=Proba[i-1];
         for(i=0;i<nSlips;i++)Proba[i]/=Proba[nSlips-1];
         
+        std::vector<real8> posProba;
+        if(param->multilayer){
+            posProba.resize(home->nGrains);
+            real8 totPor=0.0;
+            for(i=0;i<home->nGrains;i++){
+                totPor += 1.0/LengthAmplification(home, i, -1);
+                posProba[i] = totPor;
+            }
+            j=0;
+            for (i=0;i<home->nGrains; i++){
+                posProba[i] /= totPor;
+            }
+        }
+
         for (layer = 0; layer < nLayers; layer++) {
 
 	        if(finish)break;
@@ -4701,12 +4727,14 @@ void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, rea
             	
             for(chain = 0; chain < xn; ){
  
-
                 if(xn > nSlips && chain < nSlips && (2*maxDensity*volume*burgMag*burgMag/srcLenMax > nSlips)){
                     ranNum = chain%nSlips;
                 }else{
                     randmVal= randm(&seed);
-                    for(i=0;i<nSlips;i++)if(randmVal<Proba[i]&& (randmVal>((i==0)?0:Proba[i-1])) )ranNum=i;
+                    for(i=0;i<nSlips;i++)if(randmVal<Proba[i]&& (randmVal>((i==0)?0:Proba[i-1])) ){
+                        ranNum = i;
+                        break;
+                    }
                 }
                 gpBurgIndex = slip_sys[ranNum][0]; gpIndex=slip_sys[ranNum][1];
     
@@ -4714,7 +4742,18 @@ void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, rea
                 while(!finished){
                     p1[0] = (randm(&seed)-0.5) * cubeSize*0.99;
                     p1[1] = (randm(&seed)-0.5) * cubeSize*0.99;			
-                    p1[2] = 0.99*randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
+
+                    if(param->multilayer){
+                        randmVal = randm(&seed);
+                        for(i=0;i<home->nGrains;i++)if(randmVal<posProba[i]&& (randmVal>((i==0)?0:posProba[i-1]))){
+                            ranGrain = i; break;
+                        }
+                        lowerBound = (i==0)?param->zBoundMin:home->tbPosz[i-1];
+                        
+                        p1[2] = 0.99*randm(&seed)*(home->tbPosz[i]-lowerBound) + lowerBound;
+                    }else{
+                        p1[2] = 0.99*randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
+                    }
 
                     NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1,15);
                     bd = GetBurgData(home, inGrain1, onGB1);
@@ -5093,7 +5132,7 @@ void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, rea
  *              When we've generated the nodal data for the final chain,
  *              write the block of nodal data to the file.
  */	         
-                InitRemesh(inData, dislocType, startRemeshIndex);
+                InitRemesh(home, inData, dislocType, startRemeshIndex);
 //                lastBlock = (chain == (numSources - 1));
              
                

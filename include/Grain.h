@@ -198,6 +198,7 @@ struct _grain{
 	real8	    orientationInv[3][3];
     real8       maxSchmid;
     real8       thick;
+    real8       lenAmpl;
     int         grainID;
 	int		    type;	/*0: folded grain*/
 					    /*1: ordinary grain*/
@@ -310,6 +311,7 @@ void GetArmGrain(Home_t *home, Node_t *node1, Node_t *node2, int &inGrain, int &
 int	IsZeroVector(real8 *vec);
 
 int  Coor2EleNum(Home_t *home,real8 position[3]);
+int Coor2EleNum(Home_t *home, real8 position[3], int &nx, int &ny, int &nz);
 void AdjustSurfaceNode(Home_t *home);
 int SameTag(Tag_t *tag1, Tag_t *tag2);
 
@@ -362,4 +364,6 @@ void GlidePlanesInNeighborGrain(Home_t *home, real8 *n, real8 *p, std::vector<re
 void DrawGlidePlanes(FILE *fp, char *zoneName, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<int> &info);
 void DrawGlidePlanes(FILE *fp, char *zoneName, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<real8> &info);
 Decom_t *GetDecompositionResults(BurgInfo_t *gbd, int burgID, int keyLineID);
+real8 LengthAmplification(Home_t *home, int inGrain, int onGB);
+void DecomposeSegmentInRubik(Home_t *home, int nx, int ny, int nz, real8 node1Pos[3], real8 node2Pos[3], real8 length[27], int eleID[27]);
 #endif
