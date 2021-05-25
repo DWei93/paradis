@@ -1858,10 +1858,10 @@ void Initialize(Home_t *home,int argc, char *argv[])
              }
              layerPosz.back()-=tbThick;
 
-///          printf("Layer %d: ",int(layerPosz.size()));
-///          for(i=0;i<layerPosz.size();i++)printf(" %f",layerPosz[i]);
-///          printf("\n");
-///          Fatal("Finish Test");
+         //  printf("Layer %d: ",int(layerPosz.size()));
+         //  for(i=0;i<layerPosz.size();i++)printf(" %f",layerPosz[i]);
+         //  printf("\n");
+         //  Fatal("Finish Test");
             param->meshNumZ = int(layerPosz.size());
             home->layerPosz = (real8 *)malloc(sizeof(real8)*param->meshNumZ);
             for(i=0;i<param->meshNumZ;i++)home->layerPosz[i]=layerPosz[i];

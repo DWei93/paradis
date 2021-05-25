@@ -2212,7 +2212,7 @@ int Coor2EleNum(Home_t *home, real8 position[3], int &nx, int &ny, int &nz)
     real8 *layerPosz = home->layerPosz;
     if(position[2]<=layerPosz[0]){
         nz = 0;
-    }else if(position[2] >= layerPosz[param->meshNumZ]-1){
+    }else if(position[2] >= layerPosz[param->meshNumZ-1]){
         nz = param->meshNumZ-1;
     }else{
         int first=0, last=param->meshNumZ-1, mid=(last+first)/2;
@@ -4520,6 +4520,52 @@ real8 LengthAmplification(Home_t *home, int inGrain, int onGB)
     return 1.0;
 }
 
+bool GetElementID(Param_t *param, int nx, int ny, int nz, int &eleID)
+{
+    if(nx<0){
+        if(param->xBoundType == Periodic){
+            nx+=param->meshNumX;
+        }else{
+            return false;
+        }
+    }else if(nx>param->meshNumX-1){
+        if(param->xBoundType == Periodic){
+            nx-=param->meshNumX;
+        }else{
+            return false;
+        }
+    }
+
+    if(ny<0){
+        if(param->yBoundType == Periodic){
+            ny+=param->meshNumY;
+        }else{
+            return false;
+        }
+    }else if(ny>param->meshNumY-1){
+        if(param->xBoundType == Periodic){
+            ny-=param->meshNumY;
+        }else{
+            return false;
+        }
+    }
+
+    if(nz<0){
+        if(param->zBoundType == Periodic){
+            nz+=param->meshNumZ;
+        }else{
+            return false;
+        }
+    }else if(nz>param->meshNumZ-1){
+        if(param->zBoundType == Periodic){
+            nz-=param->meshNumZ;
+        }else{
+            return false;
+        }
+    }
+    eleID = nz*param->meshNumX*param->meshNumY + ny*param->meshNumX + nx;
+    return true;
+}
 bool GetElementBound(Param_t *param, int nx, int ny, int nz, real8 box[6], int &eleID)
 {
     if(nx<0){
@@ -4591,44 +4637,121 @@ bool GetElementBound(Param_t *param, int nx, int ny, int nz, real8 box[6], int &
 void DecomposeSegmentInRubik(Home_t *home, int nx, int ny, int nz, real8 node1Pos[3], real8 node2Pos[3], real8 length[27], int eleID[27])
 {
     Param_t *param = home->param;
-    real8 box[6], lenTot=0.0, len;
-    int i,j,k,l=0;
-    for (i=nx-1; i<nx+2; i++)for(j=ny-1; j<ny+2; j++)for(k=nz-1; k<nz+2; k++){
-        if(GetElementBound(param, i,j,k, box, eleID[l])){
-            len = DecomposeSegmentInBox(node1Pos,node2Pos,box);
-            length[l++] = len;
-            lenTot += len;
-        }else{
-            eleID[l] = 0;
-            length[l++] = 0.0; 
-        }
+    real8   box[6], len;
+    int     currEleID;
+    int     i,j,k,l;
+
+    if(!GetElementBound(param, nx,ny,nz, box, currEleID)){
+        Fatal("%s: can not find the bound of i=%d, j=%d, k=%d",__func__,i,j,k);
     }
 
-    real8 realLen=normal(node1Pos[0]-node2Pos[0], node1Pos[1]-node2Pos[1], node1Pos[2]-node2Pos[2]);
-    if(fabs(1.0-lenTot)>1E-2){
-        FormatVector(node1Pos, "node1 Pos");
-        FormatVector(node2Pos, "node2 Pos");
+    real8 lenX[3], tem[3], lenY[3], tx, ty, tz, uz, lz, lenZ[3];
+    real8 nodeXPos[2][3], uy[2], ly[2], nodeYPos[2][2], m[3][3][3];
+    if(node1Pos[0]>node2Pos[0]){
+        VECTOR_COPY(tem, node2Pos);
+        VECTOR_COPY(node2Pos, node1Pos);
+        VECTOR_COPY(node1Pos, tem);
+    }
+    if(node1Pos[0]>box[1] || node2Pos[0]<box[0]){
+        Fatal("%s: {%f,%f,%f}--{%f,%f,%f} is not in element i=%d,%d,%d",__func__,
+               node1Pos[0],node1Pos[1],node1Pos[2],node2Pos[0],node2Pos[1],node2Pos[2],nx,ny,nz);
+    }
 
-        l=0;
-        for (i=nx-1; i<nx+2; i++)for(j=ny-1; j<ny+2; j++)for(k=nz-1; k<nz+2; k++){
-            if(GetElementBound(param, i,j,k, box, eleID[l])){
-                len = DecomposeSegmentInBox(node1Pos,node2Pos,box);
-                printf("l=%d eleID=%d: i=%d, j=%d, k=%d len=%f box={%.2f,%.2f,%.2f,%.2f,%.2f,%.2f}\n", l, eleID[l], i,j,k,len,box[0],box[1],box[2],box[3],box[4],box[5]);
-                l++;
+    lenX[0] = MAX(box[0]-node1Pos[0],0.0);
+    lenX[2] = MAX(node2Pos[0]-box[1],0.0);
+    len=node2Pos[0]-node1Pos[0];
+    lenX[1] = len-lenX[0]-lenX[2];
+    if(len>1E-10)VectorDivideSelf(lenX,len);
+    else lenX[1]=1.0;
+
+    VECTOR_COPY(nodeXPos[0], node1Pos); tx=0.0;
+    for(i=0;i<3;i++){
+        if(lenX[i]<1.0E-10){
+            m[i][0][0]=0.0E0;m[i][0][1]=0.0E0;m[i][0][2]=0.0E0;
+            m[i][1][0]=0.0E0;m[i][1][1]=0.0E0;m[i][1][2]=0.0E0;
+            m[i][2][0]=0.0E0;m[i][2][1]=0.0E0;m[i][2][2]=0.0E0;
+            continue;
+        }
+        tx+=lenX[i];
+        CoordAdd(1.0-tx,node1Pos,tx,node2Pos,nodeXPos[1]);
+        if(nodeXPos[1][1]<nodeXPos[0][1]){uy[0]=nodeXPos[0][1]; uy[1]=nodeXPos[0][2]; ly[0]=nodeXPos[1][1];ly[1]=nodeXPos[1][2];}
+        else{ly[0]=nodeXPos[0][1];ly[1]=nodeXPos[0][2]; uy[0]=nodeXPos[1][1]; uy[1]=nodeXPos[1][2];}
+        if(uy[0]<box[2]){
+            lenY[0]=1.0; lenY[1]=0.0; lenY[2]=0.0;
+        }else if(ly[0]>box[3]){
+            lenY[0]=0.0; lenY[1]=0.0; lenY[2]=1.0;
+        }else{
+            lenY[0] = MAX(box[2]-ly[0],0.0);
+            lenY[2] = MAX(uy[0]-box[3],0.0);
+            len=uy[0]-ly[0];
+            lenY[1] = len-lenY[0]-lenY[2];
+            if(len>1E-10)VectorDivideSelf(lenY,len);
+            else lenY[1] = 1.0;
+        }
+        ty = 0.0;
+        nodeYPos[0][0]=ly[0]; nodeYPos[0][1]=ly[1];
+        for(j=0;j<3;j++){
+            if(lenY[j]<1.0E-10){
+                VECTOR_ZERO(m[i][j]); continue;
+            }
+            ty+=lenY[j];
+            nodeYPos[1][0]=(1.0-ty)*ly[0]+ty*uy[0]; 
+            nodeYPos[1][1]=(1.0-ty)*ly[1]+ty*uy[1]; 
+
+            if(nodeYPos[0][1]>nodeYPos[1][1]){
+                uz=nodeYPos[0][1]; lz=nodeYPos[1][1];
             }else{
-                printf("l=%d: i=%d, j=%d, k=%d skip\n", l, i,j,k);
-                l++;
+                uz=nodeYPos[1][1]; lz=nodeYPos[0][1];
+            }
+
+            if(uz<box[4]){
+                lenZ[0]=1.0; lenZ[1]=0.0; lenZ[2]=0.0;
+            }else if(lz>box[5]){
+                lenZ[0]=0.0; lenZ[1]=0.0; lenZ[2]=1.0;
+            }else{
+                lenZ[0] = MAX(box[4]-lz,0.0);
+                lenZ[2] = MAX(uz-box[5],0.0);
+                len=uz-lz;
+                lenZ[1] = len-lenZ[0]-lenZ[2];
+                if(len>1E-10){lenZ[0]/=len; lenZ[1]/=len; lenZ[2]/=len;}
+                else lenZ[1] = 1.0;
+            }
+            for(k=0;k<3;k++){
+                if(lenZ[k]<1.0E-10)m[i][j][k]=0.0;
+                else m[i][j][k] = lenX[i]*lenY[j]*lenZ[k];
+            }
+           
+            nodeYPos[0][0] = nodeYPos[1][0];
+            nodeYPos[0][1] = nodeYPos[1][1];
+        }
+    
+        VECTOR_COPY(nodeXPos[0],nodeXPos[1]);
+    }
+
+    l=0; real8 tot=0.0;
+    for(i=0;i<3;i++){
+        for(j=0;j<3;j++)for(k=0;k<3;k++){
+            if(GetElementID(param, (nx-1+i), (ny-1+j), (nz-1+k), eleID[l])){
+                length[l++] = m[i][j][k];
+                tot+=m[i][j][k];
+            }else{
+                eleID[l] = 0;
+                length[l++] = 0.0;
             }
         }
-        Fatal("%s: realLen=%f lenTot=%f deltaLen=%f\n",__func__, realLen, lenTot, realLen-lenTot);
-    }else{
-        printf("skip!!\n");
     }
-
-#if 0
-    printf("%s %d:",__func__,param->meshNumX*param->meshNumZ*param->meshNumY);
-    for(l=0;l<27;l++)printf("%f,%d ",length[l],eleID[l]); 
-    printf("\n");
-#endif
+    if(fabs(tot-1.0)>1E-1){
+        for(k=0;k<3;k++){
+            printf("k=%d[%d]: ",k,k+nz-1);
+            for(i=0;i<3;i++)for(j=0;j<3;j++){
+                printf("%f[%d,%d] ",m[i][j][k],i+nx-1,j+ny-1);
+            }
+            printf("\n");
+        }
+        Fatal("%s 2: {%f,%f,%f}--{%f,%f,%f} is not in element i=%d,%d,%d, box={%f,%f,%f,%f,%f,%f}",__func__,
+               node1Pos[0],node1Pos[1],node1Pos[2],node2Pos[0],node2Pos[1],node2Pos[2],nx,ny,nz,
+               box[0],box[1],box[2],box[3],box[4],box[5]);
+    }
+    
     return;
 }

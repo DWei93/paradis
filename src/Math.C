@@ -618,6 +618,9 @@ double DecomposeSegmentInBox(double *p1, double *p2, double *box)
 
     double pos1[3], pos2[3];
     if(!inner2 && !inner1){
+/*
+ *      FIXME: cannot effectively solve the situation where both of these points are outside the box 
+ */
         IntersectionOfRayBox(p1, p2, box, pos1);
         IntersectionOfRayBox(p2, p1, box, pos2);
 

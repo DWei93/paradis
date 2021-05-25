@@ -753,7 +753,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	int      i, j, k;
 	int      newNodeKeyPtr;
 	int	     eleNum,iBurg;
-	real8    prx,pry,prz,burg[3];
+	real8    pr[3],burg[3];
 	real8    bX, bY, bZ;
 	real8    Lx, Ly, Lz;
 	real8	 midPos[3],deltDen[27];
@@ -876,21 +876,10 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 
             VectorCopy(nodePos, node->x, node->y, node->z);
             VectorCopy(nbrPos, nbrNode->x, nbrNode->y, nbrNode->z);
-
-
-			prx = nbrNode->x - node->x;
-			pry = nbrNode->y - node->y;
-			prz = nbrNode->z - node->z;
-			
-			if (param->xBoundType == Periodic) prx = prx - Lx*rint(prx/Lx);
-			if (param->yBoundType == Periodic) pry = pry - Ly*rint(pry/Ly);
-			if (param->zBoundType == Periodic) prz = prz - Lz*rint(prz/Lz);
-			
-			midPos[0] = node->x + prx*0.5;
-			midPos[1] = node->y + pry*0.5;
-			midPos[2] = node->z + prz*0.5;
-            disLen = normal(prx,pry,prz);
-
+            CoordMinus(nbrPos,nodePos, pr);
+            ZImage(param, pr, pr+1, pr+2);
+            disLen = Normal(pr);
+            CoordAdd(1.0,nodePos,0.5,pr,midPos);
 			FoldBox(param,&midPos[0],&midPos[1],&midPos[2]);
 			
 			eleNum = Coor2EleNum(home, midPos, nx, ny, nz);
@@ -937,9 +926,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
     }
 #endif
 
-    printf("%s -10\n",__func__);
 	if (firstInGroup) {
-    printf("%s -9\n",__func__);
 	
 //	    fprintf(fpEle,"solutiontime = %e\n", param->timeNow);
 	    fprintf(fpEle, "Variables = \"X\", \"Y\", \"Z\",\"plaStn"
@@ -947,7 +934,6 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	    fprintf(fpEle, "Zone T = \"%d\", SOLUTIONTIME = %d, I = %d, J = %d, K = %d\n",
 				home->cycle, home->cycle,  meshNodeNumX, meshNodeNumY, meshNodeNumZ); 
 
-    printf("%s -8\n",__func__);
 	    for(i=0;i<totEleNum;i++){
 
 			effPlaStn=sqrt((home->pstnEle[i][0]*home->pstnEle[i][0] +
@@ -973,7 +959,6 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 			
 	    }
 
-    printf("%s -7\n",__func__);
 	    for(i=0;i<totNodeNum;i++){
 
 			nx = i%meshNodeNumX;
@@ -1000,25 +985,17 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 
 	    }
 
-    printf("%s -6\n",__func__);
 	    fclose(fpEle);
 	}
 
-    printf("%s 1\n",__func__);
     for(int k=0;k<totNodeNum; k++){
         if(nodeContour[k]!=nullptr)free(nodeContour[k]); nodeContour[k] = NULL;
     }
-    printf("%s 2\n",__func__);
     free(nodeContour);
-    printf("%s 3\n",__func__);
     nodeContour = NULL;
-    printf("%s 4\n",__func__);
 
     free(locVals);
-    printf("%s 5\n",__func__);
     free(gloVals);
-    printf("%s 6\n",__func__);
     free(layerPosz);
-    printf("%s 7\n",__func__);
 	return;
 }
