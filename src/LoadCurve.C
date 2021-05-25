@@ -356,13 +356,15 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 param->appliedStress[4] += dStress *an*al;
                 param->appliedStress[5] += dStress *al*am;
         
-                param->totstraintensor[0] = erate * param->timeNow *  al*al;
-                param->totstraintensor[1] = erate * param->timeNow *  am*am;
-                param->totstraintensor[2] = erate * param->timeNow *  an*an;
-                param->totstraintensor[3] = erate * param->timeNow *  an*am;
-                param->totstraintensor[4] = erate * param->timeNow *  an*al;
-                param->totstraintensor[5] = erate * param->timeNow *  al*am;
+                param->totstraintensor[0] += erate * dtt*  al*al;
+                param->totstraintensor[1] += erate * dtt*  am*am;
+                param->totstraintensor[2] += erate * dtt*  an*an;
+                param->totstraintensor[3] += erate * dtt*  an*am;
+                param->totstraintensor[4] += erate * dtt*  an*al;
+                param->totstraintensor[5] += erate * dtt*  al*am;
 				
+                param->strain += fabs(erate*dtt);
+
                 break;
         
 /*

@@ -357,6 +357,7 @@ struct _param {
         int   tecplot, tecplotfreq, tecplotcounter; 
         int   tecmesh, tecmeshfreq, tecmeshcounter;
         real8 tecplotdt, tecplottime;
+        real8 tecmeshdstrain, tecmeshstrain;
 		
 		
 
@@ -504,6 +505,7 @@ struct _param {
         char    gradientStructure[MAX_STRING_LEN]; 
         bool    multilayer;
         real8   *layerPosz;
+        real8   strain;
 /*
  *		
  */

@@ -230,7 +230,14 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
             if (stage == STAGE_TERM ) {
                 *outputTypes |= GEN_TECMESH_DATA;
             } else if (stage == STAGE_CYCLE || stage == STAGE_DEBUG) {
-                if ((home->cycle % param->tecmeshfreq) == 0 || home->cycle == 1) {
+                if(param->tecmeshdstrain>0 && param->loadType == 1){
+                    dumpTime = param->tecmeshdstrain+param->tecmeshstrain;
+                    if(param->strain>dumpTime || param->strain==0.0E0){
+                        param->tecmeshstrain = param->strain;
+                        param->tecmeshcounter++;
+                        *outputTypes |= GEN_TECMESH_DATA;
+                    }
+                }else if ((home->cycle % param->tecmeshfreq) == 0 || home->cycle == 1) {
                     param->tecmeshcounter++;
                     *outputTypes |= GEN_TECMESH_DATA;
                 }

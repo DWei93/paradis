@@ -448,8 +448,16 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "Flux decomposition",
                 (void *)NULL, V_COMMENT, 1, VFLAG_NULL);
 
-        BindVar(CPList, "totstraintensor", param->totstraintensor, V_DBL, 6,
-                VFLAG_NULL);
+        BindVar(CPList, "totstraintensor", param->totstraintensor, V_DBL, 6,  VFLAG_NULL);
+        param->totstraintensor[0] = 0.0;
+        param->totstraintensor[1] = 0.0;
+        param->totstraintensor[2] = 0.0;
+        param->totstraintensor[3] = 0.0;
+        param->totstraintensor[4] = 0.0;
+        param->totstraintensor[5] = 0.0;
+
+        BindVar(CPList, "strain", &param->strain, V_DBL, 1,  VFLAG_NULL);
+        param->strain = 0.0;
 
         BindVar(CPList, "totpStn", param->totpStn, V_DBL, 6, VFLAG_NULL);
 
@@ -700,6 +708,12 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 
         BindVar(CPList, "tecplottime", &param->tecplottime, V_DBL, 1,
                 VFLAG_NULL);
+
+        BindVar(CPList, "tecmeshdstrain", &param->tecmeshdstrain, V_DBL, 1, VFLAG_NULL);
+        param->tecmeshdstrain = -1.0;
+
+        BindVar(CPList, "tecmeshstrain", &param->tecmeshstrain, V_DBL, 1, VFLAG_NULL);
+        param->tecmeshstrain = 0.0;
 
         BindVar(CPList, "tecplotcounter", &param->tecplotcounter, V_INT, 1,
                 VFLAG_NULL);

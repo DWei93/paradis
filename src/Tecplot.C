@@ -828,7 +828,6 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 
 	/*	Zero the arrays of dislocation density in each element.	*/
 
-
 	for(i=0; i<totEleNum; i++){
 	    home->disDenEle[i][0] = 0.0;
 	    home->disDenEle[i][1] = 0.0;
@@ -927,12 +926,62 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 #endif
 
 	if (firstInGroup) {
+        real8 al,am,an,bl,bm,bn,amag,val;
+        if(param->loadType!=6){
+            al = param->edotdir[0];
+            am = param->edotdir[1];
+            an = param->edotdir[2];
+            
+            amag = sqrt(al*al+am*am+an*an);
+            
+            al /= amag;
+            am /= amag;
+            an /= amag;
+            bl=al; bm=am; bn=an;
+        }else{
+            al = param->loadDir[0];
+            am = param->loadDir[1];
+            an = param->loadDir[2];
+            bl = param->loadDir[3];
+            bm = param->loadDir[4];
+            bn = param->loadDir[5];
+        
+        }
+       real8  sigijk = param->appliedStress[0]*al*bl        +
+                 param->appliedStress[1]*am*bm        +
+                 param->appliedStress[2]*an*bn        +
+                 param->appliedStress[3]*(am*bn+an*bm)+
+                 param->appliedStress[4]*(an*bl+al*bn)+ 
+                 param->appliedStress[5]*(al*bm+bl*am);
+        
+        real8 pstnijk =  param->totpStn[0]*al*bl        +
+                   param->totpStn[1]*am*bm        +
+                   param->totpStn[2]*an*bn        +
+                   param->totpStn[3]*(am*bn+an*bm)+
+                   param->totpStn[4]*(an*bl+al*bn)+
+                   param->totpStn[5]*(al*bm+bl*am);
+        
+        real8 ptstnijk = param->totTwinpStn[0]*al*bl        +
+                   param->totTwinpStn[1]*am*bm        +
+                   param->totTwinpStn[2]*an*bn        +
+                   param->totTwinpStn[3]*(am*bn+an*bm)+
+                   param->totTwinpStn[4]*(an*bl+al*bn)+
+                   param->totTwinpStn[5]*(al*bm+bl*am);
 	
-//	    fprintf(fpEle,"solutiontime = %e\n", param->timeNow);
 	    fprintf(fpEle, "Variables = \"X\", \"Y\", \"Z\",\"plaStn"
 				"\",\"disDen\"\n"); 
 	    fprintf(fpEle, "Zone T = \"%d\", SOLUTIONTIME = %d, I = %d, J = %d, K = %d\n",
 				home->cycle, home->cycle,  meshNodeNumX, meshNodeNumY, meshNodeNumZ); 
+        val = fabs((param->loadType!=4)?param->eRate*param->timeNow*1.0E2:param->netCyclicStrain*1.0E2);
+        fprintf(fpEle, "AUXDATA strain = \"%.2f\"\n", val);
+        val = (param->loadType!=4)?fabs(sigijk/1.0E6):sigijk/1.0E6;
+        fprintf(fpEle, "AUXDATA stress = \"%.2f\"\n", val);
+        if(param->maxSchmid >= 0.0){
+            fprintf(fpEle, "AUXDATA shear_stress = \"%.2f\"\n", val*param->maxSchmid);
+        }
+        val = (param->loadType!=4)?fabs(pstnijk*1.0E2):pstnijk*1.0E2;
+        fprintf(fpEle, "AUXDATA plastic_strain = \"%7.3f\"\n", val);
+        fprintf(fpEle, "AUXDATA twinning_deform = \"%7.3f\"\n", fabs(ptstnijk*100.0));
 
 	    for(i=0;i<totEleNum;i++){
 
@@ -950,7 +999,6 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 			NodeofEle(param, i, nodeEle, numNbrEle);	
 			
 			for(j=0;j<8;j++){
-
 				nodeContour[nodeEle[j]][0] += effPlaStn/real8(numNbrEle[j]);
 				nodeContour[nodeEle[j]][1] += currDisDen/real8(numNbrEle[j]);
 				nodeContour[nodeEle[j]][2] ++;
@@ -989,7 +1037,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	}
 
     for(int k=0;k<totNodeNum; k++){
-        if(nodeContour[k]!=nullptr)free(nodeContour[k]); nodeContour[k] = NULL;
+        free(nodeContour[k]);
     }
     free(nodeContour);
     nodeContour = NULL;
