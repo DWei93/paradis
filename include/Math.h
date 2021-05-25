@@ -586,7 +586,7 @@ bool FourPointCoplanar(double x1, double y1, double z1, double x2, double y2, do
  */
 double DecomposeSegmentInBox(double *p1, double *p2, double *box);
 
-bool inline InBox(double *p, double *box, double err=LENGTH_ERROR){
+bool inline InBox(double *p, double *box, double err=-LENGTH_ERROR){
     return( p[0]-box[0] > err && 
             box[1]-p[0] > err && 
             p[1]-box[2] > err && 
