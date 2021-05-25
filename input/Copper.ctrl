@@ -19,7 +19,7 @@
 #
 numXdoms = 1
 numYdoms = 1
-numZdoms = 1
+numZdoms = 4
 #
 #  Cell geometry
 #
@@ -50,19 +50,19 @@ grainSize = 78
 loadType = 1
 loadDir = [ 0.0 0.0 1.0 -1.0 0.0 0.0 ]
 #maxstep =  40000000
-maxstep =  100000
+maxstep =  10000
 remeshRule = 2
 enforceGlidePlanes =  1
 splitMultiNodeFreq =   1  
 #
 #  Simulation time and timestepping controls
 #  
-maxStn = 1.0E-2
+maxStn = 2.0E-2
 maxPst = 1.0E-2
 timestepIntegrator =   "forward-euler"
 #timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-15
-wallTime = 240
+wallTime = 24000
 #
 #  Fast Multipole Method controls
 #  
@@ -83,7 +83,7 @@ edotPolar = [ 9.0000000e+01 9.5000000e+01 ]
 
 appliedStress = [
 	0.0e0
-	3.0e8
+	0.0e0
 	0.0e0
 	0.0e0
 	0.0e0
@@ -93,7 +93,7 @@ appliedStress = [
 #
 #  Material and mobility parameters
 #  
-dirname = "res.Test-5"
+dirname = "res."
 #mobilityLaw =   "FCC_nl"
 mobilityLaw =   "FCC_nl"
 shearModulus = 48.0E9
@@ -121,14 +121,13 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-#tecplotfreq = 2000
-tecplotfreq = 400
+tecplotfreq = 4000
 saveprop = 1
 savepropfreq = 400
 tecmesh = 1
-tecmeshfreq = 400
+tecmeshdstrain = 0.01E-2
 savecn = 1
-savecnfreq = 1000
+savecnfreq = 10000
 savetimers = 0
 savetimersfreq = 10
 velfile = 0

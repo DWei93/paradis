@@ -471,6 +471,7 @@ void CheckNodeNANS(Node_t *node){
 
 void DebugGB(Home_t *home, int flag){
 #ifndef DEBUG
+//  printf("%d %d\n",home->myDomain,flag);
     return;
     CheckForNANS(home, flag);
 #else

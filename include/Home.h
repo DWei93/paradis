@@ -139,8 +139,7 @@ typedef struct {
 } Segment_t;
 
 
-
-
+#define NUM_COMPONENT_OF_DENSITY 10
 
 struct _home {
 

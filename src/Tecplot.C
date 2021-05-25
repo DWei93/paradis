@@ -753,7 +753,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	int      i, j, k;
 	int      newNodeKeyPtr;
 	int	     eleNum,iBurg;
-	real8    pr[3],burg[3];
+	real8    pr[3],burg[3],prx,pry,prz;
 	real8    bX, bY, bZ;
 	real8    Lx, Ly, Lz;
 	real8	 midPos[3],deltDen[27];
@@ -768,10 +768,9 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
     int     meshNodeNumX, meshNodeNumY, meshNodeNumZ, totNodeNum;
     int     totEleNum;
 	real8	eleLx,eleLy,eleLz;
-	real8	effPlaStn,currDisDen;
+	real8	currPlaStn,currDisDen;
     real8   nodePos[3], nbrPos[3], disLen;
 
-    real8     *locVals, *gloVals;
     real8     *layerPosz;
 
     int       numNbrEle[8];
@@ -808,18 +807,9 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	real8 	**nodeContour;
     nodeContour = (real8 **)calloc(totNodeNum, sizeof(real8 *));
     for(i=0; i<totNodeNum; i++){
-        nodeContour[i] = (real8*)calloc(3, sizeof(real8));
-        nodeContour[i][0] = 0.0;
-        nodeContour[i][1] = 0.0;
-        nodeContour[i][2] = 0.0;
-    }
-
-    locVals = (real8 *)calloc(totEleNum*6, sizeof(real8));
-    gloVals = (real8 *)calloc(totEleNum*6, sizeof(real8));
-
-    for(i=0; i<totEleNum*6; i++){
-        locVals[i] = 0.0;
-        gloVals[i] = 0.0;
+        nodeContour[i] = (real8*)malloc(2*sizeof(real8));
+        nodeContour[i][0]=0.0;
+        nodeContour[i][1]=0.0;
     }
 
 	eleLx = param->meshSizeX;
@@ -829,12 +819,9 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	/*	Zero the arrays of dislocation density in each element.	*/
 
 	for(i=0; i<totEleNum; i++){
-	    home->disDenEle[i][0] = 0.0;
-	    home->disDenEle[i][1] = 0.0;
-	    home->disDenEle[i][2] = 0.0;
-	    home->disDenEle[i][3] = 0.0;
-	    home->disDenEle[i][4] = 0.0;
-	    home->disDenEle[i][5] = 0.0;
+        for(j=0;j<NUM_COMPONENT_OF_DENSITY;j++){
+	        home->disDenEle[i][j] = 0.0;
+        }
 	}
 	
 /*
@@ -862,15 +849,10 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	newNodeKeyPtr = home->newNodeKeyPtr;
 
 	for (i = 0; i < newNodeKeyPtr; i++) {
-
 		if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
-		
 		for (j = 0; j < node->numNbrs; j++) {
-
 			nbrNode = GetNeighborNode(home, node, j);
-
 			if (nbrNode == (Node_t *)NULL) continue;
-			
 			if (OrderNodes(node, nbrNode) != -1) continue;
 
             VectorCopy(nodePos, node->x, node->y, node->z);
@@ -890,39 +872,58 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 			bY = node->burgY[j];
 			bZ = node->burgZ[j];
 
-			burgMag = sqrt(bX*bX + bY*bY +bZ*bZ);
-
 			burg[0] = bX;
 			burg[1] = bY;
 			burg[2] = bZ;
+            prx = pr[0];
+            pry = pr[1];
+            prz = pr[2];
 			
 			iBurg = BurgType_FCC(burg);
             DecomposeSegmentInRubik(home, nx,ny,nz, nodePos, nbrPos, deltDen, eleID);
-
             for(k=0;k<27;k++){
-                home->disDenEle[eleID[k]][iBurg] += disLen*deltDen[k]*burgMag;
+                home->disDenEle[eleID[k]][0] += disLen*deltDen[k];
+                home->disDenEle[eleID[k]][1] += deltDen[k]*prx*bX;
+                home->disDenEle[eleID[k]][2] += deltDen[k]*prx*bY;
+                home->disDenEle[eleID[k]][3] += deltDen[k]*prx*bZ;
+                home->disDenEle[eleID[k]][4] += deltDen[k]*pry*bX;
+                home->disDenEle[eleID[k]][5] += deltDen[k]*pry*bY;
+                home->disDenEle[eleID[k]][6] += deltDen[k]*pry*bZ;
+                home->disDenEle[eleID[k]][7] += deltDen[k]*prz*bX;
+                home->disDenEle[eleID[k]][8] += deltDen[k]*prz*bY;
+                home->disDenEle[eleID[k]][9] += deltDen[k]*prz*bZ;
             }
 		}
 	}
 
-	/*	
-	 *	Following is the output of dislocation density and plastic strain
-	 *	in each element.
-	 */
 #ifdef PARALLEL
+/*	
+ *	Following is the output of dislocation density and plastic strain
+ *	in each element.
+ */
+    real8     *locVals, *gloVals;
+//  locVals = (real8 *)calloc(totEleNum*NUM_COMPONENT_OF_DENSITY, sizeof(real8));
+//  gloVals = (real8 *)calloc(totEleNum*NUM_COMPONENT_OF_DENSITY, sizeof(real8));
+
+    locVals = (real8 *)malloc(totEleNum*NUM_COMPONENT_OF_DENSITY* sizeof(real8));
+    gloVals = (real8 *)malloc(totEleNum*NUM_COMPONENT_OF_DENSITY* sizeof(real8));
+    memset(locVals, 0, sizeof(locVals));
+    memset(gloVals, 0, sizeof(locVals));
 
     for (i=0; i<totEleNum; i++){
-        for(j = 0; j<6; j++){
-            locVals[i*6+j] = home->disDenEle[i][j];
+        for(j = 0; j<NUM_COMPONENT_OF_DENSITY; j++){
+            locVals[i*NUM_COMPONENT_OF_DENSITY+j] = home->disDenEle[i][j];
         }
     }
 
-	MPI_Reduce(locVals, gloVals, 6*totEleNum, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(locVals, gloVals, NUM_COMPONENT_OF_DENSITY*totEleNum, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     for (i=0; i<totEleNum; i++){
-        for(j = 0; j<6; j++){
-            home->disDenEle[i][j] = gloVals[i*6+j];
+        for(j = 0; j<NUM_COMPONENT_OF_DENSITY; j++){
+            home->disDenEle[i][j] = gloVals[i*NUM_COMPONENT_OF_DENSITY+j];
         }
     }
+    free(locVals);
+    free(gloVals);
 #endif
 
 	if (firstInGroup) {
@@ -983,28 +984,24 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
         fprintf(fpEle, "AUXDATA plastic_strain = \"%7.3f\"\n", val);
         fprintf(fpEle, "AUXDATA twinning_deform = \"%7.3f\"\n", fabs(ptstnijk*100.0));
 
+        real8 nc;
 	    for(i=0;i<totEleNum;i++){
+            currPlaStn = (home->pstnEle[i][0]*al*bl        +
+                          home->pstnEle[i][1]*am*bm        +
+                          home->pstnEle[i][2]*an*bn        +
+                          home->pstnEle[i][3]*(am*bn+an*bm)+
+                          home->pstnEle[i][4]*(an*bl+al*bn)+
+                          home->pstnEle[i][5]*(al*bm+bl*am));
+            if(param->loadType==1)currPlaStn*=Sign(param->eRate);
 
-			effPlaStn=sqrt((home->pstnEle[i][0]*home->pstnEle[i][0] +
-							home->pstnEle[i][1]*home->pstnEle[i][1] +
-							home->pstnEle[i][2]*home->pstnEle[i][2] +
-							2*home->pstnEle[i][3]*home->pstnEle[i][3] +
-							2*home->pstnEle[i][4]*home->pstnEle[i][4] +
-							2*home->pstnEle[i][5]*home->pstnEle[i][5])*2/3);
-
-			currDisDen = home->disDenEle[i][0] + home->disDenEle[i][1] + 
-						 home->disDenEle[i][2] + home->disDenEle[i][3] +
-						 home->disDenEle[i][4] + home->disDenEle[i][5]; 
-
+			currDisDen = home->disDenEle[i][0]; 
 			NodeofEle(param, i, nodeEle, numNbrEle);	
 			
 			for(j=0;j<8;j++){
-				nodeContour[nodeEle[j]][0] += effPlaStn/real8(numNbrEle[j]);
-				nodeContour[nodeEle[j]][1] += currDisDen/real8(numNbrEle[j]);
-				nodeContour[nodeEle[j]][2] ++;
-
+                nc = real8(numNbrEle[j]);
+				nodeContour[nodeEle[j]][0] += currPlaStn/nc;
+				nodeContour[nodeEle[j]][1] += currDisDen/nc;
 			}
-			
 	    }
 
 	    for(i=0;i<totNodeNum;i++){
@@ -1013,7 +1010,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 			ny = i%(meshNodeNumX*meshNodeNumY)/meshNodeNumX; 
 			nz = i/(meshNodeNumX*meshNodeNumY); 
 
-            j=0;
+            j=i;
             if(param->xBoundType==Periodic && nx==meshNumX){
                 j -= (meshNumX);
             }
@@ -1023,9 +1020,8 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
             if(param->zBoundType==Periodic && nz==meshNumZ){
                 j -= (meshNumX+1)*(meshNumY+1)*(meshNumZ);
             }
-            nodeContour[i][0]=nodeContour[i+j][0];
-            nodeContour[i][1]=nodeContour[i+j][1];
-            nodeContour[i][2]=nodeContour[i+j][2];
+            nodeContour[i][0]=nodeContour[j][0];
+            nodeContour[i][1]=nodeContour[j][1];
 			
 			fprintf(fpEle,"%.2f %.2f %.2f %.2g %.2g\n",
 					nx*eleLx-Lx/2, ny*eleLy-Ly/2,nz==0?-Lz/2:layerPosz[nz-1],
@@ -1034,16 +1030,59 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	    }
 
 	    fclose(fpEle);
+
+        if(param->multilayer){
+			snprintf(fileNameEle, sizeof(fileNameEle), "%s/gnd%d.plt",  DIR_TECMESH, param->tecmeshcounter);
+/*          
+ *          First task in the I/O group must open the data file for writing
+ *          to overwrite any existing file of the same name.
+ */         
+            
+			if ((fpEle = fopen(fileNameEle, "w")) == (FILE *)NULL) {
+				Fatal("tec_plot_mesh: Open error %d on %s\n", errno, fileNameEle);
+			}
+            
+	        fprintf(fpEle, "Variables = Z, thick, GND_xx, GND_xy, GND_xz, GND_yx, GND_yy, GND_yz, GND_zx, GND_zy, GND_zz\n"); 
+	        fprintf(fpEle, "Zone T = \"%d\", SOLUTIONTIME = %d, I = %d\n",
+					home->cycle, home->cycle,  meshNumZ); 
+            val = fabs((param->loadType!=4)?param->eRate*param->timeNow*1.0E2:param->netCyclicStrain*1.0E2);
+            fprintf(fpEle, "AUXDATA strain = \"%.2f\"\n", val);
+            val = (param->loadType!=4)?fabs(pstnijk*1.0E2):pstnijk*1.0E2;
+            fprintf(fpEle, "AUXDATA plastic_strain = \"%7.3f\"\n", val);
+            
+            real8 lastZ=param->xBoundMin,values[9],thick, *laz=home->layerPosz;
+            int eID;
+            for(k=0;k<meshNumZ;k++){
+                thick = laz[k]-lastZ;
+                values[0]=0.0; values[1]=0.0; values[2]=0.0;
+                values[3]=0.0; values[4]=0.0; values[5]=0.0;
+                values[6]=0.0; values[7]=0.0; values[8]=0.0;
+                for(i=0;i<meshNumX;i++)for(j=0;j<meshNumY;j++){
+                    eID = k*meshNumX*meshNumY + j*meshNumX + i;
+                    values[0] += home->disDenEle[eID][1];
+                    values[1] += home->disDenEle[eID][2];
+                    values[2] += home->disDenEle[eID][3];
+                    values[3] += home->disDenEle[eID][4];
+                    values[4] += home->disDenEle[eID][5];
+                    values[5] += home->disDenEle[eID][6];
+                    values[6] += home->disDenEle[eID][7];
+                    values[7] += home->disDenEle[eID][8];
+                    values[8] += home->disDenEle[eID][9];
+                }
+                fprintf(fpEle, "%.2g %.2g %.2g %.2g %.2g %.2g %.2g %.2g %.2g %.2g %.2g\n",
+                        laz[k]-0.5*thick, thick, values[0],values[1],values[2], 
+                        values[3],values[4],values[5], values[6],values[7],values[8]);
+                lastZ=laz[k];
+            }
+	        fclose(fpEle);
+        }
 	}
 
-    for(int k=0;k<totNodeNum; k++){
-        free(nodeContour[k]);
+    for(i=0;i<totNodeNum; i++){
+        free(nodeContour[i]);
     }
     free(nodeContour);
     nodeContour = NULL;
-
-    free(locVals);
-    free(gloVals);
     free(layerPosz);
 	return;
 }
