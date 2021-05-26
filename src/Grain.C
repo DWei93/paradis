@@ -4652,17 +4652,19 @@ void DecomposeSegmentInRubik(Home_t *home, int nx, int ny, int nz, real8 node1Po
         VECTOR_COPY(node2Pos, node1Pos);
         VECTOR_COPY(node1Pos, tem);
     }
-    if(node1Pos[0]>box[1] || node2Pos[0]<box[0]){
-        Fatal("%s: {%f,%f,%f}--{%f,%f,%f} is not in element i=%d,%d,%d",__func__,
-               node1Pos[0],node1Pos[1],node1Pos[2],node2Pos[0],node2Pos[1],node2Pos[2],nx,ny,nz);
+    if( node2Pos[0]<box[0]){
+        lenX[0]=1.0; lenX[1]=0.0; lenX[2]=0.0;
+    }else if (node1Pos[0]>box[1]){
+        lenX[0]=0.0; lenX[1]=0.0; lenX[2]=1.0;
+    }else{
+        lenX[0] = MAX(box[0]-node1Pos[0],0.0);
+        lenX[2] = MAX(node2Pos[0]-box[1],0.0);
+        len=node2Pos[0]-node1Pos[0];
+        lenX[1] = len-lenX[0]-lenX[2];
+        if(len>1E-10)VectorDivideSelf(lenX,len);
+        else lenX[1]=1.0;
     }
 
-    lenX[0] = MAX(box[0]-node1Pos[0],0.0);
-    lenX[2] = MAX(node2Pos[0]-box[1],0.0);
-    len=node2Pos[0]-node1Pos[0];
-    lenX[1] = len-lenX[0]-lenX[2];
-    if(len>1E-10)VectorDivideSelf(lenX,len);
-    else lenX[1]=1.0;
 
     VECTOR_COPY(nodeXPos[0], node1Pos); tx=0.0;
     for(i=0;i<3;i++){
@@ -4740,6 +4742,7 @@ void DecomposeSegmentInRubik(Home_t *home, int nx, int ny, int nz, real8 node1Po
             }
         }
     }
+#ifdef DEBUG
     if(fabs(tot-1.0)>1E-1){
         for(k=0;k<3;k++){
             printf("k=%d[%d]: ",k,k+nz-1);
@@ -4752,6 +4755,6 @@ void DecomposeSegmentInRubik(Home_t *home, int nx, int ny, int nz, real8 node1Po
                node1Pos[0],node1Pos[1],node1Pos[2],node2Pos[0],node2Pos[1],node2Pos[2],nx,ny,nz,
                box[0],box[1],box[2],box[3],box[4],box[5]);
     }
-    
+#endif
     return;
 }
