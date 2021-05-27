@@ -1832,14 +1832,30 @@ real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB){
 
     int     i;
     FoldBox(home->param, vec, vec+1, vec+2);
-    for(i=0; i<home->nGBs; i++){
-        temGB = home->GBKeys[i];
-        PointPlaneIntersection(vec, temGB->n, temGB->p, vec1, &tempDistance);
-        if(fabs(tempDistance) < fabs(minDistance)){
-            *GB = temGB;
-            minDistance = tempDistance;
+    int inGrain, onGB;
+    real8  gbPos[3];
+    NodeLocation(home, pos[0], pos[1],pos[2], inGrain, onGB);
+
+    if(onGB>-1){
+        *GB = home->GBKeys[onGB];
+        VECTOR_COPY(gbPos, (*GB)->p);
+        PBCPOSITION(home->param, vec[0],vec[1],vec[2],gbPos,gbPos+1,gbPos+2);
+        PointPlaneIntersection(vec, (*GB)->n, gbPos, vec1, &tempDistance);
+    }else{
+        Grain_t *grain = home->grainKeys[inGrain];
+        for(i=0;i<grain->nBounds;i++){
+            temGB = grain->GB[i];
+
+            VECTOR_COPY(gbPos, temGB->p);
+            PBCPOSITION(home->param, vec[0],vec[1],vec[2],gbPos,gbPos+1,gbPos+2);
+            PointPlaneIntersection(vec, temGB->n, gbPos, vec1, &tempDistance);
+            if(fabs(tempDistance) < fabs(minDistance)){
+                *GB = temGB;
+                minDistance = tempDistance;
+            }
         }
     }
+
 	return(minDistance);
 }
 
@@ -1853,14 +1869,31 @@ real8 ClosedGB(Home_t *home, real8 px, real8 py, real8 pz, GB_t **GB){
    
     int     i;
     FoldBox(home->param, vec, vec+1, vec+2);
-    for(i=0; i<home->nGBs; i++){
-        temGB = home->GBKeys[i];
-        PointPlaneIntersection(vec, temGB->n, temGB->p, vec1, &tempDistance);
-        if(fabs(tempDistance) < fabs(minDistance)){
-            *GB = temGB;
-            minDistance = tempDistance;
+    real8  gbPos[3];
+
+    int inGrain, onGB;
+    NodeLocation(home, px, py, pz, inGrain, onGB);
+
+    if(onGB>-1){
+        *GB = home->GBKeys[onGB];
+        VECTOR_COPY(gbPos, (*GB)->p);
+        PBCPOSITION(home->param, vec[0],vec[1],vec[2],gbPos,gbPos+1,gbPos+2);
+        PointPlaneIntersection(vec, (*GB)->n, gbPos, vec1, &tempDistance);
+    }else{
+        Grain_t *grain = home->grainKeys[inGrain];
+        for(i=0;i<grain->nBounds;i++){
+            temGB = grain->GB[i];
+
+            VECTOR_COPY(gbPos, temGB->p);
+            PBCPOSITION(home->param, vec[0],vec[1],vec[2],gbPos,gbPos+1,gbPos+2);
+            PointPlaneIntersection(vec, temGB->n, gbPos, vec1, &tempDistance);
+            if(fabs(tempDistance) < fabs(minDistance)){
+                *GB = temGB;
+                minDistance = tempDistance;
+            }
         }
     }
+
 	return(minDistance);
 }
 
@@ -1938,6 +1971,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
     VECTOR_COPY(plane.normal, gb->n);
     VECTOR_COPY(plane.point, gb->p);
 
+    PBCPOSITION(param, pos[0],pos[1],pos[2],&(plane.point[0]), &(plane.point[1]), &(plane.point[2]));
     if(inGrain > -1){
         if(inGrain >= home->nGrains)Fatal("in %s at %d", __FILE__, __LINE__);
         grain = home->grainKeys[inGrain];

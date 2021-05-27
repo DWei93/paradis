@@ -471,8 +471,8 @@ void CheckNodeNANS(Node_t *node){
 
 void DebugGB(Home_t *home, int flag){
 #ifndef DEBUG
-//  printf("%d %d\n",home->myDomain,flag);
     return;
+    printf("%d %d\n",home->myDomain,flag);
     CheckForNANS(home, flag);
 #else
     home->flag = flag;
@@ -527,6 +527,7 @@ void DebugGB(Home_t *home, int flag){
         if(flag < 18 || flag > 22){
             if(inGrain != node->inGrain && !IsOnGB(node) || IsOnGB(node) && onGB != node->onGB){
                 PrintNode(home, node);
+                PrintNeighbor(home, node);
                 snprintf(name,50,"debug517-%d-%d",home->cycle, flag);
                 Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
                 Fatal("Task %d, flag %d - 0 NodeLocation(%d,%d) \n", home->myDomain, flag, inGrain, onGB);
@@ -609,13 +610,14 @@ void DebugGB(Home_t *home, int flag){
             NormalizeVec(lDir);
 
             dot = fabs(DotProduct(lDir, vec1));
-            if(dot > 0.1 && (NM==1)){
+            if(dot > 0.25 && (NM==1)){
                 snprintf(name,50,"wrong-%d-%d",home->cycle, flag);
                 Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                PrintNode(node);
+                PrintNode(home, node);
+                PrintNode(home, nbr);
                 FormatVector(lDir,"lDir");
                 FormatMatrix(GC, "GC");
-                Fatal("Task %d, wrong multi-arm node, flag %d - dot %f - length %f\n", 
+                printf("Task %d, wrong multi-arm node, flag %d - dot %f - length %f\n", 
                         home->myDomain, flag, dot, Normal(lDir));
             }
             continue;

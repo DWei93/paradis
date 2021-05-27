@@ -1436,13 +1436,14 @@ void HandleGrainBoundary(Home_t *home)
         if(numNbrOnGB<2){
             if(ConstrictionCriteria(home, node, nbrNode1, nbrNode2, gbPlane, normal)==false){
 #ifdef DEBUG
+                real8 currPos[3]={node->x,node->y,node->z};
                 real8 oldPst = SegDeltaPlasticStrain(home, node, nbrNode2)+SegDeltaPlasticStrain(home, node, nbrNode1);
 #endif
                 PullBack(home,node);
 #ifdef DEBUG
                 real8 newPst = SegDeltaPlasticStrain(home, nbrNode1, node) + SegDeltaPlasticStrain(home, nbrNode2, node);
                 printf("%d %d %d %d: at %d {%f,%f,%f}->{%f,%f,%f} physic node pull back %e=%e-%e\n", home->cycle, home->myDomain, node->myTag.index,numNbrOnGB, __LINE__,
-                       node->x, node->y, node->z, node->oldx, node->oldy, node->oldz,newPst-oldPst,newPst,oldPst);
+                       currPos[0], currPos[1], currPos[2],node->x, node->y, node->z, newPst-oldPst,newPst,oldPst);
 #endif
                 continue;
 	        }
@@ -3462,6 +3463,8 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     
     bool    cacGB1, cacGB2, cacTB1, cacTB2;
 
+    real8 gbPos[3];
+
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);
     armID = GetArmID(home, node1, node2);
@@ -3734,7 +3737,9 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
             grain=home->grainKeys[armInGrain];
             for(j=0; j<grain->nBounds; j++){
                 gb = grain->GB[j];
-                type = PlanePlaneIntersection(nor,pos,gb->n,gb->p,ldir,pdir);
+                VECTOR_COPY(gbPos,gb->p);
+                PBCPOSITION(param, pos[0],pos[1],pos[2],gbPos, gbPos+1,gbPos+2);
+                type = PlanePlaneIntersection(nor,pos,gb->n,gbPos,ldir,pdir);
                 if(type==LINE_INTERSECTION){
                     costheta = fabs(DotProduct(ldir,xi));
                     CoordMinus(pos,pdir,ldir); 

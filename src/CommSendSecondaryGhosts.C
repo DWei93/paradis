@@ -294,8 +294,8 @@ static void PackSecondaryGhostResponse(Home_t *home, int *inBuf, int inBufSize,
             node = GetNodeFromTag(home, tag);
 
             if (node == (Node_t *)NULL) {
-                Fatal("PackSecondaryGhostResponse(): "
-                      "Task %d can't find (%d,%d)", home->myDomain,
+                Fatal("%d PackSecondaryGhostResponse(): "
+                      "Task %d can't find (%d,%d)",home->cycle, home->myDomain,
                       tag.domainID, tag.index);
             }
 

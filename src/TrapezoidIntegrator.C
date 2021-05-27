@@ -741,7 +741,7 @@ void TrapezoidIntegrator(Home_t *home)
                         printf("%f=%f-%f\n",nodeVec[0],node->x,oldx);
                         printf("%f=%f-%f\n",nodeVec[1],node->y,oldy);
                         printf("%f=%f-%f\n",nodeVec[2],node->z,oldz);
-			            printf("errMax=%e, nodeVel=%e, currVel=%e at %s, newDt=%e, nodeVec=%e Line %d.\n",errMax,v1,v2,newDT,Normal(nodeVec),__FILE__,__LINE__);
+			            printf("errMax=%e, nodeVel=%e, currVel=%e, newDt=%e, nodeVec=%e, in file %s at %d\n",errMax,v1,v2,newDT,Normal(nodeVec),__FILE__,__LINE__);
                     }
 #endif
 #ifdef DEBUG_TIMESTEP
