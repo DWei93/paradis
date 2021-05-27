@@ -1842,7 +1842,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
         }else{
              Grain_t *grain;
              std::vector<real8> layerPosz(1);
-             real8 mz=param->meshSizeZ, lower=param->zBoundMin, gmz, ngmz;
+             real8 mz=param->meshSizeX, lower=param->zBoundMin, gmz, ngmz;
              real8 transThick=10.0, tbThick=1.0E-4; 
              int k;
              j=0;
@@ -1857,11 +1857,12 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 layerPosz.push_back(layerPosz[j++]+2.0*tbThick);
              }
              layerPosz.back()-=tbThick;
-
-         //  printf("Layer %d: ",int(layerPosz.size()));
-         //  for(i=0;i<layerPosz.size();i++)printf(" %f",layerPosz[i]);
-         //  printf("\n");
-         //  Fatal("Finish Test");
+#ifdef DEBUG
+            printf("Layer %d: ",int(layerPosz.size()));
+            for(i=0;i<layerPosz.size();i++)printf(" %f",layerPosz[i]);
+            printf("\n");
+         // Fatal("Finish Test");
+#endif
             param->meshNumZ = int(layerPosz.size());
             home->layerPosz = (real8 *)malloc(sizeof(real8)*param->meshNumZ);
             for(i=0;i<param->meshNumZ;i++)home->layerPosz[i]=layerPosz[i];
@@ -1915,7 +1916,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 for(i=0; i<totMeshNum; i++){
                     for(j=0; j<6; j++){
                         if((tokenType = GetNextToken(fp, token, maxTokenLen)) != TOKEN_GENERIC){
-                            Fatal("Read Table File: can not read pstEle 4");
+                            Fatal("Read Table File: can not read pstEle 4, i=%d, j=%d, meshNumZ=%d",i,j,param->meshNumZ);
                         }
                         home->pstnEle[i][j] = atof(token);
                     }
