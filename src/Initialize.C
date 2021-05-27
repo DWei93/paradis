@@ -1932,7 +1932,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 fclose(fp);
             }else{
                 if(home->myDomain==0)printf("Warning: can not open plastic strain field file %s, errno=%d\n"
-                    "workingdir=%s, filename=%s", absTableFile, errno, workingDir, tableFile);
+                    "workingdir=%s, filename=%s\n", absTableFile, errno, workingDir, tableFile);
             }
         }     
 
