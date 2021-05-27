@@ -3324,6 +3324,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                         gbNormal[2] = gb->n[2];
                                         VECTOR_COPY(vec2, gb->p);
                                         PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                        CoordAdd(-0.05,p0,1.05,p1,p1);
 
                                         if(POINT_INTERSECTION==SegmentPlaneIntersection(p0,p1,gbNormal,vec2,vec1)){
                                             inGrain1 =-1; onGB1=gb->GBID;
@@ -3331,7 +3332,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                             break;
                                         }
                                     }
-                                    if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
+                                    if(i==grain->nBounds)Fatal("can not find gb in %s, %d, onGB1=%d, inGrain1=%d, inGrain0=%d",
+                                       __FILE__,__LINE__,onGB1,inGrain1,inGrain0);
                                 }else if(!(onGB2<0 && inGrain2==inGrain0)){
                                     for(i=0;i<grain->nBounds;i++){
                                         gb = grain->GB[i];
@@ -3341,13 +3343,15 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                         VECTOR_COPY(vec2, gb->p);
                                         PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
 
+                                        CoordAdd(-0.05,p0,1.05,p2,p2);
                                         if(POINT_INTERSECTION==SegmentPlaneIntersection(p0,p2,gbNormal,vec2,vec1)){
                                             inGrain2 =-1; onGB2=gb->GBID; 
                                             VECTOR_COPY(p2,vec1);
                                             break;
                                         }
                                     }
-                                    if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
+                                    if(i==grain->nBounds)Fatal("can not find gb in %s, %d, onGB2=%d, inGrain2=%d, inGrain0=%d",
+                                       __FILE__,__LINE__,onGB2,inGrain2,inGrain0);
                                 }
                             }
                             srcLen = PointPointDistance(p1,p2);
