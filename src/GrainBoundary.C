@@ -2381,7 +2381,7 @@ void GBCrossSlip(Home_t *home)
     int     NM1, NM2;
     bool    zeroLenJunc1, zeroLenJunc2;
     real8   GC1[3][3], GC2[3][3], debris[3], energySet;
-    real8 outBurg[3];
+    real8   outBurg[3],gbPos[3];
 
     bool    isScrew, superBurg;
     Param_t *param;
@@ -2674,8 +2674,11 @@ void GBCrossSlip(Home_t *home)
             continue;
         }
 
-        type = PointPlaneIntersection(nodePos, gb->n, gb->p, interLine.point, &dis);
-        if(fabs(dis) > 2)printf("Warning in %s at %d\n", __FILE__, __LINE__);
+        VECTOR_COPY(gbPos, gb->p);
+        PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2], gbPos, gbPos+1,gbPos+2);
+        type = PointPlaneIntersection(nodePos, gb->n, gbPos, interLine.point, &dis);
+        if(fabs(dis) > 2)printf("Warning in %s at %d: nodePos={%g,%g,%g}, gbPos={%g,%g,%g}\n",
+             __FILE__, __LINE__,nodePos[0],nodePos[1],nodePos[2],gbPos[0],gbPos[1],gbPos[2]);
 
         if(firstCrossSlipNode){
             burg[0] = node->burgX[1];
