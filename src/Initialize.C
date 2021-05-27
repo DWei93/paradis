@@ -1931,7 +1931,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 printf("Initialize: Plastic strain file parsing complete\n");
                 fclose(fp);
             }else{
-                if(home->myDomain==0)Fatal("Warning: can not open plastic strain field file %s, errno=%d\n"
+                if(home->myDomain==0)printf("Warning: can not open plastic strain field file %s, errno=%d\n"
                     "workingdir=%s, filename=%s", absTableFile, errno, workingDir, tableFile);
             }
         }     
