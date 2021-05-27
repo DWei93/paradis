@@ -1896,8 +1896,13 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 strcat(tmpTableFile, TABLE_FILE_SUFFIX);
                 tableFile = tmpTableFile;
             }
+            printf("tableFile=%s\n",tableFile);
+            printf("ctrlFile=%s \n",ctrlFile);
+            printf("temTableFile=%s\n",tmpTableFile);
 
             snprintf(absTableFile, sizeof(absTableFile), "%s/%s",workingDir, tableFile);
+
+            printf("absTableFile=%s\n",absTableFile);
 
             maxTokenLen = sizeof(token);
             tokenType = TOKEN_GENERIC;
@@ -1926,7 +1931,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 printf("Initialize: Plastic strain file parsing complete\n");
                 fclose(fp);
             }else{
-                if(param->cycleStart)printf("Warning: can not open plastic strain field file %s, errno=%d\n",tableFile,errno);
+                if(home->myDomain==0)printf("Warning: can not open plastic strain field file %s, errno=%d\n"
+                    "workingdir=%s, filename=%s\n", absTableFile, errno, workingDir, tableFile);
             }
         }     
 
