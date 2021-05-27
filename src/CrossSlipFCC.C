@@ -173,9 +173,9 @@ void CrossSlipFCC(Home_t *home)
  */
             if( param->polycrystal >0 ){
                 if(IsOnGB(nbr1) || IsOnGB(nbr2) || IsOnGB(node))continue;
-                if(fabs(ClosedGB(home, node->x, node->y, node->z, &gb))>param->rc)continue;
-                if(fabs(ClosedGB(home, nbr1->x, nbr1->y, nbr1->z, &gb))>param->rc)continue;
-                if(fabs(ClosedGB(home, nbr2->x, nbr2->y, nbr2->z, &gb))>param->rc)continue;
+                if(fabs(ClosedGB(home, node->x, node->y, node->z, &gb))<param->rc)continue;
+                if(fabs(ClosedGB(home, nbr1->x, nbr1->y, nbr1->z, &gb))<param->rc)continue;
+                if(fabs(ClosedGB(home, nbr2->x, nbr2->y, nbr2->z, &gb))<param->rc)continue;
             }
 /*
  *          Before we commit to doing a cross-slip event, we may shift
