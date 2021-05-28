@@ -1042,7 +1042,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 				Fatal("tec_plot_mesh: Open error %d on %s\n", errno, fileNameEle);
 			}
             
-	        fprintf(fpEle, "Variables = Z, thick, GND_xx, GND_xy, GND_xz, GND_yx, GND_yy, GND_yz, GND_zx, GND_zy, GND_zz\n"); 
+	        fprintf(fpEle, "Variables = Z, thick, rho_tot, GND_xx, GND_xy, GND_xz, GND_yx, GND_yy, GND_yz, GND_zx, GND_zy, GND_zz\n"); 
 	        fprintf(fpEle, "Zone T = \"%d\", SOLUTIONTIME = %d, I = %d\n",
 					home->cycle, home->cycle,  meshNumZ); 
             val = fabs((param->loadType!=4)?param->eRate*param->timeNow*1.0E2:param->netCyclicStrain*1.0E2);
@@ -1050,28 +1050,30 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
             val = (param->loadType!=4)?fabs(pstnijk*1.0E2):pstnijk*1.0E2;
             fprintf(fpEle, "AUXDATA plastic_strain = \"%7.3f\"\n", val);
             
-            real8 lastZ=param->xBoundMin,values[9],thick, *laz=home->layerPosz;
+            real8 lastZ=param->xBoundMin,values[10],thick, *laz=home->layerPosz;
             int eID;
             for(k=0;k<meshNumZ;k++){
                 thick = laz[k]-lastZ;
+                values[9] = 0.0;
                 values[0]=0.0; values[1]=0.0; values[2]=0.0;
                 values[3]=0.0; values[4]=0.0; values[5]=0.0;
                 values[6]=0.0; values[7]=0.0; values[8]=0.0;
                 for(i=0;i<meshNumX;i++)for(j=0;j<meshNumY;j++){
                     eID = k*meshNumX*meshNumY + j*meshNumX + i;
-                    values[0] += home->disDenEle[eID][1];
-                    values[1] += home->disDenEle[eID][2];
-                    values[2] += home->disDenEle[eID][3];
-                    values[3] += home->disDenEle[eID][4];
-                    values[4] += home->disDenEle[eID][5];
-                    values[5] += home->disDenEle[eID][6];
-                    values[6] += home->disDenEle[eID][7];
-                    values[7] += home->disDenEle[eID][8];
-                    values[8] += home->disDenEle[eID][9];
+                    values[0] += home->disDenEle[eID][0];
+                    values[1] += home->disDenEle[eID][1];
+                    values[2] += home->disDenEle[eID][2];
+                    values[3] += home->disDenEle[eID][3];
+                    values[4] += home->disDenEle[eID][4];
+                    values[5] += home->disDenEle[eID][5];
+                    values[6] += home->disDenEle[eID][6];
+                    values[7] += home->disDenEle[eID][7];
+                    values[8] += home->disDenEle[eID][8];
+                    values[9] += home->disDenEle[eID][9];
                 }
-                fprintf(fpEle, "%.2g %.2g %.2g %.2g %.2g %.2g %.2g %.2g %.2g %.2g %.2g\n",
+                fprintf(fpEle, "%.2g %.2g %.2g %.2g %.2g %.2g %.2g %.2g %.2g %.2g %.2g %.2g\n",
                         laz[k]-0.5*thick, thick, values[0],values[1],values[2], 
-                        values[3],values[4],values[5], values[6],values[7],values[8]);
+                        values[3],values[4],values[5], values[6],values[7],values[8],values[9]);
                 lastZ=laz[k];
             }
 	        fclose(fpEle);
