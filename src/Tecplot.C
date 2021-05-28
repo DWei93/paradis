@@ -1032,7 +1032,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	    fclose(fpEle);
 
         if(param->multilayer){
-			snprintf(fileNameEle, sizeof(fileNameEle), "%s/gnd%d.plt",  DIR_TECMESH, param->tecmeshcounter);
+			snprintf(fileNameEle, sizeof(fileNameEle), "%s/gnd%06d.plt",  DIR_TECMESH, param->tecmeshcounter);
 /*          
  *          First task in the I/O group must open the data file for writing
  *          to overwrite any existing file of the same name.
