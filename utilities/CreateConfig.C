@@ -3111,7 +3111,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                 while(!finished){
                     RandomPosition:
                     if(singleSrcTest){
-                        VECTOR_COPY(p0,inArgs->pos);
+                        VECTOR_COPY(p1,inArgs->pos);
                     }else{
                         p1[0] = (randm(&seed)-0.5) * cubeSize*0.99;
                         p1[1] = (randm(&seed)-0.5) * cubeSize*0.99;			
@@ -3225,7 +3225,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 
                         inGrain1=inGrain; onGB1=onGB; VECTOR_COPY(p1,p);
                         constraint2 = PINNED_NODE;
-                        if(home->nGBs<=1 || gpIndex==3){
+                        if(home->nGBs<=1 || gpIndex==3 || singleSrcTest){
                             for (i = 0; i < 3; i++) {
                                 p0[i] = p[i] + (srcLen * randomLine[i])/2.0;
                                 p2[i] = p[i] + (srcLen * randomLine[i]);
