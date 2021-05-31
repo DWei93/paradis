@@ -391,7 +391,7 @@ static void InitDefaultValues(InArgs_t *inArgs)
         NormalizeVec(inArgs->yMatDir);
         NormalizeVec(inArgs->zMatDir);
         real8 rot[3][3], o1[3][3], o2[3][3],zaxis[3]={0.0,0.0,1.0};
-        RotateWithAxis(zaxis, 0.0*M_PI/180.0, rot);
+        RotateWithAxis(zaxis, 5.0*M_PI/180.0, rot);
         VECTOR_COPY(o1[0],inArgs->xMatDir);
         VECTOR_COPY(o1[1],inArgs->yMatDir);
         VECTOR_COPY(o1[2],inArgs->zMatDir);

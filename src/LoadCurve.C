@@ -681,11 +681,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                          param->delpStrain[4] *(an*bl + al*bn) +
                          param->delpStrain[5] *(al*bm + am*bl) ;   
         
-                if (indxerate <= 3) {
-                   modulus = youngs;
-                } else {
-                   modulus = 2.0 * shr;
-                }
+                modulus = 2.0 * shr;
 
 /*
  *              local in the [l m n] frame

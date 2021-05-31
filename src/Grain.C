@@ -3143,6 +3143,26 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
             }
             if(dcp.disArray.size()<=0)continue;
             sort(dcp.disArray.begin(), dcp.disArray.end(), comByBarrier); 
+#if 0 
+            if(i==2 && j==1){
+                printf("burgID=AD; j=AB:\n");
+                for(k=0;k<dcp.disArray.size();k++){
+                    for(l=0;l<dcp.disArray[k].size();l++){
+                        cross(GB->n, gbd->planeList[dcp.disArray[k][l].planeID], crossProd);
+                        VECTOR_COPY(vec, dcp.burgList[dcp.disArray[k][l].burgID]);
+                        printf("[%d(%s):{%g,%g,%g}](%d:{%g,%g,%g}) in %d ",dcp.disArray[k][l].burgID,
+                                (BurgType_FCC(vec) == BASIC_BURG)?"-perfect":"partial",
+                                vec[0],vec[1],vec[2],
+                                dcp.disArray[k][l].planeID,
+                                gbd->planeList[dcp.disArray[k][l].planeID][0],
+                                gbd->planeList[dcp.disArray[k][l].planeID][1],
+                                gbd->planeList[dcp.disArray[k][l].planeID][2],
+                                gbd->planeInGrain[dcp.disArray[k][l].planeID]);
+                    }
+                    printf("\n");
+                }
+            }
+#endif
             dcp.burgID = i; dcp.keyLineID = j;
             gbd->dcps.push_back(dcp);
         }

@@ -366,9 +366,13 @@ void CrossSlip(Home_t *home)
  */
     DebugGB(home, 301);
     Param_t *param = home->param;
-    if(param->timeNow >= param->timeNextGBCrossSlip){
+    if(param->dtGBCrossSlip>0){
+        if(param->timeNow >= param->timeNextGBCrossSlip){
+            GBCrossSlip(home);
+            param->timeNextGBCrossSlip += param->dtGBCrossSlip/param->eRate;
+        }
+    }else{
         GBCrossSlip(home);
-        param->timeNextGBCrossSlip += 5.0E-6/param->eRate;
     }
     DebugGB(home, 302);
 #endif

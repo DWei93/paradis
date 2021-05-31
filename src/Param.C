@@ -169,6 +169,9 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "wallTime", &param->wallTime, V_DBL, 1, VFLAG_NULL);
         param->wallTime = -1;
 
+        BindVar(CPList, "dtGBCrossSlip", &param->dtGBCrossSlip, V_DBL, 1, VFLAG_NULL);
+        param->dtGBCrossSlip = 5.0E-6;
+
         BindVar(CPList, "maxstep", &param->maxstep, V_INT, 1, VFLAG_NULL);
         param->maxstep = 100;
 
