@@ -534,7 +534,8 @@ struct _param {
         real8       velMax, velMin, dissMax, dissMin, baseVel, baseDiss, (*velTable)[4], (*dissTable)[4];
 #endif
         real8       wallTime; // units hour 
-        real8      timeNextGBCrossSlip;
+        real8       dtGBCrossSlip;
+        real8       timeNextGBCrossSlip;
 
 #ifdef _FEM
 /*
