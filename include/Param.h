@@ -355,6 +355,7 @@ struct _param {
         int   savedensityspec[3];
 
         int   tecplot, tecplotfreq, tecplotcounter; 
+        int   tecplotdstrain, tecplotstrain;
         int   tecmesh, tecmeshfreq, tecmeshcounter;
         real8 tecplotdt, tecplottime;
         real8 tecmeshdstrain, tecmeshstrain;

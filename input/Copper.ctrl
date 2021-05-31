@@ -47,7 +47,7 @@ rTol = .6629125
 rc = 2.7516500
 Ecore = 3.8663218E9
 grainSize = 78
-loadType = 1
+loadType = 0
 loadDir = [ 0.0 0.0 1.0 -1.0 0.0 0.0 ]
 #maxstep =  40000000
 maxstep =  10000
@@ -121,11 +121,13 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 4000
+tecplotdstrain = 0.002E-2 # 500 dump files for strain = 1%
+#tecplotfreq = 4000
 saveprop = 1
 savepropfreq = 400
 tecmesh = 1
 tecmeshdstrain = 0.01E-2
+#tecmeshfreq = 40000
 savecn = 1
 savecnfreq = 10000
 savetimers = 0
