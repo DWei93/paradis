@@ -34,7 +34,6 @@
 #include "Comm.h"
 
 #include <strings.h>
-#include <regex>
 #ifdef _BGP
 #include <spi/kernel_interface.h>
 #include <common/bgp_personality.h>
@@ -1933,18 +1932,20 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 printf("Initialize: Plastic strain file parsing complete\n");
                 fclose(fp);
             }else{
+#if 0
                 std::regex aux_rs("([A-Za-z0-9./]+)rs[0-9][0-9][0-9][0-9]");
                 std::string cFile=ctrlFile;
                 std::smatch v_match;
                 if(std::regex_match(cFile, v_match, aux_rs)){
-#if 0
                     if(v_match.size()>0){
                         printf("v_match[0]=%s\n",v_match[0].str().c_str());
                     }
 #endif
                     printf("Warning: can not open plastic strain field file %s, errno=%d\n"
-                        "workingdir=%s, filename=%s, cFile=%s\n", absTableFile, errno, workingDir, tableFile,cFile.c_str());
+                        "workingdir=%s, filename=%s\n", absTableFile, errno, workingDir, tableFile);
+#if 0
                 }
+#endif
             }
         }     
 
