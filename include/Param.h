@@ -355,6 +355,7 @@ struct _param {
         int   savedensityspec[3];
 
         int   tecplot, tecplotfreq, tecplotcounter; 
+        real8 tecplotdstrain, tecplotstrain;
         int   tecmesh, tecmeshfreq, tecmeshcounter;
         real8 tecplotdt, tecplottime;
         real8 tecmeshdstrain, tecmeshstrain;
@@ -534,7 +535,8 @@ struct _param {
         real8       velMax, velMin, dissMax, dissMin, baseVel, baseDiss, (*velTable)[4], (*dissTable)[4];
 #endif
         real8       wallTime; // units hour 
-        real8      timeNextGBCrossSlip;
+        real8       dtGBCrossSlip;
+        real8       timeNextGBCrossSlip;
 
 #ifdef _FEM
 /*

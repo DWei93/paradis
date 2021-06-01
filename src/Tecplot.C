@@ -122,7 +122,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         int      newNodeKeyPtr, narm;
         int      burgID=0, normalID; 
         int	     armInGrain, armOnGB;
-        real8    x,y,z, sfForce[3];
+        real8    x,y,z, sfForce[3], shift;
         real8    x2,y2,z2;
         real8    x2o,y2o,z2o;
         real8    prx,pry,prz;
@@ -144,7 +144,8 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         int     armID21;
         real8   tau_g, tau_gg, tau_ext;
 
-        int         index, constraint, nodeOnGB;
+        int     index, constraint, nodeOnGB;
+        bool    imageSeg=false;
         param      = home->param;
         thisDomain = home->myDomain;
 
@@ -310,7 +311,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 #else
 		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_sf, tau_ext,ifMag, velocity\n");
             val = param->timeNow*1.0E9;
-		    fprintf(fp, "zone T = \"%d\", i = %d, SOLUTIONTIME = %d,  F=POINT\n", home->cycle, numArms, home->cycle); 
+		    fprintf(fp, "zone T = \"%d\", SOLUTIONTIME = %d,  F=POINT\n", home->cycle, home->cycle); 
             val = fabs((param->loadType!=4)?param->eRate*param->timeNow*1.0E2:param->netCyclicStrain*1.0E2);
             fprintf(fp, "AUXDATA strain = \"%.2f\"\n", val);
             val = (param->loadType!=4)?fabs(sigijk/1.0E6):sigijk/1.0E6;
@@ -490,6 +491,8 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 narm = node->numNbrs;
 				
                 GetArmGrain(home, node, nbrNode, armInGrain, armOnGB);
+                imageSeg = (param->multilayer==true&&armOnGB==home->nGBs-1);
+                
                 vec[0]=prx; vec[1]=pry; vec[2]=prz;
                 NormalizeVec(vec);
                 n[0] = node->nx[j]; n[1]=node->ny[j]; n[2]=node->nz[j];
@@ -567,6 +570,15 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                             x,y,z,prx/2,pry/2,prz/2,
                             narm,node->inGrain,node->onGB,burgID,normalID,constraint,
                             index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag);
+                    if(imageSeg){
+                        if(fabs(fabs(z)-param->zBoundMax)<1){
+                            shift = z<0?param->Lz:-param->Lz;
+                            fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g\n", 
+                                x,y,z+shift,prx/2,pry/2,prz/2,
+                                narm,node->inGrain,node->onGB,burgID,normalID,constraint,
+                                index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag);
+                        }
+                    }
 #endif
 	        }
 #endif	

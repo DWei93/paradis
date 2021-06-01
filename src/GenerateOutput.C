@@ -211,7 +211,14 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
             if (stage == STAGE_TERM ) {
                 *outputTypes |= GEN_TECPLOT_DATA;
             } else if (stage == STAGE_CYCLE || stage == STAGE_DEBUG) {
-                if (param->tecplotdt > 0.0) {
+                if(param->tecplotdstrain>0 && (param->loadType ==1 || param->loadType ==6)){
+                    dumpTime = param->tecplotdstrain+param->tecplotstrain;
+                    if(param->strain>dumpTime || param->strain==0.0E0){
+                        param->tecplotstrain = param->strain;
+                        param->tecplotcounter++;
+                        *outputTypes |= GEN_TECPLOT_DATA;
+                    }
+                } else if (param->tecplotdt > 0.0) {
                     dumpTime = param->tecplottime + param->tecplotdt;
                     if (timeNow >= dumpTime) {
                         param->tecplottime = timeNow;
@@ -230,7 +237,7 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
             if (stage == STAGE_TERM ) {
                 *outputTypes |= GEN_TECMESH_DATA;
             } else if (stage == STAGE_CYCLE || stage == STAGE_DEBUG) {
-                if(param->tecmeshdstrain>0 && param->loadType == 1){
+                if(param->tecmeshdstrain>0 && (param->loadType ==1 || param->loadType ==6)){
                     dumpTime = param->tecmeshdstrain+param->tecmeshstrain;
                     if(param->strain>dumpTime || param->strain==0.0E0){
                         param->tecmeshstrain = param->strain;

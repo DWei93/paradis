@@ -681,11 +681,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                          param->delpStrain[4] *(an*bl + al*bn) +
                          param->delpStrain[5] *(al*bm + am*bl) ;   
         
-                if (indxerate <= 3) {
-                   modulus = youngs;
-                } else {
-                   modulus = 2.0 * shr;
-                }
+                modulus = 2.0 * shr;
 
 /*
  *              local in the [l m n] frame
@@ -706,13 +702,14 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                 param->appliedStress[4] += dStress *(an*bl + al*bn) * 0.5;
                 param->appliedStress[5] += dStress *(al*bm + am*bl) * 0.5;
         
-                param->totstraintensor[0] = erate * param->timeNow * al*bl               ;
-                param->totstraintensor[1] = erate * param->timeNow * am*bm               ;
-                param->totstraintensor[2] = erate * param->timeNow * an*bn               ;
-                param->totstraintensor[3] = erate * param->timeNow *(am*bn + an*bm) * 0.5;
-                param->totstraintensor[4] = erate * param->timeNow *(an*bl + al*bn) * 0.5;
-                param->totstraintensor[5] = erate * param->timeNow *(al*bm + am*bl) * 0.5;
+                param->totstraintensor[0] += erate * dtt * al*bl               ;
+                param->totstraintensor[1] += erate * dtt * am*bm               ;
+                param->totstraintensor[2] += erate * dtt * an*bn               ;
+                param->totstraintensor[3] += erate * dtt *(am*bn + an*bm) * 0.5;
+                param->totstraintensor[4] += erate * dtt *(an*bl + al*bn) * 0.5;
+                param->totstraintensor[5] += erate * dtt *(al*bm + am*bl) * 0.5;
 				
+                param->strain += fabs(erate*dtt);
 #endif
                 break;
 /*

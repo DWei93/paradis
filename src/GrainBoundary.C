@@ -174,6 +174,7 @@ void AdjustPenetratedNode(Home_t *home, Node_t *node){
     Param_t *param = home->param;
     real8 refDir[3]={node->x-node->oldx, node->y-node->oldy, node->z-node->oldz};
     real8 pos[3]={node->x, node->y, node->z};
+    real8 burgMag;
     ZImage(param, refDir, refDir+1, refDir+2);
     GetGBNormal(home, node->inGrain, currInGrain, refDir, pos);
 
@@ -182,7 +183,8 @@ void AdjustPenetratedNode(Home_t *home, Node_t *node){
     if(node->numNbrs > 1){
         if(node->numNbrs>2) cStress = param->tbStrength[1];
         else{
-           if(fabs(dot_product(node->burgX[0], node->burgY[0], node->burgZ[0], param->TBNormal[0], param->TBNormal[1], param->TBNormal[2])) < 0.1){
+            burgMag = normal(node->burgX[0], node->burgY[0], node->burgZ[0]);
+            if(fabs(dot_product(node->burgX[0], node->burgY[0], node->burgZ[0], param->TBNormal[0], param->TBNormal[1], param->TBNormal[2])) < 0.1){
                 Node_t *nbr = GetNeighborNode(home, node, 0);
                 if(nbr == (Node_t *)NULL){
                     cStress = param->tbStrength[0];
@@ -231,6 +233,7 @@ void AdjustPenetratedNode(Home_t *home, Node_t *node){
             } else{
                 cStress = param->tbStrength[1];
             }
+            cStress /= burgMag;
         }
 
         if(cStress > gStress){
@@ -3593,12 +3596,12 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                         coff = (dis>rc?gbStrength * a/(a+dis-rc):gbStrength);
                         NormalComponent(ldir,xi,gDir);
                         NormalizeVec(gDir);
-                            f1[0] += 0.25*length*coff*gDir[0]*burgMag;
-                            f1[1] += 0.25*length*coff*gDir[1]*burgMag;
-                            f1[2] += 0.25*length*coff*gDir[2]*burgMag;
-                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
-                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
-                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f1[0] += 0.25*length*coff*gDir[0];
+                            f1[1] += 0.25*length*coff*gDir[1];
+                            f1[2] += 0.25*length*coff*gDir[2];
+                            f2[0] += 0.25*length*coff*gDir[0];
+                            f2[1] += 0.25*length*coff*gDir[1];
+                            f2[2] += 0.25*length*coff*gDir[2];
                     }
                 }
                 pBound[0]=param->xBoundMax-rc; pBound[1]=0; pBound[2]=0;
@@ -3611,12 +3614,12 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                         coff = (dis>rc?gbStrength * a/(a+dis-rc):gbStrength);
                         NormalComponent(ldir,xi,gDir);
                         NormalizeVec(gDir);
-                            f1[0] += 0.25*length*coff*gDir[0]*burgMag;
-                            f1[1] += 0.25*length*coff*gDir[1]*burgMag;
-                            f1[2] += 0.25*length*coff*gDir[2]*burgMag;
-                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
-                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
-                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f1[0] += 0.25*length*coff*gDir[0];
+                            f1[1] += 0.25*length*coff*gDir[1];
+                            f1[2] += 0.25*length*coff*gDir[2];
+                            f2[0] += 0.25*length*coff*gDir[0];
+                            f2[1] += 0.25*length*coff*gDir[1];
+                            f2[2] += 0.25*length*coff*gDir[2];
                     }
                 }
             }
@@ -3633,12 +3636,12 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                         coff = (dis>rc?gbStrength * a/(a+dis-rc):gbStrength);
                         NormalComponent(ldir,xi,gDir);
                         NormalizeVec(gDir);
-                            f1[0] += 0.25*length*coff*gDir[0]*burgMag;
-                            f1[1] += 0.25*length*coff*gDir[1]*burgMag;
-                            f1[2] += 0.25*length*coff*gDir[2]*burgMag;
-                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
-                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
-                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f1[0] += 0.25*length*coff*gDir[0];
+                            f1[1] += 0.25*length*coff*gDir[1];
+                            f1[2] += 0.25*length*coff*gDir[2];
+                            f2[0] += 0.25*length*coff*gDir[0];
+                            f2[1] += 0.25*length*coff*gDir[1];
+                            f2[2] += 0.25*length*coff*gDir[2];
                     }
                 }
                 pBound[0]=0; pBound[1]=param->yBoundMax-rc; pBound[2]=0;
@@ -3651,12 +3654,12 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                         coff = (dis>rc?gbStrength * a/(a+dis-rc):gbStrength);
                         NormalComponent(ldir,xi,gDir);
                         NormalizeVec(gDir);
-                            f1[0] += 0.25*length*coff*gDir[0]*burgMag;
-                            f1[1] += 0.25*length*coff*gDir[1]*burgMag;
-                            f1[2] += 0.25*length*coff*gDir[2]*burgMag;
-                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
-                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
-                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f1[0] += 0.25*length*coff*gDir[0];
+                            f1[1] += 0.25*length*coff*gDir[1];
+                            f1[2] += 0.25*length*coff*gDir[2];
+                            f2[0] += 0.25*length*coff*gDir[0];
+                            f2[1] += 0.25*length*coff*gDir[1];
+                            f2[2] += 0.25*length*coff*gDir[2];
                     }
                 }
             }
@@ -3673,12 +3676,12 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                         coff = (dis>rc?gbStrength * a/(a+dis-rc):gbStrength);
                         NormalComponent(ldir,xi,gDir);
                         NormalizeVec(gDir);
-                            f1[0] += 0.25*length*coff*gDir[0]*burgMag;
-                            f1[1] += 0.25*length*coff*gDir[1]*burgMag;
-                            f1[2] += 0.25*length*coff*gDir[2]*burgMag;
-                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
-                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
-                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f1[0] += 0.25*length*coff*gDir[0];
+                            f1[1] += 0.25*length*coff*gDir[1];
+                            f1[2] += 0.25*length*coff*gDir[2];
+                            f2[0] += 0.25*length*coff*gDir[0];
+                            f2[1] += 0.25*length*coff*gDir[1];
+                            f2[2] += 0.25*length*coff*gDir[2];
                     }
                 }
                 pBound[0]=0; pBound[1]=0; pBound[2]=param->zBoundMax-rc;
@@ -3691,12 +3694,12 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                         coff = (dis>rc?gbStrength * a/(a+dis-rc):gbStrength);
                         NormalComponent(ldir,xi,gDir);
                         NormalizeVec(gDir);
-                            f1[0] += 0.25*length*coff*gDir[0]*burgMag;
-                            f1[1] += 0.25*length*coff*gDir[1]*burgMag;
-                            f1[2] += 0.25*length*coff*gDir[2]*burgMag;
-                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
-                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
-                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f1[0] += 0.25*length*coff*gDir[0];
+                            f1[1] += 0.25*length*coff*gDir[1];
+                            f1[2] += 0.25*length*coff*gDir[2];
+                            f2[0] += 0.25*length*coff*gDir[0];
+                            f2[1] += 0.25*length*coff*gDir[1];
+                            f2[2] += 0.25*length*coff*gDir[2];
                     }
                 }
             }
@@ -3725,14 +3728,14 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                     NormalizeVec(gDir);
 
                     if(cacTB1){
-                        f1[0] += 0.25*length*coff*gDir[0]*burgMag;
-                        f1[1] += 0.25*length*coff*gDir[1]*burgMag;
-                        f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                        f1[0] += 0.25*length*coff*gDir[0];
+                        f1[1] += 0.25*length*coff*gDir[1];
+                        f1[2] += 0.25*length*coff*gDir[2];
                     }
                     if(cacTB2){
-                        f2[0] += 0.25*length*coff*gDir[0]*burgMag;
-                        f2[1] += 0.25*length*coff*gDir[1]*burgMag;
-                        f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                        f2[0] += 0.25*length*coff*gDir[0];
+                        f2[1] += 0.25*length*coff*gDir[1];
+                        f2[2] += 0.25*length*coff*gDir[2];
                     }
                 } 
             }
@@ -3754,15 +3757,15 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                         NormalComponent(ldir,xi,gDir);
                         NormalizeVec(gDir);
                         if(cacTB1){
-                            f1[0] += 0.25*length*coff*gDir[0]*burgMag;
-                            f1[1] += 0.25*length*coff*gDir[1]*burgMag;
-                            f1[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f1[0] += 0.25*length*coff*gDir[0];
+                            f1[1] += 0.25*length*coff*gDir[1];
+                            f1[2] += 0.25*length*coff*gDir[2];
                         }
             
                         if(cacTB2){
-                            f2[0] += 0.25*length*coff*gDir[0]*burgMag;
-                            f2[1] += 0.25*length*coff*gDir[1]*burgMag;
-                            f2[2] += 0.25*length*coff*gDir[2]*burgMag;
+                            f2[0] += 0.25*length*coff*gDir[0];
+                            f2[1] += 0.25*length*coff*gDir[1];
+                            f2[2] += 0.25*length*coff*gDir[2];
                         }
                         
                     }

@@ -654,7 +654,7 @@ void InitGrain(Home_t *home, Param_t *param){
     Matrix33Mult33(temR, param->matrixOrientation, TwinOrientation);
 
     Matrix33Vector3Multiply(param->matrixOrientation, planeABC, param->TBNormal);
-    RotateWithAxis(param->TBNormal, PI, param->rotateNormal);
+    RotateWithAxis(CDelta, PI, param->rotateNormal);
 
 	if(home->myDomain == 0){
 	    FormatMatrix(param->matrixOrientation,"basis orientation");
@@ -2043,6 +2043,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
         return(0);
     }
 
+
     return(1);
 }
 
@@ -3142,6 +3143,26 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
             }
             if(dcp.disArray.size()<=0)continue;
             sort(dcp.disArray.begin(), dcp.disArray.end(), comByBarrier); 
+#if 0 
+            if(i==2 && j==1){
+                printf("burgID=AD; j=AB:\n");
+                for(k=0;k<dcp.disArray.size();k++){
+                    for(l=0;l<dcp.disArray[k].size();l++){
+                        cross(GB->n, gbd->planeList[dcp.disArray[k][l].planeID], crossProd);
+                        VECTOR_COPY(vec, dcp.burgList[dcp.disArray[k][l].burgID]);
+                        printf("[%d(%s):{%g,%g,%g}](%d:{%g,%g,%g}) in %d ",dcp.disArray[k][l].burgID,
+                                (BurgType_FCC(vec) == BASIC_BURG)?"-perfect":"partial",
+                                vec[0],vec[1],vec[2],
+                                dcp.disArray[k][l].planeID,
+                                gbd->planeList[dcp.disArray[k][l].planeID][0],
+                                gbd->planeList[dcp.disArray[k][l].planeID][1],
+                                gbd->planeList[dcp.disArray[k][l].planeID][2],
+                                gbd->planeInGrain[dcp.disArray[k][l].planeID]);
+                    }
+                    printf("\n");
+                }
+            }
+#endif
             dcp.burgID = i; dcp.keyLineID = j;
             gbd->dcps.push_back(dcp);
         }
@@ -4463,21 +4484,39 @@ void GlidePlanesInNeighborGrain(Home_t *home, real8 *n, real8 *p, std::vector<re
     if(inGrain<0)return;
     std::vector<real8>  localVertices;
     std::vector<int> localTypes, localF_vert;
+    real8 angle, temR[3][3];
 
     Grain_t *grain =  home->grainKeys[inGrain];
     GB_t *gb; int type;
-    real8 vec1[3], vec2[3], nbrGrainPos[3], newVec[3], newNormal[3], gbp[3];
+    real8 vec1[3], vec2[3], nbrGrainPos[3], newVec[3], newNormal[3], gbp[3], ldir[3];
     for(int i=0;i<grain->nBounds;i++){
         gb = grain->GB[i];
         VECTOR_COPY(gbp, p);
         PBCPOSITION(param, gb->p[0],gb->p[1],gb->p[2],gbp,gbp+1,gbp+2);
         type = PlanePlaneIntersection(n, gbp, gb->n, gb->p, vec1, vec2);
         if(type==LINE_INTERSECTION){
-            CoordMinus(vec2,p,vec1); 
-            if(Normal(vec1)>1E-5){
-                NormalizeVec(vec1);
-                Matrix33Vector3Multiply(param->rotateNormal, vec1, newVec);
-                Matrix33Vector3Multiply(param->rotateNormal, n, newNormal);
+            CoordMinus(p,vec2,ldir); 
+            if(Normal(ldir)>1E-5){
+                NormalizeVec(ldir);
+                angle = acos(fabs(DotProduct(n,gb->n)));    
+                RotateWithAxis(vec1, angle, temR);
+                Matrix33Vector3Multiply(temR, n, newNormal);
+                if(fabs(DotProduct(newNormal,gb->n)) <0.95){
+                    angle = -angle;
+                    RotateWithAxis(vec1, angle, temR);
+                    Matrix33Vector3Multiply(temR, n, newNormal);
+                    if(fabs(DotProduct(newNormal,gb->n)) <0.95){
+                        Fatal("%s",__func__);    
+                    }
+                }
+                angle *=2.0; 
+                RotateWithAxis(vec1, angle, temR);
+                Matrix33Vector3Multiply(temR, n, newNormal);
+                Matrix33Vector3Multiply(temR, ldir, newVec);
+#if 0
+                printf("Rotation angle %f ldir: {%g,%g,%g}-->{%g,%g,%g}; n {%g,%g,%g}-->{%g,%g,%g}\n",angle*180/3.1415926,
+                      ldir[0],ldir[1],ldir[2],newVec[0],newVec[1],newVec[2],n[0],n[1],n[2],newNormal[0],newNormal[1],newNormal[2]);
+#endif
                 CoordAdd(vec2, newVec, nbrGrainPos);
                 GlidePlaneOfDislocation(home, newNormal, nbrGrainPos, localVertices, localF_vert,  localTypes);
                 if(localTypes.size()>0){f_vert.push_back(int(localTypes.size())); startID=int(vertices.size()/3);}

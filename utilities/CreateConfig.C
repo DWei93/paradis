@@ -2803,7 +2803,6 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
     
     Matrix33Vector3Multiply(param->rotateNormal, n0, n1);
 
-
     bool isScrew = fabs(DotProduct(b,param->TBNormal))<1E-2?true:false;
 
     if(!isScrew){
@@ -2881,7 +2880,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         Grain_t     *grain;
         real8   margin;	
         real8                                       str[3][3], gbNormal[3];
-        int                                         appliedDir, j, k;
+        int                                         appliedDir, j, k, l;
         real8                                       sign;
         std::vector<std::vector<Dislocation_t> >    disArray;
         std::vector<std::vector<real8> >            burgList;
@@ -2890,7 +2889,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         real8   normalABC[3], lambda_FR, lambda_SAS1, lambda_GB1, lambda_SAS2, lambda_GB2, interDir[3];
         real8   barrierFactor, crossProd[3], vec[3], intDir[3];
         real8   vec1[3], vec2[3], s0,  paras[4][4], zaxis[3] = {0,0,1};
-        int l; real8 dis;
+        real8 dis;
         int constraint2=0;
 
         normalABC[0] = 1;
@@ -3017,7 +3016,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 
         int nSlips;
         if(param->polycrystal>0){ if(inArgs->nTDs>0)nSlips=N_SS; else nSlips=N_LD; }else nSlips=N_SG;
-        real8 *proba, *primary, *Proba, *percen, maxSchmid=0;
+        real8 *proba, *primary, *Proba, *percen, maxSchmid=0, ms[2]={0.0,0.0}, mstb=0.0, idmstb;
         proba = (real8 *)malloc(nSlips*sizeof(real8));
         Proba = (real8 *)malloc(nSlips*sizeof(real8));
         percen = (real8 *)malloc(nSlips*sizeof(real8));
@@ -3046,7 +3045,70 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                 maxSchmid = proba[i];
             }
 
+            if(slip_sys[i][2]>-1){
+                if(proba[i]>ms[slip_sys[i][2]])ms[slip_sys[i][2]]=proba[i];
+            }else{
+                if(proba[i]>mstb){
+                    mstb=proba[i];
+                    idmstb = i;
+                }
+            }
+
             percen[i]=0.0;
+        }
+
+        std::vector<std::vector<int> > primarryData;
+        std::vector<int>  pdata(5); // inGrain, onGB, burgID, planeID
+
+        if(param->multilayer){
+            for(i=0;i<home->nGrains;i++){
+                grain = home->grainKeys[i];
+                bd = GetBurgData(home, i, -1); 
+                pdata[0] = i; pdata[1] = -1;
+                for(j=0;j<6;j++)for(k=0;k<2;k++){
+                    pdata[2] = j; 
+                    pdata[3] = bd->burgOnPlaneID[j][k];
+                    for(l=0;l<nSlips;l++){
+                        if(slip_sys[l][2]!=-1){
+                            if(j==slip_sys[l][0]&&pdata[3]==slip_sys[l][1]&&(slip_sys[l][2]==(i%2)))break;
+                        }else{
+                            if(j==slip_sys[l][0]&&pdata[3]==slip_sys[l][1])break;
+                        }
+                    }
+                    if(l==nSlips)Fatal("%s: can not find slip system: grain=%d, burgID=%d, planeID=%d",__func__,i,j,pdata[3]);
+                    pdata[4] = l;
+                    if(proba[l]==ms[i%2])primarryData.push_back(pdata);
+                }
+            }
+            
+            if(mstb>0.001)for(i=0;i<home->nGBs;i++){
+                gb  = home->GBKeys[i];
+                bd=GetBurgData(home, 0, i);
+                pdata[0] = -1; pdata[1] = i;
+
+                for(j=7;j<=17;j=j+5){
+                    b[0] = bd->burgList[j][0];
+                    b[1] = bd->burgList[j][1];
+                    b[2] = bd->burgList[j][2];
+                    NormalizeVec(b);
+                    
+                    VECTOR_COPY(n0, param->TBNormal);
+                    
+                    Matrix33Vector3Multiply(str,b,tem);
+                    cross(tem,b,f_pk);
+                    NormalComponent(f_pk, n0, f_pkg);
+
+                    if(fabs(Normal(f_pkg)/Normal(b)-mstb)<0.001){
+                        pdata[2] = j; pdata[3] = 3; pdata[4]=idmstb;
+                        primarryData.push_back(pdata);
+                    }
+                }
+            }
+            printf("Primarry slip systems: \n");
+            printf("inGrain onGB burgID planeID\n");
+            for(i=0;i<primarryData.size();i++){
+                printf("  %02d     %02d    %02d      %02d \n",primarryData[i][0],primarryData[i][1],primarryData[i][2],primarryData[i][3]);
+            }
         }
         param->maxSchmid = maxSchmid;
         real8 nPrimary = 0.0, pPris=0.0, pTot=0.0, pcoe=1.0/3.0, criPorPri=0.15, newPro;
@@ -3099,31 +3161,46 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
             	
             for(chain = 0; chain < xn; ){
              
-                if(xn > nSlips && chain < nSlips && (2*maxDensity*volume*burgMag*burgMag/srcLenMax > nSlips)){
-                    ranNum = chain%nSlips;
+            //  if(xn > nSlips && chain < nSlips && (2*maxDensity*volume*burgMag*burgMag/srcLenMax > nSlips)){
+            //      ranNum = chain%nSlips;
+            //  }else{
+            //  }
+                if(param->multilayer && chain<primarryData.size()){
+                    gpBurgIndex = primarryData[chain][2]; gpIndex=primarryData[chain][3];
+                    ranNum = primarryData[chain][4];
                 }else{
                     randmVal= randm(&seed);
                     for(i=0;i<nSlips;i++)if(randmVal<Proba[i]&& (randmVal>((i==0)?0:Proba[i-1])) )ranNum=i;
+                    gpBurgIndex = slip_sys[ranNum][0]; gpIndex=slip_sys[ranNum][1];
                 }
-                gpBurgIndex = slip_sys[ranNum][0]; gpIndex=slip_sys[ranNum][1];
-    
+
                 finished = 0;
                 while(!finished){
                     RandomPosition:
                     if(singleSrcTest){
-                        VECTOR_COPY(p0,inArgs->pos);
+                        VECTOR_COPY(p1,inArgs->pos);
                     }else{
                         p1[0] = (randm(&seed)-0.5) * cubeSize*0.99;
                         p1[1] = (randm(&seed)-0.5) * cubeSize*0.99;			
 
                         if(param->multilayer){
-                            randmVal = randm(&seed);
-                            for(i=0;i<home->nGrains;i++)if(randmVal<posProba[i]&& (randmVal>((i==0)?0:posProba[i-1]))){
-                                ranGrain = i; break;
+                            if(chain<primarryData.size()){ // force distribute primarry slip systems
+                                inGrain1 = primarryData[chain][0]; onGB1 =  primarryData[chain][1];
+                                if(inGrain1>-1){
+                                    lowerBound =(inGrain1==0)?param->zBoundMin:home->tbPosz[inGrain1-1];
+                                    p1[2] = 0.99*randm(&seed)*(home->tbPosz[inGrain1]-lowerBound) + lowerBound;
+                                }else{
+                                    p1[2] = home->GBKeys[onGB1]->p[2]+3;
+                                }
+                            }else{
+                                randmVal = randm(&seed);
+                                for(i=0;i<home->nGrains;i++)if(randmVal<posProba[i]&& (randmVal>((i==0)?0:posProba[i-1]))){
+                                    ranGrain = i; break;
+                                }
+                                lowerBound = (i==0)?param->zBoundMin:home->tbPosz[i-1];
+                                
+                                p1[2] = 0.99*randm(&seed)*(home->tbPosz[i]-lowerBound) + lowerBound;
                             }
-                            lowerBound = (i==0)?param->zBoundMin:home->tbPosz[i-1];
-                            
-                            p1[2] = 0.99*randm(&seed)*(home->tbPosz[i]-lowerBound) + lowerBound;
                         }else{
                             p1[2] = 0.99*randm(&seed)* thickness + ((real8)layer) * thickness - 0.5*heightSize;
                         }
@@ -3225,7 +3302,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 
                         inGrain1=inGrain; onGB1=onGB; VECTOR_COPY(p1,p);
                         constraint2 = PINNED_NODE;
-                        if(home->nGBs<=1 || gpIndex==3){
+                        if(home->nGBs<=1 || gpIndex==3 || singleSrcTest){
                             for (i = 0; i < 3; i++) {
                                 p0[i] = p[i] + (srcLen * randomLine[i])/2.0;
                                 p2[i] = p[i] + (srcLen * randomLine[i]);
@@ -3317,41 +3394,77 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                     }
                                     if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
                                 }else if(!(onGB1<0 && inGrain1==inGrain0)){
-                                    for(i=0;i<grain->nBounds;i++){
-                                        gb = grain->GB[i];
-                                        gbNormal[0] = gb->n[0];
-                                        gbNormal[1] = gb->n[1];
-                                        gbNormal[2] = gb->n[2];
+                                    real8 oldp1z;
+
+                                    if(onGB1>-1){
+                                        gb = home->GBKeys[onGB1];
                                         VECTOR_COPY(vec2, gb->p);
                                         PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
-                                        CoordAdd(-0.05,p0,1.05,p1,p1);
-
-                                        if(POINT_INTERSECTION==SegmentPlaneIntersection(p0,p1,gbNormal,vec2,vec1)){
-                                            inGrain1 =-1; onGB1=gb->GBID;
-                                            VECTOR_COPY(p1,vec1);
-                                            break;
+                                        LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p1);
+                                        inGrain1 =-1; onGB1=gb->GBID;
+                                    }else{
+                                        for(i=0;i<grain->nBounds;i++){
+                                            gb = grain->GB[i];
+                                            gbNormal[0] = gb->n[0];
+                                            gbNormal[1] = gb->n[1];
+                                            gbNormal[2] = gb->n[2];
+                                            VECTOR_COPY(vec2, gb->p);
+                                            PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                        
+                                            oldp1z = p1[2];
+                                          //PBCPOSITION(param, p0[0], p0[1], p0[2], p1, p1+1, p1+2);
+                                            VectorCopy(vec1,p1[0]-p0[0],p1[1]-p0[1],p1[2]-p0[2]);
+                                            NormalizeVec(vec1);
+                                            CoordAdd(1.0,p1,2.0*fabs(vec2[2]-p1[2]),vec1,p1);
+                                            if(POINT_INTERSECTION==SegmentPlaneIntersection(p0,p1,gbNormal,vec2,vec1)){
+                                                inGrain1 =-1; onGB1=gb->GBID;
+                                                VECTOR_COPY(p1,vec1);
+                                                break;
+                                            }
                                         }
+                                        if(i==grain->nBounds)Fatal("can not find gb in %s, %d, onGB1=%d, inGrain1=%d, inGrain0=%d, p0z=%g, p1z=%g, vec2z=%g oldp1z=%g",
+                                           __FILE__,__LINE__,onGB1,inGrain1,inGrain0,p0[2],p1[2],vec2[2], oldp1z);
+
                                     }
-                                    if(i==grain->nBounds)Fatal("can not find gb in %s, %d, onGB1=%d, inGrain1=%d, inGrain0=%d",
-                                       __FILE__,__LINE__,onGB1,inGrain1,inGrain0);
                                 }else if(!(onGB2<0 && inGrain2==inGrain0)){
-                                    for(i=0;i<grain->nBounds;i++){
-                                        gb = grain->GB[i];
-                                        gbNormal[0] = gb->n[0];
-                                        gbNormal[1] = gb->n[1];
-                                        gbNormal[2] = gb->n[2];
+                                    real8 op2[3], len02;
+                                    if(onGB2>-1){
+                                        gb = home->GBKeys[onGB2];
                                         VECTOR_COPY(vec2, gb->p);
                                         PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
-
-                                        CoordAdd(-0.05,p0,1.05,p2,p2);
-                                        if(POINT_INTERSECTION==SegmentPlaneIntersection(p0,p2,gbNormal,vec2,vec1)){
-                                            inGrain2 =-1; onGB2=gb->GBID; 
-                                            VECTOR_COPY(p2,vec1);
-                                            break;
+                                        LinePlaneIntersection(randomLine,p0,gbNormal,vec2,vec1,p2);
+                                        inGrain2 =-1; onGB2=gb->GBID;
+                                    }else{
+                                        for(i=0;i<grain->nBounds;i++){
+                                            gb = grain->GB[i];
+                                            gbNormal[0] = gb->n[0];
+                                            gbNormal[1] = gb->n[1];
+                                            gbNormal[2] = gb->n[2];
+                                            VECTOR_COPY(vec2, gb->p);
+                                            PBCPOSITION(param, p0[0], p0[1], p0[2], vec2, vec2+1, vec2+2);
+                                        
+                                            VECTOR_COPY(op2,p2);
+                                            len02 = normal(op2[0]-p0[0],op2[1]-p0[1],op2[2]-p0[2]);
+                                          //PBCPOSITION(param, p0[0], p0[1], p0[2], p2, p2+1, p2+2);
+                                            VectorCopy(vec1,p2[0]-p0[0],p2[1]-p0[1],p2[2]-p0[2]);
+                                            NormalizeVec(vec1);
+                                            CoordAdd(1.0,p2,2.0*fabs(vec2[2]-p2[2]),vec1,p2);
+                                            if(POINT_INTERSECTION==SegmentPlaneIntersection(p0,p2,gbNormal,vec2,vec1)){
+                                                inGrain2 =-1; onGB2=gb->GBID; 
+                                                VECTOR_COPY(p2,vec1);
+                                                break;
+                                            }
+                                        }
+                                        
+                                        if(i==grain->nBounds){
+                                            FormatVector(p0,"p0");
+                                            FormatVector(op2,"op2");
+                                            FormatVector(p2,"p2");
+                                            FormatVector(vec2,"vec2");
+                                            Fatal("can not find gb in %s, %d, onGB2=%d, inGrain2=%d, inGrain0=%d, len02=%g",
+                                                    __FILE__,__LINE__,onGB2,inGrain2,inGrain0,len02);
                                         }
                                     }
-                                    if(i==grain->nBounds)Fatal("can not find gb in %s, %d, onGB2=%d, inGrain2=%d, inGrain0=%d",
-                                       __FILE__,__LINE__,onGB2,inGrain2,inGrain0);
                                 }
                             }
                             srcLen = PointPointDistance(p1,p2);
@@ -3734,6 +3847,12 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 	            }
             }  /* for (chain = 0; chain < numChains; ) */
             printf("layer %d: xn=%d, chain=%d\n",layer,xn,chain+1);
+    
+            if(primarryData.size()>0){
+                if(int(primarryData.size())>chain+1){
+                    printf("Warning: # of primarry slips systems (%d) > # of sources (%d)\n",int(primarryData.size()),chain+1);
+                }
+            }
 	    }/* for(layer=0; layer<nLayers;...)*/
                                                                                
         real8 lastProba = 0.0;

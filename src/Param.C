@@ -169,6 +169,9 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "wallTime", &param->wallTime, V_DBL, 1, VFLAG_NULL);
         param->wallTime = -1;
 
+        BindVar(CPList, "dtGBCrossSlip", &param->dtGBCrossSlip, V_DBL, 1, VFLAG_NULL);
+        param->dtGBCrossSlip = 5.0E-6;
+
         BindVar(CPList, "maxstep", &param->maxstep, V_INT, 1, VFLAG_NULL);
         param->maxstep = 100;
 
@@ -693,15 +696,21 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
  */
         BindVar(CPList, "tecplot", &param->tecplot, V_INT, 1, VFLAG_NULL);
 
-        BindVar(CPList, "tecplotfreq", &param->tecplotfreq, V_INT, 1,
-                VFLAG_NULL);
-        param->tecplotfreq = 100;
+        BindVar(CPList, "tecplotfreq", &param->tecplotfreq, V_INT, 1, VFLAG_NULL);
+
+        param->tecplotfreq = 4000;
+
+        BindVar(CPList, "tecplotdstrain", &param->tecplotdstrain, V_DBL, 1, VFLAG_NULL);
+        param->tecplotdstrain = -1.0;
+
+        BindVar(CPList, "tecplotstrain", &param->tecplotstrain, V_DBL, 1, VFLAG_NULL);
+        param->tecplotstrain = 0.0;
 
         BindVar(CPList, "tecmesh", &param->tecmesh, V_INT, 1, VFLAG_NULL);
 
         BindVar(CPList, "tecmeshfreq", &param->tecmeshfreq, V_INT, 1,
                 VFLAG_NULL);
-        param->tecmeshfreq = 100;
+        param->tecmeshfreq = 40000;
 
         BindVar(CPList, "tecplotdt", &param->tecplotdt, V_DBL, 1, VFLAG_NULL);
         param->tecplotdt = -1.0;
