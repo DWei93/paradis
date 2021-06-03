@@ -29,7 +29,7 @@ ctrlFile=input/Copper.ctrl
 logFile=input/CreateFR.log
 cubeln=750
 if [ $# -ge 3 ] ; then cubeln=$3; fi
-nMesh=31
+nMesh=41
 #nfrs=15000
 nTDs=0
 pbc=7
@@ -38,7 +38,7 @@ yMatDir=-1,-1,2
 if [ $# -ge 4 ]; then
     rotDir=$4;
 fi
-schmid=0.441
+
 type=3
 srcLenType=1
 if [ $cubeln -ge 3000 ]; then heightRatio=1; 
@@ -58,17 +58,17 @@ maxDisDen=`echo "scale=3;-0.0148621*${cubeln}+102.972" | bc -l`
 maxDisDen=`echo "scale=4; 2.0*(1+10000.0/${cubeln})" | bc -l`
 maxDisDen=`echo "scale=5; 18947.4/${cubeln}+5.26316" | bc -l`
 if [[ $cubeln -gt 1100 ]]; then
-    maxDisDen=2.0
+    maxDisDen=5.0
     nfrs=20000
 else
     maxDisDen=200.0
     nfrs=24
 fi
 
-frlen=`echo "scale=3;80/0.2556" | bc -l`
-frlenMin=`echo "scale=3;40/0.2556" | bc -l`
+frlen=`echo "scale=3;300/0.2556" | bc -l`
+frlenMin=`echo "scale=3;300/0.2556" | bc -l`
 frlenn=`echo "scale=3;${frlen}*0.2556" | bc`
-maxSeg2=`echo ${frlen}/6 |bc `
+maxSeg2=`echo ${frlen}/5 |bc `
 srcLenType=0
 
 if [[ `echo "${maxSeg1}>${maxSeg2}" | bc` == "1" ]]; then maxSeg=$maxSeg2; echo "maxSge is equal to L_FR/10"; else maxSeg=$maxSeg1; fi
@@ -77,7 +77,7 @@ maxDensity=${maxDisDen}E12;
 polycrystal=${1}
 single=${2}
 
-eRate=-50000
+eRate=-5000
 sed -i "/^eRate/ceRate = $eRate" $ctrlFile
 sed -i "/^edotPolar/cedotPolar = [ 0.0 0.0 ]" $ctrlFile
 
@@ -203,7 +203,7 @@ case $srctype in
     (echo "${2}-degree" ;  ./bin/paradisgen -type ${type} -frlen ${frlenMin},${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc $pbc -maxDensity $maxDensity -loadDir 0,0,1 \
     -rotate ${angle},${rotDir} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -srcLenType $srcLenType \
-    -nLayers 1  -nTDs $nTDs -yMatDir 1,1,1  -zMatDir -3,-4,7) | tee $log;;
+    -nLayers 1  -nTDs $nTDs -xMatDir ${xMatDir}  -yMatDir ${yMatDir}) | tee $log;;
 #   -zMatDir -1,-1,-1 -xMatDir 1,-1,0  -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;
 
 

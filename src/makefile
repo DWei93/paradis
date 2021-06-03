@@ -30,7 +30,7 @@ BINDIR = ../bin
 #	Define the executable for the application
 #
 
-PARADIS    = paradis-045d3cc-impi-2019
+PARADIS    = paradis
 PARADIS_BIN = $(BINDIR)/$(PARADIS)
 
 #

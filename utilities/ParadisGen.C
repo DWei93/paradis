@@ -155,7 +155,9 @@ Option_t optList[OPT_MAX] = {
         {OPT_OUT_FILE,   "outFile",      3, 1},
         {OPT_LOAD_DIR,   "loadDir",      3, 1},
         {OPT_NTDS,      "nTDs",         3, 1},
-        {OPT_GB,        "gb",         2, 1}
+        {OPT_GB,        "gb",         2, 1},
+        {OPT_FORCE_DISTRIBUTION,        "forceDis",         3, 1}
+
 
 };
 
@@ -425,6 +427,7 @@ static void InitDefaultValues(InArgs_t *inArgs)
 
         inArgs->nTDs = -1;
         inArgs->gb = false; 
+        inArgs->forceDis = false;
 		snprintf(inArgs->outFile, sizeof(inArgs->outFile), "InitialAnalysis.dat");
 		snprintf(inArgs->gradientStructure, sizeof(inArgs->gradientStructure), "0");
 
@@ -983,6 +986,9 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                         break;
                 case OPT_GB:
                     inArgs->gb = atoi(argValue)>0?true:false;
+                        break;
+                case OPT_FORCE_DISTRIBUTION:
+                    inArgs->forceDis = atoi(argValue)>0?true:false;
                         break;
             
             }

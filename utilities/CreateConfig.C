@@ -2938,6 +2938,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 
         bool freeLine=(param->xBoundType != Periodic && param->yBoundType != Periodic && param->zBoundType != Periodic);
         real8 n3[3];
+        bool zload = false;
 
         if((burgID >-1 && planeID > -1)){singleSrcTest = 1; numSources = 1;}
         	
@@ -2974,6 +2975,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
             }else{
                 for(i=0;i<3;i++)for(j=0;j<3;j++) str[i][j] = inArgs->loadDir[i]*inArgs->loadDir[j];
                 printf("Uniaxial loading: n={%g,%g,%g}\n",inArgs->loadDir[0], inArgs->loadDir[1], inArgs->loadDir[2]);
+                if(fabs(fabs(inArgs->loadDir[2])-1.0)<0.01)zload = true;
             }
         }
         FormatMatrix(str,"Element stress");
@@ -3057,10 +3059,11 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
             percen[i]=0.0;
         }
 
-        std::vector<std::vector<int> > primarryData;
+        std::vector<std::vector<int> > primaryData;
         std::vector<int>  pdata(5); // inGrain, onGB, burgID, planeID
 
-        if(param->multilayer){
+        bool forceDis = (inArgs->forceDis==true && param->multilayer==true && (zload==false));
+        if(forceDis){
             for(i=0;i<home->nGrains;i++){
                 grain = home->grainKeys[i];
                 bd = GetBurgData(home, i, -1); 
@@ -3077,7 +3080,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                     }
                     if(l==nSlips)Fatal("%s: can not find slip system: grain=%d, burgID=%d, planeID=%d",__func__,i,j,pdata[3]);
                     pdata[4] = l;
-                    if(proba[l]==ms[i%2])primarryData.push_back(pdata);
+                    if(fabs(proba[l]-ms[i%2])<0.01)primaryData.push_back(pdata);
                 }
             }
             
@@ -3100,14 +3103,14 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 
                     if(fabs(Normal(f_pkg)/Normal(b)-mstb)<0.001){
                         pdata[2] = j; pdata[3] = 3; pdata[4]=idmstb;
-                        primarryData.push_back(pdata);
+                        primaryData.push_back(pdata);
                     }
                 }
             }
             printf("Primarry slip systems: \n");
             printf("inGrain onGB burgID planeID\n");
-            for(i=0;i<primarryData.size();i++){
-                printf("  %02d     %02d    %02d      %02d \n",primarryData[i][0],primarryData[i][1],primarryData[i][2],primarryData[i][3]);
+            for(i=0;i<primaryData.size();i++){
+                printf("  %02d     %02d    %02d      %02d \n",primaryData[i][0],primaryData[i][1],primaryData[i][2],primaryData[i][3]);
             }
         }
         param->maxSchmid = maxSchmid;
@@ -3161,13 +3164,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
             	
             for(chain = 0; chain < xn; ){
              
-            //  if(xn > nSlips && chain < nSlips && (2*maxDensity*volume*burgMag*burgMag/srcLenMax > nSlips)){
-            //      ranNum = chain%nSlips;
-            //  }else{
-            //  }
-                if(param->multilayer && chain<primarryData.size()){
-                    gpBurgIndex = primarryData[chain][2]; gpIndex=primarryData[chain][3];
-                    ranNum = primarryData[chain][4];
+                if(forceDis==true && chain<primaryData.size()){
+                    gpBurgIndex = primaryData[chain][2]; gpIndex=primaryData[chain][3];
+                    ranNum = primaryData[chain][4];
                 }else{
                     randmVal= randm(&seed);
                     for(i=0;i<nSlips;i++)if(randmVal<Proba[i]&& (randmVal>((i==0)?0:Proba[i-1])) )ranNum=i;
@@ -3184,8 +3183,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                         p1[1] = (randm(&seed)-0.5) * cubeSize*0.99;			
 
                         if(param->multilayer){
-                            if(chain<primarryData.size()){ // force distribute primarry slip systems
-                                inGrain1 = primarryData[chain][0]; onGB1 =  primarryData[chain][1];
+                            if(chain<primaryData.size() && forceDis){ // force distribute primary slip systems
+                                inGrain1 = primaryData[chain][0]; onGB1 =  primaryData[chain][1];
                                 if(inGrain1>-1){
                                     lowerBound =(inGrain1==0)?param->zBoundMin:home->tbPosz[inGrain1-1];
                                     p1[2] = 0.99*randm(&seed)*(home->tbPosz[inGrain1]-lowerBound) + lowerBound;
@@ -3307,7 +3306,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                 p0[i] = p[i] + (srcLen * randomLine[i])/2.0;
                                 p2[i] = p[i] + (srcLen * randomLine[i]);
                             } 
-                            if(srcLenType==1){
+                            if(srcLenType==1 || srcLenType == 0){
                                 if(!InCuboid(param, p2,0)){
                                     if(!IntersectionOfRayBox(param, randomLine, p1, p2, constraint2))continue;
                                     CoordAdd(0.5,p1,0.5,p2,p0);
@@ -3492,7 +3491,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                         }   
 
                         if(srcLenType == 0 || inArgs->gb==true){
-                            if(!InCuboid(param, p0, 0) || !InCuboid(param, p1, 0) || !InCuboid(param, p2, 0)){
+                            if(!InCuboid(param, p0, 0) || !InCuboid(param, p1, 0) || !InCuboid(param, p2, 1)){
                                 continue;
                             }
 	                    }
@@ -3848,9 +3847,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
             }  /* for (chain = 0; chain < numChains; ) */
             printf("layer %d: xn=%d, chain=%d\n",layer,xn,chain+1);
     
-            if(primarryData.size()>0){
-                if(int(primarryData.size())>chain+1){
-                    printf("Warning: # of primarry slips systems (%d) > # of sources (%d)\n",int(primarryData.size()),chain+1);
+            if(primaryData.size()>0){
+                if(int(primaryData.size())>chain+1){
+                    printf("Warning: # of primary slips systems (%d) > # of sources (%d)\n",int(primaryData.size()),chain+1);
                 }
             }
 	    }/* for(layer=0; layer<nLayers;...)*/
