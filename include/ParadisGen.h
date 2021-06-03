@@ -55,6 +55,7 @@ typedef struct {
         real8   loadDir[6]; 
         int     nTDs;
         bool    gb;
+        bool    forceDis;
 }InArgs_t;
 
 /*
@@ -171,6 +172,7 @@ typedef	enum{
     OPT_LOAD_DIR,
     OPT_NTDS,
     OPT_GB,
+    OPT_FORCE_DISTRIBUTION,
 	OPT_MAX
 	
 }ParadisGenArgs_t;

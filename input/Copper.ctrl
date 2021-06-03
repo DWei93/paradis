@@ -135,4 +135,4 @@ savetimersfreq = 10
 velfile = 0
 velfilefreq = 1000
 minDT = 1.000E-13
-maxDT = 5.000E-13
+#maxDT = 5.000E-13
