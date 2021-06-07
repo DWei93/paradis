@@ -280,7 +280,7 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
     NormalizeVec(xi);
 
     if(fabs(DotProduct(burg, gbN)) > 0.05){ // non-screw dislocation
-        return (glideStress > param->tbStrength[1]);
+        return (glideStress > param->tbStrength[1]/Normal(burg));
     }
 
     if(glideStress < 0.0)return false;
