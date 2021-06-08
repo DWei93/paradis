@@ -195,7 +195,7 @@ void WriteProp(Home_t *home, int property)
  *              is in use.
  */
                 fprintf(fp, "%e %e %e %e %e %e %e",
-                        pstnijk,param->eRate*param->timeNow, param->disloDensity,
+                        pstnijk,param->strain, param->disloDensity,
                         param->delSegLength, param->vAverage,
                         param->vStDev,ptstnijk);
 
@@ -231,7 +231,7 @@ void WriteProp(Home_t *home, int property)
                     Fatal("can not open file %s", fileName);
                 }
                 fprintf(fp, "%d %e %e\n", home->cycle,
-                        param->eRate*param->timeNow, param->fem_delSegLength);
+                        param->strain, param->fem_delSegLength);
                 fclose(fp);
 #endif
             }
@@ -578,10 +578,10 @@ void WriteProp(Home_t *home, int property)
                         if(fabs(param->stainCycle) >= param->maxCycle)param->finish = 1;
                         
                     }else {
-                        fprintf(fp, "%e %e %e ",sign*param->eRate*1.0E2*param->timeNow, sign*sigijk/1.0E6, sign*pstnijk*1.0E2);
+                        fprintf(fp, "%e %e %e ",param->strain*1.0E2, sign*sigijk/1.0E6, sign*pstnijk*1.0E2);
                         if(param->polycrystal) fprintf(fp, "%e ", sign*ptstnijk*1.0E2);
 
-                        if(fabs(param->eRate*param->timeNow) > param->maxStn){
+                        if(fabs(param->strain) > param->maxStn){
                             if(home->myDomain==0)printf("Finish: max strain: %e\n", param->maxStn);
                             param->finish = 1;
                         }
@@ -744,7 +744,7 @@ void WriteProp(Home_t *home, int property)
                         Fatal("can not open file %s", fileName);
                     }
 
-                    fprintf(fp, "%e %e %e ", param->eRate*param->timeNow,
+                    fprintf(fp, "%e %e %e ", param->strain,
                             totGain, totLoss);
 
                     for (i = 0; i < numItems; i++) {
