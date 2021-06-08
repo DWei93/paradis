@@ -173,9 +173,11 @@ void CrossSlipFCC(Home_t *home)
  */
             if( param->polycrystal >0 ){
                 if(IsOnGB(nbr1) || IsOnGB(nbr2) || IsOnGB(node))continue;
+#if 0
                 if(fabs(ClosedGB(home, node->x, node->y, node->z, &gb))<param->rc)continue;
                 if(fabs(ClosedGB(home, nbr1->x, nbr1->y, nbr1->z, &gb))<param->rc)continue;
                 if(fabs(ClosedGB(home, nbr2->x, nbr2->y, nbr2->z, &gb))<param->rc)continue;
+#endif
             }
 /*
  *          Before we commit to doing a cross-slip event, we may shift
@@ -327,7 +329,7 @@ void CrossSlipFCC(Home_t *home)
                     int     row;
                     real8   tmpPlane[3];
 
-                    if(home->param->polycrystal){
+                    if(param->polycrystal){
                         Grain_t *grain;
                         grain = home->grainKeys[node->inGrain];
                         memcpy(rotMatrix, grain->orientation, sizeof(real8 [3][3]));
