@@ -156,7 +156,10 @@ Option_t optList[OPT_MAX] = {
         {OPT_LOAD_DIR,   "loadDir",      3, 1},
         {OPT_NTDS,      "nTDs",         3, 1},
         {OPT_GB,        "gb",         2, 1},
-        {OPT_FORCE_DISTRIBUTION,        "forceDis",         3, 1}
+        {OPT_TD_LENGTH, "tdLength",  3, 1},
+        {OPT_TD_DENSITY, "tdDensity", 3, 1},
+        {OPT_FORCE_DISTRIBUTION,        "forceDis",         3, 1},
+        {OPT_ALLOW_SINGLE_SRCS,        "allowSingleSrcs",   3, 1}
 
 
 };
@@ -428,6 +431,9 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->nTDs = -1;
         inArgs->gb = false; 
         inArgs->forceDis = false;
+        inArgs->tdDensity = -1;
+        inArgs->tdLength = -1;
+        inArgs->allowSingleSrcs = false;
 		snprintf(inArgs->outFile, sizeof(inArgs->outFile), "InitialAnalysis.dat");
 		snprintf(inArgs->gradientStructure, sizeof(inArgs->gradientStructure), "0");
 
@@ -987,8 +993,18 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                 case OPT_GB:
                     inArgs->gb = atoi(argValue)>0?true:false;
                         break;
+                case OPT_TD_LENGTH:
+                    inArgs->tdLength = atof(argValue);
+                    printf("inArgs->tdLength=%f argValue=%s\n",atof(argValue), argValue);
+                        break;
+                case OPT_TD_DENSITY:
+                    inArgs->tdDensity = atof(argValue);
+                        break;
                 case OPT_FORCE_DISTRIBUTION:
                     inArgs->forceDis = atoi(argValue)>0?true:false;
+                        break;
+                case OPT_ALLOW_SINGLE_SRCS:
+                    inArgs->allowSingleSrcs = atoi(argValue)>0?true:false;
                         break;
             
             }

@@ -1432,8 +1432,8 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     if(disArray.size() != 1)printf("Warning: the extened dislcoation has some wrong\n");
                     if(disArray[0].size() != 2)printf("Warning: the extened dislcoation has some wrong\n");
                     
-                    VECTOR_COPY(b1, burgList[disArray[0][0].burgID]);
-                    VECTOR_COPY(b2, burgList[disArray[0][1].burgID]);
+                    VECTOR_COPY(b1, burgList[disArray[0][0].burgID>-1?disArray[0][0].burgID:-disArray[0][0].burgID-1]);
+                    VECTOR_COPY(b2, burgList[disArray[0][1].burgID>-1?disArray[0][1].burgID:-disArray[0][1].burgID-1]);
 
                     appliedDir = abs(inArgs->extended)-1; 
                     sign = (inArgs->extended > 0) ? 1.0 : -1.0;
@@ -2934,6 +2934,12 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         cubeSize	=	(real8)cubeLength;
         if(srcLenMax<10)  srcLenType = 2; 
         if(srcLenMin<10)  srcLenType = 2;
+
+        if(srcLenType==2){
+            srcLenMax *= (cubeLength/real8(nGrain));
+            srcLenMin *= (cubeLength/real8(nGrain));
+        }
+
         lenRange = srcLenMax - srcLenMin;
 
         bool freeLine=(param->xBoundType != Periodic && param->yBoundType != Periodic && param->zBoundType != Periodic);
@@ -3114,7 +3120,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
             }
         }
         param->maxSchmid = maxSchmid;
-        real8 nPrimary = 0.0, pPris=0.0, pTot=0.0, pcoe=1.0/3.0, criPorPri=0.15, newPro;
+        real8 nPrimary = 0.0, pPris=0.0, pTot=0.0, pcoe=1.0/3.0, criPorPri=0.15, newPro, nonTDPro=0.0;
         for(i=0;i<nSlips;i++){
             if(fabs(proba[i]-maxSchmid)<1E-4){
                 primary[i]=1.0;
@@ -3131,14 +3137,47 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                 pPris += Proba[i];
             }
             pTot +=  Proba[i];
+            
         }
 
         if(home->nGBs>1){
             if(pPris/pTot<criPorPri){
                 real8 nk=(pPris - pTot*criPorPri)/(criPorPri -1.0)/nPrimary;
-                for(i=0;i<nSlips;i++)if(fabs(proba[i]-maxSchmid)<1E-4)Proba[i] += nk;
+                for(i=0;i<nSlips;i++){
+                    if(fabs(proba[i]-maxSchmid)<1E-4)Proba[i] += nk;
+                }
+            }
+            for(i=0;i<nSlips;i++){
+                if(i<=20)nonTDPro+= Proba[i];
             }
         }
+
+        if(inArgs->tdDensity>0 && nSlips>20){
+            real8 totDisLen = maxDensity*volume*burgMag*burgMag;
+            real8 totTDDisLen = real8(home->nGBs)*inArgs->tdDensity*cubeSize*cubeSize*burgMag;
+            real8 tdLength, aveLength;
+            
+            if(inArgs->tdLength>0){
+                tdLength = inArgs->tdLength;
+                aveLength = 0.5*(srcLenMin+srcLenMax);
+            }else if(srcLenType==0){
+                tdLength = 0.5*(srcLenMin+srcLenMax);
+                aveLength = 0.5*(srcLenMin+srcLenMax);
+            }else{
+                tdLength = 0.333333*cubeSize;
+                aveLength = tdLength;
+            }
+            
+            real8 tdRatio=totTDDisLen/tdLength/(totDisLen/aveLength);
+            real8 tdPro=nonTDPro*tdRatio/3.0;
+            Proba[21] = tdPro;
+            Proba[22] = tdPro;
+            Proba[23] = tdPro;
+            maxDensity += totTDDisLen/(volume*burgMag*burgMag);
+            printf("tdPro=%g nonTDPr=%g nTDs=%g nTots=%g tdLength=%g\naveLength=%g totDislen=%g, totTDDisLen=%g tdDensity=%g\n",
+                   tdPro,nonTDPro,totTDDisLen/tdLength,totDisLen/aveLength, inArgs->tdLength, aveLength, totDisLen, totTDDisLen, inArgs->tdDensity);
+        }
+
         for(i=1;i<nSlips;i++)Proba[i]+=Proba[i-1];
         for(i=0;i<nSlips;i++)Proba[i]/=Proba[nSlips-1];
         
@@ -3284,20 +3323,21 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 	 	                        break;
                             case 2:
                                 if (lenRange > 0) {
-                                    srcLen = (srcLenMin + (randm(&seed) * lenRange))*edge;
-                                    if(srcLen > srcLenMax*edge){
-                                        srcLen = srcLenMax*edge;
+                                    lenRange = inArgs->frLenMax - inArgs->frLenMin;
+                                    srcLen = (inArgs->frLenMin + (randm(&seed) * lenRange))*edge;
+                                    if(srcLen > inArgs->frLenMax*edge){
+                                        srcLen = inArgs->frLenMax*edge;
                                     }
                                 } else {
-                                    srcLen = srcLenMin*edge;
+                                    srcLen = inArgs->frLenMin*edge;
                                 }
 	 	                        break;
                             default:
                                 break;
 	                    }
 
-                    
-                        if(singleSrcTest==false &&home->nGBs>1)srcLen *= primary[ranNum];
+                        if(singleSrcTest==false &&home->nGBs>1 && ranNum <=21)srcLen *= primary[ranNum];
+                        if(ranNum>20 && inArgs->tdLength>0)srcLen = inArgs->tdLength;
 
                         inGrain1=inGrain; onGB1=onGB; VECTOR_COPY(p1,p);
                         constraint2 = PINNED_NODE;
@@ -3306,7 +3346,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                 p0[i] = p[i] + (srcLen * randomLine[i])/2.0;
                                 p2[i] = p[i] + (srcLen * randomLine[i]);
                             } 
-                            if(srcLenType==1 || srcLenType == 0){
+                            if(inArgs->allowSingleSrcs){
                                 if(!InCuboid(param, p2,0)){
                                     if(!IntersectionOfRayBox(param, randomLine, p1, p2, constraint2))continue;
                                     CoordAdd(0.5,p1,0.5,p2,p0);
@@ -3490,8 +3530,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                             }
                         }   
 
-                        if(srcLenType == 0 || inArgs->gb==true){
-                            if(!InCuboid(param, p0, 0) || !InCuboid(param, p1, 0) || !InCuboid(param, p2, 1)){
+                        if(inArgs->allowSingleSrcs == false || inArgs->gb==true){
+                            if(!InCuboid(param, p0, 0) || !InCuboid(param, p1, 0) || !InCuboid(param, p2, 0)){
                                 continue;
                             }
 	                    }
@@ -4649,8 +4689,8 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
                     if(disArray.size() != 1)printf("Warning: the extened dislcoation has some wrong\n");
                     if(disArray[0].size() != 2)printf("Warning: the extened dislcoation has some wrong\n");
                     
-                    VECTOR_COPY(b1, burgList[disArray[0][0].burgID]);
-                    VECTOR_COPY(b2, burgList[disArray[0][1].burgID]);
+                    VECTOR_COPY(b1, burgList[disArray[0][0].burgID>-1?disArray[0][0].burgID:-disArray[0][0].burgID-1]);
+                    VECTOR_COPY(b2, burgList[disArray[0][1].burgID>-1?disArray[0][1].burgID:-disArray[0][1].burgID-1]);
                     SliptArm(inData, baseNodeID+j, baseNodeID+nextIndex, b1, n[nextIndex], newNodeID, node->inGrain, node->onGB);
                     node = &inData->node[baseNodeID+j];
                     nextNode = &inData->node[baseNodeID+nextIndex];
