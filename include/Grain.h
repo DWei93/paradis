@@ -56,7 +56,7 @@ typedef struct {
 #define EXCEEDY 0x0002
 #define EXCEEDZ 0x0004
 
-#define NUM_BURGS_IN_FCC        21
+#define NUM_BURGS_IN_FCC        22
 #define NUM_PLANES_IN_FCC       13
 #define NUM_KEY_LINES_IN_FCC    6
 
@@ -69,10 +69,12 @@ typedef struct {
 #define SHOCKLEY_BURG_MAG_FCC   0.5773502691896258
 #define JUNCTION1_BURG_MAG_FCC  1.414213562373095
 #define JUNCTION2_BURG_MAG_FCC  1.732050807568877
+#define FRANK_BURG_MAG_FCC  0.816496580927726
 
 #define EDGE_BURG       0x0001
 #define PARTIAL_BURG    0x0002
 #define JUNCTION_BURG   0x0004
+#define FRANK_PARTIAL   0x0008
 
 #define CLS_TEST    1
 
@@ -82,6 +84,7 @@ typedef	enum{
     SHOCKLEY_BURG,
     JUNCTION1_BURG,
     JUNCTION2_BURG, 
+    FRANK_BURG,
     UNKNOWN_BURG 
 } BurgTypeFCC_t;
 
@@ -274,8 +277,10 @@ int GetGBIndexOfGrain(Grain_t *grain, int onGB);
 bool GetPublicGB(Home_t *home, Grain_t *grain1, Grain_t *grain2, GB_t **GB, real8 *pos);
 void AddOpGB (Home_t *home, OpType_t type, int dom1, int idx1, int inGrain, int onGB);
 int NodeOnGB(Home_t *home, Node_t *node);
+void VectorLabToCrystal(Home_t *home, int inGrain, int onGB, real8 lab[3], real8 *cryst);
 void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2, 
                         real8 lab[3], real8 *cryst);
+void VectorCrystalToLab(Home_t *home, int inGrain, int onGB, real8 cryst[3], real8 *lab);
 void VectorCrystalToLab(Home_t *home, Node_t *node1, Node_t *node2, 
                         real8 cryst[3], real8 *lab);
 real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB);

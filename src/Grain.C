@@ -26,6 +26,7 @@
 #include <sstream>
 #include <string>
 
+#define DEBUG_DisassembleDislocation  0
 
 bool IsOnGB(Node_t *node)
 {
@@ -1439,6 +1440,30 @@ BurgInfo_t* GetBurgData(Home_t *home, int inGrain, int onGB)
         return((BurgInfo_t *)NULL);
 }
 
+void VectorLabToCrystal(Home_t *home, int inGrain, int onGB, real8 lab[3], real8 *cryst)
+{
+        if(home->param->polycrystal){
+            Grain_t *grain;
+            GB_t    *GB;
+
+            if(onGB > -1){
+                GB = home->GBKeys[onGB];
+                grain = home->grainKeys[GB->nbrGrain[0]];
+            }else{
+                grain = home->grainKeys[inGrain];    
+            }
+            Matrix33Vector3Multiply(grain->orientationInv, lab, cryst);
+        }else{
+            if(!home->param->useLabFrame){
+                VECTOR_COPY(cryst, lab);
+            }else{
+                Matrix33Vector3Multiply(home->rotMatrixInverse, 
+                                        lab, cryst);
+            }
+        }
+        return;
+}
+
 void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2, 
                         real8 lab[3], real8 *cryst)
 {
@@ -1461,6 +1486,30 @@ void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2,
             }else{
                 Matrix33Vector3Multiply(home->rotMatrixInverse, 
                                         lab, cryst);
+            }
+        }
+        return;
+}
+
+void VectorCrystalToLab(Home_t *home, int inGrain, int onGB, real8 cryst[3], real8 *lab)
+{
+        if(home->param->polycrystal){
+            Grain_t *grain;
+            GB_t    *GB;
+
+            if(onGB > -1){
+                GB = home->GBKeys[onGB];
+                grain = home->grainKeys[GB->nbrGrain[0]];
+            }else{
+                grain = home->grainKeys[inGrain];    
+            }
+            Matrix33Vector3Multiply(grain->orientation, cryst, lab);
+        }else{
+            if(!home->param->useLabFrame){
+                VECTOR_COPY(lab, cryst);
+            }else{
+                Matrix33Vector3Multiply(home->rotMatrix, 
+                                        cryst, lab);
             }
         }
         return;
@@ -1582,6 +1631,13 @@ int	BurgType_FCC(real8 burg[3]){
  */
 	if(fabs(burgMag - JUNCTION2_BURG_MAG_FCC) < eps) {
 		return(JUNCTION2_BURG);
+	}
+
+/*	
+ *	4: Frank sessile burg
+ */
+	if(fabs(burgMag - FRANK_BURG_MAG_FCC) < eps) {
+		return(FRANK_BURG);
 	}
 	return(UNKNOWN_BURG);
 
@@ -2681,7 +2737,9 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainI
  */
            { 1.414213562373095,        0.0e+00,                   0.0e+00            },      // DC+BA -- 18
            { 0.0e+00,                  1.414213562373095,         0.0e+00            },      // DC+AB -- 19
-           { 0.0e+00,                  0.0e+00,                   1.414213562373095  }       // CA+DB -- 20
+           { 0.0e+00,                  0.0e+00,                   1.414213562373095  },      // CA+DB -- 20
+
+           { -0.4714045207910317,      -0.4714045207910317,     -0.4714045207910317  }       // Frank partial D\delta
         };
 
         for(i=0; i<NUM_BURGS_IN_FCC; i++){
@@ -2691,18 +2749,18 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainI
         int burgType[NUM_BURGS_IN_FCC] = {EDGE_BURG, EDGE_BURG, EDGE_BURG, EDGE_BURG, EDGE_BURG, EDGE_BURG,
                 PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, 
                 PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG, PARTIAL_BURG,
-                JUNCTION_BURG, JUNCTION_BURG, JUNCTION_BURG};
+                JUNCTION_BURG, JUNCTION_BURG, JUNCTION_BURG, FRANK_PARTIAL};
         memcpy(burgData->burgType, burgType, sizeof(int [NUM_BURGS_IN_FCC]));
 
 
         int numPlanesPerBurg[NUM_BURGS_IN_FCC] = { 3, 3, 3, 3, 3, 3, 
                                                    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                                                   4, 4, 4 }; 
+                                                   4, 4, 4, 3}; 
         memcpy(burgData->numPlanesPerBurg,numPlanesPerBurg,sizeof(int [NUM_BURGS_IN_FCC]));
 
         int burgFirstPlaneIndex[NUM_BURGS_IN_FCC] = { 0, 3, 6, 9, 12, 15, 
                                                      18,20,22,24,26,28,30,32,34,36,38,40,
-                                                     42,46,50};
+                                                     42,46,50,54};
 
         real8 planeList[NUM_PLANES_IN_FCC][3] = {
             {-0.5773502691896258,       0.5773502691896258,       -0.5773502691896258 },    // a plane  ID: 0
@@ -2741,14 +2799,14 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainI
 
         int numBurgsPerPlane[NUM_PLANES_IN_FCC] = { 6, 6, 6, 6,                    // basic glide planes
                                                     4, 4, 4,                       // Junction plane 1 
-                                                    3, 3, 3, 3, 3, 3               // Junction plane 2
+                                                    3, 4, 3, 4, 3, 4               // Junction plane 2
                                                   }; 
 
         memcpy(burgData->numBurgsPerPlane, numBurgsPerPlane,sizeof(int [NUM_PLANES_IN_FCC]));
 
         int planeFirstBurgIndex[NUM_PLANES_IN_FCC] = { 0, 6, 12, 18,
                                                        24,28,32,
-                                                       36,39,42,45,48,51 };  
+                                                       36,39,43,46,50,53};  
 
         real8 keyLineList[NUM_KEY_LINES_IN_FCC][3] = {
            { 0.7071067811865475,       0.7071067811865475,        0.0e+00            },      // DC -- 0
@@ -2767,9 +2825,9 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainI
  
         memcpy(burgData->numPlanesPerKeyLine,numPlanesPerKeyLine,sizeof(int [NUM_KEY_LINES_IN_FCC]));
 
-        int keyLineFirstPlaneIndex[NUM_BURGS_IN_FCC] = { 0, 3, 6, 9, 12, 15 }; 
+        int keyLineFirstPlaneIndex[NUM_KEY_LINES_IN_FCC] = { 0, 3, 6, 9, 12, 15 }; 
 
-        int burgOnPlaneID[54] = {
+        int burgOnPlaneID[57] = {
                                   0,  1,  6,       /* DC (0) on plane  */
                                   2,  3,  6,       /* BA (1) on plane  */
                                   1,  2,  5,       /* DA (2) on plane  */
@@ -2790,7 +2848,8 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainI
                                   3, 12,           /* dC (17) */
                                   5,  6,  7,  8,   /* [100] (18) */
                                   4,  6,  9, 10,   /* [010] (19) */
-                                  4,  5, 11, 12    /* [001] (20) */
+                                  4,  5, 11, 12,   /* [001] (20) */
+                                  8, 10, 12        /* D\delta (21) */
                                 };
         burgData->burgOnPlaneID = (int **)calloc(NUM_BURGS_IN_FCC, sizeof(int *));       
         for(i=0; i<NUM_BURGS_IN_FCC; i++){
@@ -2799,19 +2858,19 @@ void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainI
                    sizeof(int [numPlanesPerBurg[i]]));
         }
         
-        int planeOnBurgID[54] = {  0,  3,  4,  9, 10, 15,     // plane (0)
+        int planeOnBurgID[57] = {  0,  3,  4,  9, 10, 15,     // plane (0)
                                    0,  2,  5,  6, 13, 16,     // plane (1)
-                                   1,  2,  4,  8, 11, 14,     //    .
-                                   1,  3,  5,  7, 12, 17,     //    .
-                                   4,  5, 19, 20,             //  
-                                   2,  3, 18, 20,             //
-                                   0,  1, 18, 19,             //
-                                   8,  9, 18,                 //
-                                   6,  7, 18,                 //
-                                  11, 13, 19,                 //
-                                  10, 12, 19,                 //
-                                  15, 16, 20,                 //
-                                  14, 17, 20                  //
+                                   1,  2,  4,  8, 11, 14,     //    2
+                                   1,  3,  5,  7, 12, 17,     //    3
+                                   4,  5, 19, 20,             //    4
+                                   2,  3, 18, 20,             //    5
+                                   0,  1, 18, 19,             //    6
+                                   8,  9, 18,                 //    7
+                                   6,  7, 18, 21,             //    8
+                                  11, 13, 19,                 //    9
+                                  10, 12, 19, 21,             //    10
+                                  15, 16, 20,                 //    11
+                                  14, 17, 20, 21              //    12
                                  };
 
         burgData->planeOnBurgID = (int **)calloc(NUM_PLANES_IN_FCC, sizeof(int *));       
@@ -2966,10 +3025,10 @@ void CompressBurgListWithType(std::vector<std::vector<real8> >& burgList,
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
 {
 
-    int         i, j, numRows;
-    real8       crossProdt[3], vec[3];
+    int         i, j, numRows, inGrain, onGB, burgID, planeID;
+    real8       crossProdt[3], vec[3], burgCry[3], planeCry[3];
     Grain_t     *grain1, *grain2;
-    BurgInfo_t  *bd1, *bd2, *gbd;
+    BurgInfo_t  *bd1, *bd2, *gbd, *bd;
     std::vector<double>                 vecSTL(3);
    
     grain1 = home->grainKeys[GB->nbrGrain[0]];
@@ -3100,41 +3159,115 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
         }
     }
 
-    int k,l;
-    real8 *b, *n=(real8 *)NULL, *ldir; 
+    int k,l,m;
+    real8 *b, *n=(real8 *)NULL, *ldir, nplane[3]; 
     std::vector<std::vector<Dislocation_t> >::iterator      itDisList;
     real8 barrierFactor, crossProd[3];
-    bool isScrew;   
+    bool isScrew, twinningDis, frankDis;   
     Decom_t dcp;
+    real8 resiBurg[3];
 
     for(i=0;i<gbd->numBurgVectors;i++){
         b = gbd->burgList[i];
+        twinningDis = (BurgType_FCC(b) == SHOCKLEY_BURG);
+        frankDis = (BurgType_FCC(b) == FRANK_BURG);
         for(j=0;j<gbd->numKeyLines;j++){
             ldir=gbd->keyLineList[j];
-            for(k=0;k<gbd->numPlanesPerKeyLine[j];k++){
-                n=gbd->planeList[gbd->keyLineOnPlaneID[j][k]];
-                if(fabs(DotProduct(b,n)/Normal(b))<1E-2)break;
+            cross(b,ldir,nplane);
+            if(Normal(nplane)>0.01){
+                NormalizeVec(nplane);
+                n = nplane;
+            }else{
+                for(k=0;k<gbd->numPlanesPerKeyLine[j];k++){
+                    n=gbd->planeList[gbd->keyLineOnPlaneID[j][k]];
+                    if(fabs(DotProduct(b,n)/Normal(b))<1E-2)break;
+                }
+                if(k==gbd->numPlanesPerKeyLine[j])continue;
+                if(n==(real8 *)NULL)Fatal("%s %d: can not find normal",__FILE__,__LINE__);
             }
-            if(k==gbd->numPlanesPerKeyLine[j])continue;
-            if(n==(real8 *)NULL)Fatal("%s %d: can not find normal",__FILE__,__LINE__);
             if(!GeometricCriterion(gbd, b, ldir, n, 0, dcp.burgList, dcp.disArray))continue;
+#if 0
+            sort(dcp.disArray.begin(), dcp.disArray.end(), comByBarrier); 
+            if(dcp.disArray.size()>1){
+                for(k=1; k<dcp.disArray.size(); ){
+                    for(l=0; l<dcp.disArray[k].size(); l++){
+                        if(dcp.disArray[k].size() != dcp.disArray[k-1].size())break;
+                        if(dcp.disArray[k][l].burgID != dcp.disArray[k-1][l].burgID ||  dcp.disArray[k][l].planeID != dcp.disArray[k-1][l].planeID)break;
+                    }
+                    if(l==dcp.disArray[k].size()){
+                        itDisList = dcp.disArray.begin() + k;
+                        dcp.disArray.erase(itDisList);
+                    }else{
+                        k++;
+                    }
+                }
+            }
+            if( i == 21){
+                printf("%s: b={%.4f,%.4f,%4f},n={%.4f,%.4f,%.4f},ldir={%.4f,%.4f,%.4f} %d sets\n", i==7?"dB":(i==1?"BA":(i==2)?"AD":"deltaD"),
+                    b[0],b[1],b[2],n[0],n[1],n[2],ldir[0],ldir[1],ldir[2], int(dcp.disArray.size()));
+                for(k=0;k<dcp.disArray.size();k++){
+                    VECTOR_COPY(resiBurg,b);
+                    for(l=0;l<dcp.disArray[k].size();l++){
+                        cross(GB->n, gbd->planeList[dcp.disArray[k][l].planeID], crossProd);
+                        burgID = dcp.disArray[k][l].burgID>-1?dcp.disArray[k][l].burgID:-dcp.disArray[k][l].burgID-1;
+                        VECTOR_COPY(vec, dcp.burgList[burgID]);
+                        if(dcp.disArray[k][l].burgID<0)NegativeVector(vec,vec);
 
+                        VectorMinusSelf(resiBurg,vec);
+                        if(gbd->planeInGrain[dcp.disArray[k][l].planeID]==-1){
+                            inGrain=-1, onGB=GB->GBID;
+                        } else {
+                            inGrain = gbd->planeInGrain[dcp.disArray[k][l].planeID]; onGB=-1;
+                        }
+                        VectorLabToCrystal(home, inGrain, onGB, vec, burgCry);
+                        VectorLabToCrystal(home, inGrain, onGB, gbd->planeList[dcp.disArray[k][l].planeID], planeCry);
+                        bd = GetBurgData(home, inGrain, onGB);
+                        burgID = BurgID_FCC(bd, vec);
+                        planeID = PlaneID_FCC(bd, gbd->planeList[dcp.disArray[k][l].planeID]);
+                        printf("[%02d{%02d}(%s):{%+.3f,%+.3f,%+.3f}](%02d{%+.3f,%+.3f,%+.3f}-%s)--%02.2f ",burgID, dcp.disArray[k][l].burgID,
+                                (BurgType_FCC(vec) == BASIC_BURG)?"LD":"TD",
+                                vec[0],vec[1],vec[2],
+                                planeID,
+                                planeCry[0],planeCry[1],planeCry[2],inGrain==-1?"B":(inGrain==0?"M":"T"),dcp.disArray[k][l].energyFactor);
+                    }
+
+                    if(Normal(resiBurg)>0.01)printf(" --- debris {%g,%g,%g}",resiBurg[0],resiBurg[1],resiBurg[2]);
+                    printf("\n");
+                }
+                printf("\n");
+            }
+#endif
+
+            int nTDs;
+            real8 sumTDBurg[3];
             isScrew = fabs(DotProduct(b,GB->n))<1E-2?true:false;
             for(k=0; k<dcp.disArray.size(); ){
-                barrierFactor = -1.0;
+                barrierFactor = -DotProduct(b,b);
+                VECTOR_ZERO(sumTDBurg);
+                nTDs=0;
                 for(l=0; l<dcp.disArray[k].size(); l++){
                     barrierFactor += dcp.disArray[k][l].energyFactor;
                     cross(GB->n, gbd->planeList[dcp.disArray[k][l].planeID], crossProd);
-                    VECTOR_COPY(vec, dcp.burgList[dcp.disArray[k][l].burgID]);
+                    burgID = dcp.disArray[k][l].burgID>-1?dcp.disArray[k][l].burgID:-dcp.disArray[k][l].burgID-1;
+                    VECTOR_COPY(vec, dcp.burgList[burgID]);
+                    if(dcp.disArray[k][l].burgID<0)NegativeVector(vec,vec);
                     if(Normal(crossProd) < 1.0E-2){
+                        if(BurgType_FCC(vec) == SHOCKLEY_BURG){
+                            VectorAddSelf(sumTDBurg, vec);
+                            nTDs++;
+                        }
                         if(BurgType_FCC(vec) == BASIC_BURG)break;
                     }else{
                         if(BurgType_FCC(vec) != BASIC_BURG)break;
                     }
                 }
-            
-                if(l != dcp.disArray[k].size() || 
-                   (isScrew &&  barrierFactor > 1E-3) || barrierFactor >0.667){
+
+                if((l != dcp.disArray[k].size()) || 
+                   (BurgType_FCC(sumTDBurg)==SHOCKLEY_BURG && nTDs==2) ||
+                   (!twinningDis && !frankDis && isScrew &&  barrierFactor > 0.01) || 
+                   (!twinningDis && !frankDis && barrierFactor > 0.667) ||
+                    (twinningDis && barrierFactor > 1.001) ||
+                    (frankDis && barrierFactor > 0.667)){
                     itDisList = dcp.disArray.begin() + k;
                     dcp.disArray.erase(itDisList);
                 }else{
@@ -3143,24 +3276,70 @@ void GenerateGBBurgInfo(Home_t *home, GB_t *GB)
             }
             if(dcp.disArray.size()<=0)continue;
             sort(dcp.disArray.begin(), dcp.disArray.end(), comByBarrier); 
-#if 0 
-            if(i==2 && j==1){
-                printf("burgID=AD; j=AB:\n");
+
+            if(dcp.disArray.size()>1){
+                for(k=1; k<dcp.disArray.size(); ){
+                    for(l=0; l<dcp.disArray[k].size(); l++){
+                        if(dcp.disArray[k].size() != dcp.disArray[k-1].size())break;
+                        if(dcp.disArray[k][l].burgID != dcp.disArray[k-1][l].burgID ||  dcp.disArray[k][l].planeID != dcp.disArray[k-1][l].planeID)break;
+                    }
+                    if(l==dcp.disArray[k].size()){
+                        itDisList = dcp.disArray.begin() + k;
+                        dcp.disArray.erase(itDisList);
+                    }else{
+                        k++;
+                    }
+                }
+            }
+
+#if 0
+            for(k=0; k<dcp.disArray.size(); ){
+                if(dcp.disArray[k].size()<=2){k++; continue;}
+                for(l=0; l<dcp.disArray[k].size(); l++){
+                    if(gbd->planeInGrain[dcp.disArray[k][l].planeID]!=-1)break;    
+                }
+                if(l==dcp.disArray[k].size()){
+                    dcp.disArray.erase(dcp.disArray.begin()+k);
+                }else{
+                    k++;
+                }
+            }
+#endif
+#if 0
+            if(i==7 || i==1 || i==2 || i == 21){
+          //if( i == 21){
+                printf("%s: b={%.4f,%.4f,%4f},n={%.4f,%.4f,%.4f},ldir={%.4f,%.4f,%.4f} %d sets\n", i==7?"dB":(i==1?"BA":(i==2)?"AD":"deltaD"),
+                    b[0],b[1],b[2],n[0],n[1],n[2],ldir[0],ldir[1],ldir[2], int(dcp.disArray.size()));
                 for(k=0;k<dcp.disArray.size();k++){
+                    VECTOR_COPY(resiBurg,b);
                     for(l=0;l<dcp.disArray[k].size();l++){
                         cross(GB->n, gbd->planeList[dcp.disArray[k][l].planeID], crossProd);
-                        VECTOR_COPY(vec, dcp.burgList[dcp.disArray[k][l].burgID]);
-                        printf("[%d(%s):{%g,%g,%g}](%d:{%g,%g,%g}) in %d ",dcp.disArray[k][l].burgID,
-                                (BurgType_FCC(vec) == BASIC_BURG)?"-perfect":"partial",
+                        burgID = dcp.disArray[k][l].burgID>-1?dcp.disArray[k][l].burgID:-dcp.disArray[k][l].burgID-1;
+                        VECTOR_COPY(vec, dcp.burgList[burgID]);
+                        if(dcp.disArray[k][l].burgID<0)NegativeVector(vec,vec);
+
+                        VectorMinusSelf(resiBurg,vec);
+                        if(gbd->planeInGrain[dcp.disArray[k][l].planeID]==-1){
+                            inGrain=-1, onGB=GB->GBID;
+                        } else {
+                            inGrain = gbd->planeInGrain[dcp.disArray[k][l].planeID]; onGB=-1;
+                        }
+                        VectorLabToCrystal(home, inGrain, onGB, vec, burgCry);
+                        VectorLabToCrystal(home, inGrain, onGB, gbd->planeList[dcp.disArray[k][l].planeID], planeCry);
+                        bd = GetBurgData(home, inGrain, onGB);
+                        burgID = BurgID_FCC(bd, vec);
+                        planeID = PlaneID_FCC(bd, gbd->planeList[dcp.disArray[k][l].planeID]);
+                        printf("[%02d{%02d}(%s):{%+.3f,%+.3f,%+.3f}](%02d{%+.3f,%+.3f,%+.3f}-%s)--%02.2f ",burgID, dcp.disArray[k][l].burgID,
+                                (BurgType_FCC(vec) == BASIC_BURG)?"LD":"TD",
                                 vec[0],vec[1],vec[2],
-                                dcp.disArray[k][l].planeID,
-                                gbd->planeList[dcp.disArray[k][l].planeID][0],
-                                gbd->planeList[dcp.disArray[k][l].planeID][1],
-                                gbd->planeList[dcp.disArray[k][l].planeID][2],
-                                gbd->planeInGrain[dcp.disArray[k][l].planeID]);
+                                planeID,
+                                planeCry[0],planeCry[1],planeCry[2],inGrain==-1?"B":(inGrain==0?"M":"T"),dcp.disArray[k][l].energyFactor);
                     }
+
+                    if(Normal(resiBurg)>0.01)printf(" --- debris {%g,%g,%g}",resiBurg[0],resiBurg[1],resiBurg[2]);
                     printf("\n");
                 }
+                printf("\n");
             }
 #endif
             dcp.burgID = i; dcp.keyLineID = j;
@@ -3214,7 +3393,7 @@ void SumOfValuesIsConstant(int n, int sum, std::vector<int>& valueList, int tot,
     if(n == 0)return;
     for(i=0; i<= maxVar && i<= sum; i++){
         valueList[n-1] = i;
-        nextSum = sum - i;
+        nextSum = sum - abs(i);
         if(nextSum > (n-1)*maxVar)continue;
         SumOfValuesIsConstant(n-1, nextSum, valueList, tot
                                  ,valueLists, maxVar);
@@ -3232,8 +3411,9 @@ bool cmp(std::vector<int > p, std::vector<int > q)
     if(p.back() != q.back()){
         return(p.back()<q.back());
     }else{
-        int sum1 = accumulate(p.begin(), p.end()-1, 0);
-        int sum2 = accumulate(q.begin(), q.end()-1, 0);
+        int i, sum1=0, sum2=0;
+        for(i=0;i<p.size()-1;i++)sum1+=abs(p[i]);
+        for(i=0;i<q.size()-1;i++)sum2+=abs(q[i]);
         return(sum1 < sum2);
     }
 }
@@ -3399,7 +3579,21 @@ bool comByBarrier(std::vector<Dislocation_t> p, std::vector<Dislocation_t> q){
     for(int i=0; i<q.size(); i++)bq += q[i].energyFactor;
     if(bq-bp>1E-3)return true;
     else if (bq-bp>-1E-3){
-        return p.size()<q.size();
+        if(p.size()!=q.size()){
+            return p.size()<q.size();
+        }else{
+            if(p.size()>0){
+                for(int j=0;j<p.size();j++){
+                    if(p[j].burgID != q[j].burgID) return p[j].burgID<q[j].burgID;
+                }
+                for(int j=0;j<p.size();j++){
+                    if(p[j].planeID != q[j].planeID) return p[j].planeID<q[j].planeID;
+                }
+                return false;
+            }else{
+                return false;
+            }
+        }
     }else return false;
 }
 
@@ -3410,7 +3604,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                        int maxDissPerBasicBurg, int maxDiss) 
 {
     int     i, j, k, m, nPlanes = 0, nBurgs = 0;
-    int     sum, onGBPlane;
+    int     sum, onGBPlane, burgID;
     int     nBurgSets, burgType;
     real8   vec[3];
     real8   crossProd[3], resiBurg[3];
@@ -3539,8 +3733,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
     
     valueList.resize(burgList.size());
     for(sum=0; sum < maxDiss+1; sum++){
-        SumOfValuesIsConstant(burgList.size(), sum, valueList, 
-                              burgList.size(), setLists, maxDissPerBasicBurg);
+        SumOfValuesIsConstant(burgList.size(), sum, valueList, burgList.size(), setLists, maxDissPerBasicBurg);
     }
 
     if(setLists.size() == 0)return(0);
@@ -3557,20 +3750,20 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         }
         
         resiBurgMag = Normal(resiBurg);
-        for(j=0; j<setLists[i].size(); j++){
-            VECTOR_COPY(vec, burgList[j]);
-            cross(resiBurg, vec, crossProd);
-            if(Normal(crossProd) < 1.0E-2 && 
-               BurgType_FCC(resiBurg) == SHOCKLEY_BURG){
-                break;    
+        if(resiBurgMag>1.0E-2){
+            for(j=0; j<setLists[i].size(); j++){
+                VECTOR_COPY(vec, burgList[j]);
+                cross(resiBurg, vec, crossProd);
+                if(Normal(crossProd) < 1.0E-2 && 
+                   BurgType_FCC(resiBurg) == SHOCKLEY_BURG){
+                    setLists[i][j] += (DotProduct(resiBurg, vec)>0?1:-1);
+                    VECTOR_ZERO(resiBurg);
+                    resiBurgMag = 0.0;
+                    break;
+                }
             }
         }
-
-        if(j != setLists[i].size() && resiBurgMag > 1.0E-2){
-            setLists[i].push_back(100);
-        }else{
-            setLists[i].push_back((int)(resiBurgMag*100));
-        }
+        setLists[i].push_back((int)(resiBurgMag*100));
     }
 
     sort(setLists.begin(), setLists.end(),cmp); 
@@ -3591,10 +3784,44 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
 
         nBurgSets++;
     }
-    for(iter = setLists.end(); iter != setLists.begin()+nBurgSets; iter--){
+
+#if DEBUG_DisassembleDislocation
+    printf("SetLists: \n");
+    for(i=0; i<nBurgSets; i++){
+        printf("Set %2d: ", i);
+        for(j=0; j<setLists[i].size(); j++){
+            printf("%4d ", setLists[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+#endif
+    for(i=0; i<nBurgSets; i++){
+        k=0;
+        for(j=0; j<setLists[i].size()-1; j++){
+            k+= abs(setLists[i][j]);
+        }
+        if(setLists[i][j]>0)k++;
+
+        if(k>maxDiss){nBurgSets=i+1; break;}
+    }
+
+    for(iter = setLists.end(); iter != setLists.begin()+nBurgSets-1; iter--){
         setLists.erase(iter);
     }
 
+    if(setLists.size()>1){
+        for(i=1;i<setLists.size();){
+            for(j=0;j<setLists[i].size()-1;j++){
+                if(setLists[i][j] != setLists[i-1][j])break;
+            }
+            if(j==setLists[i].size()-1){
+                setLists.erase(setLists.begin()+i);
+            }else{
+                i++;
+            }
+        }
+    }
     if(nBurgSets == 0)return(0);
 #if DEBUG_DisassembleDislocation
     printf("SetLists: \n");
@@ -3644,8 +3871,12 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
     for(i=0; i<setLists.size(); i++){
         std::vector<int>().swap(disOnBurgID);
         for(j=0; j<burgList.size(); j++){
-            for(k=0; k<setLists[i][j]; k++){
-                disOnBurgID.push_back(j);
+            if(setLists[i][j]<0){
+                disOnBurgID.push_back(-j-1);
+            }else{
+                for(k=0; k<setLists[i][j]; k++){
+                    disOnBurgID.push_back(j);
+                }
             }
         }
         disOnBurgIDList.push_back(disOnBurgID);
@@ -3659,13 +3890,26 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         }
     }
 
+#if DEBUG_DisassembleDislocation
+    printf("disOnBurgIDList:\n");
+    for(i=0; i<disOnBurgIDList.size(); i++){
+        printf("i=%d: ",i);
+        for(j=0; j<disOnBurgIDList[i].size(); j++){
+            burgID = (disOnBurgIDList[i][j]>-1?disOnBurgIDList[i][j]:-disOnBurgIDList[i][j]-1);
+            printf("(%d,%d) ",disOnBurgIDList[i][j],burgID);
+        }
+        printf("\n");
+    }
+#endif
+
     for(i=0; i<disOnBurgIDList.size(); i++){
         disOnPlaneID.resize(disOnBurgIDList[i].size());
         oriVec.resize(disOnBurgIDList[i].size());
         orderList.resize(disOnBurgIDList[i].size());
         std::vector<std::vector<int> > ().swap(orderArray);
         for(j=0; j<disOnBurgIDList[i].size(); j++){
-            oriVec[j] = burgOnPlaneID[disOnBurgIDList[i][j]].size();
+            burgID = (disOnBurgIDList[i][j]>-1?disOnBurgIDList[i][j]:-disOnBurgIDList[i][j]-1);
+            oriVec[j] = burgOnPlaneID[burgID].size();
         }
 
         IterFun2(oriVec, 0, orderList, orderArray);        
@@ -3679,15 +3923,15 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
             }
 
             for(j=0; j<disOnBurgIDList[i].size(); j++){
+                burgID = (disOnBurgIDList[i][j]>-1?disOnBurgIDList[i][j]:-disOnBurgIDList[i][j]-1);
                 for(m=0; m<recordList[0].size(); m++){
-                    if(disOnBurgIDList[i][j] == recordList[0][m] &&
+                    if(burgID == recordList[0][m] &&
                        orderArray[k][j] == recordList[1][m]){
                         recordList[2][m]++;
                     }
                 }
-                disOnPlaneID[j] = burgOnPlaneID[disOnBurgIDList[i][j]][orderArray[k][j]];
+                disOnPlaneID[j] = burgOnPlaneID[burgID][orderArray[k][j]];
             }
-
 
             if(recordArray.size() == 0){
                 recordArray.push_back(recordList[2]);
@@ -3703,6 +3947,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                     recordArray.push_back(recordList[2]);
                     disOnPlaneIDList.push_back(disOnPlaneID);
                 }
+
             }
         }
         disOnPlaneIDArray.push_back(disOnPlaneIDList);
@@ -3710,15 +3955,22 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
 
     for(i=0; i<disOnPlaneIDArray.size(); i++){
         for(j=0; j<disOnPlaneIDArray[i].size(); j++){
+            resiBurg[0] = burg[0];
+            resiBurg[1] = burg[1];
+            resiBurg[2] = burg[2];
             disList.resize(disOnPlaneIDArray[i][j].size());
             for(k=0; k<disOnPlaneIDArray[i][j].size(); k++){
                 disList[k].burgID = disOnBurgIDList[i][k];
                 disList[k].planeID = disOnPlaneIDArray[i][j][k];
-                VECTOR_COPY(vec, burgList[disList[k].burgID]);
-                disList[k].energyFactor = Normal(vec)/Normal(burg);
-                disList[k].energyFactor = disList[k].energyFactor*
-                                            disList[k].energyFactor;
+                burgID = disList[k].burgID>-1?disList[k].burgID:-disList[k].burgID-1;
+                VECTOR_COPY(vec, burgList[burgID]);
+                if(disList[k].burgID<0)NegativeVector(vec,vec);
+                disList[k].energyFactor = DotProduct(vec,vec);
+                resiBurg[0] -= vec[0];
+                resiBurg[1] -= vec[1];
+                resiBurg[2] -= vec[2];
             }
+            disList.back().energyFactor += DotProduct(resiBurg,resiBurg);
 
             sortList.resize(disList.size());
             tempDisList.resize(disList.size());
@@ -3822,8 +4074,8 @@ bool PartialDislocations(Home_t *home, Node_t *node1, Node_t *node2, real8 *p1, 
     if(disArray.size() != 1){printf("Warning: the extened dislcoation has some wrong\n"); return false;}
     if(disArray[0].size() != 2){printf("Warning: the extened dislcoation has some wrong\n"); return false;}
     
-    VECTOR_COPY(p1, burgList[disArray[0][0].burgID]);
-    VECTOR_COPY(p2, burgList[disArray[0][1].burgID]);
+    VECTOR_COPY(p1, burgList[disArray[0][0].burgID>-1?disArray[0][0].burgID:-disArray[0][0].burgID-1]);
+    VECTOR_COPY(p2, burgList[disArray[0][1].burgID>-1?disArray[0][1].burgID:-disArray[0][1].burgID-1]);
     return true;
 }
 

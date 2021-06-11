@@ -117,7 +117,6 @@
 
 /* the old positon of new node is old position of the parent node */
 #define SHARE_OLDX	0 
-#define DEBUG_DisassembleDislocation 0
 
 #define CHECK_PULLBACK 0
 #define CHECK_DOMAIN 0

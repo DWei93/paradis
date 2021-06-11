@@ -539,9 +539,11 @@ static void MeshCoarsen(Home_t *home)
                         gp0[2] = node->nz[0];
                         gb = home->GBKeys[nbr1->onGB];
                         if(AlignedDirection(gp0,gb->n,0.95)){
+#ifdef DEBUG
                             if(mergeDone == 1){
                                 printf("verified bug: %s %d\n",__FILE__,__LINE__);
                             }
+#endif
                             mergeDone=0;
                         }
                     }
@@ -608,7 +610,9 @@ static void MeshCoarsen(Home_t *home)
                             gp1[2] = node->nz[1];
                             gb = home->GBKeys[nbr2->onGB];
                             if(AlignedDirection(gp1,gb->n,0.95)){
+#ifdef DEBUG
                                 printf("verified bug: %s %d\n",__FILE__,__LINE__);
+#endif
                                 continue;
                             }
                         }

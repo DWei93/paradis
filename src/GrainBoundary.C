@@ -642,139 +642,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 #if CROSS_SLIP_GB_MODEL
     return(1);
 #endif  
-    if(type != LINE_INTERSECTION && fabs(dis) > 5){
-        printf("Warning: type %d in file %s at line %d, dis is %f \n", 
-                type, __FILE__, __LINE__, dis);
-        return(0);
-    }
-
-	pos[0] = node->x;
-	pos[1] = node->y;
-	pos[2] = node->z;
-
-    NodeLocation(home, pos[0], pos[1], pos[2],currInGrain, currOnGB);
-
-    vec[0] = node->burgX[1] + node->burgX[0];
-    vec[1] = node->burgY[1] + node->burgY[0];
-    vec[2] = node->burgZ[1] + node->burgZ[0];
-    if(Normal(vec) > 0.01){
-        PrintNode(home, node);
-        Fatal("In file %s at line %d", __FILE__, __LINE__);
-    }
-
-	burg[0] = node->burgX[1];
-	burg[1] = node->burgY[1];
-	burg[2] = node->burgZ[1];
-	
-	normal[0] = node->nx[1];
-	normal[1] = node->ny[1];
-	normal[2] = node->nz[1];
-
-    
-    if(!GeometricCriterion(gbd, burg, pene->line2.direction, normal, 1,
-                       burgList, disArray))return(0);
-	
-    for(j=0; j<disArray.size(); ){
-        barrierFactor = -1.0;
-        for(k=0; k<disArray[j].size(); k++){
-            barrierFactor += disArray[j][k].energyFactor;
-            cross(gb->n, gbd->planeList[disArray[j][k].planeID], crossProd);
-            VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
-            if(Normal(crossProd) < 1.0E-2){
-                if(BurgType_FCC(vec) == BASIC_BURG)break;
-            }else{
-                if(BurgType_FCC(vec) != BASIC_BURG)break;
-            }
-        }
-
-        if(k != disArray[j].size() || j > 0 && 
-           barrierFactor > 0){
-            itDisList = disArray.begin() + j;
-            disArray.erase(itDisList);
-        }else{
-            j++;
-        }
-    }
-    if(disArray.size() == 0)return(0);
-
-    pene->nSets = disArray.size();
-    pene->res = (Res_t *)calloc(pene->nSets, sizeof(Res_t));
-
-    for(i=0; i<disArray.size(); i++){
-
-        VECTOR_COPY(resiBurg, burg);
-        for(j=0; j<disArray[i].size(); j++){
-            resiBurg[0] -= burgList[disArray[i][j].burgID][0];
-            resiBurg[1] -= burgList[disArray[i][j].burgID][1];
-            resiBurg[2] -= burgList[disArray[i][j].burgID][2];
-        }
-
-        nDiss = disArray[i].size();
-        if(Normal(resiBurg) > 1.0E-2)nDiss++;
-        residualDis = (nDiss == disArray[i].size()) ? 0 : 1;
-
-        InitPeneRes(&(pene->res[i]), nDiss);
-
-        newPlaneID = -1;
-        for(j=0; j<disArray[i].size(); j++){
-            VECTOR_COPY(pene->res[i].burg[j], burgList[disArray[i][j].burgID]);
-            VECTOR_COPY(pene->res[i].normal[j], 
-                        gbd->planeList[disArray[i][j].planeID]);
-            pene->res[i].inGrain[j] = gbd->planeInGrain[disArray[i][j].planeID];
-
-            if(disArray[i][j].planeID != newPlaneID){
-                newPlaneID = disArray[i][j].planeID;
-                jth = 1.0;
-            }else{
-                jth += 1.0; 
-            }
-            cross(pene->line2.direction, pene->res[i].normal[j], vec);
-            if(Normal(vec) < 1.0E-4){
-                Fatal("In file %s at line %d", __FILE__, __LINE__);
-            }
-            NormalizeVec(vec);
-
-            if(pene->res[i].inGrain[j] > -1){
-                grain = home->grainKeys[pene->res[i].inGrain[j]];
-                localGBID = GetGBIndexOfGrain(grain, gb->GBID);
-                if(localGBID == -1){
-                    Fatal("In file %s at line %d", __FILE__, __LINE__);
-                }
-                vec1[0] = -grain->sign[localGBID]*gb->n[0];
-                vec1[1] = -grain->sign[localGBID]*gb->n[1];
-                vec1[2] = -grain->sign[localGBID]*gb->n[2];
-                
-                if(DotProduct(vec, vec1) < 0){
-                    vec[0] = -vec[0];
-                    vec[1] = -vec[1];
-                    vec[2] = -vec[2];
-                }
-            }else{
-                cross(gb->n, pene->res[i].normal[j], vec1);
-                if(Normal(vec1) > 1.0E-4){
-                    Fatal("In file %s at line %d", __FILE__, __LINE__);
-                }
-            }
-
-            pene->res[i].pos[j][0] = centorPos[0] + vec[0]*eps*jth;
-            pene->res[i].pos[j][1] = centorPos[1] + vec[1]*eps*jth;
-            pene->res[i].pos[j][2] = centorPos[2] + vec[2]*eps*jth;
-            
-        } /* for(j=0; j<disArray[i].size(); j++) */
-
-        if(residualDis){
-            VECTOR_COPY(pene->res[i].pos[j], centorPos);
-            VECTOR_COPY(pene->res[i].burg[j], resiBurg);
-
-            cross(resiBurg, pene->line2.direction, pene->res[i].normal[j]);
-            NormalizeVec(pene->res[i].normal[j]);
-        
-            pene->res[i].inGrain[j] = -1;
-
-        }
-
-    }/* for(i=0; i<disArray.size(); i++) */
-
+    Fatal("Outdated grain boundary penetration criteria were discarded");
 	return(1);
 }
 
@@ -2399,9 +2267,9 @@ void GBCrossSlip(Home_t *home)
     std::vector<int>                                        temPlaneIDList;
 
     int keyLineID;
-    int burgID;
+    int burgID, bid;
     Decom_t *dec;
-    bool simpleWay;
+    bool simpleWay, twinningDis, frankDis;
     real8 signBurg;
 
     BurgInfo_t  *gbd;
@@ -2410,7 +2278,9 @@ void GBCrossSlip(Home_t *home)
 
     param = home->param;
     thisDomain = home->myDomain;
-
+#ifdef DEBUG
+    static bool firstTD = true;
+#endif
     eps = 1.0e-06;
     thetacrit = 2.0 / 180.0 * M_PI;
     sthetacrit = sin(thetacrit);
@@ -2514,7 +2384,11 @@ void GBCrossSlip(Home_t *home)
                 if(!DomainOwnsSeg(home, opClass, thisDomain, &node->nbrTag[j])){
                     break;
                 }
-
+                
+/*
+ *              Decomposition of twinning dislocation is allowed. 2021/6/10
+ */
+#if 0
                 burg[0] = node->burgX[j];
                 burg[1] = node->burgY[j];
                 burg[2] = node->burgZ[j];
@@ -2524,6 +2398,7 @@ void GBCrossSlip(Home_t *home)
                     fabs(DotProduct(burg, home->GBKeys[node->onGB]->n)/norm) <= 1.0e-3){
                     break;
                 }
+#endif
             }
             if(j == node->numNbrs && j == 2)firstCrossSlipNode = 1;
         }
@@ -2703,6 +2578,8 @@ void GBCrossSlip(Home_t *home)
             burgID = BurgID_FCC(gbd, burg);
 
             simpleWay = false;
+            twinningDis = (BurgType_FCC(burg) == SHOCKLEY_BURG);
+            frankDis = (BurgType_FCC(burg) == FRANK_BURG);
             superBurg = ((fabs(Normal(burg)-Normal(gbd->burgList[burgID]))>1E-1)?true:false);
             if(burgID<gbd->numBurgVectors){
                 signBurg = DotProduct(burg, gbd->burgList[burgID])/Normal(gbd->burgList[burgID]);
@@ -2729,17 +2606,24 @@ void GBCrossSlip(Home_t *home)
             if(simpleWay == false){
                 if(!GeometricCriterion(gbd, burg, interLine.direction, normal, 0,
                        burgList, disArray))continue;
-#if 1           
 /*              
  *              Now, we don't need the resultant configure including a partial burg in Grain.
  */             
+                int nTDs;
+                real8 sumTDBurg[3];
                 for(j=0; j<disArray.size(); ){
-                    barrierFactor = -1.0;
+                    barrierFactor = -DotProduct(burg,burg);
+                    VECTOR_ZERO(sumTDBurg); nTDs=0;
                     for(k=0; k<disArray[j].size(); k++){
                         barrierFactor += disArray[j][k].energyFactor;
                         cross(gb->n, gbd->planeList[disArray[j][k].planeID], crossProd);
-                        VECTOR_COPY(vec, burgList[disArray[j][k].burgID]);
+                        bid = disArray[j][k].burgID>-1?disArray[j][k].burgID:-disArray[j][k].burgID-1;
+                        VECTOR_COPY(vec, burgList[bid]);
                         if(Normal(crossProd) < 1.0E-2){
+                            if(BurgType_FCC(vec) == SHOCKLEY_BURG){
+                                VectorAddSelf(sumTDBurg, vec);
+                                nTDs++;
+                            }
                             if(BurgType_FCC(vec) == BASIC_BURG)break;
                         }else{
                             if(BurgType_FCC(vec) != BASIC_BURG)break;
@@ -2747,8 +2631,12 @@ void GBCrossSlip(Home_t *home)
                     }
                 
                     if(k != disArray[j].size() ||  // fail to penetrate
-                       (isScrew && barrierFactor > 1E-3) ||  // screw energy criteria
-                       (!isScrew && barrierFactor >0.667) || // non-screw energy criteria
+                       (BurgType_FCC(sumTDBurg)==SHOCKLEY_BURG && nTDs==2) || 
+                       (!twinningDis && !frankDis && isScrew && barrierFactor > 0.01) ||  // screw energy criteria
+                       (!twinningDis && !frankDis && !isScrew && barrierFactor >0.667) || // non-screw energy criteria
+                       ( twinningDis && barrierFactor >1.01) || // twinning dislocation
+                       ( frankDis && barrierFactor > 0.667) || // frank dislocation
+                        (barrierFactor > 2.01) ||
                        (disArray[j].size()==1 && fabs(DotProduct(normal, gbd->planeList[disArray[j][0].planeID]))>0.95)){ // origin plane is not needed
                         itDisList = disArray.begin() + j;
                         disArray.erase(itDisList);
@@ -2756,10 +2644,29 @@ void GBCrossSlip(Home_t *home)
                         j++;
                     }
                 }
-#endif          
+
                 if(disArray.size() == 0)continue;
                 sort(disArray.begin(), disArray.end(), comByBarrier); 
+
+                if(disArray.size()>1){
+                    for(k=1; k<disArray.size(); ){
+                        for(l=0; l<disArray[k].size(); l++){
+                            if(disArray[k].size() != disArray[k-1].size())break;
+                            if(disArray[k][l].burgID != disArray[k-1][l].burgID ||  disArray[k][l].planeID != disArray[k-1][l].planeID)break;
+                        }
+                        if(l==disArray[k].size()){
+                            disArray.erase(disArray.begin() + k);
+                        }else{
+                            k++;
+                        }
+                    }
+                }
 #ifdef DEBUG
+                if(twinningDis && firstTD){
+                    printf("Task %d: first TD occure, ",home->myDomain); 
+                    PrintTag(home, node);
+                    printf("\n");
+                }
                 if(!isScrew){
                     printf("non-screw dislocation decomposition (%g,%g,%g) %d %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg),
                             PlaneID_FCC(gbd,normal));
@@ -2768,9 +2675,11 @@ void GBCrossSlip(Home_t *home)
                     for(int set=0; set<disArray.size(); set++){
                         printf("set %d: ",set);
                         for(int disl=0; disl<disArray[set].size(); disl++){
-                            outBurg[0] = burgList[disArray[set][disl].burgID][0];
-                            outBurg[1] = burgList[disArray[set][disl].burgID][1];
-                            outBurg[2] = burgList[disArray[set][disl].burgID][2];
+                            bid = disArray[set][disl].burgID>-1?disArray[set][disl].burgID:-disArray[set][disl].burgID-1;
+                            outBurg[0] = burgList[bid][0];
+                            outBurg[1] = burgList[bid][1];
+                            outBurg[2] = burgList[bid][2];
+                            if(disArray[set][disl].burgID < 0)NegativeVector(outBurg,outBurg);
                             printf("[%d %s](%d in %d) ", BurgID_FCC(gbd,outBurg), 
                                    BurgType_FCC(outBurg)==BASIC_BURG?"perfect":"partial",
                                    disArray[set][disl].planeID,
@@ -2817,13 +2726,20 @@ void GBCrossSlip(Home_t *home)
             disPosArray.resize(disArray.size());
             energyList.resize(disArray.size());
             for(j=0; j<disArray.size(); j++){
-                maxShearList[j] = 0; energyList[j]=0.0;
+                maxShearList[j] = 0; energyList[j]=-DotProduct(burg,burg);
                 VECTOR_COPY(debris, burg);
     
                 std::vector<real8>().swap(temBurgList); 
                 std::vector<int>().swap(temPlaneIDList);
                 for(k=0; k<disArray[j].size(); k++){
-                    VECTOR_COPY(outBurgNorm, burgList[disArray[j][k].burgID]);
+                    if(disArray[j][k].burgID>-1){
+                        VECTOR_COPY(outBurgNorm, burgList[disArray[j][k].burgID]);
+                    }else{
+                        bid = -disArray[j][k].burgID-1;
+                        outBurgNorm[0] = -burgList[bid][0];
+                        outBurgNorm[1] = -burgList[bid][1];
+                        outBurgNorm[2] = -burgList[bid][2];
+                    }
                     for(l=0; l<temPlaneIDList.size(); l++) if(disArray[j][k].planeID == temPlaneIDList[l])break;
                     if(l==temPlaneIDList.size()){
                         temPlaneIDList.push_back(disArray[j][k].planeID);
@@ -2924,9 +2840,11 @@ void GBCrossSlip(Home_t *home)
                     maxShearList[j] = 0.0;
                 }
                 energyList[j]+= DotProduct(debris, debris);
+
+                if(maxShearList[j]<energyList[j]*param->tbStrength[1])maxShearList[j]=0.0;
             }
 
-            maxShear = 0;
+            maxShear = 0.0;
             maxShearSet = -1;
             noiseForce = param->shearModulus*noiseFactor;
             energySet = -1;
@@ -2968,6 +2886,13 @@ void GBCrossSlip(Home_t *home)
 
                 node->inGrain = -1;
                 node->onGB = gb->GBID;
+#ifdef DEBUG
+                if(twinningDis && firstTD){
+                    printf("Task %d: first TD occure, ",home->myDomain); 
+                    PrintTag(home, node);
+                    printf(" -- failed\n");
+                }
+#endif
                 continue;
             }else{
 	            FoldBox(param,newNbr1Pos,newNbr1Pos+1,newNbr1Pos+2);
@@ -2994,7 +2919,14 @@ void GBCrossSlip(Home_t *home)
             }
 
             for(k=0; k<disArray[j].size(); k++){
-                VECTOR_COPY(outBurg,  burgList[disArray[j][k].burgID]);
+                if(disArray[j][k].burgID>-1){
+                    VECTOR_COPY(outBurg,  burgList[disArray[j][k].burgID]);
+                }else{
+                    bid = -disArray[j][k].burgID-1;
+                    outBurg[0] = -burgList[bid][0];
+                    outBurg[1] = -burgList[bid][1];
+                    outBurg[2] = -burgList[bid][2];
+                }
                 VECTOR_COPY(outPlane, gbd->planeList[disArray[j][k].planeID]);
                 debris[0]-=outBurg[0]; debris[1]-=outBurg[1]; debris[2]-=outBurg[2];
                 if(k==0){
@@ -3100,7 +3032,14 @@ void GBCrossSlip(Home_t *home)
 	        nbr2->vX = 0.0;
 	        nbr2->vY = 0.0;
 	        nbr2->vZ = 0.0;
-
+#ifdef DEBUG
+            if(twinningDis && firstTD){
+                printf("Task %d: first TD occure, ",home->myDomain); 
+                printf(" --  succed!\n");
+                PrintNode(home,node);
+                firstTD = false;
+            }
+#endif
         }else if(sideCrossSlipNode == 1){
             PointLineIntersection(gbNbrPos, interLine.direction, interLine.point,
                               newPos, &dis);
