@@ -58,6 +58,7 @@ thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
 
 #maxDensity=`echo "scale=5;480/${thickn}" |bc -l`E13
 maxDensity=5.0E13
+#tdDensity=-1
 
 minDT=`echo "scale=3; ${thickn}/20*5000/${eRate}" | bc`E-13
 echo "Thickness=$thick b, $thickn nm, ${nGrains} grains,  maxSeg=${maxSeg}b, rTol =$rTol, minDT=$minDT, maxDensity=$maxDensity, rc=$rc"
@@ -77,7 +78,16 @@ amu=90
 polar=90
 point=23
 
-if [[ $# -ge 4 ]]; then nGrains=$4; fi
+if [[ $# -ge 4 ]]; then 
+    nGrains=$4; 
+
+    tdDensity=2.0E6
+    tdDensity=`echo "scale=5;${tdDensity}" | bc -l`E6
+    tdLength=`echo "scale=3;$thick" | bc -l`
+else
+    tdDensity=-1
+    tdLength=`echo "scale=3;$thick" | bc -l`
+fi
 
 if [[ `sed -n "/^loadType/p" $ctrlFile | cut -d " " -f 3` != "6" ]]; then 
     if [ $# -gt 0 ]; then 
@@ -100,7 +110,6 @@ sed -i "/meshNumZ/cmeshNumZ = $nMesh" $ctrlFile;
 
 polycrystal=1
 single=2
-
 
 srctype=4
 case $srctype in
@@ -150,11 +159,15 @@ case $srctype in
 # 
 ######################################################################################
     4|IV)
-    echo "./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir}"
+    info=`echo "./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed  -tdDensity ${tdDensity} \
+    -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} \
+    -tdLength $tdLength"`
 
-    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} | tee $logFile ;;
+    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -tdDensity ${tdDensity}  -tdLength $tdLength \
+    -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} | tee $logFile ;
+
+    echo "$info"
+    echo "$info" >> $logFile;;
 #   -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} | tee $logFile ;;
 #   -polycrystal 1 -nGrain ${nGrains}  -pbc 0  ;;
 #   -polycrystal 1 -nGrain 2  -pbc 0 -nTDs 1 -gb 1;;
@@ -167,7 +180,7 @@ case $srctype in
     5|V)
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
-    -polycrystal 0 -nGrain 1 -pbc 7 -maxDensity $maxDensity \
+    -polycrystal 0 -nGrain 1 -pbc 7 -maxDensity $maxDensity -tdDensity ${tdDensity} \
     -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 ;;
 
 #    -xMatDir ${xdir} -yMatDir ${ydir} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1;;

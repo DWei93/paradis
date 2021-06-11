@@ -30,7 +30,7 @@ logFile=input/CreateFR.log
 cubeln=750
 if [ $# -ge 3 ] ; then cubeln=$3; fi
 nMesh=41
-#nfrs=15000
+nfrs=15000
 nTDs=0
 pbc=7
 xMatDir=-1,1,0
@@ -54,25 +54,16 @@ maxSeg1=`echo ${cubel}/20 |bc `
 nGrains=2
 thick=`echo ${cubel}/${nGrains}| bc`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
-maxDisDen=`echo "scale=3;-0.0148621*${cubeln}+102.972" | bc -l`
-maxDisDen=`echo "scale=4; 2.0*(1+10000.0/${cubeln})" | bc -l`
-maxDisDen=`echo "scale=5; 18947.4/${cubeln}+5.26316" | bc -l`
-if [[ $cubeln -gt 1100 ]]; then
-    maxDisDen=5.0
-    nfrs=20000
-else
-    maxDisDen=200.0
-    nfrs=24
-fi
 
-frlen=`echo "scale=3;300/0.2556" | bc -l`
-frlenMin=`echo "scale=3;300/0.2556" | bc -l`
+frlen=`echo "scale=5;(96.16723+${cubeln}*0.0595)/0.2556" | bc -l`
+frlenMin=$frlen
 frlenn=`echo "scale=3;${frlen}*0.2556" | bc`
 maxSeg2=`echo ${frlen}/5 |bc `
 srcLenType=0
 
 if [[ `echo "${maxSeg1}>${maxSeg2}" | bc` == "1" ]]; then maxSeg=$maxSeg2; echo "maxSge is equal to L_FR/10"; else maxSeg=$maxSeg1; fi
 
+maxDisDen=`echo "scale=5;1000000.0/${frlenn}/${frlenn}" | bc -l`
 maxDensity=${maxDisDen}E12;
 polycrystal=${1}
 single=${2}
@@ -229,7 +220,7 @@ if [[ `echo "${primary}<1" | bc -l` -eq 1 ]];
     exit 0
 fi 
 nchains=`cat $log | grep "chains has" | cut -d " " -f 1`
-if [[ `echo "${nchains}<24" | bc -l` -eq 1 ]];
+if [[ `echo "${nchains}<1" | bc -l` -eq 1 ]];
     then  ./gen-bicrystal $1 $2 $3; 
     exit 0
 fi 
