@@ -1896,7 +1896,7 @@ real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB){
         *GB = home->GBKeys[onGB];
         VECTOR_COPY(gbPos, (*GB)->p);
         PBCPOSITION(home->param, vec[0],vec[1],vec[2],gbPos,gbPos+1,gbPos+2);
-        PointPlaneIntersection(vec, (*GB)->n, gbPos, vec1, &tempDistance);
+        PointPlaneIntersection(vec, (*GB)->n, gbPos, vec1, &minDistance);
     }else{
         Grain_t *grain = home->grainKeys[inGrain];
         for(i=0;i<grain->nBounds;i++){
@@ -1934,7 +1934,7 @@ real8 ClosedGB(Home_t *home, real8 px, real8 py, real8 pz, GB_t **GB){
         *GB = home->GBKeys[onGB];
         VECTOR_COPY(gbPos, (*GB)->p);
         PBCPOSITION(home->param, vec[0],vec[1],vec[2],gbPos,gbPos+1,gbPos+2);
-        PointPlaneIntersection(vec, (*GB)->n, gbPos, vec1, &tempDistance);
+        PointPlaneIntersection(vec, (*GB)->n, gbPos, vec1, &minDistance);
     }else{
         Grain_t *grain = home->grainKeys[inGrain];
         for(i=0;i<grain->nBounds;i++){
