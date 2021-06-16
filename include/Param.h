@@ -507,6 +507,8 @@ struct _param {
         bool    multilayer;
         real8   *layerPosz;
         real8   strain;
+        bool    accElast;
+        real8   accPst;
 /*
  *		
  */

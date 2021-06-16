@@ -462,6 +462,12 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "strain", &param->strain, V_DBL, 1,  VFLAG_NULL);
         param->strain = 0.0;
 
+        BindVar(CPList, "accElast", &param->accElast, V_INT, 1,  VFLAG_NULL);
+        param->accElast = 0;
+
+        BindVar(CPList, "accPst", &param->accPst, V_DBL, 1,  VFLAG_NULL);
+        param->accPst = 2.0E-5;
+
         BindVar(CPList, "totpStn", param->totpStn, V_DBL, 6, VFLAG_NULL);
 
         BindVar(CPList, "totpSpn", param->totpSpn, V_DBL, 6, VFLAG_NULL);

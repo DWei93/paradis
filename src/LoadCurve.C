@@ -95,6 +95,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         real8   Si[6];
         real8   effPlaRate;
         Param_t *param;
+        static bool accElast=false;
         
         TimerStart(home, LOADCURVE);
         
@@ -331,6 +332,21 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                           2.0*param->delpStrain[4]*an*al +
                           2.0*param->delpStrain[5]*al*am;
         
+                pstnijk = param->totpStn[0]*al*al +
+                          param->totpStn[1]*am*am +
+                          param->totpStn[2]*an*an +
+                          2.0*param->totpStn[3]*am*an +
+                          2.0*param->totpStn[4]*an*al +
+                          2.0*param->totpStn[5]*al*am;
+
+                if((param->accElast==true)  && (param->accPst>pstnijk)){
+                    erate *= 10.0;
+                    if(accElast == false){
+                        accElast = true;
+                        if(home->myDomain == 0)printf("Note: elastic loading is accelerated, eRate = %g, critical plast stn = %g \n",erate, param->accPst);
+                    }
+                }
+
                 if (indxerate <= 3) {
                    modulus = youngs;
                 } else {
@@ -681,11 +697,27 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
                          param->delpStrain[4] *(an*bl + al*bn) +
                          param->delpStrain[5] *(al*bm + am*bl) ;   
         
+
+                pstnijk =  param->totpStn[0]*al*bl        +
+                           param->totpStn[1]*am*bm        +
+                           param->totpStn[2]*an*bn        +
+                           param->totpStn[3]*(am*bn+an*bm)+
+                           param->totpStn[4]*(an*bl+al*bn)+
+                           param->totpStn[5]*(al*bm+bl*am);
+
                 modulus = 2.0 * shr;
 
 /*
  *              local in the [l m n] frame
  */
+                if((param->accElast==true)  && (param->accPst>pstnijk)){
+                    erate *= 10.0;
+                    if(accElast == false){
+                        accElast = true;
+                        if(home->myDomain == 0)printf("Note: elastic loading is accelerated, eRate = %g, critical plast stn = %g \n",erate, param->accPst);
+                    }
+                }
+
                 dStress= modulus * (erate*dtt - dpl_stn);
         
 /*#if 0
