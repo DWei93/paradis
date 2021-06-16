@@ -212,7 +212,6 @@ static void MeshCoarsen(Home_t *home)
             
             GetArmGrain(home, nbr1, node, armInGrain1, armOnGB1);
             GetArmGrain(home, nbr2, node, armInGrain2, armOnGB2);
-
             lamp = MIN(LengthAmplification(home, armInGrain1, armOnGB1), LengthAmplification(home, armInGrain2, armOnGB2));
 #ifdef DEBUG
             bool smallSegOnTB = NodeDistance(home, nbr1,nbr2)<param->minSeg*0.5 && IsOnGB(node) && IsOnGB(nbr1) && IsOnGB(nbr2);
@@ -747,7 +746,9 @@ static void MeshCoarsen(Home_t *home)
                     dis = ClosedGB(home, vec, &gb);
                     if(fabs(dis) < 1.0){
                         if(NewPosToGB(home, mergedNode, -1, mergedNode->onGB, vec, newPos)){
-                            PointPlaneIntersection(vec, gb->n, gb->p, newPos, &dis);
+                            real8 gbPos[3]={gb->p[0],gb->p[1],gb->p[2]};
+                            PBCPOSITION(param, vec[0], vec[1], vec[2], gbPos, gbPos+1, gbPos+2);
+                            PointPlaneIntersection(vec, gb->n, gbPos, newPos, &dis);
 #ifdef DEBUG
                             printf("remove err in %s at %d: distance=%f\n",__FILE__,__LINE__,dis);
 #endif

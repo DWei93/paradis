@@ -1901,7 +1901,6 @@ real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB){
         Grain_t *grain = home->grainKeys[inGrain];
         for(i=0;i<grain->nBounds;i++){
             temGB = grain->GB[i];
-
             VECTOR_COPY(gbPos, temGB->p);
             PBCPOSITION(home->param, vec[0],vec[1],vec[2],gbPos,gbPos+1,gbPos+2);
             PointPlaneIntersection(vec, temGB->n, gbPos, vec1, &tempDistance);
@@ -2606,6 +2605,9 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
 
     *dis = 0.0;
     type = NO_INTERSECTION;
+    
+    
+    real8 lamp = MAX(LengthAmplification(home, node1->inGrain, node1->onGB), LengthAmplification(home, node2->inGrain, node2->onGB));
 
     type = NodesIntersection(home, node1, node2, vec1, vec2); 
     PBCPOSITION(home->param, node1->x, node1->y, node1->z,
@@ -2639,7 +2641,7 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
     CoordMinus(bakPos, pos, bakPos); ZImage(home->param, bakPos, bakPos+1, bakPos+2);
     *dis = Normal(bakPos);
 
-    if(fabs(*dis) > 3000.0 && type != POINT_INTERSECTION){
+    if(fabs(*dis) > home->param->maxSeg*10*lamp && type != POINT_INTERSECTION){
         int     numGlideConstraintsNode1, numGlideConstraintsNode2;
         real8   glideConstraintsNode1[3][3], glideConstraintsNode2[3][3]; 
         bool    zeroLenJunc1, zeroLenJunc2;

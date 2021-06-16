@@ -65,6 +65,9 @@ void CrossSlipFCC(Home_t *home)
         real8   rotMatrix[3][3], rotMatrixInverse[3][3];
         BurgInfo_t  *burgData;
         GB_t *gb;
+        real8  lamp = 1.0, temVec[3], cof;
+        int armInGrain1, armInGrain2, armOnGB1, armOnGB2, curInGrain, curOnGB;
+        int iter, iterMax=8;
 
 #ifdef DEBUG_CROSSSLIP_DOMAIN
         dbgDom = DEBUG_CROSSSLIP_DOMAIN;
@@ -194,6 +197,10 @@ void CrossSlipFCC(Home_t *home)
                               segForceOrig, nodePosOrig, nbr1PosOrig,
                               nbr2PosOrig);
 
+            GetArmGrain(home, nbr1, node, armInGrain1, armOnGB1);
+            GetArmGrain(home, nbr2, node, armInGrain2, armOnGB2);
+
+            lamp = MIN(LengthAmplification(home, armInGrain1, armOnGB1), LengthAmplification(home, armInGrain2, armOnGB2));
 /*
  *          Get the positions of all three nodes and convert the neighbor
  *          node positions to the PBC coordinates relative to the main
@@ -426,6 +433,11 @@ void CrossSlipFCC(Home_t *home)
                             nbr2p[0] = nbr1p[0] - (vec1dotb * burgLab[0]);
                             nbr2p[1] = nbr1p[1] - (vec1dotb * burgLab[1]);
                             nbr2p[2] = nbr1p[2] - (vec1dotb * burgLab[2]);
+
+                            NodeLocation(home, nbr2p[0], nbr2p[1], nbr2p[2], curInGrain, curOnGB);
+                            if(nbr2->inGrain != curInGrain || nbr2->onGB != curOnGB){
+                                continue;
+                            }
                         }
 
 /*
@@ -437,13 +449,24 @@ void CrossSlipFCC(Home_t *home)
                         nodep[1] = nbr1p[1] + (vec2dotb * burgLab[1]);
                         nodep[2] = nbr1p[2] + (vec2dotb * burgLab[2]);
 
+                        NodeLocation(home, nodep[0], nodep[1], nodep[2], curInGrain, curOnGB);
+                        if(node->inGrain != curInGrain || node->onGB != curOnGB){
+                            continue;
+                        }
+
                         fdotglide = DotProduct(fLab, glideDirLab[fplane]);
-                        tmp = areamin / fabs(vec1dotb) * 2.0 *
+                        tmp = areamin * lamp / fabs(vec1dotb) * 2.0 *
                                (1.0 + eps) * Sign(fdotglide);
 
-                        nodep[0] += tmp * glideDirLab[fplane][0];
-                        nodep[1] += tmp * glideDirLab[fplane][1];
-                        nodep[2] += tmp * glideDirLab[fplane][2];
+                        VECTOR_COPY(temVec, nodep);
+                        for(iter=iterMax;iter>=0; iter--){
+                            cof = real8(iter)/real8(iterMax);
+                            CoordAdd(1.0, temVec, tmp*cof, glideDirLab[fplane], nodep);
+                            NodeLocation(home, nodep[0], nodep[1], nodep[2], curInGrain, curOnGB);
+                            if(node->inGrain == curInGrain && node->onGB == curOnGB){
+                                break;
+                            }
+                        }
 
 /*
  *                      It looks like we should do the cross-slip, but to
@@ -500,20 +523,35 @@ void CrossSlipFCC(Home_t *home)
                         nbr1p[1] = nbr2p[1] + (vec1dotb * burgLab[1]);
                         nbr1p[2] = nbr2p[2] + (vec1dotb * burgLab[2]);
 
+                        NodeLocation(home, nbr1p[0], nbr1p[1], nbr1p[2], curInGrain, curOnGB);
+                        if(curInGrain != nbr1->inGrain || curOnGB != nbr1->onGB){
+                            continue;
+                        }
+
                         vec3dotb = DotProduct(vec3, burgLab);
 
                         nodep[0] = nbr2p[0] + (vec3dotb * burgLab[0]);
                         nodep[1] = nbr2p[1] + (vec3dotb * burgLab[1]);
                         nodep[2] = nbr2p[2] + (vec3dotb * burgLab[2]);
 
+                        NodeLocation(home, nodep[0], nodep[1], nodep[2], curInGrain, curOnGB);
+                        if(node->inGrain != curInGrain || node->onGB != curOnGB){
+                            continue;
+                        }
+
                         fdotglide = DotProduct(fLab, glideDirLab[fplane]);
-                        tmp = areamin / fabs(vec1dotb) * 2.0 *
+                        tmp = areamin * lamp / fabs(vec1dotb) * 2.0 *
                                (1.0 + eps) * Sign(fdotglide);
 
-                        nodep[0] += tmp * glideDirLab[fplane][0];
-                        nodep[1] += tmp * glideDirLab[fplane][1];
-                        nodep[2] += tmp * glideDirLab[fplane][2];
-
+                        VECTOR_COPY(temVec, nodep);
+                        for(iter=iterMax;iter>=0; iter--){
+                            cof = real8(iter)/real8(iterMax);
+                            CoordAdd(1.0, temVec, tmp*cof, glideDirLab[fplane], nodep);
+                            NodeLocation(home, nodep[0], nodep[1], nodep[2], curInGrain, curOnGB);
+                            if(node->inGrain == curInGrain && node->onGB == curOnGB){
+                                break;
+                            }
+                        }
 /*
  *                      It looks like we should do the cross-slip, but to
  *                      be sure, we need to move the nodes and evaluate
@@ -602,6 +640,11 @@ void CrossSlipFCC(Home_t *home)
                             nbr1p[1] = nodep[1] - (vec2dotb * burgLab[1]);
                             nbr1p[2] = nodep[2] - (vec2dotb * burgLab[2]);
 
+                            NodeLocation(home, nbr1p[0], nbr1p[1], nbr1p[2], curInGrain, curOnGB);
+                            if(curInGrain != nbr1->inGrain || curOnGB != nbr1->onGB){
+                                continue;
+                            }
+
                             resetNbr1Pos = 1;
                         }
 
@@ -655,6 +698,10 @@ void CrossSlipFCC(Home_t *home)
                             nbr2p[1] = nodep[1] - (vec3dotb * burgLab[1]);
                             nbr2p[2] = nodep[2] - (vec3dotb * burgLab[2]);
 
+                            NodeLocation(home, nbr2p[0], nbr2p[1], nbr2p[2], curInGrain, curOnGB);
+                            if(nbr2->inGrain != curInGrain || nbr2->onGB != curOnGB){
+                                continue;
+                            }
                             resetNbr2Pos = 1;
                         }
 
@@ -677,16 +724,31 @@ void CrossSlipFCC(Home_t *home)
                 if (resetNodePos) {
                     FoldBox(param, &nodep[0], &nodep[1], &nodep[2]);
                     RepositionNode(home, nodep, &node->myTag, 1);
+                    NodeLocation(home, nodep[0], nodep[1], nodep[2], curInGrain, curOnGB);
+                    if(curInGrain != node->inGrain || curOnGB != node->onGB){
+                        PrintNode(home, node);
+                        Fatal("%s: inGrain=%d onGB=%d",__func__, curInGrain, curOnGB);
+                    }
                 }
 
                 if (resetNbr1Pos) {
                     FoldBox(param, &nbr1p[0], &nbr1p[1], &nbr1p[2]);
                     RepositionNode(home, nbr1p, &nbr1->myTag, 1);
+                    NodeLocation(home, nbr1p[0], nbr1p[1], nbr1p[2], curInGrain, curOnGB);
+                    if(curInGrain != nbr1->inGrain || curOnGB != nbr1->onGB){
+                        PrintNode(home, nbr1);
+                        Fatal("%s: inGrain=%d onGB=%d",__func__, curInGrain, curOnGB);
+                    }
                 }
 
                 if (resetNbr2Pos) {
                     FoldBox(param, &nbr2p[0], &nbr2p[1], &nbr2p[2]);
                     RepositionNode(home, nbr2p, &nbr2->myTag, 1);
+                    NodeLocation(home, nbr2p[0], nbr2p[1], nbr2p[2], curInGrain, curOnGB);
+                    if(curInGrain != nbr2->inGrain || curOnGB != nbr2->onGB){
+                        PrintNode(home, nbr2);
+                        Fatal("%s: inGrain=%d onGB=%d",__func__, curInGrain, curOnGB);
+                    }
                 }
 
             }  /* end of screw check */
