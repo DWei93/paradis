@@ -703,9 +703,12 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
     oldPos[1] = node->oldy;
     oldPos[2] = node->oldz;
 
+    real8 gbPos[3];
 
+    VECTOR_COPY(gbPos, gb->p);
+    PBCPOSITION(param, currPos[0], currPos[1], currPos[2], gbPos, gbPos+1, gbPos+2);
     type = PointPlaneIntersection(currPos, gb->n,
-                                  gb->p, posClosedGB, &dis);
+                                  gbPos, posClosedGB, &dis);
     if(fabs(dis) < 1E-10)return(0);
 
     vec1[0] = currPos[0] - oldPos[0];
@@ -1010,7 +1013,7 @@ void HandleGrainBoundary(Home_t *home)
 	real8		x,y,z,burgj[3], burgk[3], vec[3], mergPos[3], dis;
 	real8		burg[3], normal[3], nDir1[3], nDir2[3], gbPlane[3];
 	real8		mergePos[3], distance, newInGrain, newPos[3];
-    real8       vec1[3], vec2[3], p[3], refPos[3];
+    real8       vec1[3], vec2[3], p[3], refPos[3], gbPos[3], oldPos[3];
 	Param_t		*param;
 	Node_t		*node, *nbrNode1, *nbrNode2, *nbr1, *nbr2, *mergedNode;
 	Plane_t		GBPlane;
@@ -1134,16 +1137,24 @@ void HandleGrainBoundary(Home_t *home)
 #ifdef DEBUG
         if(gb ==(GB_t *)NULL)Fatal("gb in %s at %d is null",__FILE__,__LINE__);
 #endif
+        VectorCopy(oldPos, node->oldx, node->oldy, node->oldz);
+        NodeLocation(home, oldPos[0], oldPos[1], oldPos[2], oldInGrain, oldOnGB);
+        if(oldInGrain != node->inGrain){
+            PrintNode(home, node);
+            printf("Warning in %s: oldInGrain=%d\n",__func__,oldInGrain);
+        }
 
-        CoordMinus(refPos,gb->p,vec1);
         FoldBox(param, refPos, refPos+1, refPos+2);
+        VECTOR_COPY(gbPos, gb->p);
+        PBCPOSITION(param, refPos[0],refPos[1],refPos[2], gbPos, gbPos+1, gbPos+2);
+
+        CoordMinus(refPos,gbPos,vec1);
         if(DotProduct(gb->n, vec1)>0){
             VECTOR_COPY(gbPlane, gb->n);
         }else{
             NegativeVector(gb->n, gbPlane);
         }
-        VECTOR_COPY(GBPlane.point, gb->p);
-        PBCPOSITION(param, refPos[0], refPos[1], refPos[2], &(GBPlane.point[0]),  &(GBPlane.point[1]),  &(GBPlane.point[0]));
+        VECTOR_COPY(GBPlane.point, gbPos);
         VECTOR_COPY(GBPlane.normal, gb->n);
 
 /*	
@@ -1164,12 +1175,18 @@ void HandleGrainBoundary(Home_t *home)
                 vec1[0] = node->vX;
                 vec1[1] = node->vY;
                 vec1[2] = node->vZ;
-                vec2[0] = node->oldx;
-                vec2[1] = node->oldy;
-                vec2[2] = node->oldz;
+                
+                if(Normal(vec1)<1E-2){
+                    CoordMinus(refPos, oldPos, vec1);
+                    ZImage(param, vec1, vec1+1, vec1+2);
+                }
+
                 if(Normal(vec1)<1E-2)PullBack(home, node);
                 NormalizeVec(vec1);
-                if(LinePlaneIntersection(vec1, vec2, gb->n, gb->p, vec, newPos)
+
+                VECTOR_COPY(gbPos, gb->p);
+                PBCPOSITION(param, oldPos[0], oldPos[1], oldPos[2], gbPos, gbPos+1, gbPos+2);
+                if(LinePlaneIntersection(oldPos, vec1, gb->n, gbPos, vec, newPos)
                    == POINT_INTERSECTION){
 #ifdef DEBUG
                     printf("%d %d %d: at %d {%f,%f,%f}->{%f,%f,%f} physic node pull to GB\n", home->cycle, home->myDomain, node->myTag.index, __LINE__,
@@ -3656,7 +3673,9 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                 PrintNode(home, node2);
                 Fatal("%d %d: somthing wrong",home->myDomain, home->cycle);
             }
-            type = PlanePlaneIntersection(nor,pos,gb->n,gb->p,ldir,pdir);
+            VECTOR_COPY(gbPos,gb->p);
+            PBCPOSITION(param, pos[0],pos[1],pos[2],gbPos, gbPos+1,gbPos+2);
+            type = PlanePlaneIntersection(nor,pos,gb->n,gbPos,ldir,pdir);
             if(type==LINE_INTERSECTION){
                 CoordMinus(pdir,pos,ldir); 
                 dis=Normal(ldir);

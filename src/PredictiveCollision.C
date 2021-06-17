@@ -823,6 +823,7 @@ void PredictiveCollisions(Home_t *home)
         real8   p1[3], p2[3], p3[3], p4[3];
         real8   v1[3], v2[3], v3[3], v4[3];
         real8   pos[3], oldPos1[3], oldPos2[3];
+        real8   gbPos[3];
         Tag_t   oldTag1, oldTag2;
         Node_t  *node1, *node2, *node3, *node4, *tmpNbr;
         Node_t  *mergenode1, *mergenode2, *targetNode;
@@ -1597,13 +1598,15 @@ void PredictiveCollisions(Home_t *home)
                     
                                if(param->polycrystal){
                                    if(splitOnGB>-1){
-                                       gb = home->GBKeys[splitOnGB];
-                                       PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
-                                       if(fabs(dis)>param->rTol){
+                                        gb = home->GBKeys[splitOnGB];
+                                        VECTOR_COPY(gbPos,gb->p);
+                                        PBCPOSITION(param, newPos[0], newPos[1], newPos[2], gbPos, gbPos+1, gbPos+2); 
+                                        PointPlaneDistance(newPos, gb->n, gbPos, dis, newPos);
+                                        if(fabs(dis)>param->rTol){
                                             if(splitSeg1>0) Continue(home,seg1Node1,seg1Node2,x1,y1,z1,oldPos1);
                                             if(splitSeg2>0) Continue(home,splitNode1,splitNode2,x3,y3,z3,oldPos2);
                                             continue;
-                                       }
+                                        }
                                    }
                                    
                                    canMerge = BeforeMergeNodes(home, mergenode1,mergenode2,newPos,&dis,type);
@@ -1617,16 +1620,18 @@ void PredictiveCollisions(Home_t *home)
                                    else{if(splitInGrain!=newInGrain)canMerge=false;}                            
                                    
                                    if(splitOnGB>-1){
-                                       gb = home->GBKeys[splitOnGB];
-                                       PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
-                                       if(fabs(dis)>param->rTol || 
-                                          (mergenode1->inGrain>-1 && ParallelGB(mergenode1,gb->n)) ||
-                                          (mergenode2->inGrain>-1 && ParallelGB(mergenode2,gb->n)) ){
-                                           if(splitSeg1>0) Continue(home,seg1Node1,seg1Node2,x1,y1,z1,oldPos1);
-                                           if(splitSeg2>0) Continue(home,splitNode1,splitNode2,x3,y3,z3,oldPos2);
-                                           continue;
-                                       }
-                                   }
+                                        gb = home->GBKeys[splitOnGB];
+                                        VECTOR_COPY(gbPos,gb->p);
+                                        PBCPOSITION(param, newPos[0], newPos[1], newPos[2], gbPos, gbPos+1, gbPos+2); 
+                                        PointPlaneDistance(newPos, gb->n, gbPos, dis, newPos);
+                                        if(fabs(dis)>param->rTol || 
+                                            (mergenode1->inGrain>-1 && ParallelGB(mergenode1,gb->n)) ||
+                                            (mergenode2->inGrain>-1 && ParallelGB(mergenode2,gb->n)) ){
+                                            if(splitSeg1>0) Continue(home,seg1Node1,seg1Node2,x1,y1,z1,oldPos1);
+                                            if(splitSeg2>0) Continue(home,splitNode1,splitNode2,x3,y3,z3,oldPos2);
+                                            continue;
+                                        }
+                                    }
                                    if(!canMerge){
                                         if(splitOnGB>-1){
                                             
@@ -2113,7 +2118,9 @@ void PredictiveCollisions(Home_t *home)
                         if(param->polycrystal){
                             if(splitOnGB>-1){
                                 gb = home->GBKeys[splitOnGB];
-                                PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
+                                VECTOR_COPY(gbPos,gb->p);
+                                PBCPOSITION(param, newPos[0], newPos[1], newPos[2], gbPos, gbPos+1, gbPos+2); 
+                                PointPlaneDistance(newPos, gb->n, gbPos, dis, newPos);
                                 if(fabs(dis)>2.0*param->rTol){
                                     mergenode1->flags |= NO_COLLISIONS;
                                     mergenode2->flags |= NO_COLLISIONS;
@@ -2134,7 +2141,9 @@ void PredictiveCollisions(Home_t *home)
 
                             if(splitOnGB>-1){
                                 gb = home->GBKeys[splitOnGB];
-                                PointPlaneDistance(newPos, gb->n, gb->p, dis, newPos);
+                                VECTOR_COPY(gbPos,gb->p);
+                                PBCPOSITION(param, newPos[0], newPos[1], newPos[2], gbPos, gbPos+1, gbPos+2); 
+                                PointPlaneDistance(newPos, gb->n, gbPos, dis, newPos);
                                 if(fabs(dis)>param->rTol || 
                                    (mergenode1->inGrain>-1 && ParallelGB(mergenode1,gb->n)) ||
                                    (mergenode2->inGrain>-1 && ParallelGB(mergenode2,gb->n)) ){
