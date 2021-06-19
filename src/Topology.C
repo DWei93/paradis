@@ -2670,6 +2670,8 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
     NodalDeltaPlasticStrain(home, node2, dpst2, dpsp2);
     node1->x = node1Pos[0]; node1->y = node1Pos[1]; node1->z = node1Pos[2];
     node2->x = node2Pos[0]; node2->y = node2Pos[1]; node2->z = node2Pos[2];
+
+    
 /*
  *  Check if we are permitted to delete node1.  In order
  *  for a node to be deletable, it must satisfy the following:
@@ -2788,6 +2790,18 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 		}
 	}
 
+
+    real8 GC1[3][3], GC2[3][3];
+    bool zeroLenJunc1, zeroLenJunc2;
+    int NM1, NM2;
+	GetGlideConstraintList(home, targetNode, &NM1, GC1, zeroLenJunc1);
+	GetGlideConstraintList(home, deadNode, &NM2, GC2, zeroLenJunc2);
+    if(NM2>NM1){
+        targetNode->oldx = deadNode->oldx;
+        targetNode->oldy = deadNode->oldy;
+        targetNode->oldz = deadNode->oldz;
+    }
+
     if(inGrain == -1 && onGB == -1){
         if(IsOnGB(deadNode)){
             inGrain = deadNode->inGrain;
@@ -2840,7 +2854,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	              -1, -1,                 /* 3rd node tag unneeded */
 	              0.0, 0.0, 0.0,          /* burgers vector unneeded */
 	              targetNode->x, targetNode->y, targetNode->z,
-	              0.0, 0.0, 0.0);         /* plane normal not needed */
+	              targetNode->oldx, targetNode->oldy, targetNode->oldz);         /* plane normal not needed */
             AssignGrain(home, targetNode, targetNode->inGrain, targetNode->onGB);
 	    }
 	}else{
@@ -2912,6 +2926,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	    PrintNode(deadNode);
 	    Fatal("arm number of dead node > 0");
 	}
+
 
 	RemoveNode(home, deadNode, globalOp);
 
