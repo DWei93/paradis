@@ -2026,7 +2026,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
     VECTOR_COPY(plane.normal, gb->n);
     VECTOR_COPY(plane.point, gb->p);
 
-    PBCPOSITION(param, pos[0],pos[1],pos[2],&(plane.point[0]), &(plane.point[1]), &(plane.point[2]));
+    PBCPOSITION(param, pos[0],pos[1],pos[2], &(plane.point[0]), &(plane.point[1]), &(plane.point[2]));
     if(inGrain > -1){
         if(inGrain >= home->nGrains)Fatal("in %s at %d", __FILE__, __LINE__);
         grain = home->grainKeys[inGrain];
@@ -2063,7 +2063,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
                            plane.normal[2]);
 	ApplyConstraintsToVelocity(NM, GC, vec);
 
-    if(Normal(vec) < 1.0E-6 && node->constraint != 7){
+    if(Normal(vec) < 1.0E-6){
         while(NM >= 0){
             NM--;
             VECTOR_COPY(vec, vec1);
@@ -2601,11 +2601,15 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
 {
     bool    canMerge = 1;
     real8   vec1[3]={0.0,0.0,0.0}, vec2[3]={0.0,0.0,0.0};
-    real8   vec3[3]={0.0,0.0,0.0}, bakPos[3]={0.0,0.0,0.0};
+    real8   vec3[3]={0.0,0.0,0.0}, bakPos[3]={0.0,0.0,0.0}, vec4[3];
 
     *dis = 0.0;
     type = NO_INTERSECTION;
     
+    int inGrain, onGB, i;
+    GB_t *gb;
+    Grain_t *grain;
+    real8 gbPos[3], err=2E-4;
     
     real8 lamp = MAX(LengthAmplification(home, node1->inGrain, node1->onGB), LengthAmplification(home, node2->inGrain, node2->onGB));
 
@@ -2622,15 +2626,90 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
             if(POINT_INTERSECTION != PointPointIntersection(pos, vec2, vec3, dis)){
                 VECTOR_COPY(pos, vec2);
             }
+            if(node1->inGrain == node2->inGrain && node1->inGrain>-1){
+                NodeLocation(home, pos[0], pos[1], pos[2], inGrain, onGB);
+                if(inGrain != node1->inGrain){
+                    PrintNode(home, node1);
+                    PrintNode(home, node2);
+                    Fatal("%s: adjust failed, type=%d",__func__,type);
+                }
+            }
             break;
         case LINE_INTERSECTION:
             if(POINT_INTERSECTION != PointLineIntersection(pos, vec1, vec2, vec3, dis)){
                 VECTOR_COPY(pos, vec3);
             }
+            if(node1->inGrain == node2->inGrain && node1->inGrain>-1){
+                NodeLocation(home, pos[0], pos[1], pos[2], inGrain, onGB);
+                if(inGrain != node1->inGrain){
+                    ClosedGB(home,pos,&gb);
+                    grain = home->grainKeys[node1->inGrain];
+                    VECTOR_COPY(gbPos, gb->p);
+                    PBCPOSITION(home->param, pos[0], pos[1], pos[2], gbPos, gbPos+1, gbPos+2);
+                    if((i = GetGBIndexOfGrain(grain, gb->GBID)) < 0)Fatal("%s: i=%d",__func__,i);
+                    
+                    gbPos[0] -= gb->n[0]*grain->sign[i]*err;
+                    gbPos[1] -= gb->n[1]*grain->sign[i]*err;
+                    gbPos[2] -= gb->n[2]*grain->sign[i]*err;
+
+                    type = LinePlaneIntersection(vec1, vec2, gb->n, gbPos, vec3, pos, 0.05);
+
+                    NodeLocation(home, pos[0], pos[1], pos[2], inGrain, onGB);
+                    if(node1->inGrain != inGrain){
+                        FormatVector(vec1, "vec1");
+                        FormatVector(vec2, "vec2");
+                        FormatVector(gbPos, "gbPos");
+                        FormatVector(pos, "pos");
+                        PrintNode(home, node1);
+                        PrintNode(home, node2);
+                        Fatal("%s: adjust failed, type=%d",__func__,type);
+                    }
+                }
+            }
             break;
         case PLANE_INTERSECTION:
             if(POINT_INTERSECTION != PointPlaneIntersection(pos, vec1, vec2, vec3, dis)){
                 VECTOR_COPY(pos, vec3);
+            }
+            if(node1->inGrain == node2->inGrain && node1->inGrain>-1){
+                NodeLocation(home, pos[0], pos[1], pos[2], inGrain, onGB);
+                if(inGrain != node1->inGrain){
+                    ClosedGB(home,pos,&gb);
+                    grain = home->grainKeys[node1->inGrain];
+                    VECTOR_COPY(gbPos, gb->p);
+                    PBCPOSITION(home->param, pos[0], pos[1], pos[2], gbPos, gbPos+1, gbPos+2);
+                    if((i = GetGBIndexOfGrain(grain, gb->GBID)) < 0)Fatal("%s: i=%d",__func__,i);
+                    
+                    gbPos[0] -= gb->n[0]*grain->sign[i]*err;
+                    gbPos[1] -= gb->n[1]*grain->sign[i]*err;
+                    gbPos[2] -= gb->n[2]*grain->sign[i]*err;
+
+                    type = PlanePlaneIntersection(vec1, vec2, gb->n, gbPos, vec3, vec4);
+
+                    if(type==LINE_INTERSECTION){
+                        type = PointLineIntersection(pos, vec3, vec4, pos, dis);
+                        NodeLocation(home, pos[0], pos[1], pos[2], inGrain, onGB);
+                        if(node1->inGrain != inGrain){
+                            FormatVector(vec1, "vec1");
+                            FormatVector(vec2, "vec2");
+                            FormatVector(vec3, "vec3");
+                            FormatVector(vec4, "vec4");
+                            FormatVector(gbPos, "gbPos");
+                            FormatVector(pos, "pos");
+                            PrintNode(home, node1);
+                            PrintNode(home, node2);
+                            Fatal("%s: adjust failed, type=%d, dis=%f",__func__,type, (*dis));
+                        }
+                    }else{
+                        FormatVector(vec1, "vec1");
+                        FormatVector(vec2, "vec2");
+                        FormatVector(gbPos, "gbPos");
+                        FormatVector(pos, "pos");
+                        PrintNode(home, node1);
+                        PrintNode(home, node2);
+                        Fatal("%s: adjust failed, type=%d",__func__,type);
+                    }
+                }
             }
             break;
         default:

@@ -4508,8 +4508,16 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 
                     testVal = fabs(temp) / gpNormal;
 
-                    if (testVal > 1E-2) {
+                    if (testVal > 5E-2) {
                         numConstraints = 3;
+                    }else{
+                        if(Normal(glideConstraints[0]) < 1E-1){
+                            VECTOR_COPY(glideConstraints[0], glidePlane);
+                        }else{
+                            if(AlignedDirection(glideConstraints[0],glidePlane)){
+                                VECTOR_COPY(glideConstraints[1], glidePlane);
+                            }
+                        }
                     }
                     break;
 

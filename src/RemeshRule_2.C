@@ -21,6 +21,8 @@
 
 static int dbgDom;
 
+#define DEBUG_CROSS_SLIP 0
+
 /*-------------------------------------------------------------------------
  *
  *      Function:    MeshCoarsen
@@ -60,6 +62,13 @@ static void MeshCoarsen(Home_t *home)
         int     planeType, nbrInGrain;
         int     inGrain, onGB;
         int     armInGrain1, armInGrain2, armOnGB1, armOnGB2;
+#ifdef DEBUG_CROSS_SLIP
+        bool dcs = false;
+        real8 GC1[3][3], GC2[3][3];
+        bool zeroLenJunc1, zeroLenJunc2;
+        int NM1, NM2;
+        real8 bakPos1[3], bakPos2[3];
+#endif
 
         thisDomain = home->myDomain;
         param      = home->param;
@@ -477,6 +486,9 @@ static void MeshCoarsen(Home_t *home)
                 oldTag2 = node->myTag;
                 oldTag3 = nbr2->myTag;
                                   
+#ifdef  DEBUG_CROSS_SLIP 
+ 	            GetGlideConstraintList(home, node, &NM1, GC1, zeroLenJunc1);
+#endif
                 if(IsOnGB(node)){
                     if(!violateGlidePlanesOK){
                         if(armOnGB1 != armOnGB2)continue;
@@ -505,7 +517,11 @@ static void MeshCoarsen(Home_t *home)
                     newPos[0] = nbr1->x;
                     newPos[1] = nbr1->y;
                     newPos[2] = nbr1->z;
-
+#ifdef  DEBUG_CROSS_SLIP 
+ 	                GetGlideConstraintList(home, nbr1, &NM2, GC2, zeroLenJunc2);
+                    if(NM2==2 || NM1==2)dcs=true; else dcs=false;
+                    VectorCopy(bakPos1, newPos);
+#endif
                     mergeDone = 1;
                     if(violateGlidePlanesOK == 0){
                         if(BeforeMergeNodes(home, node, nbr1, newPos, &dis, type)){
@@ -549,6 +565,9 @@ static void MeshCoarsen(Home_t *home)
 
                     FoldBox(home->param, newPos, newPos+1, newPos+2);
                     if(mergeDone == 1){
+#ifdef  DEBUG_CROSS_SLIP 
+                        VECTOR_COPY(bakPos2, newPos);
+#endif
                         MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
                               &mergedNode, &mergeStatus, globalOp);
                         mergeDone = mergeStatus & MERGE_SUCCESS;
@@ -580,6 +599,11 @@ static void MeshCoarsen(Home_t *home)
                     if(smallSegOnTB)printf("%d %d in %s at %d: mergeDone=%d\n",
                         home->myDomain, home->cycle, __FILE__, __LINE__,
                         mergeDone);
+#endif
+#ifdef  DEBUG_CROSS_SLIP 
+ 	                GetGlideConstraintList(home, nbr2, &NM2, GC2, zeroLenJunc2);
+                    if(NM2==2 || NM1==2)dcs=true; else dcs=false;
+                    VectorCopy(bakPos1, newPos);
 #endif
 
                         if(violateGlidePlanesOK == 0){
@@ -615,6 +639,9 @@ static void MeshCoarsen(Home_t *home)
                                 continue;
                             }
                         }
+#ifdef  DEBUG_CROSS_SLIP 
+                        VECTOR_COPY(bakPos2, newPos);
+#endif
                         MergeNode(home, OPCLASS_REMESH, node, nbr2, newPos,
                                   &mergedNode, &mergeStatus, globalOp);
                         mergeDone = mergeStatus & MERGE_SUCCESS;
@@ -737,6 +764,12 @@ static void MeshCoarsen(Home_t *home)
                 NodeLocation(home, mergedNode->x, mergedNode->y, mergedNode->z, inGrain, onGB);
                 if(inGrain != mergedNode->inGrain && !IsOnGB(mergedNode)){
                     PrintNode(home, mergedNode);
+#ifdef  DEBUG_CROSS_SLIP 
+                    if(dcs){
+                        printf("%d: type=%d, {%g,%g,%g}->{%g,%g,%g}->{%g,%g,%g}\n", home->myDomain, type,
+                            bakPos1[0],bakPos1[1],bakPos1[2], bakPos2[0],bakPos2[1], bakPos2[2], mergedNode->x, mergedNode->y,mergedNode->z);
+                    }
+#endif
                     printf("WARNING in %s at %d: %d %f %f\n",__FILE__,__LINE__, violateGlidePlanesOK, r1, r2);
                 }else if(onGB != mergedNode->onGB && IsOnGB(mergedNode)){
                     if(onGB>-1)Fatal("%s %d: %d!=%d",__FILE__,__LINE__,onGB,mergedNode->onGB);

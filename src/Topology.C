@@ -2790,7 +2790,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 		}
 	}
 
-
+#if 0
     real8 GC1[3][3], GC2[3][3];
     bool zeroLenJunc1, zeroLenJunc2;
     int NM1, NM2;
@@ -2801,7 +2801,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
         targetNode->oldy = deadNode->oldy;
         targetNode->oldz = deadNode->oldz;
     }
-
+#endif
     if(inGrain == -1 && onGB == -1){
         if(IsOnGB(deadNode)){
             inGrain = deadNode->inGrain;

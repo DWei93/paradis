@@ -3674,7 +3674,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
                 Fatal("%d %d: somthing wrong",home->myDomain, home->cycle);
             }
             VECTOR_COPY(gbPos,gb->p);
-            PBCPOSITION(param, pos[0],pos[1],pos[2],gbPos, gbPos+1,gbPos+2);
+            PBCPOSITION(param, pos[0],pos[1],pos[2], gbPos,gbPos+1,gbPos+2);
             type = PlanePlaneIntersection(nor,pos,gb->n,gbPos,ldir,pdir);
             if(type==LINE_INTERSECTION){
                 CoordMinus(pdir,pos,ldir); 
