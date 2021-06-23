@@ -142,7 +142,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         real8   al, am, an, amag, sigijk, pstnijk, dpstnijk, ptstnijk, bl, bm, bn;
         real8   vec[3], f[3], f1[3], f2[3], length, fMag,ifMag,n[3],val, nodePos[3], nbrPos[3];
         int     armID21;
-        real8   tau_g, tau_gg, tau_ext;
+        real8   tau_g, tau_gg, tau_ext, bMag;
 
         int     index, constraint, nodeOnGB;
         bool    imageSeg=false;
@@ -309,7 +309,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
             fprintf(fp, "AUXDATA plastic_strain = \"%10.7f\"\n", val);
             fprintf(fp, "AUXDATA fileName = \"%s\"\n", baseFileName);
 #else
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_sf, tau_ext,ifMag, velocity\n");
+		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_sf, tau_ext,ifMag, velocity, burgMag\n");
             val = param->timeNow*1.0E9;
 		    fprintf(fp, "zone T = \"%d\", SOLUTIONTIME = %d,  F=POINT\n", home->cycle, home->cycle); 
             val = fabs((param->loadType!=4)?param->eRate*param->timeNow*1.0E2:param->netCyclicStrain*1.0E2);
@@ -515,6 +515,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 burg[0] = node->burgX[j];
                 burg[1] = node->burgY[j];
                 burg[2] = node->burgZ[j];
+                bMag=Normal(burg);
                 nodePos[0] = x; nodePos[1]=y; nodePos[2]=z;
                 nbrPos[0] = x2; nbrPos[1]=y2; nbrPos[2]=z2;
                 tau_ext = ExtShearStress(param, burg, nodePos, nbrPos, n)/1E6;
@@ -524,11 +525,20 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 fMag=Normal(f);
 #endif
 
+                burgMag=Normal(burg);
                 if(param->polycrystal==0){
                     index = normalID+1;
                 }else{
                     if(AlignedVector(param->TBNormal, n)){
-                        if(burgID>6 && burgID<22)index=4; else index=3;
+                        if(burgID <6){
+                            index = 3;
+                        }else if (burgID < 22 && fabs(burgMag-SHOCKLEY_BURG_MAG_FCC)<0.05){
+                            index = 4;
+                        }else if (param->multilayer){
+                            index = 5;
+                        }else {
+                            index = 4;
+                        }
                     }else{
                         vec[0]=node->burgX[j]; vec[1]=node->burgY[j]; vec[2]=node->burgZ[j];
                         if(PerpendicularDirection(param->TBNormal, vec)) index =2;
@@ -536,14 +546,14 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                     }
                 }
                 if((GetPlaneType_FCC(home, node, nbrNode) & GLIDE_PLANE) == 0){
-                    burgMag=Normal(burg);
                     if(burgID < 6) index=5;
                     else if (fabs(1.41421356-burgMag)<0.05)index=6;
                     else if(fabs(0.816497-burgMag)<0.05) index = 7; //stair rod
                     else if(fabs(1.63299-burgMag)<0.05) index = 8; //stair rod
                     else index = 9;
-
+                    if(param->multilayer)index++; 
                 }
+
 /*
  *              This part is for output of junction investigation
  */
@@ -566,17 +576,17 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,constraint,
                             index, node->myTag.domainID, node->myTag.index, f[0], f[1], f[2], fMag, tau_g, ifMag);
 #else
-                    fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g\n", 
+                    fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g %g\n", 
                             x,y,z,prx/2,pry/2,prz/2,
                             narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                            index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag);
+                            index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag, bMag);
                     if(imageSeg){
                         if(fabs(fabs(z)-param->zBoundMax)<1){
                             shift = z<0?param->Lz:-param->Lz;
-                            fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g\n", 
+                            fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g %g\n", 
                                 x,y,z+shift,prx/2,pry/2,prz/2,
                                 narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                                index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag);
+                                index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag, bMag);
                         }
                     }
 #endif
