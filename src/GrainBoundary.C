@@ -2404,14 +2404,15 @@ void GBCrossSlip(Home_t *home)
                 
 /*
  *              Decomposition of twinning dislocation is allowed. 2021/6/10
+ *              but kink TD is not allowd 2021/6/23
  */
-#if 0
+#if 1
                 burg[0] = node->burgX[j];
                 burg[1] = node->burgY[j];
                 burg[2] = node->burgZ[j];
 
                 norm = Normal(burg);
-                if((norm <= SHOCKLEY_BURG_MAG_FCC + 1.0e-2) &&
+                if((norm >= 2.01) &&
                     fabs(DotProduct(burg, home->GBKeys[node->onGB]->n)/norm) <= 1.0e-3){
                     break;
                 }
@@ -2480,8 +2481,10 @@ void GBCrossSlip(Home_t *home)
             if(j >= gbd->numKeyLines)continue;
             VECTOR_COPY(interLine.direction,gbd->keyLineList[j]);
 
+            nbr1Pos[0] = nbr1->x;   nbr1Pos[1] = nbr1->y;   nbr1Pos[2] = nbr1->z;
         }else if(sideCrossSlipNode > 0){
 
+        if(!(firstCrossSlipNode || sideCrossSlipNode))continue;
             gbNbrPos[0] = gbNbr->x;     gbNbrPos[1] = gbNbr->y;     gbNbrPos[2] = gbNbr->z;
             PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2],
                         gbNbrPos, gbNbrPos+1, gbNbrPos+2);

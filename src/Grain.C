@@ -3866,6 +3866,7 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
 
         nBurgSets++;
     }
+    if(nBurgSets==0)return 0;
 
 #if DEBUG_DisassembleDislocation
     printf("SetLists: \n");
@@ -3888,9 +3889,11 @@ int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
         if(k>maxDiss){nBurgSets=i+1; break;}
     }
 
+    if(setLists.size()<1)return 0;
     for(iter = setLists.end(); iter != setLists.begin()+nBurgSets-1; iter--){
         setLists.erase(iter);
     }
+    if(setLists.size()<1)return 0;
 
     if(setLists.size()>1){
         for(i=1;i<setLists.size();){

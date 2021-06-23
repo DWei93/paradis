@@ -1824,7 +1824,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
             if(param->rmax>10*param->rTol){
                 param->rmax = 10.0*param->rTol;
             }
-            if(home->myDomain == 0)printf("Forward Euler integrator: rmax = %g, minDT=%g\n", param->rmax,param->minDT);
+
+            if(home->myDomain == 0)printf("Forward Euler integrator: rmax = %g, minDT=%g rTol/vshr=%g\n", param->rmax,param->minDT,param->rTol/param->vshr);
         }
 
 	    if(home->myDomain == 0)printf("shear Wave velocity: %6.2f m/s.\n",
