@@ -1186,7 +1186,7 @@ void HandleGrainBoundary(Home_t *home)
 
                 VECTOR_COPY(gbPos, gb->p);
                 PBCPOSITION(param, oldPos[0], oldPos[1], oldPos[2], gbPos, gbPos+1, gbPos+2);
-                if(LinePlaneIntersection(oldPos, vec1, gb->n, gbPos, vec, newPos)
+                if(LinePlaneIntersection(vec1, oldPos, gb->n, gbPos, vec, newPos)
                    == POINT_INTERSECTION){
 #ifdef DEBUG
                     printf("%d %d %d: at %d {%f,%f,%f}->{%f,%f,%f} physic node pull to GB\n", home->cycle, home->myDomain, node->myTag.index, __LINE__,
