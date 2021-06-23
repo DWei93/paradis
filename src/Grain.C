@@ -2631,7 +2631,8 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
                 if(inGrain != node1->inGrain){
                     PrintNode(home, node1);
                     PrintNode(home, node2);
-                    Fatal("%s: adjust failed, type=%d",__func__,type);
+                    FormatVector(pos,"pos");
+                    Fatal("%s at %d: adjust failed, type=%d, inGrain=%d onGB=%d",__func__,__LINE__,type,inGrain,onGB);
                 }
             }
             break;
@@ -2662,7 +2663,7 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
                         FormatVector(pos, "pos");
                         PrintNode(home, node1);
                         PrintNode(home, node2);
-                        Fatal("%s: adjust failed, type=%d",__func__,type);
+                        Fatal("%s at %d: adjust failed, type=%d",__func__,__LINE__,type);
                     }
                 }
             }
@@ -2707,7 +2708,7 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
                         FormatVector(pos, "pos");
                         PrintNode(home, node1);
                         PrintNode(home, node2);
-                        Fatal("%s: adjust failed, type=%d",__func__,type);
+                        Fatal("%s at %d: adjust failed, type=%d",__func__,__LINE__,type);
                     }
                 }
             }
