@@ -80,10 +80,8 @@ point=23
 
 if [[ $# -ge 4 ]]; then 
     nGrains=$4; 
-
     tdDensity=2.0E6
-    tdDensity=`echo "scale=5;${tdDensity}" | bc -l`E6
-    tdLength=`echo "scale=3;$thick" | bc -l`
+    tdLength=3
 else
     tdDensity=-1
     tdLength=`echo "scale=3;$thick" | bc -l`
@@ -192,7 +190,7 @@ case $srctype in
 esac
 
 percentage=`cat $logFile | grep "%" | cut -d "%" -f 1`
-finish=`echo "${percentage}>15.0" | bc`
+finish=`echo "${percentage}>5.0" | bc`
 if [[ ${finish} -eq 0 ]] ; 
     then ./gen $point $thickn $nGrains; 
 else

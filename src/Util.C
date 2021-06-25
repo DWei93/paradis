@@ -1747,6 +1747,19 @@ void PrintNode(Home_t *home, Node_t *node)
             }
         }
 
+        int numGlideConstraints; bool  zeroLenJunc;
+        real8 glideConstraints[3][3];
+        GetGlideConstraintList(home, node, 
+                           &numGlideConstraints, glideConstraints, zeroLenJunc,
+                           1, 0.0, 0.0, 0.0, -1);
+        if(numGlideConstraints== 1){
+            printf("plane constraint: {%g,%g,%g}\n", glideConstraints[0][0],glideConstraints[0][1],glideConstraints[0][2]);
+        }else if(numGlideConstraints== 2){
+            printf("line constraint: {%g,%g,%g}\n", glideConstraints[2][0],glideConstraints[2][1],glideConstraints[2][2]);
+        }else{
+            printf("completely constraint\n");
+            FormatMatrix(glideConstraints, "glide constraints"); 
+        }
         return;
 }
 
@@ -4420,9 +4433,7 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 	            nbr = GetNeighborNode(home, node, i);
                 if(nbr != (Node_t *)NULL){
                     planeType = GetPlaneType_FCC(home, node, nbr);
-                    if((planeType & JUNCTION_PLANE1) > 0 ||
-                       (planeType & JUNCTION_PLANE2) > 0 ||
-                       (planeType & UNKOWN_PLANE) > 0){
+                    if((planeType &  GLIDE_PLANE) == 0 ){
                         lDir[0] = nbr->x - node->x;
                         lDir[1] = nbr->y - node->y;
                         lDir[2] = nbr->z - node->z;
@@ -4447,13 +4458,14 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 	        }
 
             gpNormal = Normal(glidePlane);
-            if(junctionConstraint == 1){
+            NormalizeVec(glidePlane);
+
+            if(junctionConstraint==1){
                 switch (numConstraints){
                     case 1:
                         VECTOR_COPY(glideConstraints[2], lDir);
-                        NormalizeVec(glidePlane);
-                        VECTOR_COPY(glideConstraints[1], glidePlane);
-                        if(fabs(DotProduct(lDir, glideConstraints[0])) < 1E-3){
+
+                        if(fabs(DotProduct(lDir, glideConstraints[0])) < 5E-2){
                             numConstraints = 2;
                         }else{
                             numConstraints = 3;
@@ -4461,68 +4473,80 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 
                         break;
                     case 2:
-                        if(fabs(DotProduct(glideConstraints[2], lDir) < 0.999)){
+                        if(fabs(DotProduct(glideConstraints[2], lDir) < 0.95)){
                             numConstraints++;
                         }
                         break;
                     case 3:
                         break;
                     case 0:
-                        numConstraints = 2;
-                        VECTOR_COPY(glideConstraints[0], glidePlane);
                         VECTOR_COPY(glideConstraints[2], lDir);
+                        numConstraints = 2;
                         break;        
                 }
                 junctionConstraint = 0;
-                continue;
-            }
+            }else{
+                switch(numConstraints) {
+                    case 0:   // the first glide plane
+                        glideConstraints[0][0] = glidePlane[0] / gpNormal;
+                        glideConstraints[0][1] = glidePlane[1] / gpNormal;
+                        glideConstraints[0][2] = glidePlane[2] / gpNormal;
+                        numConstraints = 1;
+                        break;
+                
+                    case 1:
+                        NormalizeVec(glidePlane);
+                
+                        cross(glideConstraints[0], glidePlane, glideConstraints[2]);
+                
+                        if(Normal(glideConstraints[2]) > 1E-2){
+                            NormalizeVec(glideConstraints[2]);
+                            VECTOR_COPY(glideConstraints[1],glidePlane); 
+                            numConstraints = 2;
+                        }else{
+                            VECTOR_ZERO(glideConstraints[2]);
+                        }
+                        break;
+                
+                    case 2:
+                
+                        temp = glideConstraints[2][0] * glidePlane[0] +
+                               glideConstraints[2][1] * glidePlane[1] +
+                               glideConstraints[2][2] * glidePlane[2];
+                
+                        testVal = fabs(temp) / gpNormal;
+                
+                        if (testVal > 5E-2) {
+                            numConstraints = 3;
+                        }
 
-
-            switch(numConstraints) {
-                case 0:   // the first glide plane
-                    glideConstraints[0][0] = glidePlane[0] / gpNormal;
-                    glideConstraints[0][1] = glidePlane[1] / gpNormal;
-                    glideConstraints[0][2] = glidePlane[2] / gpNormal;
-                    numConstraints = 1;
-                    break;
-
-                case 1:
-                    NormalizeVec(glidePlane);
-
-                    cross(glideConstraints[0], glidePlane, glideConstraints[2]);
-
-                    if(Normal(glideConstraints[2]) > 1E-4){
-                        NormalizeVec(glideConstraints[2]);
-                        VECTOR_COPY(glideConstraints[1],glidePlane); 
-                        numConstraints = 2;
-                    }else{
-                        VECTOR_ZERO(glideConstraints[2]);
-                    }
-                    break;
-
-                case 2:
-
-                    temp = glideConstraints[2][0] * glidePlane[0] +
-                           glideConstraints[2][1] * glidePlane[1] +
-                           glideConstraints[2][2] * glidePlane[2];
-
-                    testVal = fabs(temp) / gpNormal;
-
-                    if (testVal > 5E-2) {
-                        numConstraints = 3;
-                    }else{
                         if(Normal(glideConstraints[0]) < 1E-1){
                             VECTOR_COPY(glideConstraints[0], glidePlane);
                         }else{
-                            if(AlignedDirection(glideConstraints[0],glidePlane)){
+                            if(!AlignedDirection(glideConstraints[0],glidePlane)){
                                 VECTOR_COPY(glideConstraints[1], glidePlane);
+                                if(numConstraints!=3){
+                                    cross(glideConstraints[0],glideConstraints[1],glideConstraints[2]);
+                                    NormalizeVec(glideConstraints[2]);
+                                }
                             }
                         }
-                    }
-                    break;
-
-            }  /* end switch(numConstraints) */
-
+                        break;
+                    case 3:
+                        if(Normal(glideConstraints[0]) < 1E-1){
+                            VECTOR_COPY(glideConstraints[0], glidePlane);
+                        }else{
+                            if(!AlignedDirection(glideConstraints[0],glidePlane)){
+                                if(Normal(glideConstraints[1])<1.0E-1){
+                                    VECTOR_COPY(glideConstraints[1], glidePlane);
+                                    cross(glideConstraints[0],glideConstraints[1],glideConstraints[2]);
+                                    NormalizeVec(glideConstraints[2]);
+                                }
+                            }
+                        }
+                        break;
+                }  /* end switch(numConstraints) */
+            }
         }
 
         if(node->constraint == 7)numConstraints = 3;
@@ -4555,11 +4579,33 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
  *                                      applied.
  *
  *------------------------------------------------------------------------*/
-void ApplyConstraintsToVelocity(int numGlideConstraints,
+void ApplyConstraintsToVelocity(int &numGlideConstraints,
                                 real8 (*glideConstraints)[3],
                                 real8 velocity[3])
 {
         real8 S1;
+        
+        if(numGlideConstraints==2){
+            if(Normal(glideConstraints[2])<1.0E-1){
+                if(Normal(glideConstraints[1])<1.0E-1){
+                    numGlideConstraints = ((Normal(glideConstraints[0])>1.0E-1))?1:0;
+                }else{
+                    if(Normal(glideConstraints[0])>1.0E-1){
+                        cross(glideConstraints[0],glideConstraints[1], glideConstraints[2]);
+                        if(Normal(glideConstraints[2])>5.0E-2){
+                            NormalizeVec(glideConstraints[2]);
+                        }else{
+                            numGlideConstraints = 1;
+                        }
+                    }else{
+                        VECTOR_COPY(glideConstraints[0],glideConstraints[1]);
+                        numGlideConstraints = 1;
+                    }
+                }
+            }
+        }else if(numGlideConstraints==1){
+            if(Normal(glideConstraints[0])<1.0E-1)numGlideConstraints=0;
+        }
 
 /*
  *      Apply glide constraints to node's velocity.  Note: assumes

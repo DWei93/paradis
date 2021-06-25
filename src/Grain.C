@@ -2629,10 +2629,17 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
             if(node1->inGrain == node2->inGrain && node1->inGrain>-1){
                 NodeLocation(home, pos[0], pos[1], pos[2], inGrain, onGB);
                 if(inGrain != node1->inGrain){
+#if 0
                     PrintNode(home, node1);
                     PrintNode(home, node2);
                     FormatVector(pos,"pos");
-                    Fatal("%s at %d: adjust failed, type=%d, inGrain=%d onGB=%d",__func__,__LINE__,type,inGrain,onGB);
+                    FormatVector(bakPos,"bakPos");
+                    printf("%s at %d: adjust failed, type=%d, inGrain=%d onGB=%d\n",__func__,__LINE__,type,inGrain,onGB);
+#else
+                    PrintTag(home, node1); PrintTag(home, node2); printf("\n");
+                    printf("Task %d, %s at %d: adjust failed, type=%d, new pos in inGrain=%d onGB=%d\n",home->myDomain,__func__,__LINE__,type,inGrain,onGB);
+#endif
+                    return 0;
                 }
             }
             break;
