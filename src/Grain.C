@@ -2473,7 +2473,7 @@ bool IntersectionOfRayBox(Param_t *param, real8 *dir, real8 *p, real8 *interPos,
 int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
                              real8 *vec1, real8 *vec2)
 {
-    int     type=NO_INTERSECTION, armID12, armID21;
+    int     type=NO_INTERSECTION;
     int     numGlideConstraintsNode1, numGlideConstraintsNode2;
     real8   glideConstraintsNode1[3][3], glideConstraintsNode2[3][3]; 
     bool    zeroLenJunc1, zeroLenJunc2;
@@ -2492,15 +2492,17 @@ int NodesIntersection(Home_t *home, Node_t *node1, Node_t *node2,
 
     PBCPOSITION(home->param, p1[0], p1[1], p1[2], p2, p2+1, p2+2);
 
+#if 0
+    int armID12, armID21;
     Connected(node1, node2, &armID12);
     Connected(node2, node1, &armID21);
-
+#endif
     GetGlideConstraintList(home, node1, 
                        &numGlideConstraintsNode1, glideConstraintsNode1, zeroLenJunc1,
-                       1, 0.0, 0.0, 0.0, armID12);
+                       1, 0.0, 0.0, 0.0, -1);
     GetGlideConstraintList(home, node2, 
                        &numGlideConstraintsNode2, glideConstraintsNode2, zeroLenJunc2,
-                       1, 0.0, 0.0, 0.0, armID21);
+                       1, 0.0, 0.0, 0.0, -1);
     
     switch (numGlideConstraintsNode1){
         case 1:

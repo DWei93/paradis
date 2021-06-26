@@ -1658,6 +1658,7 @@ void PrintNode(Home_t *home, Node_t *node)
         int     i;
         Node_t  *nbr;
         Param_t *param = home->param;
+        real8   vec[3], length;
 
         if (node == (Node_t *)NULL) {
 	        printf("node is NULL\n");
@@ -1716,16 +1717,30 @@ void PrintNode(Home_t *home, Node_t *node)
  *      Print the burger's vector for each arm of the node
  */
         for (i = 0; i < node->numNbrs; i++) {
-            printf("  node(%d,%d) arm[%d]-> (%d %d) b = {%16.10f,%16.10f,%16.10f} -- ",
+            printf("  node(%d,%d) arm[%d]-> (%d %d) b = {%16.10f,%16.10f,%16.10f}\n",
                    node->myTag.domainID, node->myTag.index, i,       
                    node->nbrTag[i].domainID, node->nbrTag[i].index,
                    node->burgX[i], node->burgY[i], node->burgZ[i]);
-            nbr = GetNeighborNode(home, node, i);
+        }
 
+        for(i=0;i<node->numNbrs;i++){
+
+            nbr = GetNeighborNode(home, node, i);
             if(nbr == (Node_t *)NULL){
-                printf("null nbr[%d,%d]\n",node->nbrTag[i].domainID,node->nbrTag[i].index);
+                printf("  node(%d,%d) arm[%d]-> (%d %d) null nbr\n",
+                        node->myTag.domainID, node->myTag.index, i,
+                        node->nbrTag[i].domainID,node->nbrTag[i].index);
             }else{
-                printf("%d -- length=%f\n", GetBurgID_FCC(home, node, nbr), NodeDistance(home, node, nbr));
+                VectorCopy(vec,nbr->x-node->x,nbr->y-node->y,nbr->z-node->z);
+                ZImage(param,vec,vec+1,vec+2);
+                length = Normal(vec);
+                NormalizeVec(vec);
+                printf("  node(%d,%d) arm[%d]-> (%d %d) ",
+                        node->myTag.domainID, node->myTag.index, i,
+                        node->nbrTag[i].domainID,node->nbrTag[i].index);
+                printf("burgID=%d, planeID=%d -- length=%f, ldir={%.10f,%.10f,%.10f}\n", 
+                        GetBurgID_FCC(home, node, nbr), GetPlaneID_FCC(home,node,nbr), 
+                        length, vec[0],vec[1],vec[2]);
             }
         }
 
@@ -1733,18 +1748,10 @@ void PrintNode(Home_t *home, Node_t *node)
  *      Print the glide plane normal for each arm of the node
  */
         for (i = 0; i < node->numNbrs; i++) {
-            printf("  node(%d,%d) arm[%d]-> (%d %d) n = {%16.10f,%16.10f,%16.10f} -- ",
+            printf("  node(%d,%d) arm[%d]-> (%d %d) n = {%16.10f,%16.10f,%16.10f}\n",
                    node->myTag.domainID,node->myTag.index, i,       
                    node->nbrTag[i].domainID,node->nbrTag[i].index,
                    node->nx[i],node->ny[i],node->nz[i]);
-            
-            nbr = GetNeighborNode(home, node, i);
-
-            if(nbr == (Node_t *)NULL){
-                printf("null nbr[%d,%d]\n",node->nbrTag[i].domainID,node->nbrTag[i].index);
-            }else{
-                printf("%d\n", GetPlaneID_FCC(home, node, nbr));
-            }
         }
 
         int numGlideConstraints; bool  zeroLenJunc;
@@ -4457,7 +4464,6 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 		        }
 	        }
 
-            gpNormal = Normal(glidePlane);
             NormalizeVec(glidePlane);
 
             if(junctionConstraint==1){
@@ -4488,9 +4494,9 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
             }else{
                 switch(numConstraints) {
                     case 0:   // the first glide plane
-                        glideConstraints[0][0] = glidePlane[0] / gpNormal;
-                        glideConstraints[0][1] = glidePlane[1] / gpNormal;
-                        glideConstraints[0][2] = glidePlane[2] / gpNormal;
+                        glideConstraints[0][0] = glidePlane[0];
+                        glideConstraints[0][1] = glidePlane[1];
+                        glideConstraints[0][2] = glidePlane[2];
                         numConstraints = 1;
                         break;
                 
@@ -4514,9 +4520,9 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
                                glideConstraints[2][1] * glidePlane[1] +
                                glideConstraints[2][2] * glidePlane[2];
                 
-                        testVal = fabs(temp) / gpNormal;
+                        testVal = fabs(temp);
                 
-                        if (testVal > 5E-2) {
+                        if (testVal > 1.0E-1) {
                             numConstraints = 3;
                         }
 
