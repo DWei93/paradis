@@ -142,7 +142,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         real8   al, am, an, amag, sigijk, pstnijk, dpstnijk, ptstnijk, bl, bm, bn;
         real8   vec[3], f[3], f1[3], f2[3], length, fMag,ifMag,n[3],val, nodePos[3], nbrPos[3];
         int     armID21;
-        real8   tau_g, tau_gg, tau_ext, bMag;
+        real8   tau_g, tau_gg, tau_ext, bMag, velx, vely, velz;
 
         int     index, constraint, nodeOnGB;
         bool    imageSeg=false;
@@ -286,44 +286,20 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 		        fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,index, dom, id, native\n");
 		        fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
 	        }else{
-
-#if CHECK_GB_TOPO
-            static int num = 0, cycle = 0;
-            if(cycle == home->cycle) {
-                num++;
-            }else{
-                cycle = home->cycle;
-                num = 0;
-            }
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,index, dom, id, fx, fy, fz, fMag, tau_g, ifMag\n");
-		    fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
-            val = param->timeNow*1.0E9;
-            val = fabs(param->eRate*param->timeNow*1.0E2);
-            fprintf(fp, "AUXDATA strain = \"%10.7f\"\n", val);
-            val = fabs(sigijk/1.0E6);
-            fprintf(fp, "AUXDATA stress = \"%10.7f\"\n", val);
-            if(param->maxSchmid >= 0.0){
-                fprintf(fp, "AUXDATA shear_stress = \"%10.7f\"\n", val*param->maxSchmid);
-            }
-            val = fabs(pstnijk*1.0E2);
-            fprintf(fp, "AUXDATA plastic_strain = \"%10.7f\"\n", val);
-            fprintf(fp, "AUXDATA fileName = \"%s\"\n", baseFileName);
-#else
-		    fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_sf, tau_ext,ifMag, velocity, burgMag\n");
-            val = param->timeNow*1.0E9;
-		    fprintf(fp, "zone T = \"%d\", SOLUTIONTIME = %d,  F=POINT\n", home->cycle, home->cycle); 
-            val = fabs((param->loadType!=4)?param->eRate*param->timeNow*1.0E2:param->netCyclicStrain*1.0E2);
-            fprintf(fp, "AUXDATA strain = \"%.2f\"\n", val);
-            val = (param->loadType!=4)?fabs(sigijk/1.0E6):sigijk/1.0E6;
-            fprintf(fp, "AUXDATA stress = \"%.2f\"\n", val);
-            if(param->maxSchmid >= 0.0){
-                fprintf(fp, "AUXDATA shear_stress = \"%.2f\"\n", val*param->maxSchmid);
-            }
-            val = (param->loadType!=4)?fabs(pstnijk*1.0E2):pstnijk*1.0E2;
-            fprintf(fp, "AUXDATA plastic_strain = \"%7.3f\"\n", val);
-            fprintf(fp, "AUXDATA twinning_deform = \"%7.3f\"\n", fabs(ptstnijk*100.0));
-            fprintf(fp, "AUXDATA fileName = \"%s\"\n", baseFileName);
-#endif
+		        fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_sf, tau_ext,ifMag, velocity, burgMag, velx, vely, velz\n");
+                val = param->timeNow*1.0E9;
+		        fprintf(fp, "zone T = \"%d\", SOLUTIONTIME = %d,  F=POINT\n", home->cycle, home->cycle); 
+                val = fabs((param->loadType!=4)?param->eRate*param->timeNow*1.0E2:param->netCyclicStrain*1.0E2);
+                fprintf(fp, "AUXDATA strain = \"%.2f\"\n", val);
+                val = (param->loadType!=4)?fabs(sigijk/1.0E6):sigijk/1.0E6;
+                fprintf(fp, "AUXDATA stress = \"%.2f\"\n", val);
+                if(param->maxSchmid >= 0.0){
+                    fprintf(fp, "AUXDATA shear_stress = \"%.2f\"\n", val*param->maxSchmid);
+                }
+                val = (param->loadType!=4)?fabs(pstnijk*1.0E2):pstnijk*1.0E2;
+                fprintf(fp, "AUXDATA plastic_strain = \"%7.3f\"\n", val);
+                fprintf(fp, "AUXDATA twinning_deform = \"%7.3f\"\n", fabs(ptstnijk*100.0));
+                fprintf(fp, "AUXDATA fileName = \"%s\"\n", baseFileName);
 	    }
 #endif	
 				
@@ -418,7 +394,13 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 }
             }else constraint=0;
 
-            vMag = sqrt(node->vX*node->vX+node->vY*node->vY+node->vZ*node->vZ)*param->burgMag;
+            vMag = sqrt(node->vX*node->vX+node->vY*node->vY+node->vZ*node->vZ);
+            if(vMag>1.0){
+                velx  = node->vX/vMag;
+                vely  = node->vY/vMag;
+                velz  = node->vZ/vMag;
+            }
+            vMag *= param->burgMag;
 
             for (j = 0; j < node->numNbrs; j++) {
 #if 0
@@ -571,25 +553,19 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,constraint,
                             index, node->myTag.domainID, node->myTag.index);
 	            }else{
-#if CHECK_GB_TOPO
-                    fprintf(fp, "%15.10f %15.10f %15.10f %6.1f %6.1f %6.1f %7.4f %d %d %d %d %d %d %d %d %d %g %g %g %g %g %g\n", 
-                            x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                            index, node->myTag.domainID, node->myTag.index, f[0], f[1], f[2], fMag, tau_g, ifMag);
-#else
-                    fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g %g\n", 
+                    fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g %g %g %g %g\n", 
                             x,y,z,prx/2,pry/2,prz/2,
                             narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                            index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag, bMag);
+                            index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag, bMag, velx, vely, velz);
                     if(imageSeg){
                         if(fabs(fabs(z)-param->zBoundMax)<1){
                             shift = z<0?param->Lz:-param->Lz;
-                            fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g %g\n", 
+                            fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g %g %g %g %g\n", 
                                 x,y,z+shift,prx/2,pry/2,prz/2,
                                 narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                                index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag, bMag);
+                                index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag, bMag, velx, vely, velz);
                         }
                     }
-#endif
 	        }
 #endif	
 			

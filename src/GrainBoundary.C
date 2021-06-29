@@ -28,7 +28,6 @@
 *****************************************************************************/
 void PullBack(Home_t *home, Node_t *node){
 
-    int oldInGrain, oldOnGB;
     int     currInGrain, currOnGB;
 	real8	newPos[3], bakVec[3];
     GB_t    *gb;
@@ -41,6 +40,12 @@ void PullBack(Home_t *home, Node_t *node){
         return;
 	}
 #endif
+    bakVec[0] = node->x;
+    bakVec[1] = node->y;
+    bakVec[2] = node->z;
+
+#if 0
+    int oldInGrain, oldOnGB;
     NodeLocation(home, node->oldx, node->oldy, node->oldz, oldInGrain, oldOnGB);
     if(oldInGrain==node->inGrain && oldOnGB==node->onGB){
         newPos[0]=node->oldx;
@@ -50,7 +55,7 @@ void PullBack(Home_t *home, Node_t *node){
         RepositionNode(home, newPos, &node->myTag,1);
 	    return;
     }
-
+#endif
 
     if(IsOnGB(node)){
         currOnGB = node->onGB;
@@ -88,16 +93,12 @@ void PullBack(Home_t *home, Node_t *node){
         }
     }
 
-    bakVec[0] = node->x;
-    bakVec[1] = node->y;
-    bakVec[2] = node->z;
-
-    if(NewPosToGB(home, node, node->inGrain, currOnGB, bakVec, newPos)){
+    if(NewPosToGB(home, node, node->inGrain, currOnGB, bakVec, newPos, 2.0E-4)){
         bakVec[0] = node->oldx;
         bakVec[1] = node->oldy;
         bakVec[2] = node->oldz;
         
-        if(NewPosToGB(home, node, node->inGrain, currOnGB, bakVec, newPos)){
+        if(NewPosToGB(home, node, node->inGrain, currOnGB, bakVec, newPos, 2.0E-4)){
             int     NM;
             bool    zeroLenJunc;
             real8   GC[3][3];

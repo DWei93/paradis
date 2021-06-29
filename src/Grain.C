@@ -1980,16 +1980,16 @@ bool GetPublicGB(Home_t *home, Grain_t *grain1, Grain_t *grain2, GB_t **GB, real
     return(0);
 }
 
-bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3], real8 *newPos){
+bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3], real8 *newPos, real8 eps){
     
-    real8       dis, vec[3], vec1[3], vec2[3], eps;
+    real8       dis, vec[3], vec1[3], vec2[3];
     real8       interPos[3], vec3[3], GC[3][3]; 
+    real8       gbN[3], gbPos[3], gbPos0[3];
     int         type, NM, index, curInGrain, curOnGB;
     bool        rval;
     Param_t     *param;
     GB_t        *gb;
     Grain_t     *grain;
-    Plane_t     plane;
     bool        zeroLenJunc;    
 
     NM = 0;
@@ -2005,62 +2005,63 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
         PrintNode(home, node);
         Fatal("move from {%g,%g,%g} to grain %d\n",pos[0],pos[1],pos[2],inGrain);
     }
-    if(onGB < 0 || onGB >= home->nGBs)Fatal("in %s at %d", __FILE__, __LINE__);
+    if(onGB < 0 || onGB >= home->nGBs)Fatal("in %s at %d, onGB=%d", __FILE__, __LINE__,onGB);
 	if(node == (Node_t *)NULL){
         Fatal("Task %d: %s, line %d -- Node = NULL",
                home->myDomain, __FILE__, __LINE__);
 	}
 
-    eps = param->rTol;
+    if(eps<0)eps = param->rTol;
 
 	FoldBox(param, pos, pos+1, pos+2);
 
     NodeLocation(home, pos[0], pos[1], pos[2], curInGrain, curOnGB);
-    if(inGrain == -1){
-        rval = (curOnGB == onGB) ? 0 : 1;
-    }else{
-        rval = (inGrain == curInGrain) ? 0 : 1;
-    }
 
     gb = home->GBKeys[onGB];
-    VECTOR_COPY(plane.normal, gb->n);
-    VECTOR_COPY(plane.point, gb->p);
+    VECTOR_COPY(gbN,gb->n);
+    VECTOR_COPY(gbPos0,gb->p);
+    VECTOR_COPY(gbPos,gb->p);
 
-    PBCPOSITION(param, pos[0],pos[1],pos[2], &(plane.point[0]), &(plane.point[1]), &(plane.point[2]));
+    PBCPOSITION(param, pos[0],pos[1],pos[2], gbPos, gbPos+1, gbPos+2);
+    PBCPOSITION(param, pos[0],pos[1],pos[2], gbPos0, gbPos0+1, gbPos0+2);
     if(inGrain > -1){
         if(inGrain >= home->nGrains)Fatal("in %s at %d", __FILE__, __LINE__);
         grain = home->grainKeys[inGrain];
         index = GetGBIndexOfGrain(grain, onGB);
         if(index < 0)Fatal("in %s at %d", __FILE__, __LINE__);
-        plane.point[0] -= (grain->sign[index] * eps * gb->n[0]);
-        plane.point[1] -= (grain->sign[index] * eps * gb->n[1]);
-        plane.point[2] -= (grain->sign[index] * eps * gb->n[2]);
+        gbPos[0] -= (grain->sign[index] * eps * gbN[0]);
+        gbPos[1] -= (grain->sign[index] * eps * gbN[1]);
+        gbPos[2] -= (grain->sign[index] * eps * gbN[2]);
+
+        gbPos0[0] -= (grain->sign[index] * 2.0 * gbN[0]);
+        gbPos0[1] -= (grain->sign[index] * 2.0 * gbN[1]);
+        gbPos0[2] -= (grain->sign[index] * 2.0 * gbN[2]);
     }
     
-    PointPlaneIntersection(pos, plane.normal, plane.point, newPos, &dis);
-    if(fabs(dis) < 1E-4){
-        FoldBox(param, newPos, newPos+1, newPos+2);
-        return(rval);
-    }
-
+    PointPlaneIntersection(pos, gbN, gbPos0, newPos, &dis);
     vec[0] = newPos[0] - pos[0];
     vec[1] = newPos[1] - pos[1];
     vec[2] = newPos[2] - pos[2];
 
-    if(Normal(vec) < 1E-10){
-        PrintNode(home, node);
-        printf("Warning in NewPosToGB: {%f,%f,%f} too short of the vector\n",
-                vec[0], vec[1], vec[2]);
-        VECTOR_COPY(newPos, pos);
+    if(Normal(vec) < 1.0E-4){
         FoldBox(param, newPos, newPos+1, newPos+2);
-        return(rval);
+        if(inGrain<0)return 0;
+        else{
+            PointPlaneIntersection(pos, gbN, gbPos, newPos, &dis);
+            vec[0] = newPos[0] - pos[0];
+            vec[1] = newPos[1] - pos[1];
+            vec[2] = newPos[2] - pos[2];
+            if(Normal(vec) < 1.0E-4){
+                PrintNode(home, node);
+                Fatal("%s, can not find ldir",__func__);
+            }
+        }
     }
 
     NormalizeVec(vec);
     VECTOR_COPY(vec1, vec);
-	GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc, 0, 
-                           plane.normal[0], plane.normal[1],
-                           plane.normal[2]);
+
+	GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc, 0, gbN[0],gbN[1],gbN[2]);
 	ApplyConstraintsToVelocity(NM, GC, vec);
 
     if(Normal(vec) < 1.0E-6){
@@ -2073,14 +2074,14 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
     }
 
     if(Normal(vec) < 1.0E-6){
-        VECTOR_COPY(newPos, pos);
-        FoldBox(param, newPos, newPos+1, newPos+2);
-        return(rval);
+        PrintNode(home, node);
+        Fatal("%s: can not find ldir at %d",__func__,__LINE__);
     }
 
     NormalizeVec(vec);
-    type = LinePlaneIntersection(vec, pos, plane.normal, plane.point, vec1, vec2);
+    type = LinePlaneIntersection(vec, pos, gbN, gbPos, vec1, vec2);
     if(type == NO_INTERSECTION){
+
 #ifdef DEBUG
         printf("Warning: NewPosToGB, Line {%f,%f,%f}--{%f,%f,%f}; ", 
                vec[0], vec[1], vec[2], pos[0], pos[1], pos[2]);
@@ -2097,7 +2098,6 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
         FoldBox(param, newPos, newPos+1, newPos+2);
         return(0);
     }
-
 
     return(1);
 }

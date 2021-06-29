@@ -66,6 +66,7 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
 	real8   Btotal[3][3];
 	real8   glideConstraints[3][3];
 	real8   invBtotal[3][3];
+
 	
 	Node_t  *nbrNode;
     bool    zeroLenJunc;
@@ -74,7 +75,7 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
 	param  = home->param;
 	numNbrs = node->numNbrs;
 	shortSegCutoff = 0.5 * param->minSeg;
-
+    real8   v_max=0.0, nEffNbrs=0.0, vnbr;
 /*
  *  If node is 'pinned' in place by constraints, or the node has any arms 
  *  with a burgers vector that has explicitly been set to be sessile (via
@@ -105,12 +106,26 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
 	    ZImage(param, &dx, &dy, &dz);
 
 /*
- *          This assumes that lengths are given in terms of burgers vector units
+ *      This assumes that lengths are given in terms of burgers vector units
  */
 	    if ((dx*dx + dy*dy + dz*dz) > eps) {
 	        numNonZeroLenSegs++;
 	    }
+        vnbr= nbrNode->vX*nbrNode->vX + nbrNode->vY*nbrNode->vY + nbrNode->vZ*nbrNode->vZ; 
+        if(vnbr>0){
+            v_max += vnbr;
+            nEffNbrs += 1.0;
+        }
 	}
+    if(home->cycle<2){
+        v_max = param->vshr;
+    }else{
+        if(v_max>0 && nEffNbrs > 0){
+            v_max = 3.0*sqrt(v_max)/nEffNbrs;
+        }
+        v_max = MAX(v_max, param->vshr/10.0);
+        v_max = MIN(v_max, param->vshr);
+    }
 
 	if (numNonZeroLenSegs == 0) {
 	    node->vX = 0.0;
@@ -142,7 +157,6 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
     static real8 vte_max = 1877.26443/param->burgMag, kte=6.24E-9;	
     static real8 cutoff_coe = 0.99;
     static real8 vs_max_c=vs_max*cutoff_coe, ve_max_c=ve_max*cutoff_coe, vts_max_c =vts_max*cutoff_coe, vte_max_c=vte_max*cutoff_coe;
-    static real8 v_max=param->vshr; /*v_max needs to be slightly lower than vs_max*/
     static real8 Beclimb = 15.6E-4;
     real8  Bline,  BlmBecl; 
 
@@ -415,7 +429,7 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
 
         VectorMinusSelf(vTest, vDelta);
         vMag = Sign(DotProduct(nForce,vTest))*Normal(vTest);
-        if(fabs(vMag)>v_max){
+        if(fabs(vMag)>2.0*v_max){
             VectorTimesSelf(vTest, fabs(v_max/vMag));
             break;
         }
@@ -426,6 +440,10 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
         Fatal("%s: the velocity if the node can be converge in %d step\n", __func__, maxStep);
     }
 #endif
+    vMag = Normal(vTest);
+    if(fabs(vMag)>v_max){
+        VectorTimesSelf(vTest, fabs(v_max/vMag));
+    }
     ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, vTest);
     node->vX = vTest[0];
     node->vY = vTest[1];
