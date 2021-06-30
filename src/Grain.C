@@ -2637,7 +2637,7 @@ bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, re
                     FormatVector(pos,"pos");
                     FormatVector(bakPos,"bakPos");
                     printf("%s at %d: adjust failed, type=%d, inGrain=%d onGB=%d\n",__func__,__LINE__,type,inGrain,onGB);
-#else
+
                     PrintTag(home, node1); PrintTag(home, node2); printf("\n");
                     printf("Task %d, %s at %d: adjust failed, type=%d, new pos in inGrain=%d onGB=%d\n",home->myDomain,__func__,__LINE__,type,inGrain,onGB);
 #endif
