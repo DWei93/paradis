@@ -78,7 +78,7 @@ sed -i "/meshNumX/cmeshNumX = $nMesh" $ctrlFile;
 sed -i "/meshNumY/cmeshNumY = $nMesh" $ctrlFile;
 sed -i "/meshNumZ/cmeshNumZ = $nMeshZ" $ctrlFile;
 
-minDT=`echo "scale=3; ${thickn}/60" | bc -l`E-13
+minDT=`echo "scale=3; 2.0*${rTol}/0.63771517" | bc`E-13
 sed -i "/^minDT/cminDT = ${minDT}" $ctrlFile;
 
 PI=3.1415926535897932385
