@@ -2341,11 +2341,9 @@ void GBCrossSlip(Home_t *home)
 
         sideCrossSlipNode = 0;
         firstCrossSlipNode = 0;
+	    GetGlideConstraintList(home, node, &NM1, GC1, zeroLenJunc1);
         if((NodeOnGB(home,node) & INTERSECT_NODE) > 0){
-
-	        GetGlideConstraintList(home, node, &NM1, GC1, zeroLenJunc1);
             if(NM1 != 2)continue;
-
             nbrGrain = -1;
             for(j=0; j<node->numNbrs; j++){
                 nbr = GetNeighborNode(home, node, j);
@@ -2481,11 +2479,7 @@ void GBCrossSlip(Home_t *home)
             }
             if(j >= gbd->numKeyLines)continue;
             VECTOR_COPY(interLine.direction,gbd->keyLineList[j]);
-
-            nbr1Pos[0] = nbr1->x;   nbr1Pos[1] = nbr1->y;   nbr1Pos[2] = nbr1->z;
         }else if(sideCrossSlipNode > 0){
-
-        if(!(firstCrossSlipNode || sideCrossSlipNode))continue;
             gbNbrPos[0] = gbNbr->x;     gbNbrPos[1] = gbNbr->y;     gbNbrPos[2] = gbNbr->z;
             PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2],
                         gbNbrPos, gbNbrPos+1, gbNbrPos+2);
@@ -2739,8 +2733,17 @@ void GBCrossSlip(Home_t *home)
             vec[1] = node->fY;
             vec[2] = node->fZ;
             NormalComponent(vec, normal, glideForce);
-            if(DotProduct(glideForce,glideForce0)<0){
-                continue;
+            
+            if(NM1==1){
+                cross(normal, interLine.direction, gdir);
+                if(Normal(gdir)>0.1){
+                    NormalizeVec(gdir);
+                    ParallelComponent(glideForce, gdir, glideForce);
+                    ParallelComponent(glideForce0, gdir, glideForce0);
+                    if(DotProduct(glideForce,glideForce0)<0){
+                        continue;
+                    }
+                }
             }
 
             maxShearList.resize(disArray.size());
@@ -3005,7 +3008,23 @@ void GBCrossSlip(Home_t *home)
 	                node->oldvX = 0.0;
 	                node->oldvY = 0.0;
 	                node->oldvZ = 0.0;
-
+#ifdef DEBUG
+                    if(NodeDistance(home, node, nbr1)>3.0*param->maxSeg  || NodeDistance(home, node, nbr2)>3.0*param->maxSeg){
+                        real8 dis1, dis2;
+                        PrintNode(home,nbr1);
+                        PrintNode(home,node);
+                        PrintNode(home,nbr2);
+                        FormatVector(interLine.direction,"ldir");
+                        FormatVector(interLine.point,"lpos");
+                        PointLineIntersection(nbr1Pos, interLine.direction, interLine.point,newNbr1Pos, &dis1);
+                        PointLineIntersection(nbr2Pos, interLine.direction, interLine.point, newNbr2Pos, &dis2);
+                        FormatVector(nbr1Pos,"nbr1Pos");
+                        FormatVector(newNbr1Pos,"newNbr1Pos");
+                        FormatVector(nbr2Pos,"nbr2Pos");
+                        FormatVector(newNbr2Pos,"newNbr2Pos");
+                        Fatal("Task %d %s %d: newNodePos={%f,%f,%f} dis1=%f dis2=%f",home->myDomain, __func__, __LINE__, newNodePos[0],newNodePos[1],newNodePos[2],dis1,dis2);
+                    }
+#endif
                 }else{
                     inGrain = gbd->planeInGrain[disArray[j][k].planeID];
                     onGB = (inGrain == -1) ? gb->GBID : -1; 
@@ -3017,6 +3036,23 @@ void GBCrossSlip(Home_t *home)
                     MarkNodeForceObsolete(home, newNode);        
                     MarkNodeNoCollisions(home, newNode);        
                     MarkNodeNoMeshCoarsen(home, newNode); 
+#ifdef DEBUG
+                    if(NodeDistance(home, newNode, nbr1)>3.0*param->maxSeg  || NodeDistance(home, newNode, nbr2)>3.0*param->maxSeg){
+                        real8 dis1, dis2;
+                        PrintNode(home,nbr1);
+                        PrintNode(home,newNode);
+                        PrintNode(home,nbr2);
+                        FormatVector(interLine.direction,"ldir");
+                        FormatVector(interLine.point,"lpos");
+                        PointLineIntersection(nbr1Pos, interLine.direction, interLine.point,newNbr1Pos, &dis1);
+                        PointLineIntersection(nbr2Pos, interLine.direction, interLine.point, newNbr2Pos, &dis2);
+                        FormatVector(nbr1Pos,"nbr1Pos");
+                        FormatVector(newNbr1Pos,"newNbr1Pos");
+                        FormatVector(nbr2Pos,"nbr2Pos");
+                        FormatVector(newNbr2Pos,"newNbr2Pos");
+                        Fatal("Task %d %s %d: newNodePos={%f,%f,%f} dis1=%f dis2=%f",home->myDomain, __func__, __LINE__, newNodePos[0],newNodePos[1],newNodePos[2],dis1,dis2);
+                    }
+#endif
                 } 
 //              printf("[%g,%g,%g]--(%g,%g,%g) ",outBurg[0],outBurg[1],outBurg[1], newPos[0],newPos[1],newPos[2]);
             }
@@ -3147,7 +3183,7 @@ void GBCrossSlip(Home_t *home)
 //              printf("Task %d %s-2: merge failed, status %d\n", home->myDomain, __func__,mergeStatus);
 //          }else{
 //              printf("Task %d %s-2: merge succeed, ", home->myDomain, __func__);
-//              PrintTag(mergedNode);
+//              PrintTag(home, mergedNode);
 //              printf("\n");
 //          }
 	        if((mergeStatus & MERGE_SUCCESS) ==0){
