@@ -336,7 +336,7 @@ void PointPlaneDistance(double *p, double *plane, double &dis){
     dis = (nx*(p[0]-plane[3])+ ny*(p[1]-plane[4]) + nz*(p[2]-plane[5]))/mag;
     if(fabs(dis)<1.0){
         double sign = dis>0?1.0:-1.0;
-        double newPos[3] = {plane[3]+nx*sign/mag, plane[4]+ny*sign/mag, plane[5]+nz*sign/mag};
+        double newPos[3] = {plane[3]-nx*sign/mag, plane[4]-ny*sign/mag, plane[5]-nz*sign/mag};
         dis = (nx*(p[0]-newPos[0])+ ny*(p[1]-newPos[1]) + nz*(p[2]-newPos[2]))/mag - sign;
     } 
 }
@@ -359,7 +359,7 @@ double PointPlaneDistance(double *p, double *normal, double *point){
     double dis = (nx*(p[0]-point[0])+ ny*(p[1]-point[1]) + nz*(p[2]-point[2]))/mag;
     if(fabs(dis)<1.0){
         double sign = dis>0?1.0:-1.0;
-        double newPos[3] = {point[0]+nx*sign/mag, point[1]+ny*sign/mag, point[2]+nz*sign/mag};
+        double newPos[3] = {point[0]-nx*sign/mag, point[1]-ny*sign/mag, point[2]-nz*sign/mag};
         dis = (nx*(p[0]-newPos[0])+ ny*(p[1]-newPos[1]) + nz*(p[2]-newPos[2]))/mag - sign;
     } 
     return dis;
@@ -375,7 +375,7 @@ void PointPlaneDistance(double *p, double *normal, double *point, double &dis){
     dis = (nx*(p[0]-point[0])+ ny*(p[1]-point[1]) + nz*(p[2]-point[2]))/mag;
     if(fabs(dis)<1.0){
         double sign = dis>0?1.0:-1.0;
-        double newPos[3] = {point[0]+nx*sign/mag, point[1]+ny*sign/mag, point[2]+nz*sign/mag};
+        double newPos[3] = {point[0]-nx*sign/mag, point[1]-ny*sign/mag, point[2]-nz*sign/mag};
         dis = (nx*(p[0]-newPos[0])+ ny*(p[1]-newPos[1]) + nz*(p[2]-newPos[2]))/mag - sign;
     } 
     return;
@@ -397,7 +397,7 @@ void PointPlaneDistance(double *p, double *plane, double &dis, double *projectio
     dis = (nx*(p[0]-plane[3])+ ny*(p[1]-plane[4]) + nz*(p[2]-plane[5]))/mag;
     if(fabs(dis)<1.0){
         double sign = dis>0?1.0:-1.0;
-        double newPos[3] = {plane[3]+nx*sign/mag, plane[4]+ny*sign/mag, plane[5]+nz*sign/mag};
+        double newPos[3] = {plane[3]-nx*sign/mag, plane[4]-ny*sign/mag, plane[5]-nz*sign/mag};
         dis = (nx*(p[0]-newPos[0])+ ny*(p[1]-newPos[1]) + nz*(p[2]-newPos[2]))/mag - sign;
     } 
     projection[0] = p[0]-dis*nx/mag;projection[1] = p[1]-dis*ny/mag;projection[2] = p[2]-dis*nz/mag;
@@ -419,7 +419,7 @@ void PointPlaneDistance(double *p, double *normal, double *point,  double &dis, 
     dis = (nx*(p[0]-point[0])+ ny*(p[1]-point[1]) + nz*(p[2]-point[2]))/mag;
     if(fabs(dis)<1.0){
         double sign = dis>0?1.0:-1.0;
-        double newPos[3] = {point[0]+nx*sign/mag, point[1]+ny*sign/mag, point[2]+nz*sign/mag};
+        double newPos[3] = {point[0]-nx*sign/mag, point[1]-ny*sign/mag, point[2]-nz*sign/mag};
         dis = (nx*(p[0]-newPos[0])+ ny*(p[1]-newPos[1]) + nz*(p[2]-newPos[2]))/mag - sign;
     } 
     projection[0] = p[0]-dis*nx/mag; projection[1] = p[1]-dis*ny/mag; projection[2] = p[2]-dis*nz/mag;
