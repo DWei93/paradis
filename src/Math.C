@@ -317,6 +317,113 @@ int LineLineIntersection(double *d1, double *p1, double *d2, double *p2,
     else return(NO_INTERSECTION);
 }
 
+/** Return the distance to plane 
+ *  \param[in] p[3] coordinates of point
+ *  \param[in] plane[6] normal and a point of the plane
+ *  \param[out] dis distance form the plane to the point */
+void PointPlaneDistance(double *p, double *plane, double &dis){
+    double nx=plane[0], ny=plane[1], nz=plane[2];
+#ifdef DEBUG
+    if(!IsNormalized(nx,ny,nz))
+        Fatal("in file %s at line %d: normal (%g,%g,%g) is not normalized", 
+               __FILE__,__LINE__,nx,ny,nz);
+#endif
+    double mag = sqrt(nx*nx+ny*ny+nz*nz);
+    if(mag==0){
+        dis = 0.0;
+        return;
+    }
+    dis = (nx*(p[0]-plane[3])+ ny*(p[1]-plane[4]) + nz*(p[2]-plane[5]))/mag;
+    if(fabs(dis)<1.0){
+        double sign = dis>0?1.0:-1.0;
+        double newPos[3] = {plane[3]+nx*sign/mag, plane[4]+ny*sign/mag, plane[5]+nz*sign/mag};
+        dis = (nx*(p[0]-newPos[0])+ ny*(p[1]-newPos[1]) + nz*(p[2]-newPos[2]))/mag - sign;
+    } 
+}
+/** Return the distance to plane 
+ *  \param[in] p[3] coordinates of point
+ *  \param[in] normal[3] normal of the plane
+ *  \param[in] point[3] point on the plane
+ *  \param[out] dis distance form the plane to the point */
+double PointPlaneDistance(double *p, double *normal, double *point){
+    double nx=normal[0], ny=normal[1], nz=normal[2];
+#ifdef DEBUG
+    if(!IsNormalized(nx,ny,nz))
+        Fatal("in file %s at line %d: normal (%g,%g,%g) is not normalized", 
+               __FILE__,__LINE__,nx,ny,nz);
+#endif
+    double mag = sqrt(nx*nx+ny*ny+nz*nz);
+    if(mag==0){
+        return 0.0;
+    }
+    double dis = (nx*(p[0]-point[0])+ ny*(p[1]-point[1]) + nz*(p[2]-point[2]))/mag;
+    if(fabs(dis)<1.0){
+        double sign = dis>0?1.0:-1.0;
+        double newPos[3] = {point[0]+nx*sign/mag, point[1]+ny*sign/mag, point[2]+nz*sign/mag};
+        dis = (nx*(p[0]-newPos[0])+ ny*(p[1]-newPos[1]) + nz*(p[2]-newPos[2]))/mag - sign;
+    } 
+    return dis;
+}
+void PointPlaneDistance(double *p, double *normal, double *point, double &dis){
+    double nx=normal[0], ny=normal[1], nz=normal[2];
+#ifdef DEBUG
+    if(!IsNormalized(nx,ny,nz))
+        Fatal("in file %s at line %d: normal (%g,%g,%g) is not normalized", 
+               __FILE__,__LINE__,nx,ny,nz);
+#endif
+    double mag = sqrt(nx*nx+ny*ny+nz*nz);
+    dis = (nx*(p[0]-point[0])+ ny*(p[1]-point[1]) + nz*(p[2]-point[2]))/mag;
+    if(fabs(dis)<1.0){
+        double sign = dis>0?1.0:-1.0;
+        double newPos[3] = {point[0]+nx*sign/mag, point[1]+ny*sign/mag, point[2]+nz*sign/mag};
+        dis = (nx*(p[0]-newPos[0])+ ny*(p[1]-newPos[1]) + nz*(p[2]-newPos[2]))/mag - sign;
+    } 
+    return;
+}
+/** Return the distance to plane and projection
+ *  \param[in] p[3] coordinates of point
+ *  \param[in] plane[6] normal and a point of the plane
+ *  \param[out] dis distance form the plane to the point 
+ *  \param[out] projection[3] projection point on the plane*/
+void PointPlaneDistance(double *p, double *plane, double &dis, double *projection){
+    double nx=plane[0], ny=plane[1], nz=plane[2];
+#ifdef DEBUG
+    if(!IsNormalized(nx,ny,nz))
+        Fatal("in file %s at line %d: normal (%g,%g,%g) is not normalized", 
+               __FILE__,__LINE__,nx,ny,nz);
+#endif
+    double mag = sqrt(nx*nx+ny*ny+nz*nz);
+    if(mag==0){dis=0.0; return;}
+    dis = (nx*(p[0]-plane[3])+ ny*(p[1]-plane[4]) + nz*(p[2]-plane[5]))/mag;
+    if(fabs(dis)<1.0){
+        double sign = dis>0?1.0:-1.0;
+        double newPos[3] = {plane[3]+nx*sign/mag, plane[4]+ny*sign/mag, plane[5]+nz*sign/mag};
+        dis = (nx*(p[0]-newPos[0])+ ny*(p[1]-newPos[1]) + nz*(p[2]-newPos[2]))/mag - sign;
+    } 
+    projection[0] = p[0]-dis*nx/mag;projection[1] = p[1]-dis*ny/mag;projection[2] = p[2]-dis*nz/mag;
+}
+/** Return the distance to plane and projection on plane
+ *  \param[in] p[3] coordinates of point
+ *  \param[in] normal[3] normal of the plane
+ *  \param[in] point[3] point on the plane
+ *  \param[out] projection[3] projection on the plane
+ *  \param[out] dis distance form the plane to the point */
+void PointPlaneDistance(double *p, double *normal, double *point,  double &dis, double *projection){
+    double nx=normal[0], ny=normal[1], nz=normal[2];
+#ifdef DEBUG
+    if(!IsNormalized(nx,ny,nz))
+        Fatal("in file %s at line %d: normal (%g,%g,%g) is not normalized", 
+               __FILE__,__LINE__,nx,ny,nz);
+#endif
+    double mag = sqrt(nx*nx+ny*ny+nz*nz);
+    dis = (nx*(p[0]-point[0])+ ny*(p[1]-point[1]) + nz*(p[2]-point[2]))/mag;
+    if(fabs(dis)<1.0){
+        double sign = dis>0?1.0:-1.0;
+        double newPos[3] = {point[0]+nx*sign/mag, point[1]+ny*sign/mag, point[2]+nz*sign/mag};
+        dis = (nx*(p[0]-newPos[0])+ ny*(p[1]-newPos[1]) + nz*(p[2]-newPos[2]))/mag - sign;
+    } 
+    projection[0] = p[0]-dis*nx/mag; projection[1] = p[1]-dis*ny/mag; projection[2] = p[2]-dis*nz/mag;
+}
 
 /** Find intersection of point and plane, the plane is reference
  *  \param[in] p1[3] coordinates of the point
