@@ -168,7 +168,7 @@ static void Pack1SecondaryGhost(Node_t *node, real8 **outBuf, int *outBufSize,
         neededSpace = FLTS_PER_GHOST2_NODE + FLTS_PER_GHOST_ARM * node->numNbrs;
 
         if (*allocatedSize < (*outBufSize + neededSpace)) {
-            allocSizeIncr = 5 * (FLTS_PER_GHOST2_NODE + (2*FLTS_PER_GHOST_ARM));
+            allocSizeIncr = 10 * (FLTS_PER_GHOST2_NODE + (2*FLTS_PER_GHOST_ARM));
             *allocatedSize = *allocatedSize + allocSizeIncr;
             buf = (real8 *)realloc(buf, (*allocatedSize) * sizeof(real8));
         }
@@ -275,7 +275,7 @@ static void PackSecondaryGhostResponse(Home_t *home, int *inBuf, int inBufSize,
  *      the first value in the buffer for the node count, which will be
  *      updated as we add nodes to the buffer.
  */
-        allocatedSize = 5 * (FLTS_PER_GHOST2_NODE + (2*FLTS_PER_GHOST_ARM)) + 1;
+        allocatedSize = 10 * (FLTS_PER_GHOST2_NODE + (2*FLTS_PER_GHOST_ARM)) + 1;
         *outBuf = (real8 *)calloc(1, allocatedSize * sizeof(real8));
         *outBufSize = 1;
 
@@ -367,10 +367,10 @@ static void UnpackSecondaryGhostResponse(Home_t *home, real8 *inBuf)
  */
 				
                 numArms = (int)inBuf[bufOffset+2];
-	        if(numArms<0 || numArms>32){
-		    printf("Task %d, Node(%d,%d):\n", home->myDomain, tmpTag.domainID, tmpTag.index);
-	            Fatal("UnpackSecondaryGhostResponse 1: numArms<0 || numArms>16 (%d)",numArms);
-	        }
+	            if(numArms<0 || numArms>32){
+		            printf("Task %d, Node(%d,%d):\n", home->myDomain, tmpTag.domainID, tmpTag.index);
+	                Fatal("UnpackSecondaryGhostResponse 1: numArms<0 || numArms>16 (%d)",numArms);
+	            }
 
                 nodeVals = FLTS_PER_GHOST2_NODE + 
                            FLTS_PER_GHOST_ARM * numArms;
