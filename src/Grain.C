@@ -4311,15 +4311,36 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
     cross(normBurg, lDir, crossProdt);
     if(Normal(crossProdt) < 1.0E-4){
         if(burgID >= bd->numBurgVectors){
-
             interType = NodesIntersection(home, node1, node2, vec1, vec2);   
             if(interType == PLANE_INTERSECTION){
                 VECTOR_COPY(glidePlane, vec1);
             }else{
-                VECTOR_COPY(glidePlane, burg);
-                FormatVector(burg, "burg");
-                FormatVector(lDir, "lDir");
-                printf("Warning: can not find a glide plane without burgID\n");
+                int i;
+                real8 burgNorm[3]={burg[0],burg[1],burg[2]};
+                std::vector<int> pIDList;
+                NormalizeVec(burgNorm);
+                for(i=0;i<bd->numPlanes;i++){
+                    if(fabs(DotProduct(burgNorm, bd->planeList[i]))<0.05 && (bd->planeType[i] & GLIDE_PLANE)>0){
+                        pIDList.push_back(i);
+                    }
+                }
+                if(pIDList.size()==0){
+                    for(i=0;i<bd->numPlanes;i++){
+                        if(fabs(DotProduct(burgNorm, bd->planeList[i]))<0.05){
+                            pIDList.push_back(i);
+                        }
+                    }
+                }
+                if(pIDList.size()>0){
+                    normalID = pIDList[rand()%int(pIDList.size())];
+                    VECTOR_COPY(glidePlane, bd->planeList[normalID]);
+                }else{
+                    VECTOR_COPY(glidePlane, burgNorm);
+                    FormatVector(burg, "burg");
+                    FormatVector(lDir, "lDir");
+                    printf("Warning: can not find a glide plane without burgID\n");
+                }
+
             }
             NormalizeVec(glidePlane);
             return;
