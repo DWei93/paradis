@@ -33,7 +33,7 @@ inline real8 B(real8 k, real8 vmax, real8 vc, real8 vMag){
     return 1.0/tem;
 }
 
-inline real8 TauBack(real8 k, real8 vmax, real8 vc, real8 b, real8 vMag){
+inline real8 FBack(real8 k, real8 vmax, real8 vc, real8 b, real8 vMag){
     real8 invK=1.0/k;
     real8 frac;
     if(vMag<vc){
@@ -153,8 +153,9 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
  */
     static real8 vs_max = 1454.62292/param->burgMag, ks=9.24E-9;	
     static real8 ve_max = 1529.63902/param->burgMag, ke=8.58E-9;	
-    static real8 vts_max = 1585.57223/param->burgMag, kts=7.91E-9;	
-    static real8 vte_max = 1877.26443/param->burgMag, kte=6.24E-9;	
+    static real8 vts_max = 1585.57223/param->burgMag, kts=13.7005E-9;	// ks=7.91E-9/(1/sqrt[3]) (Pa*b)^-1
+    static real8 vte_max = 1877.26443/param->burgMag, kte=10.808E-9;	// ks=6.24E-9/(1/sqrt[3]) (Pa*b)^-1
+
     static real8 cutoff_coe = 0.99;
     static real8 vs_max_c=vs_max*cutoff_coe, ve_max_c=ve_max*cutoff_coe, vts_max_c =vts_max*cutoff_coe, vte_max_c=vte_max*cutoff_coe;
     static real8 Beclimb = 15.6E-4;
@@ -241,7 +242,7 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
 /*
  *          Fi = Sum_j l_ij*(sigma . b_ij) x tij = -Fdrag = Sum_j l_ij*b_ij*(Bij(v).v + fb) 
  */
-		    halfMag = bMag*mag/2.0;
+		    halfMag = mag/2.0;
 		    invMag  = 1.0 / mag;
             
 		    d[0] *= invMag;
@@ -289,17 +290,17 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
                 if(DotProduct(nForce,d)<0){d[0]=-d[0];d[1]=-d[1];d[2]=-d[2];}
                 ParallelComponent(vTest, d, vgTest); vgMag=Sign(DotProduct(vgTest,d))*Normal(vgTest);
                 if(!partialBurg){
-                    bs = B(ks,vs_max,vs_max_c,vgMag);
-                    sbForceMag = TauBack(ks,vs_max,vs_max_c,bs,vgMag);
+                    bs = B(ks/bMag,vs_max,vs_max_c,vgMag);
+                    sbForceMag = FBack(ks/bMag,vs_max,vs_max_c,bs,vgMag);
                     
-                    be = B(ke,ve_max,ve_max_c,vgMag);
-                    ebForceMag = TauBack(ke,ve_max,ve_max_c,be,vgMag);
+                    be = B(ke/bMag,ve_max,ve_max_c,vgMag);
+                    ebForceMag = FBack(ke/bMag,ve_max,ve_max_c,be,vgMag);
                 }else{
                     bs = B(kts,vts_max,vts_max_c,vgMag);
-                    sbForceMag = TauBack(kts,vts_max,vts_max_c,bs,vgMag);
+                    sbForceMag = FBack(kts,vts_max,vts_max_c,bs,vgMag);
                     
                     be = B(kte,vte_max,vte_max_c,vgMag);
-                    ebForceMag = TauBack(kte,vte_max,vte_max_c,be,vgMag);
+                    ebForceMag = FBack(kte,vte_max,vte_max_c,be,vgMag);
                 }
                 Bline = bs*costheta2+be*sintheta2; bForceMag = sbForceMag*costheta2 + ebForceMag*sintheta2;
                 bForce[0] = halfMag*bForceMag*d[0];
@@ -352,17 +353,17 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
                 if (i==0) v1g=vgMag; else v2g=vgMag;
 
                 if(!partialBurg){
-                    bs = B(ks,vs_max,vs_max_c,vgMag);
-                    sbForceMag = TauBack(ks,vs_max,vs_max_c,bs,vgMag);
+                    bs = B(ks/bMag,vs_max,vs_max_c,vgMag);
+                    sbForceMag = FBack(ks/bMag,vs_max,vs_max_c,bs,vgMag);
                     
-                    be = B(ke,ve_max,ve_max_c,vgMag);
-                    ebForceMag = TauBack(ke,ve_max,ve_max_c,be,vgMag);
+                    be = B(ke/bMag,ve_max,ve_max_c,vgMag);
+                    ebForceMag = FBack(ke/bMag,ve_max,ve_max_c,be,vgMag);
                 }else{
                     bs = B(kts,vts_max,vts_max_c,vgMag);
-                    sbForceMag = TauBack(kts,vts_max,vts_max_c,bs,vgMag);
+                    sbForceMag = FBack(kts,vts_max,vts_max_c,bs,vgMag);
                     
                     be = B(kte,vte_max,vte_max_c,vgMag);
-                    ebForceMag = TauBack(kte,vte_max,vte_max_c,be,vgMag);
+                    ebForceMag = FBack(kte,vte_max,vte_max_c,be,vgMag);
                 }
                 Bglide = bs*costheta2+be*sintheta2; bForceMag = sbForceMag*costheta2 + ebForceMag*sintheta2;
                 bForce[0] = halfMag*bForceMag*m[0];
@@ -375,17 +376,17 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
                 ParallelComponent(vTest, d, vgTest); vgMag=Sign(DotProduct(vgTest,d))*Normal(vgTest);
                 if (i==0) v1l=vgMag; else v2l=vgMag;
                 if(!partialBurg){
-                    bs = B(ks,vs_max,vs_max_c,vgMag);
-                    sbForceMag = TauBack(ks,vs_max,vs_max_c,bs,vgMag);
+                    bs = B(ks/bMag,vs_max,vs_max_c,vgMag);
+                    sbForceMag = FBack(ks/bMag,vs_max,vs_max_c,bs,vgMag);
                     
-                    be = B(ke,ve_max,ve_max_c,vgMag);
-                    ebForceMag = TauBack(ke,ve_max,ve_max_c,be,vgMag);
+                    be = B(ke/bMag,ve_max,ve_max_c,vgMag);
+                    ebForceMag = FBack(ke/bMag,ve_max,ve_max_c,be,vgMag);
                 }else{
                     bs = B(kts,vts_max,vts_max_c,vgMag);
-                    sbForceMag = TauBack(kts,vts_max,vts_max_c,bs,vgMag);
+                    sbForceMag = FBack(kts,vts_max,vts_max_c,bs,vgMag);
                     
                     be = B(kte,vte_max,vte_max_c,vgMag);
-                    ebForceMag = TauBack(kte,vte_max,vte_max_c,be,vgMag);
+                    ebForceMag = FBack(kte,vte_max,vte_max_c,be,vgMag);
                 }
                 Bline = bs*costheta2+be*sintheta2; bForceMag = sbForceMag*costheta2 + ebForceMag*sintheta2;
                 bForce[0] += halfMag*bForceMag*d[0];
