@@ -3331,8 +3331,10 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                             NodeLocation(home, p2[0],  p2[1], p2[2], inGrain2, onGB2,2);
                             if(onGB>-1){
                                 if(onGB0 != onGB || onGB2 != onGB)continue;
+                                inGrain0 = -1; inGrain2 = -1;
                             }else{
                                 if(inGrain0 != inGrain || inGrain2 != inGrain)continue;
+                                if(onGB0>-1 || onGB2>-1)continue;
                             }
                         }else{
                             
@@ -3500,8 +3502,10 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                     
                             if(onGB>-1){
                                 if(onGB0 != onGB || onGB3 != onGB)continue;
+                                inGrain0=-1; inGrain3=-1;
                             }else{
                                 if(inGrain0 != inGrain || inGrain3 != inGrain)continue;
+                                if(onGB0>-1 || onGB3>-1)continue;
                             }
                         }   
 
