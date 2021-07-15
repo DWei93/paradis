@@ -1387,7 +1387,7 @@ Node_t *GetNeighborNode(Home_t *home, Node_t *node, int n)
  
         for (i = 0; i < node->numNbrs; i++) {
 
-            if (node->nbrTag[i].domainID >= 0) j++;
+            if (node->nbrTag[i].domainID >= 0) j++; else return (Node_t *)NULL;
 
             if (j == n) {
                 neighbor = GetNodeFromTag(home, node->nbrTag[i]);
@@ -1496,8 +1496,9 @@ Node_t *GetNodeFromTag (Home_t *home, Tag_t tag)
         RemoteDomain_t *remDom;
    
         if (tag.domainID < 0 || tag.index < 0 || tag.domainID >= home->numDomains) {
-            Fatal("Task %d GetNodeFromTag: invalid tag (%d,%d)\n",
+            printf("Task %d GetNodeFromTag: invalid tag (%d,%d)\n",
                   home->myDomain, tag.domainID, tag.index);
+            return (Node_t *)NULL;
         }
 		
 	    if(tag.index > 200000){
@@ -1528,6 +1529,7 @@ Node_t *GetNodeFromTag (Home_t *home, Tag_t tag)
  *          either the remote doamin or the remote node.  Hence, it
  *          is not an error to return a NULL pointer.
  */
+            if(home->remoteDomainKeys == NULL)return (Node_t *)NULL;
             remDom = home->remoteDomainKeys[tag.domainID];
 
             if (remDom == NULL) {
@@ -1724,7 +1726,6 @@ void PrintNode(Home_t *home, Node_t *node)
         }
 
         for(i=0;i<node->numNbrs;i++){
-
             nbr = GetNeighborNode(home, node, i);
             if(nbr == (Node_t *)NULL){
                 printf("  node(%d,%d) arm[%d]-> (%d %d) null nbr\n",

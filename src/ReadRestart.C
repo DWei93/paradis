@@ -31,6 +31,8 @@
 #include "Decomp.h"
 #include "Restart.h"
 #include "Parse.h"
+#include "Math.h"
+#include "Grain.h"
 
 
 /*---------------------------------------------------------------------------
@@ -689,6 +691,14 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
         BroadcastDecomp(home, inData->decomp);
 
 /*
+ *	Iinitialize grain
+ */
+        param->multilayer = false;
+	    InitGrain(home, home->param);
+
+        bool wrongTD=0,tdNode;
+        int inGrain, onGB;
+/*
  *      Have each domain determine which (if any) of the
  *      nodal data file segments it is to read in.
  */
@@ -774,9 +784,9 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
                     burgSumX = 0.0;
                     burgSumY = 0.0;
                     burgSumZ = 0.0;
-
+                    
+                    tdNode=0;
                     for (iNbr = 0; iNbr < node->numNbrs; iNbr++) {
-
                         Getline(inLine, sizeof(inLine), fpSeg); 
                         sscanf(inLine, "%d,%d %lf %lf %lf",
                                &node->nbrTag[iNbr].domainID,
@@ -794,8 +804,25 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
                         burgSumX += node->burgX[iNbr];
                         burgSumY += node->burgY[iNbr];
                         burgSumZ += node->burgZ[iNbr];
+
+                        if(node->inGrain > -1 && fabs(node->signSF[iNbr])<0.01){
+                            if(normal(node->burgX[iNbr],node->burgY[iNbr],node->burgZ[iNbr]) < 0.6){
+                                tdNode=1;
+                                if(wrongTD==0){
+                                 // PrintNode(home, node);
+                                    if(home->myDomain==0)printf("Warning: Schockley burg in lattice without stacking fault\n");
+                                    wrongTD=1;
+                                }
+                            }                          
+                        }
                     }
 
+                    if(tdNode){
+                        NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
+                        if(onGB>-1){
+                            node->inGrain=-1; node->onGB=onGB;
+                        }
+                    }
                     FoldBox(param, &node->x, &node->y, &node->z);
 
 /*
@@ -821,7 +848,12 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
                             Fatal("Burger's vector not conserved!");
                         }
                     }
+                    if(numNbrs>10){
+                        PrintNode(node);
+                        printf("Warning: the node has %d arms\n",numNbrs);
+                    }
                     
+
                 } else {
 /*
  *                  No more files to be read by this task
@@ -840,6 +872,7 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
                 }
 
             }  /* while (taskIsReader) */
+
 
 /*
  *          Determine the domains to which to send any nodes

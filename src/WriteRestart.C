@@ -196,7 +196,7 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
 
                 fprintf(fp, "nodalData = \n");
                 fprintf(fp, "#  Primary lines: node_tag, x, y, z, "
-                        "num_arms, constraint\n");
+                        "num_arms, constraint, inGrain, onGB\n");
                 fprintf(fp, "#  Secondary lines: arm_tag, burgx, burgy, "
                              "burgz, nx, ny, nz signSF\n");
             }
@@ -231,7 +231,7 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
  *          the singly-linked nodes, we get get rid of this check.
  */
             if ((node->numNbrs == 1) && (node->constraint == UNCONSTRAINED)) {
-                PrintNode(node);
+                PrintNode(home, node);
                 Fatal("WriteRestart: Node (%d,%d) singly linked!",
                       node->myTag.domainID, node->myTag.index);
             }

@@ -1811,13 +1811,13 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
             Matrix33Invert(home->rotMatrix, home->rotMatrixInverse);
         }
-
+#if 0
 /*
  *	Iinitialize grain
  */
         param->multilayer = false;
 	    InitGrain(home, param);
-        
+#endif   
 //	    param->vshr = sqrt(param->YoungsModulus/param->massDensity)/param->burgMag;
         param->vshr = 1.63E3/param->burgMag;
         if (strcmp(param->timestepIntegrator, "forward-euler") == 0) {
