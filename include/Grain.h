@@ -251,6 +251,7 @@ void FormatVector(real8 vec[3], const char *msg);
 void InitOrientation(real8 MatrixOrientation[3][3], real8 TwinOrientation[3][3]);
 void FreeGrainStructure(Grain_t *grain);
 void InitGrain(Home_t *home, Param_t *param);
+void DumpPlanes(Home_t *home);
 void NodeLocation(Home_t *home, real8 pos[3], int& inGrain, int& onGB, real8 err=1.0E-4);
 inline void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB, real8 err=1.0E-4){
     real8 pos[3];

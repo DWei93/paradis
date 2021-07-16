@@ -1978,6 +1978,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
             param->dissTable[i][3] = 0.0;
         }
 #endif
+        if(home->myDomain==0)DumpPlanes(home);
 	    CheckMemUsage(home, "Initialize");
 	
         return;

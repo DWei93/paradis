@@ -779,11 +779,11 @@ void InitGrain(Home_t *home, Param_t *param){
         for(i=0; i<home->nGBs; i++){
             GenerateGBBurgInfo(home, home->GBKeys[i]);    
             gb = home->GBKeys[i];
-            snprintf(zoneName,sizeof(zoneName),"GB-%d",i);
+            snprintf(zoneName,sizeof(zoneName),"TB-%d",i);
             DrawGrainBoundary(fp, param, gb->p[2], zoneName, indexs);
         }
         if(fabs(gb->p[2]-param->zBoundMax)<1.0){
-            snprintf(zoneName,sizeof(zoneName),"GB-%d",i);
+            snprintf(zoneName,sizeof(zoneName),"TB-%d",i);
             DrawGrainBoundary(fp, param, param->zBoundMin, zoneName, indexs);
         }
 
@@ -1261,6 +1261,104 @@ void InitGrain(Home_t *home, Param_t *param){
 	}
 
 	return;
+}
+
+void DumpPlanes(Home_t *home)
+{
+    Param_t *param = home->param;
+    FILE    *fp;
+    char    fileName[256];
+    char    zoneName[256];
+    std::vector<int> indexs(2);
+    real8   r, centor[3];
+    GB_t    *gb;
+    int     i;
+    Grain_t *grain;
+
+    snprintf(fileName, sizeof(fileName), "planes.plt");
+	if ((fp = fopen(fileName, "w")) == (FILE *)NULL) {
+	    Fatal("InitGrain: Open error %d on %s\n", errno, fileName);
+	}
+
+	fprintf(fp, "Variables = x, y, z, id1, id2\n");
+
+    if(param->polycrystal==0){
+        r = param->xBoundMax/3;
+        VECTOR_ZERO(centor);
+        indexs[0]=0;
+        snprintf(zoneName,sizeof(zoneName),"tetrahedron");
+        DrawTetrahedron(fp, home->rotMatrix, r, centor, indexs, zoneName);
+    }else if(home->nGBs>1){
+        indexs[1] = 4;
+        for (i=0; i<home->nGBs; i++){
+            gb = home->GBKeys[i];    
+            indexs[0] = i;
+            snprintf(zoneName,sizeof(zoneName),"TB-%d",i);
+            DrawGrainBoundary(fp, param, gb->p[2], zoneName, indexs);
+        }
+        if(fabs(gb->p[2]-param->zBoundMax)<1.0){
+            snprintf(zoneName,sizeof(zoneName),"TB-%d",i);
+            DrawGrainBoundary(fp, param, param->zBoundMin, zoneName, indexs);
+        }
+
+        grain = home->grainKeys[0];
+        centor[0] = grain->cx; centor[1] = grain->cy;
+        r = grain->thick/3.0;
+
+        if(fabs(param->zBoundMin-grain->cz)<1){
+            centor[2]=param->zBoundMin;
+            snprintf(zoneName,sizeof(zoneName),"tetrahedron-0-1");
+            DrawTetrahedron(fp, grain->orientation, r, centor, indexs, zoneName);
+            centor[2]=param->zBoundMax;
+            snprintf(zoneName,sizeof(zoneName),"tetrahedron-0-2");
+            DrawTetrahedron(fp, grain->orientation, r, centor, indexs, zoneName);
+        }else{
+            centor[2]=grain->cz;
+            snprintf(zoneName,sizeof(zoneName),"tetrahedron-0-1");
+            DrawTetrahedron(fp, grain->orientation, r, centor, indexs, zoneName);
+        }
+        for(i=1; i<home->nGrains; i++){
+            grain = home->grainKeys[i];
+            centor[0]=grain->cx;  centor[1]=grain->cy;  centor[2]=grain->cz-0.0*grain->thick;
+            snprintf(zoneName,sizeof(zoneName),"tetrahedron-%d",i);
+            r = grain->thick/3;
+            DrawTetrahedron(fp, grain->orientation, r, centor, indexs, zoneName);
+        }
+    }else{
+        std::vector<std::vector<real8> > vertices;
+        std::vector<int> types, f_vert;
+        int     inGrain, onGB;
+        indexs[0]=4; indexs[1]=4;
+        gb = home->GBKeys[0];
+        r = param->xBoundMax/3.0;
+
+        snprintf(zoneName,sizeof(zoneName),"TB-%d",i);
+        PlaneBoxIntersections(param, gb->n, gb->p, vertices, types);
+        f_vert.resize(vertices.size()+1); f_vert[0]=int(vertices.size());
+        for (i=0;i<vertices.size();i++)f_vert[i+1]=i;
+
+        std::vector<real8> vert(vertices.size()*3);
+        for(i=0;i<vertices.size();i++){
+            vert[3*i] = vertices[i][0];
+            vert[3*i+1] = vertices[i][1];
+            vert[3*i+2] = vertices[i][2];
+        }
+        DrawGlidePlanes(fp, zoneName, vert, f_vert, indexs);
+
+        real8 centors[2][3]={{gb->n[0]*r,gb->n[1]*r,gb->n[2]*r},{-gb->n[0]*r,-gb->n[1]*r,-gb->n[2]*r}};
+
+        for(i=0;i<2;i++){
+            NodeLocation(home, centors[i][0], centors[i][1], centors[i][2], inGrain, onGB);
+            if(inGrain<0)Fatal("wrong");
+            grain =  home->grainKeys[inGrain];
+            snprintf(zoneName,sizeof(zoneName),"tetrahedron-%d",grain->grainID);
+            indexs[0]=i; indexs[1]=i;
+            DrawTetrahedron(fp, grain->orientation, r, centors[i], indexs, zoneName);
+        }
+    }
+
+    fclose(fp);
+    return;
 }
 
 
