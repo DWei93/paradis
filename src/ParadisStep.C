@@ -312,7 +312,7 @@ void ParadisStep(Home_t *home)
         DebugGB(home,19);
 
 #if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-2Trap");
+        GenerateOutput(home, STAGE_DEBUG, "-5Trap");
 #endif
 
         DebugGB(home,20);
@@ -333,7 +333,7 @@ void ParadisStep(Home_t *home)
             FixRemesh(home, "Surface");
             TimerStop(home, FIX_FS);
 #if CHECK_GB_TOPO
-            GenerateOutput(home, STAGE_DEBUG, "-3FS");
+            GenerateOutput(home, STAGE_DEBUG, "-6FS");
 #endif
         }
 
@@ -374,6 +374,10 @@ void ParadisStep(Home_t *home)
         GetDensityDelta(home);
         DebugGB(home,25);
 
+/*
+ *      Calculate the new plastic strain.
+ */
+        DeltaPlasticStrain(home);
         DebugGB(home,26);
 
 /*
@@ -382,6 +386,7 @@ void ParadisStep(Home_t *home)
  *      call the appropriate I/O functions if necessary.
  */
 //      DumpDeltaPlasticStrain(home, 2);
+        GenerateOutput(home, STAGE_CYCLE, "-1cycle");
         DebugGB(home,1);
 
 /*
@@ -412,7 +417,7 @@ void ParadisStep(Home_t *home)
         CrossSlip(home);
         DebugGB(home,3);
 #if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-4CrossSlip");
+        GenerateOutput(home, STAGE_DEBUG, "-2CrossSlip");
 #endif
 /*
  *      Search for dislocation segments in close proximity to each other
@@ -466,7 +471,7 @@ void ParadisStep(Home_t *home)
         }
 
 #if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-5Collision");
+        GenerateOutput(home, STAGE_DEBUG, "-3Collision");
 #endif
 /*
  *      If memory debugging is enabled, run a consistency check on all
@@ -486,15 +491,10 @@ void ParadisStep(Home_t *home)
 
 
 #if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-6Remesh");
+        GenerateOutput(home, STAGE_DEBUG, "-4Remesh");
 #endif
-/*
- *      Calculate the new plastic strain.
- */
-        DeltaPlasticStrain(home);
  //     DumpDeltaPlasticStrain(home, 6);
         DebugGB(home,9);
-        GenerateOutput(home, STAGE_CYCLE,"-1cycle");
         DebugGB(home,10);
 /*
 
@@ -564,8 +564,8 @@ void ParadisStep(Home_t *home)
  *      allocated memory blocks looking for corruption in any of the
  *      block headers or trailers.
  */
-#ifdef debug_mem
-        paradismemcheck();
+ #ifdef DEBUG_MEM
+         ParadisMemCheck();
 #endif
 
         CheckMemUsage(home, "ParadisStep-complete");
