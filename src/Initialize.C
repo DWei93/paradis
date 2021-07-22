@@ -589,7 +589,7 @@ void SetRemainingDefaults(Home_t *home)
         }
 #endif
 
-        param->timeNextGBCrossSlip = param->timeNow;
+        if(param->timeNow >= param->timeNextGBCrossSlip)param->timeNextGBCrossSlip = param->timeNow+param->dtGBCrossSlip/param->eRate;
 /*
  *      Now do some additional sanity checks.
  */
@@ -1824,7 +1824,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
             if(param->rmax>10*param->rTol){
                 param->rmax = 10.0*param->rTol;
             }
-
             if(home->myDomain == 0)printf("Forward Euler integrator: rmax = %g, minDT=%g rTol/vshr=%g\n", param->rmax,param->minDT,param->rTol/param->vshr);
         }
 
