@@ -4780,6 +4780,7 @@ real8 NodeLengthXMag(Home_t *home, Node_t *node)
     return(len);
 }
 
+#ifdef DEBUG_PLASTIC_STRAIN
 void SegDeltaPlasticStrain(Home_t *home, Node_t *node1, Node_t *node2, real8 *dpst, real8 *dpsp)
 {
     int j=GetArmID(node1, node2);
@@ -5039,3 +5040,4 @@ void DumpDeltaPlasticStrain(Home_t *home, int flag)
     }
     return;
 }
+#endif
