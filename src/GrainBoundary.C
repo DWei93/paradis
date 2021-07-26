@@ -3316,10 +3316,11 @@ real8 GlideShearStress(Home_t *home, Node_t *node, real8 *n){
 
     int numGlideConstraints;
     real8 nodeForce[3] = {node->fX, node->fY, node->fZ}, glideConstraints[3][3];
-
+#ifdef IMAGE_FORCE
     real8 imageForce[3];
     NodeImageForce(home, node, imageForce);
     CoordMinus(nodeForce, imageForce, nodeForce);
+#endif
     ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, nodeForce);
 
     if(Normal(nodeForce)<1E-1 || numGlideConstraints == 3)return 0.0;
@@ -3389,9 +3390,11 @@ real8 GlideShearStress(Home_t *home, Node_t *node){
     int numGlideConstraints;
     real8 nodeForce[3] = {node->fX, node->fY, node->fZ}, glideConstraints[3][3];
 
+#ifdef IMAGE_FORCE
     real8 imageForce[3];
     NodeImageForce(home, node, imageForce);
     CoordMinus(nodeForce, imageForce, nodeForce);
+#endif
     ApplyConstraintsToVelocity(numGlideConstraints, glideConstraints, nodeForce);
     if(Normal(nodeForce)<1E-1 || numGlideConstraints == 3)return 0.0;
 

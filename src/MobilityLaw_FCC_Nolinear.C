@@ -146,6 +146,27 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
         return 0;
     }
 
+#ifndef IMAGE_FORCE
+    real8 imageForce[3], imag, nmag, iDir[3], ndot;
+    NodeImageForce(home, node, imageForce); // nodal image force parallel to sement glide dirs
+    imag = Normal(imageForce);
+    if(imag > 1.0){ // if has image force
+        iDir[0] = imageForce[0]/imag;
+        iDir[1] = imageForce[1]/imag;
+        iDir[2] = imageForce[2]/imag;
+
+        ndot = DotProduct(nForce, iDir); // nodal force magitude along image force dir
+
+        if(ndot < -imag){ // if the dirs are oppsite and abs(ndot) > imag, add the image force
+            CoordAdd(nForce, imageForce, nForce);
+        }else if(ndot < 0){ // if the dirs are oppsite and image > abs(ndot), animate the force conponent along the image force dir
+            nForce[0] -= ndot*iDir[0];
+            nForce[1] -= ndot*iDir[1];
+            nForce[2] -= ndot*iDir[2];
+        }
+    }
+#endif
+
 /*
  *  v = v_max*(1 - exp(-k*tau))
  *                    drag coefficent                             back          force 
