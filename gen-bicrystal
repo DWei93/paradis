@@ -55,7 +55,7 @@ nGrains=2
 thick=`echo ${cubel}/${nGrains}| bc`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
 
-frlen=`echo "scale=5;(96.16723+${cubeln}*0.0595)/0.2556" | bc -l`
+frlen=`echo "scale=5;(88.07089+${cubeln}*0.05601)/0.2556" | bc -l`
 frlenMin=$frlen
 frlenn=`echo "scale=3;${frlen}*0.2556" | bc`
 maxSeg2=`echo ${frlen}/5 |bc `
@@ -63,7 +63,7 @@ srcLenType=0
 
 if [[ `echo "${maxSeg1}>${maxSeg2}" | bc` == "1" ]]; then maxSeg=$maxSeg2; echo "maxSge is equal to L_FR/10"; else maxSeg=$maxSeg1; fi
 
-maxDisDen=`echo "scale=5;1000000.0/${frlenn}/${frlenn}" | bc -l`
+maxDisDen=`echo "scale=5;1000000.0/${frlenn}/${frlenn}/5" | bc -l`
 maxDensity=${maxDisDen}E12;
 polycrystal=${1}
 single=${2}

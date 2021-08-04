@@ -3921,7 +3921,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                     nTDmax*tdLength/(cubeSize*cubeSize*burgMag), tdLength*0.2556, nTDmax);
 
                 for(chain=0;chain<nTDmax;chain++){
-                    kinkSize = real8(int(randm(&seed)*23.0)+2)*SHOCKLEY_BURG_MAG_FCC;
+                    kinkSize = real8(int(randm(&seed)*3.0)+2)*SHOCKLEY_BURG_MAG_FCC;
                     gpIndex = 3;
                     bd = &(gb->burgData);
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
@@ -3943,7 +3943,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                         b[0] += bd->burgList[gpBurgIndex][0];
                         b[1] += bd->burgList[gpBurgIndex][1];
                         b[2] += bd->burgList[gpBurgIndex][2];
-                        if(Normal(b)>kinkSize)break;
+                        if(Normal(b)>kinkSize+0.02)break;
                     }
                     if(Normal(b)<0.1)Fatal("%s: b<0.1",__func__);
 
