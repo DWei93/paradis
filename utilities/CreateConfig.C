@@ -3916,9 +3916,17 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                     tdLength = 0.333333*cubeSize;
                 }
 
-                nTDmax= MAX(1,int(totTDDisLen/tdLength));
-                if(onGB0==0)printf("rho_TD = %g m^-1, L_TD = %.0f nm, n_TD = %d\n", 
-                                    nTDmax*tdLength/(cubeSize*cubeSize*burgMag), tdLength*0.2556, nTDmax);
+                if(straSrc){
+                    nTDmax = int(round(totTDDisLen/cubeSize/2.0)); 
+                    nTDmax= MAX(1,nTDmax);
+                    if(onGB0==0)printf("rho_TD = %g m^-1, L_TD = %.0f nm, n_TD = %d\n", 
+                                        2*nTDmax*tdLength/(cubeSize*cubeSize*burgMag), cubeSize*0.2556, nTDmax*2);
+                }else{
+                    nTDmax = int(round(totTDDisLen/tdLength/2.0));
+                    nTDmax= MAX(1,nTDmax);
+                    if(onGB0==0)printf("rho_TD = %g m^-1, L_TD = %.0f nm, n_TD = %d\n", 
+                                        2*nTDmax*tdLength/(cubeSize*cubeSize*burgMag), tdLength*0.2556, nTDmax*2);
+                }
 
                 for(chain=0;chain<nTDmax;chain++){
                     kinkSize = real8(int(randm(&seed)*3.0)+2)*SHOCKLEY_BURG_MAG_FCC;
@@ -3943,7 +3951,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                         b[0] += bd->burgList[gpBurgIndex][0];
                         b[1] += bd->burgList[gpBurgIndex][1];
                         b[2] += bd->burgList[gpBurgIndex][2];
-                        if(Normal(b)>kinkSize+0.02)break;
+                        if(fabs(Normal(b)-kinkSize)<0.02 || Normal(b)-kinkSize>0.02)break;
                     }
                     if(Normal(b)<0.1)Fatal("%s: b<0.1",__func__);
 
@@ -3957,8 +3965,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                         p0[0] = (randm(&seed)-0.5) * cubeSize*0.99;
                         p0[1] = (randm(&seed)-0.5) * cubeSize*0.99;			
                         p0[2] = gb->p[2];
-                        if(straSrc){
-                            if(s==0){
+
+                        if(s==0){
+                            if(straSrc){
                                 VECTOR_ZERO(randomLine); 
                                 randomAngle = randm(&seed);
                                 if(randomAngle<0.25){randomLine[0]=-1.0; p0[0]=0.0;}
@@ -3966,17 +3975,16 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                 else if(randomAngle<0.75){randomLine[1]=-1.0; p0[1]=0.0;}
                                 else {randomLine[1]=1.0; p0[1]=0.0;}
                             }else{
-                                NegativeVector(randomLine, randomLine);
+                                randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
+                                randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
+                                for(i = 0; i < 3; i++){
+                                    randomLine[i] = n1[i] * sin(randomAngle) + bnorm[i] * cos(randomAngle);
+                                }
                             }
                         }else{
-                            if(s==1)break;
-                            randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
-                            randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
-                            for(i = 0; i < 3; i++){
-                                randomLine[i] = n1[i] * sin(randomAngle) + bnorm[i] * cos(randomAngle);
-                            }
+                            NegativeVector(randomLine, randomLine);
                         }
-                        
+
                         CoordAdd(1.0, p0,-tdLength*0.5,randomLine, p1);
                         CoordAdd(1.0, p0, tdLength*0.5,randomLine, p2);
                         totSrcLen += tdLength;
