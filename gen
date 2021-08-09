@@ -27,7 +27,6 @@ PI=3.1415926535897932385
 ctrlFile=input/Copper.ctrl
 logFile=input/CreateFR.log
 thickn=500
-if [ $# -gt 1 ] ; then thickn=$2; fi
 #frlen=`echo ${cubel}/2 | bc`
 poly=1
 nGrains=2
@@ -38,14 +37,33 @@ nfrs=18
 nMesh=41
 nfrsPerGrain=12000
 nTimesThick1=3
-eRate=5000
+eRate=50000
 sed -i "/^eRate/ceRate = $eRate" $ctrlFile
 nTimesThick2=3
-cubeln=`echo "${nGrains}*${thickn}" | bc`
-cubel=`echo "${cubeln}/0.2556" | bc`
 #nfrs=`echo "24*${nGrains}" | bc`
+nGrains=0 
+cubeln=0 
+gradient=1
+if [ $# -gt 1 ] ; then thickn=$2; fi
+p2=$3
+for t in `echo $p2 | sed "s/,/ /g"`; do 
+    if [[ `echo ${t} | grep "x"` == "" ]]; then 
+        nGrains=$t; 
+        cubeln=`echo "${thickn}*${nGrains}" | bc`; 
+        gradient=0;  
+        break; 
+    fi; 
+    lt=`echo $t | cut -d "x" -f 1`; 
+    ng=`echo $t | cut -d "x" -f 2`; 
+    cubeln=`echo "${cubeln}+${ng}*${lt}*${thickn}" | bc`; 
+    nGrains=`echo "${nGrains}+${ng}" | bc`; 
+done; 
+echo "nGrains=$nGrains, cublen=${cubeln}"
+
+cubel=`echo "${cubeln}/0.2556" | bc`
+thick=`echo ${thickn}/0.2556 | bc`
+
 nfrs=`echo "${nfrsPerGrain}*${nGrains}" | bc`
-thick=`echo ${cubel}/${nGrains}| bc`
 frlen=`echo ${thick}*${nTimesThick1} | bc`,`echo ${thick}*${nTimesThick2} | bc`
 frlen=3
 
@@ -54,15 +72,13 @@ maxSeg2=`echo ${thick}/4 | bc `
 if [ ${maxSeg1} -gt ${maxSeg2} ]; then maxSeg=${maxSeg2}; else maxSeg=${maxSeg1}; fi
 rTol=`echo "scale=7;${maxSeg}*sqrt(2)/32" | bc -l`
 rc=`echo "scale=7;0.1+4.0*${rTol}" | bc -l`
-thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
 
-#maxDensity=`echo "scale=5;480/${thickn}" |bc -l`E13
 maxDensity=5.0E13
 #tdDensity=-1
 
 minDT=`echo "scale=3; 3.0*${rTol}/0.63771517" | bc`E-13
 
-echo "Thickness=$thick b, $thickn nm, ${nGrains} grains,  maxSeg=${maxSeg}b, rTol =$rTol, minDT=$minDT, maxDensity=$maxDensity, rc=$rc"
+echo "Minimum thickness=$thick b, $thickn nm, ${nGrains} grains,  maxSeg=${maxSeg}b, rTol =$rTol, minDT=$minDT, maxDensity=$maxDensity, rc=$rc"
 sed -i "/grainSize/cgrainSize = ${thick}" ${ctrlFile}
 sed -i "/^rTol =/crTol = ${rTol}" $ctrlFile
 sed -i "/^rc =/crc = ${rc}" $ctrlFile
@@ -79,10 +95,9 @@ amu=90
 polar=90
 point=23
 
-if [[ $# -ge 4 ]]; then 
-    nGrains=$4; 
-    tdDensity=2.0E6
-    tdLength=3
+if [[ ${gradient} -ge "1" ]]; then 
+    tdDensity=3.0E6
+    tdLength=$frlen
 else
     tdDensity=-1
     tdLength=`echo "scale=3;$thick" | bc -l`
@@ -159,11 +174,11 @@ case $srctype in
 ######################################################################################
     4|IV)
     info=`echo "./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed  -tdDensity ${tdDensity} \
-    -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} \
+    -polycrystal ${poly} -nGrain ${3}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} \
     -tdLength $tdLength"`
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -tdDensity ${tdDensity}  -tdLength $tdLength \
-    -polycrystal ${poly} -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} | tee $logFile ;
+    -polycrystal ${poly} -nGrain ${3}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} | tee $logFile ;
 
     echo "$info"
     echo "$info" >> $logFile;;
@@ -193,7 +208,7 @@ esac
 percentage=`cat $logFile | grep "%" | cut -d "%" -f 1`
 finish=`echo "${percentage}>5.0" | bc`
 if [[ ${finish} -eq 0 ]] ; 
-    then ./gen $point $thickn $nGrains; 
+    then ./gen $1 $2 $3; 
 else
     nodeCount=`cat $logFile | grep "Total node count" | cut -d ":" -f 2`
     if [[ `echo "${nodeCount}>8000" | bc` -eq 1 ]] ; then ncells=16;

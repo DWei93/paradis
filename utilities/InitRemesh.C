@@ -111,7 +111,9 @@ void InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex)
 				dx = nodeB->x - nodeA->x; 
 				dy = nodeB->y - nodeA->y; 
 				dz = nodeB->z - nodeA->z; 
-//  			ZImage(param,&dx,&dy,&dz);
+                if(dx*dx+dy*dy+dz*dz>param->xBoundMax*param->xBoundMax*1.1){
+    			    ZImage(param,&dx,&dy,&dz);
+    			}
 				r2 = dx*dx + dy*dy + dz*dz;
 				if (r2 > maxSeg2 *lamp*lamp) {
 					r = sqrt(r2);
@@ -173,7 +175,9 @@ void InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex)
                 Fatal("1: {%g,%g,%g}--{%g,%g,%g}\n",nodeA->x,nodeA->y,nodeA->z,nodeB->x,nodeB->y,nodeB->z);
             }
 #endif
-//  		ZImage(param,&dx,&dy,&dz);
+            if(dx*dx+dy*dy+dz*dz>param->xBoundMax*param->xBoundMax*1.1){
+    		    ZImage(param,&dx,&dy,&dz);
+    		}
 #if 0
             ls[0]=dx; ls[1]=dy; ls[2]=dz;  normalize_vec(ls);
             if(!PerpendicularDirection(ls,normal)){
