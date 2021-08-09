@@ -248,6 +248,14 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
                     param->tecmeshcounter++;
                     *outputTypes |= GEN_TECMESH_DATA;
                 }
+#ifdef CAC_STRESS_FIELD
+                if (home->cycle == param->cycleStart+1){
+                    *outputTypes |= GEN_TECMESH_DATA;
+                    if(home->myDomain==0)printf("out stress field v\n");
+                }else{
+                    if(home->myDomain==0)printf("out stress fieldi x\n");
+                }
+#endif
             }
         }
 /*

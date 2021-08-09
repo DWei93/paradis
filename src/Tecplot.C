@@ -771,6 +771,9 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 
     real8     *layerPosz;
 
+#ifdef CAC_STRESS_FIELD
+    real8 stress[3][3], x, y, z;
+#endif
     int       numNbrEle[8];
 	param      = home->param;
 
@@ -967,8 +970,13 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
                    param->totTwinpStn[4]*(an*bl+al*bn)+
                    param->totTwinpStn[5]*(al*bm+bl*am);
 	
+#ifdef CAC_STRESS_FIELD
+	    fprintf(fpEle, "Variables = \"X\", \"Y\", \"Z\",\"plaStn"
+				"\", \"disDen\", \"sxx\", \"syy\", \"szz\", \"syz\", \"sxz\", \"sxy\"\n"); 
+#else
 	    fprintf(fpEle, "Variables = \"X\", \"Y\", \"Z\",\"plaStn"
 				"\",\"disDen\"\n"); 
+#endif
 	    fprintf(fpEle, "Zone T = \"%d\", SOLUTIONTIME = %d, I = %d, J = %d, K = %d\n",
 				home->cycle, home->cycle,  meshNodeNumX, meshNodeNumY, meshNodeNumZ); 
         val = fabs((param->loadType!=4)?param->eRate*param->timeNow*1.0E2:param->netCyclicStrain*1.0E2);
@@ -1021,10 +1029,21 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
             nodeContour[i][0]=nodeContour[j][0];
             nodeContour[i][1]=nodeContour[j][1];
 			
+#ifdef CAC_STRESS_FIELD
+            x=nx*eleLx-Lx/2.0;
+            y=ny*eleLy-Ly/2.0;
+            z=(nz==0?-Lz/2:layerPosz[nz-1]);
+            GetFieldPointStress(home, x, y, z, stress);
+			fprintf(fpEle,"%.2f %.2f %.2f %.2g %.2g %.2g %.2g %.2g %.2g %.2g %.2g\n",
+                    x, y, z,
+					nodeContour[i][0],nodeContour[i][1],
+                    stress[0][0]/1.0E6,stress[1][1]/1.0E6,stress[2][2]/1.0E6,
+                    stress[1][2]/1.0E6,stress[0][2]/1.0E6,stress[0][1]/1.0E6);
+#else
 			fprintf(fpEle,"%.2f %.2f %.2f %.2g %.2g\n",
 					nx*eleLx-Lx/2, ny*eleLy-Ly/2,nz==0?-Lz/2:layerPosz[nz-1],
 					nodeContour[i][0],nodeContour[i][1]);
-
+#endif
 	    }
 
 	    fclose(fpEle);
