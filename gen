@@ -76,7 +76,7 @@ rc=`echo "scale=7;0.1+4.0*${rTol}" | bc -l`
 maxDensity=5.0E13
 #tdDensity=-1
 
-minDT=`echo "scale=3; 3.0*${rTol}/0.63771517" | bc`E-13
+minDT=`echo "scale=3; 1.0*${rTol}/0.63771517" | bc`E-13
 
 echo "Minimum thickness=$thick b, $thickn nm, ${nGrains} grains,  maxSeg=${maxSeg}b, rTol =$rTol, minDT=$minDT, maxDensity=$maxDensity, rc=$rc"
 sed -i "/grainSize/cgrainSize = ${thick}" ${ctrlFile}

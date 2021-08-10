@@ -111,7 +111,7 @@ void InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex)
 				dx = nodeB->x - nodeA->x; 
 				dy = nodeB->y - nodeA->y; 
 				dz = nodeB->z - nodeA->z; 
-                if(dx*dx+dy*dy+dz*dz>param->xBoundMax*param->xBoundMax*1.1){
+                if(nodeA->constraint == UNCONSTRAINED && nodeB->constraint == UNCONSTRAINED ){
     			    ZImage(param,&dx,&dy,&dz);
     			}
 				r2 = dx*dx + dy*dy + dz*dz;
@@ -175,7 +175,7 @@ void InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex)
                 Fatal("1: {%g,%g,%g}--{%g,%g,%g}\n",nodeA->x,nodeA->y,nodeA->z,nodeB->x,nodeB->y,nodeB->z);
             }
 #endif
-            if(dx*dx+dy*dy+dz*dz>param->xBoundMax*param->xBoundMax*1.1){
+            if(nodeA->constraint == UNCONSTRAINED && nodeB->constraint == UNCONSTRAINED ){
     		    ZImage(param,&dx,&dy,&dz);
     		}
 #if 0
