@@ -286,7 +286,12 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 		        fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,index, dom, id, native\n");
 		        fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
 	        }else{
-		        fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_sf, tau_ext,ifMag, velocity, burgMag, velx, vely, velz\n");
+		        fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_sf, tau_ext,ifMag, velocity");
+                if(param->multilayer){
+                    fprintf(fp,", burgMag, velx, vely, velz\n");
+                }else{
+                    fprintf(fp,"\n");
+                }
                 val = param->timeNow*1.0E9;
 		        fprintf(fp, "zone T = \"%d\", SOLUTIONTIME = %d,  F=POINT\n", home->cycle, home->cycle); 
                 val = fabs((param->loadType!=4)?param->eRate*param->timeNow*1.0E2:param->netCyclicStrain*1.0E2);
@@ -553,18 +558,24 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                             x,y,z,prx/2,pry/2,prz/2,velocity,narm,node->inGrain,node->onGB,burgID,normalID,constraint,
                             index, node->myTag.domainID, node->myTag.index);
 	            }else{
-                    fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g %g %g %g %g\n", 
+                    fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g", 
                             x,y,z,prx/2,pry/2,prz/2,
                             narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                            index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag, bMag, velx, vely, velz);
-                    if(imageSeg){
-                        if(fabs(fabs(z)-param->zBoundMax)<1){
-                            shift = z<0?param->Lz:-param->Lz;
-                            fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g %g %g %g %g\n", 
-                                x,y,z+shift,prx/2,pry/2,prz/2,
-                                narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                                index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag, bMag, velx, vely, velz);
+                            index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag);
+
+                    if(param->multilayer){
+                        fprintf(fp," %g %g %g %g\n", bMag, velx, vely, velz);
+                        if(imageSeg){
+                            if(fabs(fabs(z)-param->zBoundMax)<1){
+                                shift = z<0?param->Lz:-param->Lz;
+                                fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g %g %g %g %g\n", 
+                                    x,y,z+shift,prx/2,pry/2,prz/2,
+                                    narm,node->inGrain,node->onGB,burgID,normalID,constraint,
+                                    index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag, bMag, velx, vely, velz);
+                            }
                         }
+                    }else{
+                        fprintf(fp,"\n");
                     }
 	        }
 #endif	
