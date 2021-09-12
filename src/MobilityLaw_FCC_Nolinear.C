@@ -304,32 +304,6 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
 
             if((DotProduct(m,m) < 1.0E-2) || ((GetPlaneType_FCC(home, node, nbrNode)& GLIDE_PLANE)==0)){
 	            Matrix33Init(Bi);
-
-/*
- *              line velocity along line sense
- */
-                if(DotProduct(nForce,d)<0){d[0]=-d[0];d[1]=-d[1];d[2]=-d[2];}
-                ParallelComponent(vTest, d, vgTest); vgMag=Sign(DotProduct(vgTest,d))*Normal(vgTest);
-                if(!partialBurg){
-                    bs = B(ks/bMag,vs_max,vs_max_c,vgMag);
-                    sbForceMag = FBack(ks/bMag,vs_max,vs_max_c,bs,vgMag);
-                    
-                    be = B(ke/bMag,ve_max,ve_max_c,vgMag);
-                    ebForceMag = FBack(ke/bMag,ve_max,ve_max_c,be,vgMag);
-                }else{
-                    bs = B(kts,vts_max,vts_max_c,vgMag);
-                    sbForceMag = FBack(kts,vts_max,vts_max_c,bs,vgMag);
-                    
-                    be = B(kte,vte_max,vte_max_c,vgMag);
-                    ebForceMag = FBack(kte,vte_max,vte_max_c,be,vgMag);
-                }
-                Bline = bs*costheta2+be*sintheta2; bForceMag = sbForceMag*costheta2 + ebForceMag*sintheta2;
-                bForce[0] = halfMag*bForceMag*d[0];
-                bForce[1] = halfMag*bForceMag*d[1];
-                bForce[2] = halfMag*bForceMag*d[2];
-
-                BlmBecl = Bline - Beclimb;
-
                 if (numNbrs == 2) {
 /*
  *                  junction nonphysical node: B = Beclimb * I2
@@ -337,7 +311,34 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
                     Bi[0][0] = halfMag * Beclimb;
                     Bi[1][1] = halfMag * Beclimb;
                     Bi[2][2] = halfMag * Beclimb;
+                    VECTOR_ZERO(bForce);
                 } else {
+
+/*
+ *                  line velocity along line sense
+ */                 
+                    if(DotProduct(nForce,d)<0){d[0]=-d[0];d[1]=-d[1];d[2]=-d[2];}
+                    ParallelComponent(vTest, d, vgTest); vgMag=Sign(DotProduct(vgTest,d))*Normal(vgTest);
+                    if(!partialBurg){
+                        bs = B(ks/bMag,vs_max,vs_max_c,vgMag);
+                        sbForceMag = FBack(ks/bMag,vs_max,vs_max_c,bs,vgMag);
+                        
+                        be = B(ke/bMag,ve_max,ve_max_c,vgMag);
+                        ebForceMag = FBack(ke/bMag,ve_max,ve_max_c,be,vgMag);
+                    }else{
+                        bs = B(kts,vts_max,vts_max_c,vgMag);
+                        sbForceMag = FBack(kts,vts_max,vts_max_c,bs,vgMag);
+                        
+                        be = B(kte,vte_max,vte_max_c,vgMag);
+                        ebForceMag = FBack(kte,vte_max,vte_max_c,be,vgMag);
+                    }
+                    Bline = bs*costheta2+be*sintheta2; bForceMag = sbForceMag*costheta2 + ebForceMag*sintheta2;
+                    bForce[0] = halfMag*bForceMag*d[0];
+                    bForce[1] = halfMag*bForceMag*d[1];
+                    bForce[2] = halfMag*bForceMag*d[2];
+                    
+                    BlmBecl = Bline - Beclimb;
+
 /*
  *                  junction physical node: B = Beclimb*(I2-lineTensor) + Bline*lineTensor
  */
