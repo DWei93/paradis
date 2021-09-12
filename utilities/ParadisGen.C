@@ -159,7 +159,8 @@ Option_t optList[OPT_MAX] = {
         {OPT_TD_LENGTH, "tdLength",  3, 1},
         {OPT_TD_DENSITY, "tdDensity", 3, 1},
         {OPT_FORCE_DISTRIBUTION,        "forceDis",         3, 1},
-        {OPT_ALLOW_SINGLE_SRCS,        "allowSingleSrcs",   3, 1}
+        {OPT_ALLOW_SINGLE_SRCS,        "allowSingleSrcs",   3, 1},
+        {OPT_KINK_SIZE,        "kinkSize",   3, 1}
 
 
 };
@@ -434,6 +435,8 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->tdDensity = -1;
         inArgs->tdLength = -1;
         inArgs->allowSingleSrcs = false;
+        inArgs->minKinkSize = 2.0;
+        inArgs->maxKinkSize = 5.0;
 		snprintf(inArgs->outFile, sizeof(inArgs->outFile), "InitialAnalysis.dat");
 		snprintf(inArgs->gradientStructure, sizeof(inArgs->gradientStructure), "0");
 
@@ -1006,7 +1009,16 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                 case OPT_ALLOW_SINGLE_SRCS:
                     inArgs->allowSingleSrcs = atoi(argValue)>0?true:false;
                         break;
-            
+                case OPT_KINK_SIZE:
+                    token = strtok(argValue, ",");
+                    inArgs->minKinkSize = atof(token);
+                    token = strtok(NULL, ",");
+                    if (token == (char *)NULL) {
+                        inArgs->maxKinkSize = inArgs->minKinkSize;
+                        break;
+                    }
+                    inArgs->maxKinkSize = atof(token);
+                        break;
             }
         }
 

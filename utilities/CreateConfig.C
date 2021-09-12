@@ -3236,6 +3236,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                         bd = &(gb->burgData);
                         PointPlaneDistance(p1, gb->n, gb->p, dis, p1);
                         inGrain1 = -1; onGB1 = gb->GBID;
+                        if(inArgs->gb == true && onGB1 == home->nGBs-1 && inArgs->gradientStructure[0] != '0')continue;
                     }else if(gpIndex!=3){
                         if(inArgs->polycrystal ==1 && (inGrain1%2)!=slip_sys[ranNum][2]) continue;
                     }
@@ -3892,7 +3893,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                 chain, chain/home->nGrains, primarySrcLen*100/totSrcLen);
 
 
-        if(inArgs->tdDensity>0 && nSlips>20){
+        if(inArgs->tdDensity>0){
             real8 totDisLen = maxDensity*volume*burgMag*burgMag;
             real8 totTDDisLen = inArgs->tdDensity*cubeSize*cubeSize*burgMag;
             real8 tdLength;
@@ -3900,8 +3901,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
             real8 lamp;
             int nTDmax;
             bool straSrc=false;
+            printf("Kink size: %f-%f bp\n",inArgs->minKinkSize, inArgs->maxKinkSize);
 
-            for(onGB0=0;onGB0<home->nGBs;onGB0++){
+            for(onGB0=0;onGB0<((inArgs->gb==true)?home->nGBs-1:home->nGBs);onGB0++){
                 inGrain0 = -1; 
                 gb = home->GBKeys[onGB0];
 
@@ -3929,7 +3931,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                 }
 
                 for(chain=0;chain<nTDmax;chain++){
-                    kinkSize = real8(int(randm(&seed)*3.0)+2)*SHOCKLEY_BURG_MAG_FCC;
+                                    srcLen = (srcLenMin + (randm(&seed) * lenRange));
+                    kinkSize = (ceil(randm(&seed)*(inArgs->maxKinkSize-inArgs->minKinkSize)) + inArgs->minKinkSize)*SHOCKLEY_BURG_MAG_FCC;
                     gpIndex = 3;
                     bd = &(gb->burgData);
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);

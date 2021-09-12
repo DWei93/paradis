@@ -21,8 +21,9 @@
 #                    
 ######################################################################################
 
-core=1.0
+core=0.1
 mu=48.0
+kinkSize=1,5
 PI=3.1415926535897932385
 ctrlFile=input/Copper.ctrl
 logFile=input/CreateFR.log
@@ -32,12 +33,12 @@ poly=1
 nGrains=2
 if [ $# -gt 2 ] ; then nGrains=$3; fi
 nTDs=1
-gb=0
+gb=1
 nfrs=18
 nMesh=41
 nfrsPerGrain=12000
 nTimesThick1=3
-eRate=50000
+eRate=5000
 sed -i "/^eRate/ceRate = $eRate" $ctrlFile
 nTimesThick2=3
 #nfrs=`echo "24*${nGrains}" | bc`
@@ -98,6 +99,8 @@ point=23
 if [[ ${gradient} -ge "1" ]]; then 
     tdDensity=3.0E6
     tdLength=$frlen
+    tdDensity=-1
+    tdLength=-1
 else
     tdDensity=-1
     tdLength=`echo "scale=3;$thick" | bc -l`
@@ -175,10 +178,10 @@ case $srctype in
     4|IV)
     info=`echo "./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed  -tdDensity ${tdDensity} \
     -polycrystal ${poly} -nGrain ${3}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} \
-    -tdLength $tdLength"`
+    -tdLength $tdLength -kinkSize ${kinkSize}"`
 
     ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -tdDensity ${tdDensity}  -tdLength $tdLength \
-    -polycrystal ${poly} -nGrain ${3}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} | tee $logFile ;
+    -polycrystal ${poly} -nGrain ${3}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} -kinkSize ${kinkSize} | tee $logFile ;
 
     echo "$info"
     echo "$info" >> $logFile;;

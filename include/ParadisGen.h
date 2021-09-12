@@ -59,6 +59,8 @@ typedef struct {
         real8   tdLength;
         bool    forceDis;
         bool    allowSingleSrcs;
+        real8   minKinkSize;
+        real8   maxKinkSize;
 }InArgs_t;
 
 /*
@@ -179,6 +181,7 @@ typedef	enum{
     OPT_TD_DENSITY,
     OPT_FORCE_DISTRIBUTION,
     OPT_ALLOW_SINGLE_SRCS,
+    OPT_KINK_SIZE,
 	OPT_MAX
 	
 }ParadisGenArgs_t;
