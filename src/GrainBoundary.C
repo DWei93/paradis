@@ -1702,7 +1702,7 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce)
 inline bool ChangeGBConstraint(Home_t *home, Node_t *node, real8 *n){
     if(GBIntersectNode(home, node))return false;
 
-    real8 fGlide = fabs(GlideShearStress(home, node, n));
+    real8 fGlide = fabs(GlideShearStress(home, node));
     fGlide *=((dot_product(node->fX,node->fY,node->fZ,n[0],n[1],n[2])>0)?1.0:-1.0);
     if(fGlide > home->param->gbStrength || fGlide<0){
         node->constraint =0;
@@ -1759,7 +1759,7 @@ void ApplyPosConstraint(Home_t *home, Node_t *node){
                 if(pos[2]>0){n[2]=1; p[2]=param->zBoundMax-a;}else{n[2]=-1; p[2]=param->zBoundMin+a;}
             }
                 
-            fGlide = GlideShearStress(home, node, n);
+            fGlide = GlideShearStress(home, node);
             if(fGlide < param->gbStrength){
                 if(SegmentPlaneIntersection(pos,oldPos,n,p,interPos)!=POINT_INTERSECTION){
                     VECTOR_COPY(interPos,oldPos);
@@ -2724,7 +2724,7 @@ void GBCrossSlip(Home_t *home)
             vec[1] = node->fY;
             vec[2] = node->fZ;
             NormalComponent(vec, normal, glideForce0);
-//          oriShear = fabs(GlideShearStress(home,node,normal);
+            oriShear = fabs(GlideShearStress(home,node, gb->n));
 
 		    SetOneNodeForce(home, node);
             EvaluateMobility(home, node);
@@ -2744,6 +2744,8 @@ void GBCrossSlip(Home_t *home)
                         continue;
                     }
                 }
+            }else{
+                oriShear = 0.0;
             }
 
             maxShearList.resize(disArray.size());
@@ -2887,7 +2889,7 @@ void GBCrossSlip(Home_t *home)
                 }
             }
 
-            if(maxShearSet == -1 || energySet<0){
+            if(maxShearSet == -1 || energySet<0 || maxShear > oriShear+noiseForce){
                 RestoreCrossSlipForce(node, nbr1, nbr2, 0,
                                       1, segForceOrig);
 	            RepositionNode(home, nodePos, &node->myTag, 0);
