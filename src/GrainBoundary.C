@@ -2889,7 +2889,7 @@ void GBCrossSlip(Home_t *home)
                 }
             }
 
-            if(maxShearSet == -1 || energySet<0 || maxShear > oriShear+noiseForce){
+            if(maxShearSet == -1 || energySet<0 || maxShear < oriShear+noiseForce){
                 RestoreCrossSlipForce(node, nbr1, nbr2, 0,
                                       1, segForceOrig);
 	            RepositionNode(home, nodePos, &node->myTag, 0);
