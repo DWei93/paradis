@@ -29,6 +29,7 @@
 #include <vector>
 #include <algorithm>
 #include <numeric>
+#include <string>
 
 void ExtPKForce(real8 str[3][3],
                 real8 bx, real8 by, real8 bz,
@@ -2731,40 +2732,37 @@ void ProbeFreePath(real8 *p1, real8 *p2, std::vector<real8> &vertices, std::vect
     dPoint[1]=-1; dPoint[2]=-1; dPoint[3]=-1; dPoint[4]=-1;
     real8 p[2][3]={{p1[0],p1[1],p1[2]},{p2[0],p2[1],p2[2]}};
     real8 lp1[3], lp2[3], ldir[3], lp[3], dis, vec[3];
-    real8 d[2];
+    real8 d[2], dsf[2]={-1,-1}, dpb[2]={-1,-1}, dtb[2]={-1,-1};
     VECTOR_ZERO(tbInterDir); VECTOR_ZERO(tbInterPos);
-    for (int i=0; i<types.size();i++){
-        type = types[i];
-        d[0]=-1; d[1]=-0.0;
-        for(int j=0;j<2;j++){
+    d[0]=-1; d[1]=-0.0;
+    for(int j=0;j<2;j++){
+        for (int i=0; i<types.size();i++){
+            type = types[i];
             Coordinate(vertices,i,lp1);
             Coordinate(vertices,(i==types.size()-1)?0:i+1,lp2);
             CoordAdd(0.5,lp1,0.5,lp2,lp);
             CoordMinus(lp2,lp1,ldir);
             if(Normal(ldir)<1E-5)continue;
             NormalizeVec(ldir);
-            PointLineIntersection(p[j], ldir, lp, vec, &dis); 
-            if(d[0]<0){d[0]=dis;}else if(d[0]<dis){d[1]=dis;}else{d[1]=d[0];d[0]=dis;} //min
-        }
-        if(type==0){
-            if(dPoint[1]<0){dPoint[1]=d[1];}else if(dPoint[1]>d[1]){dPoint[1]=d[1];}
-        }else if(type==1){
-            if(dPoint[2]<0){dPoint[2]=d[1];}else if(dPoint[2]>d[1]){dPoint[2]=d[1];}
-        }else if(type==2){
-            if(dPoint[4]<0){
-                dPoint[4]=d[1]; dPoint[3]=d[0];
+//          dis = fabs(PointSegmentDistance(p[j], lp1, lp2));
+            PointLineIntersection(p[j], ldir, lp, vec, &dis);
+            dis=fabs(dis);
+            if(dis<1E-5)continue;
+            if(type == 1 ){
+                if(dsf[j]<0) dsf[j]=dis; else if(dsf[j]>dis)dsf[j]=dis; 
+            }else if (type ==0){
+                if(dpb[j]<0) dpb[j]=dis; else if(dpb[j]>dis)dpb[j]=dis; 
+            }else if(type ==2){
+                if(dtb[j]<0) dtb[j]=dis; else if(dtb[j]>dis)dtb[j]=dis; 
                 VECTOR_COPY(tbInterDir, ldir);
                 VECTOR_COPY(tbInterPos, lp);
-            }else if(dPoint[4]-d[1]>1E-3){
-                dPoint[4]=d[1]; dPoint[3]=d[0];
-                VECTOR_COPY(tbInterDir, ldir);
-                VECTOR_COPY(tbInterPos, lp);
-            }else if(dPoint[4]-d[1]>-1E3 && dPoint[3]>d[0]){
-                dPoint[4]=d[1]; dPoint[3]=d[0];
-                VECTOR_COPY(tbInterDir, ldir);
-                VECTOR_COPY(tbInterPos, lp);
+             // if(d[0]<0){d[0]=dis;}else if(d[0]<dis){d[1]=dis;}else{d[1]=d[0];d[0]=dis;} //min
             }
         }
+        dPoint[1] = MAX(dPoint[1], MAX(dpb[0],dpb[1]));
+        dPoint[2] = MAX(dPoint[2], MAX(dsf[0],dsf[1]));
+        dPoint[3] = MAX(dPoint[3], MIN(dtb[0],dtb[1]));
+        dPoint[4] = MAX(dPoint[4], MAX(dtb[0],dtb[1]));
     }
     return;
 }
@@ -2777,6 +2775,7 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
     //dPoint[7], dPoint[8]: Schmid factor of twinning dislocations
     Param_t *param = home->param;
     int inGrain, onGB;
+    real8 bMag;
     NodeLocation(home, lp[0],lp[1],lp[2], inGrain, onGB);
     if(onGB<0)Fatal("%s: somthing wrong with intersection line {%f,%f,%f} -- {%f,%f,%f}",__func__,ldir[0],ldir[1],ldir[2],lp[0],lp[1],lp[2]);
 
@@ -2811,15 +2810,16 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
                 VECTOR_COPY(b1,(*bl)[disArray[set][disl].burgID]);
                 VECTOR_COPY(n1,bd->planeList[disArray[set][disl].planeID]);
                 ExtPKForce(str, b1[0], b1[1], b1[2], lp[0],lp[1],lp[2], lp2[0], lp2[1], lp2[2], f3, f4);
+                bMag = Normal(b1);
                 NormalComponent(f4,n1,f3);
                 if(set==0){
                     if(BurgType_FCC(b1)==BASIC_BURG){
-                        if(DotProduct(f3,f1)>=0){dPoint[6]=2.0*Normal(f3);}
+                        if(DotProduct(f3,f1)>=0){dPoint[6]=2.0*Normal(f3)/bMag;}
                         else{
                             dPoint[6]=0;
                         }
                     }else{
-                        dPoint[7]=2.0*Normal(f3)*sqrt(3);
+                        dPoint[7]=2.0*Normal(f3)/bMag;
                     }
                 }
             }
@@ -2830,12 +2830,19 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
                 VECTOR_COPY(b1,(*bl)[disArray[set][disl].burgID]);
                 VECTOR_COPY(n1,bd->planeList[disArray[set][disl].planeID]);
                 ExtPKForce(str, b1[0], b1[1], b1[2], lp[0],lp[1],lp[2], lp2[0], lp2[1], lp2[2], f3, f4);
+                bMag = Normal(b1);
                 NormalComponent(f4,n1,f3);
                 if(set==0){
-                    if(disl==0)dPoint[7]=2.0*Normal(f3)*sqrt(3); else dPoint[8]=2.0*Normal(f3)*sqrt(3);
+                    if(disl==0)dPoint[7]=2.0*Normal(f3)/bMag; else {
+                        dPoint[8]=2.0*Normal(f3)/bMag;
+                        NormalComponent(f2,n1,f3);
+                        dPoint[18]= 2.0*Normal(f3)/bMag;
+                    }
                 }else if(set==1){
                     if(disl==0){
-                        if(DotProduct(f3,f1)>=0){dPoint[6]=2.0*Normal(f3);}
+                        if(DotProduct(f3,f1)>=0){
+                            dPoint[6]=2.0*Normal(f3)/bMag;
+                        }
                         else{
                             dPoint[6]=0;
                         }
@@ -2897,7 +2904,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         normalABC[2] = 1;
 
 #if     INITIAL_ANALYSIS
-        std::vector<real8> vertices, neiVertices, dPoint(17), info(21);
+        std::vector<real8> vertices, neiVertices, dPoint(19), info(21);
         std::vector<std::vector<real8> > data;
         std::vector<int> types, neiTypes, f_vert, neiF_vert;
         real8 tbInterDir[3], tbInterPos[3];
@@ -2905,6 +2912,10 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         if((fp = fopen(inArgs->outFile, "w")) == (FILE *)NULL){Fatal("can not open file %s", inArgs->outFile);}
         if((fp1 = fopen("glide-planes.plt", "w")) == (FILE *)NULL){Fatal("can not open file %s", "glide-planes.plt");}
         fprintf(fp1,"variables = x, y, z, inGrain, onGB, burgID, planeID, lfr, dpb, dsb, dtb1, dtb2, si, so, std1, std2, areai, areao, bx, by, bz, nx, ny, nz\n");
+        std::string f(inArgs->outFile);
+        if(std::string::npos != f.rfind("plt")){
+            fprintf(fp,"variables = frlength, md_pbs, md_fs, md_TB1, md_TB2, sfi, sfo, sftd1, sftd2, areai, areao, bx, by, bz, nx, ny, nz, cosbeta, sftd\n");
+        }
 #endif
 
 /*
@@ -2946,7 +2957,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         real8 n3[3];
         bool zload = false;
 
-        if((burgID >-1 && planeID > -1)){singleSrcTest = 1; numSources = 1;}
+        if((burgID >-1 && planeID > -1)){singleSrcTest = 1;}
         	
         if(singleSrcTest){
             VECTOR_COPY(p0,inArgs->pos);
@@ -3191,6 +3202,10 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                     RandomPosition:
                     if(singleSrcTest){
                         VECTOR_COPY(p1,inArgs->pos);
+                        if(numSources>1){
+                            real8 tk= heightSize/real8(numSources);
+                            p1[2] = ((real8)chain) * tk - 0.5*heightSize  + 0.5*tk;
+                        }
                     }else{
                         p1[0] = (randm(&seed)-0.5) * cubeSize*0.99;
                         p1[1] = (randm(&seed)-0.5) * cubeSize*0.99;			
@@ -3561,7 +3576,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                 dPoint[9]=AreaOfPolygon(f_vert, vertices, 0)/volume/burgMag; // area of original glide plane
                 dPoint[11]=b[0]; dPoint[12]=b[1]; dPoint[13]=b[2]; 
                 dPoint[14]=n0[0]; dPoint[15]=n0[1]; dPoint[16]=n0[2]; 
-                
+                dPoint[17] = cos(randomAngle); dPoint[18]=-1; // TB schmmid factors
+     
                 if(dPoint[4]>=1E-4){
                     ProbeScmidFactors(home, str, tbInterDir, tbInterPos, b, n0, dPoint);
                     snprintf(zoneName,sizeof(zoneName),"NeiGrain-%d.%d",baseNodeID,inGrain0);
