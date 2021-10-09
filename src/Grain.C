@@ -4857,9 +4857,13 @@ void GlidePlaneOfDislocation(Home_t *home, real8 *n, real8 *p, std::vector<real8
     FoldBox(param, p, p+1,p+2);
     std::vector<std::vector<real8> > locVertices;
     PlaneBoxIntersections(param, n,p, locVertices, types);
+    if(types.size()==0)Fatal("can not find intersections of the glide plane");
     std::vector<int> typesBak(types.size());
     std::vector<std::vector<real8> > newVertices; std::vector<int> newTypes;
-    if(param->polycrystal==0){
+    int inGrain, onGB, type;
+    NodeLocation(home, p[0], p[1], p[2], inGrain, onGB);
+
+    if(param->polycrystal==0 || inGrain<0 ||  AlignedVector(n, param->TBNormal)){
         vertices.resize(locVertices.size()*3);
         f_vert.resize(locVertices.size()+1);
         f_vert[0]=locVertices.size();
@@ -4878,10 +4882,6 @@ void GlidePlaneOfDislocation(Home_t *home, real8 *n, real8 *p, std::vector<real8
         }
         return;
     }
-    for(int i=0;i<types.size();i++)typesBak[i]=types[i];
-    int inGrain, onGB, type;
-    NodeLocation(home, p[0], p[1], p[2], inGrain, onGB);
-    if(inGrain<0)return;
 
     Grain_t *grain = home->grainKeys[inGrain];
     GB_t *gb; real8 pgb[3], ngb[3], p1[3],p2[3],vec[3];
@@ -4930,7 +4930,11 @@ void GlidePlaneOfDislocation(Home_t *home, real8 *n, real8 *p, std::vector<real8
             }
         }
     }
-    if(types.size()==0)Fatal("types.size==0");
+    if(types.size()==0){
+        FormatVector(n,"n");
+        FormatVector(p,"p");
+        Fatal("types.size==0, box [%f,%f,%f]",param->xBoundMax, param->yBoundMax, param->zBoundMax);
+    }
     bool allOnTB=true;
     for(int i=0;i<types.size();i++)if(types[i]!=2){allOnTB=false; break;}
     if(allOnTB)types.swap(typesBak);

@@ -701,7 +701,7 @@ void SetRemainingDefaults(Home_t *home)
                 ((param->zBoundType == Free) &&
                  (param->zBoundMin < param->minCoordinates[2]) ||
                  (param->zBoundMax > param->maxCoordinates[2]))) {
-                Fatal("Free surfaces are not within main bounding box!\n"
+                printf("Warning: Free surfaces are not within main bounding box!\n"
                       "    Surface min coordinates (%lf %lf %lf)\n"
                       "    Surface max coordinates (%lf %lf %lf)\n",
                       param->xBoundMin, param->yBoundMin, param->zBoundMin,
