@@ -3953,10 +3953,12 @@ void LocateCell(Home_t *home, int *cellID, real8 coord[3])
 int NodePinned(Home_t *home, Node_t *node, int planeIndex,
                real8 glidedir[3][3])
 {
-        int    i, k;
+        int    i, j, k;
         int    planetest;
+        int    plane;
         real8  planetestmin, ptest, ptest2;
         real8  segplane[3];
+        real8  tmp3[3];
 
 /*
  *      If the node is pinned due to constraints no need to
@@ -4003,25 +4005,17 @@ int NodePinned(Home_t *home, Node_t *node, int planeIndex,
             segplane[1] = node->ny[i];
             segplane[2] = node->nz[i];
 
-            planetest = 0;
-            planetestmin = 10.0;
+            Matrix33Vector3Multiply(glidedir, segplane, tmp3);
 
-            for (k = 0; k < 3; k++) {
+            plane = 0;
 
-                ptest = fabs(DotProduct(glidedir[k], segplane));
-                ptest2 = ptest * ptest;
-
-                if (ptest2 < planetestmin) {
-                    planetest = k;
-                    planetestmin = ptest2;
-                }
-
+            for (j = 1; j < 2; j++) {
+                    plane = (fabs(tmp3[j])  < fabs(tmp3[plane]) ) ? j:plane;
             }
-
-            if (planeIndex != planetest) {
+            
+            if (planeIndex != plane) {
                 return(1);
             }
-        }
 
         return(0);
 }
