@@ -128,7 +128,6 @@ void CrossSlipFCC(Home_t *home)
                 continue;
             }
 
-
             burgLab[0] = node->burgX[0];
             burgLab[1] = node->burgY[0];
             burgLab[2] = node->burgZ[0];
@@ -138,7 +137,7 @@ void CrossSlipFCC(Home_t *home)
  *          If needed, rotate a copy of the burgers vector from the lab
  *          frame to the crystal frame.  Otherwise, lab and crystal frames
  *          are identical.
- */
+ */           
             if (param->useLabFrame) {
                 VectorLabToCrystal(home, node, nbr1, burgLab, burgCrystal);
             }
@@ -355,7 +354,7 @@ void CrossSlipFCC(Home_t *home)
                     }
 /*
  *                  Rotate segment planes to crystal frame
- */
+ *
                     Matrix33Vector3Multiply(rotMatrixInverse, segplane1,
                                             tmpPlane);
                     VECTOR_COPY(segplane1, tmpPlane);
@@ -367,8 +366,8 @@ void CrossSlipFCC(Home_t *home)
 /*
  *                  Rotate force vector to crystal frame
  */
-                    Matrix33Vector3Multiply(rotMatrixInverse, fLab,
-                                            fCrystal);
+                    /*Matrix33Vector3Multiply(rotMatrixInverse, fLab,
+                                            fCrystal);*/
                 } else {
 /*
  *                  Lab and crystal frames are identical, so just copy
@@ -380,9 +379,9 @@ void CrossSlipFCC(Home_t *home)
                     VECTOR_COPY(fCrystal, fLab);
                 }
 
-                Matrix33Vector3Multiply(glideDirCrystal, segplane1, tmp3);
-                Matrix33Vector3Multiply(glideDirCrystal, segplane2, tmp3B);
-                Matrix33Vector3Multiply(glideDirCrystal, fCrystal, tmp3C);
+                Matrix33Vector3Multiply(glideDirLab, segplane1, tmp3);
+                Matrix33Vector3Multiply(glideDirLab, segplane2, tmp3B);
+                Matrix33Vector3Multiply(glideDirLab, fLab, tmp3C);
 
                 plane1 = 0;
                 plane2 = 0;
@@ -421,7 +420,7 @@ void CrossSlipFCC(Home_t *home)
                 if (pinned1) {
                     if ((!pinned2) ||
                         ((testmax1-test1) < (eps*eps*burgSize*burgSize))) {
-
+                            
                         vec1dotb = DotProduct(vec1, burgLab);
                         vec2dotb = DotProduct(vec2, burgLab);
 
@@ -430,6 +429,7 @@ void CrossSlipFCC(Home_t *home)
  *                          Neighbor 2 can be moved, so proceed with the
  *                          cross-slip operation.
  */
+
                             nbr2p[0] = nbr1p[0] - (vec1dotb * burgLab[0]);
                             nbr2p[1] = nbr1p[1] - (vec1dotb * burgLab[1]);
                             nbr2p[2] = nbr1p[2] - (vec1dotb * burgLab[2]);
