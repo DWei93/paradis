@@ -1,6 +1,7 @@
 #ifndef _ParadisGen_h
 #define _ParadisGen_h
 
+#include "Grain.h"
 /*
  *      Define a structure containing all items corresponding to
  *      all command line options that have associated values.  This
@@ -201,7 +202,65 @@ typedef struct {
         int   optPaired;
 } Option_t;
 
+#define INITIAL_ANALYSIS 1
+
+#ifdef INITIAL_ANALYSIS
 
 
+#define taurtb_s 100.0
+#define taurtb_ns 500.0
 
+    typedef	enum{
+        cfrlen = 0,
+        cdpb,
+        cdfs1,
+        cdtb1,
+        cdtb2,
+        csi,
+        cso,
+        cstd1,
+        cstd2,
+        careai,
+        careao,
+        cbx,
+        cby,
+        cbz,
+        cnx,
+        cny,
+        cnz,
+        ccbetafr,
+        cstb,
+        cdfs2,
+        ccbetafs1,
+        ccbetafs2,
+        ctbdir,
+        ccbetatb1,
+        ccbetatb2,
+        ctauPin1,
+        ctauPin2,
+        cmathematica,
+        ctau0,
+        ctauc,
+        csigmac,
+        cpeneType,
+        crc,
+        cnPileUps,
+        cpileLength,
+        ctauBack,
+        csigmay,
+        cmax
+    }InitaiVals;
+
+typedef struct {
+    real8 p1[3];
+    real8 p2[3];
+    real8 sasPos[2][3];
+    int inGrain;
+    int onGB;
+    int slipSysID;
+    std::vector<real8> dPoint;
+    std::vector<real8> vertices, neiVertices;
+    std::vector<int> types, neiTypes, f_vert, neiF_vert;
+} InitSrc_t;
+#endif
 #endif /* _ParadisGen_h */

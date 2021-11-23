@@ -2719,10 +2719,14 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
  *                        all created dislocations.
  *
  *-------------------------------------------------------------------------*/
-#define INITIAL_ANALYSIS 0
 #if INITIAL_ANALYSIS
+void InitDPoint(std::vector<real8> &dPoint){
+    for (int i=0; i<dPoint.size(); i++) dPoint[i]=-1;
+}
+
 void ProbeFreePath(real8 *p1, real8 *p2, std::vector<real8> &vertices, std::vector<int> &f_vert, 
-        std::vector<int> &types, std::vector<real8> &dPoint, real8 *tbInterDir, real8 *tbInterPos)
+        std::vector<int> &types, std::vector<real8> &dPoint, real8 *tbInterDir, real8 *tbInterPos,
+        real8 str[3][3], real8 *b, real8 *n0 , real8 sasPos[2][3])
 {
     // point[1] minimal distances for type 0 boundary (PBC boundary) 
     // point[2] minimal distances for type 1 boundary (surface ) 
@@ -2732,9 +2736,14 @@ void ProbeFreePath(real8 *p1, real8 *p2, std::vector<real8> &vertices, std::vect
     dPoint[1]=-1; dPoint[2]=-1; dPoint[3]=-1; dPoint[4]=-1;
     real8 p[2][3]={{p1[0],p1[1],p1[2]},{p2[0],p2[1],p2[2]}};
     real8 lp1[3], lp2[3], ldir[3], lp[3], dis, vec[3];
-    real8 d[2], dsf[2]={-1,-1}, dpb[2]={-1,-1}, dtb[2]={-1,-1};
+    real8 d[2], dfs[2]={-1,-1}, dpb[2]={-1,-1}, dtb[2]={-1,-1}, ldir_fs[2][3];
     VECTOR_ZERO(tbInterDir); VECTOR_ZERO(tbInterPos);
     d[0]=-1; d[1]=-0.0;
+
+    real8 f1[3], f2[3];
+    ExtPKForce(str, b[0], b[1], b[2], p1[0],p1[1],p1[2], p2[0], p2[1], p2[2], f1, f2);
+    NormalComponent(f2,n0,f1);
+
     for(int j=0;j<2;j++){
         for (int i=0; i<types.size();i++){
             type = types[i];
@@ -2749,20 +2758,42 @@ void ProbeFreePath(real8 *p1, real8 *p2, std::vector<real8> &vertices, std::vect
             dis=fabs(dis);
             if(dis<1E-5)continue;
             if(type == 1 ){
-                if(dsf[j]<0) dsf[j]=dis; else if(dsf[j]>dis)dsf[j]=dis; 
+                if(dfs[j]<0) {
+                    dfs[j]=dis;
+                    CoordMinus(vec, p[j], ldir_fs[j]);
+                    NormalizeVec(ldir_fs[j]);
+                    dPoint[ccbetafs1+j] = fabs(dot_product(ldir_fs[j][0], ldir_fs[j][1], ldir_fs[j][2], dPoint[cbx], dPoint[cby], dPoint[cbz]));
+                    VECTOR_COPY(sasPos[j], vec);
+                }
+                else if(dfs[j]>dis){
+                    dfs[j]=dis;
+                    CoordMinus(vec, p[j], ldir_fs[j]);
+                    NormalizeVec(ldir_fs[j]);
+                    dPoint[ccbetafs1+j] = fabs(dot_product(ldir_fs[j][0], ldir_fs[j][1], ldir_fs[j][2], dPoint[cbx], dPoint[cby], dPoint[cbz]));
+                    VECTOR_COPY(sasPos[j], vec);
+                }
             }else if (type ==0){
                 if(dpb[j]<0) dpb[j]=dis; else if(dpb[j]>dis)dpb[j]=dis; 
             }else if(type ==2){
-                if(dtb[j]<0) dtb[j]=dis; else if(dtb[j]>dis)dtb[j]=dis; 
+                real8 vecDisp[3]; CoordMinus(vec, p[j], vecDisp);
+                if(DotProduct(vecDisp, f1) > 0)dPoint[ctbdir]=1; else dPoint[ctbdir] = -1; // tbdir > 0 and disTB<0: reaction then cut by surface; tdir < 0 cut by surface first  
+                
+                real8 ldirtb[3]; CoordMinus(vec, p[j], ldirtb); NormalizeVec(ldirtb);
+
+                if(dtb[j]<0 || dtb[j] > dis) {
+                    dPoint[ccbetatb1+j] =  fabs(dot_product(ldirtb[0], ldirtb[1], ldirtb[2], dPoint[cbx], dPoint[cby], dPoint[cbz]));   
+                    dtb[j]=dis; 
+                }
                 VECTOR_COPY(tbInterDir, ldir);
                 VECTOR_COPY(tbInterPos, lp);
              // if(d[0]<0){d[0]=dis;}else if(d[0]<dis){d[1]=dis;}else{d[1]=d[0];d[0]=dis;} //min
             }
         }
         dPoint[1] = MAX(dPoint[1], MAX(dpb[0],dpb[1]));
-        dPoint[2] = MAX(dPoint[2], MAX(dsf[0],dsf[1]));
-        dPoint[3] = MAX(dPoint[3], MIN(dtb[0],dtb[1]));
-        dPoint[4] = MAX(dPoint[4], MAX(dtb[0],dtb[1]));
+        dPoint[cdfs1] = dfs[0];
+        dPoint[cdfs2] = dfs[1];
+        dPoint[3] = dtb[0];
+        dPoint[4] = dtb[1];
     }
     return;
 }
@@ -2797,7 +2828,7 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
 
     ExtPKForce(str, b[0], b[1], b[2], lp[0],lp[1],lp[2], lp2[0], lp2[1], lp2[2], f1, f2);
     NormalComponent(f2,n0,f1);
-    real8 s0=2*Normal(f1);
+    real8 s0=2*Normal(f1)/Normal(b);
     if(fabs(s0-dPoint[5])>1E-3)Fatal("s0=%f, dPoint[5]=%f, ldir={%f,%f,%f}",s0,dPoint[5],ldir[0],ldir[1],ldir[2]);
     
     Matrix33Vector3Multiply(param->rotateNormal, n0, n1);
@@ -2853,6 +2884,237 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
     }
     return;
 }
+
+real8 TauFRB(real8 bM, real8 lfr, real8 cosbeta)
+{
+    real8 mu=48000, nu=0.324;   
+    real8 l=lfr/bM;
+    real8 lterm=0.2618*cosbeta*cosbeta+0.1275*(1.0-cosbeta*cosbeta)/(1.0-nu);
+    return mu*log(l)*lterm/l;
+}
+
+bool CompIsrcT(InitSrc_t p, InitSrc_t q)
+{
+    return p.dPoint[csigmac] < q.dPoint[csigmac];
+}
+void DDAnalysis(std::vector<InitSrc_t> &isrcs)
+{
+    real8 mu=48000, nu=0.324;   
+    real8 TC = -1;
+
+    real8 r0, tau0, cosbeta;
+    real8 dfs, cbetafs, cbeta;
+    real8 b[3], n0[3], bM;
+    bool looger1;
+    real8 ldirfr[3];
+
+    real8 dis1, dis2, cbetapin1, cbetapin2;
+    real8 ldirj[3]; 
+    real8 vec1[3], vec2[2], vec[3]; 
+    real8 ldiri[3], lposi[3], n0j[3];;
+
+    real8 *pi1, *pi2;
+
+    for(int i=0; i<isrcs.size(); i++){
+        InitSrc_t &isrc = isrcs[i];
+        std::vector<real8> &dp = isrc.dPoint;               
+
+        if(dp[cdfs1]>dp[cdfs2]){
+            dfs = dp[cdfs1];
+            cbetafs = dp[ccbetafs1];
+            looger1 = true;
+        }else{
+            looger1 = false;
+            dfs = dp[cdfs2];
+            cbetafs = dp[ccbetafs2];
+        }
+
+        pi1 = isrc.p1; pi2 = isrc.p2;
+        if(dfs<0){
+            r0 = dp[cfrlen]*0.5;
+            cbeta = dp[ccbetafr];
+        }else if (dfs > dp[cfrlen]*0.5){
+            r0 = dp[cfrlen]*0.5;
+            cbeta = dp[ccbetafr];
+        }else{
+            r0 = dfs;
+            cbeta = cbetafs;
+
+            if(looger1){
+                pi1=isrc.p1;
+                pi2=isrc.sasPos[0];
+            }else{
+                pi1=isrc.p2;
+                pi2=isrc.sasPos[1];
+            }
+        }
+        CoordMinus(pi2, pi1, ldirfr);
+        NormalizeVec(ldirfr);
+
+        b[0] = dp[cbx]; n0[0] = dp[cnx];
+        b[1] = dp[cby]; n0[1] = dp[cny];
+        b[2] = dp[cbz]; n0[2] = dp[cnz];
+        
+        bM = Normal(b);
+        dp[ctau0] = TauFRB(bM, 2.0*r0, cbeta);
+        tau0 = dp[ctau0];
+
+        for(int j=0; j<isrcs.size(); j++){
+            if(i==j)continue;
+            if(fabs(ldirfr[0])>1)Fatal("1");
+            InitSrc_t &isrcj = isrcs[j];
+
+            if(slip_sys[isrc.slipSysID][0] != slip_sys[isrcj.slipSysID][0])continue;
+            if(slip_sys[isrc.slipSysID][1] == slip_sys[isrcj.slipSysID][1])continue;
+            if(isrc.inGrain != isrcj.inGrain || isrc.onGB != isrcj.onGB) continue;
+
+            real8 *pj1 = isrcj.p1, *pj2 = isrcj.p2;
+            if(dp[csi]-isrcj.dPoint[csi] > 0.1)continue;  
+
+            if(fabs(dp[csi]-isrcj.dPoint[csi]) > 0.2){  
+                PointPlaneDistance(pj1, n0, pi1, dis1);
+                PointPlaneDistance(pj2, n0, pi1, dis2);
+                if(dis1*dis2 >= 0)continue; // segment is not on i src's plane
+            }
+
+            n0j[0] = isrcj.dPoint[cnx];
+            n0j[1] = isrcj.dPoint[cny];
+            n0j[2] = isrcj.dPoint[cnz];
+            if(LINE_INTERSECTION != PlanePlaneIntersection(n0, pi1, n0j, pj1, ldiri, lposi)){
+                Fatal("someting wrong in planeplanesection");
+            }
+
+            if(fabs(DotProduct(ldiri, ldirfr)) > 0.98) continue;
+           
+            if(fabs(dp[csi]-isrcj.dPoint[csi]) > 0.2){  
+                CoordMinus(isrcj.p2, isrcj.p1, ldirj);
+                NormalizeVec(ldirj);
+                if(fabs(DotProduct(ldiri, ldirj)) > 0.98) continue;
+            
+                if(LineLineIntersection(ldiri, lposi, ldirj, pj1, vec1, vec, &dis1, ANGLE_ERROR1,  1E-6*dp[cfrlen]) != POINT_INTERSECTION){
+                    Fatal("someting wrong in LineLineIntersection: dis1 = %g", dis1);
+                }
+                CoordMinus(vec, pj1, vec1);
+                CoordMinus(vec, pj2, vec2);
+                if(DotProduct(vec1, vec2) >= 0) {
+                    continue;
+                }  // fr source in lower schmid factors must intersect with the intersection
+            }
+            
+            if(LineLineIntersection(ldiri, lposi, ldirfr, pi1, vec1, vec, &dis1, ANGLE_ERROR1,  1E-6*dp[cfrlen]) != POINT_INTERSECTION){
+                FormatVector(lposi, "lposi");
+                FormatVector(ldiri, "ldiri");
+                FormatVector(ldirfr, "ldirfr");
+                FormatVector(pi1, "pi1");
+                Fatal("someting wrong in LineLineIntersection: dis1 = %g", dis1);
+            }
+
+            if(fabs(ldirfr[0])>1)Fatal("5");
+            CoordMinus(vec, pi1, vec1);
+            CoordMinus(vec, pi2, vec2);
+            if(DotProduct(vec1, vec2) >= 0.0) {
+                continue;
+            }
+            if(fabs(ldirfr[0])>1)Fatal("6");
+
+            PointLineIntersection(pi1, ldiri, lposi, vec, &dis1);
+            PointLineIntersection(pi2, ldiri, lposi, vec, &dis2);
+
+            CoordMinus(vec, pi1, vec1); NormalizeVec(vec1);
+            CoordMinus(vec, pi2, vec2); NormalizeVec(vec2);
+            dis1 = MAX(dis1,1);
+            dis2 = MAX(dis2,1);
+            cbetapin1 = fabs(DotProduct(vec1, b)); 
+            cbetapin2 = fabs(DotProduct(vec2, b)); 
+
+            if(dp[ctauPin1]<0)dp[ctauPin1]=TauFRB(bM, 2.0*dis1, cbetapin1);
+            else dp[ctauPin1] = MIN(dp[ctauPin1], TauFRB(bM, 2.0*dis1, cbetapin1));
+
+            if(dp[ctauPin2]<0)dp[ctauPin2]=TauFRB(bM, 2.0*dis2, cbetapin2);
+            else dp[ctauPin2] = MIN(dp[ctauPin2], TauFRB(bM, 2.0*dis2, cbetapin2));
+
+        }
+        if(dp[csi]>0.1){
+            dp[csigmay] = MIN(dp[ctauPin1]/dp[csi], dp[ctauPin2]/dp[csi]);
+        }else{
+            dp[csigmay] = 1E10;
+        }
+#if 0
+        if((dp[ctauPin1]>0  && dp[ctauPin1]<dp[ctau0]) ||( dp[ctauPin2]>0 && dp[ctauPin2]<dp[ctau0])){
+            printf("Intersting: %g %g %g\n", dp[ctauPin1], dp[ctauPin2], dp[ctau0]);
+        }
+#endif
+        dp[cnPileUps] = 0.0;
+        dp[ctauBack] = 0.0;
+        bool meetTB = (dp[cso] > -0.1); 
+        bool isScrew = (dp[cstd2] >= -1E-5);
+        real8 A, taurtb;
+        if (isScrew) {
+            taurtb = taurtb_s; 
+            A = mu*bM/M_PI;
+        }else{
+            taurtb = taurtb_ns;
+            A = (bM*mu*(0.25 + 3/(4.*(1 - nu))))/M_PI;
+        }
+
+        dp[ctauc] = dp[ctau0];
+        if(dp[csi]<1E-5){
+            dp[cpeneType] = -2; // imoveable
+            dp[crc] = r0;
+            dp[csigmac] = 1E10;
+            if(dp[csigmay]<0)dp[csigmay]=dp[csigmac];
+            continue;
+        }
+        
+        if(dp[cdtb1]<-0.1 || dp[cdtb2]<-0.2){
+            dp[cpeneType] = -1; // free glide
+            dp[crc] = r0;
+            dp[csigmac] = dp[ctau0]/dp[csi];
+            if(dp[csigmay]<0)dp[csigmay]=dp[csigmac];
+            continue;
+        }
+
+        if(!meetTB)Fatal("something wrong of meet TB");
+
+      //if(dp[ctbdir]*TC<=0){ // inverse operate: 
+      //    dp[cmathematica] = 1; // cac inverse pile-up in mathemactica NSolve
+      //    dp[csigmac] = dp[ctau0]/dp[csi];
+      //    continue;
+      //}
+        
+        real8 tauafs1 = TauFRB(bM, 2.0*dp[cdfs1], dp[ccbetafs1]);
+        real8 tauafs2 = TauFRB(bM, 2.0*dp[cdfs2], dp[ccbetafs2]);
+        
+        real8 dtb = 0.5*(dp[cdtb1]+dp[cdtb2]-dp[cfrlen]);
+        if(dtb <= 0.0){
+            dp[cmathematica] = 2; // cac dislocation-TB interaction
+            dp[csigmac] = dp[ctau0]/dp[csi];
+            dp[csigmay]=dp[csigmac];
+            continue;
+        }
+        
+        real8 taufr = TauFRB(bM, dp[cfrlen], dp[ccbetafr]);
+        real8 tauc2=sqrt((A*taurtb+taufr*taufr*dtb)/dtb);
+
+        if(tauc2>taurtb){ // tb strength is lower than pile-up stress
+            dp[cpileLength] = 0;
+            dp[cnPileUps] = 0;
+            dp[ctauc] = MAX(taurtb, tau0);
+            dp[ctauBack] = MAX(taurtb - tau0, 0);
+        }else{ // tb strength is enough for pile-ups
+            dp[cpileLength] = taurtb*A/(tauc2*tauc2);
+            dp[cnPileUps] = tauc2*dp[cpileLength]/A;
+            dp[ctauc] = MAX(tauc2, tau0);
+            dp[ctauBack] = MAX(dp[ctauc] - tau0, 0);
+        }
+        dp[csigmac] = dp[ctauc]/dp[csi];
+        dp[csigmay]=dp[csigmac];
+    }
+
+    sort(isrcs.begin(), isrcs.end(), CompIsrcT);
+    return;
+}
+
 #endif
 
 void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen)
@@ -2904,10 +3166,13 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         normalABC[2] = 1;
 
 #if     INITIAL_ANALYSIS
-        std::vector<real8> vertices, neiVertices, dPoint(19), info(21);
+        std::vector<real8> vertices, neiVertices, dPoint(cmax), info(21);
         std::vector<std::vector<real8> > data;
         std::vector<int> types, neiTypes, f_vert, neiF_vert;
         real8 tbInterDir[3], tbInterPos[3];
+
+        std::vector<InitSrc_t> isrcs;
+        InitSrc_t isrc;
         FILE    *fp, *fp1; char zoneName[256];
         if((fp = fopen(inArgs->outFile, "w")) == (FILE *)NULL){Fatal("can not open file %s", inArgs->outFile);}
         if((fp1 = fopen("glide-planes.plt", "w")) == (FILE *)NULL){Fatal("can not open file %s", "glide-planes.plt");}
@@ -3329,6 +3594,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 	                    }
 
                         if(singleSrcTest==false &&home->nGBs>1 && ranNum <=21)srcLen *= primary[ranNum];
+                        if(home->nGBs == 1 && gpBurgIndex > 5) srcLen *= (1.0/sqrt(3.0));
 
                         inGrain1=inGrain; onGB1=onGB; VECTOR_COPY(p1,p);
                         constraint2 = PINNED_NODE;
@@ -3565,19 +3831,22 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                 percen[ranNum] += srcLen;
 	            totSrcLen += srcLen;				
 #if     INITIAL_ANALYSIS
+                real8 sasPos[2][3];
+                InitDPoint(dPoint);
+
                 dPoint[0]=srcLen;
                 snprintf(zoneName,sizeof(zoneName),"CurrenGrain-%d.%d",baseNodeID,inGrain0);
                 info[0]=double(inGrain0); info[1]=double(onGB0); info[2]=double(gpBurgIndex); info[3]=double(gpIndex);
                 GlidePlaneOfDislocation(home, n0, p, vertices, f_vert, types);
-                
-                ProbeFreePath(p1, p2, vertices, f_vert, types, dPoint, tbInterDir, tbInterPos);
 
                 dPoint[5]=proba[ranNum]; dPoint[6]=-1; dPoint[7]=-1; dPoint[8]=-1;
                 dPoint[9]=AreaOfPolygon(f_vert, vertices, 0)/volume/burgMag; // area of original glide plane
                 dPoint[11]=b[0]; dPoint[12]=b[1]; dPoint[13]=b[2]; 
                 dPoint[14]=n0[0]; dPoint[15]=n0[1]; dPoint[16]=n0[2]; 
-                dPoint[17] = cos(randomAngle); dPoint[18]=-1; // TB schmmid factors
-     
+                dPoint[ccbetafr] = cos(randomAngle); dPoint[18]=-1; // TB schmmid factors
+
+                ProbeFreePath(p1, p2, vertices, f_vert, types, dPoint, tbInterDir, tbInterPos, str, b, n0, sasPos);
+
                 if(dPoint[4]>=1E-4){
                     ProbeScmidFactors(home, str, tbInterDir, tbInterPos, b, n0, dPoint);
                     snprintf(zoneName,sizeof(zoneName),"NeiGrain-%d.%d",baseNodeID,inGrain0);
@@ -3592,8 +3861,22 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                     DrawGlidePlanes(fp1, zoneName, neiVertices, neiF_vert, info);
                 }
 
-                for(i=0;i<dPoint.size();i++)fprintf(fp, "%g ",fabs(dPoint[i])<1E-9?0:dPoint[i]);
-                fprintf(fp,"\n");
+
+                VECTOR_COPY(isrc.p1,p1);
+                VECTOR_COPY(isrc.p2,p2);
+                isrc.inGrain = inGrain0;
+                isrc.onGB = onGB0;
+                isrc.slipSysID = ranNum;
+                isrc.dPoint = dPoint;
+                isrc.vertices.swap(vertices);
+                isrc.neiVertices.swap(neiVertices);
+                isrc.types.swap(types);
+                isrc.neiTypes.swap(neiTypes);
+                isrc.f_vert.swap(f_vert);
+                isrc.neiF_vert.swap(neiF_vert);
+                VECTOR_COPY(isrc.sasPos[0], sasPos[0]);
+                VECTOR_COPY(isrc.sasPos[1], sasPos[1]);
+                isrcs.push_back(isrc);
 #endif
 /*           
  *              Reallocate the node array with sufficient size to add
@@ -3907,7 +4190,20 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                "Averaged number of chains over grain is %d\n" 
                "%4.2f%% of srcs are of primary slip systems\n",
                 chain, chain/home->nGrains, primarySrcLen*100/totSrcLen);
-
+        
+ #ifdef INITIAL_ANALYSIS
+        DDAnalysis(isrcs);
+        for(i=0; i<isrcs.size(); i++){
+            for(j=0; j<isrcs[i].dPoint.size(); j++){
+                fprintf(fp, "%.4g ",fabs(isrcs[i].dPoint[j])<1E-9?0:isrcs[i].dPoint[j]);
+            }
+            fprintf(fp,"\n");
+        }
+        real8 tauPin = MIN(isrcs[0].dPoint[ctauPin1], isrcs[0].dPoint[ctauPin2]);
+        if(tauPin < 0)tauPin=isrcs[0].dPoint[ctauc];
+        printf("Initial Activation stress %g MPa, CRSS %g MPa, sigmac=%g MPa\n", isrcs[0].dPoint[ctauc],  tauPin, isrcs[0].dPoint[csigmac]);
+        printf("DATA %g %g %g\n", cubeLength*0.2556, tauPin/isrcs[0].dPoint[csi], isrcs[0].dPoint[csigmac]);
+#endif
 
         if(inArgs->tdDensity>0){
             real8 totDisLen = maxDensity*volume*burgMag*burgMag;
