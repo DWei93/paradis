@@ -38,6 +38,11 @@ yMatDir=-1,-1,2
 if [ $# -ge 4 ]; then
     rotDir=$4;
 fi
+if [ $# -ge 5 ]; then
+    seed="-seed $5";
+else
+    seed=""
+fi
 
 type=3
 srcLenType=1

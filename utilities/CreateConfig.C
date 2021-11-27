@@ -2720,6 +2720,15 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
  *
  *-------------------------------------------------------------------------*/
 #if INITIAL_ANALYSIS
+
+real8 TauFRB(real8 bM, real8 lfr, real8 cosbeta)
+{
+    real8 mu=48000, nu=0.324;   
+    real8 l=lfr/bM;
+    real8 lterm=0.2618*cosbeta*cosbeta+0.1275*(1.0-cosbeta*cosbeta)/(1.0-nu);
+    return mu*log(l)*lterm/l;
+}
+
 void InitDPoint(std::vector<real8> &dPoint){
     for (int i=0; i<dPoint.size(); i++) dPoint[i]=-1;
 }
@@ -2736,11 +2745,11 @@ void ProbeFreePath(real8 *p1, real8 *p2, std::vector<real8> &vertices, std::vect
     dPoint[1]=-1; dPoint[2]=-1; dPoint[3]=-1; dPoint[4]=-1;
     real8 p[2][3]={{p1[0],p1[1],p1[2]},{p2[0],p2[1],p2[2]}};
     real8 lp1[3], lp2[3], ldir[3], lp[3], dis, vec[3];
-    real8 d[2], dfs[2]={-1,-1}, dpb[2]={-1,-1}, dtb[2]={-1,-1}, ldir_fs[2][3];
+    real8 d[2], dfs[2]={-1,-1}, dpb[2]={-1,-1}, dtb[2]={-1,-1}, ldir_fs[2][3], pos_image[2][3];
     VECTOR_ZERO(tbInterDir); VECTOR_ZERO(tbInterPos);
     d[0]=-1; d[1]=-0.0;
 
-    real8 f1[3], f2[3];
+    real8 f1[3], f2[3], linter;
     ExtPKForce(str, b[0], b[1], b[2], p1[0],p1[1],p1[2], p2[0], p2[1], p2[2], f1, f2);
     NormalComponent(f2,n0,f1);
 
@@ -2751,13 +2760,15 @@ void ProbeFreePath(real8 *p1, real8 *p2, std::vector<real8> &vertices, std::vect
             Coordinate(vertices,(i==types.size()-1)?0:i+1,lp2);
             CoordAdd(0.5,lp1,0.5,lp2,lp);
             CoordMinus(lp2,lp1,ldir);
-            if(Normal(ldir)<1E-5)continue;
+            linter = Normal(ldir);
+            if(linter<1E-5)continue;
             NormalizeVec(ldir);
 //          dis = fabs(PointSegmentDistance(p[j], lp1, lp2));
             PointLineIntersection(p[j], ldir, lp, vec, &dis);
             dis=fabs(dis);
             if(dis<1E-5)continue;
             if(type == 1 ){
+                dPoint[clinter] = linter;
                 if(dfs[j]<0) {
                     dfs[j]=dis;
                     CoordMinus(vec, p[j], ldir_fs[j]);
@@ -2847,7 +2858,7 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
                     if(BurgType_FCC(b1)==BASIC_BURG){
                         if(DotProduct(f3,f1)>=0){dPoint[6]=2.0*Normal(f3)/bMag;}
                         else{
-                            dPoint[6]=0;
+                            dPoint[6]=-2.0*Normal(f3)/bMag;
                         }
                     }else{
                         dPoint[7]=2.0*Normal(f3)/bMag;
@@ -2885,14 +2896,6 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
     return;
 }
 
-real8 TauFRB(real8 bM, real8 lfr, real8 cosbeta)
-{
-    real8 mu=48000, nu=0.324;   
-    real8 l=lfr/bM;
-    real8 lterm=0.2618*cosbeta*cosbeta+0.1275*(1.0-cosbeta*cosbeta)/(1.0-nu);
-    return mu*log(l)*lterm/l;
-}
-
 bool CompIsrcT(InitSrc_t p, InitSrc_t q)
 {
     return p.dPoint[csigmac] < q.dPoint[csigmac];
@@ -2909,45 +2912,21 @@ void DDAnalysis(std::vector<InitSrc_t> &isrcs)
     real8 ldirfr[3];
 
     real8 dis1, dis2, cbetapin1, cbetapin2;
-    real8 ldirj[3]; 
+    real8 ldirj[3]; // ldir
     real8 vec1[3], vec2[2], vec[3]; 
     real8 ldiri[3], lposi[3], n0j[3];;
+    real8 taufs1, taufs2, taufr;
 
     real8 *pi1, *pi2;
+    real8 lp1[3], lp2[3], ldirTB[3], posTB[3];
+
+    int k;
 
     for(int i=0; i<isrcs.size(); i++){
         InitSrc_t &isrc = isrcs[i];
         std::vector<real8> &dp = isrc.dPoint;               
 
-        if(dp[cdfs1]>dp[cdfs2]){
-            dfs = dp[cdfs1];
-            cbetafs = dp[ccbetafs1];
-            looger1 = true;
-        }else{
-            looger1 = false;
-            dfs = dp[cdfs2];
-            cbetafs = dp[ccbetafs2];
-        }
-
         pi1 = isrc.p1; pi2 = isrc.p2;
-        if(dfs<0){
-            r0 = dp[cfrlen]*0.5;
-            cbeta = dp[ccbetafr];
-        }else if (dfs > dp[cfrlen]*0.5){
-            r0 = dp[cfrlen]*0.5;
-            cbeta = dp[ccbetafr];
-        }else{
-            r0 = dfs;
-            cbeta = cbetafs;
-
-            if(looger1){
-                pi1=isrc.p1;
-                pi2=isrc.sasPos[0];
-            }else{
-                pi1=isrc.p2;
-                pi2=isrc.sasPos[1];
-            }
-        }
         CoordMinus(pi2, pi1, ldirfr);
         NormalizeVec(ldirfr);
 
@@ -2956,9 +2935,33 @@ void DDAnalysis(std::vector<InitSrc_t> &isrcs)
         b[2] = dp[cbz]; n0[2] = dp[cnz];
         
         bM = Normal(b);
-        dp[ctau0] = TauFRB(bM, 2.0*r0, cbeta);
-        tau0 = dp[ctau0];
 
+        taufs1=TauFRB(bM, 2.0*dp[cdfs1], dp[ccbetafs1]);
+        taufs2=TauFRB(bM, 2.0*dp[cdfs2], dp[ccbetafs2]);
+        taufr =TauFRB(bM,    dp[cfrlen], dp[ccbetafr]);
+
+        if(MIN(taufs1,taufs2)>taufr){
+            if(taufs1<taufs2){
+                r0 = dp[cdfs1];
+                cbeta = dp[ccbetafs1];
+                tau0=taufs1;
+            }else{
+                r0 = dp[cdfs2];
+                cbeta = dp[ccbetafs2];
+                tau0=taufs2;
+            }
+        }else{
+            r0 = dp[cfrlen]/2;
+            cbeta = dp[ccbetafr];
+            tau0=taufr;
+        }
+
+        dp[ctau0] = tau0;
+        dp[ctauc] = tau0;
+
+/*
+ *      Loop all srcs to find weakest colinear reation      
+ */
         for(int j=0; j<isrcs.size(); j++){
             if(i==j)continue;
             if(fabs(ldirfr[0])>1)Fatal("1");
@@ -3000,6 +3003,7 @@ void DDAnalysis(std::vector<InitSrc_t> &isrcs)
                     continue;
                 }  // fr source in lower schmid factors must intersect with the intersection
             }
+
             
             if(LineLineIntersection(ldiri, lposi, ldirfr, pi1, vec1, vec, &dis1, ANGLE_ERROR1,  1E-6*dp[cfrlen]) != POINT_INTERSECTION){
                 FormatVector(lposi, "lposi");
@@ -3009,13 +3013,32 @@ void DDAnalysis(std::vector<InitSrc_t> &isrcs)
                 Fatal("someting wrong in LineLineIntersection: dis1 = %g", dis1);
             }
 
-            if(fabs(ldirfr[0])>1)Fatal("5");
+            for(k=0; k<isrc.types.size(); k++){
+                if(isrc.types[k]==2){
+                    Coordinate(isrc.vertices,k,lp1);
+                    Coordinate(isrc.vertices,(k==isrc.types.size()-1)?0:k+1,lp2);
+                    CoordAdd(0.5, lp1, 0.5, lp2, posTB);
+                    CoordMinus(lp1, lp2, ldirTB);
+                    if(Normal(ldirTB)<1E-5)continue;
+                    NormalizeVec(ldirTB);
+                    if(LineLineIntersection(ldiri, lposi, ldirTB, posTB, vec1, vec, &dis1, ANGLE_ERROR1, 1E-6*dp[cfrlen]) == POINT_INTERSECTION){
+                        // if TB boundary cut the intersection line, the colinear reactions can not be operated squentially
+                        CoordMinus(vec, lp1, vec1);
+                        CoordMinus(vec, lp2, vec2);  
+                        if(DotProduct(vec1, vec2) <= 0.0){
+                            continue;
+                        }
+                    }
+                }
+            }
+            if(k != isrc.types.size())continue;
+
+            // interline should cut active source
             CoordMinus(vec, pi1, vec1);
             CoordMinus(vec, pi2, vec2);
             if(DotProduct(vec1, vec2) >= 0.0) {
                 continue;
             }
-            if(fabs(ldirfr[0])>1)Fatal("6");
 
             PointLineIntersection(pi1, ldiri, lposi, vec, &dis1);
             PointLineIntersection(pi2, ldiri, lposi, vec, &dis2);
@@ -3046,7 +3069,7 @@ void DDAnalysis(std::vector<InitSrc_t> &isrcs)
 #endif
         dp[cnPileUps] = 0.0;
         dp[ctauBack] = 0.0;
-        bool meetTB = (dp[cso] > -0.1); 
+        bool meetTB = (dp[careao] > 0); 
         bool isScrew = (dp[cstd2] >= -1E-5);
         real8 A, taurtb;
         if (isScrew) {
@@ -3076,16 +3099,14 @@ void DDAnalysis(std::vector<InitSrc_t> &isrcs)
 
         if(!meetTB)Fatal("something wrong of meet TB");
 
-      //if(dp[ctbdir]*TC<=0){ // inverse operate: 
-      //    dp[cmathematica] = 1; // cac inverse pile-up in mathemactica NSolve
-      //    dp[csigmac] = dp[ctau0]/dp[csi];
-      //    continue;
-      //}
-        
-        real8 tauafs1 = TauFRB(bM, 2.0*dp[cdfs1], dp[ccbetafs1]);
-        real8 tauafs2 = TauFRB(bM, 2.0*dp[cdfs2], dp[ccbetafs2]);
-        
         real8 dtb = 0.5*(dp[cdtb1]+dp[cdtb2]-dp[cfrlen]);
+
+        if(dp[ctbdir]*TC<=0 && dtb<=0){ // inverse operate for dislocation src - TB interaction: 
+            dp[cmathematica] = 3; // cac inverse pile-up in mathemactica FindRoot
+            dp[csigmac] = dp[ctau0]/dp[csi];
+            continue;
+        }
+        
         if(dtb <= 0.0){
             dp[cmathematica] = 2; // cac dislocation-TB interaction
             dp[csigmac] = dp[ctau0]/dp[csi];
@@ -3093,7 +3114,6 @@ void DDAnalysis(std::vector<InitSrc_t> &isrcs)
             continue;
         }
         
-        real8 taufr = TauFRB(bM, dp[cfrlen], dp[ccbetafr]);
         real8 tauc2=sqrt((A*taurtb+taufr*taufr*dtb)/dtb);
 
         if(tauc2>taurtb){ // tb strength is lower than pile-up stress
@@ -3108,7 +3128,7 @@ void DDAnalysis(std::vector<InitSrc_t> &isrcs)
             dp[ctauBack] = MAX(dp[ctauc] - tau0, 0);
         }
         dp[csigmac] = dp[ctauc]/dp[csi];
-        dp[csigmay]=dp[csigmac];
+        dp[csigmay] = dp[csigmac];
     }
 
     sort(isrcs.begin(), isrcs.end(), CompIsrcT);
@@ -3594,7 +3614,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 	                    }
 
                         if(singleSrcTest==false &&home->nGBs>1 && ranNum <=21)srcLen *= primary[ranNum];
-                        if(home->nGBs == 1 && gpBurgIndex > 5) srcLen *= (1.0/sqrt(3.0));
+//                      if(home->nGBs == 1 && gpBurgIndex > 5) srcLen *= (1.0/sqrt(3.0));
 
                         inGrain1=inGrain; onGB1=onGB; VECTOR_COPY(p1,p);
                         constraint2 = PINNED_NODE;
@@ -3840,7 +3860,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                 GlidePlaneOfDislocation(home, n0, p, vertices, f_vert, types);
 
                 dPoint[5]=proba[ranNum]; dPoint[6]=-1; dPoint[7]=-1; dPoint[8]=-1;
-                dPoint[9]=AreaOfPolygon(f_vert, vertices, 0)/volume/burgMag; // area of original glide plane
+                dPoint[9]=AreaOfPolygon(f_vert, vertices, 0); // area of original glide plane
                 dPoint[11]=b[0]; dPoint[12]=b[1]; dPoint[13]=b[2]; 
                 dPoint[14]=n0[0]; dPoint[15]=n0[1]; dPoint[16]=n0[2]; 
                 dPoint[ccbetafr] = cos(randomAngle); dPoint[18]=-1; // TB schmmid factors
@@ -3851,7 +3871,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                     ProbeScmidFactors(home, str, tbInterDir, tbInterPos, b, n0, dPoint);
                     snprintf(zoneName,sizeof(zoneName),"NeiGrain-%d.%d",baseNodeID,inGrain0);
                     GlidePlanesInNeighborGrain(home, n0, p, neiVertices, neiF_vert, neiTypes);
-                    dPoint[10]=AreaOfPolygon(f_vert, neiVertices, 0)/volume/burgMag;
+                    dPoint[10]=AreaOfPolygon(f_vert, neiVertices, 0);
+                    if(dPoint[clinter]<1E-5)Fatal("somthing wrong with liter");
+                    dPoint[clpo] = dPoint[10]/dPoint[clinter];
                 }else{
                     dPoint[10]=-1;
                 }
@@ -3860,7 +3882,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                 if(dPoint[4]>=1E-4){
                     DrawGlidePlanes(fp1, zoneName, neiVertices, neiF_vert, info);
                 }
-
 
                 VECTOR_COPY(isrc.p1,p1);
                 VECTOR_COPY(isrc.p2,p2);
