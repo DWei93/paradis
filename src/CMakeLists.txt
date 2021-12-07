@@ -23,7 +23,8 @@ DeltaPlasticStrain.C       InitCellNeighbors.C       NodeVelocity.C           Re
 DeltaPlasticStrain_FCC.C   InitHome.C                OsmoticForce.C           RSDecomp.C
 deWitInteraction.C         Initialize.C              ParadisFinish.C          SemiInfiniteSegSegForce.C
 DisableUnneededParams.C    InitRemoteDomains.C       ParadisInit.C            SortNativeNodes.C
-DLBfreeOld.C               InitSendDomains.C         ParadisStep.C            SortNodesForCollision.C   Math.C)
+DLBfreeOld.C               InitSendDomains.C         ParadisStep.C            SortNodesForCollision.C    Math.C 
+MobilityLaw_FCC_Nolinear.C MobilityLaw_Wei.C )
 #      DisplayC.C display.C )
 
 Set (CTABLEGEN_SRCS 
@@ -41,33 +42,32 @@ Set (CTABLEGEN_SRCS
                  Math.C					
 				 Grain.C)
 
+if(GEOS_FOUND)
+INCLUDE_DIRECTORIES(../include ${MPI_INCLUDE_PATH} ${GEOS_INCLUDE_DIR} )
+else(GEOS_FOUND)
+INCLUDE_DIRECTORIES(../include ${MPI_INCLUDE_PATH})
+endif(GEOS_FOUND)
 
-IF(GEOS_FOUND)
-INCLUDE_DIRECTORIES(../include ${GEOS_INCLUDE_DIR})    
-LINK_DIRECTORIES(${GEOS_LINK_DIR})
-ELSE(GEOS_FOUND)
-INCLUDE_DIRECTORIES(../include)
-ENDIF(GEOS_FOUND)
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wno-unknown-pragmas -DPARALLEL=1 -fopenmp" )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fopenmp " )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -DNO_XPM -DNO_GENERAL -D_SEM_SEMUN_UNDEFINED")
-add_executable(paradis ${PARADIS_SRCS})
+if(MPI_FOUND)
 add_definitions(-DNO_XWINDOW -DPARALLEL=1)
-add_definitions(-DVELOCITY_STATISTICS)
+else(MPI_FOUND)
+add_definitions(-DNO_XWINDOW)
+endif(MPI_FOUND)
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unknown-pragmas -fopenmp" )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp " )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ")
+
+add_executable(paradis ${PARADIS_SRCS})
+target_link_libraries(paradis ${MPI_CXX_LIBRARIES}) # this must be  MPI_CXX_LIBRARIES for cpp file
+#add_definitions(-DVELOCITY_STATISTICS)
+add_definitions(-DSIMLPLE_REACTION_ON_GB)
 
 Option(NO_GB_BARRIER "Build paradis using definition NO_GB_BARRIER" OFF)
-
 if(NO_GB_BARRIER)
 Message(STATUS "Macro NO_GB_BARRIER is on")
 add_definitions(-DNO_GB_BARRIER)
 endif(NO_GB_BARRIER)
-
-IF(GEOS_FOUND)
-target_link_libraries(paradis m pthread geos)
-ELSE(GEOS_FOUND)
-target_link_libraries(paradis m pthread)
-ENDIF(GEOS_FOUND)
 
 Install(TARGETS paradis
         RUNTIME DESTINATION ${PARADIS_SOURCE_DIR}/bin)
