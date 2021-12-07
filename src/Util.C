@@ -4016,6 +4016,7 @@ int NodePinned(Home_t *home, Node_t *node, int planeIndex,
             if (planeIndex != plane) {
                 return(1);
             }
+        }
 
         return(0);
 }
