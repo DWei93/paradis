@@ -142,15 +142,13 @@ ENDIF(GEOS_FOUND)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}" )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-add_executable(paradisgen ${PARADISGEN_SRCS})
+add_executable(${PARADISGEN_EXE} ${PARADISGEN_SRCS})
 add_executable(paradisrepart ${PARADISREPART_SRCS})
 add_definitions(-DNO_XWINDOW )
 
-Set(PARADIS_GEN paradisgen)
-target_link_libraries(paradisgen m pthread )
-Install(TARGETS ${PARADIS_GEN}
-        RUNTIME DESTINATION ${PARADIS_SOURCE_DIR}/bin)
+target_link_libraries(${PARADISGEN_EXE} ${MPI_CXX_LIBRARIES}) # this must be  MPI_CXX_LIBRARIES for cpp file
+target_link_libraries(paradisrepart ${MPI_CXX_LIBRARIES}) # this must be  MPI_CXX_LIBRARIES for cpp file
 
-Install(TARGETS paradisrepart
-        RUNTIME DESTINATION ${PARADIS_SOURCE_DIR}/bin)
+Install(TARGETS ${PARADISGEN_EXE} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+Install(TARGETS paradisrepart RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 

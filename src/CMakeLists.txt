@@ -40,7 +40,7 @@ Set (CTABLEGEN_SRCS
                  QueueOps.C              
                  Util.C					
                  Math.C					
-				 Grain.C)
+		 Grain.C)
 
 if(GEOS_FOUND)
 INCLUDE_DIRECTORIES(../include ${MPI_INCLUDE_PATH} ${GEOS_INCLUDE_DIR} )
@@ -58,16 +58,15 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unknown-pragmas -fopenmp" )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp " )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ")
 
-add_executable(paradis ${PARADIS_SRCS})
-target_link_libraries(paradis ${MPI_CXX_LIBRARIES}) # this must be  MPI_CXX_LIBRARIES for cpp file
-#add_definitions(-DVELOCITY_STATISTICS)
-add_definitions(-DSIMLPLE_REACTION_ON_GB)
-
-Option(NO_GB_BARRIER "Build paradis using definition NO_GB_BARRIER" OFF)
-if(NO_GB_BARRIER)
-Message(STATUS "Macro NO_GB_BARRIER is on")
-add_definitions(-DNO_GB_BARRIER)
+Option(NO_GB_BARRIER "Build ${PARADIS_EXE} using definition NO_GB_BARRIER" OFF)
+    if(NO_GB_BARRIER)
+    Message(STATUS "Macro NO_GB_BARRIER is on")
+    add_definitions(-DNO_GB_BARRIER)
 endif(NO_GB_BARRIER)
 
-Install(TARGETS paradis
-        RUNTIME DESTINATION ${PARADIS_SOURCE_DIR}/bin)
+
+Add_executable(${PARADIS_EXE} ${PARADIS_SRCS})
+target_link_libraries(${PARADIS_EXE} ${MPI_CXX_LIBRARIES}) # this must be  MPI_CXX_LIBRARIES for cpp file
+Add_definitions(-DSIMLPLE_REACTION_ON_GB)
+
+Install(TARGETS ${PARADIS_EXE} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
