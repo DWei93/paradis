@@ -1,7 +1,7 @@
 Project (PARADIS)
 cmake_minimum_required(VERSION 2.8)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 message ("-- PARADIS_BINARY_DIR =  ${PARADIS_BINARY_DIR}")
@@ -93,7 +93,7 @@ Set(commands_repart -infile paradis.data -cells 4 -domains 1,1,4 -outfile bicrys
 Add_Test(repart_gen utilities/paradisrepart ${commands_repart})
 
 Set(mpirun_commands -n 4 "./src/paradis")
-Set(paradis_commands -n 2 -d ${PARADIS_BINARY_DIR}/bicrystal.data ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
+Set(paradis_commands -n 1 -d ${PARADIS_BINARY_DIR}/bicrystal.data ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
 Add_Test(run_paradis_bicrystal "mpirun" ${mpirun_commands} ${paradis_commands})
 
 if(0)
