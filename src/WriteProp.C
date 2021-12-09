@@ -78,12 +78,12 @@ void WriteProp(Home_t *home, int property)
         int     loadDirID;
 
         param = home->param;
-#ifdef VELOCITY_STATISTICS
-        real8   nav_a = 0.0, nav_ia = 0.0;
-        int     dissStartID = 3*param->nVelBins;
-        int     dataLen = 3*param->nVelBins+3*param->nDissBins;
-        real8   *locVals = (real8 *)calloc(dataLen, sizeof(real8));
-        real8   *gloVals = (real8 *)calloc(dataLen, sizeof(real8));
+#ifdef  VELOCITY_STATISTICS
+        real8 nav_a       = 0.0, nav_ia = 0.0;
+        int   dissStartID = 3*param->nVelBins;
+        int   dataLen     = 3*param->nVelBins+3*param->nDissBins;
+        real8 *locVals    = (real8 *)calloc(dataLen, sizeof(real8));
+        real8 *gloVals    = (real8 *)calloc(dataLen, sizeof(real8));
 #endif
 		for (i = 0; i < 6; i++) {
             dpstn[i] = param->delpStrain[i];
@@ -107,7 +107,7 @@ void WriteProp(Home_t *home, int property)
             al /= amag;
             am /= amag;
             an /= amag;
-            bl=al; bm=am; bn=an;
+            bl  = al; bm = am; bn = an;
         }else{
             al = param->loadDir[0];
             am = param->loadDir[1];
@@ -122,14 +122,14 @@ void WriteProp(Home_t *home, int property)
         case DENSITY:
         
 #ifdef PARALLEL
-            numItems = param->numBurgGroups+1;
+            numItems  = param->numBurgGroups+1;
             tmpOffset = 1;
 #ifdef _FEM
-            numItems += 1;
+            numItems  += 1;
             tmpOffset += 1;
 #endif
 
-            localDensityVals = (real8*)malloc((numItems)*sizeof(real8));
+            localDensityVals  = (real8*)malloc((numItems)*sizeof(real8));
             globalDensityVals = (real8*)malloc((numItems)*sizeof(real8));
 
             for (i = 0; i < numItems; i++) {
@@ -150,7 +150,7 @@ void WriteProp(Home_t *home, int property)
         
             param->delSegLength = globalDensityVals[0];
 #ifdef _FEM
-            param->fem_delSegLength = globalDensityVals[1];
+            param->fem_delSegLength  = globalDensityVals[1];
             param->fem_delSegLength *= param->burgVolFactor;
 #endif
 
@@ -255,12 +255,12 @@ void WriteProp(Home_t *home, int property)
             for(i=0; i<dataLen; i++)gloVals[i] = 0.0;
 
             for(i=0; i<param->nVelBins; i++){
-                locVals[3*i] = param->velTable[i][1];
+                locVals[3*i]   = param->velTable[i][1];
                 locVals[3*i+1] = param->velTable[i][2];
                 locVals[3*i+2] = param->velTable[i][3];
             }
             for(i=0; i<param->nDissBins; i++){
-                locVals[dissStartID+3*i] = param->dissTable[i][1];
+                locVals[dissStartID+3*i]   = param->dissTable[i][1];
                 locVals[dissStartID+3*i+1] = param->dissTable[i][2];
                 locVals[dissStartID+3*i+2] = param->dissTable[i][3];
             }
@@ -348,8 +348,9 @@ void WriteProp(Home_t *home, int property)
                         param->velTable[i][1] /= param->cumulativeTime;
                         param->velTable[i][2] /= param->cumulativeTime;
                         param->velTable[i][3] /= param->cumulativeTime;
-                        nav_a += param->velTable[i][1];
-                        nav_a += param->velTable[i][2];
+
+                        nav_a  += param->velTable[i][1];
+                        nav_a  += param->velTable[i][2];
                         nav_ia += param->velTable[i][3];
                     }
 
@@ -435,8 +436,9 @@ void WriteProp(Home_t *home, int property)
                         param->dissTable[i][1] /= param->cumulativeTime;
                         param->dissTable[i][2] /= param->cumulativeTime;
                         param->dissTable[i][3] /= param->cumulativeTime;
-                        nav_a += param->dissTable[i][1];
-                        nav_a += param->dissTable[i][2];
+
+                        nav_a  += param->dissTable[i][1];
+                        nav_a  += param->dissTable[i][2];
                         nav_ia += param->dissTable[i][3];
                     }
                     

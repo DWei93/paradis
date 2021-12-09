@@ -291,7 +291,6 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
  *          creep - what we have been using so this should be default
  */
             case 0:
-				
 				Matrix33Init(deltaStress);
                 break;
 /*
@@ -301,19 +300,19 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 /*
  *              Cover for specific loading direction also
  */
-                dpl_stn=     param->delpStrain[0]*al*al +
-                             param->delpStrain[1]*am*am +
-                             param->delpStrain[2]*an*an +
+                dpl_stn =     param->delpStrain[0]*al*al +
+                              param->delpStrain[1]*am*am +
+                              param->delpStrain[2]*an*an +
                           2.0*param->delpStrain[3]*am*an +
                           2.0*param->delpStrain[4]*an*al +
-                          2.0*param->delpStrain[5]*al*am;
+                          2.0*param->delpStrain[5]*al*am ;
         
-                pstnijk = param->totpStn[0]*al*al +
-                          param->totpStn[1]*am*am +
-                          param->totpStn[2]*an*an +
+                pstnijk = param->totpStn[0]*al*al     +
+                          param->totpStn[1]*am*am     +
+                          param->totpStn[2]*an*an     +
                           2.0*param->totpStn[3]*am*an +
                           2.0*param->totpStn[4]*an*al +
-                          2.0*param->totpStn[5]*al*am;
+                          2.0*param->totpStn[5]*al*am ;
 
                 if((param->accElast==true)  && (param->accPst>pstnijk)){
                     erate *= 10.0;
@@ -332,7 +331,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 /*
  *              local in the [l m n] frame
  */
-                dStress= modulus * (erate*dtt - dpl_stn);
+                dStress = modulus * (erate*dtt - dpl_stn);
         
 /*#if 0
                 printf("al=%e,am=%e,an=%e\n", al, am, an);

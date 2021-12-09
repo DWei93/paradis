@@ -780,7 +780,8 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	real8	currPlaStn,currDisDen;
     real8   nodePos[3], nbrPos[3], disLen;
 
-    real8     *layerPosz;
+    real8   *layerPosz;
+    real8   al,am,an,bl,bm,bn,amag,val;
 
 #ifdef CAC_STRESS_FIELD
     real8 stress[3][3], x, y, z;
@@ -914,8 +915,6 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
  *	in each element.
  */
     real8     *locVals, *gloVals;
-//  locVals = (real8 *)calloc(totEleNum*NUM_COMPONENT_OF_DENSITY, sizeof(real8));
-//  gloVals = (real8 *)calloc(totEleNum*NUM_COMPONENT_OF_DENSITY, sizeof(real8));
 
     locVals = (real8 *)malloc(totEleNum*NUM_COMPONENT_OF_DENSITY* sizeof(real8));
     gloVals = (real8 *)malloc(totEleNum*NUM_COMPONENT_OF_DENSITY* sizeof(real8));
@@ -939,7 +938,6 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 #endif
 
 	if (firstInGroup) {
-        real8 al,am,an,bl,bm,bn,amag,val;
         if(param->loadType!=6){
             al = param->edotdir[0];
             am = param->edotdir[1];
@@ -961,25 +959,25 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
         
         }
        real8  sigijk = param->appliedStress[0]*al*bl        +
-                 param->appliedStress[1]*am*bm        +
-                 param->appliedStress[2]*an*bn        +
-                 param->appliedStress[3]*(am*bn+an*bm)+
-                 param->appliedStress[4]*(an*bl+al*bn)+ 
-                 param->appliedStress[5]*(al*bm+bl*am);
+                       param->appliedStress[1]*am*bm        +
+                       param->appliedStress[2]*an*bn        +
+                       param->appliedStress[3]*(am*bn+an*bm)+
+                       param->appliedStress[4]*(an*bl+al*bn)+ 
+                       param->appliedStress[5]*(al*bm+bl*am);
         
         real8 pstnijk =  param->totpStn[0]*al*bl        +
-                   param->totpStn[1]*am*bm        +
-                   param->totpStn[2]*an*bn        +
-                   param->totpStn[3]*(am*bn+an*bm)+
-                   param->totpStn[4]*(an*bl+al*bn)+
-                   param->totpStn[5]*(al*bm+bl*am);
+                         param->totpStn[1]*am*bm        +
+                         param->totpStn[2]*an*bn        +
+                         param->totpStn[3]*(am*bn+an*bm)+
+                         param->totpStn[4]*(an*bl+al*bn)+
+                         param->totpStn[5]*(al*bm+bl*am);
         
         real8 ptstnijk = param->totTwinpStn[0]*al*bl        +
-                   param->totTwinpStn[1]*am*bm        +
-                   param->totTwinpStn[2]*an*bn        +
-                   param->totTwinpStn[3]*(am*bn+an*bm)+
-                   param->totTwinpStn[4]*(an*bl+al*bn)+
-                   param->totTwinpStn[5]*(al*bm+bl*am);
+                         param->totTwinpStn[1]*am*bm        +
+                         param->totTwinpStn[2]*an*bn        +
+                         param->totTwinpStn[3]*(am*bn+an*bm)+
+                         param->totTwinpStn[4]*(an*bl+al*bn)+
+                         param->totTwinpStn[5]*(al*bm+bl*am);
 	
 #ifdef CAC_STRESS_FIELD
 	    fprintf(fpEle, "Variables = \"X\", \"Y\", \"Z\",\"plaStn"

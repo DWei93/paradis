@@ -348,9 +348,9 @@ void DeltaPlasticStrain_BCC(Home_t *home)
                for (k = 0; k < 3; k++){
                   for (l = 0; l < 3; l++){
                       real8 tmpDstn;
-                      tmpDstn = (dyad[l][k]+dyad[k][l])*0.5/param->simVol;
+                      tmpDstn = (dyad[l][k]+dyad[k][l])*0.5;
                       dstn[l][k] += tmpDstn;
-                      dspn[l][k] += (dyad[l][k]-dyad[k][l])*0.5/param->simVol;
+                      dspn[l][k] += (dyad[l][k]-dyad[k][l])*0.5;
                       localstrain[l][k] += tmpDstn;
                   }
                }
@@ -836,7 +836,7 @@ void DeltaPlasticStrain_BCC(Home_t *home)
  */
             if ((param->loadType == 1) && (param->indxErate == 1)) {
                 real8 localeRate;
-                localeRate =
+                localeRate =(
                     param->edotdir[0]*localstrain[0][0]*param->edotdir[0] +
                     param->edotdir[0]*localstrain[0][1]*param->edotdir[1] +
                     param->edotdir[0]*localstrain[0][2]*param->edotdir[2] +
@@ -845,7 +845,7 @@ void DeltaPlasticStrain_BCC(Home_t *home)
                     param->edotdir[1]*localstrain[1][2]*param->edotdir[2] +
                     param->edotdir[2]*localstrain[2][0]*param->edotdir[0] +
                     param->edotdir[2]*localstrain[2][1]*param->edotdir[1] +
-                    param->edotdir[2]*localstrain[2][2]*param->edotdir[2];
+                    param->edotdir[2]*localstrain[2][2]*param->edotdir[2] )/param->simVol;
 
                 if (localeRate > 0.0) {
                     node->sgnv = 1;
@@ -887,19 +887,19 @@ void DeltaPlasticStrain_BCC(Home_t *home)
 /*
  *      accumulate delta strain this subcycle into delta strain this cycle
  */
-        param->delpStrain[0] = dstn[0][0];
-        param->delpStrain[1] = dstn[1][1];
-        param->delpStrain[2] = dstn[2][2];
-        param->delpStrain[3] = dstn[1][2];
-        param->delpStrain[4] = dstn[0][2];
-        param->delpStrain[5] = dstn[0][1];
+        param->delpStrain[0] = dstn[0][0]/param->simVol;
+        param->delpStrain[1] = dstn[1][1]/param->simVol;
+        param->delpStrain[2] = dstn[2][2]/param->simVol;
+        param->delpStrain[3] = dstn[1][2]/param->simVol;
+        param->delpStrain[4] = dstn[0][2]/param->simVol;
+        param->delpStrain[5] = dstn[0][1]/param->simVol;
         
-        param->delpSpin[0] = dspn[0][0];
-        param->delpSpin[1] = dspn[1][1];
-        param->delpSpin[2] = dspn[2][2];
-        param->delpSpin[3] = dspn[1][2];
-        param->delpSpin[4] = dspn[0][2];
-        param->delpSpin[5] = dspn[0][1];
+        param->delpSpin[0] = dspn[0][0]/param->simVol;
+        param->delpSpin[1] = dspn[1][1]/param->simVol;
+        param->delpSpin[2] = dspn[2][2]/param->simVol;
+        param->delpSpin[3] = dspn[1][2]/param->simVol;
+        param->delpSpin[4] = dspn[0][2]/param->simVol;
+        param->delpSpin[5] = dspn[0][1]/param->simVol;
                                                                                 
 
 #ifdef PARALLEL

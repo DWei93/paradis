@@ -754,12 +754,11 @@ void DeltaPlasticStrain_FCC(Home_t *home)
  */
             for (k = 0; k < 3; k++){
                 for (l = 0; l < 3; l++){
-                    tmpDstn = (thread_dyad[l][k]+thread_dyad[k][l]) *
-                               0.5;
-                    thread_dstn[l][k] += tmpDstn/param->simVol;
+                    tmpDstn = (thread_dyad[l][k]+thread_dyad[k][l])*0.5;
+                    thread_dstn[l][k] += tmpDstn;
 
                     if(burgType == SHOCKLEY_BURG){
-                        thread_dtstn[l][k] += tmpDstn/param->simVol;
+                        thread_dtstn[l][k] += tmpDstn;
                     }
 			 	  
 	                if(l==k){
@@ -767,54 +766,51 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                         {
                             for(m=0;m<27;m++)home->pstnEle[eleID[m]][l] += tmpDstn*lenPer[m]; // element
                         }
-                    }
-
-	                if(l<k){
+                    }else if(l<k){
 #pragma omp critical (CRIT_DPS_FCC_A)
                         {
-                            for(m=0;m<27;m++)home->pstnEle[eleID[m]][l+k+2] += tmpDstn*lenPer[m]; // element
+                            for(m=0;m<27;m++)home->pstnEle[eleID[m]][6-l-k] += tmpDstn*lenPer[m]; // element
                         }
                     }
-			 	  
-                    thread_dspn[l][k] += (thread_dyad[l][k] -
-                                         thread_dyad[k][l]) *
-                                        0.5/param->simVol;
-                    localstrain[l][k] += tmpDstn/param->simVol;
+
+                    thread_dspn[l][k] += (thread_dyad[l][k] - thread_dyad[k][l])*0.5;
+                    localstrain[l][k] += tmpDstn;
                 }
             }
 
-               /* Modified for flux decomposition calculation 06/22/04 M.Rhee */
-               delxnode = node->x - node->oldx;
-               delynode = node->y - node->oldy;
-               delznode = node->z - node->oldz;
+            tmpx = nbr->x - node->x;
+            tmpy = nbr->y - node->y;
+            tmpz = nbr->z - node->z;
 
-               delxnbr = nbr->x - nbr->oldx;
-               delynbr = nbr->y - nbr->oldy;
-               delznbr = nbr->z - nbr->oldz;
+            ZImage(param, &tmpx, &tmpy, &tmpz);
 
-               ZImage(param, &delxnode, &delynode, &delznode);
-               ZImage(param, &delxnbr, &delynbr, &delznbr);
+            zeta[0] = tmpx;
+            zeta[1] = tmpy;
+            zeta[2] = tmpz;
 
-               tmpx = nbr->x - node->x;
-               tmpy = nbr->y - node->y;
-               tmpz = nbr->z - node->z;
-
-               ZImage(param, &tmpx, &tmpy, &tmpz);
-
-               zeta[0] = tmpx;
-               zeta[1] = tmpy;
-               zeta[2] = tmpz;
-
-               size=sqrt(zeta[0]*zeta[0] + zeta[1]*zeta[1] + zeta[2]*zeta[2]);
+            size=sqrt(zeta[0]*zeta[0] + zeta[1]*zeta[1] + zeta[2]*zeta[2]);
 
 /*
- *             deltaDensity = size/param->simVol/bmagsq;
+ *          deltaDensity = size/param->simVol/bmagsq;
  */
-               deltaDensity = size * param->burgVolFactor;
-               thread_disloDensity += deltaDensity;
-               if(burgType == SHOCKLEY_BURG)thread_disloDensity_TB+=deltaDensity;
-               Normalize(&nx, &ny, &nz);
-           
+            deltaDensity = size * param->burgVolFactor;
+            thread_disloDensity += deltaDensity;
+            if(burgType == SHOCKLEY_BURG)thread_disloDensity_TB+=deltaDensity;
+
+#if 0
+            /* Modified for flux decomposition calculation 06/22/04 M.Rhee */
+            delxnode = node->x - node->oldx;
+            delynode = node->y - node->oldy;
+            delznode = node->z - node->oldz;
+
+            delxnbr = nbr->x - nbr->oldx;
+            delynbr = nbr->y - nbr->oldy;
+            delznbr = nbr->z - nbr->oldz;
+
+            ZImage(param, &delxnode, &delynode, &delznode);
+            ZImage(param, &delxnbr, &delynbr, &delznbr);
+
+            Normalize(&nx, &ny, &nz);
                deltax1x= node->x - node->oldx;
                deltax1y= node->y - node->oldy;
                deltax1z= node->z - node->oldz;
@@ -1240,11 +1236,11 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                thread_areaSwept[index][offset1+4] += outVec[0];
                thread_areaSwept[index][offset2+4] += outVec[1];
 
+ #endif
 	    }  /* for (segIndex = 0; segIndex < nc; ...) */
 	   
 
 /**********************************************************************/
-
 
 /*
  *          computed localstrain[3][3] for the node
@@ -1252,7 +1248,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             if ((param->loadType == 1)) {
                 real8  localeRate;
                 localeRate =
-                    param->edotdir[0]*localstrain[0][0]*param->edotdir[0] +
+                   (param->edotdir[0]*localstrain[0][0]*param->edotdir[0] +
                     param->edotdir[0]*localstrain[0][1]*param->edotdir[1] +
                     param->edotdir[0]*localstrain[0][2]*param->edotdir[2] +
                     param->edotdir[1]*localstrain[1][0]*param->edotdir[0] +
@@ -1260,7 +1256,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                     param->edotdir[1]*localstrain[1][2]*param->edotdir[2] +
                     param->edotdir[2]*localstrain[2][0]*param->edotdir[0] +
                     param->edotdir[2]*localstrain[2][1]*param->edotdir[1] +
-                    param->edotdir[2]*localstrain[2][2]*param->edotdir[2];
+                    param->edotdir[2]*localstrain[2][2]*param->edotdir[2])/param->simVol;
 
                 if (localeRate > 0.0) {
                     node->sgnv = 1;
@@ -1270,7 +1266,6 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                     node->sgnv = 0;
                 }
             }
-
         }  /* for (nodeIndex = 0; nodeIndex < home->newNodeKeyPtr; ...) */
 
 /*
@@ -1300,7 +1295,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             delAccumulation[6] += thread_delAccumulation[6];
             delAccumulation[7] += thread_delAccumulation[7];
 #endif
-
+#if 0
             for (k = 0; k < NUM_BURG; k++) {
                 for (l = 0; l < 4; l++) {
                     Ltot[k][l] += thread_Ltot[k][l];
@@ -1310,7 +1305,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                     areaSwept[k][l] += thread_areaSwept[k][l];
                 }
             }
-
+#endif
             for (k = 0; k < param->numBurgGroups; k++) {
                 param->partialDisloDensity[k] += thread_partialDensity[k];
             }
@@ -1372,26 +1367,26 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 /*
  *      accumulate delta strain this subcycle into delta strain this cycle
  */
-        param->delpStrain[0] = dstn[0][0];
-        param->delpStrain[1] = dstn[1][1];
-        param->delpStrain[2] = dstn[2][2];
-        param->delpStrain[3] = dstn[1][2];
-        param->delpStrain[4] = dstn[0][2];
-        param->delpStrain[5] = dstn[0][1];
+        param->delpStrain[0] = dstn[0][0]/param->simVol;
+        param->delpStrain[1] = dstn[1][1]/param->simVol;
+        param->delpStrain[2] = dstn[2][2]/param->simVol;
+        param->delpStrain[3] = dstn[1][2]/param->simVol;
+        param->delpStrain[4] = dstn[0][2]/param->simVol;
+        param->delpStrain[5] = dstn[0][1]/param->simVol;
 
-        param->delpTwinStrain[0] = dtstn[0][0];
-        param->delpTwinStrain[1] = dtstn[1][1];
-        param->delpTwinStrain[2] = dtstn[2][2];
-        param->delpTwinStrain[3] = dtstn[1][2];
-        param->delpTwinStrain[4] = dtstn[0][2];
-        param->delpTwinStrain[5] = dtstn[0][1];
+        param->delpTwinStrain[0] = dtstn[0][0]/param->simVol;
+        param->delpTwinStrain[1] = dtstn[1][1]/param->simVol;
+        param->delpTwinStrain[2] = dtstn[2][2]/param->simVol;
+        param->delpTwinStrain[3] = dtstn[1][2]/param->simVol;
+        param->delpTwinStrain[4] = dtstn[0][2]/param->simVol;
+        param->delpTwinStrain[5] = dtstn[0][1]/param->simVol;
         
-        param->delpSpin[0] = dspn[0][0];
-        param->delpSpin[1] = dspn[1][1];
-        param->delpSpin[2] = dspn[2][2];
-        param->delpSpin[3] = dspn[1][2];
-        param->delpSpin[4] = dspn[0][2];
-        param->delpSpin[5] = dspn[0][1];
+        param->delpSpin[0] = dspn[0][0]/param->simVol;
+        param->delpSpin[1] = dspn[1][1]/param->simVol;
+        param->delpSpin[2] = dspn[2][2]/param->simVol;
+        param->delpSpin[3] = dspn[1][2]/param->simVol;
+        param->delpSpin[4] = dspn[0][2]/param->simVol;
+        param->delpSpin[5] = dspn[0][1]/param->simVol;
 
 #ifdef VELOCITY_STATISTICS                                                                                
         param->delAccumulation[0] = delAccumulation[0]; 
@@ -1621,5 +1616,5 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 
 #endif                                                                  
 
-        return;
+    return;
 }
