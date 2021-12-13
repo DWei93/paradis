@@ -55,7 +55,7 @@ add_definitions(-DNO_XWINDOW)
 endif(MPI_FOUND)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unknown-pragmas -fopenmp" )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp " )
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp " )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ")
 
 Option(NO_GB_BARRIER "Build ${PARADIS_EXE} using definition NO_GB_BARRIER" OFF)
@@ -68,5 +68,6 @@ endif(NO_GB_BARRIER)
 Add_executable(${PARADIS_EXE} ${PARADIS_SRCS})
 target_link_libraries(${PARADIS_EXE} ${MPI_CXX_LIBRARIES}) # this must be  MPI_CXX_LIBRARIES for cpp file
 Add_definitions(-DSIMLPLE_REACTION_ON_GB)
+
 
 Install(TARGETS ${PARADIS_EXE} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

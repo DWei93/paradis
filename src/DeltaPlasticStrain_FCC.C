@@ -757,7 +757,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                     tmpDstn = (thread_dyad[l][k]+thread_dyad[k][l])*0.5;
                     thread_dstn[l][k] += tmpDstn;
 
-                    if(burgType == SHOCKLEY_BURG){
+                    if(burgType == SHOCKLEY_BURG || (node->onGB>-1 && nbr->onGB>-1)){
                         thread_dtstn[l][k] += tmpDstn;
                     }
 			 	  

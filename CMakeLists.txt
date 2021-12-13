@@ -14,12 +14,12 @@ if(MPI_FOUND)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_EXE_LINKER_FLAGS}")  
 endif()  
 
-set(CMAKE_C_FLAGS_GDB "-ggdb" CACHE STRING "C flag for gdb" )
-set(CMAKE_CXX_FLAGS_GDB "-ggdb" CACHE STRING "CXX flag for gdb" )
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose the type of build." )
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo" "GDB")
-endif(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+Set(CMAKE_C_FLAGS_GDB "-ggdb" CACHE STRING "C flag for gdb" )
+Set(CMAKE_CXX_FLAGS_GDB "-ggdb" CACHE STRING "CXX flag for gdb")
+if(NOT CMAKE_BUILD_TYPE)
+    Set(CMAKE_BUILD_TYPE "RelWithDebInfo")
+endif(NOT CMAKE_BUILD_TYPE)
+Set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo" "GDB")
 message("** CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
 message("** CMAKE_C_COMPILER = ${CMAKE_C_COMPILER} (${CMAKE_C_FLAGS})")
@@ -40,9 +40,11 @@ if(OPENMP_MODE)
     find_package(OpenMP)  
     if(OPENMP_FOUND)  
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")  
-        message("** Find OpenMP: OpenMP_C_FLAGS = ${OpenMP_C_FLAGS}; OpenMP_CXX_FLAGS =  ${OpenMP_CXX_FLAGS}; OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")  
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")  
+        message("** Find OpenMP: OpenMP_C_FLAGS = ${OpenMP_C_FLAGS}; OpenMP_CXX_FLAGS = ${OpenMP_CXX_FLAGS}; OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
     else(OPENMP_FOUND)
-        add_definitions(-DOPENMP_MODE=OFF)
+        Option(OPENMP_MODE OFF)
     endif(OPENMP_FOUND)  
 endif(OPENMP_MODE)
 
@@ -64,9 +66,9 @@ Add_subdirectory (utilities)
 
 ENABLE_TESTING()
 
-Set(frlen 1200,1800 CACHE STRING "Frank-Read source length" )
-Set(cubel 3000 CACHE STRING "cube length" )
-Set(maxSeg 200 CACHE STRING "maximum dislocation segment length" )
+Set(frlen 1500,3000 CACHE STRING "Frank-Read source length" )
+Set(cubel 4000 CACHE STRING "cube length" )
+Set(maxSeg 195 CACHE STRING "maximum dislocation segment length" )
 Set(nfrs 5 CACHE STRING "number of Frank-Read sources" )
 Set(angle 1.5707963 CACHE STRING "rotation angle of TB plane" )
 Set(maxDensity 1E13 CACHE STRING "maximum dislocation density" )
@@ -78,23 +80,25 @@ else(NOT seed)
 message("** seed is defined as ${seed}")
 endif(NOT seed)
 
-Set(commands_gen_bicrystal -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} -seed ${seed} 
-    -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity ${maxDensity}
-    -rotate ${angle} 
-    -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1) 
-
-ADD_TEST(gen_bicrystal utilities/${PARADISGEN_EXE} ${commands_gen_bicrystal})
+Set( commands_gen_bicrystal
+    -type 3 -frlen ${frlen} -pbc 7 -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}
+    -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity ${maxDensity} -rotate ${angle} 
+    -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 -nTDs 1
+    -xMatDir -1,1,0 -yMatDir -1,-1,2 -srcLenType 0 )
 
 Set(commands_repart -infile paradis.data -cells 4 -domains 1,1,4 -outfile bicrystal.data)
-Add_Test(repart_gen utilities/paradisrepart ${commands_repart})
-
-Set(mpirun_commands -n 4 "./src/${PARADIS_EXE}")
-if(OPENMP_MODE)
+if(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
     Set(paradis_commands -n 1 -d ${PARADIS_BINARY_DIR}/bicrystal.data ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
-else(OPENMP_MODE)
-    Set(paradis_commands -d ${PARADIS_BINARY_DIR}/bicrystal.data ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
-endif(OPENMP_MODE)
-Add_Test(run_paradis_bicrystal "mpirun" ${mpirun_commands} ${paradis_commands})
+else(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
+    Set(paradis_commands -n 2 -d ${PARADIS_BINARY_DIR}/bicrystal.data ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
+endif(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
+
+Add_test(test_bicrystal-1
+     utilities/${PARADISGEN_EXE} ${commands_gen_bicrystal})
+Add_test(test_bicrystal-2
+      utilities/paradisrepart ${commands_repart} )
+Add_test(test_bicrystal-3
+      mpirun -n 4 ./src/${PARADIS_EXE} ${paradis_commands})
 
 if(0)
 message("CMAKE_C_FLAGS = ${CMAKE_C_FLAGS}")

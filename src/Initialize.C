@@ -1447,7 +1447,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
         omp_set_num_threads(param->maxNumThreads);
 #endif
 
-	
+ 
 /*
  *      All processors have the domain geometry but need to calculate
  *      the maximum number of decomposition levels (for the Recursive
@@ -1756,11 +1756,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
         VerifyBurgersVectors(home);
 
 /*
- *      This call to GenerateOutput will initialize the X-Window display.
- */
-        GenerateOutput(home, STAGE_INIT, "init");
-		
-/*
  *      The code for calculating the forces from remote segments
  *      needs a couple arrays for doing Gauss-Legendre integration.
  *      Once created, these arrays will remain static, so allocate
@@ -1897,13 +1892,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 strcat(tmpTableFile, TABLE_FILE_SUFFIX);
                 tableFile = tmpTableFile;
             }
-            printf("tableFile=%s\n",tableFile);
-            printf("ctrlFile=%s \n",ctrlFile);
-            printf("temTableFile=%s\n",tmpTableFile);
 
             snprintf(absTableFile, sizeof(absTableFile), "%s/%s",workingDir, tableFile);
-
-            printf("absTableFile=%s\n",absTableFile);
 
             maxTokenLen = sizeof(token);
             tokenType = TOKEN_GENERIC;
@@ -1980,5 +1970,10 @@ void Initialize(Home_t *home,int argc, char *argv[])
         if(home->myDomain==0)DumpPlanes(home);
 	    CheckMemUsage(home, "Initialize");
 	
+/*
+ *      This call to GenerateOutput will initialize the X-Window display.
+ */
+        GenerateOutput(home, STAGE_INIT, "init");
+		
         return;
 }

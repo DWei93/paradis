@@ -32,7 +32,7 @@ numZcells = 4
 #
 meshNumX = 41
 meshNumY = 41
-meshNumZ = 41
+meshNumZ = 82
 
 #  Dynamic load balancing
 #
@@ -43,10 +43,10 @@ DLBfreq = 3
 elasticinteraction = 1
 #a0 = [ 1.68098 1.12421 1.01163 0.187646 ]
 enableCrossSlip =   1
-rTol = .6629125
-rc = 2.7516500
-Ecore = 3.8663218E9
-grainSize = 78
+rTol = 8.3567161
+rc = 33.5268644
+Ecore = 22.2114043E9
+grainSize = 1956
 loadType = 0
 loadDir = [ 0.0 0.0 1.0 -1.0 0.0 0.0 ]
 #maxstep =  40000000
@@ -73,13 +73,13 @@ fmCorrectionTbl =   "fm-ctab.Cu.m2.t5.dat"
 #
 #  Loading conditions
 #  
-eRate = 5000
+eRate = -5000
 #eRate =  0.0E0
 strRate = -4.0E16
 #strRate = 0.0
 #plaRateCtr = 2.0E4
 
-edotPolar = [ 9.0000000e+01 9.5000000e+01 ]
+edotPolar = [ 0.0 0.0 ]
 
 appliedStress = [
 	0.0e0
@@ -93,7 +93,7 @@ appliedStress = [
 #
 #  Material and mobility parameters
 #  
-dirname = "res."
+dirname = "res.bicrytal-d-1000nm-90-degree-1000"
 #mobilityLaw =   "FCC_nl"
 mobilityLaw =   "FCC_nl"
 shearModulus = 48.0E9
@@ -134,5 +134,5 @@ savetimers = 0
 savetimersfreq = 10
 velfile = 0
 velfilefreq = 1000
-minDT = 1.000E-13
+minDT = 26.208E-13
 #maxDT = 5.000E-13

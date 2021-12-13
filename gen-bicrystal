@@ -61,6 +61,7 @@ thick=`echo ${cubel}/${nGrains}| bc`
 thickn=`echo "scale=0; (${cubeln}/${nGrains})/1" |bc`
 
 frlen=`echo "scale=5;(90+${cubeln}*0.05)/0.2556" | bc -l`
+frlen=`echo "scale=4;${cubeln}/3/0.2556" | bc`
 frlenMin=$frlen
 frlenn=`echo "scale=3;${frlen}*0.2556" | bc`
 maxSeg2=`echo ${frlen}/5 |bc `

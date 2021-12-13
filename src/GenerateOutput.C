@@ -225,10 +225,12 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
                         param->tecplotcounter++;
                         *outputTypes |= GEN_TECPLOT_DATA;
                     }
-                } else if ((home->cycle % param->tecplotfreq) == 0 || home->cycle == 1) {
+                } else if ((home->cycle % param->tecplotfreq) == 0) {
                     param->tecplotcounter++;
                     *outputTypes |= GEN_TECPLOT_DATA;
                 }
+            }else if(stage == STAGE_INIT){
+                *outputTypes |= GEN_TECPLOT_DATA;   
             }
         }
 
@@ -244,7 +246,7 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
                         param->tecmeshcounter++;
                         *outputTypes |= GEN_TECMESH_DATA;
                     }
-                }else if ((home->cycle % param->tecmeshfreq) == 0 || home->cycle == 1) {
+                }else if ((home->cycle % param->tecmeshfreq) == 0) {
                     param->tecmeshcounter++;
                     *outputTypes |= GEN_TECMESH_DATA;
                 }
@@ -256,6 +258,8 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
                     if(home->myDomain==0)printf("out stress fieldi x\n");
                 }
 #endif
+            }else if(stage == STAGE_INIT){
+                *outputTypes |= GEN_TECMESH_DATA;   
             }
         }
 /*
@@ -1112,7 +1116,7 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
         }
 
         if ((outputTypes & GEN_TECMESH_DATA) != 0) {
-            if (stage == STAGE_CYCLE) {
+            if (stage == STAGE_CYCLE || stage == STAGE_INIT) {
                 snprintf(baseName, sizeof(baseName), "tecmesh%06d",
                          param->tecmeshcounter);
             } else if (stage == STAGE_DEBUG){
