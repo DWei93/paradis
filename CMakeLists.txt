@@ -8,8 +8,7 @@ message ("** PARADIS_BINARY_DIR =  ${PARADIS_BINARY_DIR}")
 message ("** PARADIS_SOURCE_DIR =  ${PARADIS_SOURCE_DIR}")
 
 
-#find_package(MPI REQUIRED)
-find_package(MPI)
+find_package(MPI REQUIRED)
 if(MPI_FOUND)  
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_EXE_LINKER_FLAGS}")  
 endif()  
@@ -48,6 +47,7 @@ if(OPENMP_MODE)
     endif(OPENMP_FOUND)  
 endif(OPENMP_MODE)
 
+if(0)
 Find_Package(GEOS)
 IF(GEOS_FOUND)
     message(STATUS "include and lib " ${GEOS_INCLUDE_DIR} " " ${GEOS_LIB_DIR})
@@ -60,6 +60,7 @@ IF(GEOS_FOUND)
     Message(STATUS "GEOS_INCLUDE_DIR = " ${GEOS_INCLUDE_DIR})
     Message(STATUS "GEOS_LINK_DIR = " ${GEOS_LINK_DIR})
 ENDIF(GEOS_FOUND)
+endif()
 
 Add_subdirectory (src)
 Add_subdirectory (utilities)
@@ -83,22 +84,39 @@ endif(NOT seed)
 Set( commands_gen_bicrystal
     -type 3 -frlen ${frlen} -pbc 7 -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}
     -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity ${maxDensity} -rotate ${angle} 
-    -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 -nTDs 1
+    -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 -nTDs 1 -seed ${seed}
     -xMatDir -1,1,0 -yMatDir -1,-1,2 -srcLenType 0 )
-
-Set(commands_repart -infile paradis.data -cells 4 -domains 1,1,4 -outfile bicrystal.data)
+Set(commands_repart_bicrystal -infile paradis.data -cells 4 -domains 1,1,4 -outfile bicrystal.data)
 if(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
-    Set(paradis_commands -n 1 -d ${PARADIS_BINARY_DIR}/bicrystal.data ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
+    Set(paradis_commands_bicrystal -n 1 -d ${PARADIS_BINARY_DIR}/bicrystal.data ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
 else(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
-    Set(paradis_commands -n 2 -d ${PARADIS_BINARY_DIR}/bicrystal.data ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
+    Set(paradis_commands_bicrystal -n 2 -d ${PARADIS_BINARY_DIR}/bicrystal.data ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
 endif(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
 
 Add_test(test_bicrystal-1
      utilities/${PARADISGEN_EXE} ${commands_gen_bicrystal})
 Add_test(test_bicrystal-2
-      utilities/paradisrepart ${commands_repart} )
+      utilities/paradisrepart ${commands_repart_bicrystal} )
 Add_test(test_bicrystal-3
-      mpirun -n 4 ./src/${PARADIS_EXE} ${paradis_commands})
+      mpirun -n 4 ./src/${PARADIS_EXE} ${paradis_commands_bicrystal})
+
+Set(commands_gen_multilayer
+    -type 3 -frlen 3 -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  -tdDensity -1  -polycrystal 1  -seed ${seed}
+    -nGrain 4 -pbc 0 -nTDs 1 -maxDensity ${maxDensity} -gb 1 -loadDir 90.0,90.0  -tdLength 978 -kinkSize 1,5 )
+Set(commands_repart_multilayer -infile paradis.data -cells 4 -domains 1,1,4 -outfile multilayer.data)
+if(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
+    Set(paradis_commands_multilayer -n 1 -f ${PARADIS_SOURCE_DIR}/input/fm-ctab.Cu.m2.t5.dat -d ${PARADIS_BINARY_DIR}/multilayer.data ${PARADIS_SOURCE_DIR}/tests/multilayer.ctrl)
+else(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
+    Set(paradis_commands_multilayer -n 2 -f ${PARADIS_SOURCE_DIR}/input/fm-ctab.Cu.m2.t5.dat -d ${PARADIS_BINARY_DIR}/multilayer.data ${PARADIS_SOURCE_DIR}/tests/multilayer.ctrl)
+endif(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
+
+Add_test(test_multilayer-1
+     utilities/${PARADISGEN_EXE} ${commands_gen_multilayer})
+Add_test(test_multilayer-2
+      utilities/paradisrepart ${commands_repart_multilayer} )
+Add_test(test_multilayer-3
+      mpirun -n 4 ./src/${PARADIS_EXE} ${paradis_commands_multilayer})
+
 
 if(0)
 message("CMAKE_C_FLAGS = ${CMAKE_C_FLAGS}")

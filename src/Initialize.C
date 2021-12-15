@@ -1415,6 +1415,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
                     snprintf(param->fmCorrectionTbl, sizeof(param->fmCorrectionTbl), "%s", fmFile);
                     fclose(fp_fm);
                     printf("FMM correction table file: %s\n", param->fmCorrectionTbl);
+                }else{
+                    printf("Warning: can not touch fm file %s\n", fmFile);
                 }
             }
 #ifdef _BGP

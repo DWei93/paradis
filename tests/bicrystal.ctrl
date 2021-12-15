@@ -50,7 +50,7 @@ grainSize = 1956
 loadType = 1
 loadDir = [ 0.0 0.0 1.0 -1.0 0.0 0.0 ]
 #maxstep =  40000000
-maxstep =  1000
+maxstep =  2000
 remeshRule = 2
 enforceGlidePlanes =  1
 splitMultiNodeFreq =   1  
@@ -93,7 +93,7 @@ appliedStress = [
 #
 #  Material and mobility parameters
 #  
-dirname = "res.bicrytal-d-1000nm-90-degree-1000"
+dirname = "res.bicrytal"
 #mobilityLaw =   "FCC_nl"
 mobilityLaw =   "FCC_nl"
 shearModulus = 48.0E9

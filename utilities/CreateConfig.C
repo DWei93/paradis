@@ -2768,7 +2768,6 @@ void ProbeFreePath(real8 *p1, real8 *p2, std::vector<real8> &vertices, std::vect
             dis=fabs(dis);
             if(dis<1E-5)continue;
             if(type == 1 ){
-                dPoint[clinter] = linter;
                 if(dfs[j]<0) {
                     dfs[j]=dis;
                     CoordMinus(vec, p[j], ldir_fs[j]);
@@ -2786,6 +2785,7 @@ void ProbeFreePath(real8 *p1, real8 *p2, std::vector<real8> &vertices, std::vect
             }else if (type ==0){
                 if(dpb[j]<0) dpb[j]=dis; else if(dpb[j]>dis)dpb[j]=dis; 
             }else if(type ==2){
+                dPoint[clinter] = linter;
                 real8 vecDisp[3]; CoordMinus(vec, p[j], vecDisp);
                 if(DotProduct(vecDisp, f1) > 0)dPoint[ctbdir]=1; else dPoint[ctbdir] = -1; // tbdir > 0 and disTB<0: reaction then cut by surface; tdir < 0 cut by surface first  
                 
@@ -4212,7 +4212,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                "%4.2f%% of srcs are of primary slip systems\n",
                 chain, chain/home->nGrains, primarySrcLen*100/totSrcLen);
         
- #ifdef INITIAL_ANALYSIS
+ #if    INITIAL_ANALYSIS
         DDAnalysis(isrcs);
         for(i=0; i<isrcs.size(); i++){
             for(j=0; j<isrcs[i].dPoint.size(); j++){
