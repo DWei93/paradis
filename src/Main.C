@@ -46,13 +46,16 @@ int main (int argc, char *argv[])
 
 
         ParadisInit(argc, argv, &home);
-
    
         home->cycle      = home->param->cycleStart;
 
-        Param_t *param            = home->param;
+        Param_t *param   = home->param;
         cycleEnd         = param->cycleStart + param->maxstep;
         initialDLBCycles = param->numDLBCycles;
+/*
+ *      This call to GenerateOutput will initialize the X-Window display.
+ */
+        GenerateOutput(home, STAGE_INIT, "init");
 
 /*
  *      Perform the needed number (if any) of load-balance-only
@@ -97,7 +100,7 @@ int main (int argc, char *argv[])
  */
         home->cycle = home->param->cycleStart;
 
-//        GeosTest();		
+//        GeosTest();
         while (home->cycle < cycleEnd && home->param->finish <= 0) {
             ParadisStep(home);
             TimerClearAll(home);

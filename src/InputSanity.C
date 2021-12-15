@@ -18,7 +18,7 @@ void InputSanity (Home_t *home)
 	int	i, cellCount, domainCount;
 	Param_t	*param;
    
-        param = home->param;
+    param = home->param;
 /*
  *	Verify that the specified geometry matches the domain count
  */

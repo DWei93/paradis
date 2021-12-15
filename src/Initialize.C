@@ -32,6 +32,7 @@
 #include "Parse.h"
 #include "Restart.h"
 #include "Comm.h"
+#include <regex>
 
 #include <strings.h>
 #ifdef _BGP
@@ -243,7 +244,7 @@ static void RemapDomains(Home_t *home)
 static void Usage(char *program)
 {
         printf("\nUsage:  %s [-r <initDLBCycles>] [-s] [-d <data_file>]\\\n"
-               "           [-n <numThreads>] <ctrl_file>\n\n", program);
+               "           [-n <numThreads>] [-t <table_file>] [-f <fm_file>] <ctrl_file>\n\n", program);
         Fatal("Incorrect command line argument list");
 }
 
@@ -1217,9 +1218,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
         int          maxNumThreads = 1;
         int          doBinRead;
         char         *sep, *start;
-        char         tmpDataFile[256], testFile[256], tmpTableFile[40];
+        char         tmpDataFile[256], testFile[256], tmpTableFile[256];
         char         *ctrlFile;
-        char         *dataFile, *tableFile;
+        char         *dataFile, *tableFile, *fmFile;
         const   char* temp;
         Param_t      *param;
         InData_t     *inData;
@@ -1277,7 +1278,8 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
 
             dataFile = (char *)NULL;
-            ctrlFile = (char*)NULL;
+            ctrlFile = (char *)NULL;
+            fmFile   = (char *)NULL;
 
             for (i = 1; i < argc; i++) {
                 if (!strcmp(argv[i], "-r")) {
@@ -1306,10 +1308,12 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 } else if (!strcmp(argv[i], "-d")) {
                     if (i >= (argc - 1)) Usage(argv[0]);
                     dataFile = argv[++i];
-
                 } else if (!strcmp(argv[i], "-t")) {
                     if(i >= (argc - 1)) Usage(argv[0]);
                     tableFile = argv[++i];
+                } else if (!strcmp(argv[i], "-f")) {
+                    if(i >= (argc - 1)) Usage(argv[0]);
+                    fmFile = argv[++i];
                 } else {
                     if (i < (argc - 1)) Usage(argv[0]);
                     ctrlFile = argv[i];
@@ -1405,6 +1409,14 @@ void Initialize(Home_t *home,int argc, char *argv[])
  */
             InputSanity(home);
 
+            if(fmFile !=(char *)NULL){
+                FILE *fp_fm;
+                if((fp_fm = fopen(fmFile, "r")) != (FILE *)NULL) {
+                    snprintf(param->fmCorrectionTbl, sizeof(param->fmCorrectionTbl), "%s", fmFile);
+                    fclose(fp_fm);
+                    printf("FMM correction table file: %s\n", param->fmCorrectionTbl);
+                }
+            }
 #ifdef _BGP
 /*
  *          On BlueGene type systems the job is physically executed on a
@@ -1428,15 +1440,24 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *      so, those updates will be distributed as needed.
  */
 		
-
-
 #ifdef PARALLEL
         MPI_Bcast((char *)param, sizeof(Param_t), MPI_CHAR, 0,
                   MPI_COMM_WORLD);
 #endif
 
         param->timestart = clock();
-
+#if MPI_DEBUG
+        if(home->myDomain==0){
+            int debug =0;
+            while(debug==0){
+                sleep(5);
+            }
+            printf("MPI debug starting, debug=%d", debug);
+        }
+#ifdef PARALLEL
+        MPI_Barrier(MPI_COMM_WORLD);
+#endif
+#endif
 #ifdef _OPENMP
 /*
  *      Only domain 0 originally knew how many threads to use
@@ -1508,7 +1529,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 FormatMatrix(param->loadTensor, "Applied param->loadTensoress");
             }
         }else{
-            if(home->myDomain==0)printf("Load Type: uniaxil loading\n");
             param->indxErate=1;
             if(fabs(param->edotdir[0])<1E-10 && abs(param->edotdir[1])<1E-10 && abs(param->edotdir[2])<1E-10){
                 param->edotdir[2]=cos(degree*param->edotPolar[0]);
@@ -1888,7 +1908,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 start = strrchr(tmpTableFile, '/');
                 if (start == (char *)NULL) start = tmpTableFile;
                 sep = strrchr(start, '.');
-                if ((sep != (char *)NULL) && (sep > start)) *sep = 0;
+                if ((sep != (char *)NULL) && (sep > start)){
+                    *sep = 0;
+                }
                 strcat(tmpTableFile, TABLE_FILE_SUFFIX);
                 tableFile = tmpTableFile;
             }
@@ -1922,20 +1944,13 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 printf("Initialize: Plastic strain file parsing complete\n");
                 fclose(fp);
             }else{
-#if 0
-                std::regex aux_rs("([A-Za-z0-9./]+)rs[0-9][0-9][0-9][0-9]");
+                std::regex aux_rs("(rs\\d{4})|(restart.cn)$");
                 std::string cFile=ctrlFile;
                 std::smatch v_match;
-                if(std::regex_match(cFile, v_match, aux_rs)){
-                    if(v_match.size()>0){
-                        printf("v_match[0]=%s\n",v_match[0].str().c_str());
-                    }
-#endif
+                if(std::regex_search(cFile, v_match, aux_rs)){
                     printf("Warning: can not open plastic strain field file %s, errno=%d\n"
                         "workingdir=%s, filename=%s\n", absTableFile, errno, workingDir, tableFile);
-#if 0
                 }
-#endif
             }
         }     
 
@@ -1970,10 +1985,5 @@ void Initialize(Home_t *home,int argc, char *argv[])
         if(home->myDomain==0)DumpPlanes(home);
 	    CheckMemUsage(home, "Initialize");
 	
-/*
- *      This call to GenerateOutput will initialize the X-Window display.
- */
-        GenerateOutput(home, STAGE_INIT, "init");
-		
         return;
 }
