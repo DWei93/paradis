@@ -14,13 +14,17 @@ if(MPI_FOUND)
 endif()  
 
 Set(CMAKE_C_FLAGS_GDB "-ggdb -DMPI_DEBUG" CACHE STRING "C flag for gdb" )
-Set(CMAKE_CXX_FLAGS_GDB "-ggdb -DMPI_DEBUG" CACHE STRING "CXX flag for gdb")
+Set(CMAKE_CXX_FLAGS_GDB "-ggdb -DMPI_DEBUG" CACHE STRING "CXX flag for gdb" )
 if(NOT CMAKE_BUILD_TYPE)
     Set(CMAKE_BUILD_TYPE "RelWithDebInfo")
 endif(NOT CMAKE_BUILD_TYPE)
 Set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo" "GDB")
 message("** CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
+if(${CMAKE_BUILD_TYPE} EQUAL "GDB")
+    Set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_GDB} ")
+    Set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS_GDB} ")
+endif()
 message("** CMAKE_C_COMPILER = ${CMAKE_C_COMPILER} (${CMAKE_C_FLAGS})")
 message("** CMAKE_CXX_COMPILER = ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_FLAGS}); CMAKE_EXE_LINKER_FLAGS = ${CMAKE_EXE_LINKER_FLAGS}")
 
@@ -116,7 +120,6 @@ Add_test(test_multilayer-2
       utilities/paradisrepart ${commands_repart_multilayer} )
 Add_test(test_multilayer-3
       mpirun -n 4 ./src/${PARADIS_EXE} ${paradis_commands_multilayer})
-
 
 if(0)
 message("CMAKE_C_FLAGS = ${CMAKE_C_FLAGS}")
