@@ -218,7 +218,7 @@ void ZeroNodeForces(Home_t *home, int reqType)
 
 
 static void GetFieldPointStressRem(Home_t *home, real8 x, real8 y, real8 z,
-                                   int cellX, int cellY, int cellZ,
+                                   int cellX, int cellY, int cellZ, int inGrain, int onGB,
                                    real8 totStress[3][3])
 {
         int     i, j, includePrimary;
@@ -241,6 +241,9 @@ static void GetFieldPointStressRem(Home_t *home, real8 x, real8 y, real8 z,
         if (cellCenterX == (real8 *)NULL) {
             real8   Lx, Ly, Lz;
             real8   cellXsize, cellYsize, cellZsize, xStart, yStart, zStart;
+
+            int   inGrainLower, onGBLower, inGrainUpper, onGBUpper;
+            real8 vec[3];
 
             Lx = param->Lx;
             Ly = param->Ly;
@@ -266,6 +269,24 @@ static void GetFieldPointStressRem(Home_t *home, real8 x, real8 y, real8 z,
 
             for (i = 0; i < param->nZcells; i++)
                 cellCenterZ[i] = zStart + i*cellZsize;
+
+            if(param->xBoundType==Periodic && param->yBoundType==Periodic &&param->zBoundType==Periodic){
+                vec[0] = cellCenterX[param->nXcells/2];
+                vec[1] = cellCenterY[param->nYcells/2];
+                vec[2] = param->minSideZ;
+                NodeLocation(home, vec, inGrainLower, onGBLower);
+               
+                for(i=1;i<param->nZcells;i++){
+                    vec[2] += cellZsize; 
+                    NodeLocation(home, vec, inGrainUpper, onGBUpper);
+                    if(onGBLower == -1 && onGBUpper == -1){
+                        if(inGrainLower != inGrainUpper)Fatal("%s at line %d: cellZsize (%g) wrong"
+                            ,__FILE__, __LINE__, cellZsize);
+                    }
+                    inGrainLower = inGrainUpper;
+                    onGBLower = onGBUpper;
+                }
+            }
         }
 
 /*
@@ -332,7 +353,7 @@ static void GetFieldPointStressRem(Home_t *home, real8 x, real8 y, real8 z,
                  zSkip3 = param->nZcells - 1 ;
          }
 
-
+    int         inGrainCell, onGBCell; 
 /*
  *      Loop through all cells, and add the stress contribution from
  *      the cell to stress at the segment midpoint.
@@ -352,6 +373,11 @@ static void GetFieldPointStressRem(Home_t *home, real8 x, real8 y, real8 z,
                 xc = cellCenterX[cx];
                 yc = cellCenterY[cy];
                 zc = cellCenterZ[cz];
+
+                if(onGB == -1 && inGrain >-1){
+                    NodeLocation(home, xc, yc, zc, inGrainCell, onGBCell);                    
+                    if(inGrainCell == inGrain)continue;
+                }
 
 /*
  *              Get the stress at the specified point caused
@@ -475,6 +501,7 @@ void ComputeSegSigbRem (Home_t *home, int reqType)
    
         param = home->param;
 
+        int armInGrain, armOnGB;
 /*
  *      loop thru the native nodes
  */
@@ -557,8 +584,10 @@ void ComputeSegSigbRem (Home_t *home, int reqType)
                 myYcell--;
                 myZcell--;
 
+                GetArmGrain(home, node, nbr, armInGrain, armOnGB);
+
                 GetFieldPointStressRem(home, xm, ym, zm,
-                                       myXcell, myYcell, myZcell, totRemSig);
+                                       myXcell, myYcell, armInGrain, armOnGB, myZcell, totRemSig);
 
 /*
  *              Calculate Sigma dot b from remote stess on this segment, and
@@ -1182,7 +1211,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
         Node_t  *nodeB;
         Param_t *param;
         SegPair_t *segPairList = (SegPair_t *)NULL;
-        int     inGrain, onGB, armGrain;
+        int     inGrain, onGB, armInGrain, armOnGB;
 
         param           = home->param;
 
@@ -1466,6 +1495,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
                 ym = y1 + (dy * 0.5);
                 zm = z1 + (dz * 0.5);
 
+                GetArmGrain(home, node1, node2, armInGrain, armOnGB);
 /*
  *              Indices for the cell containing node1 were obtained
  *              way up above... so we just need to subtract off the
@@ -1473,7 +1503,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
  *              at the specified point from all segments in remote cells.
  */
                 GetFieldPointStressRem(home, xm, ym, zm,
-                                       cellX-1, cellY-1, cellZ-1, totRemSig);
+                                       cellX-1, cellY-1, cellZ-1, armInGrain, armOnGB, totRemSig);
 
                 sigb[0] = totRemSig[0][0] * burg[0] +
                           totRemSig[0][1] * burg[1] +
