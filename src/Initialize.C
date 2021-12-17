@@ -1946,7 +1946,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 printf("Initialize: Plastic strain file parsing complete\n");
                 fclose(fp);
             }else{
-                std::regex aux_rs("(rs\\d{4})|(restart.cn)$");
+                std::regex aux_rs("(rs[0-9]{4})|(restart.cn)$", std::regex_constants::basic);
                 std::string cFile=ctrlFile;
                 std::smatch v_match;
                 if(std::regex_search(cFile, v_match, aux_rs)){
