@@ -494,6 +494,7 @@ struct _param {
  *	Define the variables about grain
  */
         int	    polycrystal;
+		int 	stressFieldPenetrable;
         int	    nGrain;
         real8	twinRatio;
         real8	peneTB;

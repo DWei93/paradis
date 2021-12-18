@@ -345,7 +345,9 @@ void DeltaPlasticStrain_FCC(Home_t *home)
  *      safely adds its contributions to the summed totals in a 'critical'
  *      section after its loop iterations have been completed.
  */
+#ifdef _OPENMP
 #pragma omp parallel
+#endif
    {
         int    k, l, m;
         int    nodeIndex;
@@ -571,14 +573,18 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                         thread_delAccumulation[0] += (DotProduct(vec1, vec1)*disLen);
                         thread_delAccumulation[4] += vtau;
                         GetBinID(param->velMin, param->baseVel, param->nVelBins, velocity, disLen, binID, coeff);
+#ifdef _OPENMP
 #pragma omp critical (CRIT_DPS_FCC_A)
+#endif
                         {
                             param->velTable[binID[0]][1] += coeff[0];
                             param->velTable[binID[1]][1] += coeff[1];
                         }
                         
                         GetBinID(param->dissMin, param->baseDiss, param->nDissBins, vtau, disLen, binID, coeff);
+#ifdef _OPENMP
 #pragma omp critical (CRIT_DPS_FCC_A)
+#endif
                         {
                             param->dissTable[binID[0]][1] += coeff[0];
                             param->dissTable[binID[1]][1] += coeff[1];
@@ -588,14 +594,18 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                         thread_delAccumulation[1] += (DotProduct(vec1, vec1)*disLen);
                         thread_delAccumulation[5] += vtau;
                         GetBinID(param->velMin, param->baseVel, param->nVelBins, velocity, disLen, binID, coeff);
+#ifdef _OPENMP
 #pragma omp critical (CRIT_DPS_FCC_A)
+#endif
                         {
                             param->velTable[binID[0]][2] += coeff[0];
                             param->velTable[binID[1]][2] += coeff[1];
                         }
 
                         GetBinID(param->dissMin, param->baseDiss, param->nDissBins, vtau, disLen, binID, coeff);
+#ifdef _OPENMP
 #pragma omp critical (CRIT_DPS_FCC_A)
+#endif
                         {
                             param->dissTable[binID[0]][2] += coeff[0];
                             param->dissTable[binID[1]][2] += coeff[1];
@@ -609,14 +619,18 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                     thread_delAccumulation[7] += vtau;
 
                     GetBinID(param->velMin, param->baseVel, param->nVelBins, velocity, disLen, binID, coeff);
+#ifdef _OPENMP
 #pragma omp critical (CRIT_DPS_FCC_A)
+#endif
                     {
                         param->velTable[binID[0]][3] += coeff[0];
                         param->velTable[binID[1]][3] += coeff[1];
                     }
 
                     GetBinID(param->dissMin, param->baseDiss, param->nDissBins, vtau, disLen, binID, coeff);
+#ifdef _OPENMP
 #pragma omp critical (CRIT_DPS_FCC_A)
+#endif
                     {
                         param->dissTable[binID[0]][3] += coeff[0];
                         param->dissTable[binID[1]][3] += coeff[1];
@@ -762,12 +776,16 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                     }
 			 	  
 	                if(l==k){
+#ifdef _OPENMP
 #pragma omp critical (CRIT_DPS_FCC_A)
+#endif
                         {
                             for(m=0;m<27;m++)home->pstnEle[eleID[m]][l] += tmpDstn*lenPer[m]; // element
                         }
                     }else if(l<k){
+#ifdef _OPENMP
 #pragma omp critical (CRIT_DPS_FCC_A)
+#endif
                         {
                             for(m=0;m<27;m++)home->pstnEle[eleID[m]][6-l-k] += tmpDstn*lenPer[m]; // element
                         }
@@ -1273,7 +1291,9 @@ void DeltaPlasticStrain_FCC(Home_t *home)
  *      The threads now update the global arrays with their contributions
  *      in a 'critical' block so there's no conflicts among the threads.
  */
+#ifdef _OPENMP
 #pragma omp critical (CRIT_DPS_FCC_A)
+#endif
        {
             for (k = 0; k < 3; k++) {
                 for (l = 0; l < 3; l++) {

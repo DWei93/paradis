@@ -270,7 +270,8 @@ static void GetFieldPointStressRem(Home_t *home, real8 x, real8 y, real8 z,
             for (i = 0; i < param->nZcells; i++)
                 cellCenterZ[i] = zStart + i*cellZsize;
 
-            if(param->xBoundType==Periodic && param->yBoundType==Periodic &&param->zBoundType==Periodic){
+            if(param->xBoundType==Periodic && param->yBoundType==Periodic &&
+              param->zBoundType==Periodic && param->stressFieldPenetrable==0){
                 vec[0] = cellCenterX[param->nXcells/2];
                 vec[1] = cellCenterY[param->nYcells/2];
                 vec[2] = param->minSideZ;
@@ -374,9 +375,11 @@ static void GetFieldPointStressRem(Home_t *home, real8 x, real8 y, real8 z,
                 yc = cellCenterY[cy];
                 zc = cellCenterZ[cz];
 
-                if(onGB == -1 && inGrain >-1){
-                    NodeLocation(home, xc, yc, zc, inGrainCell, onGBCell);                    
-                    if(inGrainCell == inGrain)continue;
+                if(param->stressFieldPenetrable ==0){
+                    if(onGB == -1 && inGrain >-1){
+                        NodeLocation(home, xc, yc, zc, inGrainCell, onGBCell);                    
+                        if(inGrainCell == inGrain)continue;
+                    }
                 }
 
 /*
@@ -1211,7 +1214,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
         Node_t  *nodeB;
         Param_t *param;
         SegPair_t *segPairList = (SegPair_t *)NULL;
-        int     inGrain, onGB, armInGrain, armOnGB;
+        int     inGrain, onGB, armInGrain12, armOnGB12, armInGrain34, armOnGB34;
 
         param           = home->param;
 
@@ -1495,7 +1498,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
                 ym = y1 + (dy * 0.5);
                 zm = z1 + (dz * 0.5);
 
-                GetArmGrain(home, node1, node2, armInGrain, armOnGB);
+                GetArmGrain(home, node1, node2, armInGrain12, armOnGB12);
 /*
  *              Indices for the cell containing node1 were obtained
  *              way up above... so we just need to subtract off the
@@ -1503,7 +1506,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
  *              at the specified point from all segments in remote cells.
  */
                 GetFieldPointStressRem(home, xm, ym, zm,
-                                       cellX-1, cellY-1, cellZ-1, armInGrain, armOnGB, totRemSig);
+                                       cellX-1, cellY-1, cellZ-1, armInGrain12, armOnGB12, totRemSig);
 
                 sigb[0] = totRemSig[0][0] * burg[0] +
                           totRemSig[0][1] * burg[1] +
@@ -1623,6 +1626,13 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
 
                                 node4 = GetNeighborNode(home, node3, armID34);
 
+                                if(param->stressFieldPenetrable==0){
+                                    GetArmGrain(home, node1, node2, armInGrain12, armOnGB12);
+                                    GetArmGrain(home, node3, node4, armInGrain34, armOnGB34);
+                                    if(armOnGB12 == -1 && armOnGB34 == -1){
+                                        if(armInGrain12 != armInGrain34)continue;
+                                    }
+                                }
 /*
  *                              Skip the node3/node4 segment if:
  *                              1) the current domain has no info on node4
@@ -1631,7 +1641,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
  *                                 the node1/node2 segment.
  */
                                 if(node4 == (Node_t *)NULL)continue;
-                                if (node4 == (Node_t *)NULL || (NodeOwnsSeg(home, node4, node3))       ||
+                                if (node4 == (Node_t *)NULL || (NodeOwnsSeg(home, node4, node3)) ||
                                     (((node1 == node3) && (node2 == node4)) ||
                                      ((node1 == node4) && (node2 == node3)))) {
                                     continue;
@@ -1670,7 +1680,9 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
  *      Calculate the forces between every segment pair in the list
  *      created above, and update the forces on segment 1.
  */
+#ifdef _OPENMP
 #pragma omp parallel
+#endif
         {
             int     pairID;
             int     threadID, threadIterStart, threadIterEnd;

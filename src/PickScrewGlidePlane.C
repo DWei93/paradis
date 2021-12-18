@@ -37,7 +37,9 @@ static void PickBCCScrewGlidePlane(real8 burgVec[3], real8 glidePlane[3])
 {
         real8        randVal;
         static int   seed = 8917346;
+#ifdef _OPENMP
 #pragma omp threadprivate (seed)
+#endif
 
         randVal = randm(&seed);
 
@@ -80,7 +82,9 @@ static void PickFCCScrewGlidePlane(real8 burgVec[3], real8 glidePlane[3])
 {
         real8        randVal;
         static int   seed = 8917346;
+#ifdef _OPENMP
 #pragma omp threadprivate (seed)
+#endif
 
         randVal = randm(&seed);
 

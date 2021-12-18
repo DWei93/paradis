@@ -931,6 +931,10 @@ void SetRemainingDefaults(Home_t *home)
         param->DLBfreq = 0;
 #endif
 
+        if(param->stressFieldPenetrable>0 && param->fmEnabled != 0){
+            Fatal("can not support stressFilePenetrable with FMM");
+        }
+
         return;
 }
 

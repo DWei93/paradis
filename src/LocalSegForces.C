@@ -1710,9 +1710,19 @@ void ComputeForces(Home_t *home, Node_t *node1, Node_t *node2,
         real8   siF1[3], siF3[3], siF4[3];
 //  #endif
 
-
         param      = home->param;
 
+#ifdef DEBUG
+        if(param->stressFieldPenetrable == 0){
+            int armInGrain12, armOnGB12, armInGrain34, armOnGB34;
+            GetArmGrain(home, node1, node2, armInGrain12, armOnGB12);
+            GetArmGrain(home, node3, node4, armInGrain34, armOnGB34);
+            
+            if(armOnGB12 == -1 && armOnGB34 == -1){
+                if(armInGrain12 != armInGrain34)Fatal("(%s: wrong arm grain )",__func__);
+            }
+        }
+#endif
 /*
  *      Increment the count of segment to segment force calculations
  *      for this timestep.  Then if the only thing being done this
@@ -2367,6 +2377,7 @@ void LocalSegForces(Home_t *home, int reqType)
         SegmentPair_t *segPairList = NULL;
         int             inGrain, onGB;
 
+        int armInGrain12, armOnGB12, armInGrain34, armOnGB34;
 
         homeCells       = home->cellCount;
         homeNativeCells = home->nativeCellCount;
@@ -2692,6 +2703,14 @@ void LocalSegForces(Home_t *home, int reqType)
                         continue;
                     }
 
+                    if(param->stressFieldPenetrable == 0){
+                        GetArmGrain(home, node1, node2, armInGrain12, armOnGB12);
+                        GetArmGrain(home, node3, node4, armInGrain34, armOnGB34);
+                        
+                        if(armOnGB12 == -1 && armOnGB34 == -1){
+                            if(armInGrain12 != armInGrain34)continue;
+                        }
+                    }
 /*
  *                  We need forces for this segment pair, so add the
  *                  segment pair to the seg pair list
@@ -2813,6 +2832,14 @@ void LocalSegForces(Home_t *home, int reqType)
                             continue;
                         }
 
+                        if(param->stressFieldPenetrable == 0){
+                            GetArmGrain(home, node1, node2, armInGrain12, armOnGB12);
+                            GetArmGrain(home, node3, node4, armInGrain34, armOnGB34);
+                            
+                            if(armOnGB12 == -1 && armOnGB34 == -1){
+                                if(armInGrain12 != armInGrain34)continue;
+                            }
+                        }
 /*
  *                      Add segment pair to segment pair list
  */
@@ -2838,7 +2865,9 @@ void LocalSegForces(Home_t *home, int reqType)
  *            of the nodal segment forces wehn we update them because
  *            there is no chance of a race condition. 
  */
+#ifdef _OPENMP
 #pragma omp parallel for private(node1, node2, cell, cellID)
+#endif
         for (i = 0; i < nativeSegListCnt; i++) {
             int   j;
             int   armID12, armID21;
@@ -3077,7 +3106,9 @@ void LocalSegForces(Home_t *home, int reqType)
  *          forces if the same thread will be calculating another
  *          set of forces on the same segment the next loop iteration...
  */
+#ifdef _OPENMP
 #pragma omp parallel for private(node1, node2, node3, node4) shared(segPairList)
+#endif
 
         for (i = 0; i < segPairListCnt; i++) {
             int   j;
@@ -3207,7 +3238,9 @@ void LocalSegForces(Home_t *home, int reqType)
  *      so now do a quick loop through all local nodes and set
  *      the nodes' total forces to the sum of their arms' forces.
  */
+#ifdef _OPENMP
 #pragma omp parallel for 
+#endif
         for (i = 0; i < home->newNodeKeyPtr; i++) {
             int j;
             Node_t *node;

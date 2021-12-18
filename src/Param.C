@@ -870,6 +870,9 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 				V_DBL, 1, VFLAG_NULL);
 		param->gbStrength = -1;
 
+		BindVar(CPList, "stressFieldPenetrable", &param->stressFieldPenetrable, V_INT, 1, VFLAG_NULL);
+		param->stressFieldPenetrable = 1;
+			
 		BindVar(CPList, "tbStrength", &param->tbStrength,
 				V_DBL, 2, VFLAG_NULL);
 		param->tbStrength[0] = -1.0;

@@ -151,7 +151,9 @@ int CalcNodeVelocities(Home_t *home, int zeroOnErr, int doAll)
         domainMobError = 0;
 
 
+#ifdef _OPENMP
 #pragma omp parallel reduction(+ : domainMobError) shared(doAll, zeroOnErr)
+#endif
         {
             int    i, threadMobError = 0, nodeMobError;
             int    threadID, threadIterStart, threadIterEnd;
