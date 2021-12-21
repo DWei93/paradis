@@ -443,7 +443,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                bool active, positive;
                real8   velocity, coeff[2];
                int  meshNx, meshNy, meshNz, eleID[27];
-               real8    lenPer[27];
+               real8    lenPer[27], cen1[3], cen2[3];
 
                nbr = GetNeighborNode(home, node, segIndex);
 
@@ -688,12 +688,18 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 	        pp[0] = p1[0] + p2[0];
 	        pp[1] = p1[1] + p2[1];
 	        pp[2] = p1[2] + p2[2];
+
+            cen1[0] = 0.5*pp[0];
+            cen1[1] = 0.5*pp[1];
+            cen1[2] = 0.5*pp[2];
 	         
 	        p2[0] = nbr->oldx;
 	        p2[1] = nbr->oldy;
 	        p2[2] = nbr->oldz;
 	         
 	        PBCPOSITION(param,p1[0],p1[1],p1[2],&p2[0],&p2[1],&p2[2]);
+
+            VECTOR_COPY(cen2, p2);
 	         
 	        pp[0] +=  p2[0];
 	        pp[1] +=  p2[1];
@@ -704,7 +710,11 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 	        p2[2] = nbr->z;
 	         
 	        PBCPOSITION(param,p1[0],p1[1],p1[2],&p2[0],&p2[1],&p2[2]);
-	         
+
+            cen2[0] = 0.5*(cen2[0]+p2[0]);
+            cen2[1] = 0.5*(cen2[1]+p2[1]);
+            cen2[2] = 0.5*(cen2[2]+p2[2]);
+
 	        pp[0] +=  p2[0];
 	        pp[1] +=  p2[1];
 	        pp[2] +=  p2[2];
@@ -723,7 +733,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 	         
 	        eleNum = Coor2EleNum(home,pp,meshNx,meshNy,meshNz);
 	        FoldBox(param,&pp[0],&pp[1],&pp[2]);
-            DecomposeSegmentInRubik(home, meshNx,meshNy,meshNz, p1,p2, lenPer, eleID);
+            DecomposeSegmentInRubik(home, meshNx,meshNy,meshNz, cen1, cen2, lenPer, eleID);
 			   
 	        ex = nbr->x - node->oldx; 
 	        ey = nbr->y - node->oldy; 
@@ -760,7 +770,6 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 	        thread_dyad[2][0] = nz*bx;
 	        thread_dyad[2][1] = nz*by;
 	        thread_dyad[2][2] = nz*bz;
-
 
 /*
  *          Caculate total plastci strain, twinning deformation and elemental 
