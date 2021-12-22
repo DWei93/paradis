@@ -4774,7 +4774,6 @@ real8 NodeLengthXMag(Home_t *home, Node_t *node)
     return(len);
 }
 
-#ifdef DEBUG_PLASTIC_STRAIN
 void SegDeltaPlasticStrain(Home_t *home, Node_t *node1, Node_t *node2, real8 *dpst, real8 *dpsp)
 {
     int j=GetArmID(node1, node2);
@@ -4842,6 +4841,41 @@ void NodalDeltaPlasticStrain(Home_t *home, Node_t *node, real8 *dpst, real8 *dps
     return;
 }
 
+real8 NodalDeltaPlasticStrain(Home_t *home, Node_t *node)
+{
+    real8 al,am,an,bl,bm,bn,amag, delpstn;
+    Param_t *param =  home->param;
+    if(param->loadType!=6){
+          al = param->edotdir[0];
+          am = param->edotdir[1];
+          an = param->edotdir[2];
+
+          amag = sqrt(al*al+am*am+an*an);
+
+          al /= amag;
+          am /= amag;
+          an /= amag;
+          bl=al; bm=am; bn=an;
+    }else{
+        al = param->loadDir[0];
+        am = param->loadDir[1];
+        an = param->loadDir[2];
+        bl = param->loadDir[3];
+        bm = param->loadDir[4];
+        bn = param->loadDir[5];
+    }
+
+    real8 dpst[6], dpsp[3];
+    NodalDeltaPlasticStrain(home, node, dpst, dpsp);
+
+    delpstn =dpst[0]*al*bl        +
+             dpst[1]*am*bm        +
+             dpst[2]*an*bn        +
+             dpst[3]*(am*bn+an*bm)+
+             dpst[4]*(an*bl+al*bn)+
+             dpst[5]*(al*bm+bl*am);
+    return delpstn;
+}
 
 real8 SegDeltaPlasticStrain(Home_t *home, Node_t *node1, Node_t *node2)
 {
@@ -5034,4 +5068,3 @@ void DumpDeltaPlasticStrain(Home_t *home, int flag)
     }
     return;
 }
-#endif

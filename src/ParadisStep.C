@@ -312,7 +312,7 @@ void ParadisStep(Home_t *home)
         DebugGB(home,19);
 
 #if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-5Trap");
+        GenerateOutput(home, STAGE_DEBUG, "-2Trap");
 #endif
 
         DebugGB(home,20);
@@ -333,7 +333,7 @@ void ParadisStep(Home_t *home)
             FixRemesh(home, "Surface");
             TimerStop(home, FIX_FS);
 #if CHECK_GB_TOPO
-            GenerateOutput(home, STAGE_DEBUG, "-6FS");
+            GenerateOutput(home, STAGE_DEBUG, "-3FS");
 #endif
         }
 
@@ -374,10 +374,6 @@ void ParadisStep(Home_t *home)
         GetDensityDelta(home);
         DebugGB(home,25);
 
-/*
- *      Calculate the new plastic strain.
- */
-        DeltaPlasticStrain(home);
         DebugGB(home,26);
 
 /*
@@ -386,7 +382,6 @@ void ParadisStep(Home_t *home)
  *      call the appropriate I/O functions if necessary.
  */
 //      DumpDeltaPlasticStrain(home, 2);
-        GenerateOutput(home, STAGE_CYCLE, "-1cycle");
         DebugGB(home,1);
 
 /*
@@ -417,7 +412,7 @@ void ParadisStep(Home_t *home)
         CrossSlip(home);
         DebugGB(home,3);
 #if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-2CrossSlip");
+        GenerateOutput(home, STAGE_DEBUG, "-4CrossSlip");
 #endif
 /*
  *      Search for dislocation segments in close proximity to each other
@@ -471,7 +466,7 @@ void ParadisStep(Home_t *home)
         }
 
 #if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-3Collision");
+        GenerateOutput(home, STAGE_DEBUG, "-5Collision");
 #endif
 /*
  *      If memory debugging is enabled, run a consistency check on all
@@ -491,10 +486,15 @@ void ParadisStep(Home_t *home)
 
 
 #if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-4Remesh");
+        GenerateOutput(home, STAGE_DEBUG, "-6Remesh");
 #endif
+/*
+ *      Calculate the new plastic strain.
+ */
+        DeltaPlasticStrain(home);
  //     DumpDeltaPlasticStrain(home, 6);
         DebugGB(home,9);
+        GenerateOutput(home, STAGE_CYCLE,"-1cycle");
         DebugGB(home,10);
 /*
 

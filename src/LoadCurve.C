@@ -107,6 +107,30 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         dtt       = param->realdt;
         indxerate = param->indxErate;
 
+
+#ifdef PARALLEL
+        real8   loc[9],glo[9];
+
+        loc[0]=param->mergeDpSt[0]; loc[1]=param->mergeDpSt[1]; loc[2]=param->mergeDpSt[2];
+        loc[3]=param->mergeDpSt[3]; loc[4]=param->mergeDpSt[4]; loc[5]=param->mergeDpSt[5];
+        loc[6]=param->mergeDpSp[0]; loc[7]=param->mergeDpSp[1]; loc[8]=param->mergeDpSp[2];
+
+        MPI_Allreduce(loc, glo, 9, MPI_DOUBLE, MPI_SUM,  MPI_COMM_WORLD);
+
+        param->mergeDpSt[0]=glo[0]; param->mergeDpSt[1]=glo[1]; param->mergeDpSt[2]=glo[2];
+        param->mergeDpSt[3]=glo[3]; param->mergeDpSt[4]=glo[4]; param->mergeDpSt[5]=glo[5];
+        param->mergeDpSp[0]=glo[6]; param->mergeDpSp[1]=glo[7]; param->mergeDpSp[2]=glo[8];
+#endif
+        param->delpStrain[0] += param->mergeDpSt[0];
+        param->delpStrain[1] += param->mergeDpSt[1];
+        param->delpStrain[2] += param->mergeDpSt[2];
+        param->delpStrain[3] += param->mergeDpSt[3];
+        param->delpStrain[4] += param->mergeDpSt[4];
+        param->delpStrain[5] += param->mergeDpSt[5];
+        param->delpSpin[3] += param->mergeDpSp[0];
+        param->delpSpin[4] += param->mergeDpSp[1];
+        param->delpSpin[5] += param->mergeDpSp[2];
+        
         sigijk          = 0;
         totCyclicStrain = 0.0;
 		
@@ -291,6 +315,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
  *          creep - what we have been using so this should be default
  */
             case 0:
+				
 				Matrix33Init(deltaStress);
                 break;
 /*
@@ -300,19 +325,19 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 /*
  *              Cover for specific loading direction also
  */
-                dpl_stn =     param->delpStrain[0]*al*al +
-                              param->delpStrain[1]*am*am +
-                              param->delpStrain[2]*an*an +
+                dpl_stn=     param->delpStrain[0]*al*al +
+                             param->delpStrain[1]*am*am +
+                             param->delpStrain[2]*an*an +
                           2.0*param->delpStrain[3]*am*an +
                           2.0*param->delpStrain[4]*an*al +
-                          2.0*param->delpStrain[5]*al*am ;
+                          2.0*param->delpStrain[5]*al*am;
         
-                pstnijk = param->totpStn[0]*al*al     +
-                          param->totpStn[1]*am*am     +
-                          param->totpStn[2]*an*an     +
+                pstnijk = param->totpStn[0]*al*al +
+                          param->totpStn[1]*am*am +
+                          param->totpStn[2]*an*an +
                           2.0*param->totpStn[3]*am*an +
                           2.0*param->totpStn[4]*an*al +
-                          2.0*param->totpStn[5]*al*am ;
+                          2.0*param->totpStn[5]*al*am;
 
                 if((param->accElast==true)  && (param->accPst>pstnijk)){
                     erate *= 10.0;
@@ -331,7 +356,7 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 /*
  *              local in the [l m n] frame
  */
-                dStress = modulus * (erate*dtt - dpl_stn);
+                dStress= modulus * (erate*dtt - dpl_stn);
         
 /*#if 0
                 printf("al=%e,am=%e,an=%e\n", al, am, an);

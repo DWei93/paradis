@@ -3614,7 +3614,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 	                    }
 
                         if(singleSrcTest==false &&home->nGBs>1 && ranNum <=21)srcLen *= primary[ranNum];
-//                      if(home->nGBs == 1 && gpBurgIndex > 5) srcLen *= (1.0/sqrt(3.0));
+                        if(gpBurgIndex > 5) srcLen *= (1.0/sqrt(3.0));
 
                         inGrain1=inGrain; onGB1=onGB; VECTOR_COPY(p1,p);
                         constraint2 = PINNED_NODE;
