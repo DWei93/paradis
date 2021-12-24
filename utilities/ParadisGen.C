@@ -1357,6 +1357,7 @@ int main(int argc, char *argv[])
         strncpy(param->node_data_file, inArgs.outputFile,
             sizeof(param->node_data_file)-1);
 
+        param->scale = 1.0;
 #if 0
 /*
  * Temporary code until [1 0 0] types are supported again

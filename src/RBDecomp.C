@@ -642,7 +642,7 @@ void BroadcastRBDecomp(Home_t *home, RBDecomp_t *decomp)
  *------------------------------------------------------------------------*/
 void ReadRBDecompBounds(Home_t *home, void **filePtr, int numXDoms,
                         int numYDoms, int numZDoms, int saveDecomp,
-                        RBDecomp_t **oldDecomp)
+                        RBDecomp_t **oldDecomp, real8 scale)
 {
         int   i, domID, offset, numDomains;
         int   level = 0;
@@ -680,12 +680,12 @@ void ReadRBDecompBounds(Home_t *home, void **filePtr, int numXDoms,
                 sscanf(inLine, "%d %lf %lf %lf %lf %lf %lf",
                        &domID, &xMin, &yMin, &zMin, &xMax, &yMax, &zMax);
                 offset = domID * 6;
-                boundsBuf[offset    ] = xMin;
-                boundsBuf[offset + 1] = yMin;
-                boundsBuf[offset + 2] = zMin;
-                boundsBuf[offset + 3] = xMax;
-                boundsBuf[offset + 4] = yMax;
-                boundsBuf[offset + 5] = zMax;
+                    boundsBuf[offset    ] = xMin*scale;
+                    boundsBuf[offset + 1] = yMin*scale;
+                    boundsBuf[offset + 2] = zMin*scale;
+                    boundsBuf[offset + 3] = xMax*scale;
+                    boundsBuf[offset + 4] = yMax*scale;
+                    boundsBuf[offset + 5] = zMax*scale;
             }
         }
 

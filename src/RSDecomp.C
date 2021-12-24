@@ -271,7 +271,7 @@ void GetRSDecompCellDomainList(Home_t *home, int cellID, int *domCount,
  *
  *------------------------------------------------------------------------*/
 void ReadRSDecompBounds(void **filePtr, int numXDoms, int numYDoms,
-                        int numZDoms, int saveDecomp, RSDecomp_t **oldDecomp)
+                        int numZDoms, int saveDecomp, RSDecomp_t **oldDecomp, real8 scale)
 {
         int       i, j, k;
         real8     *xBnd, **yBnd, ***zBnd;
@@ -311,22 +311,22 @@ void ReadRSDecompBounds(void **filePtr, int numXDoms, int numYDoms,
  */
         for (i = 0; i < numXDoms; i++) {
             Getline(inLine, sizeof(inLine), fp);
-            if (saveDecomp) sscanf(inLine, "%lf", &xBnd[i]);
+            if (saveDecomp) {sscanf(inLine, "%lf", &xBnd[i]); xBnd[i]*=scale;}
             for (j = 0; j < numYDoms; j++) {
                 Getline(inLine, sizeof(inLine), fp);
-                if (saveDecomp) sscanf(inLine, "%lf", &yBnd[i][j]);
+                if (saveDecomp){sscanf(inLine, "%lf", &yBnd[i][j]); yBnd[i][j]*=scale;}
                 for (k = 0; k < numZDoms; k++) {
                     Getline(inLine, sizeof(inLine), fp);
-                    if (saveDecomp) sscanf(inLine, "%lf", &zBnd[i][j][k]);
+                    if (saveDecomp) {sscanf(inLine, "%lf", &zBnd[i][j][k]); zBnd[i][j][k]*=scale;}
                 }
                 Getline(inLine, sizeof(inLine), fp);
-                if (saveDecomp) sscanf(inLine, "%lf", &zBnd[i][j][k]);
+                if (saveDecomp) {sscanf(inLine, "%lf", &zBnd[i][j][k]); zBnd[i][j][k]*=scale;}
             }
             Getline(inLine, sizeof(inLine), fp);
-            if (saveDecomp) sscanf(inLine, "%lf", &yBnd[i][j]);
+            if (saveDecomp) {sscanf(inLine, "%lf", &yBnd[i][j]); yBnd[i][j]*=scale;}
         }
         Getline(inLine, sizeof(inLine), fp);
-        if (saveDecomp) sscanf(inLine, "%lf", &xBnd[i]);
+        if (saveDecomp){ sscanf(inLine, "%lf", &xBnd[i]); xBnd[i]*=scale;}
 
 /*
  *      If the caller needs a copy of this old domain decomposition

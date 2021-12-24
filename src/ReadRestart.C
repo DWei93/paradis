@@ -555,6 +555,32 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
  *                      that needs special handling, skip it.
  */
                         if (strcmp(token, "domainDecomposition") == 0) {
+                            if(param->scale <= 0.0){
+                                printf("Warning: the scaling parameter %f < 0, change to 1.0", param->scale);
+                            }else if(fabs(param->scale-1.0) > 1E-5){
+                                param->maxSideX *= param->scale;
+                                param->maxSideY *= param->scale;
+                                param->maxSideZ *= param->scale;
+                           
+                                param->minSideX *= param->scale;
+                                param->minSideY *= param->scale;
+                                param->minSideZ *= param->scale;
+                           
+                                param->xBoundMax *= param->scale;
+                                param->yBoundMax *= param->scale;
+                                param->zBoundMax *= param->scale;
+                           
+                                param->xBoundMin *= param->scale;
+                                param->yBoundMin *= param->scale;
+                                param->zBoundMin *= param->scale;
+                           
+                                VECTOR_MULTIPLY(param->minCoordinates,param->scale);
+                                VECTOR_MULTIPLY(param->maxCoordinates,param->scale);
+                           
+                                param->maxSeg *= param->scale;
+                                param->minSeg *= param->scale;
+                           
+                            }
 /*
  *                          The minSide{XYZ} and maxSide{XYZ} values are
  *                          now redundant but until the rest of the code
@@ -626,9 +652,10 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
  *          Need to set some of the values that are dependent on
  *          the simulation size before we go any further.
  */
-            param->Lx = param->maxSideX - param->minSideX;
-            param->Ly = param->maxSideY - param->minSideY;
-            param->Lz = param->maxSideZ - param->minSideZ;
+
+            param->Lx =(param->maxSideX - param->minSideX);
+            param->Ly =(param->maxSideY - param->minSideY);
+            param->Lz =(param->maxSideZ - param->minSideZ);
 
             param->invLx = 1.0 / param->Lx;
             param->invLy = 1.0 / param->Ly;
@@ -776,6 +803,9 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
                            &node->x, &node->y, &node->z,
                            &numNbrs, &node->constraint, &node->inGrain, &node->onGB);
 
+                    if(fabs(param->scale-1.0)>1E-5){
+                        node->x *= param->scale; node->y *= param->scale; node->z *= param->scale;
+                    }
                     node->oldx = node->x; node->oldy = node->y; node->oldz = node->z;
                     AllocNodeArms(node, numNbrs); 
 /*

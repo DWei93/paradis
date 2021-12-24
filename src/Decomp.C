@@ -306,7 +306,7 @@ void ReadDecompBounds(Home_t *home, void **filePtr, int doBinRead,
                                       decompDomZ, (RSDecomp_t **)oldDecomp);
             } else {
                 ReadRSDecompBounds(filePtr, decompDomX, decompDomY, decompDomZ,
-                                   saveDecomp, (RSDecomp_t **)oldDecomp);
+                                   saveDecomp, (RSDecomp_t **)oldDecomp, param->scale);
             }
             break;
         case 2:
@@ -316,7 +316,7 @@ void ReadDecompBounds(Home_t *home, void **filePtr, int doBinRead,
             } else {
                 ReadRBDecompBounds(home, filePtr, decompDomX, decompDomY,
                                decompDomZ, saveDecomp,
-                               (RBDecomp_t **)oldDecomp);
+                               (RBDecomp_t **)oldDecomp, param->scale);
             }
             break;
         }

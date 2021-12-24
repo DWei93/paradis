@@ -24,7 +24,7 @@ void GetRSDecompLocalDomainBounds(Home_t *home, RSDecomp_t *decomp);
 void ReadBinRSDecompBounds(void *filePtr, int numXDoms, int numYDoms,
          int numZDoms, RSDecomp_t **oldDecomp);
 void ReadRSDecompBounds(void **filePtr, int numXDoms, int numYDoms,
-         int numZDoms, int saveDecomp, RSDecomp_t **oldDecomp);
+         int numZDoms, int saveDecomp, RSDecomp_t **oldDecomp, real8 scale = 1.0);
 void UniformRSDecomp(Param_t *param, RSDecomp_t **uniDecomp);
 void WriteRSDecompBounds(Home_t *home, FILE *fp, RSDecomp_t *decomp);
 void XPlotRSDecomp(Home_t *home, real8 xMin, real8 yMin, real8 zMin,

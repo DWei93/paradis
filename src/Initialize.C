@@ -483,6 +483,18 @@ void SetRemainingDefaults(Home_t *home)
 
         eps = 1.0e-02;
 
+        if(fabs(param->scale -1.0)>1.0E-5){
+            if(home->myDomain==0)printf("*** Scale parameter = %g, size of Lx is %.2f nm\n", 
+                                            param->scale, param->Lx*param->burgMag/1E-9);
+            param->rc *= param->scale;
+            param->Ecore = -1;
+            param->rTol *= param->scale;
+            param->rann *= param->scale;
+            param->minDT *= param->scale;
+            param->maxDT *= param->scale;
+            param->scale = 1.0;
+        }
+
 /*
  *      The core radius and maximum segment length are required
  *      inputs.  If the user did not provide both values, abort

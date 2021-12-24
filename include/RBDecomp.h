@@ -43,7 +43,7 @@ void ExchangeRBDecomp(Home_t *home, RBDecomp_t *decomp);
 void ReadBinRBDecompBounds(Home_t *home, void *filePtr, int numXDoms,
          int numYDoms, int numZDoms, RBDecomp_t **oldDecomp);
 void ReadRBDecompBounds(Home_t *home, void **filePtr, int numXDoms,
-         int numYDoms, int numZDoms, int saveDecomp, RBDecomp_t **oldDecomp);
+         int numYDoms, int numZDoms, int saveDecomp, RBDecomp_t **oldDecomp, real8 scale  = 1.0);
 void UniformRBDecomp(Param_t *param, RBDecomp_t *decomp, int level);
 void WriteRBDecompBounds(Home_t *home, FILE *fp, RBDecomp_t *decomp,
          int level);

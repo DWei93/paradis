@@ -909,6 +909,9 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 		BindVar(CPList, "randomInternalForce", &param->randomInternalForce, V_INT, 1, VFLAG_NULL);
 		param->randomInternalForce = 0;
 		
+		BindVar(CPList, "scale", &param->scale, V_DBL, 1, VFLAG_NULL);
+		param->scale = 1.0;
+
 #ifdef VELOCITY_STATISTICS
 		BindVar(CPList, "accumulation", &param->accumulation, V_DBL, 8, VFLAG_NULL);
 		param->accumulation[0] = 0.0;
@@ -1100,5 +1103,6 @@ void DataParamInit(Param_t *param, ParamList_t *DPList)
 		param->preDecreaseDT = 0;
 		param->markPreDTDisable = 0;
 		param->finish = 0;
+
         return;
 }
