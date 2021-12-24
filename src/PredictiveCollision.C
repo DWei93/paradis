@@ -772,7 +772,7 @@ inline bool ParallelGB(Node_t *node, real8 n[3]){
     return false;
 }
 
-void Continue(Home_t *home, Node_t *node1, Node_t *node2, real8 x, real8 y, real8 z, real8 oldPos[3])
+static void Continue(Home_t *home, Node_t *node1, Node_t *node2, real8 x, real8 y, real8 z, real8 oldPos[3])
 {
     real8 newPos[3]={x,y,z};
     Node_t *targetNode;
@@ -1680,7 +1680,7 @@ void PredictiveCollisions(Home_t *home)
                                 MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                          mergenode2, newPos, &targetNode,
                                          &mergeStatus, globalOp,
-                                         splitInGrain, splitOnGB);
+                                         splitInGrain, splitOnGB, true);
 #if 0
                                 if((mergeStatus & MERGE_SUCCESS) == 0){
                                     printf("Task %d %s-1: merge failed, status %d\n", home->myDomain, __func__,mergeStatus);
@@ -2228,7 +2228,7 @@ void PredictiveCollisions(Home_t *home)
                         MergeNode(home, OPCLASS_COLLISION, mergenode1,
                                   mergenode2, newPos, &targetNode,
                                   &mergeStatus, globalOp,
-                                  splitInGrain, splitOnGB);
+                                  splitInGrain, splitOnGB, true);
 #if 0
                         if((mergeStatus & MERGE_SUCCESS) == 0){
                             printf("Task %d %s-2: merge failed, status %d\n", home->myDomain, __func__,mergeStatus);

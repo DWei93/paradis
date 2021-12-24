@@ -15,7 +15,6 @@
 #include "Node.h"
 #include "Tag.h"
 
-
 /*
  *      Define the set of status codes that may be returned from
  *      the MergeNode() function.
@@ -58,7 +57,7 @@ int    EvaluateMobility(Home_t *home, Node_t *nodeA);
 int    InitTopologyExemptions(Home_t *home);
 void   MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
            real8 *position, Node_t **mergedNode, int *status, int globalOp,
-           int inGrain = -1, int onGB = -1);
+           int inGrain = -1, int onGB = -1, bool mergePst=false);
 int    NodeTopologyExemptions(Home_t *home, Node_t *node);
 int    RemoveDoubleLinks(Home_t *home, Node_t *node, int globalOp);
 void   RemoveOrphanedNodes(Home_t *home);

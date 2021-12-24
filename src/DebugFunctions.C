@@ -26,6 +26,7 @@
 #include "mpi.h"
 #endif
 #include "ParadisProto.h"
+#include <algorithm>
 
 
 /**************************************************************************
@@ -168,6 +169,34 @@ void CheckSegLengths(Home_t *home, const char *msg)
  *                    or Inf is found, the code will abort.
  *
  *************************************************************************/
+bool CheckForNANS(Home_t *home)
+{
+        int    i;
+        Node_t *node;
+
+        for (i = 0; i < home->newNodeKeyPtr; i++) {
+
+            if ((node = home->nodeKeys[i]) == (Node_t *)NULL) {
+                continue;
+            }
+
+            if (isnan(node->x) ||
+                isnan(node->y) ||
+                isnan(node->z)) {
+                PrintNode(home, node);
+                    return true;
+
+            }
+
+            if (isnan(node->fX) ||
+                isnan(node->fY) ||
+                isnan(node->fZ)) {
+                PrintNode(home, node);
+                    return true;
+            }
+        }
+        return false;
+}
 void CheckForNANS(Home_t *home, real8 flag)
 {
         int    i;
@@ -725,3 +754,216 @@ void DebugGB(Home_t *home, int flag){
     }
 }
 
+
+#ifdef DEBUG_PLASTIC_STRAIN
+bool cmp(dp_t p, dp_t q){return fabs(p.nodePst)>fabs(q.nodePst);}
+real8 DumpDeltaPlasticStrain(Home_t *home, int pstType, bool printFile, int flag)
+{
+    Param_t *param = home->param;
+    Node_t *node, *nbr;
+    real8 bx,by,bz;
+    real8 ex,ey,ez, hhx,hhy,hhz, dyad[3][3], nx,ny,nz;
+    real8 dstn[3][3]={{0,0,0},{0,0,0},{0,0,0}};
+    real8 glo[6]={0,0,0,0,0,0}, loc[6]={0,0,0,0,0,0};
+    
+    real8 mgo[6];
+    static real8 stn=0;
+    real8 al,am,an,bl,bm,bn,amag, delpstn, delpstn_mg = 0.0;
+    if(param->loadType!=6){
+          al = param->edotdir[0];
+          am = param->edotdir[1];
+          an = param->edotdir[2];
+
+          amag = sqrt(al*al+am*am+an*an);
+
+          al /= amag;
+          am /= amag;
+          an /= amag;
+          bl=al; bm=am; bn=an;
+    }else{
+        al = param->loadDir[0];
+        am = param->loadDir[1];
+        an = param->loadDir[2];
+        bl = param->loadDir[3];
+        bm = param->loadDir[4];
+        bn = param->loadDir[5];
+    }
+    real8 dpl_stn= (param->delpStrain[0])* al*bl          +       
+                   (param->delpStrain[1])* am*bm          +       
+                   (param->delpStrain[2])* an*bn          +       
+                   (param->delpStrain[3])*(am*bn + an*bm) +
+                   (param->delpStrain[4])*(an*bl + al*bn) +
+                   (param->delpStrain[5])*(al*bm + am*bl) ;   
+
+    if(pstType>2)return dpl_stn;
+
+    if(pstType >= 1){
+#ifdef PARALLEL
+            MPI_Allreduce(param->mergeDpSt, mgo, 6, MPI_DOUBLE, MPI_SUM,  MPI_COMM_WORLD);
+#else
+            mgo[0] = param->mergeDpSt[0];
+            mgo[1] = param->mergeDpSt[1];
+            mgo[2] = param->mergeDpSt[2];
+            mgo[3] = param->mergeDpSt[3];
+            mgo[4] = param->mergeDpSt[4];
+            mgo[5] = param->mergeDpSt[5];
+#endif
+
+        delpstn_mg =(mgo[0])* al*bl    +
+             (mgo[1])* am*bm        +
+             (mgo[2])* an*bn        +
+             (mgo[3])*(am*bn+an*bm)+
+             (mgo[4])*(an*bl+al*bn)+
+             (mgo[5])*(al*bm+bl*am);
+        if(pstType == 1)return delpstn_mg;
+    }
+
+    dp_t                dp;
+    std::vector<dp_t>   data;
+    real8               vec[3], nodePst[6];
+
+    for(int i=0; i<home->newNodeKeyPtr; i++){
+        if ((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
+        
+        dp.len = 0.0; dp.dis=0.0;
+        dp.numNbrs = node->numNbrs;
+        dp.bd = GetBurgData(home, node->inGrain, node->onGB);
+        for(int j=0;j<4;j++){dp.burgIDList[j]=-1; dp.planeIDList[j]=-1;}
+        VECTOR_ZERO(nodePst); VECTOR_ZERO(nodePst+3);
+
+        dp.node = node;
+        for(int j=0;j<node->numNbrs;j++){
+            nbr = GetNeighborNode(home, node, j);
+            if (nbr == (Node_t *)NULL)continue;
+
+            vec[0] = node->nx[j];
+            vec[1] = node->ny[j];
+            vec[2] = node->nz[j];
+            if(j<4)dp.planeIDList[j] = BurgID_FCC(dp.bd, vec);
+
+            vec[0] = bx = node->burgX[j];
+            vec[1] = by = node->burgY[j];
+            vec[2] = bz = node->burgZ[j];
+            if(j<4)dp.burgIDList[j] = PlaneID_FCC(dp.bd, vec);
+
+            vec[0] = nbr->x-node->x; 
+            vec[1] = nbr->y-node->y;
+            vec[2] = nbr->z-node->z;
+            ZImage(param, vec, vec+1, vec+2);
+            if(Numerical(vec))dp.len+=Normal(vec);
+
+            ex = nbr->x - node->oldx;
+            ey = nbr->y - node->oldy;
+            ez = nbr->z - node->oldz;
+
+            hhx = node->x - nbr->oldx;
+            hhy = node->y - nbr->oldy;
+            hhz = node->z - nbr->oldz;
+
+            if(isnan(ex) || isnan(ey) || isnan(ez) ||
+               isnan(hhx) || isnan(hhy) || isnan(hhz)){
+                PrintNode(node);
+                PrintNode(nbr);
+                Fatal("in %s at %d", __FILE__, __LINE__);
+            }
+
+            ZImage(param, &ex, &ey, &ez);
+            ZImage(param, &hhx, &hhy, &hhz);
+
+            nx = (ey*hhz - ez*hhy) * 0.5;
+            ny = (ez*hhx - ex*hhz) * 0.5;
+            nz = (ex*hhy - ey*hhx) * 0.5;
+
+            dyad[0][0] = nx*bx;
+            dyad[0][1] = nx*by;
+            dyad[0][2] = nx*bz;
+            dyad[1][0] = ny*bx;
+            dyad[1][1] = ny*by;
+            dyad[1][2] = ny*bz;
+            dyad[2][0] = nz*bx;
+            dyad[2][1] = nz*by;
+            dyad[2][2] = nz*bz;
+        
+            nodePst[0]+= (dyad[0][0]+dyad[0][0])*(0.5/param->simVol);
+            nodePst[1]+= (dyad[1][1]+dyad[1][1])*(0.5/param->simVol);
+            nodePst[2]+= (dyad[2][2]+dyad[2][2])*(0.5/param->simVol);
+            nodePst[3]+= (dyad[1][2]+dyad[2][1])*(0.5/param->simVol);
+            nodePst[4]+= (dyad[0][2]+dyad[2][0])*(0.5/param->simVol);
+            nodePst[5]+= (dyad[0][1]+dyad[1][0])*(0.5/param->simVol);
+
+            if (OrderNodes(node, nbr) != -1)continue;
+            loc[0] += (dyad[0][0]+dyad[0][0])*(0.5/param->simVol);
+            loc[1] += (dyad[1][1]+dyad[1][1])*(0.5/param->simVol);
+            loc[2] += (dyad[2][2]+dyad[2][2])*(0.5/param->simVol);
+            loc[3] += (dyad[1][2]+dyad[2][1])*(0.5/param->simVol);
+            loc[4] += (dyad[0][2]+dyad[2][0])*(0.5/param->simVol);
+            loc[5] += (dyad[0][1]+dyad[1][0])*(0.5/param->simVol);
+
+        }
+        dp.nodePst =(nodePst[0])* al*bl    +
+                    (nodePst[1])* am*bm      +
+                    (nodePst[2])* an*bn      +
+                    (nodePst[3])*(am*bn+an*bm)+
+                    (nodePst[4])*(an*bl+al*bn)+
+                    (nodePst[5])*(al*bm+bl*am);
+        dp.len /=2.0;
+        vec[0] = node->x -node->oldx;
+        vec[1] = node->y -node->oldy;
+        vec[2] = node->z -node->oldz;
+        ZImage(param, vec, vec+1, vec+2);
+        if(Numerical(vec))dp.dis = Normal(vec);
+        data.push_back(dp);
+    }
+    if(printFile){
+        FILE *fp;
+        char  name[256];
+        int *list;
+        snprintf(name, sizeof(name), "dumpst-%06d-%d-%02d",home->cycle,home->myDomain,flag);
+        if((fp = fopen(name,"w"))==(FILE *)NULL){
+            Fatal("can not open %s", name);
+        }
+        sort(data.begin(), data.end(), cmp);
+        
+        for(int i=0; i<data.size(); i++){
+            node = data[i].node;
+            fprintf(fp, "%d,%04d,%d,%d,%d", node->myTag.domainID,node->myTag.index,node->inGrain,node->onGB,node->numNbrs);
+
+            list = data[i].burgIDList;
+            fprintf(fp, " %02d,%02d,%02d,%02d", list[0], list[1], list[2], list[3]);
+
+            list = data[i].planeIDList;
+            fprintf(fp, " %02d,%02d,%02d,%02d", list[0], list[1], list[2], list[3]);
+            
+            fprintf(fp, " %6.2f %6.2f %6.3e\n", data[i].len, data[i].dis, data[i].nodePst);
+        }
+        fclose(fp);
+    
+    }
+
+#ifdef PARALLEL
+        MPI_Allreduce(loc, glo, 6, MPI_DOUBLE, MPI_SUM,  MPI_COMM_WORLD);
+#else
+        glo[0] = loc[0];
+        glo[1] = loc[1];
+        glo[2] = loc[2];
+        glo[3] = loc[3];
+        glo[4] = loc[4];
+        glo[5] = loc[5];
+#endif
+
+    delpstn =(glo[0])* al*bl    +
+             (glo[1])* am*bm      +
+             (glo[2])* an*bn      +
+             (glo[3])*(am*bn+an*bm)+
+             (glo[4])*(an*bl+al*bn)+
+             (glo[5])*(al*bm+bl*am);
+    
+    return delpstn+delpstn_mg;
+}
+
+real8 DeltaStress(Home_t *home, int pstType, real8 &dpstn){
+    dpstn = DumpDeltaPlasticStrain(home, pstType, 0);    
+    Param_t *param = home->param;
+    return param->YoungsModulus*(param->realdt*param->eRate-dpstn);
+}
+#endif

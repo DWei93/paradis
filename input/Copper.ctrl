@@ -70,6 +70,8 @@ fmEnabled =   1
 fmMPOrder =   2  
 fmTaylorOrder =   5  
 fmCorrectionTbl =   "fm-ctab.Cu.m2.t5.dat"
+Rijmfile =   "Rijm.tbl"  
+RijmPBCfile =   "RijmPBC.tbl"  
 #
 #  Loading conditions
 #  

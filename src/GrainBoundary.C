@@ -3178,7 +3178,7 @@ void GBCrossSlip(Home_t *home)
             if((node->flags&NO_COLLISIONS)>0 || (gbNbr->flags&NO_COLLISIONS)>0){
                 continue;           
             }
-            MergeNode(home, opClass, node, gbNbr, newPos, &mergedNode, &mergeStatus, globalOp);
+            MergeNode(home, opClass, node, gbNbr, newPos, &mergedNode, &mergeStatus, globalOp, -1, -1, true);
 
 //          if((mergeStatus & MERGE_SUCCESS) == 0){
 //              PrintTag(home, node); PrintTag(home, gbNbr);

@@ -2586,7 +2586,6 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
 }
 
 
-
 /*---------------------------------------------------------------------------
  *
  *	Function:	MergeNode
@@ -2633,8 +2632,10 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
  *-------------------------------------------------------------------------*/
 void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
                real8 *position, Node_t **mergedNode, int *status, int globalOp,
-               int  inGrain, int onGB)
+               int  inGrain, int onGB, bool mergePst)
 {
+    real8 dpst_merge[6]={0,0,0,0,0,0}, dpsp_merge[3]={0,0,0};
+
 	int		i,sameGrain=0;
 	int     armID, armID1, armID2, thisDomain; 
 	int     node1Deletable, node2Deletable;
@@ -2660,16 +2661,19 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 		return;
 	}
 
-    real8 dpst1[6], dpst2[6], dpsp1[3], dpsp2[3];
-    real8  dpst_merge[6]={0,0,0,0,0,0}, dpsp_merge[3]={0,0,0};
+    real8 dpst[6], dpsp[3];
     real8 node1Pos[3]={node1->x, node1->y, node1->z};
     real8 node2Pos[3]={node2->x, node2->y, node2->z};   
-    node1->x = position[0]; node1->y = position[1]; node1->z = position[2];
-    node2->x = position[0]; node2->y = position[1]; node2->z = position[2];
-    NodalDeltaPlasticStrain(home, node1, dpst1, dpsp1);
-    NodalDeltaPlasticStrain(home, node2, dpst2, dpsp2);
-    node1->x = node1Pos[0]; node1->y = node1Pos[1]; node1->z = node1Pos[2];
-    node2->x = node2Pos[0]; node2->y = node2Pos[1]; node2->z = node2Pos[2];
+    int   meshNx, meshNy, meshNz, eleID[27];
+    real8 lenPer[27];
+
+    if(mergePst){
+        node1->x = position[0]; node1->y = position[1]; node1->z = position[2];
+        node2->x = position[0]; node2->y = position[1]; node2->z = position[2];
+        DeltaPlasticStrainOfTwoNodes(home, node1, node2, dpst, dpsp);
+        node1->x = node1Pos[0]; node1->y = node1Pos[1]; node1->z = node1Pos[2];
+        node2->x = node2Pos[0]; node2->y = node2Pos[1]; node2->z = node2Pos[2];
+    }
 
     
 /*
@@ -2930,20 +2934,47 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 
 	RemoveNode(home, deadNode, globalOp);
 
-    if(targetNode != (Node_t *)NULL){
-        NodalDeltaPlasticStrain(home, targetNode, dpst_merge, dpsp_merge);
-    }
-    param->mergeDpSt[0] += (dpst1[0]+dpst2[0]-dpst_merge[0]);
-    param->mergeDpSt[1] += (dpst1[1]+dpst2[1]-dpst_merge[1]);
-    param->mergeDpSt[2] += (dpst1[2]+dpst2[2]-dpst_merge[2]);
-    param->mergeDpSt[3] += (dpst1[3]+dpst2[3]-dpst_merge[3]);
-    param->mergeDpSt[4] += (dpst1[4]+dpst2[4]-dpst_merge[4]);
-    param->mergeDpSt[5] += (dpst1[5]+dpst2[5]-dpst_merge[5]);
-    
-    param->mergeDpSp[0] += (dpsp1[0]+dpsp2[0]-dpsp_merge[0]);
-    param->mergeDpSp[1] += (dpsp1[1]+dpsp2[1]-dpsp_merge[1]);
-    param->mergeDpSp[2] += (dpsp1[2]+dpsp2[2]-dpsp_merge[2]);
+    if(mergePst){
+        if(targetNode != (Node_t *)NULL){
+            NodalDeltaPlasticStrain(home, targetNode, dpst_merge, dpsp_merge);
+            dpst[0]-= dpst_merge[0];
+            dpst[1]-= dpst_merge[1];
+            dpst[2]-= dpst_merge[2];
+            dpst[3]-= dpst_merge[3];
+            dpst[4]-= dpst_merge[4];
+            dpst[5]-= dpst_merge[5];
+            dpsp[0]-= dpsp_merge[0];
+            dpsp[1]-= dpsp_merge[1];
+            dpsp[2]-= dpsp_merge[2];
+        }
 
+        param->mergeDpSt[0] += dpst[0]; 
+        param->mergeDpSt[1] += dpst[1]; 
+        param->mergeDpSt[2] += dpst[2]; 
+        param->mergeDpSt[3] += dpst[3]; 
+        param->mergeDpSt[4] += dpst[4]; 
+        param->mergeDpSt[5] += dpst[5]; 
+        param->mergeDpSp[0] += dpsp[0];
+        param->mergeDpSp[1] += dpsp[1];
+        param->mergeDpSp[2] += dpsp[2];
+
+	    int eleNum = Coor2EleNum(home,position,meshNx,meshNy,meshNz);
+	    FoldBox(param,position,position+1,position+2);
+
+        PBCPOSITION(param, position[0], position[1], position[2], node1Pos, node1Pos+1, node1Pos+2);
+        PBCPOSITION(param, position[0], position[1], position[2], node2Pos, node2Pos+1, node2Pos+2);
+        DecomposeSegmentInRubik(home, meshNx,meshNy,meshNz, node1Pos, node2Pos, lenPer, eleID);
+
+        for(int m=0;m<27;m++){
+            home->pstnEle[eleID[m]][0] += dpst[0]*lenPer[m]*param->simVol; 
+            home->pstnEle[eleID[m]][1] += dpst[1]*lenPer[m]*param->simVol; 
+            home->pstnEle[eleID[m]][2] += dpst[2]*lenPer[m]*param->simVol; 
+            home->pstnEle[eleID[m]][3] += dpst[3]*lenPer[m]*param->simVol; 
+            home->pstnEle[eleID[m]][4] += dpst[4]*lenPer[m]*param->simVol; 
+            home->pstnEle[eleID[m]][5] += dpst[5]*lenPer[m]*param->simVol; 
+        }                                                  
+    }                                                      
+                                                           
 /*
  *  Check for multiple links between the target node and any other
  *  single node.  If found, the burgers vectors for the multiple links

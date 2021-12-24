@@ -2335,8 +2335,8 @@ void GetArmGrain(Home_t *home, Node_t *node1, Node_t *node2, int &inGrain, int &
             int     node1SegID;
 
             if(Connected(node1, node2, &node1SegID)){
-                PrintNode(node1);
-                PrintNode(node2);
+                PrintNode(home, node1);
+                PrintNode(home, node2);
 #ifdef DEBUG
                 Fatal("%d,%d: GetArmGrain: node1 in %d grain, but node2 in %d grain\n",
                       home->myDomain,home->flag,node1->inGrain, node2->inGrain);

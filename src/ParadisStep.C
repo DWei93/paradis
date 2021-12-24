@@ -249,13 +249,11 @@ void ParadisStep(Home_t *home)
         }
 #endif
 
-        DebugGB(home,15);
 /*
  *      Calculate the net charge tensor for each cell (includes global comm)
  */
         CellCharge(home);
 		
-        DebugGB(home,16);
 /*
  *      Calculate new force and velocity data for all nodes or a selected
  *      subset and distribute the new data out to neighboring domains.
@@ -277,14 +275,23 @@ void ParadisStep(Home_t *home)
 
         }
 
-
-        DebugGB(home,17);
 /*
  *      Invoke the selected time step integration method.  The
  *      selected method will calculate the time step as well as
  *      move nodes to their correct locations and communicate 
  *      the new nodal force/velocity data to neighboring domains.
  */
+
+        param->mergeDpSt[0] = 0.0;
+        param->mergeDpSt[1] = 0.0;
+        param->mergeDpSt[2] = 0.0;
+        param->mergeDpSt[3] = 0.0;
+        param->mergeDpSt[4] = 0.0;
+        param->mergeDpSt[5] = 0.0;
+
+        param->mergeDpSp[0] = 0.0;
+        param->mergeDpSp[1] = 0.0;
+        param->mergeDpSp[2] = 0.0;
 
 		
         if (strcmp(param->timestepIntegrator, "forward-euler") == 0) {
@@ -298,8 +305,6 @@ void ParadisStep(Home_t *home)
  */
             TrapezoidIntegrator(home);
         }
-        DebugGB(home,18);
-//      DumpDeltaPlasticStrain(home, 0);
 
 
 /*
@@ -309,13 +314,10 @@ void ParadisStep(Home_t *home)
  *      function should be invoked before either of those items are done.
  */
         InitTopologyExemptions(home);
-        DebugGB(home,19);
 
 #if CHECK_GB_TOPO
         GenerateOutput(home, STAGE_DEBUG, "-2Trap");
 #endif
-
-        DebugGB(home,20);
 
         if(param->xBoundType == Free ||
            param->yBoundType == Free ||
@@ -332,13 +334,12 @@ void ParadisStep(Home_t *home)
             TimerStart(home, FIX_FS);
             FixRemesh(home, "Surface");
             TimerStop(home, FIX_FS);
+
 #if CHECK_GB_TOPO
             GenerateOutput(home, STAGE_DEBUG, "-3FS");
 #endif
         }
 
-//      DumpDeltaPlasticStrain(home, 1);
-        DebugGB(home,21);
         if(param->gbStrength>0 || param->polycrystal && param->nGrain>1){
             ClearOpList(home);
             HandleGrainBoundary(home);
@@ -354,15 +355,12 @@ void ParadisStep(Home_t *home)
 
         }
 
-        DebugGB(home,23);
-
 /*
  *      In some simulations, it is necessary to recalculate and distribute
  *      the glide plane infromation for segments after the nodes have been
  *      repositioned.  Do so now if needed.
  */
         ResetGlidePlanes(home);
-        DebugGB(home,24);
 
 /*
  *      Increment the per-burgers vector density gain/loss with
@@ -372,17 +370,6 @@ void ParadisStep(Home_t *home)
  *      Note: This is currently only applicable to BCC simulations.
  */
         GetDensityDelta(home);
-        DebugGB(home,25);
-
-        DebugGB(home,26);
-
-/*
- *      The call to GenerateOutput will update the time and cycle counters,
- *      determine if any output needs to be generated at this stage, and
- *      call the appropriate I/O functions if necessary.
- */
-//      DumpDeltaPlasticStrain(home, 2);
-        DebugGB(home,1);
 
 /*
  *      Now do all the topological changes from segment interactions
@@ -393,12 +380,9 @@ void ParadisStep(Home_t *home)
  *      send remote nodes the list of ops needed to keep their data in sync.
  */
         ClearOpList(home);
-		
         SortNodesForCollision(home);
-
         SplitMultiNodes(home);
 
-        DebugGB(home,2);
 #ifdef _FEM
         SplitSurfaceNodes(home);
 #endif
@@ -408,9 +392,8 @@ void ParadisStep(Home_t *home)
  *      (if necessary) the cross-slip function appropriate to the
  *      type of material in use.
  */
-//      DumpDeltaPlasticStrain(home, 3);
         CrossSlip(home);
-        DebugGB(home,3);
+
 #if CHECK_GB_TOPO
         GenerateOutput(home, STAGE_DEBUG, "-4CrossSlip");
 #endif
@@ -418,12 +401,8 @@ void ParadisStep(Home_t *home)
  *      Search for dislocation segments in close proximity to each other
  *      and if necessary handle any collision between them.
  */
-//      DumpDeltaPlasticStrain(home, 4);
         HandleCollisions(home);
 		
-//      DumpDeltaPlasticStrain(home, 5);
-        DebugGB(home,4);
-
 #ifdef PARALLEL
 #ifdef SYNC_TIMERS
         TimerStart(home, POST_COLLISION_BARRIER);
@@ -436,13 +415,10 @@ void ParadisStep(Home_t *home)
         CommSendRemesh(home);
         TimerStop(home, COL_SEND_REMESH);
 		
-        DebugGB(home,5);
         TimerStart(home, COL_FIX_REMESH);
         FixRemesh(home, "Collision");
         TimerStop(home, COL_FIX_REMESH);
 		
-        DebugGB(home,6);
-
 #ifdef _FEM
 	AdjustNodePosition(home, 1); 
 #endif 
@@ -480,10 +456,7 @@ void ParadisStep(Home_t *home)
 /*
  *      Invoke mesh coarsen/refine
  */
-        DebugGB(home,7);
         Remesh(home);
-        DebugGB(home,8);
-
 
 #if CHECK_GB_TOPO
         GenerateOutput(home, STAGE_DEBUG, "-6Remesh");
@@ -492,17 +465,19 @@ void ParadisStep(Home_t *home)
  *      Calculate the new plastic strain.
  */
         DeltaPlasticStrain(home);
- //     DumpDeltaPlasticStrain(home, 6);
-        DebugGB(home,9);
+/*
+ *      The call to GenerateOutput will update the time and cycle counters,
+ *      determine if any output needs to be generated at this stage, and
+ *      call the appropriate I/O functions if necessary.
+ */
+
         GenerateOutput(home, STAGE_CYCLE,"-1cycle");
-        DebugGB(home,10);
 /*
 
  *      Define load curve and calculate change in applied stress this cycle
  */
         LoadCurve(home, deltaStress);
 		
-
 /*
  *      This is only needed when we do force calcs for only
  *      a subset of the nodes at the beginning of the timestep.  It will
@@ -510,7 +485,6 @@ void ParadisStep(Home_t *home)
  *      recalculate the nodal velocities so we have more accurate values
  *      when we enter the timestep integrator at the beginning of the next
  *      cycle.
-		 
  */
         ApplyDeltaStress(home, deltaStress);
 
@@ -520,7 +494,6 @@ void ParadisStep(Home_t *home)
  *      processors.
  */
         Rebalance(home, DLB_USE_WALLCLK_TIME);
-//        DebugGB(home,10);
 
 /*
  *      Send any nodes that have moved beyond the domain's
@@ -528,26 +501,20 @@ void ParadisStep(Home_t *home)
  */
 
         Migrate(home);
-//        DebugGB(home,11);
 /*
  *      Recycle all the ghost nodes: move them back to the free Queue
  */
         RecycleGhostNodes(home);
-//        DebugGB(home,12);
 
 /*
  *      Sort the native nodes into their proper subcells.  
  */
-		
         SortNativeNodes(home);
-//       DebugGB(home,13);
 
 /*
  *      Communicate ghost cells to/from neighbor domains
  */
-		
         CommSendGhosts(home);
-//     DebugGB(home,14);
 
 #ifdef NAN_CHECK
 /*

@@ -59,11 +59,15 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unknown-pragmas -fopenmp" )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ")
 
 Option(NO_GB_BARRIER "Build ${PARADIS_EXE} using definition NO_GB_BARRIER" OFF)
-    if(NO_GB_BARRIER)
+if(NO_GB_BARRIER)
     Message(STATUS "Macro NO_GB_BARRIER is on")
     add_definitions(-DNO_GB_BARRIER)
 endif(NO_GB_BARRIER)
 
+Option(DEBUG_PLASTIC_STRAIN "debug plastic strain field" OFF)
+if(DEBUG_PLASTIC_STRAIN)
+    add_definitions(-DDEBUG_PLASTIC_STRAIN)
+endif()
 
 Add_executable(${PARADIS_EXE} ${PARADIS_SRCS})
 target_link_libraries(${PARADIS_EXE} ${MPI_CXX_LIBRARIES}) # this must be  MPI_CXX_LIBRARIES for cpp file

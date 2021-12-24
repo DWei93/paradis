@@ -214,9 +214,11 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
 bool DifferentGlidePlane(Node_t *node);
 real8 NodeLength(Home_t *home, Node_t *node);
 
-void DumpDeltaPlasticStrain(Home_t *home, int flag);
 void NodalDeltaPlasticStrain(Home_t *home, Node_t *node, real8 *dpst, real8 *dpsp);
 real8 NodalDeltaPlasticStrain(Home_t *home, Node_t *node);
 void SegDeltaPlasticStrain(Home_t *home, Node_t *node1, Node_t *node2, real8 *dpst, real8 *dpsp);
 real8 SegDeltaPlasticStrain(Home_t *home, Node_t *node1, Node_t *node2);
+/* sumarize plastic stain and plastic spin before merge operation */
+void DeltaPlasticStrainOfTwoNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *dpst, real8 *dpsp);
+
 #endif
