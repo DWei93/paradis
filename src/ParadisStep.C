@@ -293,6 +293,12 @@ void ParadisStep(Home_t *home)
         param->mergeDpSp[1] = 0.0;
         param->mergeDpSp[2] = 0.0;
 
+        param->mergeDtSt[0] = 0.0;
+        param->mergeDtSt[1] = 0.0;
+        param->mergeDtSt[2] = 0.0;
+        param->mergeDtSt[3] = 0.0;
+        param->mergeDtSt[4] = 0.0;
+        param->mergeDtSt[5] = 0.0;
 		
         if (strcmp(param->timestepIntegrator, "forward-euler") == 0) {
             ForwardEulerIntegrator(home);

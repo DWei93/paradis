@@ -140,6 +140,11 @@ typedef struct {
 
 
 #define NUM_COMPONENT_OF_DENSITY 10
+#ifndef DEBUG_PLASTIC_STRAIN
+#define NUM_COMPONENT_OF_PLASTIC_STRAIN 6
+#else
+#define NUM_COMPONENT_OF_PLASTIC_STRAIN 12
+#endif 
 
 struct _home {
 

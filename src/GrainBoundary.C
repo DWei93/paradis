@@ -2155,7 +2155,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             nodePos[1] = node->y;
             nodePos[2] = node->z;
 
-            if(NewPosToGB(home, node, nbrInGrain[i][0], node->onGB, nodePos, newPos)){
+            if(NewPosToGB(home, node, nbrInGrain[i][0], node->onGB, nodePos, newPos, 2E-4)){
                 PrintNode(home,node);
                 printf("Warning in SplitIntersectNode at %d\n", __LINE__);
                 if(wrongGlidePlane){
@@ -2213,7 +2213,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             free(armList);
             if (splitStatus != SPLIT_SUCCESS)continue;
 
-            if(NewPosToGB(home, splitNode2, nbrInGrain[i][0], node->onGB, nodePos, newPos)){
+            if(NewPosToGB(home, splitNode2, nbrInGrain[i][0], node->onGB, nodePos, newPos,2E-4)){
                 PrintNode(home, splitNode2);
                 Tecplot(home, (char*)"NewPosToGB", 0, 0, 0 ,0, 0, 1);
                 Fatal("Warning in SplitIntersectNode at %d\n", __LINE__);

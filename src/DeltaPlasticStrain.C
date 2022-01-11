@@ -32,22 +32,22 @@ void DeltaPlasticStrain(Home_t *home)
 
 
 #ifdef PARALLEL
-    locVals = (real8 *)calloc(totEleNum*6, sizeof(real8));
-    gloVals = (real8 *)calloc(totEleNum*6, sizeof(real8));
+    locVals = (real8 *)calloc(totEleNum*NUM_COMPONENT_OF_PLASTIC_STRAIN, sizeof(real8));
+    gloVals = (real8 *)calloc(totEleNum*NUM_COMPONENT_OF_PLASTIC_STRAIN, sizeof(real8));
 
     for (i=0; i<totEleNum; i++){
-        for(j = 0; j<6; j++){
-            locVals[i*6+j] = home->pstnEle[i][j];
+        for(j = 0; j<NUM_COMPONENT_OF_PLASTIC_STRAIN; j++){
+            locVals[i*NUM_COMPONENT_OF_PLASTIC_STRAIN+j] = home->pstnEle[i][j];
         }
     }
 
-	MPI_Reduce(locVals, gloVals, 6*totEleNum, MPI_DOUBLE,
+	MPI_Reduce(locVals, gloVals, NUM_COMPONENT_OF_PLASTIC_STRAIN*totEleNum, MPI_DOUBLE,
 			   MPI_SUM, 0, MPI_COMM_WORLD);
 
     for (i=0; i<totEleNum; i++){
-        for(j = 0; j<6; j++){
+        for(j = 0; j<NUM_COMPONENT_OF_PLASTIC_STRAIN; j++){
             if(home->myDomain == 0){
-                home->pstnEle[i][j] = gloVals[i*6+j];
+                home->pstnEle[i][j] = gloVals[i*NUM_COMPONENT_OF_PLASTIC_STRAIN+j];
             }else{
                 home->pstnEle[i][j] = 0.0;
             }

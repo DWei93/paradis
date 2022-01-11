@@ -31,17 +31,17 @@
  *              BackupNode()
  *              CheckCollisionConditions()
  *              CopyNodeArrays()
- *		CopyNode()
+ *		        CopyNode()
  *              DomainOwnsSeg()
- *		EvaluateMobility()
+ *		        EvaluateMobility()
  *              FreeNodeArrays()
  *              InitTopologyExemptions()
- *		MergeNode()
+ *		        MergeNode()
  *              RemoveDoubleLinks()
  *              RemoveOrphanedNode()
  *              RestoreNode()
- *		SplitMultiNodes()
- *		SplitNode()
+ *		        SplitMultiNodes()
+ *		        SplitNode()
  *
  *****************************************************************************/
 #include <stdio.h>
@@ -2664,8 +2664,10 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
     real8 dpst[6], dpsp[3];
     real8 node1Pos[3]={node1->x, node1->y, node1->z};
     real8 node2Pos[3]={node2->x, node2->y, node2->z};   
-    int   meshNx, meshNy, meshNz, eleID[27];
+    int   meshNx, meshNy, meshNz, eleID[27], nTDs;
     real8 lenPer[27];
+    bool  TD ;
+    real8 burg[3];
 
     if(mergePst){
         node1->x = position[0]; node1->y = position[1]; node1->z = position[2];
@@ -2673,6 +2675,30 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
         DeltaPlasticStrainOfTwoNodes(home, node1, node2, dpst, dpsp);
         node1->x = node1Pos[0]; node1->y = node1Pos[1]; node1->z = node1Pos[2];
         node2->x = node2Pos[0]; node2->y = node2Pos[1]; node2->z = node2Pos[2];
+
+        TD = IsOnGB(node1) && IsOnGB(node2);
+        if(TD){
+            nTDs = 0;
+            for(i=0; i<node1->numNbrs; i++){
+                burg[0] = node1->burgX[i];
+                burg[1] = node1->burgY[i];
+                burg[2] = node1->burgZ[i];
+                if(BurgType_FCC(burg) == SHOCKLEY_BURG)nTDs++;
+            }
+            if(nTDs>=2){
+                nTDs = 0;
+                for(i=0; i<node2->numNbrs; i++){
+                    burg[0] = node2->burgX[i];
+                    burg[1] = node2->burgY[i];
+                    burg[2] = node2->burgZ[i];
+                    if(BurgType_FCC(burg) == SHOCKLEY_BURG)nTDs++;
+                }
+                if(nTDs<2)TD=false;
+            }else{
+                TD = false;
+            }
+        }
+
     }
 
     
@@ -2946,6 +2972,16 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
             dpsp[0]-= dpsp_merge[0];
             dpsp[1]-= dpsp_merge[1];
             dpsp[2]-= dpsp_merge[2];
+
+            if(TD){
+                for(i=0; i<targetNode->numNbrs; i++){
+                    burg[0] = targetNode->burgX[i];
+                    burg[1] = targetNode->burgY[i];
+                    burg[2] = targetNode->burgZ[i];
+                    if(BurgType_FCC(burg) == SHOCKLEY_BURG)nTDs++;
+                }
+                if(nTDs<2)TD=false;
+            }
         }
 
         param->mergeDpSt[0] += dpst[0]; 
@@ -2957,6 +2993,16 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
         param->mergeDpSp[0] += dpsp[0];
         param->mergeDpSp[1] += dpsp[1];
         param->mergeDpSp[2] += dpsp[2];
+
+        if(TD){
+            param->mergeDtSt[0] += dpst[0]; 
+            param->mergeDtSt[1] += dpst[1]; 
+            param->mergeDtSt[2] += dpst[2]; 
+            param->mergeDtSt[3] += dpst[3]; 
+            param->mergeDtSt[4] += dpst[4]; 
+            param->mergeDtSt[5] += dpst[5]; 
+        }
+
 
 	    int eleNum = Coor2EleNum(home,position,meshNx,meshNy,meshNz);
 	    FoldBox(param,position,position+1,position+2);
@@ -2972,6 +3018,15 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
             home->pstnEle[eleID[m]][3] += dpst[3]*lenPer[m]*param->simVol; 
             home->pstnEle[eleID[m]][4] += dpst[4]*lenPer[m]*param->simVol; 
             home->pstnEle[eleID[m]][5] += dpst[5]*lenPer[m]*param->simVol; 
+
+#ifdef DEBUG_PLASTIC_STRAIN
+            home->pstnEle[eleID[m]][6]  += dpst[0]*lenPer[m]*param->simVol; 
+            home->pstnEle[eleID[m]][7]  += dpst[1]*lenPer[m]*param->simVol; 
+            home->pstnEle[eleID[m]][8]  += dpst[2]*lenPer[m]*param->simVol; 
+            home->pstnEle[eleID[m]][9]  += dpst[3]*lenPer[m]*param->simVol; 
+            home->pstnEle[eleID[m]][10] += dpst[4]*lenPer[m]*param->simVol; 
+            home->pstnEle[eleID[m]][11] += dpst[5]*lenPer[m]*param->simVol; 
+#endif
         }                                                  
     }                                                      
                                                            

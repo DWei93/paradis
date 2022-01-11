@@ -779,7 +779,7 @@ static void Continue(Home_t *home, Node_t *node1, Node_t *node2, real8 x, real8 
     int mergeStatus;
     MergeNode(home, OPCLASS_COLLISION, node2,
               node1, newPos, &targetNode,
-              &mergeStatus,1);
+              &mergeStatus,1,-1,-1,true);
 
     if((mergeStatus & MERGE_SUCCESS) == 0){
         Fatal("%s at %d: can not undo topo changes",__FILE__,__LINE__);

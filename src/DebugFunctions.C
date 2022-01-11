@@ -757,8 +757,23 @@ void DebugGB(Home_t *home, int flag){
 
 #ifdef DEBUG_PLASTIC_STRAIN
 bool cmp(dp_t p, dp_t q){return fabs(p.nodePst)>fabs(q.nodePst);}
+/**
+ * @brief Dump increaments of plastic strain
+ * 
+ * @param[in] home       
+ * @param[in] pstType:      0 - current delta plaStn account by swept area
+ *                          1 - merged plastic strain
+ *                          2 - total delta plastic strain (not current)
+ *                          3 - current total delta plastic strain
+ * @param[in] printFile  
+ * @param[in] flag
+ * @return real8            delta plastic strain
+ * 
+ * ! Not suppose parallel mode
+ */
 real8 DumpDeltaPlasticStrain(Home_t *home, int pstType, bool printFile, int flag)
 {
+    
     Param_t *param = home->param;
     Node_t *node, *nbr;
     real8 bx,by,bz;
@@ -795,7 +810,7 @@ real8 DumpDeltaPlasticStrain(Home_t *home, int pstType, bool printFile, int flag
                    (param->delpStrain[4])*(an*bl + al*bn) +
                    (param->delpStrain[5])*(al*bm + am*bl) ;   
 
-    if(pstType>2)return dpl_stn;
+    if(pstType == 2)return dpl_stn;
 
     if(pstType >= 1){
 #ifdef PARALLEL
@@ -809,18 +824,25 @@ real8 DumpDeltaPlasticStrain(Home_t *home, int pstType, bool printFile, int flag
             mgo[5] = param->mergeDpSt[5];
 #endif
 
-        delpstn_mg =(mgo[0])* al*bl    +
+        delpstn_mg =(mgo[0])* al*bl +
              (mgo[1])* am*bm        +
              (mgo[2])* an*bn        +
-             (mgo[3])*(am*bn+an*bm)+
-             (mgo[4])*(an*bl+al*bn)+
-             (mgo[5])*(al*bm+bl*am);
+             (mgo[3])*(am*bn+an*bm) +
+             (mgo[4])*(an*bl+al*bn) +
+             (mgo[5])*(al*bm+bl*am) ;
         if(pstType == 1)return delpstn_mg;
     }
 
     dp_t                dp;
     std::vector<dp_t>   data;
-    real8               vec[3], nodePst[6];
+    real8               vec[3], nodePst[6], segPst[6], segStn;
+    real8               p1[3],p2[3],pp[3],cen1[3],cen2[3], lenPer[27];
+    int                 eleNum, meshNx, meshNy, meshNz, eleID[27];
+    real8               box[2][3] = {{-1010,-890,-320},{-780,-486,-300}};
+    real8               ldir[3]   = {-0.57956, 0.814655, 0.0211421};
+    real8               lpos[3]   = {-895.332, -634.067, -308.546};
+    real8               vec1[3], vec2[3], dis1, dis2;
+    bool                OK;
 
     for(int i=0; i<home->newNodeKeyPtr; i++){
         if ((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
@@ -836,6 +858,63 @@ real8 DumpDeltaPlasticStrain(Home_t *home, int pstType, bool printFile, int flag
             nbr = GetNeighborNode(home, node, j);
             if (nbr == (Node_t *)NULL)continue;
 
+	        p1[0] = node->x;
+	        p1[1] = node->y;
+	        p1[2] = node->z;
+
+	        p2[0] = node->oldx;
+	        p2[1] = node->oldy;
+	        p2[2] = node->oldz;
+	         
+	        PBCPOSITION(param,p1[0],p1[1],p1[2],&p2[0],&p2[1],&p2[2]);
+	         
+	        pp[0] = p1[0] + p2[0];
+	        pp[1] = p1[1] + p2[1];
+	        pp[2] = p1[2] + p2[2];
+
+            cen1[0] = 0.5*pp[0];
+            cen1[1] = 0.5*pp[1];
+            cen1[2] = 0.5*pp[2];
+	         
+	        p2[0] = nbr->oldx;
+	        p2[1] = nbr->oldy;
+	        p2[2] = nbr->oldz;
+	         
+	        PBCPOSITION(param,p1[0],p1[1],p1[2],&p2[0],&p2[1],&p2[2]);
+
+            VECTOR_COPY(cen2, p2);
+	         
+	        pp[0] +=  p2[0];
+	        pp[1] +=  p2[1];
+	        pp[2] +=  p2[2];
+	         
+	        p2[0] = nbr->x;
+	        p2[1] = nbr->y;
+	        p2[2] = nbr->z;
+	         
+	        PBCPOSITION(param,p1[0],p1[1],p1[2],&p2[0],&p2[1],&p2[2]);
+
+            cen2[0] = 0.5*(cen2[0]+p2[0]);
+            cen2[1] = 0.5*(cen2[1]+p2[1]);
+            cen2[2] = 0.5*(cen2[2]+p2[2]);
+
+	        pp[0] +=  p2[0];
+	        pp[1] +=  p2[1];
+	        pp[2] +=  p2[2];
+			   
+	        VECTOR_MULTIPLY(pp,0.25);
+            
+            eleNum = Coor2EleNum(home,pp,meshNx,meshNy,meshNz);
+	        FoldBox(param,&pp[0],&pp[1],&pp[2]);
+            DecomposeSegmentInRubik(home, meshNx,meshNy,meshNz, cen1, cen2, lenPer, eleID);
+
+            OK = (box[0][0]<cen1[0] && cen1[0]<box[1][0]) && 
+                 (box[0][1]<cen1[1] && cen1[1]<box[1][1]) &&
+                 (box[0][2]<cen1[2] && cen1[2]<box[1][2]);
+            OK &=(box[0][0]<cen2[0] && cen2[0]<box[1][1]) && 
+                 (box[0][1]<cen2[1] && cen2[1]<box[1][2]) &&
+                 (box[0][2]<cen2[2] && cen2[2]<box[1][3]);
+        
             vec[0] = node->nx[j];
             vec[1] = node->ny[j];
             vec[2] = node->nz[j];
@@ -883,15 +962,38 @@ real8 DumpDeltaPlasticStrain(Home_t *home, int pstType, bool printFile, int flag
             dyad[2][0] = nz*bx;
             dyad[2][1] = nz*by;
             dyad[2][2] = nz*bz;
+
+            segPst[0] = (dyad[0][0]+dyad[0][0])*(0.5/param->simVol);
+            segPst[1] = (dyad[1][1]+dyad[1][1])*(0.5/param->simVol);
+            segPst[2] = (dyad[2][2]+dyad[2][2])*(0.5/param->simVol);
+            segPst[3] = (dyad[1][2]+dyad[2][1])*(0.5/param->simVol);
+            segPst[4] = (dyad[0][2]+dyad[2][0])*(0.5/param->simVol);
+            segPst[5] = (dyad[0][1]+dyad[1][0])*(0.5/param->simVol);
         
-            nodePst[0]+= (dyad[0][0]+dyad[0][0])*(0.5/param->simVol);
-            nodePst[1]+= (dyad[1][1]+dyad[1][1])*(0.5/param->simVol);
-            nodePst[2]+= (dyad[2][2]+dyad[2][2])*(0.5/param->simVol);
-            nodePst[3]+= (dyad[1][2]+dyad[2][1])*(0.5/param->simVol);
-            nodePst[4]+= (dyad[0][2]+dyad[2][0])*(0.5/param->simVol);
-            nodePst[5]+= (dyad[0][1]+dyad[1][0])*(0.5/param->simVol);
+            nodePst[0]+= segPst[0];
+            nodePst[1]+= segPst[1];
+            nodePst[2]+= segPst[2];
+            nodePst[3]+= segPst[3];
+            nodePst[4]+= segPst[4];
+            nodePst[5]+= segPst[5];
 
             if (OrderNodes(node, nbr) != -1)continue;
+
+            if(OK){
+                PointLineIntersection(cen1,ldir,lpos,vec1, &dis1);
+                PointLineIntersection(cen2,ldir,lpos,vec1, &dis2);
+
+                if(dis1+dis2<50){
+                    segStn = (segPst[0])* al*bl      +
+                             (segPst[1])* am*bm      +
+                             (segPst[2])* an*bn      +
+                             (segPst[3])*(am*bn+an*bm)+
+                             (segPst[4])*(an*bl+al*bn)+
+                             (segPst[5])*(al*bm+bl*am);
+                    printf("%d: {%.5f,%.5f,%.5f}--{%.5f,%.5f,%.5f}: eNum=%d dStn=%.5e\n",flag,cen1[0],cen1[1],cen1[2],cen2[0],cen2[1],cen2[2], eleNum,segStn);
+                }
+            }
+
             loc[0] += (dyad[0][0]+dyad[0][0])*(0.5/param->simVol);
             loc[1] += (dyad[1][1]+dyad[1][1])*(0.5/param->simVol);
             loc[2] += (dyad[2][2]+dyad[2][2])*(0.5/param->simVol);

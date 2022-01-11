@@ -109,17 +109,21 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 
 
 #ifdef PARALLEL
-        real8   loc[9],glo[9];
+        real8   loc[15],glo[15];
 
-        loc[0]=param->mergeDpSt[0]; loc[1]=param->mergeDpSt[1]; loc[2]=param->mergeDpSt[2];
-        loc[3]=param->mergeDpSt[3]; loc[4]=param->mergeDpSt[4]; loc[5]=param->mergeDpSt[5];
-        loc[6]=param->mergeDpSp[0]; loc[7]=param->mergeDpSp[1]; loc[8]=param->mergeDpSp[2];
+        loc[0]  = param->mergeDpSt[0]; loc[1]  = param->mergeDpSt[1]; loc[2]  = param->mergeDpSt[2];
+        loc[3]  = param->mergeDpSt[3]; loc[4]  = param->mergeDpSt[4]; loc[5]  = param->mergeDpSt[5];
+        loc[6]  = param->mergeDpSp[0]; loc[7]  = param->mergeDpSp[1]; loc[8]  = param->mergeDpSp[2];
+        loc[9]  = param->mergeDtSt[0]; loc[10] = param->mergeDtSt[1]; loc[11] = param->mergeDtSt[2];
+        loc[12] = param->mergeDtSt[3]; loc[13] = param->mergeDtSt[4]; loc[14] = param->mergeDtSt[5];
 
-        MPI_Allreduce(loc, glo, 9, MPI_DOUBLE, MPI_SUM,  MPI_COMM_WORLD);
+        MPI_Allreduce(loc, glo, 15, MPI_DOUBLE, MPI_SUM,  MPI_COMM_WORLD);
 
-        param->mergeDpSt[0]=glo[0]; param->mergeDpSt[1]=glo[1]; param->mergeDpSt[2]=glo[2];
-        param->mergeDpSt[3]=glo[3]; param->mergeDpSt[4]=glo[4]; param->mergeDpSt[5]=glo[5];
-        param->mergeDpSp[0]=glo[6]; param->mergeDpSp[1]=glo[7]; param->mergeDpSp[2]=glo[8];
+        param->mergeDpSt[0] = glo[0];  param->mergeDpSt[1] = glo[1];  param->mergeDpSt[2] = glo[2];
+        param->mergeDpSt[3] = glo[3];  param->mergeDpSt[4] = glo[4];  param->mergeDpSt[5] = glo[5];
+        param->mergeDpSp[0] = glo[6];  param->mergeDpSp[1] = glo[7];  param->mergeDpSp[2] = glo[8];
+        param->mergeDtSt[0] = glo[9];  param->mergeDtSt[1] = glo[10]; param->mergeDtSt[2] = glo[11];
+        param->mergeDtSt[3] = glo[12]; param->mergeDtSt[4] = glo[13]; param->mergeDtSt[5] = glo[14];
 #endif
         param->delpStrain[0] += param->mergeDpSt[0];
         param->delpStrain[1] += param->mergeDpSt[1];
@@ -127,10 +131,18 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         param->delpStrain[3] += param->mergeDpSt[3];
         param->delpStrain[4] += param->mergeDpSt[4];
         param->delpStrain[5] += param->mergeDpSt[5];
+
         param->delpSpin[3] += param->mergeDpSp[0];
         param->delpSpin[4] += param->mergeDpSp[1];
         param->delpSpin[5] += param->mergeDpSp[2];
         
+        param->delpTwinStrain[0] += param->mergeDtSt[0];
+        param->delpTwinStrain[1] += param->mergeDtSt[1];
+        param->delpTwinStrain[2] += param->mergeDtSt[2];
+        param->delpTwinStrain[3] += param->mergeDtSt[3];
+        param->delpTwinStrain[4] += param->mergeDtSt[4];
+        param->delpTwinStrain[5] += param->mergeDtSt[5];
+
         sigijk          = 0;
         totCyclicStrain = 0.0;
 		

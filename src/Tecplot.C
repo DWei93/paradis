@@ -783,6 +783,10 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
     real8   *layerPosz;
     real8   al,am,an,bl,bm,bn,amag,val;
 
+#ifdef DEBUG_PLASTIC_STRAIN
+    real8   mergePlaStn;
+#endif
+
 #ifdef CAC_STRESS_FIELD
     real8 stress[3][3], x, y, z;
 #endif
@@ -819,12 +823,20 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
     totEleNum = meshNumX*meshNumY*meshNumZ;
 	real8 	**nodeContour;
     nodeContour = (real8 **)calloc(totNodeNum, sizeof(real8 *));
+#ifdef DEBUG_PLASTIC_STRAIN
+    for(i=0; i<totNodeNum; i++){
+        nodeContour[i] = (real8*)malloc(3*sizeof(real8));
+        nodeContour[i][0]=0.0;
+        nodeContour[i][1]=0.0;
+        nodeContour[i][2]=0.0;
+    }
+#else
     for(i=0; i<totNodeNum; i++){
         nodeContour[i] = (real8*)malloc(2*sizeof(real8));
         nodeContour[i][0]=0.0;
         nodeContour[i][1]=0.0;
     }
-
+#endif
 	eleLx = param->meshSizeX;
 	eleLy = param->meshSizeY;
 	eleLz = param->meshSizeZ;
@@ -983,8 +995,11 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	    fprintf(fpEle, "Variables = \"X\", \"Y\", \"Z\",\"plaStn"
 				"\", \"disDen\", \"sxx\", \"syy\", \"szz\", \"syz\", \"sxz\", \"sxy\"\n"); 
 #else
-	    fprintf(fpEle, "Variables = \"X\", \"Y\", \"Z\",\"plaStn"
-				"\",\"disDen\"\n"); 
+#ifdef DEBUG_PLASTIC_STRAIN
+	    fprintf(fpEle, "Variables = \"X\", \"Y\", \"Z\",\"plaStn\",\"disDen\", \"mergePlaStn\" \n"); 
+#else
+	    fprintf(fpEle, "Variables = \"X\", \"Y\", \"Z\",\"plaStn\",\"disDen\"\n"); 
+#endif
 #endif
 	    fprintf(fpEle, "Zone T = \"%d\", SOLUTIONTIME = %d, I = %d, J = %d, K = %d\n",
 				home->cycle, home->cycle,  meshNodeNumX, meshNodeNumY, meshNodeNumZ); 
@@ -1009,6 +1024,16 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
                           home->pstnEle[i][5]*(al*bm+bl*am));
             if(param->loadType==1)currPlaStn*=Sign(param->eRate);
 
+#ifdef DEBUG_PLASTIC_STRAIN
+            mergePlaStn =(home->pstnEle[i][6]*al*bl        +
+                          home->pstnEle[i][7]*am*bm        +
+                          home->pstnEle[i][8]*an*bn        +
+                          home->pstnEle[i][9]*(am*bn+an*bm)+
+                          home->pstnEle[i][10]*(an*bl+al*bn)+
+                          home->pstnEle[i][11]*(al*bm+bl*am));
+#endif
+            
+
 			currDisDen = home->disDenEle[i][0]; 
 			NodeofEle(param, i, nodeEle, numNbrEle);	
 			
@@ -1016,6 +1041,9 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
                 nc = real8(numNbrEle[j]);
 				nodeContour[nodeEle[j]][0] += currPlaStn/nc;
 				nodeContour[nodeEle[j]][1] += currDisDen/nc;
+#ifdef DEBUG_PLASTIC_STRAIN
+                nodeContour[nodeEle[j]][2] += mergePlaStn/nc;
+#endif
 			}
 	    }
 
@@ -1037,6 +1065,9 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
             }
             nodeContour[i][0]=nodeContour[j][0];
             nodeContour[i][1]=nodeContour[j][1];
+#ifdef DEBUG_PLASTIC_STRAIN
+            nodeContour[i][2]=nodeContour[j][2];
+#endif
 			
 #ifdef CAC_STRESS_FIELD
             x=nx*eleLx-Lx/2.0;
@@ -1049,9 +1080,15 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
                     stress[0][0]/1.0E6,stress[1][1]/1.0E6,stress[2][2]/1.0E6,
                     stress[1][2]/1.0E6,stress[0][2]/1.0E6,stress[0][1]/1.0E6);
 #else
+#ifdef DEBUG_PLASTIC_STRAIN
+			fprintf(fpEle,"%.2f %.2f %.2f %.2g %.2g %.2g\n",
+					nx*eleLx-Lx/2, ny*eleLy-Ly/2,nz==0?-Lz/2:layerPosz[nz-1],
+					nodeContour[i][0],nodeContour[i][1], nodeContour[i][2]);
+#else
 			fprintf(fpEle,"%.2f %.2f %.2f %.2g %.2g\n",
 					nx*eleLx-Lx/2, ny*eleLy-Ly/2,nz==0?-Lz/2:layerPosz[nz-1],
 					nodeContour[i][0],nodeContour[i][1]);
+#endif
 #endif
 	    }
 

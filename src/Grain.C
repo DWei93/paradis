@@ -28,11 +28,6 @@
 
 #define DEBUG_DisassembleDislocation  0
 
-bool IsOnGB(Node_t *node)
-{
-    return(node->onGB > -1);
-}
-
 real8 Normal(std::vector<real8>& a)
 {
     return( sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]) );

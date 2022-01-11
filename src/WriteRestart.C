@@ -143,7 +143,7 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
             if ((fpTable = fopen(tableFile, "w")) == (FILE *)NULL) {
                 Fatal("WriteCN: Open error %d on %s\n", errno, tableFile);
             }
-            WriteArray(home->pstnEle, name, totMeshNum, 6, fpTable);
+            WriteArray(home->pstnEle, name, totMeshNum, NUM_COMPONENT_OF_PLASTIC_STRAIN, fpTable);
             fclose(fpTable);
         }
 

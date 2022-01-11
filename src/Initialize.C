@@ -1908,7 +1908,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
         home->disDenEle = (real8 **)malloc(totMeshNum*sizeof(real8*));
 
         for(i=0; i<totMeshNum; i++){
-            home->pstnEle[i] = (real8 *)calloc(6, sizeof(real8)); 
+            home->pstnEle[i] = (real8 *)calloc(NUM_COMPONENT_OF_PLASTIC_STRAIN, sizeof(real8)); 
         }
 
         for(i=0; i<totMeshNum; i++){

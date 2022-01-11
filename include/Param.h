@@ -360,8 +360,6 @@ struct _param {
         real8 tecplotdt, tecplottime;
         real8 tecmeshdstrain, tecmeshstrain;
 		
-		
-
         int   velfile, velfilefreq, velfilecounter;
         real8 velfiledt, velfiletime;
 
@@ -374,7 +372,6 @@ struct _param {
         real8 writeVisitDT, writeVisitTime;
 
         char  winDefaultsFile[MAX_STRING_LEN];
-
 
 
 /*
@@ -425,7 +422,7 @@ struct _param {
         real8 delpStrain[6],delSig[6],totpStn[6];
         real8 delpTwinStrain[6], totTwinpStn[6];
         real8 delpSpin[6],totpSpn[6];
-        real8 mergeDpSt[6], mergeDpSp[3];
+        real8 mergeDpSt[6], mergeDpSp[3], mergeDtSt[6];
 /*
  *      Added for strain decomposition and density flux decomp.
  */
