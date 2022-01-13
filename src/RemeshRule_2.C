@@ -643,7 +643,7 @@ static void MeshCoarsen(Home_t *home)
                         VECTOR_COPY(bakPos2, newPos);
 #endif
                         MergeNode(home, OPCLASS_REMESH, node, nbr2, newPos,
-                                  &mergedNode, &mergeStatus, globalOp, -1, -1,true);
+                                  &mergedNode, &mergeStatus, globalOp, -1, -1, true);
                         mergeDone = mergeStatus & MERGE_SUCCESS;
 #ifdef DEBUG
                     if(smallSegOnTB)printf("%d %d in %s at %d: mergeDone=%d\n",
