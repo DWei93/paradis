@@ -134,7 +134,7 @@ Set( PARADISCONVERT_SRCS
                      ../src/Math.C         	
 					 ../src/Grain.C )
 
-Set(CTABLEGEN_MAIN_SRC  CTableGen.C
+Set(CTABLEGEN_MAIN_SRC  ../src/CTableGen.C
                         ../src/CorrectionTable.C       
                         ../src/FindPreciseGlidePlane.C 
                         ../src/FMSigma2.C              
