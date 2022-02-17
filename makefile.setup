@@ -106,7 +106,7 @@ OPT = -O3
 #
 #    WARNING: This is still under development and not fully supported!
 #
-#DEFS += -DIMAGEFORCE
+#DEFS += -DIMAGE_FORCE
 #OPENMP_MODE = ON
 #DEFS += -DDEBUG
 #DEFS += -DDEBUG_MEM
@@ -115,7 +115,7 @@ DEFS += -DSIMLPLE_REACTION_ON_GB
 DEFS += -std=c++11
 
 #DEFS += -DGSIZE_EFFECT
-#DEFS += -DTB_PINNING
+#DEFS += -DJOG_PINNING
 #######################################################################
 #
 #    Specify some miscellaneous definitions that may be used

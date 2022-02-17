@@ -58,6 +58,12 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unknown-pragmas -fopenmp" )
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp " )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ")
 
+Option(JOG_PINNING "Build ${PARADIS_EXE} using definition JOG_PINNING" ON)
+if(JOG_PINNING)
+    Message(STATUS "Macro JOG_PINNING is on")
+    add_definitions(-DJOG_PINNING)
+endif()
+
 Option(NO_GB_BARRIER "Build ${PARADIS_EXE} using definition NO_GB_BARRIER" OFF)
 if(NO_GB_BARRIER)
     Message(STATUS "Macro NO_GB_BARRIER is on")

@@ -167,19 +167,60 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
     }
 #endif
 
+#ifdef JOG_PINNING
+    static  real8 pinForce = 0.3*param->shearModulus;
+    int     nbrInGrain;
+    real8   pinDir[3], pdot;   
+
+    if(numGlideConstraints == 2 && node->onGB>-1 && numNbrs>1){
+        nbrInGrain = -1;
+        for(i=0; i<numNbrs; i++){
+            if((nbrNode = GetNeighborNode(home, node, i)) == (Node_t *)NULL)continue;
+            if(nbrNode->inGrain>-1){
+                if(nbrInGrain == -1){
+                    nbrInGrain = nbrNode->inGrain; 
+                }else if(nbrNode->inGrain != nbrInGrain){
+                    break;
+                }
+            }
+        }       
+        if(i != numNbrs){
+            pdot = DotProduct(nForce, glideConstraints[2]);
+
+            if(pdot<0){
+                pdot        = -pdot;
+                pinDir[0]   = -glideConstraints[2][0];
+                pinDir[1]   = -glideConstraints[2][1];
+                pinDir[2]   = -glideConstraints[2][2];
+            }else{
+                VECTOR_COPY(pinDir, glideConstraints[2]);
+            }
+
+            if(pdot > pinForce){
+                nForce[0] -= (pinForce*pinDir[0]);                
+                nForce[1] -= (pinForce*pinDir[1]);                
+                nForce[2] -= (pinForce*pinDir[2]);                
+            }else{
+                nForce[0] -= (pdot*pinDir[0]);                
+                nForce[1] -= (pdot*pinDir[1]);                
+                nForce[2] -= (pdot*pinDir[2]);                
+            }
+        }
+    }
+#endif
 /*
  *  v = v_max*(1 - exp(-k*tau))
  *                    drag coefficent                             back          force 
  *  fdrag = tau*b = b/(k*(v_max - v)) * v + b/k * log(v_max/(v_max - v)) -  b/(k*(v_max - v)) * v
  */
-    static real8 vs_max = 1454.62292/param->burgMag, ks=9.24E-9;	
-    static real8 ve_max = 1529.63902/param->burgMag, ke=8.58E-9;	
-    static real8 vts_max = 1585.57223/param->burgMag, kts=13.7005E-9;	// ks=7.91E-9/(1/sqrt[3]) (Pa*b)^-1
-    static real8 vte_max = 1877.26443/param->burgMag, kte=10.808E-9;	// ks=6.24E-9/(1/sqrt[3]) (Pa*b)^-1
+    static real8 vs_max  = 1454.62292/param->burgMag, ks  = 9.24E-9;
+    static real8 ve_max  = 1529.63902/param->burgMag, ke  = 8.58E-9;
+    static real8 vts_max = 1585.57223/param->burgMag, kts = 13.7005E-9;  // ks=7.91E-9/(1/sqrt[3]) (Pa*b)^-1
+    static real8 vte_max = 1877.26443/param->burgMag, kte = 10.808E-9;   // ks=6.24E-9/(1/sqrt[3]) (Pa*b)^-1
 
     static real8 cutoff_coe = 0.99;
-    static real8 vs_max_c=vs_max*cutoff_coe, ve_max_c=ve_max*cutoff_coe, vts_max_c =vts_max*cutoff_coe, vte_max_c=vte_max*cutoff_coe;
-    static real8 Beclimb = 15.6E-4;
+    static real8 vs_max_c   = vs_max*cutoff_coe, ve_max_c = ve_max*cutoff_coe, vts_max_c = vts_max*cutoff_coe, vte_max_c = vte_max*cutoff_coe;
+    static real8 Beclimb    = 15.6E-4;
     real8  Bline,  BlmBecl; 
 
 /*
@@ -204,6 +245,8 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
             }       
         }
     }
+
+
 /*
  *  Limit the direction of the vTest to be within the constraint and less than the maximum
  */
@@ -391,7 +434,7 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
                 bForce[0] = halfMag*bForceMag*m[0];
                 bForce[1] = halfMag*bForceMag*m[1];
                 bForce[2] = halfMag*bForceMag*m[2];
-
+#ifndef NO_LINE_MOBILITY
 /*
  *              line velocity along line sense
  */
@@ -414,7 +457,9 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
                 bForce[0] += halfMag*bForceMag*d[0];
                 bForce[1] += halfMag*bForceMag*d[1];
                 bForce[2] += halfMag*bForceMag*d[2];
-
+#else
+                Bline = Beclimb;
+#endif
                 for(j=0;j<3;j++){
                     for(k=0;k<3;k++){
                         Bi[j][k] = halfMag*(Bglide*glideTensor[j][k] + Beclimb*climbTensor[j][k] + Bline*lineTensor[j][k]);
