@@ -200,43 +200,43 @@ typedef struct {
         int   optPaired;
 } Option_t;
 
-#define INITIAL_ANALYSIS 1
+#define INITIAL_ANALYSIS 0
 
 #if INITIAL_ANALYSIS > 0
 #define taurtb_s 100.0
 #define taurtb_ns 500.0
 
-typedef	enum{
-    cfrlen = 0,
-    cdpb,
-    cdfs1,
-    cdtb1,
-    cdtb2,
-    csi,
-    cso,
-    cstd1,
-    cstd2,
-    careai,
-    careao,
-    cbx,
-    cby,
-    cbz,
-    cnx,
-    cny,
-    cnz,
-    ccbetafr,
-    cstb,
-    cdfs2,
-    ccbetafs1,
-    ccbetafs2,
-    ctbdir,
-    ccbetatb1,
-    ccbetatb2,
-    ctauPin1,
-    ctauPin2,
-    cmathematica,
-    ctau0,
-    ctauc,
+typedef enum{
+    cfrlen = 0,     // Frank-Read source length
+    cdpb,           // distance to PBC boundary
+    cdfs1,          // minimun distacnce to free surface of endpoint 1
+    cdtb1,          // minimun distacnce to TB of endpoint 
+    cdtb2,          // minimun distacnce to TB of endpoint 
+    csi,            // Schmid factor of original glide plane
+    cso,            // Schmid factor of outing glide plane (if meet TB)
+    cstd1,          // Schnid factor of first decomposed twinning dislocation
+    cstd2,          // Schmid factor of second decomposed TD
+    careai,         // area of original glide plane
+    careao,         // area of outgoing glide plane (if meet TB)
+    cbx,            // x of Burgers vector 
+    cby,            // y of Burgers vector
+    cbz,            // z of Burgers vector
+    cnx,            // x of glide plane normal
+    cny,            // y of glide plane normal
+    cnz,            // z of glide plane normal
+    ccbetafr,       // cos beta of Frank-Read source
+    cstb,           // cos beta of line to TB
+    cdfs2,          // minimum distacnce to free surface of endpoint 2
+    ccbetafs1,      // cos beta of line to surface of endpoint 1
+    ccbetafs2,      // cos beta of line to surface of endpoint 2
+    ctbdir,         // sign of glide direction to TB
+    ccbetatb1,      // cos beta of line to TB of endpoint 1
+    ccbetatb2,      // cos beta of line to TB of endpoint 1
+    ctauPin1,       // pinning stress of endpoint 1 in colinear reaction
+    ctauPin2,       // pinning stress of endpoint 2 in colinear reaction
+    cmathematica,   // =1 mathemactica analysis
+    ctau0,          // activation shear stress of Frank-Read source (caculated by Frank-Read source length)
+    ctauc,          
     csigmac,
     cpeneType,
     crc,

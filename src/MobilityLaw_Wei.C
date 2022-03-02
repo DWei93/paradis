@@ -235,7 +235,7 @@ int Mobility_Wei(Home_t *home, Node_t *node)
     nodeOnGB = NodeOnGB(home, node);
     if((nodeOnGB &INTERSECT_NODE)>0 && (numGlideConstraints ==2) && (nodeOnGB & GB_NODE)==0){
 //      pinForce = ((param->tbStrength[0] < 1.0E5)?param->tbStrength[0]*lxb:(4.81851E8/param->grainSize + 5.9E8)*lxb);
-        pinForce = 0.15*param->shearModulus;
+        pinForce = param->jogCoeff*param->shearModulus;
         ParallelComponent(nForce, glideConstraints[2], glideForce);
         if(Normal(glideForce)<=pinForce){
             VECTOR_ZERO(nVel);

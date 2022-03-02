@@ -528,7 +528,9 @@ struct _param {
         clock_t     timestart;
 
 		real8		scale;
-
+#ifdef JOG_PINNING
+        real8   jogCoeff;
+#endif
 #ifdef VELOCITY_STATISTICS
         real8       delAccumulation[8], accumulation[8], disLength[3], cumulativeTime;
         real8       aveLength[3]; // units: maxSegLen

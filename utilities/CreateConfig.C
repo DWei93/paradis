@@ -2738,7 +2738,7 @@ void ProbeFreePath(real8 *p1, real8 *p2, std::vector<real8> &vertices, std::vect
         real8 str[3][3], real8 *b, real8 *n0 , real8 sasPos[2][3])
 {
     // point[1] minimal distances for type 0 boundary (PBC boundary) 
-    // point[2] minimal distances for type 1 boundary (surface ) 
+    // point[2] minimal distances for type 1 boundary (surface) 
     // point[3], point[4] distances for type 2 boundary (TB) 
     
     int type;
@@ -2833,7 +2833,7 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
         if(dec->disArray[i].size()==1 && fabs(DotProduct(n0, bd->planeList[dec->disArray[i][0].planeID]))>0.95)continue;
         disArray.push_back(dec->disArray[i]);
     }
-
+    
     real8 lp2[3], f1[3], f2[3], f3[3], f4[3], b1[3], b2[3], n1[3]; CoordAdd(lp,ldir,lp2);
     bl = &(dec->burgList);
 
@@ -2867,6 +2867,7 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
             }
         }
     }else {
+        
         for(int set=0; set<disArray.size(); set++){
             for(int disl=0; disl<disArray[set].size(); disl++){
                 VECTOR_COPY(b1,(*bl)[disArray[set][disl].burgID]);
@@ -4264,7 +4265,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                 }
 
                 for(chain=0;chain<nTDmax;chain++){
-                                    srcLen = (srcLenMin + (randm(&seed) * lenRange));
+                    srcLen = (srcLenMin + (randm(&seed) * lenRange));
                     kinkSize = (ceil(randm(&seed)*(inArgs->maxKinkSize-inArgs->minKinkSize)) + inArgs->minKinkSize)*SHOCKLEY_BURG_MAG_FCC;
                     gpIndex = 3;
                     bd = &(gb->burgData);

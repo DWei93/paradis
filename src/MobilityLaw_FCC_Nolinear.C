@@ -168,7 +168,7 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
 #endif
 
 #ifdef JOG_PINNING
-    static  real8 pinForce = 0.3*param->shearModulus;
+    real8 pinForce = param->jogCoeff*param->shearModulus;
     int     nbrInGrain;
     real8   pinDir[3], pdot;   
 
@@ -184,14 +184,15 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
                 }
             }
         }       
+
         if(i != numNbrs){
             pdot = DotProduct(nForce, glideConstraints[2]);
 
             if(pdot<0){
-                pdot        = -pdot;
-                pinDir[0]   = -glideConstraints[2][0];
-                pinDir[1]   = -glideConstraints[2][1];
-                pinDir[2]   = -glideConstraints[2][2];
+                pdot       = -pdot;
+                pinDir[0]  = -glideConstraints[2][0];
+                pinDir[1]  = -glideConstraints[2][1];
+                pinDir[2]  = -glideConstraints[2][2];
             }else{
                 VECTOR_COPY(pinDir, glideConstraints[2]);
             }
@@ -201,9 +202,10 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
                 nForce[1] -= (pinForce*pinDir[1]);                
                 nForce[2] -= (pinForce*pinDir[2]);                
             }else{
-                nForce[0] -= (pdot*pinDir[0]);                
-                nForce[1] -= (pdot*pinDir[1]);                
-                nForce[2] -= (pdot*pinDir[2]);                
+	            node->vX = 0.0;
+	            node->vY = 0.0;
+	            node->vZ = 0.0;
+	            return(0);
             }
         }
     }

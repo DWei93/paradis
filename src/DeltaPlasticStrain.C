@@ -13,11 +13,8 @@
 void DeltaPlasticStrain(Home_t *home)
 {
     Param_t     *param;
-    int         totEleNum, i, j;
-    real8       *locVals, *gloVals;
 
     param = home->param;
-    totEleNum = param->meshNumX*param->meshNumY*param->meshNumZ;
 
     switch(home->param->materialType) {
 
@@ -32,6 +29,9 @@ void DeltaPlasticStrain(Home_t *home)
 
 
 #ifdef PARALLEL
+    int         totEleNum, i, j;
+    totEleNum = param->meshNumX*param->meshNumY*param->meshNumZ;
+    real8       *locVals, *gloVals;
     locVals = (real8 *)calloc(totEleNum*NUM_COMPONENT_OF_PLASTIC_STRAIN, sizeof(real8));
     gloVals = (real8 *)calloc(totEleNum*NUM_COMPONENT_OF_PLASTIC_STRAIN, sizeof(real8));
 
@@ -56,8 +56,8 @@ void DeltaPlasticStrain(Home_t *home)
 
     free(locVals);
     free(gloVals);
-
 #endif
+
 #ifdef VELOCITY_STATISTICS
 
     real8   coeff = param->realdt/1.0E-9;

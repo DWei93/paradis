@@ -912,6 +912,11 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 		BindVar(CPList, "scale", &param->scale, V_DBL, 1, VFLAG_NULL);
 		param->scale = 1.0;
 
+#ifdef JOG_PINNING
+		BindVar(CPList, "jogCoeff", &param->jogCoeff, V_DBL, 1, VFLAG_NULL);
+		param->jogCoeff = 0.5;
+#endif
+
 #ifdef VELOCITY_STATISTICS
 		BindVar(CPList, "accumulation", &param->accumulation, V_DBL, 8, VFLAG_NULL);
 		param->accumulation[0] = 0.0;
