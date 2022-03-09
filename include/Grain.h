@@ -266,6 +266,11 @@ BurgInfo_t* GetBurgData(Home_t *home, int inGrain, int onGB);
 int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3]);
 int KeyLineID_FCC(BurgInfo_t *burgData, real8 line[3]);
 int	BurgType_FCC(real8 burg[3]);
+inline int	BurgType_FCC(real8 bx, real8 by, real8 bz)
+{
+    real8 burg[3] = {bx,by,bz};
+    return BurgType_FCC(burg);
+}
 int PlaneID_FCC(BurgInfo_t *burgData, real8 plane[3]);
 int PlaneType_FCC(BurgInfo_t *burgData, int planeID);
 int GetBurgID_FCC(Home_t *home, Node_t *node, Node_t *nbr);
@@ -290,6 +295,7 @@ bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3],
 void PullBack(Home_t *home, Node_t *node);
 void PenetrationRule(Home_t *home, Node_t *node);
 void HandleGrainBoundary(Home_t *home);
+bool TDSegment(Home_t *home, Node_t *node1,  Node_t *node2);
 
 real8 Distance(Home_t *home,real8 *p1,real8 *p2);
 int NodeOnLine(real8 *p, Line_t *line);
@@ -309,6 +315,7 @@ int LineOnPlane(Line_t *line, Plane_t *plane);
 int ClosestPointOfPointLine(real8 *p, Line_t *line, real8 *outP);
 int IntersectionOfPlanePlane(Plane_t *plane1, Plane_t *plane2, Line_t *line);
 void GetArmGrain(Home_t *home, Node_t *node1, Node_t *node2, int &inGrain, int &onGB);
+
 
 /*
  * 	others

@@ -437,7 +437,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 			   real8  pp[3],p1[3],p2[3];
                real8  tmpDstn;
                Node_t *nbr;
-    
+
                int  binID[2];
                int  burgType, nbrArmID, iBin;
                bool active, positive;
@@ -780,7 +780,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                     tmpDstn = (thread_dyad[l][k]+thread_dyad[k][l])*0.5;
                     thread_dstn[l][k] += tmpDstn;
 
-                    if(burgType == SHOCKLEY_BURG || (node->onGB>-1 && nbr->onGB>-1)){
+                    if(burgType == SHOCKLEY_BURG && (node->onGB>-1 && nbr->onGB>-1)){
                         thread_dtstn[l][k] += tmpDstn;
                     }
 			 	  

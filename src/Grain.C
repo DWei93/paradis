@@ -1736,6 +1736,15 @@ int	BurgType_FCC(real8 burg[3]){
 
 }
 
+bool TDSegment(Home_t *home, Node_t *node1,  Node_t *node2){
+    int i = GetArmID(home, node1, node2);
+    if(i == -1)return false;
+    
+    int bt = BurgType_FCC(node1->burgX[i], node1->burgY[i], node1->burgZ[i]);
+
+    return ((bt == SHOCKLEY_BURG) && node1->onGB > -1 && node2->onGB > -1);
+}
+
 
 int PlaneType_FCC(BurgInfo_t *burgData, real8 plane[3])
 {
@@ -2069,7 +2078,7 @@ bool GetPublicGB(Home_t *home, Grain_t *grain1, Grain_t *grain2, GB_t **GB, real
     }else{
         real8 dis=ClosedGB(home,pos,GB); return true;
     }
-    printf("Warning in %s: %d %d\n", __func__,grain1->grainID, grain2->grainID);
+  //printf("Warning in %s: %d %d\n", __func__,grain1->grainID, grain2->grainID);
     return(0);
 }
 
@@ -4325,12 +4334,6 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
     Param_t     *param = home->param;
     BurgInfo_t  *bd = GetBurgData(home, node1, node2);
 
-#if 1
-#else
-    FindPreciseGlidePlane(home, burg, lDir, glidePlane, node1, node2);
-    return;
-#endif
-
     srand(time(NULL));
 
     burgID = BurgID_FCC(bd, burg);
@@ -4349,7 +4352,7 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
                 break;
             default:
                 VECTOR_COPY(glidePlane, burg);
-                NormalizeVec(glidePlane);
+                NormalizeVec(glidePlane); // ?! FIXME rootless dislocation
                 return;
                 break;
         }

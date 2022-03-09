@@ -2678,22 +2678,20 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 
         TD = IsOnGB(node1) && IsOnGB(node2);
         if(TD){
-            nTDs = 0;
             for(i=0; i<node1->numNbrs; i++){
                 burg[0] = node1->burgX[i];
                 burg[1] = node1->burgY[i];
                 burg[2] = node1->burgZ[i];
-                if(BurgType_FCC(burg) == SHOCKLEY_BURG)nTDs++;
+                if(BurgType_FCC(burg) != SHOCKLEY_BURG)break;
             }
-            if(nTDs>=2){
-                nTDs = 0;
+            if(i == node1->numNbrs){
                 for(i=0; i<node2->numNbrs; i++){
                     burg[0] = node2->burgX[i];
                     burg[1] = node2->burgY[i];
                     burg[2] = node2->burgZ[i];
-                    if(BurgType_FCC(burg) == SHOCKLEY_BURG)nTDs++;
+                    if(BurgType_FCC(burg) != SHOCKLEY_BURG)break;
                 }
-                if(nTDs<2)TD=false;
+                if(i != node2->numNbrs)TD=false;
             }else{
                 TD = false;
             }

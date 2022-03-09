@@ -257,6 +257,7 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
     vMag = Sign(DotProduct(nForce,vTest))*Normal(vTest);
     if(vMag>v_max){VectorTimesSelf(vTest, (v_max/vMag));}
 
+    bool  tdKink;
     real8 fdrag[3], bForce[3], vDelta[3];
     real8 Bi[3][3], vgTest[3], vgMag, fTol=1, fErr=fTol+1;
     real8 lineTensor[3][3], glideTensor[3][3], climbTensor[3][3];
@@ -346,8 +347,9 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
                 Fatal("%s: at line %d, i=%d",__func__,__LINE__,i);
             }
 #endif
+            tdKink = (node->onGB > -1 && nbrNode->onGB > -1 && fabs(DotProduct(b, param->TBNormal))>5E-2);
 
-            if((DotProduct(m,m) < 1.0E-2) || ((GetPlaneType_FCC(home, node, nbrNode)& GLIDE_PLANE)==0)){
+            if((DotProduct(m,m) < 1.0E-2) || ((GetPlaneType_FCC(home, node, nbrNode)& GLIDE_PLANE)==0) || tdKink==true){
 	            Matrix33Init(Bi);
                 if (numNbrs == 2) {
 /*
