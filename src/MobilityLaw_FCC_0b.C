@@ -356,7 +356,7 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
  */
 //    AdjustSurfaceNodeVel(home, node);
 #endif
-
+#if 0
 	velocity = sqrt(node->vX * node->vX+
 			        node->vY * node->vY+
 			        node->vZ * node->vZ);
@@ -366,6 +366,6 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 	    node->vZ = node->vZ * param->vshr /velocity ;
 
 	}	
-
+#endif
     return(0);
 }

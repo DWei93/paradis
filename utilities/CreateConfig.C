@@ -1270,7 +1270,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         	
         cubeLength  = inArgs->cubeLength;
 	    srcLenType  = inArgs->srcLenType;
-        nLayers = inArgs->nLayers;
+        nLayers =  inArgs->nLayers;
        	maxDensity  = inArgs->maxDensity;
         numSources  = inArgs->numFRSrcs;
         srcLenMin   = inArgs->frLenMin;
@@ -1356,20 +1356,22 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                     
                     RE_ANGLE:
                     randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
+                    randomAngle = 0.0;
                     randomAngle = ((randm(&seed) > 0.5) ? randomAngle+pi : randomAngle);
 
-                    CoordAdd(cos(randomAngle),b,sin(randomAngle),n0, randomLine);
+                    cross(b, n0, n1); NormalizeVec(n1);
+                    CoordAdd(cos(randomAngle),b,sin(randomAngle),n1, randomLine);
                     NormalizeVec(randomLine);
 
+                    constraint1=0; constraint2=0;
                     if(inArgs->pbcVal>0){
-                        constraint1=0; constraint2=0;
                         if(!IntersectionOfRayBox(param, randomLine, p0, p1, constraint1))continue;
                         NegativeVector(randomLine, randomLine);
                         if(!IntersectionOfRayBox(param, randomLine, p0, p2, constraint2))continue;
                     }else{
                         for (i = 0; i < 3; i++) {
-                            p1[i] = p0[i] + (srcLen * randomLine[i]*0.5);
-                            p2[i] = p0[i] - (srcLen * randomLine[i]*0.5);
+                            p1[i] = p0[i] + (srcLen * randomLine[i]);
+                            p2[i] = p0[i] - (srcLen * randomLine[i]);
                         } 
                     }
 

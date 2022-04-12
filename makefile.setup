@@ -90,8 +90,8 @@ XLIB_MODE = OFF
 # OPT = -O 
 # OPT = -O1
 # OPT = -O2
-OPT = -O3 
-# OPT = -O3
+OPT = -O3
+# OPT = -O3 -g
 
 #
 #    Set the HDF_MODE to ON to enable compilation with HDF5 support
@@ -108,7 +108,7 @@ OPT = -O3
 #
 #DEFS += -DIMAGE_FORCE
 #OPENMP_MODE = ON
-#DEFS += -DDEBUG
+#DEFS += -DVELOCITY_STATISTICS
 #DEFS += -DDEBUG_MEM
 #DEFS += -DCAC_STRESS_FIELD
 DEFS += -DSIMLPLE_REACTION_ON_GB

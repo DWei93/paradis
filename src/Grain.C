@@ -4352,7 +4352,7 @@ void FindGlidePlane(Home_t *home, real8 burg[3], real8 lDir[3],
                 break;
             default:
                 VECTOR_COPY(glidePlane, burg);
-                NormalizeVec(glidePlane); // ?! FIXME rootless dislocation
+                NormalizeVec(glidePlane); // !FIXME rootless dislocation
                 return;
                 break;
         }

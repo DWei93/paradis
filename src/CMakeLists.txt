@@ -64,6 +64,12 @@ if(JOG_PINNING)
 endif()
 Message("** Macro JOG_PINNING is ${JOG_PINNING}")
 
+Option(VELOCITY_STATISTICS "Build ${PARADIS_EXE} using definition VELOCITY_STATISTICS" OFF)
+if(VELOCITY_STATISTICS)
+    add_definitions(-DVELOCITY_STATISTICS)
+endif()
+Message("** Macro VELOCITY_STATISTICS is ${VELOCITY_STATISTICS}")
+
 Option(NO_GB_BARRIER "Build ${PARADIS_EXE} using definition NO_GB_BARRIER" OFF)
 if(NO_GB_BARRIER)
     Message(STATUS "Macro NO_GB_BARRIER is on")

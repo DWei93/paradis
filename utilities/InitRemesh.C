@@ -168,16 +168,17 @@ void InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex)
 			dx = nodeB->x - xa;
 			dy = nodeB->y - ya;
 			dz = nodeB->z - za;
-#if 0
+
             real8 normal[3]={nodeA->nx[armAB],nodeA->ny[armAB],nodeA->nz[armAB]};
             real8 ls[3]={dx,dy,dz}; normalize_vec(ls);
             if(!PerpendicularDirection(ls,normal)){
-                Fatal("1: {%g,%g,%g}--{%g,%g,%g}\n",nodeA->x,nodeA->y,nodeA->z,nodeB->x,nodeB->y,nodeB->z);
+                Fatal("n: {%g,%g,%g}--{%g,%g,%g}\n",ls[0],ls[1],ls[2],normal[0],normal[1],normal[2]);
             }
-#endif
+
             if(nodeA->constraint == UNCONSTRAINED && nodeB->constraint == UNCONSTRAINED ){
     		    ZImage(param,&dx,&dy,&dz);
     		}
+
 #if 0
             ls[0]=dx; ls[1]=dy; ls[2]=dz;  normalize_vec(ls);
             if(!PerpendicularDirection(ls,normal)){

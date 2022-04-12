@@ -927,6 +927,7 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 		param->accumulation[5] = 0.0;
 		param->accumulation[6] = 0.0;
 		param->accumulation[7] = 0.0;
+		
 		BindVar(CPList, "disLength", &param->disLength, V_DBL, 3, VFLAG_NULL);
         param->disLength[0] = 0.0;
         param->disLength[1] = 0.0;
