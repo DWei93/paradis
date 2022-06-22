@@ -1,6 +1,6 @@
 /***************************************************************************
  *
- *      Module:       Math.C
+ *      Module:       Math.cpp
  *      Description:  Contains various math functions
  *
  *      Includes:   

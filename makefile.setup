@@ -58,7 +58,7 @@
 #      gcc             Generic Linux system build using gnu compilers
 #
 
-#SYS = linux
+#SYS = linux.opteron
 SYS = gcc
 
 #

@@ -18,120 +18,120 @@
 #
 ###########################################################################
 
-PARADIS_CPP_SRCS = GrainBoundary.C \
-	  CppFunctions.C \
-      Grain.C	               \
-      Math.C	               \
-      CellCharge.C             \
-      Collision.C              \
-      CommSendGhosts.C         \
-      CommSendGhostPlanes.C    \
-      CommSendMirrorNodes.C    \
-      CommSendRemesh.C         \
-      CommSendSecondaryGhosts.C \
-      CommSendSegments.C       \
-      CommSendVelocity.C       \
-      CorrectionTable.C        \
-      CrossSlip.C              \
-      CrossSlipBCC.C           \
-      CrossSlipFCC.C           \
-      DebugFunctions.C         \
-      Decomp.C                 \
-      DeltaPlasticStrain.C     \
-      DeltaPlasticStrain_BCC.C \
-      DeltaPlasticStrain_FCC.C \
-      DisableUnneededParams.C  \
-      DLBfreeOld.C             \
-      deWitInteraction.C       \
-      FindPreciseGlidePlane.C  \
-      FixRemesh.C              \
-      FMComm.C                 \
-      FMSigma2.C               \
-      FMSupport.C              \
-      ForwardEulerIntegrator.C \
-      FreeInitArrays.C         \
-      GenerateOutput.C         \
-      GetDensityDelta.C        \
-      GetNewNativeNode.C       \
-      GetNewGhostNode.C        \
-      Gnuplot.C                \
-      Heap.C                   \
-      InitCellDomains.C        \
-      InitCellNatives.C        \
-      InitCellNeighbors.C      \
-      InitHome.C               \
-      InitRemoteDomains.C      \
-      InitSendDomains.C        \
-      Initialize.C             \
-      InputSanity.C            \
-      LoadCurve.C              \
-      LocalSegForces.C         \
-      Matrix.C                 \
-      Meminfo.C                \
-      MemCheck.C               \
-      Migrate.C                \
-      MobilityLaw_Wei.C        \
-      MobilityLaw_BCC_0.C      \
-      MobilityLaw_BCC_0b.C     \
-      MobilityLaw_BCC_glide.C  \
-      MobilityLaw_FCC_0.C      \
-      MobilityLaw_FCC_0b.C     \
-      MobilityLaw_FCC_climb.C  \
-      MobilityLaw_FCC_Nolinear.C  \
-      NodeForce.C              \
-      NodeVelocity.C           \
-      OsmoticForce.C           \
-      ParadisInit.C            \
-      ParadisFinish.C          \
-      ParadisStep.C            \
-      ParadisThread.C          \
-      Param.C                  \
-      Parse.C                  \
-      PickScrewGlidePlane.C    \
-      Plot.C                   \
-      PredictiveCollision.C    \
-      ProximityCollision.C     \
-      QueueOps.C               \
-      ReadRestart.C            \
-      ReadBinaryRestart.C      \
-      ResetGlidePlanes.C       \
-      RBDecomp.C               \
-      RSDecomp.C               \
-      RemapInitialTags.C       \
-      Remesh.C                 \
-      RemeshRule_2.C           \
-      RemeshRule_3.C           \
-      RemoteSegForces.C        \
-      RemoveNode.C             \
-      SemiInfiniteSegSegForce.C \
-      SortNativeNodes.C        \
-      SortNodesForCollision.C  \
-      SplitSurfaceNodes.C      \
-      Tecplot.C                \
-      Timer.C                  \
-      Topology.C               \
-      TrapezoidIntegrator.C    \
-	  Util.C				   \
-      WriteArms.C              \
-      WriteBinaryRestart.C     \
-      WriteDensFlux.C          \
-      WriteDensityField.C      \
-      WriteForce.C             \
-      WriteFragments.C         \
-      WritePoleFig.C           \
-      WritePovray.C            \
-      WriteProp.C              \
-      WriteRestart.C           \
-	  WriteVisit.C             \
-      WriteVelocity.C          
+PARADIS_CPP_SRCS = GrainBoundary.cpp \
+	  CppFunctions.cpp \
+      Grain.cpp	               \
+      Math.cpp	               \
+      CellCharge.cpp             \
+      Collision.cpp              \
+      CommSendGhosts.cpp         \
+      CommSendGhostPlanes.cpp    \
+      CommSendMirrorNodes.cpp    \
+      CommSendRemesh.cpp         \
+      CommSendSecondaryGhosts.cpp \
+      CommSendSegments.cpp       \
+      CommSendVelocity.cpp       \
+      CorrectionTable.cpp        \
+      CrossSlip.cpp              \
+      CrossSlipBCC.cpp           \
+      CrossSlipFCC.cpp           \
+      DebugFunctions.cpp         \
+      Decomp.cpp                 \
+      DeltaPlasticStrain.cpp     \
+      DeltaPlasticStrain_BCC.cpp \
+      DeltaPlasticStrain_FCC.cpp \
+      DisableUnneededParams.cpp  \
+      DLBfreeOld.cpp             \
+      deWitInteraction.cpp       \
+      FindPreciseGlidePlane.cpp  \
+      FixRemesh.cpp              \
+      FMComm.cpp                 \
+      FMSigma2.cpp               \
+      FMSupport.cpp              \
+      ForwardEulerIntegrator.cpp \
+      FreeInitArrays.cpp         \
+      GenerateOutput.cpp         \
+      GetDensityDelta.cpp        \
+      GetNewNativeNode.cpp       \
+      GetNewGhostNode.cpp        \
+      Gnuplot.cpp                \
+      Heap.cpp                   \
+      InitCellDomains.cpp        \
+      InitCellNatives.cpp        \
+      InitCellNeighbors.cpp      \
+      InitHome.cpp               \
+      InitRemoteDomains.cpp      \
+      InitSendDomains.cpp        \
+      Initialize.cpp             \
+      InputSanity.cpp            \
+      LoadCurve.cpp              \
+      LocalSegForces.cpp         \
+      Matrix.cpp                 \
+      Meminfo.cpp                \
+      MemCheck.cpp               \
+      Migrate.cpp                \
+      MobilityLaw_Wei.cpp        \
+      MobilityLaw_BCC_0.cpp      \
+      MobilityLaw_BCC_0b.cpp     \
+      MobilityLaw_BCC_glide.cpp  \
+      MobilityLaw_FCC_0.cpp      \
+      MobilityLaw_FCC_0b.cpp     \
+      MobilityLaw_FCC_climb.cpp  \
+      MobilityLaw_FCC_Nolinear.cpp  \
+      NodeForce.cpp              \
+      NodeVelocity.cpp           \
+      OsmoticForce.cpp           \
+      ParadisInit.cpp            \
+      ParadisFinish.cpp          \
+      ParadisStep.cpp            \
+      ParadisThread.cpp          \
+      Param.cpp                  \
+      Parse.cpp                  \
+      PickScrewGlidePlane.cpp    \
+      Plot.cpp                   \
+      PredictiveCollision.cpp    \
+      ProximityCollision.cpp     \
+      QueueOps.cpp               \
+      ReadRestart.cpp            \
+      ReadBinaryRestart.cpp      \
+      ResetGlidePlanes.cpp       \
+      RBDecomp.cpp               \
+      RSDecomp.cpp               \
+      RemapInitialTags.cpp       \
+      Remesh.cpp                 \
+      RemeshRule_2.cpp           \
+      RemeshRule_3.cpp           \
+      RemoteSegForces.cpp        \
+      RemoveNode.cpp             \
+      SemiInfiniteSegSegForce.cpp \
+      SortNativeNodes.cpp        \
+      SortNodesForCollision.cpp  \
+      SplitSurfaceNodes.cpp      \
+      Tecplot.cpp                \
+      Timer.cpp                  \
+      Topology.cpp               \
+      TrapezoidIntegrator.cpp    \
+	  Util.cpp				   \
+      WriteArms.cpp              \
+      WriteBinaryRestart.cpp     \
+      WriteDensFlux.cpp          \
+      WriteDensityField.cpp      \
+      WriteForce.cpp             \
+      WriteFragments.cpp         \
+      WritePoleFig.cpp           \
+      WritePovray.cpp            \
+      WriteProp.cpp              \
+      WriteRestart.cpp           \
+	  WriteVisit.cpp             \
+      WriteVelocity.cpp          
 #      GeometryTestFactory.cpp  TestSweepLineSpeed.cpp \
-#       DisplayC.C display.C
+#       DisplayC.cpp display.cpp
 
 
 PARADIS_C_SRCS =  
 
 PARADIS_SRCS = $(PARADIS_C_SRCS) $(PARADIS_CPP_SRCS)
-PARADIS_OBJS = $(PARADIS_C_SRCS:.c=.o) $(PARADIS_CPP_SRCS:.C=.o) 
+PARADIS_OBJS = $(PARADIS_C_SRCS:.c=.o)  $(PARADIS_CPP_SRCS:.cpp=.o) 
 
 
 ###########################################################################
@@ -140,18 +140,18 @@ PARADIS_OBJS = $(PARADIS_C_SRCS:.c=.o) $(PARADIS_CPP_SRCS:.C=.o)
 #
 ###########################################################################
 
-CTABLEGEN_SRCS = CTableGen.C             \
-                 CorrectionTable.C       \
-                 FindPreciseGlidePlane.C \
-                 FMSigma2.C              \
-                 FMSupport.C             \
-                 Matrix.C                \
-                 Heap.C                  \
-                 MemCheck.C              \
-                 PickScrewGlidePlane.C   \
-                 QueueOps.C              \
-                 Util.C					\
-      			 Math.C	               \
-				 Grain.C	
+CTABLEGEN_SRCS = CTableGen.cpp             \
+                 CorrectionTable.cpp       \
+                 FindPreciseGlidePlane.cpp \
+                 FMSigma2.cpp              \
+                 FMSupport.cpp             \
+                 Matrix.cpp                \
+                 Heap.cpp                  \
+                 MemCheck.cpp              \
+                 PickScrewGlidePlane.cpp   \
+                 QueueOps.cpp              \
+                 Util.cpp				   \
+      			 Math.cpp	               \
+				 Grain.cpp	
 
-CTABLEGEN_OBJS = $(CTABLEGEN_SRCS:.C=.o)
+CTABLEGEN_OBJS = $(CTABLEGEN_SRCS:.cpp=.o)
