@@ -1,5 +1,5 @@
 /*
-  DisplayC.C  by Wei Cai
+  DisplayC.cpp  by Wei Cai
   Interface between Paradis and X-window display module
 */
 #ifndef NO_XWINDOW
