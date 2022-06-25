@@ -287,6 +287,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 		        fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
 	        }else{
 		        fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_sf, tau_ext,ifMag, velocity");
+#ifdef VELOCITY_STATISTICS
+                fprintf(fp, ", velx, vely, velz");
+#endif
                 if(param->multilayer){
                     fprintf(fp,", burgMag, velx, vely, velz\n");
                 }else{
@@ -563,6 +566,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                             narm,node->inGrain,node->onGB,burgID,normalID,constraint,
                             index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag);
 
+#ifdef VELOCITY_STATISTICS
+                    fprintf(fp," %g %g %g\n", velx, vely, velz);
+#else
                     if(param->multilayer){
                         fprintf(fp," %g %g %g %g\n", bMag, velx, vely, velz);
                         if(imageSeg){
@@ -577,6 +583,7 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                     }else{
                         fprintf(fp,"\n");
                     }
+#endif
 	        }
 #endif	
 			

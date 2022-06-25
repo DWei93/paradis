@@ -39,7 +39,7 @@ nMesh=41
 nfrsPerGrain=12000
 nTimesThick1=3
 eRate=5000
-sed -i "/^eRate/ceRate = $eRate" $ctrlFile
+sed -i "/^eRate /ceRate = $eRate" $ctrlFile
 nTimesThick2=3
 #nfrs=`echo "24*${nGrains}" | bc`
 nGrains=0 
@@ -80,17 +80,16 @@ maxDensity=5.0E13
 minDT=`echo "scale=3; 1.0*${rTol}/0.63771517" | bc`E-13
 
 echo "Minimum thickness=$thick b, $thickn nm, ${nGrains} grains,  maxSeg=${maxSeg}b, rTol =$rTol, minDT=$minDT, maxDensity=$maxDensity, rc=$rc"
-sed -i "/grainSize/cgrainSize = ${thick}" ${ctrlFile}
-sed -i "/^rTol =/crTol = ${rTol}" $ctrlFile
-sed -i "/^rc =/crc = ${rc}" $ctrlFile
-sed -i "/^minDT =/cminDT = ${minDT}" $ctrlFile
+sed -i "/^rTol /crTol = ${rTol}" $ctrlFile
+sed -i "/^rc /crc = ${rc}" $ctrlFile
+sed -i "/^minDT /cminDT = ${minDT}" $ctrlFile
 #sed -i "/dirname/cdirname = \"res.relax-t-${thickn}nm\"" ${ctrlFile}
 maxDT=`echo "scale=3; ${thickn}/4*5000/${eRate}" | bc -l`E-13
-sed -i "/^maxDT/cmaxDT = ${maxDT}" $ctrlFile;
+sed -i "/^maxDT /cmaxDT = ${maxDT}" $ctrlFile;
 
 ecore=`echo "scale=7;(${mu}/(4.0*${PI}))*l(${rc}/${core})" | bc -l`E9
-sed -i "/^Ecore =/cEcore = ${ecore}" $ctrlFile
-sed -i "/^shearModulus =/cshearModulus = ${mu}E9" $ctrlFile
+sed -i "/^Ecore /cEcore = ${ecore}" $ctrlFile
+sed -i "/^shearModulus /cshearModulus = ${mu}E9" $ctrlFile
 
 amu=90
 polar=90
@@ -112,7 +111,7 @@ if [[ `sed -n "/^loadType/p" $ctrlFile | cut -d " " -f 3` != "6" ]]; then
         polar=`echo ${line} | cut -d " " -f 7`; 
         amu=`echo ${line} | cut -d " " -f 8`; 
         echo "edotPolar = [$polar $amu]" ; 
-        sed -i "/^edotPolar =/cedotPolar = [ $polar $amu ]" $ctrlFile; 
+        sed -i "/^edotPolar /cedotPolar = [ $polar $amu ]" $ctrlFile; 
         point=$1; 
     fi
     loadDir=${polar},${amu}
@@ -121,9 +120,9 @@ else
     echo "loadType=6: $loadDir"
 fi
 
-sed -i "/meshNumX/cmeshNumX = $nMesh" $ctrlFile;
-sed -i "/meshNumY/cmeshNumY = $nMesh" $ctrlFile;
-sed -i "/meshNumZ/cmeshNumZ = $nMesh" $ctrlFile;
+sed -i "/^meshNumX /cmeshNumX = $nMesh" $ctrlFile;
+sed -i "/^meshNumY /cmeshNumY = $nMesh" $ctrlFile;
+sed -i "/^meshNumZ /cmeshNumZ = $nMesh" $ctrlFile;
 
 polycrystal=1
 single=2
@@ -217,9 +216,9 @@ else
     if [[ `echo "${nodeCount}>8000" | bc` -eq 1 ]] ; then ncells=16;
     elif [[ `echo "${nodeCount}>4000" | bc` -eq 1 ]] ; then ncells=8;
     else ncells=4; fi
-    sed -i "/^numXcells/cnumXcells = $ncells" $ctrlFile
-    sed -i "/^numYcells/cnumYcells = $ncells" $ctrlFile
-    sed -i "/^numZcells/cnumZcells = $ncells" $ctrlFile
+    sed -i "/^numXcells /cnumXcells = $ncells" $ctrlFile
+    sed -i "/^numYcells /cnumYcells = $ncells" $ctrlFile
+    sed -i "/^numZcells /cnumZcells = $ncells" $ctrlFile
 
     ./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 
     sed -i "1i# ${percentage}% of primary srcs" Copper.data

@@ -1269,16 +1269,16 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         home->param->materialType = MAT_TYPE_FCC;
         	
         cubeLength  = inArgs->cubeLength;
-	    srcLenType  = inArgs->srcLenType;
-        nLayers =  inArgs->nLayers;
-       	maxDensity  = inArgs->maxDensity;
+        srcLenType  = inArgs->srcLenType;
+        nLayers     = inArgs->nLayers;
+        maxDensity  = inArgs->maxDensity;
         numSources  = inArgs->numFRSrcs;
         srcLenMin   = inArgs->frLenMin;
         srcLenMax   = inArgs->frLenMax;
         seed        = inArgs->seed;
         dislocType  = inArgs->type;
         polycrystal = inArgs->polycrystal;
-        nGrain	    = inArgs->nGrain;
+        nGrain      = inArgs->nGrain;
         twinRatio   = inArgs->twinRatio;
         maxSeg      = (real8)inArgs->maxSegLen;
         	
@@ -1320,10 +1320,11 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 
 	    totSrcLen = 0.0;
 	    finish = 0;
+        int realChain = 0;
         for (layer = 0; layer < nLayers; layer++) {
-	    if(finish)break;
+           if(finish)break;
             xn = layer * d + x0;
-            if(xn <= 0){
+            if(xn <= 0){  
                 xn = 0;
                 continue;
             }
@@ -1864,7 +1865,8 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 //                lastBlock = (chain == (numSources - 1));
              
                
-	            if(totSrcLen > maxDensity*volume*burgMag*burgMag){
+	            IncDislocationDensity(inData,newNodeIndex, totDislocLen);
+	            if(*totDislocLen/(volume*burgMag*burgMag) > maxDensity){
 		            finish = 1;
 		            break;
 	            }else{
@@ -1873,12 +1875,12 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 chain++;
                 baseNodeID = inData->nodeCount;
                 startRemeshIndex = baseNodeID;
-
+                realChain ++;
             }  /* for (chain = 0; chain < numChains; ) */
 		
 	    }/* for(layer=0; layer<nLayers;...)*/
+        printf("total chains: %d\n", realChain);
 	
-	    IncDislocationDensity(inData, totDislocLen);
 	    param->nodeCount = inData->nodeCount;
 	    WriteInitialNodeData(home, inData, 1);
 	    FreeInNodeArray(inData, inData->nodeCount);
