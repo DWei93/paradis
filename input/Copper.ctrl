@@ -43,9 +43,9 @@ DLBfreq    = 3
 elasticinteraction = 1
 #a0                = [ 1.68098 1.12421 1.01163 0.187646 ]
 enableCrossSlip    = 0
-rTol               = 8.3567161
-rc                 = 33.5268644
-Ecore              = 22.2114043E9
+rTol = 5.5242714
+rc = 22.1970856
+Ecore = 20.6362054E9
 loadType           = 0
 loadDir            = [ 0.0 0.0 1.0 -1.0 0.0 0.0 ]
 #maxstep           = 40000000
@@ -80,7 +80,7 @@ strRate     = -4.0E16
 #strRate    = 0.0
 #plaRateCtr = 2.0E4
 
-edotPolar = [ 0.0 0.0 ]
+edotPolar = [ 9.0000000e+01 9.5000000e+01 ]
 
 appliedStress = [
 	0.0e0
@@ -97,7 +97,7 @@ appliedStress = [
 dirname       = "res.velocity-statistics"
 #mobilityLaw  = "FCC_nl"
 mobilityLaw   = "FCC_nl"
-shearModulus  = 48.0E9
+shearModulus = 48.0E9
 #shearModulus = 54.6e9  # Voight Average
 #shearModulus = 46.554e9  # in jin paper
 gbStrength    = -1
@@ -135,5 +135,5 @@ savetimers      = 0
 savetimersfreq  = 10
 velfile         = 0
 velfilefreq     = 1000
-minDT = 1E-16
+minDT = 8.662E-13
 #maxDT          = 5.000E-13

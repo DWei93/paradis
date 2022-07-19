@@ -57,6 +57,9 @@ CTABLEGENP_BIN = $(BINDIR)/$(CTABLEGENP)
 .cpp.o:		makefile
 		$(CPP) $(OPT) $(CCFLAG) $(CPPFLAG) $(INCS) -c $<
 
+.cc.o:		makefile
+		$(CPP) $(OPT) $(CCFLAG) $(CPPFLAG) $(INCS) -c $<
+
 .C.o:		makefile
 		$(CPP) $(OPT) $(CPPFLAG) $(INCS) -c $<
 

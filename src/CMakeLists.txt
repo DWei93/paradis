@@ -1,46 +1,46 @@
 Set ( PARADIS_SRCS 
-#bigtest.h   GeometryTestFactory.cpp TestSweepLineSpeed.cpp  
+#bigtest.h   GeometryTestFactory.cc TestSweepLineSpeed.cc  
 #bci.c   tdspl.c tools.c
-CppFunctions.cpp
-CellCharge.cpp               FindPreciseGlidePlane.cpp   InputSanity.cpp            ParadisThread.cpp            SplitSurfaceNodes.cpp
-Collision.cpp                FixRemesh.cpp               LoadCurve.cpp              Param.cpp                    Tecplot.cpp
-CommSendGhostPlanes.cpp      FMComm.cpp                  LocalSegForces.cpp         Parse.cpp                    Timer.cpp
-CommSendGhosts.cpp           FMSigma2.cpp                Main.cpp                   PickScrewGlidePlane.cpp      Topology.cpp
-CommSendMirrorNodes.cpp      FMSupport.cpp                                          Plot.cpp                     TrapezoidIntegrator.cpp
-CommSendRemesh.cpp           ForwardEulerIntegrator.cpp                             PredictiveCollision.cpp      Util.cpp
-CommSendSecondaryGhosts.cpp  FreeInitArrays.cpp          Matrix.cpp                 ProximityCollision.cpp       WriteArms.cpp
-CommSendSegments.cpp         GenerateOutput.cpp          MemCheck.cpp               QueueOps.cpp                 WriteBinaryRestart.cpp
-CommSendVelocity.cpp         GetDensityDelta.cpp         Meminfo.cpp                RBDecomp.cpp                 WriteDensFlux.cpp
-CorrectionTable.cpp          GetNewGhostNode.cpp         Migrate.cpp                ReadBinaryRestart.cpp        WriteDensityField.cpp
-CrossSlipBCC.cpp             GetNewNativeNode.cpp        MobilityLaw_BCC_0b.cpp     ReadRestart.cpp              WriteForce.cpp
-CrossSlip.cpp                Gnuplot.cpp                 MobilityLaw_BCC_0.cpp      RemapInitialTags.cpp         WriteFragments.cpp
-CrossSlipFCC.cpp             GrainBoundary.cpp           MobilityLaw_BCC_glide.cpp  Remesh.cpp                   WritePoleFig.cpp
-                             Grain.cpp                   MobilityLaw_FCC_0b.cpp     RemeshRule_2.cpp             WritePovray.cpp
-DebugFunctions.cpp           Heap.cpp                    MobilityLaw_FCC_0.cpp      RemeshRule_3.cpp             WriteProp.cpp
-Decomp.cpp                   InitCellDomains.cpp         MobilityLaw_FCC_climb.cpp  RemoteSegForces.cpp          WriteRestart.cpp
-DeltaPlasticStrain_BCC.cpp   InitCellNatives.cpp         NodeForce.cpp              RemoveNode.cpp               WriteVelocity.cpp
-DeltaPlasticStrain.cpp       InitCellNeighbors.cpp       NodeVelocity.cpp           ResetGlidePlanes.cpp         WriteVisit.cpp
-DeltaPlasticStrain_FCC.cpp   InitHome.cpp                OsmoticForce.cpp           RSDecomp.cpp
-deWitInteraction.cpp         Initialize.cpp              ParadisFinish.cpp          SemiInfiniteSegSegForce.cpp
-DisableUnneededParams.cpp    InitRemoteDomains.cpp       ParadisInit.cpp            SortNativeNodes.cpp
-DLBfreeOld.cpp               InitSendDomains.cpp         ParadisStep.cpp            SortNodesForCollision.cpp    Math.cpp 
-MobilityLaw_FCC_Nolinear.cpp MobilityLaw_Wei.cpp )
-#      DisplayC.cpp display.cpp )
+CppFunctions.cc
+CellCharge.cc               FindPreciseGlidePlane.cc   InputSanity.cc            ParadisThread.cc            SplitSurfaceNodes.cc
+Collision.cc                FixRemesh.cc               LoadCurve.cc              Param.cc                    Tecplot.cc
+CommSendGhostPlanes.cc      FMComm.cc                  LocalSegForces.cc         Parse.cc                    Timer.cc
+CommSendGhosts.cc           FMSigma2.cc                Main.cc                   PickScrewGlidePlane.cc      Topology.cc
+CommSendMirrorNodes.cc      FMSupport.cc                                          Plot.cc                     TrapezoidIntegrator.cc
+CommSendRemesh.cc           ForwardEulerIntegrator.cc                             PredictiveCollision.cc      Util.cc
+CommSendSecondaryGhosts.cc  FreeInitArrays.cc          Matrix.cc                 ProximityCollision.cc       WriteArms.cc
+CommSendSegments.cc         GenerateOutput.cc          MemCheck.cc               QueueOps.cc                 WriteBinaryRestart.cc
+CommSendVelocity.cc         GetDensityDelta.cc         Meminfo.cc                RBDecomp.cc                 WriteDensFlux.cc
+CorrectionTable.cc          GetNewGhostNode.cc         Migrate.cc                ReadBinaryRestart.cc        WriteDensityField.cc
+CrossSlipBCC.cc             GetNewNativeNode.cc        MobilityLaw_BCC_0b.cc     ReadRestart.cc              WriteForce.cc
+CrossSlip.cc                Gnuplot.cc                 MobilityLaw_BCC_0.cc      RemapInitialTags.cc         WriteFragments.cc
+CrossSlipFCC.cc             GrainBoundary.cc           MobilityLaw_BCC_glide.cc  Remesh.cc                   WritePoleFig.cc
+                             Grain.cc                   MobilityLaw_FCC_0b.cc     RemeshRule_2.cc             WritePovray.cc
+DebugFunctions.cc           Heap.cc                    MobilityLaw_FCC_0.cc      RemeshRule_3.cc             WriteProp.cc
+Decomp.cc                   InitCellDomains.cc         MobilityLaw_FCC_climb.cc  RemoteSegForces.cc          WriteRestart.cc
+DeltaPlasticStrain_BCC.cc   InitCellNatives.cc         NodeForce.cc              RemoveNode.cc               WriteVelocity.cc
+DeltaPlasticStrain.cc       InitCellNeighbors.cc       NodeVelocity.cc           ResetGlidePlanes.cc         WriteVisit.cc
+DeltaPlasticStrain_FCC.cc   InitHome.cc                OsmoticForce.cc           RSDecomp.cc
+deWitInteraction.cc         Initialize.cc              ParadisFinish.cc          SemiInfiniteSegSegForce.cc
+DisableUnneededParams.cc    InitRemoteDomains.cc       ParadisInit.cc            SortNativeNodes.cc
+DLBfreeOld.cc               InitSendDomains.cc         ParadisStep.cc            SortNodesForCollision.cc    Math.cc 
+MobilityLaw_FCC_Nolinear.cc MobilityLaw_Wei.cc )
+#      DisplayC.cc display.cc )
 
 Set (CTABLEGEN_SRCS 
-                 CTableGen.cpp 
-                 CorrectionTable.cpp       
-                 FindPreciseGlidePlane.cpp 
-                 FMSigma2.cpp              
-                 FMSupport.cpp             
-                 Matrix.cpp                
-                 Heap.cpp                  
-                 MemCheck.cpp              
-                 PickScrewGlidePlane.cpp   
-                 QueueOps.cpp              
-                 Util.cpp					
-                 Math.cpp					
-		         Grain.cpp)
+                 CTableGen.cc 
+                 CorrectionTable.cc       
+                 FindPreciseGlidePlane.cc 
+                 FMSigma2.cc              
+                 FMSupport.cc             
+                 Matrix.cc                
+                 Heap.cc                  
+                 MemCheck.cc              
+                 PickScrewGlidePlane.cc   
+                 QueueOps.cc              
+                 Util.cc					
+                 Math.cc					
+		         Grain.cc)
 
 if(GEOS_FOUND)
 INCLUDE_DIRECTORIES(../include ${MPI_INCLUDE_PATH} ${GEOS_INCLUDE_DIR} )

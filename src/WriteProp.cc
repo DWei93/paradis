@@ -164,7 +164,7 @@ void WriteProp(Home_t *home, int property)
 
 /*
  *          convert to density and write results to the file
- */
+cumulativeTime */
             param->delSegLength *= param->burgVolFactor;
         
             if (home->myDomain == 0) {

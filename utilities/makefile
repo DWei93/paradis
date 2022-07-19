@@ -42,44 +42,44 @@ BINDIR = ../bin
 PARADISGEN     = paradisgen
 PARADISGEN_BIN = $(BINDIR)/$(PARADISGEN)
 
-PARADISGEN_CPP_SRCS = ParadisGen.cpp   \
-               CreateConfig.cpp      \
-               Decomp.cpp            \
-               DLBfreeOld.cpp        \
-               FindPreciseGlidePlane.cpp  \
-               FMComm.cpp            \
-               FMSigma2.cpp          \
-               FMSupport.cpp         \
-               FreeInitArrays.cpp    \
-               GetNewNativeNode.cpp  \
-               Heap.cpp              \
-               InitCellDomains.cpp   \
-               InitCellNatives.cpp   \
-               InitCellNeighbors.cpp \
-               InitSendDomains.cpp   \
-               InitRemesh.cpp        \
-               InitRemoteDomains.cpp \
-               Matrix.cpp            \
-               MemCheck.cpp          \
-               Meminfo.cpp           \
-               Param.cpp             \
-               Parse.cpp             \
-               PickScrewGlidePlane.cpp \
-               QueueOps.cpp          \
-               RBDecomp.cpp          \
-               ReadRestart.cpp       \
-               ReadBinaryRestart.cpp \
-               RSDecomp.cpp          \
-               Timer.cpp             \
-               Util.cpp              \
-      		   Math.cpp	           \
-			   Grain.cpp
+PARADISGEN_CPP_SRCS = ParadisGen.cc   \
+               CreateConfig.cc      \
+               Decomp.cc            \
+               DLBfreeOld.cc        \
+               FindPreciseGlidePlane.cc  \
+               FMComm.cc            \
+               FMSigma2.cc          \
+               FMSupport.cc         \
+               FreeInitArrays.cc    \
+               GetNewNativeNode.cc  \
+               Heap.cc              \
+               InitCellDomains.cc   \
+               InitCellNatives.cc   \
+               InitCellNeighbors.cc \
+               InitSendDomains.cc   \
+               InitRemesh.cc        \
+               InitRemoteDomains.cc \
+               Matrix.cc            \
+               MemCheck.cc          \
+               Meminfo.cc           \
+               Param.cc             \
+               Parse.cc             \
+               PickScrewGlidePlane.cc \
+               QueueOps.cc          \
+               RBDecomp.cc          \
+               ReadRestart.cc       \
+               ReadBinaryRestart.cc \
+               RSDecomp.cc          \
+               Timer.cc             \
+               Util.cc              \
+      		   Math.cc	           \
+			   Grain.cc
 
-#PARADISGEN_CPP_SRCS = DisplayC.cpp   \
-                   display.cpp 
+#PARADISGEN_CPP_SRCS = DisplayC.cc   \
+                   display.cc 
 
 PARADISGEN_SRCS = $(PARADISGEN_C_SRCS) $(PARADISGEN_CPP_SRCS)
-PARADISGEN_OBJS = $(PARADISGEN_C_SRCS:.c=.o)  $(PARADISGEN_CPP_SRCS:.cpp=.o)
+PARADISGEN_OBJS = $(PARADISGEN_C_SRCS:.c=.o)  $(PARADISGEN_CPP_SRCS:.cc=.o)
 
 
 #
@@ -90,41 +90,41 @@ PARADISGEN_OBJS = $(PARADISGEN_C_SRCS:.c=.o)  $(PARADISGEN_CPP_SRCS:.cpp=.o)
 PARADISREPART     = paradisrepart
 PARADISREPART_BIN = $(BINDIR)/$(PARADISREPART)
 
-PARADISREPART_CPP_SRCS = ParadisRepart.cpp  \
-                    Decomp.cpp            \
-                    DLBfreeOld.cpp        \
-                    FindPreciseGlidePlane.cpp  \
-                    FMComm.cpp            \
-                    FMSigma2.cpp          \
-                    FMSupport.cpp         \
-                    FreeInitArrays.cpp    \
-                    Heap.cpp              \
-                    InitCellDomains.cpp   \
-                    InitCellNatives.cpp   \
-                    InitCellNeighbors.cpp \
-                    InitRemoteDomains.cpp \
-                    InitSendDomains.cpp   \
-                    Matrix.cpp            \
-                    MemCheck.cpp          \
-                    Param.cpp             \
-                    Parse.cpp             \
-                    PickScrewGlidePlane.cpp \
-                    QueueOps.cpp          \
-                    ReadRestart.cpp       \
-                    ReadBinaryRestart.cpp \
-                    RBDecomp.cpp          \
-                    RSDecomp.cpp          \
-                    Timer.cpp             \
-                    Util.cpp              \
-                    WriteRestart.cpp		\
-      		   		Math.cpp	           \
-					Grain.cpp
+PARADISREPART_CPP_SRCS = ParadisRepart.cc  \
+                    Decomp.cc            \
+                    DLBfreeOld.cc        \
+                    FindPreciseGlidePlane.cc  \
+                    FMComm.cc            \
+                    FMSigma2.cc          \
+                    FMSupport.cc         \
+                    FreeInitArrays.cc    \
+                    Heap.cc              \
+                    InitCellDomains.cc   \
+                    InitCellNatives.cc   \
+                    InitCellNeighbors.cc \
+                    InitRemoteDomains.cc \
+                    InitSendDomains.cc   \
+                    Matrix.cc            \
+                    MemCheck.cc          \
+                    Param.cc             \
+                    Parse.cc             \
+                    PickScrewGlidePlane.cc \
+                    QueueOps.cc          \
+                    ReadRestart.cc       \
+                    ReadBinaryRestart.cc \
+                    RBDecomp.cc          \
+                    RSDecomp.cc          \
+                    Timer.cc             \
+                    Util.cc              \
+                    WriteRestart.cc		\
+      		   		Math.cc	           \
+					Grain.cc
 
-#PARADISREPART_CPP_SRCS = DisplayC.cpp     \
-                      display.cpp 
+#PARADISREPART_CPP_SRCS = DisplayC.cc     \
+                      display.cc 
 
 PARADISREPART_SRCS = $(PARADISREPART_C_SRCS) $(PARADISREPART_CPP_SRCS)
-PARADISREPART_OBJS = $(PARADISREPART_C_SRCS:.c=.o)  $(PARADISREPART_CPP_SRCS:.cpp=.o)
+PARADISREPART_OBJS = $(PARADISREPART_C_SRCS:.c=.o)  $(PARADISREPART_CPP_SRCS:.cc=.o)
 
 
 #
@@ -135,41 +135,41 @@ PARADISREPART_OBJS = $(PARADISREPART_C_SRCS:.c=.o)  $(PARADISREPART_CPP_SRCS:.cp
 CALCDENSITY     = calcdensity
 CALCDENSITY_BIN = $(BINDIR)/$(CALCDENSITY)
 
-CALCDENSITY_CPP_SRCS = CalcDensity.cpp      \
-                    Decomp.cpp            \
-                    DLBfreeOld.cpp        \
-                    FindPreciseGlidePlane.cpp  \
-                    FMComm.cpp            \
-                    FMSigma2.cpp          \
-                    FMSupport.cpp         \
-                    FreeInitArrays.cpp    \
-                    Heap.cpp              \
-                    InitCellDomains.cpp   \
-                    InitCellNatives.cpp   \
-                    InitCellNeighbors.cpp \
-                    InitRemoteDomains.cpp \
-                    InitSendDomains.cpp   \
-                    Matrix.cpp            \
-                    MemCheck.cpp          \
-                    Param.cpp             \
-                    Parse.cpp             \
-                    PickScrewGlidePlane.cpp \
-                    QueueOps.cpp          \
-                    ReadRestart.cpp       \
-                    ReadBinaryRestart.cpp \
-                    RBDecomp.cpp          \
-                    RSDecomp.cpp          \
-                    Timer.cpp             \
-                    Util.cpp              \
-      		   		Math.cpp	           \
-					Grain.cpp
+CALCDENSITY_CPP_SRCS = CalcDensity.cc      \
+                    Decomp.cc            \
+                    DLBfreeOld.cc        \
+                    FindPreciseGlidePlane.cc  \
+                    FMComm.cc            \
+                    FMSigma2.cc          \
+                    FMSupport.cc         \
+                    FreeInitArrays.cc    \
+                    Heap.cc              \
+                    InitCellDomains.cc   \
+                    InitCellNatives.cc   \
+                    InitCellNeighbors.cc \
+                    InitRemoteDomains.cc \
+                    InitSendDomains.cc   \
+                    Matrix.cc            \
+                    MemCheck.cc          \
+                    Param.cc             \
+                    Parse.cc             \
+                    PickScrewGlidePlane.cc \
+                    QueueOps.cc          \
+                    ReadRestart.cc       \
+                    ReadBinaryRestart.cc \
+                    RBDecomp.cc          \
+                    RSDecomp.cc          \
+                    Timer.cc             \
+                    Util.cc              \
+      		   		Math.cc	           \
+					Grain.cc
              
 #
-#CALCDENSITY_CPP_SRCS = DisplayC.cpp     \
-                       display.cpp 
+#CALCDENSITY_CPP_SRCS = DisplayC.cc     \
+                       display.cc 
 
 CALCDENSITY_SRCS = $(CALCDENSITY_C_SRCS) $(CALCDENSITY_CPP_SRCS)
-CALCDENSITY_OBJS = $(CALCDENSITY_C_SRCS:.c=.o)  $(CALCDENSITY_CPP_SRCS:.cpp=.o)
+CALCDENSITY_OBJS = $(CALCDENSITY_C_SRCS:.c=.o)  $(CALCDENSITY_CPP_SRCS:.cc=.o)
 
 
 #
@@ -185,7 +185,7 @@ CALCDENSITY_OBJS = $(CALCDENSITY_C_SRCS:.c=.o)  $(CALCDENSITY_CPP_SRCS:.cpp=.o)
 
 CTABLEGEN          = ctablegen
 CTABLEGEN_BIN      = $(BINDIR)/$(CTABLEGEN)
-CTABLEGEN_MAIN_SRC = CTableGen.cpp
+CTABLEGEN_MAIN_SRC = CTableGen.cc
 
 
 #
@@ -197,18 +197,18 @@ CTABLEGEN_MAIN_SRC = CTableGen.cpp
 STRESSTABLEGEN     = stresstablegen
 STRESSTABLEGEN_BIN = $(BINDIR)/$(STRESSTABLEGEN)
 
-STRESSTABLEGEN_SRCS = StressTableGen.cpp \
-                      FindPreciseGlidePlane.cpp \
-                      Heap.cpp           \
-                      Matrix.cpp         \
-                      MemCheck.cpp       \
-                      PickScrewGlidePlane.cpp \
-                      QueueOps.cpp       \
-                      Util.cpp      		\
-      		   		  Math.cpp	           \
-					  Grain.cpp
+STRESSTABLEGEN_SRCS = StressTableGen.cc \
+                      FindPreciseGlidePlane.cc \
+                      Heap.cc           \
+                      Matrix.cc         \
+                      MemCheck.cc       \
+                      PickScrewGlidePlane.cc \
+                      QueueOps.cc       \
+                      Util.cc      		\
+      		   		  Math.cc	           \
+					  Grain.cc
 
-STRESSTABLEGEN_OBJS =  $(STRESSTABLEGEN_SRCS:.cpp=.o)
+STRESSTABLEGEN_OBJS =  $(STRESSTABLEGEN_SRCS:.cc=.o)
 
 
 #
@@ -220,40 +220,40 @@ STRESSTABLEGEN_OBJS =  $(STRESSTABLEGEN_SRCS:.cpp=.o)
 PARADISCONVERT     = paradisconvert
 PARADISCONVERT_BIN = $(BINDIR)/$(PARADISCONVERT)
 
-PARADISCONVERT_CPP_SRCS = ParadisConvert.cpp \
-                     Decomp.cpp            \
-                     DLBfreeOld.cpp        \
-                     FindPreciseGlidePlane.cpp  \
-                     FMComm.cpp            \
-                     FMSigma2.cpp          \
-                     FMSupport.cpp         \
-                     FreeInitArrays.cpp    \
-                     Heap.cpp              \
-                     InitCellDomains.cpp   \
-                     InitCellNatives.cpp   \
-                     InitCellNeighbors.cpp \
-                     InitRemoteDomains.cpp \
-					 InitSendDomains.cpp   \
-                     Matrix.cpp            \
-                     MemCheck.cpp          \
-                     Param.cpp             \
-                     Parse.cpp             \
-                     PickScrewGlidePlane.cpp \
-                     QueueOps.cpp          \
-                     ReadRestart.cpp       \
-                     ReadBinaryRestart.cpp \
-                     RBDecomp.cpp          \
-                     RSDecomp.cpp          \
-                     Timer.cpp             \
-                     Util.cpp         	\
-                     Math.cpp         	\
-					 Grain.cpp
+PARADISCONVERT_CPP_SRCS = ParadisConvert.cc \
+                     Decomp.cc            \
+                     DLBfreeOld.cc        \
+                     FindPreciseGlidePlane.cc  \
+                     FMComm.cc            \
+                     FMSigma2.cc          \
+                     FMSupport.cc         \
+                     FreeInitArrays.cc    \
+                     Heap.cc              \
+                     InitCellDomains.cc   \
+                     InitCellNatives.cc   \
+                     InitCellNeighbors.cc \
+                     InitRemoteDomains.cc \
+					 InitSendDomains.cc   \
+                     Matrix.cc            \
+                     MemCheck.cc          \
+                     Param.cc             \
+                     Parse.cc             \
+                     PickScrewGlidePlane.cc \
+                     QueueOps.cc          \
+                     ReadRestart.cc       \
+                     ReadBinaryRestart.cc \
+                     RBDecomp.cc          \
+                     RSDecomp.cc          \
+                     Timer.cc             \
+                     Util.cc         	\
+                     Math.cc         	\
+					 Grain.cc
 
-#PARADISCONVERT_CPP_SRCS = DisplayC.cpp     \
-                       display.cpp 
+#PARADISCONVERT_CPP_SRCS = DisplayC.cc     \
+                       display.cc 
 
 PARADISCONVERT_SRCS = $(PARADISCONVERT_C_SRCS) $(PARADISCONVERT_CPP_SRCS)
-PARADISCONVERT_OBJS = $(PARADISCONVERT_C_SRCS:.c=.o) $(PARADISCONVERT_CPP_SRCS:.cpp=.o)
+PARADISCONVERT_OBJS = $(PARADISCONVERT_C_SRCS:.c=.o) $(PARADISCONVERT_CPP_SRCS:.cc=.o)
 
 
 ###########################################################################
@@ -266,9 +266,11 @@ PARADISCONVERT_OBJS = $(PARADISCONVERT_C_SRCS:.c=.o) $(PARADISCONVERT_CPP_SRCS:.
 .c.o:		makefile ../makefile.sys ../makefile.setup
 		$(CC_SERIAL) $(OPT) $(CCFLAG_SERIAL) $(INCS_SERIAL) -c $<
 
-.C.o:		makefile ../makefile.sys ../makefile.setup
+.cpp.o:		makefile ../makefile.sys ../makefile.setup
 		$(CPP_SERIAL) $(OPT) $(CPPFLAG_SERIAL) $(INCS_SERIAL) -c $<
 
+.cc.o:		makefile ../makefile.sys ../makefile.setup
+		$(CPP_SERIAL) $(OPT) $(CPPFLAG_SERIAL) $(INCS_SERIAL) -c $<
 
 ###########################################################################
 #
