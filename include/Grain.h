@@ -7,7 +7,7 @@
 #include "Util.h" 
 #include "Tag.h" 
 #include "ParadisProto.h"
-
+#include "DebugFunctions.h"
 #include <vector>
 
 typedef struct {
@@ -47,15 +47,16 @@ typedef struct {
 /*	define some node types	*/
 #define INGRAIN_NODE	    0x0001	
 #define INTERSECT_NODE	    0x0002	
-#define TB_NODE		        0x0004	
+#define GB_NODE		        0x0004	
 #define	JUNCTION_NODE	    0x0008
+#define	UNKNOWN_NODE	    0x0010
 
 #define INBOX   0x0000
 #define EXCEEDX 0x0001
 #define EXCEEDY 0x0002
 #define EXCEEDZ 0x0004
 
-#define NUM_BURGS_IN_FCC        21
+#define NUM_BURGS_IN_FCC        22
 #define NUM_PLANES_IN_FCC       13
 #define NUM_KEY_LINES_IN_FCC    6
 
@@ -68,10 +69,14 @@ typedef struct {
 #define SHOCKLEY_BURG_MAG_FCC   0.5773502691896258
 #define JUNCTION1_BURG_MAG_FCC  1.414213562373095
 #define JUNCTION2_BURG_MAG_FCC  1.732050807568877
+#define FRANK_BURG_MAG_FCC  0.816496580927726
 
 #define EDGE_BURG       0x0001
 #define PARTIAL_BURG    0x0002
 #define JUNCTION_BURG   0x0004
+#define FRANK_PARTIAL   0x0008
+
+#define CLS_TEST    1
 
 typedef	enum{
     ZERO_BURG,
@@ -79,14 +84,55 @@ typedef	enum{
     SHOCKLEY_BURG,
     JUNCTION1_BURG,
     JUNCTION2_BURG, 
+    FRANK_BURG,
     UNKNOWN_BURG 
 } BurgTypeFCC_t;
+
+#define N_SS 24
+#define N_SG 12
+#define N_LD 21
+const int slip_sys[N_SS][3]={
+{4 ,2, 0},
+{2 ,2, 0},
+{0 ,1, 0},
+{2 ,1, 0},
+{0 ,0, 0},
+{4 ,0, 0},
+{1 ,2, 0},
+{5 ,1, 0},
+{3 ,0, 0},
+
+{1 ,3, -1},
+{5 ,3, -1},
+{3 ,3, -1},
+
+{4 ,2, 1},
+{2 ,2, 1},
+{0 ,1, 1},
+{2 ,1, 1},
+{0 ,0, 1},
+{4 ,0, 1},
+{1 ,2, 1},
+{5 ,1, 1},
+{3 ,0, 1},
+
+{17,3,-1},
+{12,3,-1},
+{7 ,3,-1}
+};
 
 /*
  *     Define a structure to hold the burgers vectors and associated
  *     glide planes for material for which we dynamically calculate
  *     those values.
  */
+typedef struct {
+    int burgID; 
+    int keyLineID;
+    std::vector<std::vector<Dislocation_t> > disArray;
+    std::vector<std::vector<real8> > burgList;
+} Decom_t;
+
 struct _burgInfo {
         int     numBurgVectors;           /* Total number of burgers vectors */
                                           /* in <burgList> below             */
@@ -122,6 +168,7 @@ struct _burgInfo {
         
         int     **planeOnBurgID;
 
+        std::vector<Decom_t>  dcps; //only for GB
 };
 
 typedef struct {
@@ -134,10 +181,27 @@ typedef struct {
     real8       p[3];
 } GB_t;
 
+typedef struct {
+	real8 normal[3];
+	real8 point[3];
+} Plane_t; 
+
+struct _slipSys{
+     real8  burg[3];
+     real8  normal[3];
+     real8  schmid;
+     int    inGrain;
+     int    burgID;
+     int    planeID;
+}; 
+
 struct _grain{
 	real8	    cx, cy, cz;
 	real8	    orientation[3][3];
 	real8	    orientationInv[3][3];
+    real8       maxSchmid;
+    real8       thick;
+    real8       lenAmpl;
     int         grainID;
 	int		    type;	/*0: folded grain*/
 					    /*1: ordinary grain*/
@@ -147,21 +211,9 @@ struct _grain{
     GB_t        **GB;
     real8       *sign;
 
+    std::vector<SlipSys_t>      slipSys;
+    std::vector<Plane_t>        surface;
 };
-
-typedef struct {
-	real8 normal[3];
-	real8 point[3];
-} Plane_t; 
-
-typedef struct {
-     real8  burg[3];
-     real8  normal[3];
-     real8  schmidt;
-     int    inGrain;
-     int    burgID;
-     int    planeID;
-} SlipSys_t; 
 
 
 typedef struct {
@@ -199,12 +251,26 @@ void FormatVector(real8 vec[3], const char *msg);
 void InitOrientation(real8 MatrixOrientation[3][3], real8 TwinOrientation[3][3]);
 void FreeGrainStructure(Grain_t *grain);
 void InitGrain(Home_t *home, Param_t *param);
-void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB);
+void DumpPlanes(Home_t *home);
+void NodeLocation(Home_t *home, real8 pos[3], int& inGrain, int& onGB, real8 err=1.0E-4);
+inline void NodeLocation(Home_t *home, real8 x, real8 y, real8 z, int& inGrain, int& onGB, real8 err=1.0E-4){
+    real8 pos[3];
+    pos[0] = x;
+    pos[1] = y;
+    pos[2] = z;
+    return NodeLocation(home, pos, inGrain, onGB,err);
+}
 Node_t *GetinDataNodeFromTag(InData_t *inData, Tag_t tag);
 BurgInfo_t* GetBurgData(Home_t *home, Node_t *node1, Node_t *node2);
 BurgInfo_t* GetBurgData(Home_t *home, int inGrain, int onGB);
 int BurgID_FCC(BurgInfo_t *burgData, real8 burg[3]);
+int KeyLineID_FCC(BurgInfo_t *burgData, real8 line[3]);
 int	BurgType_FCC(real8 burg[3]);
+inline int	BurgType_FCC(real8 bx, real8 by, real8 bz)
+{
+    real8 burg[3] = {bx,by,bz};
+    return BurgType_FCC(burg);
+}
 int PlaneID_FCC(BurgInfo_t *burgData, real8 plane[3]);
 int PlaneType_FCC(BurgInfo_t *burgData, int planeID);
 int GetBurgID_FCC(Home_t *home, Node_t *node, Node_t *nbr);
@@ -214,23 +280,27 @@ int HasShortSeg(Home_t *home, Node_t *node, real8 shortSegLenSq);
 void AssignGrain (Home_t *home, Node_t *node, int inGrain, int onGB);
 void AssignConstraint(Home_t *home, Node_t *node, int constraint) ;
 int GetGBIndexOfGrain(Grain_t *grain, int onGB);
-bool GetPublicGB(Grain_t *grain1, Grain_t *grain2, GB_t **GB);
+bool GetPublicGB(Home_t *home, Grain_t *grain1, Grain_t *grain2, GB_t **GB, real8 *pos);
 void AddOpGB (Home_t *home, OpType_t type, int dom1, int idx1, int inGrain, int onGB);
 int NodeOnGB(Home_t *home, Node_t *node);
+void VectorLabToCrystal(Home_t *home, int inGrain, int onGB, real8 lab[3], real8 *cryst);
 void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2, 
                         real8 lab[3], real8 *cryst);
+void VectorCrystalToLab(Home_t *home, int inGrain, int onGB, real8 cryst[3], real8 *lab);
 void VectorCrystalToLab(Home_t *home, Node_t *node1, Node_t *node2, 
                         real8 cryst[3], real8 *lab);
 real8 ClosedGB(Home_t *home, real8 *pos, GB_t **GB);
-bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 *newPos);
+real8 ClosedGB(Home_t *home, real8 px, real8 py, real8 pz, GB_t **GB);
+bool NewPosToGB(Home_t *home, Node_t *node, int inGrain, int onGB, real8 pos[3], real8 *newPos, real8 eps=-1.0);
 void PullBack(Home_t *home, Node_t *node);
 void PenetrationRule(Home_t *home, Node_t *node);
 void HandleGrainBoundary(Home_t *home);
+bool TDSegment(Home_t *home, Node_t *node1,  Node_t *node2);
 
-real8 FGlidePerLength(Home_t *home,Node_t *node,Plane_t *GBPlane);
 real8 Distance(Home_t *home,real8 *p1,real8 *p2);
 int NodeOnLine(real8 *p, Line_t *line);
 void PrintTag(Node_t *node);
+void PrintTag(Home_t *home, Node_t *node);
 void FreePenStr(Pene_t *pene);
 int  GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb);
 
@@ -246,13 +316,16 @@ int ClosestPointOfPointLine(real8 *p, Line_t *line, real8 *outP);
 int IntersectionOfPlanePlane(Plane_t *plane1, Plane_t *plane2, Line_t *line);
 void GetArmGrain(Home_t *home, Node_t *node1, Node_t *node2, int &inGrain, int &onGB);
 
+
 /*
  * 	others
  */
 
 int	IsZeroVector(real8 *vec);
+inline bool IsOnGB(Node_t *node){return(node->onGB > -1);}
 
 int  Coor2EleNum(Home_t *home,real8 position[3]);
+int Coor2EleNum(Home_t *home, real8 position[3], int &nx, int &ny, int &nz);
 void AdjustSurfaceNode(Home_t *home);
 int SameTag(Tag_t *tag1, Tag_t *tag2);
 
@@ -263,11 +336,11 @@ int AdjustNodeDirection(Home_t *home, Node_t *node, real8 *vec);
 int ExceedBox(Param_t *param, real8 *pos);
 int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]);
 void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f2[3]);
-bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, real8* dis);
-bool IsOnGB(Node_t *node);
+bool BeforeMergeNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *pos, real8* dis, int &type);
 void GenerateFCCBurgInfo(BurgInfo_t *burgData, real8 rotMatrix[3][3], int grainID = -1);
 void GenerateGBBurgInfo(Home_t *home, GB_t *GB);
 void FreeBurgInfoStr(BurgInfo_t *burgData);
+bool comByBarrier(std::vector<Dislocation_t> p, std::vector<Dislocation_t> q);
 int GeometricCriterion(BurgInfo_t *bd, real8 *burg, real8 *lDir,
                        real8 *plane, int flag, 
                        std::vector< std::vector<double> >&       burgList, 
@@ -285,5 +358,25 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
                          real8 dx, real8 dy, real8 dz, real8 bx, real8 by, real8 bz,
                          real8 f1[3], real8 f2[3]); 
 bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8 *pos);
+bool InCuboid(Param_t *param, real8 pos[3], real8 eps);
 int GeosTest();
+void NodeImageForce(Home_t *home, Node_t *node, real8 *f);
+bool PartialDislocations(Home_t *home, Node_t *node1, Node_t *node2, real8 *p1, real8 *p2);
+bool PartialDislocations(BurgInfo_t *bd, real8 *burg, real8 *plane, real8 *p1, real8 *p2);
+
+void CentorPos(Param_t *param, real8 *p1, real8 *p2, real8 *p);
+void AdjustPenetratedNode(Home_t *home, Node_t *node);
+void    GetGBNormal(Home_t *home, int oldInGrain, int currInGrain, real8  *refDir, real8 *pos);
+real8 GlideShearStress(Home_t *home, Node_t *node);
+real8 GlideShearStress(Home_t *home, Node_t *node, real8 *n);
+bool IntersectionOfRayBox(Param_t *param, real8 *dir, real8 *p, real8 *interPos, int &constraint);
+void PlaneBoxIntersections(real8 *n, real8 *p, real8 *box, std::vector<std::vector<real8> > &vertices);
+void PlaneBoxIntersections(Param_t *param, real8 *n, real8 *p, std::vector<std::vector<real8> > &vertices, std::vector<int> &types);
+void GlidePlaneOfDislocation(Home_t *home, real8 *n, real8 *p, std::vector<real8> &vertices, std::vector<int> &f_vert,  std::vector<int> &types);
+void GlidePlanesInNeighborGrain(Home_t *home, real8 *n, real8 *p, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<int> &types);
+void DrawGlidePlanes(FILE *fp, char *zoneName, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<int> &info);
+void DrawGlidePlanes(FILE *fp, char *zoneName, std::vector<real8> &vertices, std::vector<int> &f_vert, std::vector<real8> &info);
+Decom_t *GetDecompositionResults(BurgInfo_t *gbd, int burgID, int keyLineID);
+real8 LengthAmplification(Home_t *home, int inGrain, int onGB);
+void DecomposeSegmentInRubik(Home_t *home, int nx, int ny, int nz, real8 node1Pos[3], real8 node2Pos[3], real8 length[27], int eleID[27]);
 #endif

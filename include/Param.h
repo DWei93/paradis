@@ -7,6 +7,7 @@
 #ifndef _PARAM_H
 #define _PARAM_H
 
+#include <time.h>
 #include "Parse.h"
 #include "Home.h"
 #include "Mobility.h"
@@ -202,7 +203,9 @@ struct _param {
         int   indxErate;     /* to be compatible with micro3d */
         real8 edotdir[3];    /* Uniaxial loading direction accompanying */
                              /* eRate                                   */
+        real8 edotPolar[2];  /*polar angle and azimuthal angle of loading axis, units in degree*/
         real8 loadDir[6];    /* Loading factors of six conponents */
+        real8 loadTensor[3][3];
         real8 strRate;       /* Stress rate. Used when loadType == 6 */ 
         real8 plaRateCtr;    /* Plastic rate for controlling loading */
 
@@ -211,7 +214,10 @@ struct _param {
         real8 dCyclicStrain; /* Incremental strain under cyclic load */
         int   numLoadCycle;  /* Number of cyclic cycles */
         real8 eAmp;          /* Strain amplitude used with cyclic loading */
-
+        int   stainCycle;    /* current loading cycle */
+        real8 acumStrain;    /* accumulated strain */
+        real8 sgnLoad;       /* sign of load */
+        real8   maxCycle;      /* Maximum number of cyclic cycles */
 /*
  *      Values for specifying axes for a user-defined laboratory frame
  */
@@ -260,8 +266,8 @@ struct _param {
 
         real8 YoungsModulus;
 		
-	real8  elasticConstantMatrix[6][6];
-	real8  elasticConstantMatrixInv[6][6];
+		real8  elasticConstantMatrix[6][6];
+		real8  elasticConstantMatrixInv[6][6];
 
         real8 rc;     /* core radius in elastic interaction calculation */ 
 
@@ -349,11 +355,11 @@ struct _param {
         int   savedensityspec[3];
 
         int   tecplot, tecplotfreq, tecplotcounter; 
+        real8 tecplotdstrain, tecplotstrain;
         int   tecmesh, tecmeshfreq, tecmeshcounter;
         real8 tecplotdt, tecplottime;
+        real8 tecmeshdstrain, tecmeshstrain;
 		
-		
-
         int   velfile, velfilefreq, velfilecounter;
         real8 velfiledt, velfiletime;
 
@@ -366,7 +372,6 @@ struct _param {
         real8 writeVisitDT, writeVisitTime;
 
         char  winDefaultsFile[MAX_STRING_LEN];
-
 
 
 /*
@@ -399,6 +404,7 @@ struct _param {
                                      /* depending on the type of mobility */
                                      /* being used.                       */
         real8 disloDensity;
+        real8 disloDensity_TB;
 
         real8 delSegLength;  /* accumulated length of deleted segments    */
                              /* since most recent write to result_density */
@@ -416,7 +422,7 @@ struct _param {
         real8 delpStrain[6],delSig[6],totpStn[6];
         real8 delpTwinStrain[6], totTwinpStn[6];
         real8 delpSpin[6],totpSpn[6];
-
+        real8 mergeDpSt[6], mergeDpSp[3], mergeDtSt[6];
 /*
  *      Added for strain decomposition and density flux decomp.
  */
@@ -483,33 +489,61 @@ struct _param {
  *	Define the variables about grain
  */
         int	    polycrystal;
+		int 	stressFieldPenetrable;
         int	    nGrain;
         real8	twinRatio;
         real8	peneTB;
         real8   TBNormal[3], TBNormalCryst[3];
         real8   rotateNormal[3][3];
 	    real8	matrixOrientation[3][3];
-	    real8   GBStrength;
+	    real8   gbStrength, tbStrength[2], EsciagParams[3];
 	    real8	fricStress;
+        real8   a0[4];
+        real8   grainSize;
+        char    gradientStructure[MAX_STRING_LEN]; 
+        bool    multilayer;
+        real8   *layerPosz;
+        real8   strain;
+        bool    accElast;
+        real8   accPst;
 /*
  *		
  */
         int	    preDecreaseDT;
         int     limitDisplacement;
-        real8	preRann;
+        real8	preRann, minDT;
         int	    markPreDTDisable;
 	    int	    finish;
 	    real8	maxStn;
 	    real8	maxPst;
         real8   maxStr;
+        real8   maxDisDen;
+
         real8   meshSizeX;
         real8   meshSizeY;
         real8   meshSizeZ;
         int     meshNumX, meshNumY, meshNumZ;
         int     randomInternalForce;
-        real8   fMeshSizeX, fMeshSizeY, fNumX, fNumY;
+        real8  fMeshSizeX, fMeshSizeY, fNumX, fNumY;
         real8   position, correLength, targetStress, criticalEff, loadTime;
         int     disRule;
+
+        real8       maxSchmid;
+        clock_t     timestart;
+
+		real8		scale;
+#ifdef JOG_PINNING
+        real8   jogCoeff;
+#endif
+#ifdef VELOCITY_STATISTICS
+        real8       delAccumulation[8], accumulation[8], disLength[3], cumulativeTime;
+        real8       aveLength[3]; // units: maxSegLen
+        int         nVelBins, nDissBins;
+        real8       velMax, velMin, dissMax, dissMin, baseVel, baseDiss, (*velTable)[4], (*dissTable)[4];
+#endif
+        real8       wallTime; // units hour 
+        real8       dtGBCrossSlip;
+        real8       timeNextGBCrossSlip;
 
 #ifdef _FEM
 /*

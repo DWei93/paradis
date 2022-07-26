@@ -30,7 +30,7 @@ BINDIR = ../bin
 #	Define the executable for the application
 #
 
-PARADIS = paradis
+PARADIS    = paradis
 PARADIS_BIN = $(BINDIR)/$(PARADIS)
 
 #

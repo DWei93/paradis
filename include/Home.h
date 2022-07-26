@@ -89,6 +89,9 @@
 
 #ifdef __cplusplus
 extern "C" void ParadisMemCheck(void);
+#ifdef DEBUG
+int ParadisMemCheck(Home_t *home);
+#endif
 extern "C" void ParadisFree(char *fileName, int lineNum, void *ptr);
 extern "C" void *ParadisMalloc(char *fileName, int lineNum, size_t size);
 extern "C" void *ParadisCalloc(char *fileName, int lineNum, size_t numElem,
@@ -97,6 +100,9 @@ extern "C" void *ParadisRealloc(char *fileName, int lineNum, void *ptr,
                     size_t size);
 #else
 void ParadisMemCheck(void);
+#ifdef DEBUG
+int ParadisMemCheck(Home_t *home);
+#endif
 void ParadisFree(char *fileName, int lineNum, void *ptr);
 void *ParadisMalloc(char *fileName, int lineNum, size_t size);
 void *ParadisCalloc(char *fileName, int lineNum, size_t numElem, size_t size);
@@ -133,8 +139,12 @@ typedef struct {
 } Segment_t;
 
 
-
-
+#define NUM_COMPONENT_OF_DENSITY 10
+#ifndef DEBUG_PLASTIC_STRAIN
+#define NUM_COMPONENT_OF_PLASTIC_STRAIN 6
+#else
+#define NUM_COMPONENT_OF_PLASTIC_STRAIN 12
+#endif 
 
 struct _home {
 
@@ -410,8 +420,13 @@ struct _home {
 		int			nGrains;
 
         GB_t        **GBKeys;
+        real8       *tbPosz;
+        real8       *layerPosz;
         int         nGBs;
-		
+
+#ifdef DEBUG        
+        int         flag;
+#endif		
         real8	**pstnEle;
         real8	**disDenEle;
         real8   *randomForceTable;

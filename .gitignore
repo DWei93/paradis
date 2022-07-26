@@ -15,3 +15,5 @@ utilities/*.cpp
 utilities/*.C
 *.phy
 *.out
+*.dat
+.vscode

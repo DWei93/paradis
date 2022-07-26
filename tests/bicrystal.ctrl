@@ -28,11 +28,11 @@ numYcells = 4
 numZcells = 4
 
 #
-# Mesh size for tecmesh
+# Mesh numbers for tecmesh
 #
-meshSizeX = 100
-meshSizeY = 100
-meshSizeZ = 100
+meshNumX = 41
+meshNumY = 41
+meshNumZ = 82
 
 #  Dynamic load balancing
 #
@@ -40,46 +40,51 @@ decompType = 2
 DLBfreq = 3
 #
 #  Discretization and topological change controls
-#
-dirname = "res.bicrystal"
-remeshRule = 2
-enforceGlidePlanes =  1 
+elasticinteraction = 1
+#a0 = [ 1.68098 1.12421 1.01163 0.187646 ]
 enableCrossSlip =   1
+rTol = 8.3567161
+rc = 33.5268644
+Ecore = 22.2114043E9
+grainSize = 1956
+loadType = 1
+loadDir = [ 0.0 0.0 1.0 -1.0 0.0 0.0 ]
+#maxstep =  40000000
+maxstep =  2000
+remeshRule = 2
+enforceGlidePlanes =  1
 splitMultiNodeFreq =   1  
 #
 #  Simulation time and timestepping controls
 #  
-maxstep =  4000
-#maxstep =  4 
-maxStn = 1.0E-2
+maxStn = 2.0E-2
 maxPst = 1.0E-2
-timestepIntegrator =   "trapezoid"
-nextDT = 1.0e-13;
-rTol = 2.0
-rc =  10
+timestepIntegrator =   "forward-euler"
+#timestepIntegrator =   "trapezoid"
+nextDT = 1.0e-15
+wallTime = 24000
 #
 #  Fast Multipole Method controls
 #  
 fmEnabled =   1  
 fmMPOrder =   2  
 fmTaylorOrder =   5  
-fmCorrectionTbl =   "../input/fm-ctab.Cu.m2.t5.dat"
+fmCorrectionTbl =   "fm-ctab.Cu.m2.t5.dat"
 #
 #  Loading conditions
 #  
-loadType = 1
-indxErate = 3
-eRate =   -5000.000
-edotdir = [
-  0.0
-  0.0
-  1.0
-  ] 
+eRate = -5000
+#eRate =  0.0E0
+strRate = -4.0E16
+#strRate = 0.0
+#plaRateCtr = 2.0E4
+
+edotPolar = [ 0.0 0.0 ]
 
 appliedStress = [
 	0.0e0
 	0.0e0
-	-2.0e8
+	-3.0e8
 	0.0e0
 	0.0e0
 	0.0e0
@@ -88,24 +93,26 @@ appliedStress = [
 #
 #  Material and mobility parameters
 #  
-mobilityLaw =   "FCC_0"  
+dirname = "res.bicrytal"
+#mobilityLaw =   "FCC_nl"
+mobilityLaw =   "FCC_nl"
+shearModulus = 48.0E9
 #shearModulus =   54.6e9  # Voight Average
-shearModulus =  46.554e9  # in jin paper
-limitDisplacement = 0
-GBStrength = 5.0e8
-#GBStrength = 0.0e0
+#shearModulus =  46.554e9  # in jin paper
+gbStrength = -1
+tbStrength = [ 100.0E6 500.0E6 ]
+EsciagParams = [ 100.0E6 0.15 0.15 ]
+
 burgMag =   2.55600e-10 
 pois = 3.240000e-01
-fricStress = 0.0e0
 
 #fricStress = 3.46e7
 #  mobility values may be a little low for FCC
-MobScrew =   1.000000e+04
-MobEdge =    1.000000e+04  
-MobTwinning = 5.000000e+04
+MobScrew =   6.4102600e+04
+MobEdge =    6.4102600e+04  
+MobTwinning = 6.4102600e+04
 
-sfEnergy = 1.15E7   #Jb^-1
-
+sfEnergy = 29.498E-3    # J.m^-1
 # Radom Interal stree field
 randomInternalForce = 0
 
@@ -114,14 +121,18 @@ randomInternalForce = 0
 #  
 #
 tecplot = 1
-tecplotfreq = 100
+#tecplotdstrain = 0.002E-2 # 500 dump files for strain = 1%
+tecplotfreq = 200
 saveprop = 1
-savepropfreq = 100
+savepropfreq = 20
 tecmesh = 1
-tecmeshfreq = 500
+tecmeshdstrain = 0.01E-2
+#tecmeshfreq = 40000
+savecn = 1
+savecnfreq = 10000
+savetimers = 0
+savetimersfreq = 10
 velfile = 0
 velfilefreq = 1000
-savecn = 1
-savecnfreq = 5000
-savetimers = 0
-savetimersfreq = 1000
+minDT = 26.208E-13
+#maxDT = 5.000E-13

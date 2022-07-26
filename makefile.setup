@@ -58,6 +58,7 @@
 #      gcc             Generic Linux system build using gnu compilers
 #
 
+#SYS = linux.opteron
 SYS = gcc
 
 #
@@ -90,7 +91,7 @@ XLIB_MODE = OFF
 # OPT = -O1
 # OPT = -O2
 OPT = -O3
-# OPT = -O3
+# OPT = -O3 -g
 
 #
 #    Set the HDF_MODE to ON to enable compilation with HDF5 support
@@ -105,8 +106,16 @@ OPT = -O3
 #
 #    WARNING: This is still under development and not fully supported!
 #
- OPENMP_MODE = ON
+#DEFS += -DIMAGE_FORCE
+#OPENMP_MODE = ON
+#DEFS += -DVELOCITY_STATISTICS
+#DEFS += -DDEBUG_MEM
+#DEFS += -DCAC_STRESS_FIELD
+DEFS += -DSIMLPLE_REACTION_ON_GB
+DEFS += -std=c++11
 
+#DEFS += -DGSIZE_EFFECT
+#DEFS += -DJOG_PINNING
 #######################################################################
 #
 #    Specify some miscellaneous definitions that may be used
@@ -114,6 +123,7 @@ OPT = -O3
 #
 #######################################################################
 
+#DEFS += -DVELOCITY_STATISTICS
 #
 #    FULL_N2_FORCES enables code to explicitly calculate direct
 #    segment-to-segment forces for every pair of dislocation
@@ -289,3 +299,4 @@ INCS_SERIAL     = $(INCS_SERIAL.$(SYS)) $(XLIB_INCS) $(HDF_INCS) $(GEOS_ON_INCS)
 F90             = $(F90.$(SYS))
 F90_LIB         = $(F90_LIB.$(SYS))
 F90_OPTS        = $(F90_OPTS.$(SYS))
+

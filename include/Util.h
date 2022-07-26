@@ -84,7 +84,9 @@ void   MarkNodeForceObsolete(Home_t *home, Node_t *node);
 void   MarkNodeNoMeshCoarsen(Home_t *home, Node_t *node);
 void   MarkNodeNoCollisions(Home_t *home, Node_t *node);
 real8 NodeDistance(Home_t *home, Node_t *node1, Node_t *node2);
+real8 NodeLengthXMag(Home_t *home, Node_t *node);
 void   PrintNode(Node_t *node);
+void   PrintNode(Home_t *home, Node_t *node);
 void PrintNbr(Home_t *home, Node_t *node);
 void   ReallocNodeArms(Node_t *node, int n);
 void   RemoveNode(Home_t *home, Node_t *node, int Log);
@@ -122,6 +124,7 @@ int    ChangeConnection(Home_t *home, Node_t *node1, Tag_t *tag2,
           Tag_t *tag3, int Log);
 void   CompressArmLists(Node_t *node);
 int    GetArmID(Home_t *home, Node_t *node1, Node_t *node2);
+int    GetArmID (Node_t *node1, Node_t *node2);
 void   GetBurgersVectorNormal(Home_t *home, Node_t *node1, Node_t *node2,
           real8 *bx, real8 *by, real8 *bz,
           real8 *nx, real8 *ny, real8 *nz);
@@ -189,8 +192,14 @@ void   testdeWitStress2();
 void   Uniq(int*, int*);
 void GetGlideConstraintList(Home_t *home, Node_t *node,
                             int *numGlideConstraints,
-                            real8 (*glideConstraints)[3], bool GBconstrict = 1);
-void ApplyConstraintsToVelocity(int numGlideConstraints,
+                            real8 (*glideConstraints)[3], 
+                            bool &zeroLenJunc,
+                            bool GBconstrict = 1, 
+                            real8 negPlaneX = 0.0,
+                            real8 negPlaneY = 0.0,
+                            real8 negPlaneZ = 0.0, 
+                            int   ignoreArm = -1);
+void ApplyConstraintsToVelocity(int &numGlideConstraints,
                                 real8 (*glideConstraints)[3],
                                 real8 velocity[3]);
 
@@ -201,5 +210,15 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
                      double f10, double fx10, double fy10, double fxy10,
                      double f11, double fx11, double fy11, double fxy11,
                      double x, double y);
+
+bool DifferentGlidePlane(Node_t *node);
+real8 NodeLength(Home_t *home, Node_t *node);
+
+void NodalDeltaPlasticStrain(Home_t *home, Node_t *node, real8 *dpst, real8 *dpsp);
+real8 NodalDeltaPlasticStrain(Home_t *home, Node_t *node);
+void SegDeltaPlasticStrain(Home_t *home, Node_t *node1, Node_t *node2, real8 *dpst, real8 *dpsp);
+real8 SegDeltaPlasticStrain(Home_t *home, Node_t *node1, Node_t *node2);
+/* sumarize plastic stain and plastic spin before merge operation */
+void DeltaPlasticStrainOfTwoNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *dpst, real8 *dpsp);
 
 #endif

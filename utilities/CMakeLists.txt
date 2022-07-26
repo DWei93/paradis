@@ -1,138 +1,154 @@
 Set ( PARADISGEN_SRCS 
-               ParadisGen.C   
-               CreateConfig.C      
-               InitRemesh.C
-               ../src/Decomp.C            
-               ../src/DLBfreeOld.C        
-               ../src/FindPreciseGlidePlane.C  
-               ../src/FMComm.C           
-               ../src/FMSigma2.C          
-               ../src/FMSupport.C         
-               ../src/FreeInitArrays.C    
-               ../src/GetNewNativeNode.C  
-               ../src/Heap.C              
-               ../src/InitCellDomains.C   
-               ../src/InitCellNatives.C   
-               ../src/InitCellNeighbors.C 
-               ../src/InitSendDomains.C   
-               ../src/InitRemoteDomains.C 
-               ../src/Matrix.C            
-               ../src/MemCheck.C          
-               ../src/Meminfo.C         
-               ../src/Param.C             
-               ../src/Parse.C             
-               ../src/PickScrewGlidePlane.C 
-               ../src/QueueOps.C          
-               ../src/RBDecomp.C          
-               ../src/ReadRestart.C       
-               ../src/ReadBinaryRestart.C 
-               ../src/RSDecomp.C          
-               ../src/Timer.C             
-               ../src/Util.C              
-               ../src/Math.C              
-               ../src/Grain.C )
+               ParadisGen.cpp   
+               CreateConfig.cpp      
+               InitRemesh.cpp
+               ../src/Decomp.cpp            
+               ../src/DLBfreeOld.cpp        
+               ../src/FindPreciseGlidePlane.cpp  
+               ../src/FMComm.cpp           
+               ../src/FMSigma2.cpp          
+               ../src/FMSupport.cpp         
+               ../src/FreeInitArrays.cpp    
+               ../src/GetNewNativeNode.cpp  
+               ../src/Heap.cpp              
+               ../src/InitCellDomains.cpp   
+               ../src/InitCellNatives.cpp   
+               ../src/InitCellNeighbors.cpp 
+               ../src/InitSendDomains.cpp   
+               ../src/InitRemoteDomains.cpp 
+               ../src/Matrix.cpp            
+               ../src/MemCheck.cpp          
+               ../src/Meminfo.cpp         
+               ../src/Param.cpp             
+               ../src/Parse.cpp             
+               ../src/PickScrewGlidePlane.cpp 
+               ../src/QueueOps.cpp          
+               ../src/RBDecomp.cpp          
+               ../src/ReadRestart.cpp       
+               ../src/ReadBinaryRestart.cpp 
+               ../src/RSDecomp.cpp          
+               ../src/Timer.cpp             
+               ../src/Util.cpp              
+               ../src/Math.cpp              
+               ../src/Grain.cpp )
 
 Set ( PARADISREPART_SRCS
-                    ParadisRepart.C  
-                    ../src/Decomp.C            
-                    ../src/DLBfreeOld.C        
-                    ../src/FindPreciseGlidePlane.C  
-                    ../src/FMComm.C            
-                    ../src/FMSigma2.C          
-                    ../src/FMSupport.C         
-                    ../src/FreeInitArrays.C    
-                    ../src/Heap.C              
-                    ../src/InitCellDomains.C   
-                    ../src/InitCellNatives.C   
-                    ../src/InitCellNeighbors.C 
-                    ../src/InitRemoteDomains.C 
-                    ../src/InitSendDomains.C   
-                    ../src/Matrix.C            
-                    ../src/MemCheck.C          
-                    ../src/Param.C             
-                    ../src/Parse.C             
-                    ../src/PickScrewGlidePlane.C 
-                    ../src/QueueOps.C          
-                    ../src/ReadRestart.C       
-                    ../src/ReadBinaryRestart.C 
-                    ../src/RBDecomp.C          
-                    ../src/RSDecomp.C          
-                    ../src/Timer.C             
-                    ../src/Util.C              
-                    ../src/Math.C              
-                    ../src/WriteRestart.C		
-					../src/Grain.C )
+                    ParadisRepart.cpp  
+                    ../src/Decomp.cpp            
+                    ../src/DLBfreeOld.cpp        
+                    ../src/FindPreciseGlidePlane.cpp  
+                    ../src/FMComm.cpp            
+                    ../src/FMSigma2.cpp          
+                    ../src/FMSupport.cpp         
+                    ../src/FreeInitArrays.cpp    
+                    ../src/Heap.cpp              
+                    ../src/InitCellDomains.cpp   
+                    ../src/InitCellNatives.cpp   
+                    ../src/InitCellNeighbors.cpp 
+                    ../src/InitRemoteDomains.cpp 
+                    ../src/InitSendDomains.cpp   
+                    ../src/Matrix.cpp            
+                    ../src/MemCheck.cpp          
+                    ../src/Param.cpp             
+                    ../src/Parse.cpp             
+                    ../src/PickScrewGlidePlane.cpp 
+                    ../src/QueueOps.cpp          
+                    ../src/ReadRestart.cpp       
+                    ../src/ReadBinaryRestart.cpp 
+                    ../src/RBDecomp.cpp          
+                    ../src/RSDecomp.cpp          
+                    ../src/Timer.cpp             
+                    ../src/Util.cpp              
+                    ../src/Math.cpp              
+                    ../src/WriteRestart.cpp		
+					../src/Grain.cpp )
 Set( CALCDENSITY_SRCS
-                    CalcDensity.C      
-                    Decomp.C            
-                    DLBfreeOld.C        
-                    FindPreciseGlidePlane.C  
-                    FMComm.C            
-                    FMSigma2.C          
-                    FMSupport.C         
-                    FreeInitArrays.C    
-                    Heap.C              
-                    InitCellDomains.C   
-                    InitCellNatives.C   
-                    InitCellNeighbors.C 
-                    InitRemoteDomains.C 
-                    InitSendDomains.C   
-                    Matrix.C            
-                    MemCheck.C         
-                    Param.C             
-                    Parse.C             
-                    PickScrewGlidePlane.C 
-                    QueueOps.C          
-                    ReadRestart.C       
-                    ReadBinaryRestart.C 
-                    RBDecomp.C          
-                    RSDecomp.C          
-                    Timer.C             
-                    Util.C              
-                    Math.C              
-					Grain.C )
+                    CalcDensity.cpp      
+                    ../src/Decomp.cpp            
+                    ../src/DLBfreeOld.cpp        
+                    ../src/FindPreciseGlidePlane.cpp  
+                    ../src/FMComm.cpp            
+                    ../src/FMSigma2.cpp          
+                    ../src/FMSupport.cpp         
+                    ../src/FreeInitArrays.cpp    
+                    ../src/Heap.cpp              
+                    ../src/InitCellDomains.cpp   
+                    ../src/InitCellNatives.cpp   
+                    ../src/InitCellNeighbors.cpp 
+                    ../src/InitRemoteDomains.cpp 
+                    ../src/InitSendDomains.cpp   
+                    ../src/Matrix.cpp            
+                    ../src/MemCheck.cpp         
+                    ../src/Param.cpp             
+                    ../src/Parse.cpp             
+                    ../src/PickScrewGlidePlane.cpp 
+                    ../src/QueueOps.cpp          
+                    ../src/ReadRestart.cpp       
+                    ../src/ReadBinaryRestart.cpp 
+                    ../src/RBDecomp.cpp          
+                    ../src/RSDecomp.cpp          
+                    ../src/Timer.cpp             
+                    ../src/Util.cpp              
+                    ../src/Math.cpp              
+					../src/Grain.cpp )
 
 Set ( STRESSTABLEGEN_SRCS
-                      StressTableGen.C 
-                      FindPreciseGlidePlane.C 
-                      Heap.C           
-                      Matrix.C         
-                      MemCheck.C       
-                      PickScrewGlidePlane.C 
-                      QueueOps.C       
-                      Util.C      		
-                      Math.C      		
-					  Grain.C )
+                      StressTableGen.cpp 
+                      ../src/FindPreciseGlidePlane.cpp 
+                      ../src/Heap.cpp           
+                      ../src/Matrix.cpp         
+                      ../src/MemCheck.cpp       
+                      ../src/PickScrewGlidePlane.cpp 
+                      ../src/QueueOps.cpp       
+                      ../src/Util.cpp      		
+                      ../src/Math.cpp      		
+					  ../src/Grain.cpp )
 
 Set( PARADISCONVERT_SRCS 
-                     ParadisConvert.C 
-                     Decomp.C            
-                     DLBfreeOld.C        
-                     FindPreciseGlidePlane.C  
-                     FMComm.C            
-                     FMSigma2.C          
-                     FMSupport.C         
-                     FreeInitArrays.C    
-                     Heap.C              
-                     InitCellDomains.C   
-                     InitCellNatives.C  
-                     InitCellNeighbors.C 
-                     InitRemoteDomains.C 
-					 InitSendDomains.C   
-                     Matrix.C            
-                     MemCheck.C          
-                     Param.C             
-                     Parse.C             
-                     PickScrewGlidePlane.C 
-                     QueueOps.C          
-                     ReadRestart.C       
-                     ReadBinaryRestart.C 
-                     RBDecomp.C          
-                     RSDecomp.C          
-                     Timer.C             
-                     Util.C         	
-                     Math.C         	
-					 Grain.C )
+                     ParadisConvert.cpp 
+                     ../src/Decomp.cpp            
+                     ../src/DLBfreeOld.cpp        
+                     ../src/FindPreciseGlidePlane.cpp  
+                     ../src/FMComm.cpp            
+                     ../src/FMSigma2.cpp          
+                     ../src/FMSupport.cpp         
+                     ../src/FreeInitArrays.cpp    
+                     ../src/Heap.cpp              
+                     ../src/InitCellDomains.cpp   
+                     ../src/InitCellNatives.cpp  
+                     ../src/InitCellNeighbors.cpp 
+                     ../src/InitRemoteDomains.cpp 
+					 ../src/InitSendDomains.cpp   
+                     ../src/Matrix.cpp            
+                     ../src/MemCheck.cpp          
+                     ../src/Param.cpp             
+                     ../src/Parse.cpp             
+                     ../src/PickScrewGlidePlane.cpp 
+                     ../src/QueueOps.cpp          
+                     ../src/ReadRestart.cpp       
+                     ../src/ReadBinaryRestart.cpp 
+                     ../src/RBDecomp.cpp          
+                     ../src/RSDecomp.cpp          
+                     ../src/Timer.cpp             
+                     ../src/Util.cpp         	
+                     ../src/Math.cpp         	
+					 ../src/Grain.cpp )
+
+Set(CTABLEGEN_MAIN_SRC  ../src/CTableGen.cpp
+                        ../src/CorrectionTable.cpp       
+                        ../src/FindPreciseGlidePlane.cpp 
+                        ../src/FMSigma2.cpp              
+                        ../src/FMSupport.cpp             
+                        ../src/Matrix.cpp                
+                        ../src/Heap.cpp                  
+                        ../src/MemCheck.cpp              
+                        ../src/PickScrewGlidePlane.cpp   
+                        ../src/QueueOps.cpp              
+                        ../src/Util.cpp					 
+                        ../src/Math.cpp	                 
+                        ../src/Grain.cpp	 )
+
+
 IF(GEOS_FOUND)
 INCLUDE_DIRECTORIES(../include ${GEOS_INCLUDE_DIR})    
 LINK_DIRECTORIES(${GEOS_LINK_DIR})
@@ -140,18 +156,26 @@ ELSE(GEOS_FOUND)
 INCLUDE_DIRECTORIES(../include)
 ENDIF(GEOS_FOUND)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wno-unknown-pragmas -DPARALLEL=1 " )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 " )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -DNO_XPM -DNO_GENERAL -D_SEM_SEMUN_UNDEFINED")
-add_executable(paradisgen ${PARADISGEN_SRCS})
-add_executable(paradisrepart ${PARADISREPART_SRCS})
 add_definitions(-DNO_XWINDOW )
 
-Set(PARADIS_GEN paradisgen)
-target_link_libraries(paradisgen m pthread )
-Install(TARGETS ${PARADIS_GEN}
-        RUNTIME DESTINATION ${PARADIS_SOURCE_DIR}/bin)
+add_executable(${PARADISGEN_EXE} ${PARADISGEN_SRCS}     )
+add_executable(paradisrepart     ${PARADISREPART_SRCS}  )
+add_executable(calcdensity       ${CALCDENSITY_SRCS}    )
+add_executable(stresstablegen    ${STRESSTABLEGEN_SRCS} )
+add_executable(paradisconvert    ${PARADISCONVERT_SRCS} )
+add_executable(ctablegen         ${CTABLEGEN_MAIN_SRC}  )
 
-Install(TARGETS paradisrepart
-        RUNTIME DESTINATION ${PARADIS_SOURCE_DIR}/bin)
+target_link_libraries(${PARADISGEN_EXE} ${MPI_CXX_LIBRARIES}) 
+target_link_libraries(paradisrepart     ${MPI_CXX_LIBRARIES})
+target_link_libraries(calcdensity       ${MPI_CXX_LIBRARIES}) 
+target_link_libraries(stresstablegen    ${MPI_CXX_LIBRARIES}) 
+target_link_libraries(paradisconvert    ${MPI_CXX_LIBRARIES})
+target_link_libraries(ctablegen         ${MPI_CXX_LIBRARIES})
+
+Install(TARGETS ${PARADISGEN_EXE} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+Install(TARGETS paradisrepart     RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+Install(TARGETS calcdensity       RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+Install(TARGETS stresstablegen    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+Install(TARGETS paradisconvert    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+Install(TARGETS ctablegen         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 

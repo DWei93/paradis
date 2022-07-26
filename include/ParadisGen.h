@@ -1,6 +1,7 @@
 #ifndef _ParadisGen_h
 #define _ParadisGen_h
 
+#include "Grain.h"
 /*
  *      Define a structure containing all items corresponding to
  *      all command line options that have associated values.  This
@@ -8,45 +9,60 @@
  *      to various functions.
  */
 typedef struct {
-        int     cubeLength;
-        int     frLenMin;
-        int     frLenMax;
-        int     hexl;
-        int     interstitialLoops;
-        int     loopType;
-        real8   maxSegLen;
-        int     numChains;
-        int     numFRSrcs;
-        int     numLoops;
-        char    *outputFile;
-        int     pbcVal;
-        real8   radius;
-        int     seed;
-        int     type;
-        real8   xSurf[2];
-        real8   ySurf[2];
-        real8   zSurf[2];
+    int     cubeLength;
+    real8     frLenMin;
+    real8     frLenMax;
+    int     hexl;
+    int     interstitialLoops;
+    int     loopType;
+    real8   maxSegLen;
+    int     numChains;
+    int     numFRSrcs;
+    int     numLoops;
+    char    *outputFile;
+    int     pbcVal;
+    real8   radius;
+    real8   radius2;
+    real8   radius3;
+    int     seed;
+    int     type;
+    real8   xSurf[2];
+    real8   ySurf[2];
+    real8   zSurf[2];
 /*
- *      The following are not input variables, but it is useful to include
- *      them in this structure to pass them around with the values from
- *      the command line arguments.
- */		
-	    int	    polycrystal;	
-	    real8	twinRatio;
-	    int	    nGrain;
-	    real8	heightRatio;
-	    int	    deltaNums;
-	    int	    nLayers;
-	    real8   xMatDir[3];
-	    real8   yMatDir[3];
-	    real8   zMatDir[3];
-	    real8	TBAngle;
-	    int	    srcLenType;
-	    real8	maxDensity;
-        int     extended;
-        real8   d0;
-	    int     burgID, planeID;
-        real8   TBCryst[3];
+ *  The following are not input variables, but it is useful to include
+ *  them in this structure to pass them around with the values from
+ *  the command line arguments.
+ */	
+    int	    polycrystal;	
+    real8	twinRatio;
+    int	    nGrain;
+    real8	heightRatio;
+    int	    deltaNums;
+    int	    nLayers;
+    real8   xMatDir[3];
+    real8   yMatDir[3];
+    real8   zMatDir[3];
+    real8	rotAngle;
+    real8   rotDir[3];
+    int	    srcLenType;
+    real8	maxDensity;
+    int     extended;
+    real8   d0;
+    int     burgID, planeID;
+    real8   lineAngle, pos[3];
+    real8   TBCryst[3];
+    char    gradientStructure[256];       
+    char    outFile[256];
+    real8   loadDir[6]; 
+    int     nTDs;
+    bool    gb;
+    real8   tdDensity;
+    real8   tdLength;
+    bool    forceDis;
+    bool    allowSingleSrcs;
+    real8   minKinkSize;
+    real8   maxKinkSize;
 }InArgs_t;
 
 /*
@@ -63,18 +79,21 @@ void  CreatePrismaticLoop(Home_t *home, InData_t *inData, int cubeLength,
           int loopType, int useinterstitial, int numSegs, real8 radius,
           int seed, real8 *totDislocLen, int dislocType);
 void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
-					real8 *totDislocLen);
+                                        real8 *totDislocLen);
 void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
-						 real8 *totDislocLen);
+                                                 real8 *totDislocLen);
 void  CreateFCCIrradConfig(Home_t *home, InData_t *inData, int cubeLength,
           int numChains, int seed, int numLoops, real8 hexl,
           real8 *totDislocLen, int dislocType);
 void  CreateFCCPerfectLoop(Home_t *home, InData_t *inData, int cubeLength,
           int numChains, int seed, real8 *totDislocLen, int dislocType);
-void  InitRemesh(InData_t *inData, int domValue, int startIndex);
+void  InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex);
 real8 randm(int *seed);
 void  WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock);
 int GetBurgID_FCCFromArm(Home_t *home, Node_t *node, int segID);
+void CreateLoopSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen);
+void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen);
+void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen);
 
 
 /*
@@ -89,7 +108,8 @@ int GetBurgID_FCCFromArm(Home_t *home, Node_t *node, int segID);
 #define FTYPE_FCC_IRRAD		5
 #define FTYPE_FCC_PERFECT_LOOP	6
 #define FTYPE_EDGE		7
-#define FTYPE_MAX		8
+#define FTYPE_SINGLE_ARM	8
+#define FTYPE_MAX		9
 
 #define FNAME_SCREW		"screw"
 #define FNAME_EDGE		"edge"
@@ -99,6 +119,7 @@ int GetBurgID_FCCFromArm(Home_t *home, Node_t *node, int segID);
 #define FNAME_FCC		"fcc"
 #define FNAME_FCC_IRRAD		"fcc-irrad"
 #define FNAME_FCC_PERFECT_LOOP	"fcc-perfect-loop"
+#define FNAME_SINGLE_ARM	"single-arm"
 
 
 /*
@@ -121,45 +142,51 @@ typedef struct {
  *      option-specific data in the optList array below.
  */
 typedef	enum{
-	OPT_CUBEL = 0,
-	OPT_HEIGHTRATIO,
-	OPT_DELTA_NUMS,
-	OPT_FRLEN,
-	OPT_HELP,
-	OPT_HEXSIZE,
-	OPT_LOOPTYPE,
-	OPT_MAXSEG,
-	OPT_NCHAINS,
-	OPT_NFRSRCS,
-	OPT_NLOOPS,
-	OPT_OUTFILE,
-	OPT_PBC,
-	OPT_RADIUS,
-	OPT_SEED,
-	OPT_TYPE,
-	OPT_VACANCY,
-	OPT_XSURF,
-	OPT_YSURF,
-	OPT_ZSURF,
-	OPT_POLY,
-	OPT_NGRAIN,
-	OPT_TWIN_RATIO,
-	OPT_NLAYERS,
-	OPT_XMATDIR,
-	OPT_YMATDIR,
-	OPT_ZMATDIR,
-	OPT_TBANGLE,
-	OPT_SRCLENTYPE,
-	OPT_MAXDENSITY,
-    OPT_EXTENDED,
-    OPT_BURGID,
-    OPT_PLANEID,
-    OPT_TBCRYST,
-	OPT_MAX
-	
+        OPT_CUBEL = 0,
+        OPT_HEIGHTRATIO,
+        OPT_DELTA_NUMS,
+        OPT_FRLEN,
+        OPT_HELP,
+        OPT_HEXSIZE,
+        OPT_LOOPTYPE,
+        OPT_MAXSEG,
+        OPT_NCHAINS,
+        OPT_NFRSRCS,
+        OPT_NLOOPS,
+        OPT_OUTFILE,
+        OPT_PBC,
+        OPT_RADIUS,
+        OPT_SEED,
+        OPT_TYPE,
+        OPT_VACANCY,
+        OPT_XSURF,
+        OPT_YSURF,
+        OPT_ZSURF,
+        OPT_POLY,
+        OPT_NGRAIN,
+        OPT_TWIN_RATIO,
+        OPT_NLAYERS,
+        OPT_XMATDIR,
+        OPT_YMATDIR,
+        OPT_ZMATDIR,
+        OPT_ROTATE,
+        OPT_SRCLENTYPE,
+        OPT_MAXDENSITY,
+        OPT_EXTENDED,
+        OPT_SINGLE_SOURCE_TEST,
+        OPT_TBCRYST,
+        OPT_OUT_FILE,
+        OPT_LOAD_DIR,
+        OPT_NTDS,
+        OPT_GB,
+        OPT_TD_LENGTH,
+        OPT_TD_DENSITY,
+        OPT_FORCE_DISTRIBUTION,
+        OPT_ALLOW_SINGLE_SRCS,
+        OPT_KINK_SIZE,
+        OPT_MAX
+        
 }ParadisGenArgs_t;
-
-
 
 /*
  *      Define a structure to hold a command line option's id (type),
@@ -174,7 +201,65 @@ typedef struct {
         int   optPaired;
 } Option_t;
 
+#define INITIAL_ANALYSIS 0
 
+#if INITIAL_ANALYSIS > 0
+#define taurtb_s 100.0
+#define taurtb_ns 500.0
 
+typedef enum{
+    cfrlen = 0,     // Frank-Read source length
+    cdpb,           // distance to PBC boundary
+    cdfs1,          // minimun distacnce to free surface of endpoint 1
+    cdtb1,          // minimun distacnce to TB of endpoint 
+    cdtb2,          // minimun distacnce to TB of endpoint 
+    csi,            // Schmid factor of original glide plane
+    cso,            // Schmid factor of outing glide plane (if meet TB)
+    cstd1,          // Schnid factor of first decomposed twinning dislocation
+    cstd2,          // Schmid factor of second decomposed TD
+    careai,         // area of original glide plane
+    careao,         // area of outgoing glide plane (if meet TB)
+    cbx,            // x of Burgers vector 
+    cby,            // y of Burgers vector
+    cbz,            // z of Burgers vector
+    cnx,            // x of glide plane normal
+    cny,            // y of glide plane normal
+    cnz,            // z of glide plane normal
+    ccbetafr,       // cos beta of Frank-Read source
+    cstb,           // cos beta of line to TB
+    cdfs2,          // minimum distacnce to free surface of endpoint 2
+    ccbetafs1,      // cos beta of line to surface of endpoint 1
+    ccbetafs2,      // cos beta of line to surface of endpoint 2
+    ctbdir,         // sign of glide direction to TB
+    ccbetatb1,      // cos beta of line to TB of endpoint 1
+    ccbetatb2,      // cos beta of line to TB of endpoint 1
+    ctauPin1,       // pinning stress of endpoint 1 in colinear reaction
+    ctauPin2,       // pinning stress of endpoint 2 in colinear reaction
+    cmathematica,   // =1 mathemactica analysis
+    ctau0,          // activation shear stress of Frank-Read source (caculated by Frank-Read source length)
+    ctauc,          
+    csigmac,
+    cpeneType,
+    crc,
+    cnPileUps,
+    cpileLength,
+    ctauBack,
+    csigmay,
+    clinter,
+    clpo,
+    cmax
+}InitaiVals;
 
+typedef struct {
+    real8 p1[3];
+    real8 p2[3];
+    real8 sasPos[2][3];
+    int inGrain;
+    int onGB;
+    int slipSysID;
+    std::vector<real8> dPoint;
+    std::vector<real8> vertices, neiVertices;
+    std::vector<int> types, neiTypes, f_vert, neiF_vert;
+} InitSrc_t;
+#endif
 #endif /* _ParadisGen_h */

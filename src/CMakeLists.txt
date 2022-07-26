@@ -1,72 +1,89 @@
 Set ( PARADIS_SRCS 
 #bigtest.h   GeometryTestFactory.cpp TestSweepLineSpeed.cpp  
 #bci.c   tdspl.c tools.c
-CppFunctions.C
-CellCharge.C               FindPreciseGlidePlane.C   InputSanity.C            ParadisThread.C            SplitSurfaceNodes.C
-Collision.C                FixRemesh.C               LoadCurve.C              Param.C                    Tecplot.C
-CommSendGhostPlanes.C      FMComm.C                  LocalSegForces.C         Parse.C                    Timer.C
-CommSendGhosts.C           FMSigma2.C                Main.C                   PickScrewGlidePlane.C      Topology.C
-CommSendMirrorNodes.C      FMSupport.C                                        Plot.C                     TrapezoidIntegrator.C
-CommSendRemesh.C           ForwardEulerIntegrator.C                           PredictiveCollision.C      Util.C
-CommSendSecondaryGhosts.C  FreeInitArrays.C          Matrix.C                 ProximityCollision.C       WriteArms.C
-CommSendSegments.C         GenerateOutput.C          MemCheck.C               QueueOps.C                 WriteBinaryRestart.C
-CommSendVelocity.C         GetDensityDelta.C         Meminfo.C                RBDecomp.C                 WriteDensFlux.C
-CorrectionTable.C          GetNewGhostNode.C         Migrate.C                ReadBinaryRestart.C        WriteDensityField.C
-CrossSlipBCC.C             GetNewNativeNode.C        MobilityLaw_BCC_0b.C     ReadRestart.C              WriteForce.C
-CrossSlip.C                Gnuplot.C                 MobilityLaw_BCC_0.C      RemapInitialTags.C         WriteFragments.C
-CrossSlipFCC.C             GrainBoundary.C           MobilityLaw_BCC_glide.C  Remesh.C                   WritePoleFig.C
-                           Grain.C                   MobilityLaw_FCC_0b.C     RemeshRule_2.C             WritePovray.C
-DebugFunctions.C           Heap.C                    MobilityLaw_FCC_0.C      RemeshRule_3.C             WriteProp.C
-Decomp.C                   InitCellDomains.C         MobilityLaw_FCC_climb.C  RemoteSegForces.C          WriteRestart.C
-DeltaPlasticStrain_BCC.C   InitCellNatives.C         NodeForce.C              RemoveNode.C               WriteVelocity.C
-DeltaPlasticStrain.C       InitCellNeighbors.C       NodeVelocity.C           ResetGlidePlanes.C         WriteVisit.C
-DeltaPlasticStrain_FCC.C   InitHome.C                OsmoticForce.C           RSDecomp.C
-deWitInteraction.C         Initialize.C              ParadisFinish.C          SemiInfiniteSegSegForce.C
-DisableUnneededParams.C    InitRemoteDomains.C       ParadisInit.C            SortNativeNodes.C
-DLBfreeOld.C               InitSendDomains.C         ParadisStep.C            SortNodesForCollision.C   Math.C)
-#      DisplayC.C display.C )
+CppFunctions.cpp
+CellCharge.cpp               FindPreciseGlidePlane.cpp   InputSanity.cpp            ParadisThread.cpp            SplitSurfaceNodes.cpp
+Collision.cpp                FixRemesh.cpp               LoadCurve.cpp              Param.cpp                    Tecplot.cpp
+CommSendGhostPlanes.cpp      FMComm.cpp                  LocalSegForces.cpp         Parse.cpp                    Timer.cpp
+CommSendGhosts.cpp           FMSigma2.cpp                Main.cpp                   PickScrewGlidePlane.cpp      Topology.cpp
+CommSendMirrorNodes.cpp      FMSupport.cpp                                          Plot.cpp                     TrapezoidIntegrator.cpp
+CommSendRemesh.cpp           ForwardEulerIntegrator.cpp                             PredictiveCollision.cpp      Util.cpp
+CommSendSecondaryGhosts.cpp  FreeInitArrays.cpp          Matrix.cpp                 ProximityCollision.cpp       WriteArms.cpp
+CommSendSegments.cpp         GenerateOutput.cpp          MemCheck.cpp               QueueOps.cpp                 WriteBinaryRestart.cpp
+CommSendVelocity.cpp         GetDensityDelta.cpp         Meminfo.cpp                RBDecomp.cpp                 WriteDensFlux.cpp
+CorrectionTable.cpp          GetNewGhostNode.cpp         Migrate.cpp                ReadBinaryRestart.cpp        WriteDensityField.cpp
+CrossSlipBCC.cpp             GetNewNativeNode.cpp        MobilityLaw_BCC_0b.cpp     ReadRestart.cpp              WriteForce.cpp
+CrossSlip.cpp                Gnuplot.cpp                 MobilityLaw_BCC_0.cpp      RemapInitialTags.cpp         WriteFragments.cpp
+CrossSlipFCC.cpp             GrainBoundary.cpp           MobilityLaw_BCC_glide.cpp  Remesh.cpp                   WritePoleFig.cpp
+                             Grain.cpp                   MobilityLaw_FCC_0b.cpp     RemeshRule_2.cpp             WritePovray.cpp
+DebugFunctions.cpp           Heap.cpp                    MobilityLaw_FCC_0.cpp      RemeshRule_3.cpp             WriteProp.cpp
+Decomp.cpp                   InitCellDomains.cpp         MobilityLaw_FCC_climb.cpp  RemoteSegForces.cpp          WriteRestart.cpp
+DeltaPlasticStrain_BCC.cpp   InitCellNatives.cpp         NodeForce.cpp              RemoveNode.cpp               WriteVelocity.cpp
+DeltaPlasticStrain.cpp       InitCellNeighbors.cpp       NodeVelocity.cpp           ResetGlidePlanes.cpp         WriteVisit.cpp
+DeltaPlasticStrain_FCC.cpp   InitHome.cpp                OsmoticForce.cpp           RSDecomp.cpp
+deWitInteraction.cpp         Initialize.cpp              ParadisFinish.cpp          SemiInfiniteSegSegForce.cpp
+DisableUnneededParams.cpp    InitRemoteDomains.cpp       ParadisInit.cpp            SortNativeNodes.cpp
+DLBfreeOld.cpp               InitSendDomains.cpp         ParadisStep.cpp            SortNodesForCollision.cpp    Math.cpp 
+MobilityLaw_FCC_Nolinear.cpp MobilityLaw_Wei.cpp )
+#      DisplayC.cpp display.cpp )
 
 Set (CTABLEGEN_SRCS 
-                 CTableGen.C 
-                 CorrectionTable.C       
-                 FindPreciseGlidePlane.C 
-                 FMSigma2.C              
-                 FMSupport.C             
-                 Matrix.C                
-                 Heap.C                  
-                 MemCheck.C              
-                 PickScrewGlidePlane.C   
-                 QueueOps.C              
-                 Util.C					
-                 Math.C					
-				 Grain.C)
+                 CTableGen.cpp 
+                 CorrectionTable.cpp       
+                 FindPreciseGlidePlane.cpp 
+                 FMSigma2.cpp              
+                 FMSupport.cpp             
+                 Matrix.cpp                
+                 Heap.cpp                  
+                 MemCheck.cpp              
+                 PickScrewGlidePlane.cpp   
+                 QueueOps.cpp              
+                 Util.cpp					
+                 Math.cpp					
+		         Grain.cpp)
 
+if(GEOS_FOUND)
+INCLUDE_DIRECTORIES(../include ${MPI_INCLUDE_PATH} ${GEOS_INCLUDE_DIR} )
+else(GEOS_FOUND)
+INCLUDE_DIRECTORIES(../include ${MPI_INCLUDE_PATH})
+endif(GEOS_FOUND)
 
-IF(GEOS_FOUND)
-INCLUDE_DIRECTORIES(../include ${GEOS_INCLUDE_DIR})    
-LINK_DIRECTORIES(${GEOS_LINK_DIR})
-ELSE(GEOS_FOUND)
-INCLUDE_DIRECTORIES(../include)
-ENDIF(GEOS_FOUND)
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wno-unknown-pragmas -DPARALLEL=1 -fopenmp" )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fopenmp " )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -DNO_XPM -DNO_GENERAL -D_SEM_SEMUN_UNDEFINED")
-add_executable(paradis ${PARADIS_SRCS})
+if(MPI_FOUND)
 add_definitions(-DNO_XWINDOW -DPARALLEL=1)
+else(MPI_FOUND)
+add_definitions(-DNO_XWINDOW)
+endif(MPI_FOUND)
 
-Option(NO_GB_BARRIER "Build paradis using definition NO_GB_BARRIER" OFF)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unknown-pragmas -fopenmp" )
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp " )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ")
 
+Option(JOG_PINNING "Build ${PARADIS_EXE} using definition JOG_PINNING" OFF)
+if(JOG_PINNING)
+    add_definitions(-DJOG_PINNING)
+endif()
+Message("** Macro JOG_PINNING is ${JOG_PINNING}")
+
+Option(VELOCITY_STATISTICS "Build ${PARADIS_EXE} using definition VELOCITY_STATISTICS" OFF)
+if(VELOCITY_STATISTICS)
+    add_definitions(-DVELOCITY_STATISTICS)
+endif()
+Message("** Macro VELOCITY_STATISTICS is ${VELOCITY_STATISTICS}")
+
+Option(NO_GB_BARRIER "Build ${PARADIS_EXE} using definition NO_GB_BARRIER" OFF)
 if(NO_GB_BARRIER)
-Message(STATUS "Macro NO_GB_BARRIER is on")
-add_definitions(-DNO_GB_BARRIER)
+    Message(STATUS "Macro NO_GB_BARRIER is on")
+    add_definitions(-DNO_GB_BARRIER)
 endif(NO_GB_BARRIER)
 
-IF(GEOS_FOUND)
-target_link_libraries(paradis m pthread geos)
-ELSE(GEOS_FOUND)
-target_link_libraries(paradis m pthread)
-ENDIF(GEOS_FOUND)
+Option(DEBUG_PLASTIC_STRAIN "debug plastic strain field" OFF)
+if(DEBUG_PLASTIC_STRAIN)
+    add_definitions(-DDEBUG_PLASTIC_STRAIN)
+endif()
 
-Install(TARGETS paradis
-        RUNTIME DESTINATION ${PARADIS_SOURCE_DIR}/bin)
+Add_executable(${PARADIS_EXE} ${PARADIS_SRCS})
+target_link_libraries(${PARADIS_EXE} ${MPI_CXX_LIBRARIES}) # this must be  MPI_CXX_LIBRARIES for cpp file
+Add_definitions(-DSIMLPLE_REACTION_ON_GB)
+
+
+Install(TARGETS ${PARADIS_EXE} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

@@ -74,9 +74,9 @@
 #    (defined by user in makefile)
 #
 CC_PARALLEL.linux       = mpiicc
-CPP_PARALLEL.linux      = mpiicpc
+CPP_PARALLEL.linux      = mpicxx
 CCFLAG_PARALLEL.linux   = -DPARALLEL=1
-CPPFLAG_PARALLEL.linux  = 
+CPPFLAG_PARALLEL.linux  = -DPARALLEL=1
 
 CC_SERIAL.linux         = icc
 CPP_SERIAL.linux        = icpc
@@ -97,7 +97,7 @@ XLIB_LIB.linux          = -L$(XLIB_LIBDIR.linux) -lX11 -lpthread
 XLIB_INCS.linux         =
 
 MPI_LIBDIR.linux        = 
-MPI_LIB.linux           = -lmpich
+MPI_LIB.linux           = -fopenmp
 MPI_INCS.linux          = 
 
 HDF_LIBDIR.linux        = -Xlinker -rpath -Xlinker \
@@ -112,10 +112,10 @@ OPENMP_FLAG.linux       = -openmp
 #    Identify any additional libraries and paths needed for compilation
 #    on this system type
 #
-LIB_PARALLEL.linux      = -lm
+LIB_PARALLEL.linux      = -lm -lpthread
 INCS_PARALLEL.linux     =
 
-LIB_SERIAL.linux        = -lm
+LIB_SERIAL.linux        = -lm -lpthread
 INCS_SERIAL.linux       =
 
 
@@ -145,7 +145,7 @@ INCS_SERIAL.linux       =
 CC_PARALLEL.linux.opteron       = mpiicc
 CPP_PARALLEL.linux.opteron      = mpiicpc
 CCFLAG_PARALLEL.linux.opteron   = -DPARALLEL=1 -Wno-unknown-pragmas
-CPPFLAG_PARALLEL.linux.opteron  = 
+CPPFLAG_PARALLEL.linux.opteron  = -DPARALLEL=1
 
 CC_SERIAL.linux.opteron         = icc -Wno-unknown-pragmas
 CPP_SERIAL.linux.opteron        = icpc
@@ -166,7 +166,7 @@ XLIB_LIB.linux.opteron          = -L$(XLIB_LIBDIR.linux.opteron) -lX11 -lpthread
 XLIB_INCS.linux.opteron         =
 
 MPI_LIBDIR.linux.opteron        = 
-MPI_LIB.linux.opteron           = -lmpich
+MPI_LIB.linux.opteron           = -fopenmp
 MPI_INCS.linux.opteron          = 
 
 HDF_LIBDIR.linux.opteron        = -Xlinker -rpath -Xlinker \
@@ -175,16 +175,16 @@ HDF_LIBDIR.linux.opteron        = -Xlinker -rpath -Xlinker \
 HDF_LIB.linux.opteron           = $(HDF_LIBDIR.linux.opteron) -lhdf5 -lhdf5_hl
 HDF_INCS.linux.opteron          = -I/usr/local/tools/hdf5-intel-serial/include
 
-OPENMP_FLAG.linux.opteron       = -openmp
+OPENMP_FLAG.linux.opteron       = -fopenmp
 
 #
 #    Identify any additional libraries and paths needed for compilation
 #    on this system type
 #
-LIB_PARALLEL.linux.opteron      = -lm
+LIB_PARALLEL.linux.opteron      = -lm -lpthread
 INCS_PARALLEL.linux.opteron     =
 
-LIB_SERIAL.linux.opteron        = -lm
+LIB_SERIAL.linux.opteron        = -lm -lpthread
 INCS_SERIAL.linux.opteron       =
 
 
@@ -1115,6 +1115,7 @@ INCS_SERIAL.franklin       =
 #
 
 CC_PARALLEL.gcc       = mpicc
+#CPP_PARALLEL.gcc      = ~/DWei/openmpi-4.0.2/bin/mpicxx
 CPP_PARALLEL.gcc      = mpicxx
 CCFLAG_PARALLEL.gcc   = -DPARALLEL=1 -Wno-unknown-pragmas  
 CPPFLAG_PARALLEL.gcc  = -DPARALLEL=1 
