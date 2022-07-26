@@ -266,7 +266,9 @@ PARADISCONVERT_OBJS = $(PARADISCONVERT_C_SRCS:.c=.o) $(PARADISCONVERT_CPP_SRCS:.
 .c.o:		makefile ../makefile.sys ../makefile.setup
 		$(CC_SERIAL) $(OPT) $(CCFLAG_SERIAL) $(INCS_SERIAL) -c $<
 
-.C.o:		makefile ../makefile.sys ../makefile.setup
+.cpp.o:		makefile ../makefile.sys ../makefile.setup
+		$(CPP_SERIAL) $(OPT) $(CPPFLAG_SERIAL) $(INCS_SERIAL) -c $<
+.cc.o:		makefile ../makefile.sys ../makefile.setup
 		$(CPP_SERIAL) $(OPT) $(CPPFLAG_SERIAL) $(INCS_SERIAL) -c $<
 
 
