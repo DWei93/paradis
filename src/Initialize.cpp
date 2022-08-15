@@ -781,13 +781,7 @@ void SetRemainingDefaults(Home_t *home)
  *      ***                                           ***
  *      *************************************************
  */
-        if (strcmp(param->mobilityLaw, "Wei") == 0) {
-            param->materialType = MAT_TYPE_FCC;
-            param->mobilityType = MOB_WEI;
-            param->mobilityFunc = Mobility_Wei;
-            param->numBurgGroups = 7;
-            if(home->myDomain==0)printf("Mobility Law: Wei\n");
-        }else if (strcmp(param->mobilityLaw, "BCC_0") == 0) {
+        if (strcmp(param->mobilityLaw, "BCC_0") == 0) {
             param->materialType = MAT_TYPE_BCC;
             param->mobilityType = MOB_BCC_0;
             param->mobilityFunc = Mobility_BCC_0;
@@ -839,7 +833,6 @@ void SetRemainingDefaults(Home_t *home)
             case MOB_FCC_0:
             case MOB_FCC_0B:
             case MOB_FCC_CLIMB:
-            case MOB_WEI:
                 if (param->enforceGlidePlanes == 0) {
                     param->enforceGlidePlanes = 1;
                     if (home->myDomain == 0) {
@@ -870,7 +863,6 @@ void SetRemainingDefaults(Home_t *home)
                 case MOB_FCC_0:
                 case MOB_FCC_0B:
                 case MOB_FCC_CLIMB:
-                case MOB_WEI:
                     param->enableCrossSlip = 1;
                     break;
                 default:

@@ -42,8 +42,7 @@ typedef enum {
         MOB_FCC_0,
         MOB_FCC_0B,
         MOB_FCC_CLIMB,
-        MOB_FCC_NL,
-        MOB_WEI,
+        MOB_FCC_NL
 } MobType_t;
 
 
@@ -60,6 +59,5 @@ int  Mobility_FCC_0(Home_t *home, Node_t *node);
 int  Mobility_FCC_0b(Home_t *home, Node_t *node);
 int  Mobility_FCC_climb(Home_t *home, Node_t *node);
 int Mobility_FCC_Nolinear(Home_t *home, Node_t *node);
-int  Mobility_Wei(Home_t *home, Node_t *node);
 
 #endif /* _MOBILITY_H */

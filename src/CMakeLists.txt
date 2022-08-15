@@ -24,7 +24,7 @@ DeltaPlasticStrain_FCC.cpp   InitHome.cpp                OsmoticForce.cpp       
 deWitInteraction.cpp         Initialize.cpp              ParadisFinish.cpp          SemiInfiniteSegSegForce.cpp
 DisableUnneededParams.cpp    InitRemoteDomains.cpp       ParadisInit.cpp            SortNativeNodes.cpp
 DLBfreeOld.cpp               InitSendDomains.cpp         ParadisStep.cpp            SortNodesForCollision.cpp    Math.cpp 
-MobilityLaw_FCC_Nolinear.cpp MobilityLaw_Wei.cpp )
+MobilityLaw_FCC_Nolinear.cpp )
 #      DisplayC.cpp display.cpp )
 
 Set (CTABLEGEN_SRCS 

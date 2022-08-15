@@ -54,7 +54,6 @@ void DisableUnneededParams(Home_t *home)
             case MOB_FCC_0:
             case MOB_FCC_0B:
             case MOB_FCC_CLIMB:
-            case MOB_WEI:
                 MarkParamEnabled(home->ctrlParamList, "MobScrew");
                 MarkParamEnabled(home->ctrlParamList, "MobEdge");
                 break;
