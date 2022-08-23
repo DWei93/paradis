@@ -7,6 +7,11 @@
  *                    allocated memory, etc.
  *
  *-----------------------------------------------------------------------*/
+#ifdef PETSC
+#include <petscsys.h>
+#include <petscviewer.h>
+#endif
+
 #include "Home.h"
 #include "Init.h"
 #include "Util.h"
@@ -246,7 +251,6 @@ void ReleaseMemory(Home_t *home)
 void ParadisFinish(Home_t *home)
 {
     int	maxMem;
-
 /*
  *	Generate all type of output appropriate at program completion
  *	and write out the timer values 
@@ -283,6 +287,11 @@ void ParadisFinish(Home_t *home)
 
 #ifdef PARALLEL
     MPI_Finalize();
+#endif
+
+#ifdef PETSC
+    PetscOptionsClear(NULL);
+    PetscFinalize();
 #endif
 
     ReleaseMemory(home);

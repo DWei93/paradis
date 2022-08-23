@@ -1,7 +1,7 @@
-Set ( PARADIS_SRCS 
+Set (PARADIS_SRCS 
 #bigtest.h   GeometryTestFactory.cpp TestSweepLineSpeed.cpp  
 #bci.c   tdspl.c tools.c
-CppFunctions.cpp
+CppFunctions.cpp             
 CellCharge.cpp               FindPreciseGlidePlane.cpp   InputSanity.cpp            ParadisThread.cpp            SplitSurfaceNodes.cpp
 Collision.cpp                FixRemesh.cpp               LoadCurve.cpp              Param.cpp                    Tecplot.cpp
 CommSendGhostPlanes.cpp      FMComm.cpp                  LocalSegForces.cpp         Parse.cpp                    Timer.cpp
@@ -25,7 +25,7 @@ deWitInteraction.cpp         Initialize.cpp              ParadisFinish.cpp      
 DisableUnneededParams.cpp    InitRemoteDomains.cpp       ParadisInit.cpp            SortNativeNodes.cpp
 DLBfreeOld.cpp               InitSendDomains.cpp         ParadisStep.cpp            SortNodesForCollision.cpp    Math.cpp 
 MobilityLaw_FCC_Nolinear.cpp )
-#      DisplayC.cpp display.cpp )
+
 
 Set (CTABLEGEN_SRCS 
                  CTableGen.cpp 
@@ -42,12 +42,6 @@ Set (CTABLEGEN_SRCS
                  Math.cpp					
 		         Grain.cpp)
 
-if(GEOS_FOUND)
-INCLUDE_DIRECTORIES(../include ${MPI_INCLUDE_PATH} ${GEOS_INCLUDE_DIR} )
-else(GEOS_FOUND)
-INCLUDE_DIRECTORIES(../include ${MPI_INCLUDE_PATH})
-endif(GEOS_FOUND)
-
 if(MPI_FOUND)
 add_definitions(-DNO_XWINDOW -DPARALLEL=1)
 else(MPI_FOUND)
@@ -62,17 +56,24 @@ Option(JOG_PINNING "Build ${PARADIS_EXE} using definition JOG_PINNING" OFF)
 if(JOG_PINNING)
     add_definitions(-DJOG_PINNING)
 endif()
-Message("** Macro JOG_PINNING is ${JOG_PINNING}")
+Message("** Definition JOG_PINNING is ${JOG_PINNING}")
 
 Option(VELOCITY_STATISTICS "Build ${PARADIS_EXE} using definition VELOCITY_STATISTICS" OFF)
 if(VELOCITY_STATISTICS)
     add_definitions(-DVELOCITY_STATISTICS)
 endif()
-Message("** Macro VELOCITY_STATISTICS is ${VELOCITY_STATISTICS}")
+Message("** Definition VELOCITY_STATISTICS is ${VELOCITY_STATISTICS}")
+
+Option(PETSC_DEFINITION "Build ${PARADIS_EXE} using definition PETSC" OFF)
+if(PETSC_DEFINITION)
+    set(PARADIS_SRCS PetscUtil.cpp PetscIntegrator.cpp ${PARADIS_SRCS})
+    add_definitions(-DPETSC)
+endif()
+Message("** Definition PETSC_DEFINITION is ${PETSC}")
 
 Option(NO_GB_BARRIER "Build ${PARADIS_EXE} using definition NO_GB_BARRIER" OFF)
 if(NO_GB_BARRIER)
-    Message(STATUS "Macro NO_GB_BARRIER is on")
+    Message(STATUS "Definition NO_GB_BARRIER is on")
     add_definitions(-DNO_GB_BARRIER)
 endif(NO_GB_BARRIER)
 
@@ -82,8 +83,15 @@ if(DEBUG_PLASTIC_STRAIN)
 endif()
 
 Add_executable(${PARADIS_EXE} ${PARADIS_SRCS})
-target_link_libraries(${PARADIS_EXE} ${MPI_CXX_LIBRARIES}) # this must be  MPI_CXX_LIBRARIES for cpp file
-Add_definitions(-DSIMLPLE_REACTION_ON_GB)
 
+if(GEOS_FOUND)
+target_include_directories(${PARADIS_EXE} PUBLIC ../include ${PETSC_INCLUDES})
+else()
+target_include_directories(${PARADIS_EXE} PUBLIC ../include ${PETSC_INCLUDES} ${MPI_INCLUDE_PATH})
+endif()
+
+target_link_libraries(${PARADIS_EXE} ${MPI_CXX_LIBRARIES} ${PETSC_WITH_EXTERNAL_LIB}) # this must be  MPI_CXX_LIBRARIES for cpp file
+
+Add_definitions(-DSIMLPLE_REACTION_ON_GB)
 
 Install(TARGETS ${PARADIS_EXE} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

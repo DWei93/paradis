@@ -1042,6 +1042,11 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         param->fem_ageom_z[2] = 1.0;
 #endif
 
+#ifdef PETSC
+        BindVar(CPList, "petscOptionsFile", param->petscOptionsFile, V_STRING,
+                1, VFLAG_NULL);
+        strcpy(param->petscOptionsFile,"0");
+#endif
         return;
 }
 

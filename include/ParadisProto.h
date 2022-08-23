@@ -140,4 +140,8 @@ void _CheckMemUsage(Home_t *home, char *msg);
 #define CheckMemUsage(a,b) {}
 #endif
 
+#ifdef PETSC
+void PetscIntegrator(Home_t *home);
+#endif
+
 #endif

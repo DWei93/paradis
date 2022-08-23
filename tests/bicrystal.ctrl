@@ -136,3 +136,4 @@ velfile = 0
 velfilefreq = 1000
 minDT = 26.208E-13
 #maxDT = 5.000E-13
+petscOptionsFile = "test.yaml"

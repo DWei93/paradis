@@ -524,7 +524,7 @@ struct _param {
         real8   meshSizeZ;
         int     meshNumX, meshNumY, meshNumZ;
         int     randomInternalForce;
-        real8  fMeshSizeX, fMeshSizeY, fNumX, fNumY;
+        real8   fMeshSizeX, fMeshSizeY, fNumX, fNumY;
         real8   position, correLength, targetStress, criticalEff, loadTime;
         int     disRule;
 
@@ -604,6 +604,14 @@ struct _param {
                                 /* lost as dislocations move outside the */
                                 /* simulation bounds                     */
 #endif
+
+#ifdef PETSC
+/*
+ *      Petsc parameters
+ */
+        char petscOptionsFile[MAX_STRING_LEN];
+#endif
+
 };
 
 

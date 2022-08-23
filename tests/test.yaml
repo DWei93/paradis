@@ -1,0 +1,94 @@
+languages:
+  - Ruby
+  - Perl
+  - Python 
+websites:
+  - YAML: yaml.org 
+  - Ruby: ruby-lang.org 
+  - Python: python.org 
+  - Perl: use.perl.org
+
+defaults: &defaults
+  adapter:  postgres
+  host:     localhost
+
+development:
+    database: myapp_development
+    <<: *defaults
+
+test:
+    database: myapp_test
+    <<: *defaults
+
+$$0: &SMALL  { r: 1 }
+$$1: &BIG    { r: 100 }
+$$2: &LEFT   { x: -1, y: -2 }
+$$3: &RIGHT  { x:  1, y:  2 }
+
+map1: # Explicit keys
+  r: 10
+  x: 1
+  y: 2
+
+map2: # Merge one map
+  r: 10
+  <<: *RIGHT
+
+map3: # Merge multiple maps
+  <<: *BIG
+  <<: *RIGHT
+
+map4: # Override
+  <<: [ *BIG, *LEFT, *SMALL ]
+  <<: *RIGHT
+  x: 0
+
+$$: ignored
+$$tail: ignored
+
+$$ans: &ans 42
+$$eu:  &eu  2.72
+$$pi:  &pi  3.1415926
+
+opt:
+  bool: true
+  int: *ans
+  real: *pi
+  imag: 2.72i
+  cmplx: -3.14+2.72i
+  str: petsc
+
+$$1: &seq-bool [true, false]
+$$2: &seq-int  [123, 456, 789]
+$$3: &seq-real [*pi, *eu]
+$$4: &seq-str  [abc, ijk, fgh]
+
+seq1: {
+  bool: *seq-bool,
+  int:  *seq-int,
+  real: *seq-real,
+  str:  *seq-str,
+}
+
+seq2:
+  bool:
+    - true
+    - false
+  int:
+    - 123
+    - 456
+    - 789
+  real:
+    - *pi
+    - *eu
+  str:
+    - rst
+    - uvw
+    - xyz
+
+map:
+  - key0: 0
+  - key1: 1
+  - key2: 2
+  - $$: ignored
+  - $$tail: ignored

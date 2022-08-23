@@ -1,12 +1,46 @@
 Project (PARADIS)
 cmake_minimum_required(VERSION 3.2)
 
-set(CMAKE_VERBOSE_MAKEFILE OFF)
+Option(CMAKE_VERBOSE_MAKEFILE "verbose make file" OFF)
 SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 message ("** PARADIS_BINARY_DIR =  ${PARADIS_BINARY_DIR}")
 message ("** PARADIS_SOURCE_DIR =  ${PARADIS_SOURCE_DIR}")
 
+Option(PETSC "Build  with petsc" ON)
+Option(PETSC_DEFINITION "Build with definition -DPETSC" ON)
+set(PETSC_WITH_EXTERNAL_LIB "" CACHE STRING "PETSc lib linkers")
+set(PETSC_INCLUDES "" CACHE STRING "PETSc lib includes")
+if(PETSC)
+    set(PETSC OFF)
+    set(PETSC_DEFINITION OFF)
+    if(DEFINED ENV{PETSC_DIR})
+        set(PETSC ON)
+        set(PETSC_DEFINITION ON)
+        
+        file(STRINGS "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib/petsc/conf/petscvariables" PETSC_EXTERNAL_LIB REGEX "PETSC_EXTERNAL_LIB_BASIC = .*$?")
+        string(REPLACE "PETSC_EXTERNAL_LIB_BASIC = " "" PETSC_EXTERNAL_LIB "${PETSC_EXTERNAL_LIB}")
+        set(PETSC_WITH_EXTERNAL_LIB "-L$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib -lpetsc ${PETSC_EXTERNAL_LIB}")
+        message("** PETSC_WITH_EXTERNAL_LIB: ${PETSC_WITH_EXTERNAL_LIB}")
+
+        file(STRINGS "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib/petsc/conf/petscvariables" PETSC_INCLUDES REGEX "PETSC_CC_INCLUDES = -I.*$?")
+        string(REPLACE "PETSC_CC_INCLUDES = -I" "" PETSC_INCLUDES "${PETSC_INCLUDES}")
+        message("** PETSC_INCLUDES: ${PETSC_INCLUDES}")
+
+      # file(STRINGS "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib/petsc/conf/petscvariables" CMAKE_CXX_COMPILER REGEX "CXX_LINKER = .*$?")
+      # string(REPLACE "CXX_LINKER = " "" CMAKE_CXX_COMPILER "${CMAKE_CXX_COMPILER}")
+      # message("** CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
+
+        file(STRINGS "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib/petsc/conf/petscvariables" PETSC_CXX_LINKER_FLAGS REGEX "CXX_LINKER_FLAGS = .*$?")
+        string(REPLACE "CXX_LINKER_FLAGS = " "" PETSC_CXX_LINKER_FLAGS "${PETSC_CXX_LINKER_FLAGS}")
+        message("** PETSC_CXX_LINKER_FLAGS: ${PETSC_CXX_LINKER_FLAGS}")
+
+        file(STRINGS "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib/petsc/conf/petscvariables" PETSC_CONFIGURE_OPTIONS REGEX "CONFIGURE_OPTIONS = .*$?")
+        string(REPLACE "CONFIGURE_OPTIONS = " "" PETSC_CONFIGURE_OPTIONS "${PETSC_CONFIGURE_OPTIONS}")
+        message("** PETSC_CONFIGURE_OPTIONS: ${PETSC_CONFIGURE_OPTIONS}")
+
+    endif()
+endif()
 
 find_package(MPI REQUIRED)
 if(MPI_FOUND)  
@@ -29,6 +63,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "GDB")
 else()
     message("** CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 endif()
+
+set(CMAKE_CXX_FLAGS "${PETSC_CXX_LINKER_FLAGS} ${CMAKE_CXX_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${PETSC_CXX_LINKER_FLAGS} ${CMAKE_EXE_LINKER_FLAGS}")
 message("** CMAKE_C_COMPILER = ${CMAKE_C_COMPILER} (${CMAKE_C_FLAGS})")
 message("** CMAKE_CXX_COMPILER = ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_FLAGS}); CMAKE_EXE_LINKER_FLAGS = ${CMAKE_EXE_LINKER_FLAGS}")
 
@@ -96,9 +133,10 @@ Set( commands_gen_bicrystal
     -xMatDir -1,1,0 -yMatDir -1,-1,2 -srcLenType 0 )
 Set(commands_repart_bicrystal -infile paradis.data -cells 4 -domains 1,1,4 -outfile bicrystal.data)
 if(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
-    Set(paradis_commands_bicrystal -n 1 -d ${PARADIS_BINARY_DIR}/bicrystal.data ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
+    Set(paradis_commands_bicrystal -n 1 -d ${PARADIS_BINARY_DIR}/bicrystal.data  ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
+#   Set(paradis_commands_bicrystal -n 1 -d ${PARADIS_BINARY_DIR}/bicrystal.data -p ${PARADIS_SOURCE_DIR}/tests/test.yaml ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
 else(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
-    Set(paradis_commands_bicrystal -n 2 -d ${PARADIS_BINARY_DIR}/bicrystal.data ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
+    Set(paradis_commands_bicrystal -n 2 -d ${PARADIS_BINARY_DIR}/bicrystal.data -p ${PARADIS_SOURCE_DIR}/tests/test.yaml ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
 endif(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
 
 Add_test(test_bicrystal-1

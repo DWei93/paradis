@@ -22,6 +22,17 @@
 #include <ctype.h>
 #include <time.h>
 #include <pwd.h>
+#include <regex>
+#include <strings.h>
+
+#ifdef PARALLEL
+#include "mpi.h"
+#endif
+
+#ifdef PETSC
+#include "PetscUtil.h"
+#endif
+
 #include "Home.h"
 #include "Init.h"
 #include "InData.h"
@@ -32,9 +43,7 @@
 #include "Parse.h"
 #include "Restart.h"
 #include "Comm.h"
-#include <regex>
 
-#include <strings.h>
 #ifdef _BGP
 #include <spi/kernel_interface.h>
 #include <common/bgp_personality.h>
@@ -45,10 +54,6 @@
 #define TASK_MAP_ENV_VAR               "BG_MAPPING"
 #define TASK_DISTRIBUTION_DEFLT        "XYZT"
 #endif  /* ifdef _BGP */
-
-#ifdef PARALLEL
-#include "mpi.h"
-#endif
 
 #ifdef _BGP
 /*---------------------------------------------------------------------------
@@ -1236,10 +1241,15 @@ void Initialize(Home_t *home,int argc, char *argv[])
         int          totMeshNum;
 		real8        (*Sij)[6];
 
+
         int  maxTokenLen, tokenType, pIndex, okay;
         char token[256];
         FILE *fp = (FILE *)NULL;
         tableFile = (char *)NULL;
+
+#ifdef PETSC
+        char        *petscOptionsFile;
+#endif
 
         char        workingDir[512], absTableFile[600];
 
@@ -1250,6 +1260,10 @@ void Initialize(Home_t *home,int argc, char *argv[])
 #endif
 
         real8 *pstn, degree=1.745329251994330e-02;
+
+#ifdef PETSC
+        PetscErrorCode ierrPetsc;
+#endif
 /*
  *      Initialize map between old and new node tags before
  *      reading nodal data and distributing it to the remote
@@ -1289,6 +1303,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
             dataFile = (char *)NULL;
             ctrlFile = (char *)NULL;
             fmFile   = (char *)NULL;
+#ifdef PETSC
+            petscOptionsFile = (char *)NULL;
+#endif
 
             for (i = 1; i < argc; i++) {
                 if (!strcmp(argv[i], "-r")) {
@@ -1323,6 +1340,11 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 } else if (!strcmp(argv[i], "-f")) {
                     if(i >= (argc - 1)) Usage(argv[0]);
                     fmFile = argv[++i];
+#ifdef PETSC
+                } else if (!strcmp(argv[i], "-p")) {
+                    if(i >= (argc - 1)) Usage(argv[0]);
+                    petscOptionsFile = argv[++i];
+#endif
                 } else {
                     if (i < (argc - 1)) Usage(argv[0]);
                     ctrlFile = argv[i];
@@ -1428,6 +1450,19 @@ void Initialize(Home_t *home,int argc, char *argv[])
                     printf("Warning: can not touch fm file %s\n", fmFile);
                 }
             }
+
+#ifdef PETSC
+            if(petscOptionsFile !=(char *)NULL){
+                FILE *fp_petsc;
+                if((fp_petsc = fopen(petscOptionsFile, "r")) != (FILE *)NULL) {
+                    snprintf(param->petscOptionsFile, sizeof(param->petscOptionsFile), "%s", petscOptionsFile);
+                    fclose(fp_petsc);
+                    printf("Petsc Options file: %s\n", param->petscOptionsFile);
+                }else{
+                    printf("Warning: can not touch Petsc options file %s\n", param->petscOptionsFile);
+                }
+            }
+#endif
 #ifdef _BGP
 /*
  *          On BlueGene type systems the job is physically executed on a
@@ -1441,8 +1476,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
             RemapDomains(home);
 #endif
         }  /* if (home->myDomain == 0) */
-
-
 
 /*
  *      All domains need the current Param_t structure that's
@@ -1773,6 +1806,11 @@ void Initialize(Home_t *home,int argc, char *argv[])
         }
 #endif
 
+#ifdef PETSC
+/* Initializing the PETSc Options. */
+        PetscInitialize(home);
+#endif
+
 /*
  *      Create the output directory (and sub-directories) and reset the
  *      current working directory to the top level output directory.
@@ -2011,6 +2049,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
             param->dissTable[i][3] = 0.0;
         }
 #endif
+
         if(home->myDomain==0)DumpPlanes(home);
 	    CheckMemUsage(home, "Initialize");
 	
