@@ -285,13 +285,13 @@ void ParadisFinish(Home_t *home)
         printf("Estimated memory usage (proc 0): %dk bytes\n", maxMem);
     }
 
-#ifdef PARALLEL
-    MPI_Finalize();
-#endif
-
 #ifdef PETSC
     PetscOptionsClear(NULL);
     PetscFinalize();
+#endif
+
+#ifdef PARALLEL
+    MPI_Finalize();
 #endif
 
     ReleaseMemory(home);
