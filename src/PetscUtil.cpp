@@ -4,10 +4,14 @@
 #include "PetscUtil.h"
 #include "Home.h"
 
+
+
+
 #define JACOBI
 
 PetscErrorCode FormFunction(SNES, Vec, Vec, void*);
 PetscErrorCode FormJacobian(SNES,Vec,Mat,Mat,void*);
+PetscErrorCode PetscTest1(Home_t *home);
 /**
  * `PetscInitialize` initializes the PETSc library and reads the options file
  * 
@@ -17,6 +21,7 @@ PetscErrorCode FormJacobian(SNES,Vec,Mat,Mat,void*);
  */
 PetscErrorCode PetscInitialize(Home_t *home){
     Param_t *param = home->param;
+    PetscBool petscTest1 = PETSC_FALSE;
 
     PetscFunctionBegin;
 
@@ -27,10 +32,13 @@ PetscErrorCode PetscInitialize(Home_t *home){
 /* Reading the options file and printing the options to the screen. */
     PetscCall(PetscOptionsInsertFileYAML(PETSC_COMM_WORLD,NULL,
                     param->petscOptionsFile,PETSC_TRUE));
-    PetscCall(PetscOptionsView(NULL,PETSC_VIEWER_STDOUT_WORLD));
 
-    PetscCall(PetscTest(home));
+    PetscCall(PetscOptionsGetBool(NULL,NULL,"-test_1",&petscTest1,NULL));
 
+    if(petscTest1){
+        PetscCall(PetscOptionsView(NULL,PETSC_VIEWER_STDOUT_WORLD));
+        PetscCall(PetscTest1(home));
+    }
     PetscFunctionReturn(0);
 }
 
@@ -50,7 +58,7 @@ typedef struct{
  * 
  * @param home the home object
  */
-PetscErrorCode PetscTest(Home_t *home) {
+PetscErrorCode PetscTest1(Home_t *home) {
 
     PetscMPIInt         rank, size;
     PetscInt            n = 4, nvertices, bs=2, initID[2];
@@ -78,7 +86,7 @@ PetscErrorCode PetscTest(Home_t *home) {
     PetscCallMPI(MPI_Comm_size(PETSC_COMM_WORLD,&size));
     PetscCallMPI(MPI_Comm_rank(PETSC_COMM_WORLD,&rank));
 
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Petsc Test\n"));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Petsc Test1\n"));
     sprintf(partName,"output.%d",rank);
     user.fp = fopen(partName,"w");
     fp      = user.fp;

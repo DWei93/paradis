@@ -4,6 +4,5 @@
 #include "Home.h"
 
 PetscErrorCode PetscInitialize(Home_t *home);
-PetscErrorCode PetscTest(Home_t *home);
 
 #endif
