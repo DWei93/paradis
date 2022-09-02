@@ -17,19 +17,21 @@ PetscErrorCode FormJacobian(SNES,Vec,Mat,Mat,void*);
  */
 PetscErrorCode PetscInitialize(Home_t *home){
     Param_t *param = home->param;
-    PetscErrorCode ierr;
 
-    ierr = PetscInitializeNoArguments();CHKERRQ(ierr); 
+    PetscFunctionBegin;
 
-    if(strcmp(param->petscOptionsFile, "0") == 0)return ierr;
+    PetscCall(PetscInitializeNoArguments()); 
+
+    if(strcmp(param->petscOptionsFile, "0") == 0)PetscFunctionReturn(0);
 
 /* Reading the options file and printing the options to the screen. */
-    ierr = PetscOptionsInsertFileYAML(PETSC_COMM_WORLD,NULL,
-                    param->petscOptionsFile,PETSC_TRUE);CHKERRQ(ierr);
-    ierr = PetscOptionsView(NULL,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
+    PetscCall(PetscOptionsInsertFileYAML(PETSC_COMM_WORLD,NULL,
+                    param->petscOptionsFile,PETSC_TRUE));
+    PetscCall(PetscOptionsView(NULL,PETSC_VIEWER_STDOUT_WORLD));
 
-    ierr = PetscTest(home);CHKERRQ(ierr);
-    return ierr;
+    PetscCall(PetscTest(home));
+
+    PetscFunctionReturn(0);
 }
 
 
@@ -52,7 +54,6 @@ PetscErrorCode PetscTest(Home_t *home) {
 
     PetscMPIInt         rank, size;
     PetscInt            n = 4, nvertices, bs=2, initID[2];
-    PetscErrorCode      ierr;
     PetscInt            nlocl, nghost = 0, i;
     SNES                snes;          // nonlinear solver
     Vec                 x, r, b;          // solution, residual and right-hand vectors
@@ -72,10 +73,12 @@ PetscErrorCode PetscTest(Home_t *home) {
 #endif
     char            partName[256];
 
-    ierr = PetscPrintf(PETSC_COMM_WORLD, "Petsc Test\n");CHKERRQ(ierr);
-    ierr = MPI_Comm_size(PETSC_COMM_WORLD,&size);CHKERRMPI(ierr);
-    ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank);CHKERRMPI(ierr);
+    PetscFunctionBegin;
 
+    PetscCallMPI(MPI_Comm_size(PETSC_COMM_WORLD,&size));
+    PetscCallMPI(MPI_Comm_rank(PETSC_COMM_WORLD,&rank));
+
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Petsc Test\n"));
     sprintf(partName,"output.%d",rank);
     user.fp = fopen(partName,"w");
     fp      = user.fp;
@@ -84,46 +87,46 @@ PetscErrorCode PetscTest(Home_t *home) {
         if(rank<2){
             nlocl = 1; nghost=1;
             nvertices = nlocl + nghost;
-            ierr = PetscMalloc1(nvertices, &user.vertices);CHKERRQ(ierr);
+            PetscCall(PetscMalloc1(nvertices, &user.vertices));
             user.vertices[0] = rank;
             if(rank==0)user.vertices[1]=1;else user.vertices[1]=0;
         }else{
             nlocl = 0; nghost=(rank%3);
             nvertices = nlocl + nghost;
             if(nghost){
-                ierr = PetscMalloc1(nghost, &user.vertices);CHKERRQ(ierr);
+                PetscCall(PetscMalloc1(nghost, &user.vertices));
                 if(nghost==1)user.vertices[0] = rank%2; else {user.vertices[0]=0; user.vertices[1]=1;}
             }
         }
     }else{
         nlocl = 2; nghost = 0; nvertices = 2;
-        ierr = PetscMalloc1(nvertices,&user.vertices);CHKERRQ(ierr);
+        PetscCall(PetscMalloc1(nvertices,&user.vertices));
         user.vertices[0] = 0; user.vertices[1]=1;
     }
     user.nlocal = nlocl; user.nghost = nghost; user.nvertices = nvertices;
     user.myDomain = rank; user.numDomains = size;
 
-    ierr = PetscSynchronizedPrintf(MPI_COMM_WORLD,"nlocal=%d, nghost=%d: ", nlocl, nghost);CHKERRQ(ierr);
-    for(i=0;i<nlocl+nghost;i++) {ierr = PetscSynchronizedPrintf(MPI_COMM_WORLD,"%d ",user.vertices[i]);CHKERRQ(ierr);}
-    ierr = PetscSynchronizedPrintf(MPI_COMM_WORLD,"\n");CHKERRQ(ierr);
-    ierr = PetscSynchronizedFlush(PETSC_COMM_WORLD,PETSC_STDOUT);CHKERRQ(ierr);
+    PetscCall(PetscSynchronizedPrintf(MPI_COMM_WORLD,"nlocal=%d, nghost=%d: ", nlocl, nghost));
+    for(i=0;i<nlocl+nghost;i++) {PetscCall(PetscSynchronizedPrintf(MPI_COMM_WORLD,"%d ",user.vertices[i]));}
+    PetscCall(PetscSynchronizedPrintf(MPI_COMM_WORLD,"\n"));
+    PetscCall(PetscSynchronizedFlush(PETSC_COMM_WORLD,PETSC_STDOUT));
 
-    ierr = VecCreateMPI(MPI_COMM_WORLD, nlocl*bs, n, &x);CHKERRQ(ierr);
-    ierr = VecSetBlockSize(x, bs);CHKERRQ(ierr);
-    ierr = VecCreateSeq(MPI_COMM_SELF, bs*nvertices, &user.localx);CHKERRQ(ierr);
-    ierr = VecSetBlockSize(user.localx, bs);CHKERRQ(ierr);
-    ierr = VecDuplicate(user.localx,&user.localF);CHKERRQ(ierr);
+    PetscCall(VecCreateMPI(MPI_COMM_WORLD, nlocl*bs, n, &x));
+    PetscCall(VecSetBlockSize(x, bs));
+    PetscCall(VecCreateSeq(MPI_COMM_SELF, bs*nvertices, &user.localx));
+    PetscCall(VecSetBlockSize(user.localx, bs));
+    PetscCall(VecDuplicate(user.localx,&user.localF));
 
-    ierr = ISCreateStride(MPI_COMM_SELF,bs*nvertices,0,1,&is);CHKERRQ(ierr);
-    ierr = ISCreateBlock(MPI_COMM_SELF,bs,nvertices,user.vertices,PETSC_COPY_VALUES,&isglobal);CHKERRQ(ierr);
-    ierr = PetscFPrintf(MPI_COMM_SELF,fp,"is and global is:\n");CHKERRQ(ierr);
-    ierr = ISView(isglobal,PETSC_VIEWER_STDOUT_SELF);CHKERRQ(ierr);
+    PetscCall(ISCreateStride(MPI_COMM_SELF,bs*nvertices,0,1,&is));
+    PetscCall(ISCreateBlock(MPI_COMM_SELF,bs,nvertices,user.vertices,PETSC_COPY_VALUES,&isglobal));
+    PetscCall(PetscFPrintf(MPI_COMM_SELF,fp,"is and global is:\n"));
+    PetscCall(ISView(isglobal,PETSC_VIEWER_STDOUT_SELF));
 
-    ierr = VecScatterCreate(x,isglobal,user.localx,is,&user.scatter);CHKERRQ(ierr);
-    ierr = VecScatterView(user.scatter,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
+    PetscCall(VecScatterCreate(x,isglobal,user.localx,is,&user.scatter));
+    PetscCall(VecScatterView(user.scatter,PETSC_VIEWER_STDOUT_WORLD));
 
-    ierr = ISDestroy(&is);CHKERRQ(ierr);
-    ierr = ISDestroy(&isglobal);CHKERRQ(ierr);
+    PetscCall(ISDestroy(&is));
+    PetscCall(ISDestroy(&isglobal));
 
 #ifdef JACOBI
   /*
@@ -131,26 +134,26 @@ PetscErrorCode PetscTest(Home_t *home) {
      preallocation of memory for the matrix. In real application code with big matrices,
      preallocation should always be done to expedite the matrix creation.
   */
-    ierr = MatCreate(MPI_COMM_WORLD,&Jac);CHKERRQ(ierr);
-    ierr = MatSetSizes(Jac,PETSC_DECIDE,PETSC_DECIDE,n,n);CHKERRQ(ierr);
-    ierr = MatSetFromOptions(Jac);CHKERRQ(ierr);
-    ierr = MatSetBlockSize(Jac,bs);CHKERRQ(ierr);
-    ierr = MatSetUp(Jac);CHKERRQ(ierr);
+    PetscCall(MatCreate(MPI_COMM_WORLD,&Jac));
+    PetscCall(MatSetSizes(Jac,PETSC_DECIDE,PETSC_DECIDE,n,n));
+    PetscCall(MatSetFromOptions(Jac));
+    PetscCall(MatSetBlockSize(Jac,bs));
+    PetscCall(MatSetUp(Jac));
 
   /*
     The following routine allows us to set the matrix values in local ordering
   */
-    ierr = ISLocalToGlobalMappingCreate(MPI_COMM_SELF,bs,nvertices,user.vertices,PETSC_COPY_VALUES,&isl2g);CHKERRQ(ierr);
-    ierr = MatSetLocalToGlobalMapping(Jac,isl2g,isl2g);CHKERRQ(ierr);
+    PetscCall(ISLocalToGlobalMappingCreate(MPI_COMM_SELF,bs,nvertices,user.vertices,PETSC_COPY_VALUES,&isl2g));
+    PetscCall(MatSetLocalToGlobalMapping(Jac,isl2g,isl2g));
 
 #endif
     
-    ierr = PetscFPrintf(MPI_COMM_SELF, fp, "-1 Vec Set\n");CHKERRQ(ierr);
+    PetscCall(PetscFPrintf(MPI_COMM_SELF, fp, "-1 Vec Set\n"));
     if(size == 1){
         initID[0]=0; initID[1]=1; initValue[0]=1.0; initValue[1]=2.0;
-        ierr = VecSetValues(x,2,initID,initValue,INSERT_VALUES);CHKERRQ(ierr);
+        PetscCall(VecSetValues(x,2,initID,initValue,INSERT_VALUES));
         initID[1]=2; initID[1]=3; initValue[0]=3.0; initValue[1]=4.0;
-        ierr = VecSetValues(x,2,initID,initValue,INSERT_VALUES);CHKERRQ(ierr);
+        PetscCall(VecSetValues(x,2,initID,initValue,INSERT_VALUES));
     }else{
         if(rank<2){
             if(rank==0){
@@ -158,91 +161,91 @@ PetscErrorCode PetscTest(Home_t *home) {
             }else if(rank==1){
                 initID[0]=2; initID[1]=3; initValue[0]=3.0; initValue[1]=4.0;
             }
-            ierr = VecSetValues(x,2,initID,initValue,INSERT_VALUES);CHKERRQ(ierr);
+            PetscCall(VecSetValues(x,2,initID,initValue,INSERT_VALUES));
         }
     }
-    ierr = VecAssemblyBegin(x);CHKERRQ(ierr);
-    ierr = VecAssemblyEnd(x);CHKERRQ(ierr);
-    ierr = VecSet(x,1.0);CHKERRQ(ierr);         // initial iterate
-    ierr = PetscPrintf(MPI_COMM_WORLD, "Initial x\n");CHKERRQ(ierr);
-    ierr = VecView(x, PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
+    PetscCall(VecAssemblyBegin(x));
+    PetscCall(VecAssemblyEnd(x));
+    PetscCall(VecSet(x,1.0));         // initial iterate
+    PetscCall(PetscPrintf(MPI_COMM_WORLD, "Initial x\n"));
+    PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
 
     /*
        Print out each vector, including the ghost padding region.
     */
-    ierr = VecGetArrayRead(user.localx,&array);CHKERRQ(ierr);
+    PetscCall(VecGetArrayRead(user.localx,&array));
     for (i=0; i<bs*(nlocl+nghost); i++) {
-      ierr = PetscFPrintf(PETSC_COMM_SELF,fp,"[%d](%s) %D %g\n",rank, i<bs*nlocl?"native":"ghost",
-                i,(double)PetscRealPart(array[i]));CHKERRQ(ierr);
+      PetscCall(PetscFPrintf(PETSC_COMM_SELF,fp,"[%d](%s) %D %g\n",rank, i<bs*nlocl?"native":"ghost",
+                i,(double)PetscRealPart(array[i])));
     }
-    ierr = VecRestoreArrayRead(user.localx,&array);CHKERRQ(ierr);
+    PetscCall(VecRestoreArrayRead(user.localx,&array));
 
-    ierr = PetscFPrintf(MPI_COMM_SELF, fp, "VecView\n");CHKERRQ(ierr);
-    ierr = VecView(x,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
-    ierr = VecDuplicate(x,&r);CHKERRQ(ierr);
-    ierr = VecDuplicate(x,&b);CHKERRQ(ierr);
+    PetscCall(PetscFPrintf(MPI_COMM_SELF, fp, "VecView\n"));
+    PetscCall(VecView(x,PETSC_VIEWER_STDOUT_WORLD));
+    PetscCall(VecDuplicate(x,&r));
+    PetscCall(VecDuplicate(x,&b));
 
-    ierr = VecSetValues(b,4,bid,bList,INSERT_VALUES);CHKERRQ(ierr);
-    ierr = VecAssemblyBegin(b);CHKERRQ(ierr);
-    ierr = VecAssemblyEnd(b);CHKERRQ(ierr);
-    ierr = PetscPrintf(MPI_COMM_WORLD,"VecView b\n");CHKERRQ(ierr);
-    ierr = VecView(b,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
+    PetscCall(VecSetValues(b,4,bid,bList,INSERT_VALUES));
+    PetscCall(VecAssemblyBegin(b));
+    PetscCall(VecAssemblyEnd(b));
+    PetscCall(PetscPrintf(MPI_COMM_WORLD,"VecView b\n"));
+    PetscCall(VecView(b,PETSC_VIEWER_STDOUT_WORLD));
 
-    ierr = SNESCreate(PETSC_COMM_WORLD,&snes);CHKERRQ(ierr);
-    ierr = SNESSetType(snes,SNESNEWTONLS);CHKERRQ(ierr);
-    ierr = SNESSetFunction(snes,r,FormFunction,(void*)&user);CHKERRQ(ierr);
+    PetscCall(SNESCreate(PETSC_COMM_WORLD,&snes));
+    PetscCall(SNESSetType(snes,SNESNEWTONLS));
+    PetscCall(SNESSetFunction(snes,r,FormFunction,(void*)&user));
 
 #ifdef JACOBI
-    ierr = PetscOptionsGetBool(NULL,NULL,"-fd_jacobian_coloring",&fd_jacobian_coloring,0);CHKERRQ(ierr);
+    PetscCall(PetscOptionsGetBool(NULL,NULL,"-fd_jacobian_coloring",&fd_jacobian_coloring,0));
     if (!fd_jacobian_coloring) {
-      ierr = SNESSetJacobian(snes,Jac,Jac,FormJacobian,(void*)&user);CHKERRQ(ierr);
+      PetscCall(SNESSetJacobian(snes,Jac,Jac,FormJacobian,(void*)&user));
     } else {  /* Use matfdcoloring */
       ISColoring   iscoloring;
       MatColoring  mc;
   
       /* Get the data structure of Jac */
-      ierr = FormJacobian(snes,x,Jac,Jac,&user);CHKERRQ(ierr);
+      PetscCall(FormJacobian(snes,x,Jac,Jac,&user));
       /* Create coloring context */
-      ierr = MatColoringCreate(Jac,&mc);CHKERRQ(ierr);
-      ierr = MatColoringSetType(mc,MATCOLORINGSL);CHKERRQ(ierr);
-      ierr = MatColoringSetFromOptions(mc);CHKERRQ(ierr);
-      ierr = MatColoringApply(mc,&iscoloring);CHKERRQ(ierr);
-      ierr = MatColoringDestroy(&mc);CHKERRQ(ierr);
-      ierr = MatFDColoringCreate(Jac,iscoloring,&matfdcoloring);CHKERRQ(ierr);
-      ierr = MatFDColoringSetFunction(matfdcoloring,(PetscErrorCode (*)(void))FormFunction,&user);CHKERRQ(ierr);
-      ierr = MatFDColoringSetFromOptions(matfdcoloring);CHKERRQ(ierr);
-      ierr = MatFDColoringSetUp(Jac,iscoloring,matfdcoloring);CHKERRQ(ierr);
-      /* ierr = MatFDColoringView(matfdcoloring,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr); */
-      ierr = SNESSetJacobian(snes,Jac,Jac,SNESComputeJacobianDefaultColor,matfdcoloring);CHKERRQ(ierr);
-      ierr = ISColoringDestroy(&iscoloring);CHKERRQ(ierr);
+      PetscCall(MatColoringCreate(Jac,&mc));
+      PetscCall(MatColoringSetType(mc,MATCOLORINGSL));
+      PetscCall(MatColoringSetFromOptions(mc));
+      PetscCall(MatColoringApply(mc,&iscoloring));
+      PetscCall(MatColoringDestroy(&mc));
+      PetscCall(MatFDColoringCreate(Jac,iscoloring,&matfdcoloring));
+      PetscCall(MatFDColoringSetFunction(matfdcoloring,(PetscErrorCode (*)(void))FormFunction,&user));
+      PetscCall(MatFDColoringSetFromOptions(matfdcoloring));
+      PetscCall(MatFDColoringSetUp(Jac,iscoloring,matfdcoloring));
+      /* PetscCall(MatFDColoringView(matfdcoloring,PETSC_VIEWER_STDOUT_WORLD)); */
+      PetscCall(SNESSetJacobian(snes,Jac,Jac,SNESComputeJacobianDefaultColor,matfdcoloring));
+      PetscCall(ISColoringDestroy(&iscoloring));
     }
 #endif
-    ierr = SNESSetFromOptions(snes);CHKERRQ(ierr);
-    ierr = SNESSolve(snes,b,x);CHKERRQ(ierr);
-    ierr = VecView(x,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
+    PetscCall(SNESSetFromOptions(snes));
+    PetscCall(SNESSolve(snes,b,x));
+    PetscCall(VecView(x,PETSC_VIEWER_STDOUT_WORLD));
 
-    if(nvertices) {ierr = PetscFree(user.vertices);CHKERRQ(ierr);}
-    ierr = VecDestroy(&user.localx);CHKERRQ(ierr);
-    ierr = VecDestroy(&user.localF);CHKERRQ(ierr);
-    ierr = VecScatterDestroy(&user.scatter);CHKERRQ(ierr);
+    if(nvertices) {PetscCall(PetscFree(user.vertices));}
+    PetscCall(VecDestroy(&user.localx));
+    PetscCall(VecDestroy(&user.localF));
+    PetscCall(VecScatterDestroy(&user.scatter));
 
-    ierr = SNESDestroy(&snes);CHKERRQ(ierr);  
-    ierr = VecDestroy(&x);CHKERRQ(ierr);  
-    ierr = VecDestroy(&r);CHKERRQ(ierr);
-    ierr = VecDestroy(&b);CHKERRQ(ierr);
+    PetscCall(SNESDestroy(&snes));  
+    PetscCall(VecDestroy(&x));  
+    PetscCall(VecDestroy(&r));
+    PetscCall(VecDestroy(&b));
     fclose(fp);
 #ifdef JACOBI
-    ierr = MatDestroy(&Jac);CHKERRQ(ierr);
+    PetscCall(MatDestroy(&Jac));
 #endif
-    return ierr;
+    PetscFunctionReturn(0);
 }
 
 PetscErrorCode FormFunction(SNES snes, Vec x, Vec F, void *ctx) {
 
-    PetscErrorCode      ierr;
     const PetscReal     *ax;
     PetscReal           *aF;
     PetscInt            i;
+
 
 /* A pointer to the user structure. */
     User_t     *user     = (User_t *)ctx;
@@ -253,16 +256,17 @@ PetscErrorCode FormFunction(SNES snes, Vec x, Vec F, void *ctx) {
     PetscInt   myDomain  = user->myDomain;
     PetscInt   numDomains  = user->numDomains;
     
-    ierr = PetscFPrintf(MPI_COMM_SELF,fp,"%s: 1, nlocal=%d\n",__func__,nlocal);CHKERRQ(ierr);
+    PetscFunctionBegin;
+    PetscCall(PetscFPrintf(MPI_COMM_SELF,fp,"%s: 1, nlocal=%d\n",__func__,nlocal));
 
-    ierr = VecScatterBegin(scatter,x,lx,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
-    ierr = VecScatterEnd(scatter,x,lx,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
+    PetscCall(VecScatterBegin(scatter,x,lx,INSERT_VALUES,SCATTER_FORWARD));
+    PetscCall(VecScatterEnd(scatter,x,lx,INSERT_VALUES,SCATTER_FORWARD));
 
     /*
      * Get pointer to vector data
      */
-    ierr = VecGetArrayRead(lx,&ax);CHKERRQ(ierr);
-    ierr = VecGetArray(F,&aF);CHKERRQ(ierr);
+    PetscCall(VecGetArrayRead(lx,&ax));
+    PetscCall(VecGetArray(F,&aF));
 
     for(i=0;i<nlocal;i++){
         if(numDomains>1){
@@ -286,12 +290,14 @@ PetscErrorCode FormFunction(SNES snes, Vec x, Vec F, void *ctx) {
         }
     }
 
-    ierr = VecRestoreArrayRead(lx,&ax);CHKERRQ(ierr);
-    ierr = VecRestoreArray(F,&aF);CHKERRQ(ierr);
-    ierr = PetscPrintf(MPI_COMM_WORLD,"Output F\n");CHKERRQ(ierr);
-    ierr = VecView(F,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
+    PetscCall(VecRestoreArrayRead(lx,&ax));
+    PetscCall(VecRestoreArray(F,&aF));
+    PetscCall(PetscPrintf(MPI_COMM_WORLD,"Output F\n"));
+    PetscCall(VecView(F,PETSC_VIEWER_STDOUT_WORLD));
+
+    PetscCall(PetscFPrintf(MPI_COMM_SELF,fp,"%s 1\n",__func__));
     
-    return ierr;
+    PetscFunctionReturn(0);
 }
 /* --------------------  Evaluate Jacobian F'(x) -------------------- */
 /*
@@ -310,7 +316,6 @@ PetscErrorCode FormFunction(SNES snes, Vec x, Vec F, void *ctx) {
 */
 PetscErrorCode FormJacobian(SNES snes,Vec x,Mat J,Mat jac,void *ctx)
 {
-    PetscErrorCode          ierr;
     const PetscReal         *ax;
     PetscScalar             af[4][4], v[4]={0.0,0.0,0.0,0.0}, value[4];
     PetscScalar             t1,t2,t3,t4,t5,t6,t7,t8,t9,t10;
@@ -326,13 +331,15 @@ PetscErrorCode FormJacobian(SNES snes,Vec x,Mat J,Mat jac,void *ctx)
     PetscInt   numDomains = user->numDomains;
     PetscInt   nvertices  = user->nvertices;
 
-    ierr = VecScatterBegin(scatter,x,lx,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
-    ierr = VecScatterEnd(scatter,x,lx,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
+    PetscFunctionBegin;
+
+    PetscCall(VecScatterBegin(scatter,x,lx,INSERT_VALUES,SCATTER_FORWARD));
+    PetscCall(VecScatterEnd(scatter,x,lx,INSERT_VALUES,SCATTER_FORWARD));
    
     /*
        Get pointer to vector data
     */
-    ierr = VecGetArrayRead(lx,&ax);CHKERRQ(ierr);
+    PetscCall(VecGetArrayRead(lx,&ax));
 
     if(!numDomains){
         v[0] = ax[0]; v[1]=ax[1]; v[2]=ax[2]; v[3]=ax[3];
@@ -389,7 +396,7 @@ PetscErrorCode FormJacobian(SNES snes,Vec x,Mat J,Mat jac,void *ctx)
               feature we must call the routine MatSetLocalToGlobalMapping() after the
               matrix has been created.
             */
-            ierr = MatSetValuesLocal(jac,1,&i,2*nvertices,col,value,INSERT_VALUES);CHKERRQ(ierr);
+            PetscCall(MatSetValuesLocal(jac,1,&i,2*nvertices,col,value,INSERT_VALUES));
        
         }
     }
@@ -400,16 +407,16 @@ PetscErrorCode FormJacobian(SNES snes,Vec x,Mat J,Mat jac,void *ctx)
        Between these two calls, the pointer to vector data has been restored to
        demonstrate the use of overlapping communicationn with computation.
     */
-    ierr = MatAssemblyBegin(jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-    ierr = VecRestoreArrayRead(lx,&ax);CHKERRQ(ierr);
-    ierr = MatAssemblyEnd(jac,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+    PetscCall(MatAssemblyBegin(jac,MAT_FINAL_ASSEMBLY));
+    PetscCall(VecRestoreArrayRead(lx,&ax));
+    PetscCall(MatAssemblyEnd(jac,MAT_FINAL_ASSEMBLY));
    
     /*
        Tell the matrix we will never add a new nonzero location to the
        matrix. If we do, it will generate an error.
     */
-    ierr = MatSetOption(jac,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE);CHKERRQ(ierr);
+    PetscCall(MatSetOption(jac,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE));
     /* MatView(jac,PETSC_VIEWER_STDOUT_SELF); */
-    return 0;
+    PetscFunctionReturn(0);
 }
 #endif
