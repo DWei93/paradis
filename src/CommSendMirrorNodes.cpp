@@ -283,7 +283,7 @@ void CommSendMirrorNodes(Home_t *home, int stage)
  *------------------------------------------------------------------------*/
 static void PackMirrorNodes(Home_t *home, int *numNodes)
 {
-	int	i, inode, intCount, fltCount, iIdx;
+	int	inode, intCount, fltCount, iIdx;
 	int	fIdx, iNbr, packedIntSiz, packedFltSiz, ipos, packSiz;
 	int	nodeCount = 0, armCount = 0;
 	int	*intBuf;
@@ -422,7 +422,7 @@ static void PackMirrorNodes(Home_t *home, int *numNodes)
 static void UnpackMirrorNodes(Home_t *home, int domIndex) 
 {
 #ifdef PARALLEL
-	int		ipos = 0, numNodes, newNodeKeyPtr, iNbr, reserved;
+	int		ipos = 0, numNodes, newNodeKeyPtr, iNbr;
 	int		intCount, fltCount, i, inode, numNbrs, armCount;
 	int		iIdx = 0, fIdx = 0;
 	int		control[6];
@@ -448,7 +448,6 @@ static void UnpackMirrorNodes(Home_t *home, int domIndex)
 	intCount = control[2];
 	fltCount = control[3];
 	armCount = control[4];
-	reserved = control[5];
 
 	home->mirrorDomainKeys[domIndex] =
 		(MirrorDomain_t *) malloc( sizeof(MirrorDomain_t) );

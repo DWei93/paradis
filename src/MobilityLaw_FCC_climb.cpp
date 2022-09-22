@@ -44,7 +44,6 @@ int Mobility_FCC_climb(Home_t *home, Node_t *node)
         real8   angle1, angle2;
         real8   costheta, costheta2, cosCritical1, cosCritical2;
         real8   Bline, Bscrew, Bedge, Bglide, Bclimb, Beclimb;
-        real8   Bscrew2, Bedge2, Beclimb2;
         real8   invBscrew2, invBedge2;
         real8   BlmBecl;
         real8   eps = 1.0e-12;
@@ -72,10 +71,6 @@ int Mobility_FCC_climb(Home_t *home, Node_t *node)
  */
         Beclimb    = 10000.0 * Bedge;
        
-        Bedge2     = Bedge * Bedge;
-        Bscrew2    = Bscrew * Bscrew;
-        Beclimb2   = Beclimb * Beclimb;
-
         Bline      = 1.0 * MIN(Bscrew, Bedge);
         BlmBecl    = Bline - Beclimb; 
 

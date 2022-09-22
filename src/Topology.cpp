@@ -339,7 +339,7 @@ void RestoreNode(Home_t *home, Node_t *origNode, Node_t *bkupNode)
 int InitTopologyExemptions(Home_t *home)
 {
         int     i;
-        Node_t  *node, *nbr1, *nbr2;
+        Node_t  *node;
 
         for (i = 0; i < home->newNodeKeyPtr; i++) {
             if ((node = home->nodeKeys[i]) == (Node_t *)NULL) continue;
@@ -1125,15 +1125,15 @@ void SplitMultiNodes(Home_t *home)
 	    int	globalOp = 1;
         int bkupNodeCount;
         int segIndex, mobError, skipSplits = 0;
-	    int	*armList, *currSet;
-	    int	**armSets;
+	    int	*armList=NULL, *currSet=NULL;
+	    int	**armSets=NULL;
         int     localSplitVals[4], globalSplitVals[4];
 	    real8	powerMax, powerTest;
 	    real8	vd1, vd2, invvNorm;
-	    real8	dirx, diry, dirz, pos[3];
-	    real8	minDist, splitDist, minArmLen, shortSeg;
+	    real8	dirx, diry, dirz;
+	    real8	minDist, splitDist, shortSeg;
         real8   vDiffx, vDiffy, vDiffz;
-	    real8	temp, vec[3];
+	    real8	temp;
 	    real8	eps = 1.0e-12;
         real8   pos1[3], pos2[3], vel1[3], vel2[3], origPos[3], origVel[3];
         real8   vNoise;
@@ -1143,11 +1143,13 @@ void SplitMultiNodes(Home_t *home)
         Node_t  *bkupNodeList;
 	    Param_t	*param;
         SegData_t *segData = (SegData_t *)NULL;
+#if 0
+        int     minArmLen;
+#endif
 
         int     splitInGrain=-1, splitOnGB=-1;
         int     bakInGrain1=-1, bakOnGB1=-1;
         int     bakInGrain2=-1, bakOnGB2=-1;
-        bool    gbNode=false;
 
         std::vector<int>    nbrInGrain;
         int     inGrain, onGB;
@@ -1413,7 +1415,6 @@ void SplitMultiNodes(Home_t *home)
 
                 
                 if(IsOnGB(node)){
-                    gbNode = true;
                     splitInGrain = -1;
                     splitOnGB = -1;
                     nbrInGrain.resize(armSets[j][nbrs]);
@@ -1442,21 +1443,20 @@ void SplitMultiNodes(Home_t *home)
 
                     if(splitOnGB == -1){
                         splitInGrain = nbrInGrain[0];
-                        for(k=0; k<nbrInGrain.size(); k++){
+                        for(k=0; k<(int)nbrInGrain.size(); k++){
                             if(GetGBIndexOfGrain(home->grainKeys[nbrInGrain[k]],
                                  node->onGB) == -1)break;
                             if(nbrInGrain[k] != splitInGrain){
                                 splitOnGB = node->onGB;
                             }
                         }
-                        if(k != nbrInGrain.size())continue;
+                        if(k != (int)nbrInGrain.size())continue;
 
                         if(splitOnGB > -1)splitInGrain = -1;
                     }
                 }else{
                     splitInGrain = node->inGrain;
                     splitOnGB = node->onGB;
-                    gbNode=false;
                 }
 /*
  *              Note: for this test, both the node being split
@@ -2169,6 +2169,11 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
             segPlaneY = node->ny[armList[0]];
             segPlaneZ = node->nz[armList[0]];
             bakSignSF = node->signSF[armList[0]];
+        }else{
+            segPlaneX = 0;
+            segPlaneY = 0;
+            segPlaneZ = 0;
+            bakSignSF = 0;
         }
 
 /*
@@ -2636,13 +2641,13 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 {
     real8 dpst_merge[6]={0,0,0,0,0,0}, dpsp_merge[3]={0,0,0};
 
-	int		i,sameGrain=0;
+	int		i;
 	int     armID, armID1, armID2, thisDomain; 
 	int     node1Deletable, node2Deletable;
 	int     targetIsLocal, nbrIsLocal, targetOwnsSeg;
 	real8	bx, by, bz;
 	real8	nx, ny, nz, signSF;
-	real8   ftmp[3], mergeInGrain;
+	real8   ftmp[3];
 	Node_t	*nbrNode, *targetNode, *deadNode;
 	Tag_t	tmpTag, *nbr1Tag, *nbr2Tag;
 
@@ -2972,6 +2977,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
             dpsp[2]-= dpsp_merge[2];
 
             if(TD){
+                nTDs = 0;
                 for(i=0; i<targetNode->numNbrs; i++){
                     burg[0] = targetNode->burgX[i];
                     burg[1] = targetNode->burgY[i];
@@ -3002,7 +3008,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
         }
 
 
-	    int eleNum = Coor2EleNum(home,position,meshNx,meshNy,meshNz);
+	    Coor2EleNum(home,position,meshNx,meshNy,meshNz);
 	    FoldBox(param,position,position+1,position+2);
 
         PBCPOSITION(param, position[0], position[1], position[2], node1Pos, node1Pos+1, node1Pos+2);
@@ -3062,13 +3068,9 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
                      Node_t **newNodePtr)
 {
     int         thisDomain;
-    Param_t     *param;
-    bool        switched = 0;
     Node_t      *newNode;
 
     thisDomain = home->myDomain;
-    param = home->param;
-
 
     *newNodePtr = (Node_t *)NULL;
     if (node1->myTag.domainID != thisDomain || 

@@ -39,8 +39,7 @@ static int dbgDom;
 static void MeshCoarsen(Home_t *home)
 {
         int     i, q, thisDomain, mergeDone, mergeStatus, globalOp;
-        int     localCoarsenCnt, globalCoarsenCnt, hasRemoteNbr;
-        real8   tmpMag2;
+        int     hasRemoteNbr;
         real8   cellLength, cutoffLength1, cutoffLength2;
         real8   vec1x, vec1y, vec1z;
         real8   vec2x, vec2y, vec2z;
@@ -71,8 +70,11 @@ static void MeshCoarsen(Home_t *home)
         areaMin2   = areaMin * areaMin;
         delta      = 1.0e-16;
 
-        localCoarsenCnt = 0;
-        globalCoarsenCnt = 0;
+#ifdef DEBUG_LOG_MESH_COARSEN
+        int     localCoarsenCnt, globalCoarsenCnt;
+        int localCoarsenCnt = 0;
+        int globalCoarsenCnt = 0;
+#endif
 /*
  *      Loop through all the nodes native to this domain looking for
  *      nodes that should be coarsened out.
@@ -384,9 +386,9 @@ static void MeshCoarsen(Home_t *home)
  */
                 if (mergeDone == 0) continue;
         
+#ifdef DEBUG_LOG_MESH_COARSEN
                 localCoarsenCnt++;
 
-#ifdef DEBUG_TOPOLOGY_CHANGES
                 if ((dbgDom < 0) || (dbgDom == home->myDomain)) {
                     printf("Coarsen: (%d,%d)--(%d,%d)--(%d,%d)\n",
                            oldTag1.domainID, oldTag1.index,
@@ -503,7 +505,6 @@ static void MeshRefine(Home_t *home)
         int     i, thisDomain, splitOK, splitSeg2;
         int     splitStatus, armIndex, armCount = 1, globalOp;
         int     armID, *armList;
-        int     localRefineCnt, globalRefineCnt;
         real8   areaMax, areaMax2, minSeg2, maxSeg2;
         real8   delta, r1, r2, r3, s, area2;
         real8   dr1dt, dr2dt, dr3dt, dsdt, darea2dt;
@@ -531,8 +532,10 @@ static void MeshRefine(Home_t *home)
         maxSeg2  = param->maxSeg * param->maxSeg;
         delta    = 1.0e-16;
 
-        localRefineCnt = 0;
-        globalRefineCnt = 0;
+#ifdef DEBUG_LOG_MESH_REFINE
+        int localRefineCnt = 0;
+        int globalRefineCnt = 0;
+#endif
         
 /*
  *      Loop through all the  native nodes looking for segments
@@ -792,7 +795,9 @@ static void MeshRefine(Home_t *home)
         
                     if (splitStatus == SPLIT_SUCCESS) {
 
+#ifdef DEBUG_LOG_MESH_REFINE
                         localRefineCnt++;
+#endif
                         splitSeg2 = 1;
                         node = splitNode1;
 /*
@@ -990,7 +995,9 @@ static void MeshRefine(Home_t *home)
         
                     if (splitStatus == SPLIT_SUCCESS) {
 
+#ifdef DEBUG_LOG_MESH_REFINE
                         localRefineCnt++;
+#endif
 
                         node = splitNode1;
 /*
@@ -1134,7 +1141,9 @@ static void MeshRefine(Home_t *home)
         
                         if (splitStatus == SPLIT_SUCCESS) {
 
+#ifdef DEBUG_LOG_MESH_REFINE
                             localRefineCnt++;
+#endif
 
                             node = splitNode1;
 /*

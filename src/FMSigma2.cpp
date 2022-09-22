@@ -30,15 +30,7 @@
  *      lots of unrolled loops and simple code the optimizers can
  *      handle well.
  */
-#ifdef PRINT_PE
-#undef PRINT_PE
-#endif
 
-#ifdef PRINT_PE
-#define xprintf printf
-#else
-#define xprintf (void)
-#endif
 
 /*
  *      Prototype the basic unoptimized function to handle
@@ -169,23 +161,10 @@ static void FMSigma2core(int iorder, int pows[][3], real8 terms[],
     inited = 1;
   }
 
-  xprintf("#include \"real.h\"\n");
-  xprintf("#ifndef NTMAX\n");
-  xprintf("#define NTMAX  ( (NMAX+1)*(NMAX+2)/2 )\n");
-  xprintf("#endif\n\n");
-
-  xprintf("void FMSigma2core%d(real8 terms[],real8 mu8pi, "
-	 "real8 two1nu,real8 Eeta[],matrix sigma) {\n",iorder);
-  xprintf("  matrix Gijmkl[3],Gmppkl[3] = {{{0.0}}};\n");
-  xprintf("  real8 t,t11,t12,t2,t3,tvec[NTMAX];\n");
-  xprintf("  int npows,etaoff,a,nidx;\n\n");
-  
   npows = (iorder+1+3)*(iorder+2+3)/2;
-  xprintf("  npows = %d;\n",npows);
 
   etadis0 = (iorder+1)*(iorder+2) >> 1; /* (iorder+1)*(iorder+2)/2          */
   etaoff = 3*iorder*etadis0;            /* 9*iorder*(iorder+1)*(iorder+2)/6 */
-  xprintf("  etaoff = %d;\n",etaoff);
   for(i=0; i<3; i++)
     for(j=0; j<3; j++) {
       for(m=0; m<3; m++) {
@@ -200,88 +179,60 @@ static void FMSigma2core(int iorder, int pows[][3], real8 terms[],
 	  if(nx>=0 && ny>=0 && nz>=0) {
 	    tvec[nidx++] = terms[k] * fact[iorder] *
 	      ifact[nx]*ifact[ny]*ifact[nz];
-	    xprintf("  tvec[%3d] = terms[%3d] * %10.1f;\n",
-		   nidx-1,k,fact[iorder]/fact[nx]/fact[ny]/fact[nz]);
 	  }
 	}
-	xprintf("\n  nidx = %d;\n",nidx);
 
 	etadis0 = etaoff;
 	for(k = 0; k<3; k++)
 	  for(l = 0; l<3; l++) {
 	    t = 0.0;
-	    xprintf("  t = 0.0;\n");
 	    for(a = 0; a<nidx; a++) {
 	      t = t + tvec[a]*Eeta[etadis0++];
 	    }
-	    xprintf("  for(a = 0; a<%d; a++)\n  ",nidx);
-	    xprintf("  t = t + tvec[a]*Eeta[%3d+a];\n",etaoff+(3*k+l)*nidx);
 	    
 	    Gijmkl[m][k][l] = t;
-	    xprintf("  Gijmkl[%3d][%3d][%3d] = t;\n",m,k,l);
 	    if(i == j) {
 	      Gmppkl[m][k][l] = Gmppkl[m][k][l] + t;
-	      xprintf("  Gmppkl[%3d][%3d][%3d] = Gmppkl[%3d][%3d][%3d] + t;\n",
-		     m,k,l,m,k,l);
 	    }
 	  }
       }
       
       t2 = 0.0;
-      xprintf("\n  t2 = 0.0;\n");
       for(k = 0; k<3; k++) {
-	/* Second term: 2/(1-nu) * ijk(k,m,n)G(i,j,m,n,k) */
-	m = cyc[k+1]; n = cyc[k+2];
-	t2 = t2 + (Gijmkl[m][n][k] - Gijmkl[n][m][k]);
-	xprintf("  t2 = t2 + (Gijmkl[%3d][%3d][%3d] - Gijmkl[%3d][%3d][%3d]);\n",
-	       m,n,k,n,m,k);
+	      /* Second term: 2/(1-nu) * ijk(k,m,n)G(i,j,m,n,k) */
+	      m = cyc[k+1]; n = cyc[k+2];
+	      t2 = t2 + (Gijmkl[m][n][k] - Gijmkl[n][m][k]);
       }
       sigma[i][j] = two1nu * t2;
-      xprintf("  sigma[%3d][%3d] = two1nu * t2;\n",i,j);
     }
   
   /* Term one: ijk(j,m,n)G(m,p,p,n,i) + ijk(i,m,n)G(m,p,p,n,j) */
-  xprintf("\n");
   for(i = 0; i<3; i++)
     for(j = 0; j<3; j++) {
       m = cyc[j+1]; n = cyc[j+2];
       t11 = Gmppkl[m][n][i] - Gmppkl[n][m][i];
-      xprintf("  t11 = Gmppkl[%3d][%3d][%3d] - Gmppkl[%3d][%3d][%3d];\n",
-	     m,n,i,n,m,i);
       
       m = cyc[i+1]; n = cyc[i+2];
       t12 = Gmppkl[m][n][j] - Gmppkl[n][m][j];
-      xprintf("  t12 = Gmppkl[%3d][%3d][%3d] - Gmppkl[%3d][%3d][%3d];\n",
-	     m,n,j,n,m,j);
       
       sigma[i][j] = sigma[i][j] + (t11 + t12);
-      xprintf("  sigma[%3d][%3d] = sigma[%3d][%3d] + (t11 + t12);\n",
-	     i,j,i,j);
     }
   
   /* Third term: 2/(1-nu) * delta(i,j)ijk(km,n)G(p,p,m,n,k) */
   t3 = 0.0;
-  xprintf("\n  t3 = 0.0;\n");
   for(k = 0; k<3; k++) {
     m = cyc[k+1]; n = cyc[k+2];
     t3 = t3 + Gmppkl[m][n][k] - Gmppkl[n][m][k];
-    xprintf("  t3 = t3 + Gmppkl[%3d][%3d][%3d] - Gmppkl[%3d][%3d][%3d];\n",
-	   m,n,k,n,m,k);
   }
   t3 = t3 * two1nu;
-  xprintf("  t3 = t3 * two1nu;\n");
   for(i = 0; i<3; i++) {
     sigma[i][i] = sigma[i][i] - t3;
-    xprintf("sigma[%3d][%3d] = sigma[%3d][%3d] - t3;\n",i,i,i,i);
   }
   t = ipow(-1.0,iorder);
-  xprintf("\n  t = %30.20e * mu8pi;\n",ipow(-1.0,iorder) * ifact[iorder]);
   for(i = 0; i<3; i++)
     for(j = 0; j<3; j++) {
       sigma[i][j] = t * sigma[i][j] * mu8pi*ifact[iorder];
-      xprintf("  sigma[%3d][%3d] = t * sigma[%3d][%3d];\n",i,j,i,j);
     }
-  xprintf("}\n\n\n\n");
 }
 
 

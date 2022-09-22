@@ -85,13 +85,13 @@ endif()
 Add_executable(${PARADIS_EXE} ${PARADIS_SRCS})
 
 if(GEOS_FOUND)
-target_include_directories(${PARADIS_EXE} PUBLIC ../include ${PETSC_INCLUDES})
+target_include_directories(${PARADIS_EXE} PUBLIC  ${PETSC_INCLUDES} ../include)
 else()
-target_include_directories(${PARADIS_EXE} PUBLIC ../include ${PETSC_INCLUDES} ${MPI_INCLUDE_PATH})
+target_include_directories(${PARADIS_EXE} PUBLIC ${PETSC_INCLUDES} ../include ${MPI_INCLUDE_PATH})
 endif()
 
 target_link_libraries(${PARADIS_EXE} ${MPI_CXX_LIBRARIES} ${PETSC_WITH_EXTERNAL_LIB}) # this must be  MPI_CXX_LIBRARIES for cpp file
 
-Add_definitions(-DSIMLPLE_REACTION_ON_GB)
+Add_definitions(-DSIMLPLE_REACTION_ON_GB -Werror)
 
 Install(TARGETS ${PARADIS_EXE} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

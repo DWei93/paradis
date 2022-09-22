@@ -711,14 +711,20 @@ void SetRemainingDefaults(Home_t *home)
  *          not within the primary bounding box, it's a problem.
  */
             if (((param->xBoundType == Free) &&
-                 (param->xBoundMin < param->minCoordinates[0]) ||
-                 (param->xBoundMax > param->maxCoordinates[0])) ||
+                 (param->xBoundMin < param->minCoordinates[0])) ||
+                ((param->xBoundType == Free) &&
+                 (param->xBoundMin > param->maxCoordinates[0])) ||
+
                 ((param->yBoundType == Free) &&
-                 (param->yBoundMin < param->minCoordinates[1]) ||
-                 (param->yBoundMax > param->maxCoordinates[1])) ||
+                 (param->yBoundMin < param->minCoordinates[1])) ||
+                ((param->yBoundType == Free) &&
+                 (param->yBoundMin > param->maxCoordinates[1])) ||
+
                 ((param->zBoundType == Free) &&
-                 (param->zBoundMin < param->minCoordinates[2]) ||
-                 (param->zBoundMax > param->maxCoordinates[2]))) {
+                 (param->zBoundMin < param->minCoordinates[2])) ||
+                ((param->zBoundType == Free) &&
+                 (param->zBoundMin > param->maxCoordinates[2]))
+                 ) {
                 printf("Warning: Free surfaces are not within main bounding box!\n"
                       "    Surface min coordinates (%lf %lf %lf)\n"
                       "    Surface max coordinates (%lf %lf %lf)\n",
@@ -1173,6 +1179,7 @@ static void PrintBanner(Home_t *home, int argc, char *argv[])
 
 #ifndef _XT4
         reStr = getcwd(workingDir, sizeof(workingDir) - 1);
+        if(reStr == (char *)NULL)Fatal("%s: can not get the dir",__func__);
         (void)uname(&utsInfo);
 
         uid = getuid();
@@ -1234,7 +1241,6 @@ void Initialize(Home_t *home,int argc, char *argv[])
         char         tmpDataFile[256], testFile[256], tmpTableFile[256];
         char         *ctrlFile;
         char         *dataFile, *tableFile, *fmFile;
-        const   char* temp;
         Param_t      *param;
         InData_t     *inData;
         int          fd;
@@ -1242,7 +1248,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
 		real8        (*Sij)[6];
 
 
-        int  maxTokenLen, tokenType, pIndex, okay;
+        int  maxTokenLen, tokenType;
         char token[256];
         FILE *fp = (FILE *)NULL;
         tableFile = (char *)NULL;
@@ -1255,15 +1261,13 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
 #ifndef _XT4
         char *reStr = getcwd(workingDir, sizeof(workingDir) - 1);
+        if(reStr == (char *)NULL)Fatal("%s: can not get the dir",__func__);
 #else
         snprintf(workingDir,sizeof(workingDir),"..");
 #endif
 
-        real8 *pstn, degree=1.745329251994330e-02;
+        real8 degree=1.745329251994330e-02;
 
-#ifdef PETSC
-        PetscErrorCode ierrPetsc;
-#endif
 /*
  *      Initialize map between old and new node tags before
  *      reading nodal data and distributing it to the remote
@@ -1443,7 +1447,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
             if(fmFile !=(char *)NULL){
                 FILE *fp_fm;
                 if((fp_fm = fopen(fmFile, "r")) != (FILE *)NULL) {
-                    snprintf(param->fmCorrectionTbl, sizeof(param->fmCorrectionTbl), "%s", fmFile);
+                    if(snprintf(param->fmCorrectionTbl, sizeof(param->fmCorrectionTbl), "%s", fmFile)>=(int)sizeof(param->fmCorrectionTbl)){
+                        Fatal("%s: buffer overflow -- string is truncated",__func__);
+                    }
                     fclose(fp_fm);
                     printf("FMM correction table file: %s\n", param->fmCorrectionTbl);
                 }else{
@@ -1455,7 +1461,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
             if(petscOptionsFile !=(char *)NULL){
                 FILE *fp_petsc;
                 if((fp_petsc = fopen(petscOptionsFile, "r")) != (FILE *)NULL) {
-                    snprintf(param->petscOptionsFile, sizeof(param->petscOptionsFile), "%s", petscOptionsFile);
+                    if(snprintf(param->petscOptionsFile, sizeof(param->petscOptionsFile), "%s", petscOptionsFile)>=(int)sizeof(param->petscOptionsFile)){
+                        Fatal("%s: buffer overflow -- string is truncated",__func__);
+                    }
                     fclose(fp_petsc);
                     printf("Petsc Options file: %s\n", param->petscOptionsFile);
                 }else{
@@ -1662,7 +1670,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
 
         if(param->randomInternalForce){
             real8   para[5];
-            int numData = 0, *data;
+            int numData = 0;
             if(home->myDomain == 0){
                 numData = ReadRandomForceTable(&(home->randomForceTable), para);
             }
@@ -1982,7 +1990,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
                 tableFile = tmpTableFile;
             }
 
-            snprintf(absTableFile, sizeof(absTableFile), "%s/%s",workingDir, tableFile);
+            if(snprintf(absTableFile, sizeof(absTableFile), "%s/%s",workingDir, tableFile)>=(int)sizeof(absTableFile)){
+                Fatal("%s: buffer overflow -- string is truncated",__func__);
+            }
 
             maxTokenLen = sizeof(token);
             tokenType = TOKEN_GENERIC;

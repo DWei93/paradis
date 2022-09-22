@@ -252,7 +252,7 @@ static void CommPackGhosts(Home_t *home)
 static void CommUnpackGhosts(Home_t *home) 
 {
 #ifdef PARALLEL
-        int            i, isrc, domainIdx, numNodes, newSize, reserved;
+        int            isrc, domainIdx, newSize;
         int            maxTagIndex, numExpCells, inode, bufIndex;
         int            iCell, cellIdx, cellNodeCount, iNbr, numNbrs;
         real8          *inBuf;
@@ -286,8 +286,8 @@ static void CommUnpackGhosts(Home_t *home)
 
             bufIndex = 0;
 
-            numNodes            = inBuf[bufIndex++];
-            reserved            = inBuf[bufIndex++];
+            bufIndex++;
+            bufIndex++;
             maxTagIndex         = inBuf[bufIndex++];
             numExpCells         = inBuf[bufIndex++];
         
@@ -307,7 +307,8 @@ static void CommUnpackGhosts(Home_t *home)
         
                 cellIdx       = inBuf[bufIndex++];
                 cellNodeCount = inBuf[bufIndex++];
-                reserved      = inBuf[bufIndex++];
+                
+                bufIndex++;
 
                 cell = home->cellKeys[cellIdx];
 

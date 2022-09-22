@@ -56,18 +56,21 @@ real8 Matrix22Det(real8 a[2][2])
  *               calculated inverse of martix <a>
  *
  *------------------------------------------------------------------------*/
-void Matrix22Invert(real8 A[2][2], real8 B[2][2])
+int Matrix22Invert(real8 A[2][2], real8 B[2][2])
 {
         real8 det;
 
         det = A[0][0]*A[1][1] - A[0][1]*A[1][0];
 
         if (fabs(det) < 1.e-20) {
+#if 0
             printf("A00A11 = %e, A01A10 = %e \n", A[0][0]*A[1][1],
                    A[0][1]*A[1][0]);
             printf("A00 = %e, A11 = %e, A01 = %e, A10 = %e \n",
                    A[0][0], A[1][1], A[0][1], A[1][0]);
-            Fatal("Matrix22Invert: det = 0");
+            printf("Matrix22Invert: det = 0\n");
+#endif
+            return 1;
         }
 
         B[0][0] =  A[1][1] / det;
@@ -75,7 +78,7 @@ void Matrix22Invert(real8 A[2][2], real8 B[2][2])
         B[1][0] = -A[1][0] / det;
         B[1][1] =  A[0][0] / det;
 
-        return;
+        return 0 ;
 }
 
 

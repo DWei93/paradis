@@ -100,7 +100,7 @@ static void InitDeltaPlasticStrain_FCC(int useLabFrame, real8 rotMatrix[3][3],
                                        real8 bnorm[NUM_BURG][3])
 {
 	
-        int i, j, bIndex;
+        int bIndex;
 
 
         nanv[0][0][0]=0.5773502692; nanv[0][1][0]=-0.5773502692; nanv[0][2][0]=0.5773502692;
@@ -246,9 +246,9 @@ static void InitDeltaPlasticStrain_FCC(int useLabFrame, real8 rotMatrix[3][3],
 
 void DeltaPlasticStrain_FCC(Home_t *home)
 {
+
         int          i, j;
         real8        factor0, bmagsq;
-        real8        eps = 1.e-12;
         real8        gdspn[6], gdstn[6], gdtstn[6];
         real8        dstn[3][3], dspn[3][3], dtstn[3][3];
         real8        Ltot[NUM_BURG][4], areaSwept[NUM_BURG][7];
@@ -349,7 +349,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
 #pragma omp parallel
 #endif
    {
-        int    k, l, m;
+        int    k, l;
         int    nodeIndex;
         int    threadID, threadIterStart, threadIterEnd;
         real8  thread_disloDensity=0.0, thread_disloDensity_TB=0.0;
@@ -409,42 +409,31 @@ void DeltaPlasticStrain_FCC(Home_t *home)
  *          Loop over every segment attached to the node
  */        
             for (segIndex = 0; segIndex < numSeg; segIndex++) {
-               int    offset1, offset2;
-               int    index, index2,eleNum;
-               int    burgGroup, negCount, zeroCount;
                real8  bx, by, bz;
                real8  ex, ey, ez;
                real8  nx, ny, nz;
-               real8  tx, ty, tz;
                real8  hhx, hhy, hhz;
                real8  tmpx, tmpy, tmpz;
-               real8  deltax1x, deltax1y, deltax1z;
-               real8  deltax2x, deltax2y, deltax2z;
-               real8  delxnode, delynode, delznode;
-               real8  delxnbr, delynbr, delznbr;
-               real8  minVal, disLen, burgMag, vtau;
                real8  deltaDensity;
-               real8  sbsign, sb;
-               real8  segd, segd2;
-               real8  size, tmpmax;
+               real8  size;
                real8  bCryst[3];
                real8  zeta[3];
-               real8  seg[3], seg2[3];
-               real8  segleft[3], segleft2[3], qs[3];
-               real8  vec1[3], vec2[3], outVec[2], lDir[3], nDir[3], dot, gDir[3], burg[3], normal[3];
-               real8  Ltemp[NUM_PLANES], Ltemp2[2];
-               real8  stemp[NUM_PLANES];
 			   real8  pp[3],p1[3],p2[3];
                real8  tmpDstn;
                Node_t *nbr;
 
-               int  binID[2];
-               int  burgType, nbrArmID, iBin;
-               bool active, positive;
-               real8   velocity, coeff[2];
+               int  burgType;
                int  meshNx, meshNy, meshNz, eleID[27];
                real8    lenPer[27], cen1[3], cen2[3];
 
+#ifdef VELOCITY_STATISTICS
+               real8  minVal, disLen, burgMag, vtau;
+               int  binID[2];
+               real8  vec1[3], vec2[3], outVec[2], lDir[3], nDir[3];
+               real8 dot, gDir[3], burg[3], normal[3]; 
+               int  nbrArmID, iBin;
+               bool active, positive;
+#endif
                nbr = GetNeighborNode(home, node, segIndex);
 
                if (nbr == (Node_t *)NULL) {
@@ -731,7 +720,7 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                 Fatal("in %s at %d", __FILE__, __LINE__);
             }
 	         
-	        eleNum = Coor2EleNum(home,pp,meshNx,meshNy,meshNz);
+	        Coor2EleNum(home,pp,meshNx,meshNy,meshNz);
 	        FoldBox(param,&pp[0],&pp[1],&pp[2]);
             DecomposeSegmentInRubik(home, meshNx,meshNy,meshNz, cen1, cen2, lenPer, eleID);
 			   
@@ -824,446 +813,6 @@ void DeltaPlasticStrain_FCC(Home_t *home)
             thread_disloDensity += deltaDensity;
             if(burgType == SHOCKLEY_BURG)thread_disloDensity_TB+=deltaDensity;
 
-#if 0
-            /* Modified for flux decomposition calculation 06/22/04 M.Rhee */
-            delxnode = node->x - node->oldx;
-            delynode = node->y - node->oldy;
-            delznode = node->z - node->oldz;
-
-            delxnbr = nbr->x - nbr->oldx;
-            delynbr = nbr->y - nbr->oldy;
-            delznbr = nbr->z - nbr->oldz;
-
-            ZImage(param, &delxnode, &delynode, &delznode);
-            ZImage(param, &delxnbr, &delynbr, &delznbr);
-
-            Normalize(&nx, &ny, &nz);
-               deltax1x= node->x - node->oldx;
-               deltax1y= node->y - node->oldy;
-               deltax1z= node->z - node->oldz;
-
-               ZImage(param, &deltax1x, &deltax1y, &deltax1z);
-
-               deltax2x = nbr->x - nbr->oldx;
-               deltax2y = nbr->y - nbr->oldy;
-               deltax2z = nbr->z - nbr->oldz;
-
-               ZImage(param, &deltax2x, &deltax2y, &deltax2z);
-
-               seg[0] = nbr->x - node->x;                                  
-               seg[1] = nbr->y - node->y;    
-               seg[2] = nbr->z - node->z;
-
-               ZImage(param, &seg[0], &seg[1], &seg[2]);
-
-               seg2[0]= nbr->oldx - node->oldx;
-               seg2[1]= nbr->oldy - node->oldy;
-               seg2[2]= nbr->oldz - node->oldz;
-
-               ZImage(param, &seg2[0], &seg2[1], &seg2[2]);
-
-/*
- *             For FCC mobility types we track density of the following
- *             groupings of burgers vectors.  Any burgers vectors not
- *             mentioned are ignored.
- *
- *                 group #     burgers vector types
- *                   0         [ 1 1 0] [-1-1 0]
- *                   1         [-1 1 0] [ 1-1 0]
- *                   2         [ 1 0 1] [-1 0-1]
- *                   3         [-1 0 1] [ 1 0-1]
- *                   4         [ 0 1 1] [ 0-1-1]
- *                   5         [ 0-1 1] [ 0 1-1]
- *                   6         all others
- */
-               burgGroup = -1;
-
-               zeroCount = (bCryst[0] == 0.0) +
-                           (bCryst[1] == 0.0) +
-                           (bCryst[2] == 0.0);
-
-               negCount  = (bCryst[0] < 0.0) +
-                           (bCryst[1] < 0.0) +
-                           (bCryst[2] < 0.0);
-
-               switch (zeroCount) {
-               case 1:
-
-                   tx = bCryst[0];
-                   ty = bCryst[1];
-                   tz = bCryst[2];
-
-                   if (negCount > 1) {
-                       tx = -bCryst[0];
-                       ty = -bCryst[1];
-                       tz = -bCryst[2];
-                   }
-
-                   /* types  [ 1  1  0] [-1 -1  0] */
-                   if ((tx > 0.0) && (ty > 0.0)) burgGroup = 0;
-
-                   /* types  [ 1 -1  0] [-1  1  0] */
-                   else if ((tx != 0.0) && (ty != 0.0) &&
-                            ((tx * ty) < 0.0)) burgGroup = 1;
-
-                   /* types  [ 1  0  1] [-1  0 -1] */
-                   else if ((tx > 0.0) && (tz > 0.0)) burgGroup = 2;
-
-                   /* types  [-1  0  1] [ 1  0 -1] */
-                   else if ((tx != 0.0) && (tz != 0.0) &&
-                            ((tx * tz) < 0.0)) burgGroup = 3;
-
-                   /* types  [ 0  1  1] [ 0 -1 -1] */
-                   else if ((ty > 0.0) && (tz > 0.0)) burgGroup = 4;
-
-                   /* types  [ 0  1 -1] [ 0 -1  1] */
-                   else if ((ty != 0.0) && (tz != 0.0) &&
-                            ((ty * tz) < 0.0)) burgGroup = 5;
-
-                   break;
-
-               default:
-/*
- *                 All other types of burgers vectors get grouped together
- */
-                   burgGroup = 6;
-                   break;
-
-               }  /* end switch (zeroCount) */
-
-
-/*
- *             And, if the burger's vector fell into one of groups of
- *             burgers vectors whose density we're tracking, increment
- *             that group's density value.
- */
-               if (burgGroup >= 0) {
-                   thread_partialDensity[burgGroup] += deltaDensity;
-               }
-
-/*
- *             If this is not a [0 1 1] type burgers vector, skip it.
- */
-               if ((fabs(bCryst[0])*fabs(bCryst[1])*fabs(bCryst[2])) > eps) {
-                   continue;
-               }
-
-               if (fabs(bCryst[0]) < eps && fabs(bCryst[1]) < eps){
-                   continue;
-               }
-
-               if (fabs(bCryst[1]) < eps && fabs(bCryst[2]) < eps){
-                   continue;
-               }
-
-               if (fabs(bCryst[0]) < eps && fabs(bCryst[2]) < eps){
-                   continue;
-               }
-
-/*			
- *             max index for NUM_BURG burgers vector for now
- */
-               index = -1;
-               tmpmax = 0.0;
-
-               for (m = 0; m < NUM_BURG; m++) {
-                   real8 tmpVal;
-                   tmpVal = fabs(bnorm[m][0]*bx +
-                                 bnorm[m][1]*by +
-                                 bnorm[m][2]*bz);
-                   if (tmpVal > tmpmax) {
-                       tmpmax = tmpVal;
-                       index = m;
-                   }
-               }
-
-               if (index < 0) {
-                   continue;
-               }
-
-               sbsign = bnorm[index][0]*bx +
-                        bnorm[index][1]*by +
-                        bnorm[index][2]*bz;
-
-               sb = ((sbsign < 0) ? -1.0 : 1.0);
-
-/*
- *             segx vector and delta2 vector defined above
- */
-               segd = bnorm[index][0]*seg[0] +
-                      bnorm[index][1]*seg[1] +
-                      bnorm[index][2]*seg[2];
-
-/*
- *             segd is the dotted value of seg length with
- *             burgers vector => Screw density
- */
-               thread_Ltot[index][0] += fabs(segd);
-
-               segleft[0] = seg[0] - segd * bnorm[index][0];
-               segleft[1] = seg[1] - segd * bnorm[index][1];
-               segleft[2] = seg[2] - segd * bnorm[index][2];
- 
-/*
- *             min index2
- */
-               for (m = 0; m < NUM_PLANES; m++) {
-                   Ltemp[m] = fabs(tanv[m][0][index]*segleft[0] +
-                                   tanv[m][1][index]*segleft[1] +
-                                   tanv[m][2][index]*segleft[2]);
-               }
-
-               FindMin(Ltemp, 3, &minVal, &index2);
- 
-/*
- *             Lower Triangle:
- *
- *             For climb
- */
-               xvector(seg[0], seg[1], seg[2], deltax2x, deltax2y, deltax2z,
-                       &tmpx, &tmpy, &tmpz);
-
-               areaSwept[index][0] += sb*0.5*(tmpx*bnorm[index][0] +
-                                              tmpy*bnorm[index][1] +
-                                              tmpz*bnorm[index][2]);
-
-               switch (index2) {
-                   case 0:
-                       offset1 = 1;
-                       offset2 = 2;
-                       break;
-                   case 1:
-                       offset1 = 0;
-                       offset2 = 2;
-                       break;
-                   default:
-                       offset1 = 0;
-                       offset2 = 1;
-                       break;
-               }
-
-               vec1[0] = tanv[offset1][0][index];
-               vec1[1] = tanv[offset1][1][index];
-               vec1[2] = tanv[offset1][2][index];
-		 
-               vec2[0] = tanv[offset2][0][index];
-               vec2[1] = tanv[offset2][1][index];
-               vec2[2] = tanv[offset2][2][index];
-
-               DecompVec(segleft, vec1, vec2, Ltemp2);
-
-               thread_Ltot[index][offset1+1] += fabs(Ltemp2[0]);
-               thread_Ltot[index][offset2+1] += fabs(Ltemp2[1]);
-
-               xvector(tanv[offset1][0][index], tanv[offset1][1][index],
-                       tanv[offset1][2][index], deltax2x, deltax2y,
-                       deltax2z, &tmpx, &tmpy, &tmpz);
-
-               thread_areaSwept[index][offset1+1] += sb * 0.5 * Ltemp2[0] *
-                                      (tmpx*nanv[offset1][0][index] +
-                                       tmpy*nanv[offset1][1][index] +
-                                       tmpz*nanv[offset1][2][index]);
-       
-               xvector(tanv[offset2][0][index], tanv[offset2][1][index],
-                       tanv[offset2][2][index], deltax2x, deltax2y,
-                       deltax2z, &tmpx, &tmpy, &tmpz);
-
-               thread_areaSwept[index][offset2+1] += sb * 0.5 * Ltemp2[1] *
-                                      (tmpx*nanv[offset2][0][index] +
-                                       tmpy*nanv[offset2][1][index] +
-                                       tmpz*nanv[offset2][2][index]);
-
-/*
- *             Screw portion, first...
- */
-               xvector(bnorm[index][0], bnorm[index][1], bnorm[index][2],
-                       deltax2x, deltax2y, deltax2z, &tmpx, &tmpy, &tmpz);
-
-               qs[0] = sb * 0.5 * segd * tmpx;
-               qs[1] = sb * 0.5 * segd * tmpy;
-               qs[2] = sb * 0.5 * segd * tmpz;
-
-               stemp[0] = fabs(nanv[0][0][index]*qs[0] +
-                               nanv[0][1][index]*qs[1] +
-                               nanv[0][2][index]*qs[2]);
-
-               stemp[1] = fabs(nanv[1][0][index]*qs[0] +
-                               nanv[1][1][index]*qs[1] +
-                               nanv[1][2][index]*qs[2]);
-
-               stemp[2] = fabs(nanv[2][0][index]*qs[0] +
-                               nanv[2][1][index]*qs[1] +
-                               nanv[2][2][index]*qs[2]);
- 
-/*
- *             Find min index2
- */
-               FindAbsMin(stemp, NUM_PLANES, &minVal, &index2);
-
-               switch (index2) {
-                   case 0:
-                       offset1 = 1;
-                       offset2 = 2;
-                       break;
-                   case 1:
-                       offset1 = 0;
-                       offset2 = 2;
-                       break;
-                   default:
-                       offset1 = 0;
-                       offset2 = 1;
-                       break;
-               }
-
-               vec1[0] = nanv[offset1][0][index];
-               vec1[1] = nanv[offset1][1][index];
-               vec1[2] = nanv[offset1][2][index];
-
-               vec2[0] = nanv[offset2][0][index];
-               vec2[1] = nanv[offset2][1][index];
-               vec2[2] = nanv[offset2][2][index];
-
-               DecompVec(qs, vec1, vec2, outVec);
-
-               thread_areaSwept[index][offset1+4] += outVec[0];
-               thread_areaSwept[index][offset2+4] += outVec[1];
-
-
-/********************* the other half ****************************/
- 
-/*
- *             segx vector and delta2 vector defined above
- */
-               segd2 = bnorm[index][0]*seg2[0] +
-                       bnorm[index][1]*seg2[1] +
-                       bnorm[index][2]*seg2[2];
-
-               segleft2[0] = seg2[0] - segd2 * bnorm[index][0];
-               segleft2[1] = seg2[1] - segd2 * bnorm[index][1];
-               segleft2[2] = seg2[2] - segd2 * bnorm[index][2];
- 
- 
-/*
- *             min index2
- */
-               for (m = 0; m < NUM_PLANES; m++) {
-                   Ltemp[m] = fabs(tanv[m][0][index]*segleft2[0] +
-                                   tanv[m][1][index]*segleft2[1] +
-                                   tanv[m][2][index]*segleft2[2]);
-               }
-
-               FindMin(Ltemp, NUM_PLANES, &minVal, &index2);
- 
-/*
- *             for climb first
- */
-               xvector(seg2[0], seg2[1], seg2[2],
-                       deltax1x, deltax1y, deltax1z,
-                       &tmpx, &tmpy, &tmpz);
-
-               thread_areaSwept[index][0] += sb * 0.5 * (tmpx*bnorm[index][0] +
-                                                         tmpy*bnorm[index][1] +
-                                                         tmpz*bnorm[index][2]);
- 
-               switch (index2) {
-                   case 0:
-                       offset1 = 1;
-                       offset2 = 2;
-                       break;
-                   case 1:
-                       offset1 = 0;
-                       offset2 = 2;
-                       break;
-                   default:
-                       offset1 = 0;
-                       offset2 = 1;
-                       break;
-               }
-
-               vec1[0] = tanv[offset1][0][index];
-               vec1[1] = tanv[offset1][1][index];
-               vec1[2] = tanv[offset1][2][index];
-
-               vec2[0] = tanv[offset2][0][index];
-               vec2[1] = tanv[offset2][1][index];
-               vec2[2] = tanv[offset2][2][index];
-  
-               DecompVec(segleft2, vec1, vec2, Ltemp2);
-
-               xvector(tanv[offset1][0][index], tanv[offset1][1][index],
-                       tanv[offset1][2][index], deltax1x, deltax1y,
-                       deltax1z, &tmpx, &tmpy, &tmpz);
-
-               thread_areaSwept[index][offset1+1] += sb * 0.5 * Ltemp2[0] *
-                                      (tmpx*nanv[offset1][0][index] +
-                                       tmpy*nanv[offset1][1][index] +
-                                       tmpz*nanv[offset1][2][index]);
- 
-               xvector(tanv[offset2][0][index], tanv[offset2][1][index],
-                       tanv[offset2][2][index], deltax1x, deltax1y,
-                       deltax1z, &tmpx, &tmpy, &tmpz);
-
-               thread_areaSwept[index][offset2+1] += sb * 0.5 * Ltemp2[1] *
-                                      (tmpx*nanv[offset2][0][index] +
-                                       tmpy*nanv[offset2][1][index] +
-                                       tmpz*nanv[offset2][2][index]);
-
-/*
- *             Screw portion, second...
- */
-               xvector(bnorm[index][0], bnorm[index][1], bnorm[index][2],
-                       deltax1x, deltax1y, deltax1z, &tmpx, &tmpy, &tmpz);
-
-               qs[0] = sb * 0.5 * segd2 * tmpx;
-               qs[1] = sb * 0.5 * segd2 * tmpy;
-               qs[2] = sb * 0.5 * segd2 * tmpz;
-
-               stemp[0] = fabs(nanv[0][0][index]*qs[0] +
-                               nanv[0][1][index]*qs[1] +
-                               nanv[0][2][index]*qs[2]);
-
-               stemp[1] = fabs(nanv[1][0][index]*qs[0] +
-                               nanv[1][1][index]*qs[1] +
-                               nanv[1][2][index]*qs[2]);
-
-               stemp[2] = fabs(nanv[2][0][index]*qs[0] +
-                               nanv[2][1][index]*qs[1] +
-                               nanv[2][2][index]*qs[2]);
- 
-/*
- *             Find min index2
- */
-               FindMin(stemp, NUM_PLANES, &minVal, &index2);
- 
-               switch (index2) {
-                   case 0:
-                       offset1 = 1;
-                       offset2 = 2;
-                       break;
-                   case 1:
-                       offset1 = 0;
-                       offset2 = 2;
-                       break;
-                   default:
-                       offset1 = 0;
-                       offset2 = 1;
-                       break;
-               }
-
-               vec1[0] = nanv[offset1][0][index];
-               vec1[1] = nanv[offset1][1][index];
-               vec1[2] = nanv[offset1][2][index];
-
-               vec2[0] = nanv[offset2][0][index];
-               vec2[1] = nanv[offset2][1][index];
-               vec2[2] = nanv[offset2][2][index];
-
-               DecompVec(qs, vec1, vec2, outVec);
-
-               thread_areaSwept[index][offset1+4] += outVec[0];
-               thread_areaSwept[index][offset2+4] += outVec[1];
-
- #endif
 	    }  /* for (segIndex = 0; segIndex < nc; ...) */
 	   
 

@@ -138,7 +138,6 @@ void GetMinDist(real8 p1x, real8 p1y, real8 p1z,
                 real8 v4x, real8 v4y, real8 v4z,
                 real8 *dist2, real8 *ddist2dt, real8 *L1, real8 *L2)
 {
-        int    i, pos;
         real8  A, B, C, D, E, F, G;
         real8  L1a, L1b;
         real8  L2a, L2b;

@@ -34,9 +34,9 @@
 void DeltaPlasticStrain_BCC(Home_t *home)
 {
         int     i, j, k, l, m;
-        int     iii, jjj, i0, nc, nn;
+        int     iii, jjj, i0, nc;
         int     bIndex, burgGroup;
-        int     negCount, zeroCount;
+        int     zeroCount;
         int     plane, index, index2;
         real8   bx, by, bz;
         real8   nx, ny, nz;
@@ -61,7 +61,7 @@ void DeltaPlasticStrain_BCC(Home_t *home)
         real8   nanv[3][3][4], tanv[3][3][4];
         real8   Ltot[4][4], areaSwept[4][7];
         real8   segleft[3], segleft2[3], qs[3];
-        real8   stemp[3], stemp2[2];
+        real8   stemp[3];
         real8   gdspn[6], gdstn[6];
         real8   vec1[3], vec2[3], outVec[2];
         Node_t  *node;

@@ -491,8 +491,9 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
  */
 
             if ((fpSeg = fopen(tmpFileName, "r")) == (FILE *)NULL) {
-                snprintf(tmpFileName, sizeof(tmpFileName), "%s.%d",
-                         baseFileName, fileSeqNum);
+                if(snprintf(tmpFileName, sizeof(tmpFileName), "%s.%d",baseFileName, fileSeqNum)>=(int)sizeof(tmpFileName)){
+                    Fatal("%s: buffer overflow -- string is truncated",__func__);
+                }
                 if ((fpSeg = fopen(tmpFileName, "r")) == (FILE *)NULL) {
                     Fatal("Error %d opening file %s to read nodal data",
                           errno, dataFile);
@@ -761,7 +762,10 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
  */
                 if ((fpSeg == (FILE *)NULL) && (nextFileSeg <= maxFileSeg)) {
                
-                    sprintf(tmpFileName, "%s.%d", baseFileName, nextFileSeg);
+                    if(snprintf(tmpFileName,sizeof(tmpFileName), "%s.%d", baseFileName, nextFileSeg)
+                        >= (int)sizeof(tmpFileName)){
+                        Fatal("%s: buffer overflow -- string is truncated",__func__);
+                    }
                     fpSeg = fopen(tmpFileName, "r");
 
                     if (fpSeg == (FILE *)NULL) {

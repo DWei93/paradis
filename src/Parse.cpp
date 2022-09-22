@@ -100,7 +100,6 @@ void WriteParam(ParamList_t *list, int index, FILE *fp)
 {
         int  i, j, minIndex, maxIndex, type, count;
         const char *lineFeed, *lBracket, *rBracket;
-        char format[MAX_STRING_LEN];
 
 /*
  *      We'll be looping over all parameters to be printed.  If

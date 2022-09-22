@@ -1663,6 +1663,7 @@ static void FMUnPackDownPassBuf(Home_t *home, int layerID, int bufSize,
         } else {
             numMPCoeff = 0;
             numTaylorCoeff = 0;
+            tOrder = 0;
         }
 
         while (offset < maxOffset) {
@@ -2152,14 +2153,14 @@ void FMCommUpPass(Home_t *home, int layerID)
         int        mySendListIndex = -1;
         int        myRecvListIndex = -1;
         int        sendDomCnt, recvDomCnt;
-        int        *sendDomList, *recvDomList;
-        int        *sendBufLen, *recvBufLen;
-        char       **sendBuf, **recvBuf;
+        int        *sendDomList=NULL, *recvDomList=NULL;
+        int        *sendBufLen=NULL, *recvBufLen=NULL;
+        char       **sendBuf=NULL, **recvBuf=NULL;
 #ifdef PARALLEL
         int         ret;
         MPI_Status  oneStat;
-        MPI_Status  *sendStat, *recvStat;
-        MPI_Request *sendReq, *recvReq;
+        MPI_Status  *sendStat=NULL, *recvStat=NULL;
+        MPI_Request *sendReq=NULL, *recvReq=NULL;
 #endif
 
 
@@ -2426,13 +2427,13 @@ void FMCommDownPass(Home_t *home, int layerID)
         int        mySendListIndex = -1;
         int        myRecvListIndex = -1;
         int        sendDomCnt, recvDomCnt;
-        int        *sendDomList, *recvDomList;
-        int        *sendBufLen, *recvBufLen;
-        char       **sendBuf, **recvBuf;
+        int        *sendDomList=NULL, *recvDomList=NULL;
+        int        *sendBufLen=(int *)NULL, *recvBufLen=NULL;
+        char       **sendBuf=(char **)NULL, **recvBuf=(char **)NULL;
 #ifdef PARALLEL
         MPI_Status oneStat;
-        MPI_Status *sendStat, *recvStat;
-        MPI_Request *sendReq, *recvReq;
+        MPI_Status *sendStat=(MPI_Status *)NULL, *recvStat=(MPI_Status *)NULL;
+        MPI_Request *sendReq=(MPI_Request *)NULL, *recvReq = (MPI_Request *)NULL;
 #endif
 
 
@@ -2672,7 +2673,7 @@ static void FMUnpackTaylorCoeff(Home_t *home, int numCells, real8 *buf)
 
 
 static void FMPackTaylorCoeff(Home_t *home, int numCells, int *cellList,
-                              real8 *buf, int bufSize)
+                              real8 *buf, long int bufSize)
 {
         int       i, j, x, y, z;
         int       offset = 0, cellID;
@@ -2704,7 +2705,7 @@ static void FMPackTaylorCoeff(Home_t *home, int numCells, int *cellList,
             }
         }
 
-        if (offset*sizeof(real8) != bufSize) {
+        if ((int(offset*sizeof(real8))) != bufSize) {
             Fatal("FMPackTaylorCoeff: Packed %d bytes into %d byte buffer",
                   offset*sizeof(real8), bufSize);
         }

@@ -62,9 +62,13 @@ static void fmsigma(real8 mu, real8 nu, int norder,
 	     real8 *R, real8 *Eeta, real8 sigmatot[3][3]) {
   int cyc[] = {0,1,2,0,1,2};
   real8 sigma[3][3],Gijmkl[3][3][3],Gmppkl[3][3][3];
-  int iorder,i,j,k,l,m,n,a,nx,ny,nz,pows[NTMAX][3],npows,nidx,idx[NTMAX];
+  int iorder,i,j,k,l,m,n,a,nx,ny,nz,pows[NTMAX][3],npows,nidx;
   int etaoff,etadis,etadis0;
   real8 t,t2,t11,t12,t3,terms[NTMAX],tvec[NTMAX];
+
+#ifdef UNUSED_VAR
+  int idx[NTMAX];
+#endif
 
   real8 pi = 3.1415926535897932385, mu8pi = mu/(8.0*pi), two1nu = 2.0/(1.0-nu);  
 
@@ -168,8 +172,12 @@ static void fmsigma(real8 mu, real8 nu, int norder,
 	    nz = pows[k][2] - d[2];
 	    if(nx>=0 && ny>=0 && nz>=0) {
 	      tvec[nidx] = terms[k] * fact[iorder] *
-		ifact[nx]*ifact[ny]*ifact[nz];
-	      idx[nidx++] = k;
+		    ifact[nx]*ifact[ny]*ifact[nz];
+        
+#ifdef UNUSED_VAR
+	      idx[nidx] = k;
+#endif
+        nidx++;
 	    }
 	  }
 
@@ -436,9 +444,10 @@ void CreateCorrectionTable(Param_t *param, int numLevels, int pbc[3],
                     } else {
                       for(k = 0; k<nalpha; k++) 
                         for(m = 0; m<3; m++)
-                          for(n = 0; n<3; n++)
+                          for(n = 0; n<3; n++){
                             offset = (((i-i0)*(maxlevels-2)+j)*nalpha+k)*9;
                             leveldata[offset+m*3+n] += alphanew[k*9+m*3+n];
+                          }
                     }
                   }
                 }
@@ -446,10 +455,10 @@ void CreateCorrectionTable(Param_t *param, int numLevels, int pbc[3],
           if(leveldata != NULL) {
             for(k = 0; k<nalpha; k++)
               for(m = 0; m<3; m++)
-                for(n = 0; n<3; n++)
+                for(n = 0; n<3; n++){
                   offset=(((i-i0)*(maxlevels-2)+j)*nalpha+k)*9;
-                  alpha[k*9+m*3+n] +=
-                    leveldata[offset+m*3+n];
+                  alpha[k*9+m*3+n] +=leveldata[offset+m*3+n];
+                }
           }
 
         }
@@ -560,7 +569,7 @@ void CorrectionTableInit(Home_t *home)
         int     n, k, j, i;
         int     version;
         int     pbc[3], ctab_pbc[3];
-        int     status;
+        int     status=0;
         real8   eps = 1.0e-06;
         real8   NU;
         char    *fileName;
@@ -718,6 +727,8 @@ void CorrectionTableInit(Home_t *home)
             }
         }
 
+        if(status==EOF)Fatal("%s: return value of fscanf is %d",__func__,status);
+
         fclose(fp);
 
         return;
@@ -726,11 +737,14 @@ void CorrectionTableInit(Home_t *home)
 
 static void paxby(int uorder, int p[], int q[], real8 weight,
                   real8 *corrtab, real8 *alpha) {
-  int i,k,n,m,nx,ny,nz,ix,iy,iz,u,v,u1,v1,c[3];
+  int i,k,n,m,nx,ny,nz,iy,iz,u,v,u1,v1,c[3];
   int offsetA1, offsetA2;
   int nts[3][3] = { {0,1,2} ,
                     {1,3,4} ,
                     {2,4,5} };
+#ifdef UNUSED_VAR
+  int ix;
+#endif
   k = 0;
   for(i = 0; i<=uorder; i++) {
     n = (i+2)*(i+1)*i/6;
@@ -738,7 +752,10 @@ static void paxby(int uorder, int p[], int q[], real8 weight,
       for(ny = 0; ny<=i-nz; ny++) {
         nx = i-nz-ny;
         c[0] = nx; c[1] = ny; c[2] = nz;
-        ix = c[p[0]]; iy = c[p[1]]; iz = c[p[2]];
+#ifdef UNUSED_VAR
+        ix = c[p[0]]; 
+#endif
+        iy = c[p[1]]; iz = c[p[2]];
 
         m = iz*(i+1) + iy - (iz-1)*iz/2;
 
@@ -759,7 +776,7 @@ static void paxby(int uorder, int p[], int q[], real8 weight,
 
 void DoTableCorrection(Home_t *home)
 {
-        int       i, j, k, m, n, u, v, ix, iy, iz, u1, v1, ip;
+        int       i, j, k, m, n, u, v, iy, iz, u1, v1, ip;
         int       nx, ny, nz, idx, norder, uorder, nalpha;
         int       offset1, offset2;
         int       *p, c[3], q[3];
@@ -771,6 +788,10 @@ void DoTableCorrection(Home_t *home)
         Param_t   *param;
         FMCell_t  *cell;
         FMLayer_t *layer;
+
+#ifdef UNUSED_VAR
+      int ix;
+#endif
 
         param = home->param;
 
@@ -837,7 +858,10 @@ void DoTableCorrection(Home_t *home)
                         else s = 1.0;
                         p = ptab[ip];
                         for (j = 0; j<3; j++) q[p[j]] = j;
-                        ix = c[p[0]]; iy = c[p[1]]; iz = c[p[2]];
+#ifdef UNUSED_VAR
+                        ix = c[p[0]]; 
+#endif
+                        iy = c[p[1]]; iz = c[p[2]];
                         m = iz*(i+1) + iy - (iz-1)*iz/2;
         
                         if (flags[m] == 0) {

@@ -3953,10 +3953,8 @@ void LocateCell(Home_t *home, int *cellID, real8 coord[3])
 int NodePinned(Home_t *home, Node_t *node, int planeIndex,
                real8 glidedir[3][3])
 {
-        int    i, j, k;
-        int    planetest;
+        int    i, j;
         int    plane;
-        real8  planetestmin, ptest, ptest2;
         real8  segplane[3];
         real8  tmp3[3];
 
@@ -4384,10 +4382,9 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
 {
         int     i,  surfaceConstraint = 0, planeType;
         int     numConstraints, junctionConstraint = 0;
-	    real8   n1[3], nCryst[3], nLab[3], lDir[3];
-        real8   eps = 1.0e-06;
-        real8   glidePlane[3], gpNormal, negPlane[3];
-        real8   temp, testVal, dpnnm;
+	    real8   n1[3], lDir[3];
+        real8   glidePlane[3], negPlane[3];
+        real8   temp, testVal;
         bool    neglectful = 0;
         Node_t  *nbr;
 
@@ -4826,7 +4823,7 @@ void SegDeltaPlasticStrain(Home_t *home, Node_t *node1, Node_t *node2, real8 *dp
 
 void NodalDeltaPlasticStrain(Home_t *home, Node_t *node, real8 *dpst, real8 *dpsp)
 {
-    real8 armLoc[6], armDpst[6], armDpsp[3];
+    real8 armDpst[6], armDpsp[3];
     
     dpst[0]=0.0; dpst[1]=0.0; dpst[2]=0.0; dpst[3]=0.0; dpst[4]=0.0; dpst[5]=0.0;
     dpsp[0]=0.0; dpsp[1]=0.0; dpsp[2]=0.0;

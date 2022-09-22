@@ -118,6 +118,8 @@ int Mobility_BCC_0b(Home_t *home, Node_t *node)
             vOld[0] = node->oldvX;
             vOld[1] = node->oldvY;
             vOld[2] = node->oldvZ;
+        }else{
+            massMult = 0.0;
         }
 
 /*

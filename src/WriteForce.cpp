@@ -31,7 +31,12 @@ void WriteForce(Home_t *home, char *baseFileName, int ioGroup,
         Node_t   *node;
         Param_t  *param = home->param;
         FILE     *fp;
+        
+#ifdef PARALLEL
+#ifdef DO_IO_TO_NFS
         struct stat statbuf;
+#endif
+#endif
 
 /*
  *      Set data file name.  Only append a sequence number to

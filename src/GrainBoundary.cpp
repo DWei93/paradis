@@ -31,7 +31,6 @@ void PullBack(Home_t *home, Node_t *node){
     int     currInGrain, currOnGB;
 	real8	newPos[3], bakVec[3];
     GB_t    *gb;
-    char name[50];
 
 #if DEBUG
 	if(node == (Node_t *)NULL){
@@ -209,7 +208,7 @@ void AdjustPenetratedNode(Home_t *home, Node_t *node){
                         CoordMinus(pBurg2, pBurg1, EsciagBurg);
                         NormalizeVec(EsciagBurg);
                         NormalizeVec(intDir);
-                        real8 extstress[3][3], f1[3], f2[3], stress, g[3];
+                        real8 extstress[3][3], f1[3], f2[3], g[3];
                         extstress[0][0] = param->appliedStress[0];
                         extstress[1][1] = param->appliedStress[1];
                         extstress[2][2] = param->appliedStress[2];
@@ -336,13 +335,8 @@ bool ConstrictionCriteria(Home_t *home, Node_t *node, Node_t *nbr1, Node_t *nbr2
 
 int EnergyRule(Home_t *home, Node_t *node, Plane_t *GBPlane){
     
-
-	int		i, isScrew = 0;
-	real8	inBurg[3], inEnergy=0.0, cosTheta, bMag;
-	real8	segEnergy, outEnergy=0.0;
-	real8	vec[3], normal[3], temVec[3],burgMag;
+	real8	temVec[3];
 	Param_t *param;
-	Node_t 	*nbr;
 	
 	param = home->param;
 	
@@ -423,7 +417,7 @@ int ScrewEnergyRule(Home_t *home, Node_t *node, GB_t *gb){
 
 void FreePenStr(Pene_t *pene){
     if(pene->nSets > 0){
-        int i, j;
+        int i;
         for(i=0; i<pene->nSets; i++){
             if(pene->res[i].nDiss > 0){
                 free(pene->res[i].burg);
@@ -594,20 +588,11 @@ bool FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
 int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 {
 	
-	real8		pos[3], burg[3], normal[3], resiBurg[3];
-	real8		vec[3], crossProd[3], jth;
-    real8       centorPos[3];
-    real8       vec1[3], vec2[3], eps, dis;
-    real8       barrierFactor;
-    int         i, j, k, newPlaneID, localGBID, nDiss;
-    int         currInGrain, currOnGB, nSets, type;
-    bool        residualDis;
+    real8       vec1[3], vec2[3], dis;
     Line_t      line;
     Node_t      *node1, *node2;
     Plane_t     GBPlane;
-    Grain_t     *grain;
 
-    BurgInfo_t  *gbd;
     
     std::vector<std::vector<double> >                       burgList;
     std::vector<std::vector< Dislocation_t> >               disArray; 
@@ -615,8 +600,6 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 
     pene->node = node;
     pene->gb = gb;
-    gbd = &(gb->burgData);
-    eps = home->param->rann;
 
 	node1 = GetNeighborNode(home,node,0);
 	node2 = GetNeighborNode(home,node,1);
@@ -634,11 +617,7 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
     VECTOR_COPY(pene->line2.direction, line.direction);
     VECTOR_COPY(pene->line2.point, line.point);
 
-    centorPos[0] = (pene->line1.point[0] + pene->line2.point[0])*0.5;
-    centorPos[1] = (pene->line1.point[1] + pene->line2.point[1])*0.5;
-    centorPos[2] = (pene->line1.point[2] + pene->line2.point[2])*0.5;
-
-    type = LineLineIntersection(pene->line1.direction, pene->line1.point,
+    LineLineIntersection(pene->line1.direction, pene->line1.point,
            pene->line2.direction, pene->line2.point, vec1, vec2, &dis);
 #if CROSS_SLIP_GB_MODEL
     return(1);
@@ -650,47 +629,30 @@ int GetPenResults(Home_t *home, Node_t *node, Pene_t *pene, GB_t *gb)
 int PenetrationFirst(Home_t *home, Pene_t *pene)
 {
 
-    int         myDomain, type, currInGrain, currOnGB, oldInGrain;
-    int         numBkup, i, j, globalOp, mobError, newPlaneID;
-    int         planeID, localPlaneID, maxShearSet, onGB;
-    int         newInGrain, newOnGB;
-    bool        switchedArm, passGB;
+    int         currInGrain, currOnGB;
+    int         globalOp;
+    bool        switchedArm;
     real8       nodeVel[3], currPos[3], oldPos[3], posClosedGB[3];
 #if 0
     real8       oldCen[3], oldPos2[3];
 #endif
-    real8       dis, dirGBNode[3], node1Pos[3], node2Pos[3];
-    real8       vec1[3], vec2[3], newVel[3], nForce[3], norm;
-    real8       centorPos[3], lDir[3], peneLength, planeBurg[3];
-    real8       maxShear;
-    Node_t      *node, *nbrNode1, *nbrNode2, *nbr, *node1, *node2;
-    Node_t      *localNode, *newNode;
-    Node_t      *bkupNodeList, **newNodePtrList; 
+    real8       dis, node1Pos[3], node2Pos[3];
+    real8       vec1[3];
+    Node_t      *node, *nbrNode1, *nbrNode2, *node1, *node2;
+    Node_t      *localNode;
     GB_t        *gb;
-    BurgInfo_t  *bd;
     
-    real8       gammaS, gammaT;
 
     Param_t     *param;
-	
-	myDomain = home->myDomain;
+    
 	param = home->param;
     
-    gammaS = 4.47E-2/param->burgMag;  /* units: Pa.b*/
-    gammaT = 0.5*gammaS;
-
     node = pene->node;
     gb = pene->gb;
-    bd = &(gb->burgData);
-
-    centorPos[0] = (pene->line1.point[0] + pene->line2.point[0])*0.5;
-    centorPos[1] = (pene->line1.point[1] + pene->line2.point[1])*0.5;
-    centorPos[2] = (pene->line1.point[2] + pene->line2.point[2])*0.5;
 
     vec1[0] = (pene->line1.point[0] - pene->line2.point[0]);
     vec1[1] = (pene->line1.point[1] - pene->line2.point[1]);
     vec1[2] = (pene->line1.point[2] - pene->line2.point[2]);
-    peneLength = Normal(vec1);
 
 	nodeVel[0] = node->vX;
 	nodeVel[1] = node->vY;
@@ -708,8 +670,7 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 
     VECTOR_COPY(gbPos, gb->p);
     PBCPOSITION(param, currPos[0], currPos[1], currPos[2], gbPos, gbPos+1, gbPos+2);
-    type = PointPlaneIntersection(currPos, gb->n,
-                                  gbPos, posClosedGB, &dis);
+    PointPlaneIntersection(currPos, gb->n, gbPos, posClosedGB, &dis);
     if(fabs(dis) < 1E-10)return(0);
 
     vec1[0] = currPos[0] - oldPos[0];
@@ -719,7 +680,6 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
     if(DotProduct(vec1, nodeVel) <= 0)return(0);
 
     NodeLocation(home, currPos[0], currPos[1], currPos[2], currInGrain, currOnGB);
-    oldInGrain = node->inGrain;
 
 	if(Normal(nodeVel) < 1.0)return(0);
 
@@ -793,26 +753,19 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
 
 {
 	
-	int		    i, nodeDeletable;
-	int         currInGrain, currOnGB;
-	int         currNbrInGrain, currNbrOnGB;
-	real8		newPos[3], currNbrPos[3], dis;
-	real8 		nDir1[3], burg[3], nodeVel[3], oldPos[3], currPos[3];
-    real8       vec1[3], vec2[3], dir[3], vec[3], oldNbrPos[3];
+	real8		newPos[3];
+	real8 		nDir1[3], currPos[3];
+    real8       vec1[3], vec2[3];
 	Line_t		interLine;
-    int         mergeStatus, mergeDone;
 
-	Node_t		*nbrNode1, *nbrNode2, *mergedNode;
+	Node_t		*nbrNode1, *nbrNode2;
     Param_t     *param;
-
-	Plane_t		oldGlidePlane, plane;
 
     param = home->param;
 		
 	currPos[0] = node->x;
 	currPos[1] = node->y;
 	currPos[2] = node->z;
-    NodeLocation(home, currPos[0], currPos[1], currPos[2], currInGrain, currOnGB);
 	
 	nDir1[0] = node->nx[0];
 	nDir1[1] = node->ny[0];
@@ -856,20 +809,16 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
 					Grain_t *newGrain, Plane_t *GBPlane)
 {
 
-	real8 		burg[3], vec[3], mergePos[3],TBInGrain;
+	real8 		vec[3];
     real8       nodePos[3], oldPos[3], vec1[3], vec2[3];
     real8       dis;
-	Node_t 		*nbrNode1, *nbrNode2, *mergedNode;
-	int			mergeStatus,i,j, globalOp,q,thisDomain;
-	int         crossSlipNode = 0, type;
+	Node_t 		*nbrNode1, *nbrNode2;
+	int			thisDomain;
+	int         type;
     Param_t     *param;
 
     param = home->param;
 	thisDomain = home->myDomain;
-	
-	burg[0] = node->burgX[0];
-	burg[1] = node->burgY[0];
-	burg[2] = node->burgZ[0];
 	
 	nbrNode1 = GetNeighborNode(home,node,0);
 	nbrNode2 = GetNeighborNode(home,node,1);
@@ -878,9 +827,8 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
     if(nbrNode1->myTag.domainID != thisDomain || 
        nbrNode2->myTag.domainID != thisDomain)return(0);
 	
-	if(SurfaceNode(nbrNode1) && IsOnGB(nbrNode1) ||
-	   SurfaceNode(nbrNode2) && IsOnGB(nbrNode2))return(0);
-	globalOp = 1;
+	if((SurfaceNode(nbrNode1) && IsOnGB(nbrNode1)) ||
+	   (SurfaceNode(nbrNode2) && IsOnGB(nbrNode2)))return(0);
 
     nodePos[0] = node->x;
     nodePos[1] = node->y;
@@ -904,7 +852,6 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
     
     switch(type){
         case POINT_INTERSECTION:
-            VECTOR_COPY(mergePos, vec2);
             break;
         default:
             vec[0] = 0.5*(nodePos[0] + oldPos[0]);
@@ -936,9 +883,6 @@ int PenetrationSurface(Home_t *home, Node_t *node, GB_t *gb)
     real8       n1[3], p1[3], n2[3], p2[3], n3[3], p3[3];
     real8       lDir[3], lPos[3], vec[3], newPos[3];
     Node_t      *nbrNode;
-	Param_t 	*param;
-
-	param = home->param;
 
     if(!SurfaceNode(node))Fatal("in %s at %d", __FILE__, __LINE__);
 
@@ -1006,19 +950,17 @@ bool GBIntersectNode(Home_t *home, Node_t *node){
 void HandleGrainBoundary(Home_t *home)
 {
 	
-	int 		i,j,k,m,numNbrOnGB, globalOp = 1, mergeStatus;
-	int	 	    grainNode = 0, endNode, newConstraint, positive;
-    int         newNodeKeyPtr, type;
+	int 		i,j,numNbrOnGB;
+    int         newNodeKeyPtr;
 	int 		oldInGrain, oldOnGB, currInGrain, currOnGB;	
-    int         crossSlipNode, nbr1OnGB, nbr2OnGB, localGBID;
-	real8		x,y,z,burgj[3], burgk[3], vec[3], mergPos[3], dis;
-	real8		burg[3], normal[3], nDir1[3], nDir2[3], gbPlane[3];
-	real8		mergePos[3], distance, newInGrain, newPos[3];
-    real8       vec1[3], vec2[3], p[3], refPos[3], gbPos[3], oldPos[3];
+    int         crossSlipNode;
+	real8		x,y,z,vec[3];
+	real8		burg[3], normal[3], gbPlane[3];
+	real8		newPos[3];
+    real8       vec1[3], vec2[3], refPos[3], gbPos[3], oldPos[3];
 	Param_t		*param;
-	Node_t		*node, *nbrNode1, *nbrNode2, *nbr1, *nbr2, *mergedNode;
+	Node_t		*node, *nbrNode1, *nbrNode2;
 	Plane_t		GBPlane;
-	Line_t		line;
 	Grain_t		*oldGrain, *currGrain;
     GB_t        *gb;
 	Pene_t	    pene;
@@ -1124,7 +1066,7 @@ void HandleGrainBoundary(Home_t *home)
             printf("Warning: %s %d: can not find gb\n",__FILE__,__LINE__);
 #endif
             vec1[0]=node->oldx; vec1[1]=node->oldy; vec1[2]=node->oldz;
-            dis=ClosedGB(home,vec1,&gb);
+            ClosedGB(home,vec1,&gb);
             if(NewPosToGB(home, node, -1, gb->GBID, refPos, vec2)){
                 PrintNode(home, node);
                 Fatal("in %s at %d", __FILE__, __LINE__);
@@ -1265,8 +1207,11 @@ void HandleGrainBoundary(Home_t *home)
  *      pull back the penetrated node.
  */
         numNbrOnGB = 0;
+
+#ifndef CROSS_SLIP_GB_MODEL
         nbr1OnGB = NodeOnGB(home, nbrNode1);
         nbr2OnGB = NodeOnGB(home, nbrNode2);
+#endif
 
 	    if(IsOnGB(nbrNode1)) {
 
@@ -1509,21 +1454,17 @@ void HandleGrainBoundary(Home_t *home)
 
 void DoResistance(Home_t *home, Node_t *node, real8 *nForce)
 {
-	real8 	distance, pos[3],dir[3], factor, burgMag;
+	real8 	distance,dir[3], burgMag;
 	real8	GBForceMag, lDir[3], nDir[3], gDir[3], length;
 	real8 	burg[3], fricMag, dot, armGBForce[3];
-	real8	rann, armf[3], forceGB[3], segCentor[3];
-	real8	oriNForce[3], gForce[3], burgNor[3], norForce[3];
-	int	    i, cacuGBForce=1, fricForce, armInGrain, armOnGB;
+	real8	rann, armf[3], segCentor[3];
+	real8	oriNForce[3], gForce[3], burgNor[3];
+	int	    i, cacuGBForce=1, armInGrain, armOnGB;
     GB_t    *gb;
 	Node_t	*nbr;
 	Param_t *param;
 	
 	param = home->param;
-	pos[0] = node->x;
-	pos[1] = node->y;
-	pos[2] = node->z;
-	VECTOR_ZERO(forceGB);
 
 	nForce[0] = node->fX;
 	nForce[1] = node->fY;
@@ -1572,10 +1513,6 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce)
 	        gForce[1] = dot * gDir[1];
 	        gForce[2] = dot * gDir[2];
     
-            norForce[0] = armf[0] - gForce[0];
-            norForce[1] = armf[1] - gForce[1];
-            norForce[2] = armf[2] - gForce[2];
-    
 	        burgMag = sqrt(node->burgX[i] * node->burgX[i] +
 			            node->burgY[i] * node->burgY[i] +
 			            node->burgZ[i] * node->burgZ[i]);
@@ -1600,8 +1537,8 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce)
 	            dir[2] = Sign(distance) * gb->n[2];
                 if(DotProduct(gDir,dir) < 0){
                     gDir[0] = -gDir[0];
-                    gDir[1] = -gDir[2];
-                    gDir[2] = -gDir[3];
+                    gDir[1] = -gDir[1];
+                    gDir[2] = -gDir[2];
                 }
     
 	            GBForceMag = param->gbStrength * pow(2.7182,-(distance*distance/rann/rann));
@@ -1609,7 +1546,7 @@ void DoResistance(Home_t *home, Node_t *node, real8 *nForce)
                 armGBForce[0] = GBForceMag * gDir[0];
                 armGBForce[1] = GBForceMag * gDir[1];
                 armGBForce[2] = GBForceMag * gDir[2];
-    
+  
                 nForce[0] += armGBForce[0]; 
                 nForce[1] += armGBForce[1]; 
                 nForce[2] += armGBForce[2]; 
@@ -1714,7 +1651,7 @@ inline bool ChangeGBConstraint(Home_t *home, Node_t *node, real8 *n){
 void ApplyPosConstraint(Home_t *home, Node_t *node){
 
     Param_t *param = home->param;
-	real8 disVec[3], maxDis= -1E50,dis;
+	real8 disVec[3], maxDis= -1E50;
 	int   i, constraintSurface, inGrain, onGB;
 	real8 pos[3],n[3],fGlide,p[3],interPos[3],a=((param->gbStrength>0)?param->rc:0.0);
 
@@ -1789,11 +1726,11 @@ void AdjustSurfaceNode(Home_t *home)
 {
 
 	Param_t *param = home->param;
-	int 	i, j, numNodePtr, thisDomain, splitOK, switchNode;
+	int 	i, j, numNodePtr, thisDomain, switchNode;
     int     inGrain, onGB, armInGrain, armOnGB, globalOp, optClass = OPCLASS_REMESH;
 	real8	nodePos[3], nbrPos[3], nbrConstraint=0;
-	real8	interPos[3], oldPos[3], dis, dot, eps=1.0E-4, margin=(param->gbStrength>0)?2.0E-4:0.0;;
-	real8	newPos[3], burg0[3], burgj[3], vec[3], normal[3];
+	real8	interPos[3], dot, eps=1.0E-4, margin=(param->gbStrength>0)?2.0E-4:0.0;;
+	real8	vec[3], normal[3];
 	Node_t  *node, *nbr, *newNode, *node1, *node2;
 	int 	nodecst, surfaceNbr, constraint;
 	Line_t	line;
@@ -1887,7 +1824,7 @@ void AdjustSurfaceNode(Home_t *home)
 	        if(nbr == (Node_t *)NULL)continue;
 	        if(!SurfaceNode(nbr))continue;
             if(DomainOwnsSeg(home, optClass, thisDomain, &nbr->myTag) == 0)continue;
-            if((nbr->flags|NODE_RESET_FORCES)==0)continue;
+            if((nbr->flags&NODE_RESET_FORCES)==0)continue;
 
 	        nbrPos[0] = nbr->x;
 	        nbrPos[1] = nbr->y;
@@ -2091,7 +2028,7 @@ void AdjustSurfaceNode(Home_t *home)
 
 void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
 
-    int         i, j, BakOnGB;    
+    int         i, j;    
     Node_t      *nbr;
     real8       normal[3], crossProd[3];
     real8       newPos[3], nodePos[3];
@@ -2130,10 +2067,10 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             wrongGlidePlane = 1;
         }
         
-        for(j=0; j<nbrInGrain.size(); j++){
+        for(j=0; j<(int)nbrInGrain.size(); j++){
             if(nbr->inGrain == nbrInGrain[j][0])break;
         }
-        if(j<nbrInGrain.size()){
+        if(j<(int)nbrInGrain.size()){
             nbrInGrain[j].push_back(i);
         }else{
             vec[0] = nbr->inGrain;
@@ -2141,7 +2078,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             nbrInGrain.push_back(vec);
         }
     }
-    if(nbrInGrain.size() != 1){
+    if((int)nbrInGrain.size() != 1){
         if(wrongGlidePlane == 0){
             return;
         }else{
@@ -2149,8 +2086,8 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
         }
     }
 
-    for(i=0; i<nbrInGrain.size(); i++){
-        if(nbrInGrain[i].size()-1 == node->numNbrs){
+    for(i=0; i<(int)nbrInGrain.size(); i++){
+        if((int)nbrInGrain[i].size()-1 == node->numNbrs){
             nodePos[0] = node->x;
             nodePos[1] = node->y;
             nodePos[2] = node->z;
@@ -2174,15 +2111,15 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             return;
         }
 
-        if(nbrInGrain[i].size() <= 2)continue;
+        if((int)nbrInGrain[i].size() <= 2)continue;
 
-        if(nbrInGrain[i].size()-1 < node->numNbrs){
+        if((int)nbrInGrain[i].size()-1 < node->numNbrs){
             real8   nodeVel[3], newVel[3];
             Node_t  *splitNode1, *splitNode2;
             int     splitStatus, nArms, *armList;
             real8   resBurg[3];
 
-            nArms = nbrInGrain[i].size()-1;
+            nArms = (int)nbrInGrain[i].size()-1;
             armList = (int *)malloc(nArms*sizeof(int));
             
             VECTOR_ZERO(resBurg);
@@ -2246,10 +2183,10 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
 
 void GBCrossSlip(Home_t *home)
 {
-    int     i, j, k,l, nBurgsSplit, nNbrsOnGB;
+    int     i, j, k,l;
     int     opClass, thisDomain;
     int     inGrain, onGB, globalOp = 1;
-    int     type, armID, normalID, nbrArmID;
+    int     type, armID, nbrArmID;
     int     maxShearSet, localGBID, nbrGrain=-1;
     int     mergeStatus, sideCrossSlipNode;
     bool    firstCrossSlipNode;
@@ -2257,11 +2194,11 @@ void GBCrossSlip(Home_t *home)
     real8   test1, test2, test3, test1Max, test2Max, test3Max;
     real8   nodePos[3], nbr1Pos[3], nbr2Pos[3], gbNbrPos[3];
     real8   vec1[3], vec2[3], vec3[3], vec[3], crossProd[3];
-    real8   noiseFactor, glideForce0[3],glideForce[3], froceMag, noiseForce, gShear, extShear;
-    real8   eps, thetacrit, sthetacrit, s2thetacrit, areamin;
+    real8   noiseFactor, glideForce0[3],glideForce[3], noiseForce, gShear;
+    real8   thetacrit, sthetacrit, s2thetacrit;
     real8   dis, burg[3], normal[3], normals[2][3], norm;
-    real8   newNodePos[3], newNbr1Pos[3], newNbr2Pos[3], newGBNbrPos[3];
-    real8   barrierFactor, oriShear, newVel[3], outBurgNorm[3], outPlane[3];
+    real8   newNodePos[3], newNbr1Pos[3], newNbr2Pos[3];
+    real8   barrierFactor, oriShear, outBurgNorm[3], outPlane[3];
     real8   newPos[3], maxShear;
     real8   segForceOrig[4][3], glideShear[3], signDir[3], tdLengthXb, gdir[3], gShearStress;
     Line_t  interLine;
@@ -2299,11 +2236,9 @@ void GBCrossSlip(Home_t *home)
 #ifdef DEBUG
     static bool firstTD = true;
 #endif
-    eps = 1.0e-06;
     thetacrit = 2.0 / 180.0 * M_PI;
     sthetacrit = sin(thetacrit);
     s2thetacrit = sthetacrit * sthetacrit;
-    areamin = param->remeshAreaMin;
 
 /*
  *  In order to cross-slip a node, the force on the cross-slip
@@ -2336,8 +2271,6 @@ void GBCrossSlip(Home_t *home)
         if(node->numNbrs < 2)continue;
         if(!IsOnGB(node))continue;
 
-        nBurgsSplit = 0;
-        nNbrsOnGB = 0;
 
         sideCrossSlipNode = 0;
         firstCrossSlipNode = 0;
@@ -2480,6 +2413,8 @@ void GBCrossSlip(Home_t *home)
             if(j >= gbd->numKeyLines)continue;
             VECTOR_COPY(interLine.direction,gbd->keyLineList[j]);
         }else if(sideCrossSlipNode > 0){
+            nbr1 = (Node_t *)NULL;
+            nbr2 = (Node_t *)NULL;
             gbNbrPos[0] = gbNbr->x;     gbNbrPos[1] = gbNbr->y;     gbNbrPos[2] = gbNbr->z;
             PBCPOSITION(param, nodePos[0], nodePos[1], nodePos[2],
                         gbNbrPos, gbNbrPos+1, gbNbrPos+2);
@@ -2514,7 +2449,7 @@ void GBCrossSlip(Home_t *home)
 #ifdef DEBUG
                         printf("%s: a concentrated side segment occured on TB",__func__);
 #endif
-                        sideCrossSlipNode == 1; // gb node is a non-physical node
+                        sideCrossSlipNode = 1; // gb node is a non-physical node
                         break;
                 }
             }
@@ -2530,7 +2465,8 @@ void GBCrossSlip(Home_t *home)
             glideShear[1] = (node->armfy[armID] + gbNbr->armfy[nbrArmID])/tdLengthXb;
             glideShear[2] = (node->armfz[armID] + gbNbr->armfz[nbrArmID])/tdLengthXb;
             cross(normal, vec2, gdir); 
-            if(Normal(gdir)<1E-3)continue;  NormalizeVec(gdir); 
+            if(Normal(gdir)<1E-3)continue;  
+            NormalizeVec(gdir); 
 
             ParallelComponent(glideShear, gdir, glideShear);
             gShearStress = Normal(glideShear);
@@ -2603,12 +2539,12 @@ void GBCrossSlip(Home_t *home)
                 if(fabs(signBurg)>0.99 && superBurg==false){
                     dec = GetDecompositionResults(gbd, burgID, keyLineID);
                     if(dec != (Decom_t *)NULL){
-                        for (j=0; j<dec->disArray.size();j++){
+                        for (j=0; j<(int)dec->disArray.size();j++){
                             if(dec->disArray[j].size()==1 && fabs(DotProduct(normal, gbd->planeList[dec->disArray[j][0].planeID]))>0.95)continue;
                             disArray.push_back(dec->disArray[j]);
                         }
                         burgList.resize(dec->burgList.size());
-                        for(j=0;j<burgList.size();j++){
+                        for(j=0;j<(int)burgList.size();j++){
                             burgList[j].resize(3);
                             burgList[j][0]=signBurg*dec->burgList[j][0];
                             burgList[j][1]=signBurg*dec->burgList[j][1];
@@ -2626,10 +2562,10 @@ void GBCrossSlip(Home_t *home)
  */             
                 int nTDs;
                 real8 sumTDBurg[3];
-                for(j=0; j<disArray.size(); ){
+                for(j=0; j<(int)disArray.size(); ){
                     barrierFactor = -DotProduct(burg,burg);
                     VECTOR_ZERO(sumTDBurg); nTDs=0;
-                    for(k=0; k<disArray[j].size(); k++){
+                    for(k=0; k<(int)disArray[j].size(); k++){
                         barrierFactor += disArray[j][k].energyFactor;
                         cross(gb->n, gbd->planeList[disArray[j][k].planeID], crossProd);
                         bid = disArray[j][k].burgID>-1?disArray[j][k].burgID:-disArray[j][k].burgID-1;
@@ -2645,14 +2581,14 @@ void GBCrossSlip(Home_t *home)
                         }
                     }
                 
-                    if(k != disArray[j].size() ||  // fail to penetrate
+                    if(k != (int)disArray[j].size() ||  // fail to penetrate
                        (BurgType_FCC(sumTDBurg)==SHOCKLEY_BURG && nTDs==2) || 
                        (!twinningDis && !frankDis && isScrew && barrierFactor > 0.01) ||  // screw energy criteria
                        (!twinningDis && !frankDis && !isScrew && barrierFactor >0.667) || // non-screw energy criteria
                        ( twinningDis && barrierFactor >1.01) || // twinning dislocation
                        ( frankDis && barrierFactor > 0.667) || // frank dislocation
                         (barrierFactor > 2.01) ||
-                       (disArray[j].size()==1 && fabs(DotProduct(normal, gbd->planeList[disArray[j][0].planeID]))>0.95)){ // origin plane is not needed
+                       ((int)disArray[j].size()==1 && fabs(DotProduct(normal, gbd->planeList[disArray[j][0].planeID]))>0.95)){ // origin plane is not needed
                         itDisList = disArray.begin() + j;
                         disArray.erase(itDisList);
                     }else{
@@ -2660,16 +2596,16 @@ void GBCrossSlip(Home_t *home)
                     }
                 }
 
-                if(disArray.size() == 0)continue;
+                if((int)disArray.size() == 0)continue;
                 sort(disArray.begin(), disArray.end(), comByBarrier); 
 
-                if(disArray.size()>1){
-                    for(k=1; k<disArray.size(); ){
-                        for(l=0; l<disArray[k].size(); l++){
+                if((int)disArray.size()>1){
+                    for(k=1; k<(int)disArray.size(); ){
+                        for(l=0; l<(int)disArray[k].size(); l++){
                             if(disArray[k].size() != disArray[k-1].size())break;
                             if(disArray[k][l].burgID != disArray[k-1][l].burgID ||  disArray[k][l].planeID != disArray[k-1][l].planeID)break;
                         }
-                        if(l==disArray[k].size()){
+                        if(l==(int)disArray[k].size()){
                             disArray.erase(disArray.begin() + k);
                         }else{
                             k++;
@@ -2687,9 +2623,9 @@ void GBCrossSlip(Home_t *home)
                             PlaneID_FCC(gbd,normal));
                 }else {printf("screw dislocation decomposition (%g,%g,%g) %d:\n", burg[0],burg[1],burg[2], BurgID_FCC(gbd, burg));
                 
-                    for(int set=0; set<disArray.size(); set++){
+                    for(int set=0; set<(int)disArray.size(); set++){
                         printf("set %d: ",set);
-                        for(int disl=0; disl<disArray[set].size(); disl++){
+                        for(int disl=0; disl<(int)disArray[set].size(); disl++){
                             bid = disArray[set][disl].burgID>-1?disArray[set][disl].burgID:-disArray[set][disl].burgID-1;
                             outBurg[0] = burgList[bid][0];
                             outBurg[1] = burgList[bid][1];
@@ -2751,13 +2687,13 @@ void GBCrossSlip(Home_t *home)
             maxShearList.resize(disArray.size());
             disPosArray.resize(disArray.size());
             energyList.resize(disArray.size());
-            for(j=0; j<disArray.size(); j++){
+            for(j=0; j<(int)disArray.size(); j++){
                 maxShearList[j] = 0; energyList[j]=-DotProduct(burg,burg);
                 VECTOR_COPY(debris, burg);
     
                 std::vector<real8>().swap(temBurgList); 
                 std::vector<int>().swap(temPlaneIDList);
-                for(k=0; k<disArray[j].size(); k++){
+                for(k=0; k<(int)disArray[j].size(); k++){
                     if(disArray[j][k].burgID>-1){
                         VECTOR_COPY(outBurgNorm, burgList[disArray[j][k].burgID]);
                     }else{
@@ -2766,8 +2702,8 @@ void GBCrossSlip(Home_t *home)
                         outBurgNorm[1] = -burgList[bid][1];
                         outBurgNorm[2] = -burgList[bid][2];
                     }
-                    for(l=0; l<temPlaneIDList.size(); l++) if(disArray[j][k].planeID == temPlaneIDList[l])break;
-                    if(l==temPlaneIDList.size()){
+                    for(l=0; l<(int)temPlaneIDList.size(); l++) if(disArray[j][k].planeID == temPlaneIDList[l])break;
+                    if(l==(int)temPlaneIDList.size()){
                         temPlaneIDList.push_back(disArray[j][k].planeID);
                         temBurgList.push_back(outBurgNorm[0]);
                         temBurgList.push_back(outBurgNorm[1]);
@@ -2780,7 +2716,7 @@ void GBCrossSlip(Home_t *home)
                 }
                 disPosArray[j].resize(temPlaneIDList.size());
 
-                for(k=0; k<temPlaneIDList.size(); k++){
+                for(k=0; k<(int)temPlaneIDList.size(); k++){
                     disPosArray[j][k].resize(3);
                     outBurgNorm[0] = temBurgList[3*k+0];
                     outBurgNorm[1] = temBurgList[3*k+1];
@@ -2861,7 +2797,7 @@ void GBCrossSlip(Home_t *home)
                         }
                     }
                 }
-                if(k!=temPlaneIDList.size()){
+                if(k!=(int)temPlaneIDList.size()){
                     energyList[j]=-1.0E2;
                     maxShearList[j] = 0.0;
                 }
@@ -2874,7 +2810,7 @@ void GBCrossSlip(Home_t *home)
             maxShearSet = -1;
             noiseForce = param->shearModulus*noiseFactor;
             energySet = -1;
-            for(j=0; j<disArray.size(); j++){
+            for(j=0; j<(int)disArray.size(); j++){
 //              printf("%d: j=%d, shear=%5.2e, energy=%5.2f\n",home->myDomain,j,maxShearList[j],energyList[j]);
                 if(maxShearList[j] > maxShear+noiseForce){
                     maxShearSet = j;
@@ -2936,15 +2872,15 @@ void GBCrossSlip(Home_t *home)
 
             std::vector<int>().swap(temPlaneIDList);
             std::vector<int> coordList(disArray[j].size());
-            for(k=0; k<disArray[j].size(); k++){
-                for(l=0; l<temPlaneIDList.size(); l++) if(disArray[j][k].planeID == temPlaneIDList[l])break;
-                if(l==temPlaneIDList.size()){
+            for(k=0; k<(int)disArray[j].size(); k++){
+                for(l=0; l<(int)temPlaneIDList.size(); l++) if(disArray[j][k].planeID == temPlaneIDList[l])break;
+                if(l==(int)temPlaneIDList.size()){
                     temPlaneIDList.push_back(disArray[j][k].planeID);
                 }
                 coordList[k]=l;
             }
 
-            for(k=0; k<disArray[j].size(); k++){
+            for(k=0; k<(int)disArray[j].size(); k++){
                 if(disArray[j][k].burgID>-1){
                     VECTOR_COPY(outBurg,  burgList[disArray[j][k].burgID]);
                 }else{
@@ -3301,12 +3237,9 @@ bool AdjustSplitedNodePosition(Home_t *home, Node_t *node, real8 *currPos, real8
 
 real8 GlideShearStress(Home_t *home, Node_t *node, real8 *n){
 
-    int	    i,armID21;
-    real8	normal[3],disLength;
+    real8	normal[3];
     real8	intersection[3];
-    real8	glideDir[3], ldir[3], gdir[3];
-    real8	fGlide=0.0;
-    Node_t  *nbr;
+    real8	ldir[3], gdir[3];
     Param_t *param=home->param;
     
     if(node == (Node_t *)NULL){
@@ -3375,12 +3308,8 @@ real8 GlideShearStress(Home_t *home, Node_t *node, real8 *n){
 
 real8 GlideShearStress(Home_t *home, Node_t *node){
 
-    int	    i,armID21;
-    real8	normal[3],disLength;
-    real8	intersection[3];
-    real8	glideDir[3], ldir[3], gdir[3];
-    real8	fGlide=0.0;
-    Node_t  *nbr;
+    real8	normal[3];
+    real8	ldir[3], gdir[3];
     Param_t *param=home->param;
     
     if(node == (Node_t *)NULL){
@@ -3456,11 +3385,11 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     Param_t *param = home->param;
 
     real8       rc=MIN(param->rTol,5);
-    real8       dis, burgMag, burg[3], segCentor[3], tbStrength, xi[3], bedge[3];
+    real8       dis, burg[3], tbStrength, xi[3], bedge[3];
     real8       ldir[3],pdir[3], a = MIN(1.0,rc), err=1.0E-3, amax=MIN(20,30*rc); 
     real8       gausFac[2] = {0.211324865405187, // (1-sqrt(3)/3)/2
                               0.7886751345948128}; // (1+sqrt(3)/3)/2
-    real8       coff=0.0, length, nor[3], gDir[3], gbNormal[3], pos[3], pBound[3], nBound[3], vel[3],costheta;
+    real8       coff=0.0, length, nor[3], gDir[3], pos[3], pBound[3], nBound[3],costheta;
     GB_t        *gb;
     Grain_t     *grain;
     int         armID, i, j, type, armInGrain,armOnGB,curInGrain, curOnGB;
@@ -3485,7 +3414,6 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
     nor[1] = node1->ny[armID];
     nor[2] = node1->nz[armID];
 
-    burgMag = Normal(burg);
     NormalizeVec(burg);
 
     real8 gbStrength = param->gbStrength;
@@ -3574,6 +3502,7 @@ void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f
         }
     }else{
         cacTBForce = false;
+        tbStrength = 0.0;
     }
 
     for(i=0; i<2; i++){

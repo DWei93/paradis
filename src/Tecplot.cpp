@@ -118,36 +118,40 @@ static void NodeofEle(Param_t *param, int eleNum, int node[8], int numNbrEle[8])
 void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
              int writePrologue, int writeEpilogue, int numArms, int debug)
 {
-        int      i, j, thisDomain, arm;
+        int      i, j, arm;
         int      newNodeKeyPtr, narm;
         int      burgID=0, normalID; 
         int	     armInGrain, armOnGB;
-        real8    x,y,z, sfForce[3], shift;
+        real8    x,y,z, shift;
         real8    x2,y2,z2;
         real8    x2o,y2o,z2o;
         real8    prx,pry,prz;
         real8    vx,vy,vz;
-        real8    bX, bY, bZ;
         real8    Lx, Ly, Lz;
-        real8    normal[3], normalCryst[3];
-        real8	 minDistance, pos[3];
-        real8	 velocity, displacement, vecOldNew[3];
+        real8	 velocity, vecOldNew[3];
         real8    burg[3], burgMag, vMag;
         char     fileName[256];
         Node_t   *node, *nbrNode;
         Param_t  *param;
         FILE     *fp;
+#if CHECK_DOMAIN
         Plane_t	 plane;
+        real8    displacement;
+        real8	 minDistance;
+#endif
+
+#ifdef DO_IO_TO_NFS
         struct stat statbuf;
-        real8   al, am, an, amag, sigijk, pstnijk, dpstnijk, ptstnijk, bl, bm, bn;
+#endif
+
+        real8   al, am, an, amag, sigijk, pstnijk, ptstnijk, bl, bm, bn;
         real8   vec[3], f[3], f1[3], f2[3], length, fMag,ifMag,n[3],val, nodePos[3], nbrPos[3];
         int     armID21;
         real8   tau_g, tau_gg, tau_ext, bMag, velx, vely, velz;
 
-        int     index, constraint, nodeOnGB;
+        int     index, constraint;
         bool    imageSeg=false;
         param      = home->param;
-        thisDomain = home->myDomain;
 
         Lx = param->Lx;
         Ly = param->Ly;
@@ -348,7 +352,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
             vecOldNew[2] = z - node->oldz;
             	
             ZImage(param, vecOldNew, vecOldNew+1, vecOldNew+2);
+#if CHECK_DOMAIN
             displacement = Normal(vecOldNew);
+#endif
 
 	        GetGlideConstraintList(home, node, &numGlideConstraints, glideConstraints, zeroLenJunc);
             f[0] = node->fX; f[1]=node->fY; f[2]=node->fZ;
@@ -608,7 +614,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 	        	
 	        ZImage(param, vecOldNew, vecOldNew+1, vecOldNew+2);
 	        	
+#if CHECK_DOMAIN
 	        displacement = Normal(vecOldNew);
+#endif
 	        	
 	        if (param->xBoundType == Periodic) {
                     x = x - Lx*rint(x/Lx);
@@ -685,9 +693,9 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                     }else if(burgID == 17){
                         index =0;
                     }else{
-                        burg[0] = node->burgX[j];
-                        burg[1] = node->burgY[j];
-                        burg[2] = node->burgZ[j];
+                        burg[0] = node->burgX[arm];
+                        burg[1] = node->burgY[arm];
+                        burg[2] = node->burgZ[arm];
                         if(BurgType_FCC(burg) == BASIC_BURG){
                             index = 1;
                         }else{
@@ -768,13 +776,11 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 {
 	int      i, j, k;
 	int      newNodeKeyPtr;
-	int	     eleNum,iBurg;
-	real8    pr[3],burg[3],prx,pry,prz;
+	real8    pr[3],prx,pry,prz;
 	real8    bX, bY, bZ;
 	real8    Lx, Ly, Lz;
 	real8	 midPos[3],deltDen[27];
     int      eleID[27];
-	real8	 burgMag;
 	char     fileNameEle[256];
 	Node_t   *node, *nbrNode;
 	Param_t  *param;
@@ -783,7 +789,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 	int		nodeEle[8],nx,ny,nz;
     int     meshNodeNumX, meshNodeNumY, meshNodeNumZ, totNodeNum;
     int     totEleNum;
-	real8	eleLx,eleLy,eleLz;
+	real8	eleLx,eleLy;
 	real8	currPlaStn,currDisDen;
     real8   nodePos[3], nbrPos[3], disLen;
 
@@ -846,7 +852,6 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 #endif
 	eleLx = param->meshSizeX;
 	eleLy = param->meshSizeY;
-	eleLz = param->meshSizeZ;
 
 	/*	Zero the arrays of dislocation density in each element.	*/
 
@@ -895,7 +900,7 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
             CoordAdd(1.0,nodePos,0.5,pr,midPos);
 			FoldBox(param,&midPos[0],&midPos[1],&midPos[2]);
 			
-			eleNum = Coor2EleNum(home, midPos, nx, ny, nz);
+			Coor2EleNum(home, midPos, nx, ny, nz);
 
             PBCPOSITION(param, midPos[0], midPos[1], midPos[2], nodePos, nodePos+1, nodePos+2);
             PBCPOSITION(param, midPos[0], midPos[1], midPos[2], nbrPos, nbrPos+1, nbrPos+2);
@@ -904,14 +909,10 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
 			bY = node->burgY[j];
 			bZ = node->burgZ[j];
 
-			burg[0] = bX;
-			burg[1] = bY;
-			burg[2] = bZ;
             prx = pr[0];
             pry = pr[1];
             prz = pr[2];
 			
-			iBurg = BurgType_FCC(burg);
             DecomposeSegmentInRubik(home, nx,ny,nz, nodePos, nbrPos, deltDen, eleID);
             for(k=0;k<27;k++){
                 home->disDenEle[eleID[k]][0] += disLen*deltDen[k];
@@ -934,11 +935,12 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
  *	in each element.
  */
     real8     *locVals, *gloVals;
+    size_t     tsize = totEleNum*NUM_COMPONENT_OF_DENSITY* sizeof(real8);
 
-    locVals = (real8 *)malloc(totEleNum*NUM_COMPONENT_OF_DENSITY* sizeof(real8));
-    gloVals = (real8 *)malloc(totEleNum*NUM_COMPONENT_OF_DENSITY* sizeof(real8));
-    memset(locVals, 0, sizeof(locVals));
-    memset(gloVals, 0, sizeof(locVals));
+    locVals = (real8 *)malloc(tsize);
+    gloVals = (real8 *)malloc(tsize);
+    memset(locVals, 0, tsize);
+    memset(gloVals, 0, tsize);
 
     for (i=0; i<totEleNum; i++){
         for(j = 0; j<NUM_COMPONENT_OF_DENSITY; j++){

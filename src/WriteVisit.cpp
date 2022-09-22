@@ -49,7 +49,7 @@
 #define BUF_PACK(buf, val, type) \
     {  \
         int offSet; \
-        for (offSet = 0; offSet < sizeof(type); offSet++) { \
+        for (offSet = 0; offSet < (int)sizeof(type); offSet++) { \
             (*buf++) = ((char *)(&val))[offSet]; \
         } \
     }
@@ -63,7 +63,7 @@
 #define BUF_UNPACK(buf, val, type) \
     {  \
         int offSet; \
-        for (offSet = 0; offSet < sizeof(type); offSet++) { \
+        for (offSet = 0; offSet < (int)sizeof(type); offSet++) { \
             ((char *)(&val))[offSet] = (*buf++); \
         } \
     }
@@ -281,7 +281,11 @@ static void WriteVisitNodesText(Home_t *home, char *baseFileName,
         char    fileName[256];
         Param_t *param;
         FILE    *fpNode;
+#ifdef PARALLEL
+#ifdef DO_IO_TO_NFS
         struct stat statbuf;
+#endif
+#endif
 
 
         param = home->param;
@@ -400,8 +404,12 @@ static void WriteVisitNodesBinary(Home_t *home, char *baseFileName,
         char    *buffer, *nextPos;
         char    fileName[256];
         Param_t *param;
+
+#ifdef PARALLEL
+#ifdef DO_IO_TO_NFS
         struct stat statbuf;
-           
+#endif
+#endif
 
         param=home->param;
 
@@ -482,7 +490,7 @@ static void WriteVisitNodesBinary(Home_t *home, char *baseFileName,
 
             if (bufNodeCnt == MAX_NODES_PER_BUF) {
                 writeLen = bufNodeCnt * BYTES_PER_NODE;
-                if (write(fdNode, buffer, writeLen) != writeLen) {
+                if ((size_t)write(fdNode, buffer, writeLen) != writeLen) {
                     Fatal("WriteVisitNodesBinary: write error %d -- %s",
                           errno, strerror(errno));
                 }
@@ -497,7 +505,7 @@ static void WriteVisitNodesBinary(Home_t *home, char *baseFileName,
  */
         if (bufNodeCnt > 0) {
             writeLen = bufNodeCnt * BYTES_PER_NODE;
-            if (write(fdNode, buffer, writeLen) != writeLen) {
+            if ((size_t)write(fdNode, buffer, writeLen) != writeLen) {
                 Fatal("WriteVisitNodesBinary: write error %d -- %s",
                       errno, strerror(errno));
             }
@@ -571,7 +579,11 @@ static void WriteVisitSegmentsText(Home_t *home, char *baseFileName,
         char    fileName[256];
         Param_t *param;
         FILE    *fpSeg;
+#ifdef PARALLEL
+#ifdef DO_IO_TO_NFS
         struct stat statbuf;
+#endif
+#endif
 
 
         param = home->param;
@@ -724,7 +736,11 @@ static void WriteVisitSegmentsBinary(Home_t *home, char *baseFileName,
         char    *buffer, *nextPos;
         char    fileName[256];
         Param_t *param;
+#ifdef PARALLEL
+#ifdef DO_IO_TO_NFS
         struct stat statbuf;
+#endif
+#endif
            
         param=home->param;
         
@@ -843,7 +859,7 @@ static void WriteVisitSegmentsBinary(Home_t *home, char *baseFileName,
 
                     if (bufSegCnt == MAX_SEGS_PER_BUF) {
                         writeLen = bufSegCnt * BYTES_PER_SEGMENT;
-                        if (write(fdSeg, buffer, writeLen) != writeLen) {
+                        if ((size_t)write(fdSeg, buffer, writeLen) != writeLen) {
                             Fatal("WriteVisitBinary: write error %d -- %s",
                                   errno, strerror(errno));
                         }
@@ -861,7 +877,7 @@ static void WriteVisitSegmentsBinary(Home_t *home, char *baseFileName,
  */
         if (bufSegCnt > 0) {
             writeLen = bufSegCnt * BYTES_PER_SEGMENT;
-            if (write(fdSeg, buffer, writeLen) != writeLen) {
+            if ((size_t)write(fdSeg, buffer, writeLen) != writeLen) {
                 Fatal("WriteVisitBinary: write error %d -- %s",
                       errno, strerror(errno));
             }

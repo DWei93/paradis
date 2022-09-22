@@ -78,10 +78,10 @@ static void SpinMatrix(real8 p1, real8 p2, real8 p3, real8 Rspin[3][3])
 
 void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 {
-        int     i, j, k, loadtype, indxerate;
+        int     i, j, loadtype, indxerate;
         int     numLoadCycle, numLoadCycle2;       
         real8   youngs, erate, dtt;
-        real8   shr, dstn[6];
+        real8   shr;
         real8   modulus, dpl_stn, dStress, amag, al, am, an, bl, bm, bn;
         real8   sigijk, stn_cut;
         real8   phi1, phi2, phi3;
@@ -90,9 +90,8 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         real8   pstnijk, eAmp, timeNow, cTimeOld;
         real8   dCyclicStrain;
         real8   totCyclicStrain, netCyclicStrain;
-		real8   dpstn[6], dsig[6], destn[6], str[3][3];
-        real8   tmpdSig[6];
-		real8   (*C)[6], (*Sij)[6];
+		real8   dpstn[6], dsig[6], destn[6];
+		real8   (*Sij)[6];
 
         real8   effPlaRate, stepStr;
         Param_t *param;
@@ -100,11 +99,12 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
         real8   maxDirVal = -1E50;
         char name[50];
 
-        real8   displacement, vec[3], locMin, gloMin, py;
+        real8   vec[3], locMin, gloMin, py;
         Node_t  *node;
         int     locVal, gloVal;
-
+#if 0
         real8   Si[6];
+#endif
         static bool accElast=false;
         
         real8   criDis, criEff;
@@ -160,8 +160,6 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
 		for (i = 0; i < 6; i++) {
             dsig[i] = 0.0;
             destn[i] = 0.0;
-            tmpdSig[i] = 0.0;
-            dstn[i] = 0.0;
         }
         
 /*
@@ -664,7 +662,6 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
  *              Set pointers to the precomputed 6x6 elastic constant
  *              matrix (C) and its inverse, the compliance matrix (Sij)
  */
-                C   = param->elasticConstantMatrix;
                 Sij = param->elasticConstantMatrixInv;
                 Si[0]=Sij[0][0]; Si[1]=Sij[1][1]; Si[2]=Sij[2][2];
                 Si[3]=0.5*Sij[3][3]; Si[4]=0.5*Sij[4][4]; Si[5]=0.5*Sij[5][5];
@@ -770,9 +767,9 @@ void LoadCurve(Home_t *home, real8 deltaStress[3][3])
  *          Stress loading with plastic strain control
  */
             case 7:
-                C   = param->elasticConstantMatrix;
                 Sij = param->elasticConstantMatrixInv;
-                Fatal("dpstn unitialized here");
+              	for (i = 0; i < 6; i++) dpstn[i] = param->delpStrain[i];
+                
                 for(int el=0;el<6;el++)dpstn[6]=0.0;
                 effPlaRate = sqrt((dpstn[0]*dpstn[0]+ 
                                    dpstn[1]*dpstn[1]+ 

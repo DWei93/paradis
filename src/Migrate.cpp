@@ -88,13 +88,12 @@ static void BuildMigLists(Home_t *home, int *migCommList, int **migList,
                           int *migListCnt, int **sendBufDest, int *numSendBufs)
 {
         int          i, j;
-        int          nodeCount, numDomains, thisDomain, destDom;
-        int          allocatedValues, sendBufCnt, listLen;
+        int          nodeCount, thisDomain, destDom;
+        int          allocatedValues, sendBufCnt;
         int          *sendBufList;
         Node_t       *node;
 
         nodeCount = home->newNodeKeyPtr;
-        numDomains = home->numDomains;
         thisDomain = home->myDomain;
 
         sendBufCnt = 0;
@@ -311,7 +310,6 @@ static void UnpackMigrators(Home_t *home, real8 *buf, int remDomID)
 {
         int          i, j, bufIndex, nodeIndex, nodeCount, numNbrs;
         int          thisDomain;
-        int          newSize, newIndex;
         Tag_t        oldTag;
         Node_t       *node;
 
@@ -437,10 +435,10 @@ static void CommSendMigrators(Home_t *home, int *migCommList, int **migList,
         int         i, numValues, numRecvBufs, recvIndex;
         int         numDomains, thisDomain, domID;
         int         *glblMigCommList;
-        int         *sendBufLen, *recvBufLen;
-        char        **sendBuf, **recvBuf;
-        MPI_Request *sendRequest, *recvRequest;
-        MPI_Status  *sendStatus, *recvStatus;
+        int         *sendBufLen=NULL, *recvBufLen=NULL;
+        char        **sendBuf=NULL, **recvBuf=NULL;
+        MPI_Request *sendRequest=NULL, *recvRequest=NULL;
+        MPI_Status  *sendStatus=NULL, *recvStatus=NULL;
         
 
         numDomains = home->numDomains;

@@ -62,10 +62,10 @@ static void PackSegmentData(Home_t *home, int numSendBufs, int *sendDomList,
                             Segment_t **cellSegLists, int *cellSegCnts,
                             real8 **sendBufs, int *sendBufEnts)
 {
-        int       i, j, k, m, index;
+        int       i, j, k, index;
         int       thisDomain, domID1, domID2, numSegs, numCells; 
         int       *currIndex;
-        real8     *buf;
+        real8     *buf=NULL;
         Segment_t *segmentList, segment;
 
 
@@ -205,7 +205,7 @@ static void PackSegmentData(Home_t *home, int numSendBufs, int *sendDomList,
  *-------------------------------------------------------------------------*/
 static void UnpackSegmentData(Home_t *home, real8 *buf)
 {
-        int    i, j, arm;
+        int    i, arm;
         int    bufIndex, numSegs, thisDomain;
         real8  f1[3], f2[3];
         Tag_t  tag1, tag2;
@@ -301,8 +301,8 @@ void CommSendSegments(Home_t *home, int numRecvBufs, int numSendBufs,
                       int *cellSegCnts)
 {
         int         i, recvIndex;
-        int         *recvBufEnts, *sendBufEnts;
-        real8       **sendBuf, **recvBuf;
+        int         *recvBufEnts=NULL, *sendBufEnts=NULL;
+        real8       **sendBuf=NULL, **recvBuf=NULL;
 
 
 #ifdef PARALLEL

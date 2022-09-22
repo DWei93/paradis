@@ -25,15 +25,19 @@
 void WriteVelocity(Home_t *home, char *baseFileName, int ioGroup,
                    int firstInGroup, int writePrologue, int writeEpilogue)
 {
-        int      i, newNodeKeyPtr, j;
-        real8    vx, vy, vz, burgMag, velocity, length;
+    int      i, newNodeKeyPtr, j;
+    real8    vx, vy, vz, velocity, length;
 	real8    velDir[3], fNor, gForce[3], armf[3];
 	real8	 lDir[3], nDir[3], gDir[3], dot;
-        char     fileName[256];
-        Node_t   *node, *nbr;
-        Param_t  *param = home->param;
-        FILE     *fp;
+    char     fileName[256];
+    Node_t   *node, *nbr;
+    Param_t  *param = home->param;
+    FILE     *fp;
+#ifdef PARALLEL
+#ifdef DO_IO_TO_NFS
         struct stat statbuf;
+#endif
+#endif
 
 /*
  *      Set data file name.  Only append a sequence number to
@@ -87,7 +91,6 @@ void WriteVelocity(Home_t *home, char *baseFileName, int ioGroup,
 /*
  *      Write velocity data for all nodes in this domain
  */
-        burgMag = param->burgMag;
         newNodeKeyPtr = home->newNodeKeyPtr;
 
         for (i = 0; i < newNodeKeyPtr; i++) {

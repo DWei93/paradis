@@ -64,9 +64,9 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2, double
     double  p1x = p1[0], p1y = p1[1], p1z = p1[2];
     double  p2x = p2[0], p2y = p2[1], p2z = p2[2];
     double  vec3[3], vec4[4];
-    int     type;
 
 #ifdef DEBUG
+    int     type;
     if(!IsNormalized(n1))Fatal("%s: n1 (%g,%g,%f) is not nomalized", __func__, n1x, n1y, n1z);
     if(!IsNormalized(n2))Fatal("%s: n2 (%g,%g,%f) is not nomalized", __func__, n2x, n2y, n2z);
 #endif
@@ -98,9 +98,11 @@ int PlanePlaneIntersection(double *n1, double *p1, double *n2, double*p2, double
     normalize_vec(vec3);
 
     // the key point of inetrsection line can be defined by the intersection point of glide line and plane2
-    type = LinePlaneIntersection(vec3, p1, n2, p2, vec4, vec2, err1, err2);
 #ifdef DEBUG
+    type = LinePlaneIntersection(vec3, p1, n2, p2, vec4, vec2, err1, err2);
     if((type&NO_INTERSECTION)>0)Fatal("%s: can not find the intersection of line and plane", __func__);
+#else
+    LinePlaneIntersection(vec3, p1, n2, p2, vec4, vec2, err1, err2);
 #endif
     return(LINE_INTERSECTION);
 } 

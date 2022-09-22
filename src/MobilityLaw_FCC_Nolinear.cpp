@@ -52,17 +52,12 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
 	int     numNonZeroLenSegs = 0, hasShortSeg = 0;
 	int	    numGlideConstraints;
 	real8   dx, dy, dz;
-	real8   nx, ny, nz, nx2, ny2, nz2; 
-	real8   temp;
 	real8   mag, mag2, halfMag, invMag;
-	real8   invbMag, bMag2, costheta, costheta2, sintheta2;
-	real8   Bscrew2, Beclimb2;
-	real8   invBscrew2, invBedge2;
+	real8   bMag2, costheta, costheta2, sintheta2;
 	real8   shortSegCutoff;
 	real8   eps = 1.0e-12;
-	real8   tor=1.e-5;
 	real8   shortSegRatio = 1.0;
-	real8   nForce[3]={node->fX, node->fY, node->fZ}, nVel[3];
+	real8   nForce[3]={node->fX, node->fY, node->fZ};
 	real8   Btotal[3][3];
 	real8   glideConstraints[3][3];
 	real8   invBtotal[3][3];
@@ -147,7 +142,7 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
     }
 
 #ifndef IMAGE_FORCE
-    real8 imageForce[3], imag, nmag, iDir[3], ndot;
+    real8 imageForce[3], imag, iDir[3], ndot;
     NodeImageForce(home, node, imageForce); // nodal image force parallel to sement glide dirs
     imag = Normal(imageForce);
     if(imag > 1.0){ // if has image force
@@ -261,10 +256,9 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
     real8 fdrag[3], bForce[3], vDelta[3];
     real8 Bi[3][3], vgTest[3], vgMag, fTol=1, fErr=fTol+1;
     real8 lineTensor[3][3], glideTensor[3][3], climbTensor[3][3];
-    real8 bs,be,inv_bs,inv_be,sbForceMag, ebForceMag, vRatio_s, vRatio_e, lterm, tau, bForceMag;
+    real8 bs,be,sbForceMag, ebForceMag,bForceMag;
     bool partialBurg;
     int iter, maxStep=30;
-    real8 v1g, v1l, v2g, v2l, va1gs, va1ge, va2ge, va2gs;
     vMag = Sign(DotProduct(nForce,vTest))*Normal(vTest);
     for(iter=0; iter<maxStep &&  fErr>fTol; iter++){
 /*
@@ -419,7 +413,6 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
  *              glide velocity along glide direction
  */
                 ParallelComponent(vTest, m, vgTest); vgMag=Sign(DotProduct(vgTest,m))*Normal(vgTest);
-                if (i==0) v1g=vgMag; else v2g=vgMag;
 
                 if(!partialBurg){
                     bs = B(ks/bMag,vs_max,vs_max_c,vgMag);
@@ -443,7 +436,6 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
  *              line velocity along line sense
  */
                 ParallelComponent(vTest, d, vgTest); vgMag=Sign(DotProduct(vgTest,d))*Normal(vgTest);
-                if (i==0) v1l=vgMag; else v2l=vgMag;
                 if(!partialBurg){
                     bs = B(ks/bMag,vs_max,vs_max_c,vgMag);
                     sbForceMag = FBack(ks/bMag,vs_max,vs_max_c,bs,vgMag);

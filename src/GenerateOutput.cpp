@@ -106,7 +106,9 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
         real8   timeNow, dumpTime;
         Param_t *param;
 
+#ifndef NO_XWINDOW
         static int xWinAlive = 1;
+#endif
 
         param = home->param;
         timeNow = param->timeNow;
@@ -559,7 +561,7 @@ static void GetOutputTypes(Home_t *home, int stage, int *outputTypes)
  *            time to dump files, no check of the current
  *            cycle against the dump frequency will be done.
  */
-        if (param->saveprop && (stage == STAGE_CYCLE) || (stage == STAGE_DEBUG)) {
+        if ((param->saveprop>0 && stage == STAGE_CYCLE) || (stage == STAGE_DEBUG)) {
             if (param->savepropdt > 0.0) {
                 dumpTime = param->saveproptime + param->savepropdt;
                 if (timeNow >= dumpTime) {
@@ -974,7 +976,7 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
         int     thisDomain, isFirstInGroup, isLastInGroup;
         int     writePrologue, writeEpilogue;
         int     sendToken, recvToken;
-        int     writeToken = 0, numSegs = 0, numArms = 0, totFragmentCount = 0;
+        int     numSegs = 0, numArms = 0, totFragmentCount = 0;
         int     nodesWritten = 0, segsWritten = 0;
         int     countInGroup[2] = {0, 0};
         char    baseName[128];

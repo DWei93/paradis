@@ -213,11 +213,8 @@ void EstCoarsenForces(Home_t *home, Node_t *node1, Node_t *node2,
 void CutSurfaceSegments(Home_t *home)
 {
 	int    i, j, thisDomain, globalOp = 1;
-	real8  eps, tmp3[3];
 	Node_t *node, *nbr;
 
-
-	eps = 1.0e-12;
 	thisDomain = home->myDomain;
 
 	for (i = 0; i < home->newNodeKeyPtr; i++) {

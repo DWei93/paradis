@@ -55,7 +55,7 @@ void FMSetTaylorExpansions(Home_t *home)
         int       mpOrder, tOrder, maxOrder;
         int       numTaylorCoeff;
         real8     MU, NU;
-        real8     R[3], sourcePos[3];
+        real8     R[3];
         real8     *tCoeff;
         Param_t   *param;
         FMLayer_t *layer;
@@ -76,6 +76,9 @@ void FMSetTaylorExpansions(Home_t *home)
         } else {
             numTaylorCoeff = 0;
             tCoeff = (real8 *)NULL;
+            mpOrder  = 0;
+            tOrder   = 0;
+            maxOrder = 0;
         }
 
 /*
@@ -234,13 +237,11 @@ void FMSetTaylorExpansions(Home_t *home)
 
 static void FMCellCharge(Home_t *home)
 {
-        int       i, j, inode, inbr, layerID;
+        int       i, inode, inbr, layerID;
         int       cx, cy, cz;
         int       cellID;
         int       numMPCoeff;
-        int       numTaylorCoeff;
         int       *bMin, *bMax;
-        real8     Ev;
         real8     p1[3], p2[3];
         real8     vec1[3], vec2[3], burg[3];
         real8     *etatemp;
@@ -255,11 +256,9 @@ static void FMCellCharge(Home_t *home)
 
         if (param->fmEnabled) {
             numMPCoeff = home->fmNumMPCoeff;
-            numTaylorCoeff = home->fmNumTaylorCoeff;
             etatemp = (real8 *)malloc(numMPCoeff * sizeof(real8));
         } else {
             numMPCoeff = 0;
-            numTaylorCoeff = 0;
             etatemp = (real8 *)NULL;
         }
 

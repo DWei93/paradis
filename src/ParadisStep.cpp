@@ -86,7 +86,7 @@ void _Synchronize(Home_t *home, char *msg)
  *------------------------------------------------------------------------*/
 static void ApplyDeltaStress(Home_t *home, real8 deltaStress[3][3])
 {
-        int     i, j, nbrArm, nbrIsLocal;
+        int     i, j, nbrArm=0, nbrIsLocal;
         real8   x1, y1, z1, x2, y2, z2;
         real8   bx1, by1, bz1, dx, dy, dz;
         real8   f1[3], f2[3];
@@ -178,9 +178,6 @@ void ReevaluateForces(Home_t *home)
 {
         int     i;
         Node_t  *node;
-        Param_t *param;
-
-        param = home->param;
 
         for (i = 0; i < home->newNodeKeyPtr; i++) {
             node = home->nodeKeys[i];
@@ -349,7 +346,7 @@ void ParadisStep(Home_t *home)
 #endif
         }
 
-        if(param->gbStrength>0 || param->polycrystal && param->nGrain>1){
+        if(param->gbStrength>0 || (param->polycrystal && param->nGrain>1)){
             ClearOpList(home);
             HandleGrainBoundary(home);
             //DebugGB(home,22);

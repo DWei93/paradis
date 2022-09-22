@@ -1276,15 +1276,15 @@ int main(int argc, char *argv[])
         real8           totDislocDensity;
         real8           totDislocLen = 0.0;
         InArgs_t        inArgs;
-        InData_t        inData;
         Param_t         *param;
-        Home_t          home;
+        Home_t          home{};
+        InData_t        inData{};
 
         Meminfo(&memSize);
-
+#if 0
         memset(&home, 0, sizeof(Home_t));
         memset(&inData, 0, sizeof(InData_t));
-
+#endif
         inData.param = (Param_t *)calloc(1, sizeof(Param_t));
         home.dataParamList = (ParamList_t *)calloc(1, sizeof(ParamList_t));
         home.param = inData.param;

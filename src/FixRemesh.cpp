@@ -25,9 +25,13 @@ void FixRemesh(Home_t *home, const char flag[256])
     real8   		cellSize[3], cellIndex[3];
 	RemoteDomain_t	*remDom;
 	Operate_t		*rcvOpList, *op;
-	Node_t			*node1, *node2, *node3, *nbr;
+	Node_t			*node1, *node2;
 	Tag_t			tag1, tag2, tag3;
     Param_t     	*param;
+
+#if 0
+	Node_t 			*node3, *nbr;
+#endif
 
 
     param = home->param;

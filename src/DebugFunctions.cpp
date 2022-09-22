@@ -45,8 +45,8 @@
  *************************************************************************/
 void CheckForces(Home_t *home, const char *msg)
 {
-        int    i, j;
-        int    numNodes, numNbrs;
+        int    i;
+        int    numNodes;
         real8  forceThreshold, velThreshold;
         Node_t *node;
 
@@ -60,8 +60,6 @@ void CheckForces(Home_t *home, const char *msg)
             if ((node = home->nodeKeys[i]) == (Node_t *)NULL) {
                 continue;
             }
-
-            numNbrs = node->numNbrs;
 
             if ((node->fX > forceThreshold) ||
                 (node->fY > forceThreshold) ||
@@ -390,26 +388,15 @@ typedef struct {
 } NativeSeg_t;
 
 void CheckLocal(Home_t *home, int flag){
-	int        i, cellNum, cellID, cellSegCnt;
-	int        arm, armCount;
-	int        homeDomain, homeCells, homeNativeCells;
-	int        totalNativeSegs;
-	int        sendDomCnt, allocSize, numDomains;
-	int        setSeg1Forces, setSeg2Forces;
-	int        *nativeSegCounts, *totalSegCounts;
-	int        *sendDomList, *globalMsgCnts, *localMsgCnts;
-	int        segPairListCnt = 0, segPairListSize = 0;
-	int        nativeSegListCnt = 0;
-	real8      MU, NU, a, Ecore, extstress[3][3];
-	Node_t     *node1, *node2, *node3, *node4;
-	Node_t     *node, *nbr;
+	int        cellNum;
+	int        arm;
+	int        homeDomain, homeCells;
+	Node_t     *node;
 	Cell_t     *cell;
-	Param_t    *param;
 	
 	
 	homeCells       = home->cellCount;
 	homeDomain      = home->myDomain;
-	param           = home->param;
 
 	printf("CheckLocal: Task %d, flag %d \n",home->myDomain,flag);
 	
@@ -506,252 +493,6 @@ void DebugGB(Home_t *home, int flag){
 #else
     home->flag = flag;
 #endif
-	int 	i,j,k,l, crossSlipNode, sameNode;
-	int	    normalID, inGrain, onGB;
-	real8   dot,resiBurg[3], resiVec[3];
-	Param_t *param;
-	Grain_t	*grain;
-	Node_t	*node,*nbr, *nbr2;
-    bool    zeroLenJunc;
-	int 	inGrainPos, corInGrain, corOnGB, NM; 
-	real8   vec1[3],vec2[3], vec[3], vecMag, lDir[3];
-	real8	normalCryst[3], GC[3][3], bsum[3];
-	char    name[256];
-    FILE    *fp;
-	char    subdir[256], stepdir[256], filename[256];
-
-	param = home->param;
-#if    0
-    if(-1==ParadisMemCheck(home)){
-        snprintf(name,50,"MemCheck-%d-%d",home->cycle, flag);
-        Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-        Fatal("DebugGB: MemCheck %d %d",home->myDomain, flag);
-
-    }
-#endif
-//    if(flag >= 4 && flag == 5){
-//    }
-	for(i=0; i<home->newNodeKeyPtr; i++){
-		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
-
-        if(node->numNbrs==0){
-            PrintNode(home, node);
-            Fatal("zero neighbors %s",flag);
-        }
-#if 1
-        if ((node->numNbrs == 1) && (node->constraint == UNCONSTRAINED)) {
-            PrintNode(node);
-            snprintf(name,50,"singly-%d-%d",home->cycle, flag);
-            Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-            Fatal("DebugGB: VNode (%d,%d) singly linked! %d",
-                  node->myTag.domainID, node->myTag.index, flag);
-        }
-
-	    GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc);
-
-        vec1[0] = node->x;
-        vec1[1] = node->y;
-        vec1[2] = node->z;
-        NodeLocation(home, node->x, node->y, node->z, inGrain, onGB);
-        if(flag < 18 || flag > 22){
-            if(inGrain != node->inGrain && !IsOnGB(node) || IsOnGB(node) && onGB != node->onGB){
-                PrintNode(home, node);
-                PrintNeighbor(home, node);
-                snprintf(name,50,"debug517-%d-%d",home->cycle, flag);
-                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                Fatal("Task %d, flag %d - 0 NodeLocation(%d,%d) \n", home->myDomain, flag, inGrain, onGB);
-            }
-        }else{
-            if(!IsOnGB(node) && abs(node->inGrain - inGrain)==2){
-                PrintNode(home,node);
-                PrintNeighbor(home, node);
-                printf("Task %d, flag %d: %d != %d \n", home->myDomain,flag, node->inGrain, inGrain);
-                snprintf(name,50,"debug525-%d-%d",home->cycle, flag);
-                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                Fatal("Task %d, flag %d: %d != %d \n", home->myDomain,flag, node->inGrain, inGrain);
-            }
-        }
-#endif
-        VECTOR_ZERO(bsum);
-        for (j = 0; j < node->numNbrs; j++) {
-            nbr = GetNeighborNode(home, node, j);
-            if(nbr == (Node_t *)NULL){
-                printf("Task %d, null neighbor, flag %d \n", 
-                        home->myDomain, flag);
-                PrintNode(home, node);
-                PrintNode(home, nbr);
-                printf("\n");
-            }
-
-            if(GetArmID(home, nbr, node)<0){
-                    PrintNode(home, node);
-                    PrintNode(home, nbr);
-                    Fatal("Task %d, wrong connection, flag %d \n", 
-                        home->myDomain, flag);
-            }
-            if(node->onGB == -1 && nbr->onGB == -1){
-                if(node->inGrain!=nbr->inGrain){
-                    PrintNode(home, node);
-                    PrintNode(home, nbr);
-                    Fatal("Task %d, wrong inGrain, flag %d \n", 
-                        home->myDomain, flag);
-                }
-            }
-        
-            for(k=0; k<nbr->numNbrs; k++){
-                nbr2 = GetNeighborNode(home, nbr, k);
-                if(nbr2==(Node_t *)NULL){
-                    PrintNode(home, node);
-                    PrintNode(nbr);
-                    Fatal("Task %d: can not find secondary ghost node (%d,%d) flag %d\n", home->myDomain, nbr->nbrTag[k].domainID, nbr->nbrTag[k].index, flag);
-                }
-            }
-
-            int armInGrain, armOnGB;
-            GetArmGrain(home, nbr, node, armInGrain, armOnGB);
-            real8 lamp = LengthAmplification(home, armInGrain, armOnGB);
-            if(NodeDistance(home,node,nbr)>home->param->maxSeg*3*lamp){
-                PrintNode(home, node);
-                PrintNode(home, nbr);
-                snprintf(name,50,"longseg-%d-%d",home->cycle, flag);
-                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                Fatal("Task %d, long-segnode, flag %d , lamp=%f\n", 
-                        home->myDomain, flag, lamp);
-            }
-
-            vec[0] = node->burgX[j];
-            vec[1] = node->burgY[j];
-            vec[2] = node->burgZ[j];
-            
-            bsum[0]+=vec[0];
-            bsum[1]+=vec[1];
-            bsum[2]+=vec[2];
-
-            vec1[0] = node->nx[j];
-            vec1[1] = node->ny[j];
-            vec1[2] = node->nz[j];
-
-            lDir[0] = node->x - nbr->x;
-            lDir[1] = node->y - nbr->y;
-            lDir[2] = node->z - nbr->z;
-            ZImage(home->param, lDir, lDir+1, lDir+2);
-
-            NormalizeVec(lDir);
-
-            dot = fabs(DotProduct(lDir, vec1));
-            if(dot > 0.25 && (NM==1)){
-                snprintf(name,50,"wrong-%d-%d",home->cycle, flag);
-                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                PrintNode(home, node);
-                PrintNode(home, nbr);
-                FormatVector(lDir,"lDir");
-                FormatMatrix(GC, "GC");
-                printf("Task %d, wrong multi-arm node, flag %d - dot %f - length %f\n", 
-                        home->myDomain, flag, dot, Normal(lDir));
-            }
-            continue;
-            if(DifferentGlidePlane(node)){
-                lDir[0] = node->x - nbr->x;
-                lDir[1] = node->y - nbr->y;
-                lDir[2] = node->z - nbr->z;
-                ZImage(home->param, lDir, lDir+1, lDir+2);
-
-                NormalizeVec(lDir);
-                dot = fabs(DotProduct(lDir, vec1));
-                if(dot > 0.1 && Normal(lDir) > 2.0 && NM == 3){
-                    snprintf(name,50,"mutiarm-%d-%d",home->cycle, flag);
-                    Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                    PrintNode(node);
-                    FormatMatrix(GC, "GC");
-                    Fatal("Task %d, wrong multi-arm node, flag %d - dot %f - length %f\n", 
-                            home->myDomain, flag, dot, Normal(lDir));
-                }
-                
-            }
-
-            if(BurgType_FCC(vec) == SHOCKLEY_BURG){
-                NormalizeVec(vec);
-                if(fabs(DotProduct(vec1, vec)) > 0.01){
-                    PrintNode(node);
-                    PrintNode(nbr);
-                    snprintf(name,50,"wrongShockley-%d-%d",home->cycle, flag);
-                    Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                    Fatal("Task %d, wrong shockley, flag %d\n", home->myDomain, flag);
-                } 
-            }
-
-            if(!IsOnGB(nbr) && !IsOnGB(node) && nbr->inGrain != node->inGrain){
-                PrintNode(node);
-                PrintNode(nbr);
-                snprintf(name,50,"wrongLoacation-%d-%d",home->cycle, flag);
-                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                Fatal("Task %d, flag %d\n", home->myDomain, flag);
-            }
-
-            if(!(!SurfaceNode(node) && SurfaceNode(nbr)))continue;
-            vec[0] = nbr->x - node->x; 
-            vec[1] = nbr->y - node->y; 
-            vec[2] = nbr->z - node->z; 
-            ZImage(home->param, vec, vec+1, vec+2);
-            if(Normal(vec) < 10)continue;
-
-            NormalizeVec(vec);
-
-            if(fabs(DotProduct(vec, vec1)) > 0.1){
-                PrintNode(node);
-                PrintNode(nbr);
-                snprintf(name,50,"wrongSurface-%d-%d",home->cycle, flag);
-                Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                Fatal("Warning: task %d, wrong surface seg, flag %d\n", home->myDomain, flag);
-            }
-
-#if 0
-            vec2[0] = nbr->x;
-            vec2[1] = nbr->y;
-            vec2[2] = nbr->z;
-            
-            vec[0] = vec2[0] - vec1[0];
-            vec[1] = vec2[1] - vec1[1];
-            vec[2] = vec2[2] - vec1[2];
-            ZImage(param, vec, vec+1, vec+2);
-
-            if(Normal(vec)<1E-10){
-                PrintNode(node);
-                PrintNode(nbr);
-                printf("Warning: seg 0 %d %d\n", home->myDomain, flag);
-            }
-            NormalizeVec(vec);
-
-            vec2[0] = node->nx[j];
-            vec2[1] = node->ny[j];
-            vec2[2] = node->nz[j];
-
-            if(fabs(DotProduct(vec2, vec)) > 1E-2){
-                PrintNode(node);
-                PrintNode(nbr);
-                printf("Task %d, flag %d\n", home->myDomain, flag);
-            }
-#endif
-        }
-
-        if(node->constraint ==0 && Normal(bsum)>1E-2){
-            PrintNode(home, node);
-            PrintNeighbor(home, node);
-            snprintf(name,50,"bsum-%d-%d",home->cycle, flag);
-            Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-            Fatal("Warning: task %d, wrong surface seg, flag %d\n", home->myDomain, flag);
-        }
-    }
-
-	node = home->ghostNodeQ;
-
-    while (node) {
-        if(isnan(node->x) || isnan(node->y) || isnan(node->z)){
-            Fatal("DebugGB %d %d - 2", home->myDomain, flag);
-        }
-    
-        node = node->next;
-    }
 }
 
 

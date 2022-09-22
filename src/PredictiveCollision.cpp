@@ -60,7 +60,7 @@ static int dbgDom;
 static void FindCollisionPoint(Home_t *home, Node_t *node1, Node_t *node2,
                                real8 *x, real8 *y, real8 *z)
 {
-        int     i, j, m, n;
+        int     i, j;
         int     conditionsmet, Nsize;
         int     planeDefined;
         real8   L, invL, tmp;
@@ -543,7 +543,12 @@ static void FindCollisionPointAndTime(Home_t *home, real8 p1[3], real8 p2[3],
             tmpMat22[1][0] = mat[2][1];
             tmpMat22[1][1] = mat[2][2];
 
-            Matrix22Invert(tmpMat22, tmpMat22Inv);
+            if(Matrix22Invert(tmpMat22, tmpMat22Inv)){
+                *L1 = 0.0;
+                *L2 = 0.0;
+                *cTime = -1;
+                return;
+            }
             Matrix22Vector2Mult(tmpMat22Inv, &rhs[1], tmpVec2a);
 
             if ((tmpVec2a[1] >= 0.0) &&
@@ -610,7 +615,12 @@ static void FindCollisionPointAndTime(Home_t *home, real8 p1[3], real8 p2[3],
             tmpMat22[1][0] = mat[1][0];
             tmpMat22[1][1] = mat[1][1];
 
-            Matrix22Invert(tmpMat22, tmpMat22Inv);
+            if(Matrix22Invert(tmpMat22, tmpMat22Inv)){
+                *L1 = 0.0;
+                *L2 = 0.0;
+                *cTime = -1;
+                return;
+            }
             Matrix22Vector2Mult(tmpMat22Inv, rhs, tmpVec2a);
 
             if ((tmpVec2a[0] >= 0.0) &&
@@ -801,43 +811,40 @@ void PredictiveCollisions(Home_t *home)
         int     splitSeg1, splitSeg2;
         int     cell2Index, nbrCell2Index, nextIndex;
         int     cell2X, cell2Y, cell2Z, cx, cy, cz;
-        int     localCollisionCnt, globalCollisionCnt;
         int     collisionConditionIsMet, adjustCollisionPoint;
         int     inGrain1=-1, inGrain2=-1, onGB1=-1, onGB2=-1;
-        real8   mindist2, dist2, ddist2dt, L1, L2, eps, half;
+        real8   mindist2, dist2, ddist2dt, L1, L2,half;
         real8   cTime, cPoint[3];
         real8   x1, y1, z1, vx1, vy1, vz1;
         real8   x2, y2, z2, vx2, vy2, vz2;
         real8   x3, y3, z3, vx3, vy3, vz3;
         real8   x4, y4, z4, vx4, vy4, vz4;
-        real8   seg1Lx, seg1Ly, seg1Lz;
-        real8   seg2Lx, seg2Ly, seg2Lz;
         real8   newx, newy, newz;
         real8   newvx, newvy, newvz;
-        real8   pnew[3], burg1[3], burg2[3];
+        real8   pnew[3], burg1[3];
         real8   oldfp0[3], oldfp1[3];
         real8   f0seg1[3], f1seg1[3], f0seg2[3], f1seg2[3];
         real8   nodeVel[3], newNodeVel[3];
         real8   newPos[3], newVel[3];
-        real8   vec1[3], vec2[3], vec3[3];
+        real8   vec1[3], vec2[3];
         real8   p1[3], p2[3], p3[3], p4[3];
         real8   v1[3], v2[3], v3[3], v4[3];
-        real8   pos[3], oldPos1[3], oldPos2[3];
+        real8   oldPos1[3], oldPos2[3];
         real8   gbPos[3];
         Tag_t   oldTag1, oldTag2;
         Node_t  *node1, *node2, *node3, *node4, *tmpNbr;
         Node_t  *mergenode1, *mergenode2, *targetNode;
-        Node_t  *splitNode1, *splitNode2, *seg1Node1, *seg1Node2;
+        Node_t  *splitNode1, *splitNode2, *seg1Node1=NULL, *seg1Node2=NULL;
         GB_t    *gb;
-        Grain_t *grain;
-        int     gbIndex;
-        Plane_t plane;
         Param_t *param;
         int newInGrain, newOnGB, type; real8 dis; bool canMerge;
 
         int     gbCollision;
         int     splitInGrain=-1, splitOnGB=-1;
 
+#ifdef DEBUG_LOG_COLLISIONS
+        int     localCollisionCnt, globalCollisionCnt;
+#endif
 #ifdef _FEM
         int     resetSurfaceProperties, femSurface[2];
         real8   femSurfaceNorm[3];
@@ -848,11 +855,11 @@ void PredictiveCollisions(Home_t *home)
 
 /* QUESTION!  What is reasonable for mindist2? */
         mindist2 = param->rann * param->rann;
-        eps      = 1.0e-12;
         half     = 0.5;
-
+#ifdef DEBUG_LOG_COLLISIONS
         localCollisionCnt = 0;
         globalCollisionCnt = 0;
+#endif
 
 #ifdef DEBUG_TOPOLOGY_DOMAIN
         dbgDom = DEBUG_TOPOLOGY_DOMAIN;
@@ -966,7 +973,6 @@ void PredictiveCollisions(Home_t *home)
  *                      
  */
                         for (arm34 = 0; arm34 < node3->numNbrs; arm34++) {
-                            real8 dx, dy, dz;
 
                             if (didCollision) break;
 
@@ -1133,7 +1139,7 @@ void PredictiveCollisions(Home_t *home)
                                 FindCollisionPointAndTime(home, p1, p2, p3, p4,
                                                       v1, v2, v3, v4, cPoint,
                                                       &cTime, &dist2, &L1, &L2);
-
+                                                      
                                 collisionConditionIsMet = ((cTime > 0.0) &&
                                                            (cTime < 10.0));
                             } else {
@@ -1784,7 +1790,9 @@ void PredictiveCollisions(Home_t *home)
                                }
     
                                didCollision = 1;
+#ifdef DEBUG_LOG_COLLISIONS
                                localCollisionCnt++;
+#endif
 
                             }  /* If conditions for collision are met */
                         }  /* Loop over node3 arms */
@@ -2239,7 +2247,9 @@ void PredictiveCollisions(Home_t *home)
                             printf("\n");
                         }
 #endif
+#ifdef DEBUG_LOG_COLLISIONS
                         localCollisionCnt++;
+#endif
 
 /*
  *                      If the target node exists after the merge, reevaulate

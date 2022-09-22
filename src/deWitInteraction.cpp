@@ -263,6 +263,7 @@ void ReadRijm(Home_t *home)
 		reInt = fscanf(fp,"%d %d %d",&NX,&NY,&NZ);
 		reInt = fscanf(fp,"%le %le %le",&Lx,&Ly,&Lz);
 		reInt = fscanf(fp,"%d %d %d",&NIMGX,&NIMGY,&NIMGZ);
+        if(reInt==EOF)Fatal("%s: return value of fscanf is %d",__func__,reInt);
 
 		if ((NX>MAXSTRGRID)||(NY>MAXSTRGRID)||(NZ>MAXSTRGRID)) {
 			fprintf(stderr,"NX=%d NY=%d NZ=%d MAXSTRGRID=%d\n",
@@ -391,6 +392,7 @@ void ReadRijmPBC(Home_t *home)
 		for(m=0;m<10;m++) {
 			reInt = fscanf(fp,"%le\n", &RIJMPBCTABLE[i*Offset1+j*Offset2+k*Offset3+m]);
 		}
+        if(reInt==EOF)Fatal("%s: return value of fscanf is %d",__func__,reInt);
 
 		fclose(fp);
 
@@ -598,10 +600,9 @@ void dSegImgStress(Home_t *home,
      * Wei Cai, 7/6/2002
      */
     real8 rt[3], Rmpp[3], dl[3], bxdl[3], bxRmpp[3];
-    real8 Rijmarray[10], Rijm[3][3][3], Rijmterm[3][3][3];
+    real8 Rijmarray[10], Rijm[3][3][3];
 /*    real8 R, R2, R3;  */
     real8 MUover4pi, onepois;
-    int i, j, m;
 
     MUover4pi = home->param->shearModulus/4/M_PI ;
     onepois = 1./(1.- home->param->pois) ;

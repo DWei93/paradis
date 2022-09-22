@@ -207,7 +207,7 @@ static void CommPackGhostPlanes(Home_t *home)
 static void CommUnpackGhostPlanes(Home_t *home) 
 {
 #ifdef PARALLEL
-        int            i, j, isrc, domainIdx;
+        int            j, isrc, domainIdx;
         int            bufIndex, numSegs, segIndex;
         real8          *inBuf;
         Tag_t          tag1, tag2;

@@ -408,8 +408,8 @@ void SendInitialNodeData(Home_t *home, InData_t *inData, int *msgCount,
         int         i, domID, numDomains, thisDomain;
         int         sendIndex, selfSendIndex;
         int         numSendBufs, numRecvBufs;
-        int         *sendBufEnts, *sendBufDest, *recvBufEnts;
-        real8       **sendBuf, **recvBuf;
+        int         *sendBufEnts=NULL, *sendBufDest=NULL, *recvBufEnts=NULL;
+        real8       **sendBuf=NULL, **recvBuf=NULL;
 #ifdef PARALLEL
         int         recvIndex;
 #endif

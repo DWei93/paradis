@@ -370,7 +370,7 @@ void TimeAtRestart(Home_t *home, int stage)
 	int	i;
 	int	count, numDoms, iTime, iDom, allIdx;
 	real8	balance;
-	real8	*localTimes, *allTimes, *minTimes, *maxTimes, *avgTimes;
+	real8	*localTimes, *allTimes=NULL, *minTimes, *maxTimes, *avgTimes;
 	char	tFile[16];
 	FILE	*file;
 	Param_t	*param;

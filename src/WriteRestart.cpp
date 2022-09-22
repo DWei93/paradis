@@ -69,7 +69,12 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
         FILE    *fp, *fpCtrl, *fpTable;
         Node_t  *node;
         Param_t *param;
+
+#ifdef PARALLEL
+#ifdef DO_IO_TO_NFS
         struct  stat statbuf;
+#endif
+#endif
 
         param = home->param;
 
@@ -111,15 +116,23 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
  */
 
         if (param->numIOGroups == 1) {
-            snprintf(dataFile, sizeof(dataFile), "%s/%s%s",
-                     DIR_RESTART, fileName, NODEDATA_FILE_SUFFIX);
-            snprintf(tableFile, sizeof(tableFile), "%s/%s%s",
-                     DIR_RESTART, fileName, TABLE_FILE_SUFFIX);
+            if(snprintf(dataFile, sizeof(dataFile), "%s/%s%s",
+                     DIR_RESTART, fileName, NODEDATA_FILE_SUFFIX) >= (int)sizeof(dataFile)){
+                Fatal("%s: buffer overflow -- string is truncated",__func__);
+            }
+            if(snprintf(tableFile, sizeof(tableFile), "%s/%s%s",
+                     DIR_RESTART, fileName, TABLE_FILE_SUFFIX)>=(int)sizeof(tableFile)){
+                Fatal("%s: buffer overflow -- string is truncated",__func__);
+            }
         } else {
-            snprintf(dataFile, sizeof(dataFile), "%s/%s%s.%d",
-                     DIR_RESTART, fileName, NODEDATA_FILE_SUFFIX, ioGroup);
-            snprintf(tableFile, sizeof(tableFile), "%s/%s%s.%d",
-                     DIR_RESTART, fileName, TABLE_FILE_SUFFIX, ioGroup);
+            if(snprintf(dataFile, sizeof(dataFile), "%s/%s%s.%d",
+                     DIR_RESTART, fileName, NODEDATA_FILE_SUFFIX, ioGroup)>=(int)sizeof(dataFile)){
+                Fatal("%s: buffer overflow -- string is truncated",__func__);
+            }
+            if(snprintf(tableFile, sizeof(tableFile), "%s/%s%s.%d",
+                     DIR_RESTART, fileName, TABLE_FILE_SUFFIX, ioGroup)>=(int)sizeof(tableFile)){
+                Fatal("%s: buffer overflow -- string is truncated",__func__);
+            }
         }
 
 #ifdef PARALLEL

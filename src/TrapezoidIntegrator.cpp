@@ -609,7 +609,7 @@ void TrapezoidIntegrator(Home_t *home)
 {
         int     i, convergent, maxIterations, incrDelta;
         int     iter, globalIterError, mobIterError;
-        int     dumpErrorData = 1, doAll = 1;
+        int     doAll = 1;
 		real8   errMax, globalErrMax;
         real8   oldDT, newDT;
 	    static  real8 minDT;
@@ -621,6 +621,9 @@ void TrapezoidIntegrator(Home_t *home)
 #ifdef 	DEBUG_TIMESTEP
         real8   oldErrMax;
         Node_t  *tmpNode;
+#endif
+#ifdef DEBUG_TIMESTEP_ERROR
+        int     dumpErrorData = 1;
 #endif
 
         param = home->param;

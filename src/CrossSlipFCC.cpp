@@ -52,7 +52,7 @@ void CrossSlipFCC(Home_t *home)
         real8  segplane1[3], segplane2[3], newplane[3];
         real8  tmp3[3], tmp3B[3], tmp3C[3];
         real8  glideDirLab[3][3], glideDirCrystal[3][3];
-        real8  fLab[3], fCrystal[3];
+        real8  fLab[3];
         real8  burgLab[3], burgCrystal[3];
         real8  nodePosOrig[3], nbr1PosOrig[3], nbr2PosOrig[3];
         real8  newForce[3], newSegForce[3];
@@ -68,6 +68,7 @@ void CrossSlipFCC(Home_t *home)
         real8  lamp = 1.0, temVec[3], cof;
         int armInGrain1, armInGrain2, armOnGB1, armOnGB2, curInGrain, curOnGB;
         int iter, iterMax=8;
+        int     row;
 
 #ifdef DEBUG_CROSSSLIP_DOMAIN
         dbgDom = DEBUG_CROSSSLIP_DOMAIN;
@@ -332,8 +333,6 @@ void CrossSlipFCC(Home_t *home)
  *              Also need to rotate the segment planes into the crystal frame.
  */
                 if (param->useLabFrame) {
-                    int     row;
-                    real8   tmpPlane[3];
 
                     if(param->polycrystal){
                         Grain_t *grain;
@@ -352,22 +351,6 @@ void CrossSlipFCC(Home_t *home)
                                                 glideDirCrystal[row],
                                                 glideDirLab[row]);
                     }
-/*
- *                  Rotate segment planes to crystal frame
- *
-                    Matrix33Vector3Multiply(rotMatrixInverse, segplane1,
-                                            tmpPlane);
-                    VECTOR_COPY(segplane1, tmpPlane);
-
-                    Matrix33Vector3Multiply(rotMatrixInverse, segplane2,
-                                            tmpPlane);
-                    VECTOR_COPY(segplane2, tmpPlane);
-
-/*
- *                  Rotate force vector to crystal frame
- */
-                    /*Matrix33Vector3Multiply(rotMatrixInverse, fLab,
-                                            fCrystal);*/
                 } else {
 /*
  *                  Lab and crystal frames are identical, so just copy
@@ -376,7 +359,6 @@ void CrossSlipFCC(Home_t *home)
                     VECTOR_COPY(glideDirLab[0], glideDirCrystal[0]);
                     VECTOR_COPY(glideDirLab[1], glideDirCrystal[1]);
                     VECTOR_COPY(glideDirLab[2], glideDirCrystal[2]);
-                    VECTOR_COPY(fCrystal, fLab);
                 }
 
                 Matrix33Vector3Multiply(glideDirLab, segplane1, tmp3);

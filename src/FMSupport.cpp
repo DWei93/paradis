@@ -279,13 +279,13 @@ static void dmsym3init(int n,int M[][13][13],real8 drdata[])
   for(i = 0; i<13*13*13; i++) M[i/(13*13)][(i/13)%13][i%13] = -1;
 
   m = ( (NMAX+3+3)*(NMAX+3+2)*(NMAX+3+1) - (3+3)*(3+2)*(3+1) )/6;
-  for(ir = 0; ir<sizeof(rveclist)/(3*sizeof(int)); ir++) {
+  for(ir = 0; ir<(int)(sizeof(rveclist)/(3*sizeof(int))); ir++) {
     for(i = nold+1; i<=n; i++) {
       i0 = ( (i+3+2)*(i+3+1)*(i+3) - (3+2)*(3+1)*3 )/6;
       for(k = 0; k<3; k++) r[k] = rveclist[ir][k];
       /*printf("@ %s:%d: ir=%d i=%d n=%d i0=%d m=%d ir*m+i0=%d len(powvec)=%d\n",
 	__FILE__,__LINE__,ir,i,n,i0,m,ir*m+i0,sizeof(powvec)/sizeof(int)/3);*/
-      if(sizeof(powvec)/(3*sizeof(int))-i0 < (i+3+2)*(i+3+1)/2) {
+      if((int)(sizeof(powvec)/(3*sizeof(int)))-i0 < (i+3+2)*(i+3+1)/2) {
 	Fatal("@ %s:%d: powvec is too small!!!", __FILE__,__LINE__);
       }
       DM(i+3,r,&drdata[ir*m+i0],&powvec[i0]);
@@ -307,7 +307,7 @@ static void dmsym3init(int n,int M[][13][13],real8 drdata[])
           k = k+1;
         }
     }
-    for(i = 0; i<sizeof(p)/(3*sizeof(int)); i++)
+    for(i = 0; i<(int)(sizeof(p)/(3*sizeof(int))); i++)
       M [rveclist[ir][p[i][0]]]
         [rveclist[ir][p[i][1]]]
         [rveclist[ir][p[i][2]]] = ir*m;
@@ -329,7 +329,7 @@ static void dmsym3(int n,vector r,real8 *rvec/*,int npows[][3]*/)
   if(M[0][0][0] < n+3) {
     /*printf("len(drdata) = %d , sizeof(real8)=%d , sizeof(int)=%d\n",
       sizeof(drdata)/sizeof(real8),sizeof(real8),sizeof(int));*/
-    if(sizeof(drdata)/sizeof(real8) < (n+3+3)*(n+3+2)*(n+3+1)/6)
+    if((int)(sizeof(drdata)/sizeof(real8)) < (n+3+3)*(n+3+2)*(n+3+1)/6)
       Fatal("@ %s:%d: drdata is too small!!",__FILE__,__LINE__);
 
     /* printf("Calling dmsym3init... sizeof(M)=%d  13*13*13=%d\n",

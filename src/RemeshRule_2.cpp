@@ -32,10 +32,9 @@ static int dbgDom;
 static void MeshCoarsen(Home_t *home)
 {
         DebugGB(home, 100);
-        int     i,j, k, q, thisDomain, mergeDone, mergeStatus, globalOp;
-        int     localCoarsenCnt, globalCoarsenCnt, hasRemoteNbr;
-	    int	    breakLoop = 0, type;
-        real8   tmpMag2, vec1[3], vec2[3];
+        int     i, q, thisDomain, mergeDone, mergeStatus, globalOp;
+        int     hasRemoteNbr;
+	    int	    type;
         real8   cellLength, cutoffLength1, cutoffLength2, lamp;
         real8   vec1x, vec1y, vec1z;
         real8   vec2x, vec2y, vec2z;
@@ -48,18 +47,12 @@ static void MeshCoarsen(Home_t *home)
         real8   dr1dt, dr2dt, dr3dt, dsdt, darea2dt;
         real8   newPos[3], f0seg1[3], f1seg1[3];
         real8   gp0[3], gp1[3], tmp3[3];
-        real8   burg[3],vec[3],vecStored;
-	    real8	mergedGrain;
-	    int	    riskySeg1, riskySeg2, armID;    
+        real8   vec[3];
         Tag_t   nbr1Tag, nbr2Tag, oldTag1, oldTag2, oldTag3;
         Node_t  *node, *nbr, *nbr1, *nbr2, *mergedNode;
         Param_t *param;
-        Node_t  bkupNodeList[2];
-	    char 	name[50];
-        Plane_t GBPlane;
         bool    violateGlidePlanesOK = 0; 
-        int     mergedBasic;
-        int     planeType, nbrInGrain;
+        int     nbrInGrain;
         int     inGrain, onGB;
         int     armInGrain1, armInGrain2, armOnGB1, armOnGB2;
 #ifdef DEBUG_CROSS_SLIP
@@ -89,8 +82,11 @@ static void MeshCoarsen(Home_t *home)
         int     oldOnGB;
         real8 ld1[3],ld2[3];
 
-        localCoarsenCnt = 0;
-        globalCoarsenCnt = 0;
+#ifdef DEBUG_LOG_MESH_COARSEN
+#ifdef PARALLEL
+        int     localCoarsenCnt=0, globalCoarsenCnt=0;
+#endif
+#endif
 /*
  *      Loop through all the nodes native to this domain looking for
  *      nodes that should be coarsened out.
@@ -201,8 +197,8 @@ static void MeshCoarsen(Home_t *home)
                        __FILE__, __LINE__);
                 continue;
             }
-            if(param->gbStrength<=0)if(SurfaceNode(nbr1) && SurfaceNode(node) ||
-               SurfaceNode(nbr2) && SurfaceNode(node) ||
+            if(param->gbStrength<=0)if((SurfaceNode(nbr1) && SurfaceNode(node)) ||
+               (SurfaceNode(nbr2) && SurfaceNode(node)) ||
                SurfaceNode(node) )continue;
 
             if(nbr1->constraint ==7 && nbr2->constraint==7)continue;
@@ -661,7 +657,11 @@ static void MeshCoarsen(Home_t *home)
 				
                 if (mergeDone == 0) continue;
         
+#ifdef DEBUG_LOG_MESH_COARSEN
+#ifdef PARALLEL
                 localCoarsenCnt++;
+#endif
+#endif
 
 #ifdef DEBUG_TOPOLOGY_CHANGES
                 if ((dbgDom < 0) || (dbgDom == home->myDomain)) {
@@ -904,17 +904,18 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
                         real8 areaMax2, real8 darea2dt, int splitIsOK,
                         int didBisect)
 {
-        int     splitStatus, thisDomain, globalOp;
+        int     splitStatus, globalOp;
         int     *armList, armCount;
         int     inGrain, onGB;
-        real8   newVel[3], newPos[3], nodeVel[3], nodePos[3],posInGrain;
-        real8   f0seg1[3], f0seg2[3], f1seg1[3], f1seg2[3], newInGrain;
+        real8   newVel[3], newPos[3], nodeVel[3], nodePos[3];
+        real8   f0seg1[3], f0seg2[3], f1seg1[3], f1seg2[3];
         Tag_t   oldTag1, oldTag2;
         Node_t  *node, *splitNode1, *splitNode2;
         Param_t *param;
         real8   lamp;
-
-        thisDomain = home->myDomain;
+#if 0
+        int     thisDomain = home->myDomain;
+#endif
         param = home->param;
         armList = &armID;
         armCount = 1;
@@ -1082,31 +1083,32 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
  *------------------------------------------------------------------------*/
 static void MeshRefine(Home_t *home)
 {
-        DebugGB(home, 200);
         int     i, thisDomain, didBisect, seg, splitIsOK;
         int     splitStatus, armIndex, armCount = 1, globalOp;
         int     armID, *armList;
-        int     localRefineCnt, globalRefineCnt;
         int     splitOK[2], splitSegList[2];
-        real8   areaMax, areaMax2, maxSeg2, newInGrain;
+        real8   areaMax, areaMax2, maxSeg2;
         real8   delta, r1, r2, r3, s, area2, segLen;
-        real8   dvec1xdt, dvec1ydt, dvec1zdt,posInGrain;
+        real8   dvec1xdt, dvec1ydt, dvec1zdt;
         real8   dvec2xdt, dvec2ydt, dvec2zdt;
         real8   dvec3xdt, dvec3ydt, dvec3zdt;
         real8   dr1dt, dr2dt, dr3dt, dsdt, darea2dt;
         real8   *vec, vec1[3], vec2[3], vec3[3];
         real8   nodePos[3], nodeVel[3], newVel[3], newPos[3];
         real8   f0seg1[3], f1seg1[3], f0seg2[3], f1seg2[3];
-        real8   dis, burg[3];
-        int     planeType, inGrain, onGB;
+        int     inGrain, onGB;
         Tag_t   oldTag1, oldTag2;
         Node_t  *node, *nbr, *nbr1, *nbr2, *splitNode1, *splitNode2;
         Param_t *param;
 
-        real8 oldSeg[6], newSeg[9], curSeg[3];
         real8 lamp;
         int armInGrain, armOnGB;
 
+#ifdef DEBUG_LOG_MESH_REFINE
+#ifdef PARALLEL
+        int     localRefineCnt, globalRefineCnt;
+#endif
+#endif
 /*
  *      Initialize some of the constants we'll need during this call.
  */
@@ -1118,8 +1120,12 @@ static void MeshRefine(Home_t *home)
         maxSeg2  = param->maxSeg * param->maxSeg;
         delta    = 1.0e-16;
 
+#ifdef DEBUG_LOG_MESH_REFINE
+#ifdef PARALLEL
         localRefineCnt = 0;
         globalRefineCnt = 0;
+#endif
+#endif
         
 /*
  *      Loop through all the  native nodes looking for segments
@@ -1291,7 +1297,11 @@ static void MeshRefine(Home_t *home)
                     didBisect = TrySegBisect(home, &node, nbr, armID, segLen,
                                              vec, area2, areaMax2, darea2dt,
                                              splitIsOK, didBisect);
+#ifdef DEBUG_LOG_MESH_REFINE
+#ifdef PARALLEL
                     localRefineCnt += didBisect;
+#endif
+#endif
 
                 }  /* for (seg = 0; seg < 2; ...) */
 
@@ -1407,7 +1417,11 @@ static void MeshRefine(Home_t *home)
         
                         if (splitStatus == SPLIT_SUCCESS) {
 
+#ifdef DEBUG_LOG_MESH_REFINE
+#ifdef PARALLEL
                             localRefineCnt++;
+#endif
+#endif
 
                             node = splitNode1;
 /*

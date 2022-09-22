@@ -2375,7 +2375,6 @@ void LocalSegForces(Home_t *home, int reqType)
         Segment_t  *segList, *nbrSegList, **cellSegLists;
         NativeSeg_t   *nativeSegList = NULL;
         SegmentPair_t *segPairList = NULL;
-        int             inGrain, onGB;
 
         int armInGrain12, armOnGB12, armInGrain34, armOnGB34;
 

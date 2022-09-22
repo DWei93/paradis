@@ -30,20 +30,15 @@ int Mobility_FCC_0(Home_t *home, Node_t *node)
 {
     int numNonZeroLenSegs = 0;
     int numGlideConstraints;
-    int grainNode;
     Param_t *param;
-    real8 nVel[3], Veldotlcr, forceGB[3];
-    int i, j, nc, nconstraint, nlc, TBBurg;
-    real8 normx[MAX_NBRS], normy[MAX_NBRS], normz[MAX_NBRS];
-    real8 lineX[MAX_NBRS], lineY[MAX_NBRS], lineZ[MAX_NBRS];
-    real8 a, b, velocity;
+    real8 nVel[3];
+    int i, j, nc, TBBurg;
+    real8 velocity;
     real8 dx, dy, dz, lx, ly, lz, lr, LtimesB;
-    real8 lcx, lcy, lcz, normdotlc;
     Node_t *nbr;
     real8 MobScrew, MobEdge, MobTwinning, Mob;
     real8 bx, by, bz, br, dangle;
-    real8 glideConstraintsCrystal[3][3];
-    real8 nForce[3], armForce[3], glideConstraints[3][3];
+    real8 nForce[3], glideConstraints[3][3];
     real8 factor = 1.0;
 
     param = home->param;

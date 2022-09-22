@@ -69,12 +69,11 @@
  *                    as the job's domain count.
  *
  *----------------------------------------------------------------------*/
+#if DLB_DEBUG
 static void DLBStats(Home_t *home, real8 *loadData)
 {
         int        domain;
         real8      minVal, maxVal, totVal, avgVal, imbalance;
-        char       statFileName[64];
-        FILE       *statFP;
         static int seqNum = 1;
 
         if (home->myDomain != 0) {
@@ -132,6 +131,7 @@ static void DLBStats(Home_t *home, real8 *loadData)
 
         return;
 }
+#endif
 
 
 

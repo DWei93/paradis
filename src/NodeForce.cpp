@@ -1214,7 +1214,7 @@ void SetOneNodeForce(Home_t *home, Node_t *nodeA)
         Node_t  *nodeB;
         Param_t *param;
         SegPair_t *segPairList = (SegPair_t *)NULL;
-        int     inGrain, onGB, armInGrain12, armOnGB12, armInGrain34, armOnGB34;
+        int     armInGrain12, armOnGB12, armInGrain34, armOnGB34;
 
         param           = home->param;
 
@@ -2010,7 +2010,7 @@ int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
 {
     real8 tx, ty, tz, L, La;
     real8 bs, bs2, bex, bey, bez, be2, fL, ft, bMag2;
-    real8 A = MU/4/M_PI, R, S, Ecore;
+    real8 A = MU/4/M_PI, S, Ecore;
     
     if(!GetUnitVector(1, x1, y1, z1, x2, y2, z2, &tx, &ty, &tz, &L))return(0);
     bs = bx*tx + by*ty + bz*tz;
@@ -2080,7 +2080,7 @@ int SelfForceAnisotropic(int coreOnly, real8 MU, real8 NU,
     /* Account for the self force due to the core energy change when 
        the core radius changes from a0-->a, M. Tang, 7/19/2004 */ 
 
-    real8 Ecore_screw, Ecore_edge, Etot_edge, Etot_screw, Etot, Ens;
+    real8  Etot_edge, Etot_screw;
 
     R=grainSize;
     if(bMag2>0.9){

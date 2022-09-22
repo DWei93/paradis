@@ -70,12 +70,10 @@ void WriteProp(Home_t *home, int property)
         real8   *localDensityVals  = (real8 *)NULL;
         real8   *globalDensityVals = (real8 *)NULL;
         real8   totDensityChange[14];
-	    real8	TC;
-        real8   dpstn[6], effPlaRate, sign;
-        char    fileName[256], var[256];
+        real8   sign;
+        char    fileName[256];
         FILE    *fp;
         Param_t *param;
-        int     loadDirID;
 
         param = home->param;
 #ifdef  VELOCITY_STATISTICS
@@ -85,18 +83,6 @@ void WriteProp(Home_t *home, int property)
         real8 *locVals    = (real8 *)calloc(dataLen, sizeof(real8));
         real8 *gloVals    = (real8 *)calloc(dataLen, sizeof(real8));
 #endif
-		for (i = 0; i < 6; i++) {
-            dpstn[i] = param->delpStrain[i];
-        }
-		
-        effPlaRate = sqrt((dpstn[0]*dpstn[0]+ 
-                           dpstn[1]*dpstn[1]+ 
-                           dpstn[2]*dpstn[2]+ 
-                       2.0*dpstn[3]*dpstn[3]+ 
-                       2.0*dpstn[4]*dpstn[4]+ 
-                       2.0*dpstn[5]*dpstn[5])*2.0/3.0)/param->lastDT;
-
-	    TC = Sign(param->eRate);
         if(param->loadType!=6){
             al = param->edotdir[0];
             am = param->edotdir[1];

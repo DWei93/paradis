@@ -156,7 +156,7 @@ ELSE(GEOS_FOUND)
 INCLUDE_DIRECTORIES(../include)
 ENDIF(GEOS_FOUND)
 
-add_definitions(-DNO_XWINDOW )
+add_definitions(-DNO_XWINDOW)
 
 add_executable(${PARADISGEN_EXE} ${PARADISGEN_SRCS}     )
 add_executable(paradisrepart     ${PARADISREPART_SRCS}  )
