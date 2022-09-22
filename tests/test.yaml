@@ -92,3 +92,14 @@ map:
   - key2: 2
   - $$: ignored
   - $$tail: ignored
+
+snes:
+    - fd:
+    - monitor:
+    - converged:
+        - reason:
+log:
+    view:
+
+test:
+    1:
