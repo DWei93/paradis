@@ -14,14 +14,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <mcheck.h>
+#ifdef PETSC
+#include "PetscUtil.h"
+#endif
 #include "Home.h"
 #include "Util.h"
-//#include "DisplayC.h"
 #include "Comm.h"
 #include "Mobility.h"
 #include "Decomp.h"
 #include "QueueOps.h"
-#include <mcheck.h>
 #define MALLOC_TRACE mem.log 
 
 #if defined _FEM | defined _FEMIMGSTRESS
@@ -94,7 +96,6 @@ static void ApplyDeltaStress(Home_t *home, real8 deltaStress[3][3])
         Param_t *param;
         
         param = home->param;
-		
 
 /*
  *      Loop over all native nodes
@@ -117,7 +118,7 @@ static void ApplyDeltaStress(Home_t *home, real8 deltaStress[3][3])
                 nbr = GetNeighborNode(home, node, j);
 
                 if (nbr == (Node_t *)NULL) {
-					PrintNode(node);
+                    PrintNode(node);
                     printf("WARNING: Neighbor %d (%d,%d) not found at %s line %d\n",
                            j,node->nbrTag[j].domainID, node->nbrTag[j].index,__FILE__, __LINE__);
                     continue;
@@ -143,25 +144,25 @@ static void ApplyDeltaStress(Home_t *home, real8 deltaStress[3][3])
                 x2=x1+dx;
                 y2=y1+dy;
                 z2=z1+dz;
-				
-				
+                
+                
                 ExtPKForce(deltaStress, bx1, by1, bz1, x1, y1, z1,
                         x2, y2, z2, f1, f2);
-				
-				
-        
+                
                 AddtoNodeForce(node,f1);
                 AddtoArmForce(node, j, f1);
-				
+                
                 if (nbrIsLocal) {
                     AddtoNodeForce(nbr, f2);
                     AddtoArmForce(nbr, nbrArm, f2);
                 }
             }
 
-            (void)EvaluateMobility(home, node);
+            if(!param->velocityKernel){
+                (void)EvaluateMobility(home, node);
+            }
         }
-		
+        
         return;
 }
 
@@ -178,7 +179,6 @@ void ReevaluateForces(Home_t *home)
 {
         int     i;
         Node_t  *node;
-
         for (i = 0; i < home->newNodeKeyPtr; i++) {
             node = home->nodeKeys[i];
             if (node == (Node_t *)NULL) continue;
@@ -205,7 +205,6 @@ void ParadisStep(Home_t *home)
         char       name[50];
         static int firstTime = 1;
    
-
         param = home->param;
 
 /*
@@ -213,7 +212,9 @@ void ParadisStep(Home_t *home)
  *      perform the minimal work needed to estimate per-process
  *      load, shift boundaries, and migrate nodes among processors.
  */
-
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
         if (param->numDLBCycles > 0) {
 /*
  *          Note:  When param->numDLBCycles > 0, NodeForce() assumes
@@ -238,7 +239,10 @@ void ParadisStep(Home_t *home)
 
             return;
         }
-		
+        
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 
 #ifndef NO_XWINDOW
         while (WinIsPaused()) {
@@ -250,7 +254,8 @@ void ParadisStep(Home_t *home)
  *      Calculate the net charge tensor for each cell (includes global comm)
  */
         CellCharge(home);
-		
+        
+        
 /*
  *      Calculate new force and velocity data for all nodes or a selected
  *      subset and distribute the new data out to neighboring domains.
@@ -260,21 +265,22 @@ void ParadisStep(Home_t *home)
  *      involved in topological changes the previous step.
  */
         if (firstTime) {
+#ifdef PETSC
+            if(param->velocityKernel) AssembleGlobalVelocityKernel(home);
+#endif  
             NodeForce(home, FULL);
             CalcNodeVelocities(home, 1, doAll);
             CommSendVelocity(home);
             firstTime = 0;
-
         } else {
             NodeForce(home, PARTIAL);
-        DebugGB(home,17);
             CalcNodeVelocities(home, 0, doAll);
-        DebugGB(home,18);
             CommSendVelocity(home);
-
-        DebugGB(home,19);
         }
 
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 /*
  *      Invoke the selected time step integration method.  The
  *      selected method will calculate the time step as well as
@@ -299,7 +305,7 @@ void ParadisStep(Home_t *home)
         param->mergeDtSt[3] = 0.0;
         param->mergeDtSt[4] = 0.0;
         param->mergeDtSt[5] = 0.0;
-		
+        
         if (strcmp(param->timestepIntegrator, "forward-euler") == 0) {
             ForwardEulerIntegrator(home);
         } else if (strcmp(param->timestepIntegrator, "trapezoid") == 0) {
@@ -312,7 +318,18 @@ void ParadisStep(Home_t *home)
             TrapezoidIntegrator(home);
         }
 
+#ifdef PETSC
+		/**
+		 * @brief Destroying the global velocity kernel.
+		 * ! the next topology operations will add and/or remove nodes,
+		 * ! which results in the global velocity kernel being unavailable.
+		 */
+        if(param->velocityKernel)DestoryGlobalVelocityKernel(home->vk);
+#endif
 
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 /*
  *      Before doing topological changes, set flags indicating any
  *      nodes exempt from topological changes.  These flags are used
@@ -336,30 +353,37 @@ void ParadisStep(Home_t *home)
             TimerStart(home, SEND_FS);
             CommSendRemesh(home);
             TimerStop(home, SEND_FS);
-	
+    
             TimerStart(home, FIX_FS);
             FixRemesh(home, "Surface");
             TimerStop(home, FIX_FS);
 
-#if CHECK_GB_TOPO
-            GenerateOutput(home, STAGE_DEBUG, "-3FS");
-#endif
         }
+
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 
         if(param->gbStrength>0 || (param->polycrystal && param->nGrain>1)){
             ClearOpList(home);
             HandleGrainBoundary(home);
-            //DebugGB(home,22);
 
             TimerStart(home, SEND_GB);
             CommSendRemesh(home);
             TimerStop(home, SEND_GB);
-	
+    
             TimerStart(home, FIX_GB);
             FixRemesh(home, "GB");
             TimerStop(home, FIX_GB);
 
         }
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
+
+#if CHECK_GB_TOPO
+        GenerateOutput(home, STAGE_DEBUG, "-3FS");
+#endif
 
 /*
  *      In some simulations, it is necessary to recalculate and distribute
@@ -389,10 +413,12 @@ void ParadisStep(Home_t *home)
         SortNodesForCollision(home);
         SplitMultiNodes(home);
 
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 #ifdef _FEM
         SplitSurfaceNodes(home);
 #endif
-
 /*
  *      Call a generic cross-slip dispatch function that will call
  *      (if necessary) the cross-slip function appropriate to the
@@ -400,6 +426,9 @@ void ParadisStep(Home_t *home)
  */
         CrossSlip(home);
 
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 #if CHECK_GB_TOPO
         GenerateOutput(home, STAGE_DEBUG, "-4CrossSlip");
 #endif
@@ -408,7 +437,7 @@ void ParadisStep(Home_t *home)
  *      and if necessary handle any collision between them.
  */
         HandleCollisions(home);
-		
+        
 #ifdef PARALLEL
 #ifdef SYNC_TIMERS
         TimerStart(home, POST_COLLISION_BARRIER);
@@ -416,17 +445,20 @@ void ParadisStep(Home_t *home)
         TimerStop(home, POST_COLLISION_BARRIER);
 #endif
 #endif
-		
+        
         TimerStart(home, COL_SEND_REMESH);
         CommSendRemesh(home);
         TimerStop(home, COL_SEND_REMESH);
-		
+        
         TimerStart(home, COL_FIX_REMESH);
         FixRemesh(home, "Collision");
         TimerStop(home, COL_FIX_REMESH);
-		
+        
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 #ifdef _FEM
-	AdjustNodePosition(home, 1); 
+        AdjustNodePosition(home, 1); 
 #endif 
 
 /*
@@ -463,10 +495,14 @@ void ParadisStep(Home_t *home)
  *      Invoke mesh coarsen/refine
  */
         Remesh(home);
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 
 #if CHECK_GB_TOPO
         GenerateOutput(home, STAGE_DEBUG, "-6Remesh");
 #endif
+
 /*
  *      Calculate the new plastic strain.
  */
@@ -476,14 +512,16 @@ void ParadisStep(Home_t *home)
  *      determine if any output needs to be generated at this stage, and
  *      call the appropriate I/O functions if necessary.
  */
-
         GenerateOutput(home, STAGE_CYCLE,"-1cycle");
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 /*
 
  *      Define load curve and calculate change in applied stress this cycle
  */
         LoadCurve(home, deltaStress);
-		
+        
 /*
  *      This is only needed when we do force calcs for only
  *      a subset of the nodes at the beginning of the timestep.  It will
@@ -494,6 +532,9 @@ void ParadisStep(Home_t *home)
  */
         ApplyDeltaStress(home, deltaStress);
 
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 /*
  *      If necessary, use the current load data to generate a new
  *      domain decomposition to rebalance the workload among the
@@ -521,6 +562,14 @@ void ParadisStep(Home_t *home)
  *      Communicate ghost cells to/from neighbor domains
  */
         CommSendGhosts(home);
+
+
+#ifdef PETSC
+        if(param->velocityKernel){
+            AssembleGlobalVelocityKernel(home);
+            SolveGlobalVelocityKernel(home);
+        }
+#endif
 
 #ifdef NAN_CHECK
 /*
@@ -557,6 +606,6 @@ void ParadisStep(Home_t *home)
         CheckForEmptySimulation(home);
 #endif
 
-	
+    
         return;
 }

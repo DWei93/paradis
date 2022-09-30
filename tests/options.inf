@@ -1,0 +1,8 @@
+-vk_ltog
+-vk_nolinear false
+-vk_jac_coloring 
+-snes_fd
+-snes_converged_reason
+-ksp_converged_reason
+-ksp_type gmres
+-pc_type jacobi

@@ -492,7 +492,10 @@ bool FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
     real8       n1Pos[3], n2Pos[3], n1OldPos[3], n2OldPos[3];
     real8       normal[3], centor[3];
     real8       vec1[3], vec2[3], vec3[3], vec4[3];
-    real8       sign1, sign2, dis1, dis2, dis;
+    real8       dis1, dis2, dis;
+#if 0
+    real8       sign1, sign2;
+#endif
 
     param = home->param;
 
@@ -540,13 +543,16 @@ bool FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
 
     PointPlaneIntersection(n1Pos, GBPlane->normal, GBPlane->point, vec1, &dis1);
     PointPlaneIntersection(n2Pos, GBPlane->normal, GBPlane->point, vec1, &dis2);
+#if 0
     sign1 = Sign(dis1);
     sign2 = Sign(dis2);
-    if(sign1*sign2 > 0){
+    if(sign1*sign2 > -1E-2){
+#endif
         vec1[0] = (n1Pos[0] + n2Pos[0] - n1OldPos[0] - n2OldPos[0]);
         vec1[1] = (n1Pos[1] + n2Pos[1] - n1OldPos[1] - n2OldPos[1]);
         vec1[2] = (n1Pos[2] + n2Pos[2] - n1OldPos[2] - n2OldPos[2]);
         VECTOR_COPY(vec2, centor);
+#if 0
     }else{
         vec1[0] = n1Pos[0] - n2Pos[0];
         vec1[1] = n1Pos[1] - n2Pos[1];
@@ -556,7 +562,8 @@ bool FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
         vec2[1] = (n1Pos[1] + n2Pos[1])*0.5;
         vec2[2] = (n1Pos[2] + n2Pos[2])*0.5;
     }
-    if(Normal(vec1) < 1.0E-4){
+#endif
+    if(Normal(vec1) < 1.0E-6){
 #if 0
         PrintNode(home, node1);
         PrintNode(home, node2);
@@ -568,17 +575,14 @@ bool FindIntersectionWithGB(Home_t *home, Node_t *node1, Node_t *node2,
     NormalizeVec(vec1);
 
     type = LineLineIntersection(vec1, vec2, line->direction, line->point, vec3, vec4, &dis);
-    
-    if(fabs(dis) > 500){
-        char name[50];
-        printf("type %d, dis %f\n", type, dis);
-        FormatVector(vec1, "vec1");
-        FormatVector(vec2, "vec2");
-        FormatVector(line->direction, "l dir");
-        FormatVector(line->point, "l point");
-        printf("Warning in file %s at line %d\n", __FILE__, __LINE__);
-        snprintf(name,50,"findIntersection%d",home->cycle);
-        Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
+
+    dis = PointPointDistance(vec4,n1Pos);
+    if(dis<1.0E-12){
+        printf("Waring in %s: dis=%g\n",__func__,dis);
+    }
+    dis = PointPointDistance(vec4,n2Pos);
+    if(dis<1.0E-12){
+        printf("Waring in %s: dis=%g\n",__func__,dis);
     }
     
     VECTOR_COPY(line->point, vec4);
@@ -633,19 +637,14 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
     int         globalOp;
     bool        switchedArm;
     real8       nodeVel[3], currPos[3], oldPos[3], posClosedGB[3];
-#if 0
-    real8       oldCen[3], oldPos2[3];
-#endif
     real8       dis, node1Pos[3], node2Pos[3];
     real8       vec1[3];
     Node_t      *node, *nbrNode1, *nbrNode2, *node1, *node2;
     Node_t      *localNode;
     GB_t        *gb;
+    real8       gbPos[3];
     
-
-    Param_t     *param;
-    
-	param = home->param;
+    Param_t     *param = home->param;
     
     node = pene->node;
     gb = pene->gb;
@@ -666,7 +665,6 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
     oldPos[1] = node->oldy;
     oldPos[2] = node->oldz;
 
-    real8 gbPos[3];
 
     VECTOR_COPY(gbPos, gb->p);
     PBCPOSITION(param, currPos[0], currPos[1], currPos[2], gbPos, gbPos+1, gbPos+2);
@@ -688,13 +686,6 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 	
 	if(nbrNode1 == (Node_t *)NULL || nbrNode2 == (Node_t *)NULL)return(0);
 
-#if 0	
-    oldPos2[0] = nbrNode2->oldx; oldPos2[1] = nbrNode2->oldy; oldPos2[2] = nbrNode2->oldz;
-    CoordMinus(oldPos2, oldPos, oldCen); ZImage(param, oldCen, oldCen+1, oldCen+2);
-    CoordAdd(0.5,oldCen,1.0,oldPos,oldCen);
-    FoldBox(param, oldCen, oldCen+1, oldCen+2);
-#endif
-    
 	node1 = (Node_t *)NULL; 
 	node2 = (Node_t *)NULL; 
 	
@@ -710,9 +701,6 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
  *	Insert a new native node and select two segements to deal with
  */
 	globalOp = 1;
-#ifdef DEBUG
-    real8 oldPst = SegDeltaPlasticStrain(home, node, nbrNode2)+SegDeltaPlasticStrain(home, node, nbrNode1);
-#endif
 	if((localNode = InsertNode(home,node,nbrNode2,oldPos,
         globalOp,OPCLASS_SEPARATION)) == (Node_t *)NULL) {
 	    return(0);
@@ -728,21 +716,16 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
 	    node2 = localNode;
 	}
 	
-#if 0
-    node1->oldx = oldPos[0]; node1->oldy = oldPos[1]; node1->oldz = oldPos[2];
-    node2->oldx = oldCen[0]; node2->oldy = oldCen[1]; node2->oldz = oldCen[2];
-#endif
 	RepositionNode(home, node2Pos, &node2->myTag, globalOp);
 	RepositionNode(home, node1Pos, &node1->myTag, globalOp);
 
-#ifdef DEBUG
-    real8 newPst = SegDeltaPlasticStrain(home, nbrNode1, node1)+SegDeltaPlasticStrain(home, node1, node2)+SegDeltaPlasticStrain(home, node2, nbrNode2);
-    printf("PenFirst: %d %d %d: at %d {%f,%f,%f}->{%f,%f,%f}-{%f,%f,%f} %e=%e-%e\n", home->cycle, home->myDomain, node->myTag.index, __LINE__,
-           node1->oldx, node1->oldy, node1->oldz, node1->x, node1->y, node1->z, node2->x, node2->y, node2->z, newPst-oldPst, newPst, oldPst);
-#endif
+    UpdateGrain(home, node1, -1, gb->GBID);
+    UpdateGrain(home, node2, -1, gb->GBID);
 
-    AssignGrain(home, node1, -1, gb->GBID);
-    AssignGrain(home, node2, -1, gb->GBID);
+    SetOneNodeForce(home,node1);
+    EvaluateMobility(home,node1);
+    SetOneNodeForce(home,node2);
+    EvaluateMobility(home,node2);
     return(1);
 }
 
@@ -801,7 +784,9 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
     printf("PenSide: %d %d %d: at %d {%f,%f,%f}->{%f,%f,%f} %e=%e-%e\n", home->cycle, home->myDomain, node->myTag.index, __LINE__,
            node->oldx, node->oldy, node->oldz, node->x, node->y, node->z, newPst-oldPst, newPst, oldPst);
 #endif
-    AssignGrain(home, node, -1, nbrNode2->onGB);
+    UpdateGrain(home, node, -1, nbrNode2->onGB);
+    SetOneNodeForce(home,node);
+    EvaluateMobility(home,node);
     return(1);
 }
 
@@ -873,7 +858,9 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
     printf("PenLast: %d %d %d: at %d {%f,%f,%f}->{%f,%f,%f} %e=%e-%e\n", home->cycle, home->myDomain, node->myTag.index, __LINE__,
            node->oldx, node->oldy, node->oldz, node->x, node->y, node->z, newPst-oldPst, newPst, oldPst);
 #endif
-    AssignGrain(home, node, -1, nbrNode2->onGB);
+    UpdateGrain(home, node, -1, nbrNode2->onGB);
+    SetOneNodeForce(home,node);
+    EvaluateMobility(home,node);
     return(1);
 }
 
@@ -919,7 +906,8 @@ int PenetrationSurface(Home_t *home, Node_t *node, GB_t *gb)
     
     FoldBox(home->param, newPos, newPos+1, newPos+2);
 	RepositionNode(home, newPos, &node->myTag, 1);
-    AssignGrain(home, node, -1, nbrNode->onGB);
+    UpdateGrain(home, node, -1, nbrNode->onGB);
+    AdjustNodeVelocity(home, node);
 
     return(1);
 }
@@ -994,7 +982,7 @@ void HandleGrainBoundary(Home_t *home)
             fglide=GlideShearStress(home,node,nSur);
             fglide *=((dot_product(node->fX,node->fY,node->fZ,nSur[0],nSur[1],nSur[2])>0)?1.0:-1.0);
             if(fglide<0 || fglide>param->gbStrength){
-                AssignConstraint(home, node, 0);
+                UpdateConstraint(home, node, 0);
                 EvaluateMobility(home, node);
                 vec1[0]=node->vX; vec1[1]=node->vY; vec1[2]=node->vZ;
                 NormalizeVec(vec1); 
@@ -1043,7 +1031,7 @@ void HandleGrainBoundary(Home_t *home)
                         continue;
                     }else{
                         RepositionNode(home, vec2, &nbrNode1->myTag, 1);
-                        AssignGrain(home, nbrNode1, -1, node->onGB);
+                        UpdateGrain(home, nbrNode1, -1, node->onGB);
                     }
                 }
             }
@@ -1072,7 +1060,7 @@ void HandleGrainBoundary(Home_t *home)
                 Fatal("in %s at %d", __FILE__, __LINE__);
             }else{
                 RepositionNode(home, vec2, &node->myTag, 1);
-                AssignGrain(home, node, -1, gb->GBID);
+                UpdateGrain(home, node, -1, gb->GBID);
                 printf("Warning in %s at %d: a grain node penetrated at least two TBs\n",__func__,__LINE__);
                 continue;
             }
@@ -1137,7 +1125,8 @@ void HandleGrainBoundary(Home_t *home)
 #endif
                     FoldBox(param, newPos, newPos+1, newPos+2);
 	                RepositionNode(home, newPos, &node->myTag, 1);
-                    AssignGrain(home, node, -1, gb->GBID);
+                    UpdateGrain(home, node, -1, gb->GBID);
+                    AdjustNodeVelocity(home,node);
                 }else{
                     PullBack(home, node);
 #ifdef DEBUG
@@ -1334,107 +1323,7 @@ void HandleGrainBoundary(Home_t *home)
  */
 	for(i=0;i<home->newNodeKeyPtr;i++){
         if((node = home->nodeKeys[i]) == (Node_t *) NULL)continue;
-		
-#if 1
         SplitIntersectNode(home, node, OPCLASS_SEPARATION, 1);
-#else
-/*
- * 	   We'd better check double links here.
- */	
-        char name[50];
-        if(RemoveDoubleLinks(home,node,0) == 2){
-            snprintf(name,50,"RDL%d.2",home->cycle);
-            Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-            printf("Unusual RemoveDoubleLinks , 2\n");
-        }
-        node->flags &= ~NODE_CHK_DBL_LINK; 
-	   
-        if((NodeOnGB(home, node) & INTERSECT_NODE) == 0)continue;
-
-        if(node->numNbrs < 2){
-		    if(node->numNbrs == 1 && SurfaceNode(node) && 
-		       IsOnGB(node)){
-		        nbr1 = GetNeighborNode(home, node, 0);
-		        if(nbr1 != (Node_t *)NULL){
-			        if(!IsOnGB(nbr1)){
-			            AssignGrain(home, node, nbr1->inGrain, -1);
-			        }
-		        }
-		    }
-		    continue;
-	    }
-
-        if(node->numNbrs == 2){
-            nbr1 = GetNeighborNode(home,node,0);
-            nbr2 = GetNeighborNode(home,node,1);
-            if(nbr1==(Node_t *)NULL||nbr2==(Node_t *)NULL) continue;
-            if(!(!IsOnGB(nbr1) && !IsOnGB(nbr2))) continue;
-        }
-			
-        for(j=0;j<node->numNbrs;j++){
-            nbr1 = GetNeighborNode(home,node,j);
-            if(nbr1 == (Node_t *)NULL) continue;
-            if(IsOnGB(nbr1))continue;
-            if(nbr1->myTag.domainID != node->myTag.domainID) continue;
-                	
-            for(k=j+1;k<node->numNbrs;k++){
-                nbr2 = GetNeighborNode(home,node,k);
-                if(nbr2 == (Node_t *)NULL) continue;
-	
-		        if(nbr1->inGrain != nbr2->inGrain)continue;
-                if(nbr1 == nbr2) continue;
-                if(IsOnGB(nbr2))continue;
-                if(nbr2->myTag.domainID != node->myTag.domainID) continue;
-					
-                nDir1[0] = node->nx[j];
-                nDir1[1] = node->ny[j];
-                nDir1[2] = node->nz[j];
-					
-                nDir2[0] = node->nx[k];
-                nDir2[1] = node->ny[k];
-                nDir2[2] = node->nz[k];
-
-                if(fabs(DotProduct(nDir1,nDir2))<0.995) continue;
-					
-                burg[0] = node->burgX[j] + node->burgX[k];
-                burg[1] = node->burgY[j] + node->burgY[k];
-                burg[2] = node->burgZ[j] + node->burgZ[k];
-					
-                if(Normal(burg) > 0.001) continue;
-					
-	            globalOp = 1;
-                ChangeConnection(home,nbr1,&node->myTag,
-                                 &nbr2->myTag,globalOp);
-                ChangeConnection(home,nbr2,&node->myTag,
-                                 &nbr1->myTag,globalOp);
-	
-                ChangeArmBurg(home, node , &nbr1->myTag,
-                              0,0,0,0,0,0,globalOp, DEL_SEG_NONE);
-                ChangeArmBurg(home, node , &nbr2->myTag,
-                             0,0,0,0,0,0,globalOp, DEL_SEG_NONE);
-					
-                if(RemoveDoubleLinks(home,nbr1,globalOp) == 2){
-                    snprintf(name,50,"RDL%d.3",home->cycle);
-                    Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                    printf("Unusual RemoveDoubleLinks , 3\n");
-                }
-			
-                if(RemoveDoubleLinks(home,nbr2,globalOp) == 2){
-                    snprintf(name,50,"RDL%d.4",home->cycle);
-                    Tecplot(home, name, 0, 0, 0 ,0, 0, 1);
-                    printf("Unusual RemoveDoubleLinks , 4\n");
-                }
-					
-                nbr1->flags &= ~NODE_CHK_DBL_LINK; 
-                nbr2->flags &= ~NODE_CHK_DBL_LINK;
-	
-                j--;
-                break;
-            }
-		}
-		
-		if(node->numNbrs == 0) RemoveNode(home,node,globalOp);
-#endif
 	}
 #ifdef DEBUG
 	for(i=0;i<home->newNodeKeyPtr;i++){
@@ -1772,7 +1661,7 @@ void AdjustSurfaceNode(Home_t *home)
                 }
 		    }
             if(surfaceNbr == node->numNbrs){
-                AssignConstraint(home, node, nbrConstraint);
+                UpdateConstraint(home, node, nbrConstraint);
             }
         }
 #endif
@@ -1943,8 +1832,8 @@ void AdjustSurfaceNode(Home_t *home)
 	        MarkNodeForceObsolete(home, node2);        
 	        MarkNodeNoCollisions(home, node2);        
 
-            AssignConstraint(home, node1, nodecst);
-            AssignConstraint(home, node2, constraint);
+            UpdateConstraint(home, node1, nodecst);
+            UpdateConstraint(home, node2, constraint);
 
 
 	    } /*for(j=0; j< ...)*/
@@ -2062,7 +1951,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             PrintTag(home,node);
             PrintTag(home,nbr);
             printf("\n");
-            AssignGrain(home, nbr, -1, node->onGB);
+            UpdateGrain(home, nbr, -1, node->onGB);
             continue;
             wrongGlidePlane = 1;
         }
@@ -2101,7 +1990,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             }
 
             if(globalOp){
-                AssignGrain(home, node, nbrInGrain[i][0], -1);
+                UpdateGrain(home, node, nbrInGrain[i][0], -1);
             }else{
                 node->inGrain = nbrInGrain[i][0];
                 node->onGB = -1;
@@ -2162,7 +2051,7 @@ void SplitIntersectNode(Home_t *home, Node_t *node, int opClass, int globalOp){
             splitNode2->flags |= NO_COLLISIONS;
 
             if(globalOp){
-                AssignGrain(home, splitNode2, nbrInGrain[i][0], -1);
+                UpdateGrain(home, splitNode2, nbrInGrain[i][0], -1);
             }else{
                 splitNode2->inGrain = nbrInGrain[i][0];
                 splitNode2->onGB = -1;
@@ -2208,6 +2097,9 @@ void GBCrossSlip(Home_t *home)
     bool    zeroLenJunc1, zeroLenJunc2;
     real8   GC1[3][3], GC2[3][3], debris[3], energySet;
     real8   outBurg[3],gbPos[3];
+    real8   bakForce[5][3]={{0.0,0.0,0.0},{0.0,0.0,0.0},
+                            {0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
+    real8   bakVel[3] = {0.0,0.0,0.0};
 
     bool    isScrew, superBurg;
     Param_t *param;
@@ -2650,7 +2542,15 @@ void GBCrossSlip(Home_t *home)
 
             SaveCrossSlipInfo(node, nbr1, nbr2, 0, 1,
                               segForceOrig, nodePos, nbr1Pos,
-                              nbr2Pos, normals);
+                              nbr2Pos);
+            VectorCopy(normals[0],node->nx[0],node->ny[0],node->nz[0]);
+            VectorCopy(normals[1],node->nx[1],node->ny[1],node->nz[1]);
+            VectorCopy(bakForce[0],node->fX,node->fY,node->fZ);
+            VectorCopy(bakForce[1],nbr1->fX,nbr1->fY,nbr1->fZ);
+            VectorCopy(bakForce[2],nbr2->fX,nbr2->fY,nbr2->fZ);
+            VectorCopy(bakForce[3],node->armfx[0],node->armfy[0],node->armfz[0]);
+            VectorCopy(bakForce[4],node->armfx[1],node->armfy[1],node->armfz[1]);
+            VectorCopy(bakVel,node->vX,node->vY,node->vZ);
 
 	        RepositionNode(home, newNodePos, &node->myTag, 0);
 	        RepositionNode(home, newNbr1Pos, &nbr1->myTag, 0);
@@ -2846,6 +2746,13 @@ void GBCrossSlip(Home_t *home)
                               -burg[0],-burg[1],-burg[2],normals[0][0],normals[0][1],normals[0][2],
 			                  0, DEL_SEG_NONE);
 
+                VectorRestore(bakForce[0],node->fX,node->fY,node->fZ);
+                VectorRestore(bakForce[1],nbr1->fX,nbr1->fY,nbr1->fZ);
+                VectorRestore(bakForce[2],nbr2->fX,nbr2->fY,nbr2->fZ);
+                VectorRestore(bakForce[3],node->armfx[0],node->armfy[0],node->armfz[0]);
+                VectorRestore(bakForce[4],node->armfx[1],node->armfy[1],node->armfz[1]);
+                VectorRestore(bakVel,node->vX,node->vY,node->vZ);
+
                 node->inGrain = -1;
                 node->onGB = gb->GBID;
 #ifdef DEBUG
@@ -2934,7 +2841,7 @@ void GBCrossSlip(Home_t *home)
                     VECTOR_COPY(newPos, disPosArray[j][coordList[k]]);
 	                FoldBox(param,newPos,newPos+1,newPos+2);
 	                RepositionNode(home, newPos, &node->myTag, globalOp);
-                    AssignGrain(home, node, node->inGrain, node->onGB);
+                    UpdateGrain(home, node, node->inGrain, node->onGB);
                     MarkNodeForceObsolete(home, node);        
                     MarkNodeNoCollisions(home, node);        
                     MarkNodeNoMeshCoarsen(home, node);        

@@ -27,7 +27,7 @@ void WriteDensityField(Home_t *home, const char *fileName)
         real8   x, y, z, x1, y1, z1, dx, dy, dz, xm, ym, zm;
         real8   dr2, rho;
         real8   (*totDensity)[MAXDENSITYMESH][MAXDENSITYMESH][MAXDENSITYMESH];
-        FILE    *fp;
+        FILE    *fp=(FILE *)NULL;
         Node_t  *node, *nbrNode;
         Param_t *param;
         static real8 xmin, xmax, ymin, ymax, zmin, zmax, Lx, Ly, Lz;

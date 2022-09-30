@@ -11,6 +11,9 @@
 #include "Node.h"
 #include "Cell.h"
 #include "Util.h"
+#ifdef PETSC
+#include "PetscUtil.h"
+#endif
 
 void AssignNodeToCell(Home_t *home, Node_t *node)
 {
@@ -148,6 +151,10 @@ void SortNativeNodes (Home_t *home)
         node->native = 1 ;
 
    }
+
+#ifdef PETSC
+   GenerateGlobalIndex(home);
+#endif
 
    TimerStop(home, SORT_NATIVE_NODES);
 

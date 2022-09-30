@@ -246,6 +246,7 @@ struct _penetration{
 Node_t *InsertNode(Home_t *home, Node_t *node1, Node_t *node2, real8 *p, int globalOp, int opClass);
 void PrintNeighbor(Home_t *home, Node_t *node);
 void FormatMatrix(real8 M[3][3], const char *msg);
+void FormatMatrix(real8 M[3][3], const char *msg, FILE *fp);
 void FormatMatrix66(real8 M[6][6], const char *msg);
 void FormatVector(real8 vec[3], const char *msg);
 void InitOrientation(real8 MatrixOrientation[3][3], real8 TwinOrientation[3][3]);
@@ -277,11 +278,8 @@ int GetBurgID_FCC(Home_t *home, Node_t *node, Node_t *nbr);
 int GetPlaneID_FCC(Home_t *home, Node_t *node, Node_t *nbr);
 int GetPlaneType_FCC(Home_t *home, Node_t *node, Node_t *nbr);
 int HasShortSeg(Home_t *home, Node_t *node, real8 shortSegLenSq);
-void AssignGrain (Home_t *home, Node_t *node, int inGrain, int onGB);
-void AssignConstraint(Home_t *home, Node_t *node, int constraint) ;
 int GetGBIndexOfGrain(Grain_t *grain, int onGB);
 bool GetPublicGB(Home_t *home, Grain_t *grain1, Grain_t *grain2, GB_t **GB, real8 *pos);
-void AddOpGB (Home_t *home, OpType_t type, int dom1, int idx1, int inGrain, int onGB);
 int NodeOnGB(Home_t *home, Node_t *node);
 void VectorLabToCrystal(Home_t *home, int inGrain, int onGB, real8 lab[3], real8 *cryst);
 void VectorLabToCrystal(Home_t *home, Node_t *node1, Node_t *node2, 
@@ -333,6 +331,7 @@ void RotateWithAxis(real8 a[3], real8 theta, real8 R[3][3]);
 void DoResistance(Home_t *home, Node_t *node, real8 *nForce);
 int SurfaceNode(Node_t *node);
 int AdjustNodeDirection(Home_t *home, Node_t *node, real8 *vec);
+int AdjustNodeVelocity(Home_t *home, Node_t *node);
 int ExceedBox(Param_t *param, real8 *pos);
 int IntersectionOfLineBox(Param_t *param, Line_t *line, real8 interPos[2][3]);
 void ImageForce(Home_t *home, Node_t *node1, Node_t *node2, real8 f1[3], real8 f2[3]);

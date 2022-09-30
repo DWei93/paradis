@@ -319,41 +319,36 @@ void FixRemesh(Home_t *home, const char flag[256])
  */				
 				case(UPDATE_GRAIN):
 
-				node1 = GetNodeFromIndex(home, op->dom1,
-							 op->idx1);
+				node1 = GetNodeFromIndex(home, op->dom1, op->idx1);
 #if CHECK_FIXREMESH				
 				printf("FR %s: Task %d, ", flag, home->myDomain);
 				printf("UG (%d,%d), %d %d ",op->dom1,op->idx1,
-					  op->inGrain, op->onGB);
+					  op->dom2, op->idx2);
 
 				PrintTag(node1);
 				printf("\n");
 #endif				
-				if (node1 == (Node_t *)NULL) {
-					break;
-				}
-
 				if (node1 == (Node_t *)NULL) break;
 
-                if(node1->inGrain == op->inGrain &&
-                   node1->onGB == op->onGB)break;
+                if(node1->inGrain == op->dom2 &&
+                   node1->onGB == op->idx2)break;
 				
 
 				if(op->dom1 == home->myDomain){
 					PrintTag(node1);
 					printf("Task %d, Warning , the native node change inGrain %d %d\n",
-                           home->myDomain, op->inGrain, op->onGB);
+                           home->myDomain, op->dom2, op->idx2);
 				}
 #if 0
-                if(op->inGrain > -1){
+                if(op->dom2 > -1){
                     for(i=0; i<node1->numNbrs; i++){
                         if((nbr = GetNeighborNode(home,node1,i)) == (Node_t *)NULL)continue;
 
-                        if(!IsOnGB(nbr) && nbr->inGrain != op->inGrain){
+                        if(!IsOnGB(nbr) && nbr->inGrain != op->dom2){
                             printf("Warning: task %d, flag %s, the node (%d,%d) change grain from ", 
                                 home->myDomain, flag, node1->myTag.domainID, node1->myTag.index);
                             printf("(%d,%d) to (%d,%d).\n", node1->inGrain, node1->onGB,
-                                op->inGrain, op->onGB);
+                                op->dom2, op->idx2);
                             PrintTag(node1);
                             PrintTag(nbr);
                             printf("\n");
@@ -363,10 +358,8 @@ void FixRemesh(Home_t *home, const char flag[256])
                 }
 
 #endif
-				node1->inGrain = op->inGrain;
-				node1->onGB = op->onGB;
-
-
+				node1->inGrain = op->dom2;
+				node1->onGB = op->idx2;
 				break;
 				
 			case(UPDATE_CONSTRAINT):
@@ -374,18 +367,13 @@ void FixRemesh(Home_t *home, const char flag[256])
 #if CHECK_FIXREMESH				
 				printf("FR %s: Task %d, ", flag, home->myDomain);
 				printf("UC (%d,%d), %d ",op->dom1,op->idx1,
-					  op->inGrain);
+					  op->dom2);
 				PrintTag(node1);
 				printf("\n");
 #endif				
 
-				if (node1 == (Node_t *)NULL) {
-					break;
-				}
 				if (node1 == (Node_t *)NULL) break;
-
-				node1->constraint = op->inGrain;
-				
+				node1->constraint = op->dom2;
 				break;
 
 /*
@@ -481,6 +469,14 @@ void FixRemesh(Home_t *home, const char flag[256])
                 }                
 
                 break;
+			case UPDATE_VELOCITY:
+				node1 = GetNodeFromIndex(home, op->dom1,op->idx1);
+                if(node1 == (Node_t *)NULL)break;
+
+				node1->vX = op->nx;
+				node1->vY = op->ny;
+				node1->vZ = op->nz;
+
 			default:
 				Fatal("FixRemesh : invalid Remesh operation");
 			}

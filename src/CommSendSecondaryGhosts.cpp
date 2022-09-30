@@ -200,6 +200,9 @@ static void Pack1SecondaryGhost(Node_t *node, real8 **outBuf, int *outBufSize,
 		
 		buf[bufOffset++] = (real8)node->inGrain;
 		buf[bufOffset++] = (real8)node->onGB;
+#ifdef PETSC
+		buf[bufOffset++] = (real8)node->gloID;
+#endif
 
 #ifdef _FEM
         buf[bufOffset++] = (real8)node->fem_Surface[0];
@@ -423,6 +426,9 @@ static void UnpackSecondaryGhostResponse(Home_t *home, real8 *inBuf)
 			
             node->inGrain = (int)inBuf[bufOffset++];
             node->onGB = (int)inBuf[bufOffset++];
+#ifdef PETSC
+            node->gloID = (int)inBuf[bufOffset++];
+#endif
         
 #ifdef _FEM
             node->fem_Surface[0] = (int)inBuf[bufOffset++];

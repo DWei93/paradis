@@ -294,7 +294,6 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
     Btotal[1][0] = Btotal[0][1];
     Btotal[2][0] = Btotal[0][2];
     Btotal[2][1] = Btotal[1][2];
-    
 /*  
  *  At this point we should check if the matrix is invertable and
  *  if it isn't, find the eigen values and eigen vectors of the drag
@@ -328,9 +327,9 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
  *  oscillation and improve the timestep.
  */
     if ((numNbrs == 2) && (hasShortSeg)) {
-        if (((node->vX * node->oldvX) < 0.0) ||
-            ((node->vY * node->oldvY) < 0.0) ||
-            ((node->vZ * node->oldvZ) < 0.0)) {
+        if (((node->vX * node->oldvX) < eps) ||
+            ((node->vY * node->oldvY) < eps) ||
+            ((node->vZ * node->oldvZ) < eps)) {
             node->vX *= shortSegRatio;
             node->vY *= shortSegRatio;
             node->vZ *= shortSegRatio;
@@ -350,14 +349,21 @@ int Mobility_FCC_0b(Home_t *home, Node_t *node)
 //    AdjustSurfaceNodeVel(home, node);
 #endif
 #if 0
-	velocity = sqrt(node->vX * node->vX+
+	real8 velocity = sqrt(node->vX * node->vX+
 			        node->vY * node->vY+
 			        node->vZ * node->vZ);
-	if(velocity > param->vshr && param->vshr > 0){
-	    node->vX = node->vX * param->vshr /velocity ;
-	    node->vY = node->vY * param->vshr /velocity ;
-	    node->vZ = node->vZ * param->vshr /velocity ;
-
+	if(hasShortSeg && velocity*param->burgMag>300000){
+		PrintNode(home,node);
+        FormatMatrix(Btotal,"Btotal");
+        FormatMatrix(invBtotal,"invBtotal");
+        FormatVector(nForce,"nForce");
+        Matrix33Vector3Multiply(invBtotal, nForce, nVel);
+        FormatVector(nVel,"vel");
+		printf("so fast short=%d factor=%e",hasShortSeg,shortSegRatio);
+    }else if(velocity > param->vshr && param->vshr > 0){
+        node->vX = node->vX * param->vshr /velocity ;
+        node->vY = node->vY * param->vshr /velocity ;
+        node->vZ = node->vZ * param->vshr /velocity ;
 	}	
 #endif
     return(0);

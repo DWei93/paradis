@@ -5,42 +5,110 @@
 #include "Home.h"
 
 
-
-
-#define JACOBI
-
+PetscErrorCode PetscVelocityKernelInitialize(PetscVKCtx_t *vk);
 PetscErrorCode FormFunction(SNES, Vec, Vec, void*);
 PetscErrorCode FormJacobian(SNES,Vec,Mat,Mat,void*);
 PetscErrorCode PetscTest1(Home_t *home);
 /**
  * `PetscInitialize` initializes the PETSc library and reads the options file
- * 
- * @param home This is the home structure that contains all the information about the simulation.
- * 
- * @return The petsc error code.
+ * \param home[in,out] This is the home structure that contains all the information about the simulation.
+ * \return The petsc error code.
  */
 PetscErrorCode PetscInitialize(Home_t *home){
-    Param_t *param = home->param;
-    PetscBool petscTest1 = PETSC_FALSE;
+    PetscErrorCode  ierr;
+    Param_t         *param = home->param;
+    PetscBool       petscTest1 = PETSC_FALSE;
+
 
     PetscFunctionBegin;
 
     PetscCall(PetscInitializeNoArguments()); 
 
-    if(strcmp(param->petscOptionsFile, "0") == 0)PetscFunctionReturn(0);
-
-/* Reading the options file and printing the options to the screen. */
-    PetscCall(PetscOptionsInsertFileYAML(PETSC_COMM_WORLD,NULL,
-                    param->petscOptionsFile,PETSC_TRUE));
-
-    PetscCall(PetscOptionsGetBool(NULL,NULL,"-test_1",&petscTest1,NULL));
-
-    if(petscTest1){
-        PetscCall(PetscOptionsView(NULL,PETSC_VIEWER_STDOUT_WORLD));
-        PetscCall(PetscTest1(home));
+    /* Reading the petsc options file. */
+    if(strcmp(param->optsFile, "") != 0){
+        PetscCall(PetscPrintf(PETSC_COMM_WORLD,"Reading inf options file %s ...\n",param->optsFile)); 
+        PetscCall(PetscOptionsInsertFile(PETSC_COMM_WORLD,NULL,
+                        param->optsFile,PETSC_FALSE));
     }
+    /* Reading the petsc yaml file. */
+    if(strcmp(param->yamlFile, "") != 0){
+        PetscCall(PetscPrintf(PETSC_COMM_WORLD,"Reading yaml options file %s ...\n",param->yamlFile)); 
+        PetscCall(PetscOptionsInsertFileYAML(PETSC_COMM_WORLD,NULL,
+                        param->yamlFile,PETSC_FALSE));
+    }
+    PetscCall(PetscOptionsView(NULL,PETSC_VIEWER_STDOUT_WORLD));
+
+    /* Request memory for velocity kernel struct*/
+    PetscCall(PetscMalloc1(1,&home->vk));
+
+    /**
+     * Defines the petsc tests.
+     */
+    ierr = PetscOptionsBegin(PETSC_COMM_WORLD, "test_" ,"options for tests",__FILE__); PetscCall(ierr);
+    PetscCall(PetscOptionsBool("-1", "1. small demo for building a system of "
+                "partial differential equations (PDEs) ",__func__,petscTest1,&petscTest1,NULL));
+    ierr = PetscOptionsEnd(); PetscCall(ierr);
+    if(petscTest1)PetscCall(PetscTest1(home));
+    
+    if (param->velocityKernel)PetscCall(PetscVelocityKernelInitialize(home->vk));
+    
     PetscFunctionReturn(0);
 }
+
+
+/**
+ * > GenerateGlobalIndex() assigns a global index to each native node in the domain
+ *
+ * \param[in,out] home the home structure
+ */
+PetscErrorCode GenerateGlobalIndex(Home_t *home){
+
+    int         startNativeID;
+    int         cellNum, homeNativeCells, cellID, myDomain;
+    Node_t      *node;
+    Cell_t      *cell;
+
+    PetscVKCtx_t *vk= home->vk;
+    int   &nNatives = vk->nNatives;
+    int   &nGlobals = vk->nGlobals;
+    homeNativeCells = home->nativeCellCount;
+    myDomain        = home->myDomain;
+
+    PetscFunctionBegin;
+    nNatives = 0;
+    for(cellNum=0;cellNum<homeNativeCells;cellNum++){
+        cellID = home->cellList[cellNum];
+        cell   = home->cellKeys[cellID];
+        for(node=cell->nodeQ;node!=(Node_t *)NULL; node=node->nextInCell){
+            if(node->myTag.domainID!=myDomain){continue;}
+            nNatives++;
+        }
+    }
+    
+    PetscCallMPI(MPI_Scan(&vk->nNatives,&startNativeID,1,MPIU_INT,MPI_SUM,PETSC_COMM_WORLD));
+    nGlobals = startNativeID;
+    PetscCallMPI(MPI_Bcast(&nGlobals,1,MPIU_INT,home->numDomains-1,PETSC_COMM_WORLD));
+    startNativeID -= nNatives;
+
+    nNatives = 0;
+    for(cellNum=0;cellNum<homeNativeCells;cellNum++){
+        cellID = home->cellList[cellNum];
+        cell   = home->cellKeys[cellID];
+        for(node=cell->nodeQ;node!=(Node_t *)NULL; node=node->nextInCell){
+            if(node->myTag.domainID!=myDomain)continue;
+            node->gloID = nNatives+startNativeID;
+            nNatives++;
+        }
+    }
+
+#if 0
+    PetscCall(PetscSynchronizedPrintf(PETSC_COMM_WORLD,"startNativeID=%d, "
+        "nNatives=%d, nGlobals=%d\n",startNativeID,vk->nNatives,vk->nGlobals));
+    PetscCall(PetscSynchronizedFlush(PETSC_COMM_WORLD,NULL));
+#endif
+    PetscFunctionReturn(0);
+}
+
 
 
 typedef struct{
@@ -52,11 +120,11 @@ typedef struct{
 }User_t;
 
 /**
- * A function that is used to test the PETSc library.
+ * A function that is used to test the Petsc velocity kernel.
  * This is a small demonstration for building a system of partial differential equations (PDEs) 
  * of dislocation velocity solutions.
  * 
- * @param home the home object
+ * @param[in,out] home the home object
  */
 PetscErrorCode PetscTest1(Home_t *home) {
 
@@ -73,13 +141,12 @@ PetscErrorCode PetscTest1(Home_t *home) {
     PetscInt            bid[4]={0,1,2,3};
     PetscScalar         bList[4]={21.0515,3.07944,-3.6212,8.06307};
 
-#ifdef JACOBI
     Mat                     Jac;
     ISLocalToGlobalMapping  isl2g;
     MatFDColoring           matfdcoloring = 0;
     PetscBool               fd_jacobian_coloring = PETSC_FALSE;
-#endif
-    char            partName[256];
+
+    char                    partName[256];
 
     PetscFunctionBegin;
 
@@ -136,7 +203,6 @@ PetscErrorCode PetscTest1(Home_t *home) {
     PetscCall(ISDestroy(&is));
     PetscCall(ISDestroy(&isglobal));
 
-#ifdef JACOBI
   /*
      Create matrix data structure; Just to keep the example simple, we have not done any
      preallocation of memory for the matrix. In real application code with big matrices,
@@ -154,7 +220,6 @@ PetscErrorCode PetscTest1(Home_t *home) {
     PetscCall(ISLocalToGlobalMappingCreate(MPI_COMM_SELF,bs,nvertices,user.vertices,PETSC_COPY_VALUES,&isl2g));
     PetscCall(MatSetLocalToGlobalMapping(Jac,isl2g,isl2g));
 
-#endif
     
     PetscCall(PetscFPrintf(MPI_COMM_SELF, fp, "-1 Vec Set\n"));
     if(size == 1){
@@ -203,7 +268,6 @@ PetscErrorCode PetscTest1(Home_t *home) {
     PetscCall(SNESSetType(snes,SNESNEWTONLS));
     PetscCall(SNESSetFunction(snes,r,FormFunction,(void*)&user));
 
-#ifdef JACOBI
     PetscCall(PetscOptionsGetBool(NULL,NULL,"-fd_jacobian_coloring",&fd_jacobian_coloring,0));
     if (!fd_jacobian_coloring) {
       PetscCall(SNESSetJacobian(snes,Jac,Jac,FormJacobian,(void*)&user));
@@ -227,7 +291,7 @@ PetscErrorCode PetscTest1(Home_t *home) {
       PetscCall(SNESSetJacobian(snes,Jac,Jac,SNESComputeJacobianDefaultColor,matfdcoloring));
       PetscCall(ISColoringDestroy(&iscoloring));
     }
-#endif
+
     PetscCall(SNESSetFromOptions(snes));
     PetscCall(SNESSolve(snes,b,x));
     PetscCall(VecView(x,PETSC_VIEWER_STDOUT_WORLD));
@@ -237,14 +301,12 @@ PetscErrorCode PetscTest1(Home_t *home) {
     PetscCall(VecDestroy(&user.localF));
     PetscCall(VecScatterDestroy(&user.scatter));
 
+    fclose(fp);
     PetscCall(SNESDestroy(&snes));  
     PetscCall(VecDestroy(&x));  
     PetscCall(VecDestroy(&r));
     PetscCall(VecDestroy(&b));
-    fclose(fp);
-#ifdef JACOBI
     PetscCall(MatDestroy(&Jac));
-#endif
     PetscFunctionReturn(0);
 }
 
@@ -410,8 +472,7 @@ PetscErrorCode FormJacobian(SNES snes,Vec x,Mat J,Mat jac,void *ctx)
     }
    
     /*
-       Assemble matrix, using the 2-step process:
-       MatAssemblyBegin(), MatAssemblyEnd().
+       Assemble matrix, using the 2-step process: MatAssemblyBegin(), MatAssemblyEnd().
        Between these two calls, the pointer to vector data has been restored to
        demonstrate the use of overlapping communicationn with computation.
     */
@@ -427,4 +488,54 @@ PetscErrorCode FormJacobian(SNES snes,Vec x,Mat J,Mat jac,void *ctx)
     /* MatView(jac,PETSC_VIEWER_STDOUT_SELF); */
     PetscFunctionReturn(0);
 }
+
+
+/**
+ * The function takes in a node ID and returns a 3x3 matrix that is used to penalize the node's motion.
+ * 
+ * @param home the home structure
+ * @param vk the PetscVKCtx_t structure
+ * @param nativeID the native ID of the node
+ * @param values a 9-element array that will be filled with the constraint tensor.
+ */
+void NodalConstraintTensor(Home_t *home, PetscVKCtx_t *vk, int nativeID, real8 *values)
+{
+    real8 n1[3],n2[3];
+    real8 r      = home->param->maxSeg*1.0E-2;
+    int   nCst   = vk->nCstList[nativeID];
+    real8 cst[3] = {vk->cstList[nativeID*3],vk->cstList[nativeID*3+1],vk->cstList[nativeID*3+2]};
+
+    if(nCst == 1){
+        values[0] = r*cst[0]*cst[0]; values[1]= r*cst[0]*cst[1]; values[2]= r*cst[0]*cst[2];
+        values[3] = r*cst[1]*cst[0]; values[4]= r*cst[1]*cst[1]; values[5]= r*cst[1]*cst[2];
+        values[6] = r*cst[2]*cst[0]; values[7]= r*cst[2]*cst[1]; values[8]= r*cst[2]*cst[2];
+    }else if(nCst == 2){
+        if(fabs(cst[0]) > 0.01){
+            n1[0] = -cst[1]; n1[1] = cst[0]; n1[2] = 0.0;
+        }else if(fabs(cst[1])>0.01){
+            n1[0] = cst[1]; n1[1] = -cst[0]; n1[2] = 0.0;
+        }else if(fabs(cst[2])>0.01){
+            n1[0] = cst[2]; n1[1] = 0.0; n1[2] = -cst[0];
+        }
+        NormalizeVec(n1); cross(cst,n1,n2); NormalizeVec(n2);
+        values[0] = (n1[0]*n1[0] + n2[0]*n2[0])*5.0E-2*r;
+        values[1] = (n1[0]*n1[1] + n2[0]*n2[1])*5.0E-2*r;
+        values[2] = (n1[0]*n1[2] + n2[0]*n2[2])*5.0E-2*r;
+                                                        
+        values[3] = (n1[1]*n1[0] + n2[1]*n2[0])*5.0E-2*r;
+        values[4] = (n1[1]*n1[1] + n2[1]*n2[1])*5.0E-2*r;
+        values[5] = (n1[1]*n1[2] + n2[1]*n2[2])*5.0E-2*r;
+                                                        
+        values[6] = (n1[2]*n1[0] + n2[2]*n2[0])*5.0E-2*r;
+        values[7] = (n1[2]*n1[1] + n2[2]*n2[1])*5.0E-2*r;
+        values[8] = (n1[2]*n1[2] + n2[2]*n2[2])*5.0E-2*r;
+    }else{
+        values[0] = 1.0E2*r; values[1]= 0.0; values[2]= 0.0;
+        values[3] = 0.0; values[4]= 1.0E2*r; values[5]= 0.0;
+        values[6] = 0.0; values[7]= 0.0; values[8]= 1.0E2*r;
+    }
+
+}
+
+
 #endif

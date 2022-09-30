@@ -782,7 +782,10 @@ static void ProcessNodalData(Home_t *home, FILE *fpData, char *baseFileName,
                         Fatal("Unexpected EOF in nodal data file");
                     }
                     fclose(fpData);
-                    sprintf(segmentName, "%s.%d", baseFileName, fileSeqNum);
+                    if(snprintf(segmentName, sizeof(segmentName),"%s.%d", baseFileName, fileSeqNum)
+                        >=(int)sizeof(segmentName)){
+                        Fatal("%s: buffer overflow -- string is truncated",__func__);
+                    }
                     fpData = fopen(segmentName, "r");
                     if (fpData == (FILE *)NULL) {
                         Fatal("Error %d opening node data file %s",
@@ -1177,7 +1180,7 @@ static void ProcessBinNodalData(Home_t *home, hid_t fileID, char *baseFileName,
 
 int main(int argc, char *argv[])
 {
-        int         i, j, k, fd, offset, status;
+        int         i, j, k, fd, offset;
         int         doBinRead, fileSeqNum;
         int         numGridElements;
         int         gridSize[3];
@@ -1188,13 +1191,14 @@ int main(int argc, char *argv[])
         char        *sep, *start, *argValue, *argTok;
         char        tmpDataFile[256], tmpOutFile[256], testFile[256];
         char        tmpFileName[256], baseFileName[256];
-        Home_t      home;
+        Home_t      home{};
         Param_t     *param;
         FILE        *fpData, *fpOut;
-        struct stat statbuf;
-#ifdef USE_HDF
-        hid_t       fileID;
 
+#ifdef USE_HDF
+        struct stat statbuf;
+        hid_t       fileID;
+        int         status;
         fileID = -1;
 #endif
 
@@ -1209,7 +1213,7 @@ int main(int argc, char *argv[])
         gridSize[1] = 25;
         gridSize[2] = 25;
 
-        memset(&home, 0, sizeof(Home_t));
+     // memset(&home, 0, sizeof(Home_t));
 /*
  *      Get command line options
  */
@@ -1375,14 +1379,20 @@ int main(int argc, char *argv[])
  *      Open up the nodal data file (or first segment) for reading.
  *      If we can't open the file, exit with an error.
  */
-        snprintf(tmpFileName, sizeof(tmpFileName), "%s", dataFile);
+        if(snprintf(tmpFileName, sizeof(tmpFileName), "%s", dataFile)
+            >= (int)sizeof(tmpFileName)){
+            Fatal("%s: buffer overflow -- string is truncated",__func__);
+        }
+        
  
         if (!strcmp(&tmpFileName[strlen(tmpFileName)-2], ".0")) {
             tmpFileName[strlen(tmpFileName)-2] = 0;
         }
 
-        snprintf(baseFileName, sizeof(baseFileName), "%s", tmpFileName);
-
+        if(snprintf(baseFileName, sizeof(baseFileName), "%s", tmpFileName)
+            >= (int)sizeof(baseFileName)){
+            Fatal("%s: buffer overflow -- string is truncated",__func__);
+        }
 
         if (doBinRead) {
 #ifdef USE_HDF
@@ -1404,8 +1414,10 @@ int main(int argc, char *argv[])
 #endif
         } else {
             if ((fpData = fopen(tmpFileName, "r")) == (FILE *)NULL) {
-                snprintf(tmpFileName, sizeof(tmpFileName), "%s.%d",
-                         baseFileName, fileSeqNum);
+                if(snprintf(tmpFileName, sizeof(tmpFileName), "%s.%d", baseFileName, fileSeqNum)
+                    >= (int)sizeof(tmpFileName)){
+                    Fatal("%s: buffer overflow -- string is truncated",__func__);
+                }
                 if ((fpData = fopen(tmpFileName, "r")) == (FILE *)NULL) {
                     Fatal("Error %d opening file %s to read nodal data",
                           errno, dataFile);

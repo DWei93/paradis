@@ -27,13 +27,13 @@
  *      For <type> "screw" or "edge" or "fcc"
  *
  *          paradisgen [-cubel <cubelength>] [-help] [-maxseg <maxseglen]   \
- *                     [-nchains <numchains>] [-seed <seedval]              \
+ *                     [-nsrcs <numSrcs>] [-seed <seedval]              \
  *                     [-type <configtype>]
  *
  *      For <type> "finite-mixed"
  *
  *          paradisgen [-cubel <cubelength>] [-help] [-maxseg <maxseglen]   \
- *                     [-nchains <numchains>] [-pbc pbcVal]                 \
+ *                     [-nsrcs <numSrcs>] [-pbc pbcVal]                 \
  *                     [-seed <seedval] [-type <configtype>]                \
  *                     [-xsurf min[,max]] [-ysurf min[,max]]                \
  *                     [-zsurf min[,max]]
@@ -41,7 +41,7 @@
  *      For <type> "prismatic-loop"
  *
  *          paradisgen [-cubel <cubelength>] [-help] [-looptype <type>]     \
- *                     [-maxseg <maxseglen] [-nloops <numloops>]            \
+ *                     [-maxseg <maxseglen] [-nsrcs <numSrcs>]            \
  *                     [-radius <radius>] [-seed <seedval]                  \
  *                     [-type <configtype>] [-vacancy]
  *
@@ -54,7 +54,7 @@
  *      For <type> "fcc-irrad"
  *
  *          paradisgen [-cubel <cubelength>] [-help] [-hexsize <size>]      \
- *                     [-maxseg <maxseglen] [-nchains <numchains>]          \
+ *                     [-maxseg <maxseglen] [-nsrcs <numchains>]          \
  *                     [-nloops <numloops>] [-seed <seedval]                \
  *                     [-type <configtype>]
  *
@@ -127,8 +127,7 @@ Option_t optList[OPT_MAX] = {
         {OPT_HEXSIZE,   "hexsize",  	3, 1},
         {OPT_LOOPTYPE,  "looptype", 	3, 1},
         {OPT_MAXSEG,    "maxseg",   	4, 1},
-        {OPT_NCHAINS,   "nchains",  	3, 1},
-        {OPT_NFRSRCS,   "nfrsrcs",  	3, 1},
+        {OPT_NSRCS,     "nsrcs",  	    3, 1},  
         {OPT_NLOOPS,    "nloops",   	3, 1},
         {OPT_OUTFILE,   "outfile",  	4, 1},
         {OPT_PBC,       "pbc",      	3, 1},
@@ -192,13 +191,13 @@ static void Usage(char *program)
         printf("    For <type> 'screw' or 'edge' or 'fcc'\n");
         printf("\n");
         printf("    %10s [-cubel <cubelength>] [-help] \n", program);
-        printf("               [-maxseg <maxseglen] [-nchains <numchains>]\n");
+        printf("               [-maxseg <maxseglen] [-nsrcs <numSrcs>]\n");
         printf("               [-seed <seedval] [-type <configtype>]\n");
         printf("\n");
         printf("    For <type> 'finite-mixed'\n");
         printf("\n");
         printf("    %10s [-cubel <cubelength>] [-help] \n", program);
-        printf("               [-maxseg <maxseglen] [-nchains <numchains>] \n");
+        printf("               [-maxseg <maxseglen] [-nsrcs <numSrcs>] \n");
         printf("               [-pbc pbcVal] [-seed <seedval] \n");
         printf("               [-type <configtype>] [-xsurf min[,max]]\n");
         printf("               [-ysurf min[,max]] [-zsurf min[,max]]\n");
@@ -207,7 +206,7 @@ static void Usage(char *program)
         printf("\n");
         printf("    %10s [-cubel <cubelength>] [-help] \n", program);
         printf("               [-looptype <type>] [-maxseg <maxseglen]\n");
-        printf("               [-nloops <numloops>] [-radius <radius>] \n");
+        printf("               [-nsrcs <numSrcs>] [-radius <radius>] \n");
         printf("               [-seed <seedval] [-type <configtype>] \n");
         printf("               [-vacancy]\n");
         printf("\n");
@@ -226,7 +225,7 @@ static void Usage(char *program)
         printf("\n");
         printf("    %10s [-cubel <cubelength>] [-help] \n", program);
         printf("               [-hexsize <size>] [-maxseg <maxseglen] \n");
-        printf("               [-nchains <numchains>] [-nloops <numloops>] \n");
+        printf("               [-nsrcs <numchains>] [-nloops <numloops>] \n");
         printf("               [-seed <seedval] [-type <configtype>]\n");
         printf("\n");
         printf("    For <type> 'single-arm'\n");
@@ -274,11 +273,7 @@ static void PrintHelp(char *program)
     printf("            This value only applies if the selected dislocation\n");
     printf("            type is prismatic-loops.\n\n");
     printf("  -maxseg   Define the maximum segment length (units of b).\n\n");
-    printf("  -nchains  Define the number of chains to create.  This value\n");
-    printf("            is ignored for the prismatic-loop and frank-read src\n");
-    printf("            configurations and must be a multiple of 12 for\n");
-    printf("            fcc-perfect-loop node configurations.\n\n");
-    printf("  -nfrsrcs  Define the number of Frank-Read sources to create\n\n");
+    printf("  -nsrcs  Define the number of sources to create\n\n");
     printf("  -nloops   Define the number of loops to generate in the\n");
     printf("            fcc-irrad or prismatic loop configurations\n\n");
     printf("  -outfile  Name of the file into which to write the\n");
@@ -349,27 +344,26 @@ static void PrintHelp(char *program)
  *-------------------------------------------------------------------------*/
 static void InitDefaultValues(InArgs_t *inArgs)
 {
-        inArgs->cubeLength = 35000;
-        inArgs->heightRatio = 1;   
-        inArgs->hexl       = 50;
-        inArgs->loopType   = 1;
+        inArgs->cubeLength        = 35000;
+        inArgs->heightRatio       = 1;
+        inArgs->hexl              = 50;
+        inArgs->loopType          = 1;
         inArgs->interstitialLoops = 1;
-        inArgs->maxSegLen  = 200.0;
-        inArgs->numChains  = 2;
-        inArgs->numFRSrcs  = -1;
-        inArgs->frLenMin   = 3500;
-        inArgs->frLenMax   = 3500;
-        inArgs->numLoops   = 1000;
-        inArgs->outputFile = (char*)"paradis.data";
-        inArgs->radius     = inArgs->maxSegLen / 2.0;
-        inArgs->seed       = time(0) + getpid();
-        inArgs->type       = FTYPE_SCREW;
-        inArgs->pbcVal     = 0;  /* pbc in no dimensions */
-        inArgs->polycrystal = 1;
-        inArgs->nGrain		= 2;
-        inArgs->twinRatio	= 0.5;
-        inArgs->extended     = 0;
-        inArgs->d0 = 40;
+        inArgs->maxSegLen         = -1;
+        inArgs->frLenMin          = 3500;
+        inArgs->frLenMax          = 3500;
+        inArgs->numSrcs           = 10;
+        inArgs->numLoops          = 1;
+        inArgs->outputFile        = (char*)"paradis.data";
+        inArgs->radius            = -1 ;
+        inArgs->seed              = time(0) + getpid();
+        inArgs->type              = FTYPE_SCREW;
+        inArgs->pbcVal            = 0;                        /* pbc in no dimensions */
+        inArgs->polycrystal       = 1;
+        inArgs->nGrain            = 2;
+        inArgs->twinRatio         = 0.5;
+        inArgs->extended          = 0;
+        inArgs->d0                = 40;
         	
         inArgs->deltaNums	= 0;
         inArgs->nLayers		= 1;
@@ -412,7 +406,6 @@ static void InitDefaultValues(InArgs_t *inArgs)
         inArgs->rotDir[1]=0.0; 
         inArgs->rotDir[2]=0.0; 
 	    inArgs->maxDensity = 5.0E14;
-        inArgs->numFRSrcs = -1;
 
         inArgs->burgID = -1;
         inArgs->planeID = -1;
@@ -469,7 +462,7 @@ static void CheckArgSanity(InArgs_t *inArgs)
             Fatal("Seed value must be greater than zero\n");
 
         if ((inArgs->type == FTYPE_FCC_PERFECT_LOOP) &&
-            ((inArgs->numChains < 12) || ((inArgs->numChains % 12) != 0)))
+            ((inArgs->numSrcs < 12) || ((inArgs->numSrcs % 12) != 0)))
             Fatal("For type %s configurations, nchains must be\n"
                   "a multiple of 12.\n", funcData[inArgs->type].funcName);
 
@@ -481,14 +474,14 @@ static void CheckArgSanity(InArgs_t *inArgs)
                   "must be greater than zero\n",
                   funcData[inArgs->type].funcName);
 
-        if ((inArgs->numLoops < 1)&&(inArgs->type == FTYPE_FCC_PERFECT_LOOP))
-            Fatal("For type %s configurations, the numloops value\n"
+        if ((inArgs->numSrcs < 1)&&(inArgs->type == FTYPE_FCC_PERFECT_LOOP))
+            Fatal("For type %s configurations, the numSrcs value\n"
                   "must be specified\n", funcData[inArgs->type].funcName);
 
         if (inArgs->type == FTYPE_FRANK_READ) {
-                if (inArgs->numFRSrcs < 0) {
-                        Fatal("Number of frank read sources must be > 0");
-                }
+            if (inArgs->numSrcs < 0) {
+                    Fatal("Number of frank read sources must be > 0");
+            }
         }
 
         return;
@@ -533,7 +526,7 @@ static void PrintArgs(InArgs_t *inArgs)
                 (inArgs->loopType == 2 ?  "[1 0 0] types" :
                  (inArgs->loopType == 1 ? "[1 1 1] types" :
                                           "mixed types")));
-                printf("Number of Loops:          %d\n", inArgs->numLoops);
+                printf("Number of Loops:          %d\n", inArgs->numSrcs);
                 printf("Loop Radius:              %lf\n", inArgs->radius);
                 printf("Seed Value:               %d\n", inArgs->seed);
                 break;
@@ -548,7 +541,7 @@ static void PrintArgs(InArgs_t *inArgs)
                 printf("\n");
 
                 printf("Source length distribution type:        %d\n", inArgs->srcLenType);
-                printf("Number of sources:        %d\n", inArgs->numFRSrcs);
+                printf("Number of sources:        %d\n", inArgs->numSrcs);
                 if (inArgs->frLenMax > inArgs->frLenMin) {
                     printf("Length of sources:        %f-%f\n",
                            inArgs->frLenMin, inArgs->frLenMax);
@@ -562,13 +555,13 @@ static void PrintArgs(InArgs_t *inArgs)
                 break;
 
             case FTYPE_FCC:
-                printf("Number of Chains:         %d\n", inArgs->numChains);
+                printf("Number of Chains:         %d\n", inArgs->numSrcs);
                 printf("Seed Value:               %d\n", inArgs->seed);
                 break;
 
             case FTYPE_FCC_IRRAD:
-                printf("Number of Chains:         %d\n", inArgs->numChains);
-                printf("Number of Loops:          %d\n", inArgs->numLoops);
+                printf("Number of Chains:         %d\n", inArgs->numSrcs);
+                printf("Number of Loops:          %d\n", inArgs->numSrcs);
                 printf("Size of Hexagonal Loops:  %d\n", inArgs->hexl);
                 printf("Seed Value:               %d\n", inArgs->seed);
                 break;
@@ -581,7 +574,7 @@ static void PrintArgs(InArgs_t *inArgs)
                 if(inArgs->extended)printf("generate extended dislocation");
                 printf("\n");
 
-                printf("Number of sources:        %d\n", inArgs->numFRSrcs);
+                printf("Number of sources:        %d\n", inArgs->numSrcs);
                 printf("Seed Value:               %d\n", inArgs->seed);
 	            printf("HeightRatio:              %f\n",inArgs->heightRatio);
 	            printf("deltaNums:                %d\n",inArgs->deltaNums);
@@ -687,6 +680,10 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                     inArgs->cubeLength = atoi(argValue);
                     if (setDefaultRadius)
                         inArgs->radius = inArgs->cubeLength / 4;
+
+                    if(inArgs->maxSegLen < 0)
+                        inArgs->maxSegLen = inArgs->cubeLength/30.0;
+
                     break;
 					
 	            case OPT_HEIGHTRATIO:
@@ -719,14 +716,8 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                 case OPT_MAXSEG:
                     inArgs->maxSegLen = atof(argValue);
                     break;
-                case OPT_NCHAINS:
-                    inArgs->numChains = atoi(argValue);
-                    break;
-                case OPT_NFRSRCS:
-                    inArgs->numFRSrcs = atoi(argValue);
-                    break;
-                case OPT_NLOOPS:
-                    inArgs->numLoops = atoi(argValue);
+                case OPT_NSRCS:
+                    inArgs->numSrcs = atoi(argValue);
                     break;
                 case OPT_OUTFILE:
                     inArgs->outputFile = argValue;
@@ -814,27 +805,27 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	                inArgs->polycrystal	= atof(argValue);
 	                    break;
 	            case OPT_NGRAIN:
-                        snprintf(oriArg, sizeof(oriArg), "%s", argValue);
-	                    token = strtok(argValue,"x");
-                        if((token=strtok(NULL,"x"))==(char *)NULL){
-	                        inArgs->nGrain = atoi(argValue);
-                        }else{
-                            snprintf(argValue, sizeof(oriArg), "%s", oriArg);
-                            snprintf(inArgs->gradientStructure, sizeof(inArgs->gradientStructure), "%s", oriArg);
-                            printf("Gradient Structure: %s\n", inArgs->gradientStructure);
-                            token = strtok(argValue,"x");
-                            inArgs->nGrain = 0;
-                            while(token != (char *)NULL){
-                                printf("%sX",token);
-                                token = strtok(NULL,",");
-                                if(token == (char *)NULL)Fatal("can not find the grain number");
-                                printf("%d, ",atoi(token));
-                                inArgs->nGrain += atoi(token);
-                                token = strtok(NULL,"x");
-                            }
-                            printf(", nGrains=%d\n",inArgs->nGrain);
+                    snprintf(oriArg, sizeof(oriArg), "%s", argValue);
+	                token = strtok(argValue,"x");
+                    if((token=strtok(NULL,"x"))==(char *)NULL){
+	                    inArgs->nGrain = atoi(argValue);
+                    }else{
+                        snprintf(argValue, sizeof(oriArg), "%s", oriArg);
+                        snprintf(inArgs->gradientStructure, sizeof(inArgs->gradientStructure), "%s", oriArg);
+                        printf("Gradient Structure: %s\n", inArgs->gradientStructure);
+                        token = strtok(argValue,"x");
+                        inArgs->nGrain = 0;
+                        while(token != (char *)NULL){
+                            printf("%sX",token);
+                            token = strtok(NULL,",");
+                            if(token == (char *)NULL)Fatal("can not find the grain number");
+                            printf("%d, ",atoi(token));
+                            inArgs->nGrain += atoi(token);
+                            token = strtok(NULL,"x");
                         }
-	                    break;
+                        printf(", nGrains=%d\n",inArgs->nGrain);
+                    }
+	                break;
 	            case OPT_TWIN_RATIO:
 	                inArgs->twinRatio = atof(argValue);
 	                    break;
@@ -1106,7 +1097,7 @@ void WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock)
     	Node_t	        *nbr;
 	    Tag_t	        nbrTag;
 	    real8	        v1, v2, v3;
-	    int	            burgID, planeID;
+	    int	            burgID=0, planeID=0;
         BurgInfo_t      *burgData;
 
 
@@ -1419,12 +1410,12 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
         switch (inArgs.type) {
         case FTYPE_SCREW:
                 CreateScrewConfig(&home, &inData, inArgs.cubeLength,
-                                  inArgs.numChains, inArgs.seed,
+                                  inArgs.numSrcs, inArgs.seed,
                                   &totDislocLen, inArgs.type);
                 break;
         case FTYPE_EDGE:
                 CreateEdges(&home, &inData, inArgs.cubeLength,
-                            inArgs.numChains, inArgs.seed,
+                            inArgs.numSrcs, inArgs.seed,
                             &totDislocLen, inArgs.type);
                 break;
         case FTYPE_FINITE_MIXED:
@@ -1464,7 +1455,7 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
                 }
 
                 CreateFiniteMixedConfig(&home, &inData, inArgs.cubeLength,
-                                        inArgs.numChains, inArgs.seed,
+                                        inArgs.numSrcs, inArgs.seed,
                                         &totDislocLen, inArgs.type);
                 break;
         case FTYPE_PRISMATIC_LOOP:
@@ -1472,7 +1463,7 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
                 CreatePrismaticLoop(&home, &inData, inArgs.cubeLength,
                                     inArgs.loopType,
                                     inArgs.interstitialLoops,
-                                    inArgs.numLoops, inArgs.radius,
+                                    inArgs.numSrcs, inArgs.radius,
                                     inArgs.seed, &totDislocLen, inArgs.type);
 #else
 //              CreateLoopSource(&home, &inData, &inArgs, &totDislocLen);
@@ -1490,7 +1481,7 @@ if ((inArgs.type == FTYPE_PRISMATIC_LOOP) && (inArgs.loopType != 1)) {
                 break;
         case FTYPE_FCC_IRRAD:
                 CreateFCCIrradConfig(&home, &inData, inArgs.cubeLength,
-                                     inArgs.numChains, inArgs.seed,
+                                     inArgs.numSrcs, inArgs.seed,
                                      inArgs.numLoops, inArgs.hexl,
                                      &totDislocLen, inArgs.type);
                 break;

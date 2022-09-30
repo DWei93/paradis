@@ -31,7 +31,7 @@
 #include "Decomp.h"
 #include "Restart.h"
 #include "Parse.h"
-#include "Math.h"
+#include "MathFunctions.h"
 #include "Grain.h"
 
 
@@ -441,7 +441,6 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
         int      distIncomplete, readCount, numNbrs;
         int      fileSegCount = 1, fileSeqNum = 0;
         int      *globalMsgCnt, *localMsgCnt, **nodeLists, *listCounts;
-        int      miscData[2];
         int      localNodeCount, globalNodeCount;
         int      binRead = 0;
         int      nextAvailableTag = 0;
@@ -453,6 +452,10 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
         Node_t   *node;
         Param_t  *param;
         ParamList_t *dataParamList;
+
+#ifdef PARALLEL
+        int      miscData[2];
+#endif
 
         param      = home->param;
         numDomains = home->numDomains;
@@ -802,11 +805,11 @@ void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile)
  */
                     node = &inData->node[readCount++];
 
-                    sscanf(inLine, "%d,%d %lf %lf %lf %d %d %d %d",
+                    sscanf(inLine, "%d,%d %lf %lf %lf %d %d %d %d %lf %lf %lf",
                            &node->myTag.domainID, &node->myTag.index,
                            &node->x, &node->y, &node->z,
-                           &numNbrs, &node->constraint, &node->inGrain, &node->onGB);
-
+                           &numNbrs, &node->constraint, &node->inGrain, &node->onGB,
+                           &node->vX,&node->vY,&node->vZ);
                     if(fabs(param->scale-1.0)>1E-5){
                         node->x *= param->scale; node->y *= param->scale; node->z *= param->scale;
                     }

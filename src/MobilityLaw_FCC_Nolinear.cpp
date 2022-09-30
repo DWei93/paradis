@@ -20,7 +20,7 @@
 #include "Home.h"
 #include "Util.h"
 #include "Mobility.h"
-#include "Math.h"
+#include "MathFunctions.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -335,6 +335,8 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
  */         
             VectorCopy(n, node->nx[i], node->ny[i], node->nz[i]);
             cross(n, d, m);
+            NormalizeVec(m);
+
 #ifdef DEBUG
             if(!Numerical(n) || !Numerical(d) || !Numerical(m)){
                 PrintNode(home, node);
@@ -401,12 +403,12 @@ int Mobility_FCC_Nolinear(Home_t *home, Node_t *node)
 /*
  *              Assemby lineTensor, climbTensor and verify glide direction
  */
-                Vec3TransposeAndMult(d, lineTensor);
-                Vec3TransposeAndMult(n, climbTensor);
                 NormalizeVec(m);
-
                 if(DotProduct(nForce,m)<0){m[0]=-m[0];m[1]=-m[1];m[2]=-m[2];}
                 if(DotProduct(nForce,d)<0){d[0]=-d[0];d[1]=-d[1];d[2]=-d[2];}
+
+                Vec3TransposeAndMult(d, lineTensor);
+                Vec3TransposeAndMult(n, climbTensor);
                 Vec3TransposeAndMult(m, glideTensor);
                 
 /*

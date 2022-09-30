@@ -257,17 +257,17 @@ struct _param {
         real8 shearModulus;
         real8 pois;
         real8 massDensity;     /* Units are kg/m^3 */
-	    real8 outRadius;
+        real8 outRadius;
         real8 burgMag;
-	    real8 vshr;
-	    real8 TBSFEnergy;					
-	    real8 TBEnergy;
-		real8 sfEnergy;
+        real8 vshr;
+        real8 TBSFEnergy;					
+        real8 TBEnergy;
+        real8 sfEnergy;
 
         real8 YoungsModulus;
-		
-		real8  elasticConstantMatrix[6][6];
-		real8  elasticConstantMatrixInv[6][6];
+        
+        real8  elasticConstantMatrix[6][6];
+        real8  elasticConstantMatrixInv[6][6];
 
         real8 rc;     /* core radius in elastic interaction calculation */ 
 
@@ -359,7 +359,7 @@ struct _param {
         int   tecmesh, tecmeshfreq, tecmeshcounter;
         real8 tecplotdt, tecplottime;
         real8 tecmeshdstrain, tecmeshstrain;
-		
+        
         int   velfile, velfilefreq, velfilecounter;
         real8 velfiledt, velfiletime;
 
@@ -427,7 +427,7 @@ struct _param {
  *      Added for strain decomposition and density flux decomp.
  */
         real8 totstraintensor[6];
-	    real8 elasticStrainTensor[6];
+        real8 elasticStrainTensor[6];
         real8 totedgepStrain[6], totscrewpStrain[6];
         real8 dedgepStrain[6],   dscrewpStrain[6];
 
@@ -484,20 +484,20 @@ struct _param {
  *      threading has not been enabled.
  */
         int   maxNumThreads;
-		
+        
 /*
  *	Define the variables about grain
  */
         int	    polycrystal;
-		int 	stressFieldPenetrable;
+        int 	stressFieldPenetrable;
         int	    nGrain;
         real8	twinRatio;
         real8	peneTB;
         real8   TBNormal[3], TBNormalCryst[3];
         real8   rotateNormal[3][3];
-	    real8	matrixOrientation[3][3];
-	    real8   gbStrength, tbStrength[2], EsciagParams[3];
-	    real8	fricStress;
+        real8	matrixOrientation[3][3];
+        real8   gbStrength, tbStrength[2], EsciagParams[3];
+        real8	fricStress;
         real8   a0[4];
         real8   grainSize;
         char    gradientStructure[MAX_STRING_LEN]; 
@@ -513,9 +513,9 @@ struct _param {
         int     limitDisplacement;
         real8	preRann, minDT;
         int	    markPreDTDisable;
-	    int	    finish;
-	    real8	maxStn;
-	    real8	maxPst;
+        int	    finish;
+        real8	maxStn;
+        real8	maxPst;
         real8   maxStr;
         real8   maxDisDen;
 
@@ -531,7 +531,7 @@ struct _param {
         real8       maxSchmid;
         clock_t     timestart;
 
-		real8		scale;
+        real8		scale;
 #ifdef JOG_PINNING
         real8   jogCoeff;
 #endif
@@ -541,6 +541,7 @@ struct _param {
         int         nVelBins, nDissBins;
         real8       velMax, velMin, dissMax, dissMin, baseVel, baseDiss, (*velTable)[4], (*dissTable)[4];
 #endif
+        int         nextSubmit; // flag for nex sumbition
         real8       wallTime; // units hour 
         real8       dtGBCrossSlip;
         real8       timeNextGBCrossSlip;
@@ -605,12 +606,15 @@ struct _param {
                                 /* simulation bounds                     */
 #endif
 
-#ifdef PETSC
 /*
  *      Petsc parameters
  */
-        char petscOptionsFile[MAX_STRING_LEN];
+#ifdef PETSC
+        char yamlFile[PETSC_MAX_PATH_LEN];  /* Petsc yaml options file*/
+        char optsFile[PETSC_MAX_PATH_LEN];  /* Petsc petsc options file*/
+
 #endif
+        int             velocityKernel;     /* Using velocity kernel */
 
 };
 

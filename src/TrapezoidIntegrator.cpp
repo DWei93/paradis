@@ -618,6 +618,9 @@ void TrapezoidIntegrator(Home_t *home)
 		real8	localMaxDisp, globalMaxDisp;
         Node_t  *node;
         Param_t *param;
+#ifdef DEBUG_TIMESETEP_ERROR
+        int     dumpErrorData = 1;
+#endif
 #ifdef 	DEBUG_TIMESTEP
         real8   oldErrMax;
         Node_t  *tmpNode;
@@ -836,7 +839,6 @@ void TrapezoidIntegrator(Home_t *home)
 
                 }  /* not convergent */
             }  /* for (iter = 0; ...) */
-
 #ifdef DEBUG_TIMESTEP_ERROR
             if (dumpErrorData) {
                 DumpTimestepError(home, newDT);

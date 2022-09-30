@@ -334,44 +334,28 @@ void CheckForUndefinedPlanes(Home_t *home, const char *msg)
         return;
 }
 
+#ifdef CHECK_ALL
 void CheckAll(Home_t *home, const char *format, ...)
 {
-	return;
-	char    msg[512];
-	va_list args;
+	char        msg[512];
+	va_list     args;
 
 	va_start(args, format);
 	vsnprintf(msg, sizeof(msg)-1, format, args);
 	msg[sizeof(msg)-1] = 0;
 	va_end(args);
-
-
 	
-	printf("Debug (%d): %s\n",home->myDomain, msg);
-	
-	Node_t 		*node;
-	int			i;
-	
-	for(i=0; i<home->newNodeKeyPtr; i++){
-		if((node = home->nodeKeys[i]) == (Node_t *)NULL)continue;
-		if(node->numNbrs > 16 || node->numNbrs < 0){
-			PrintTag(node);
-			Fatal("Debug (%d): %s, native node->numNbrs > 16 || node->numNbrs < 0, 1", home->myDomain,msg);
-		}
-	}
-	
-	node = home->ghostNodeQ;
-	while (node) {
-		
-		if(node->numNbrs > 16 || node->numNbrs < 0){
-			PrintTag(node);
-			Fatal("Debug (%d): %s, node->numNbrs > 16 || node->numNbrs < 0, 2", home->myDomain,msg);
-		}
-		
-		node = node->next;
-	}
-
+    for(auto i=0;i<home->newNodeKeyPtr;i++){
+        Node_t *node = home->nodeKeys[i];
+        if(node == (Node_t *)NULL)continue;
+        if(node->onGB > -1 && fabs(node->vZ) > 500.0){
+            PrintNode(home,node);
+            Fatal("Wrong Velocity flag=%s",msg);
+        }
+    }
+	return;
 }
+#endif
 
 typedef struct {
 	Segment_t *seg1;
@@ -483,16 +467,6 @@ void CheckNodeNANS(Node_t *node){
                 PrintNode(node);
                 Fatal("Node force contains Infs.  Aborting! %3.1f",flag);
             }
-}
-
-void DebugGB(Home_t *home, int flag){
-#ifndef DEBUG
-    return;
-    printf("%d %d\n",home->myDomain,flag);
-    CheckForNANS(home, flag);
-#else
-    home->flag = flag;
-#endif
 }
 
 

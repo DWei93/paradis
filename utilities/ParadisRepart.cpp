@@ -195,7 +195,7 @@ static void GetInArgs(int argc, char *argv[], Param_t *param,
                       char **baseFileName, char **outFileName)
 {
         int  i, j;
-        char *argName, *argValue, *token, *suffix;
+        char *argName, *argValue=NULL, *token, *suffix;
 
         *baseFileName = (char *)NULL;
         *outFileName  = (char *)NULL;
@@ -757,12 +757,17 @@ static void ReadDataFile(Home_t *home, char *fileName, CellData_t *cellList,
  *      sequence number suffix)
  */
         memset(baseFileName, 0, sizeof(baseFileName));
-        strncpy(baseFileName, fileName, sizeof(baseFileName)-1);
+        if(strncpy(baseFileName, fileName, sizeof(baseFileName)-1)==(char *)NULL){
+            Fatal("%s: can not copy the string",__func__);
+        }
 
         suffix = (baseFileName + strlen(baseFileName)) - 2;
         if (strcmp(suffix, ".0") == 0) *suffix = 0;
 
-        snprintf(segmentName, sizeof(segmentName), "%s", baseFileName);
+        if(snprintf(segmentName, sizeof(segmentName), "%s", baseFileName)
+            >=(int)sizeof(segmentName)){
+            Fatal("%s: buffer overflow -- string is truncated",__func__);
+        }
 
 /*
  *      Attempt to open the base data file.  If that doesn't work,
@@ -938,7 +943,10 @@ static void ReadDataFile(Home_t *home, char *fileName, CellData_t *cellList,
                         Fatal("Unexpected EOF in nodal data file");
                     }
                     fclose(fp);
-                    sprintf(segmentName, "%s.%d", baseFileName, fileSeqNum);
+                    if(snprintf(segmentName, sizeof(segmentName),"%s.%d", baseFileName, fileSeqNum)
+                        >=(int)sizeof(segmentName)){
+                        Fatal("%s: buffer overflow -- string is truncated",__func__);
+                    }
                     fp = fopen(segmentName, "r");
                     if (fp == (FILE *)NULL) {
                         Fatal("Error %d opening node data file %s",
@@ -1005,15 +1013,19 @@ static void RepartRSDecomp(Home_t *home, NodeData_t *nodeList,
 {
         int        xDom, yDom, zDom;
         int        numXdoms, numYdoms, numZdoms;
-        int        xFirstIndex, yFirstIndex, zFirstIndex;
-        int        xLastIndex, yLastIndex, zLastIndex;
-        int        xNodeIndex, yNodeIndex, zNodeIndex;
+        int        yFirstIndex, zFirstIndex;
+        int        yLastIndex, zLastIndex;
+        int        xNodeIndex, yNodeIndex;
         int        nodesInXSlice, nodesInYSlice;
         int        numNodes;
         int        *xSlices, *ySlices, *zSlices;
         real8      *xBound, *yBound, *zBound;
         Param_t    *param;
         RSDecomp_t *decomp;
+
+#ifdef UNUSED_VAR
+        int xFirstIndex, xLastIndex, zNodeIndex;
+#endif
 
         param = home->param;
 
@@ -1060,8 +1072,8 @@ static void RepartRSDecomp(Home_t *home, NodeData_t *nodeList,
  *      Then carve up the problem space into slices along the X axis
  *      such that all slices contain roughly the same weighting 
  */
-        xFirstIndex = 0;
-        xLastIndex  = numNodes;
+     // xFirstIndex = 0;
+     // xLastIndex  = numNodes;
         xNodeIndex  = 0;
 
         qsort(nodeList, numNodes, sizeof(NodeData_t), XCmp);
@@ -1106,7 +1118,7 @@ static void RepartRSDecomp(Home_t *home, NodeData_t *nodeList,
 
                 zFirstIndex = yNodeIndex;
                 zLastIndex  = yNodeIndex + nodesInYSlice;
-                zNodeIndex  = zFirstIndex;
+           //   zNodeIndex  = zFirstIndex;
 
                 yNodeIndex += nodesInYSlice;
 
@@ -1116,7 +1128,6 @@ static void RepartRSDecomp(Home_t *home, NodeData_t *nodeList,
                 GetBounds(cellList, &nodeList[zFirstIndex], 2,
                           zLastIndex-zFirstIndex, numZdoms, param->minSideZ,
                           param->maxSideZ, zBound, zSlices);
-
                 decomp->domBoundY[xDom][yDom] = yBound[yDom];
 
 /*
@@ -1688,11 +1699,7 @@ static void RepartRBDecomp(Home_t *home, RBDecomp_t *decomp,
         int          cut[3];
         real8        coord;
         real8        minRatio[3];
-        Param_t      *param;
         RBDecomp_t   *subDecomp, **subDecompList;
-
-        param = home->param;
-
 
         if (decomp == (RBDecomp_t *)NULL) {
             return;
@@ -2070,7 +2077,9 @@ int main(int argc, char *argv[])
  *      a new file which will be a copy of the old file expect that
  *      the domain decomposition will be updated.
  */
-        strncpy(oldFileName, baseFileName, sizeof(oldFileName));
+        if(strncpy(oldFileName, baseFileName, sizeof(oldFileName)-1)==(char *)NULL){
+            Fatal("%s: can not copy the string",__func__);
+        }
 
         if ((oldFP = fopen(oldFileName, "r")) == (FILE *)NULL) {
             strcat(oldFileName, ".0");
@@ -2080,9 +2089,14 @@ int main(int argc, char *argv[])
             }
         }
 
-        snprintf(backupFileName, sizeof(backupFileName), "%s.bkup",
-                 oldFileName);
-        sprintf(newFileName, "%s.decomptmp", oldFileName);
+        if(snprintf(backupFileName, sizeof(backupFileName), "%s.bkup",oldFileName)
+            >=(int)sizeof(backupFileName)){
+            Fatal("%s: buffer overflow -- string is truncated",__func__);
+        }
+        if(snprintf(newFileName, sizeof(newFileName),"%s.decomptmp", oldFileName)
+            >=(int)sizeof(newFileName)){
+            Fatal("%s: buffer overflow -- string is truncated",__func__);
+        }
 
 /*
  *      Open the new data file and write the version number,

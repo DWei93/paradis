@@ -7,9 +7,12 @@
  *                    allocated memory, etc.
  *
  *-----------------------------------------------------------------------*/
+#include "Typedefs.h"
+
 #ifdef PETSC
 #include <petscsys.h>
 #include <petscviewer.h>
+#include "PetscUtil.h"
 #endif
 
 #include "Home.h"
@@ -286,6 +289,10 @@ void ParadisFinish(Home_t *home)
     }
 
 #ifdef PETSC
+#ifdef PETSC_DEBUG
+    PetscViewerDestroy(&home->vk->viewer);
+#endif
+    PetscFree(home->vk);
     PetscOptionsClear(NULL);
     PetscFinalize();
 #endif

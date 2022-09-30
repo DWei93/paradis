@@ -45,7 +45,7 @@ elasticinteraction = 1
 enableCrossSlip =   1
 rTol = 8.6178635
 rc = 34.5714540
-Ecore = 22.3285982E9
+#Ecore = 22.3285982E9
 grainSize = 978
 loadType = 1
 loadDir = [ 0.0 0.0 1.0 -1.0 0.0 0.0 ]
@@ -59,8 +59,8 @@ splitMultiNodeFreq =   1
 #  
 maxStn = 2.0E-2
 maxPst = 1.0E-2
-timestepIntegrator =   "forward-euler"
-#timestepIntegrator =   "trapezoid"
+#timestepIntegrator =   "forward-euler"
+timestepIntegrator =   "trapezoid"
 nextDT = 1.0e-15
 wallTime = 24000
 #
@@ -95,7 +95,7 @@ appliedStress = [
 #  
 dirname = "res.multilayer"
 #mobilityLaw =   "FCC_nl"
-mobilityLaw =   "FCC_nl"
+mobilityLaw =   "FCC_0b"
 shearModulus = 48.0E9
 #shearModulus =   54.6e9  # Voight Average
 #shearModulus =  46.554e9  # in jin paper
@@ -134,5 +134,6 @@ savetimers = 0
 savetimersfreq = 10
 velfile = 0
 velfilefreq = 1000
-minDT = 13.513E-13
+velocityKernel = 1
+#minDT = 13.513E-13
 #maxDT = 5.000E-13

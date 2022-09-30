@@ -4,9 +4,9 @@
 #include <sys/stat.h>
 #include <stdio.h>
 #include <math.h>
-#include "Math.h"
+#include "MathFunctions.h"
 #include "Force.h"
-#include "Math.h"
+#include "MathFunctions.h"
 
 static void NodeofEle(Param_t *param, int eleNum, int node[8], int numNbrEle[8]){
 
@@ -122,18 +122,20 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         int      newNodeKeyPtr, narm;
         int      burgID=0, normalID; 
         int	     armInGrain, armOnGB;
-        real8    x,y,z, shift;
+        real8    x,y,z;
         real8    x2,y2,z2;
         real8    x2o,y2o,z2o;
         real8    prx,pry,prz;
         real8    vx,vy,vz;
         real8    Lx, Ly, Lz;
         real8	 velocity, vecOldNew[3];
-        real8    burg[3], burgMag, vMag;
+        real8    burg[3], burgMag;
         char     fileName[256];
         Node_t   *node, *nbrNode;
         Param_t  *param;
         FILE     *fp;
+        real8   extstress[3][3];
+
 #if CHECK_DOMAIN
         Plane_t	 plane;
         real8    displacement;
@@ -147,11 +149,24 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
         real8   al, am, an, amag, sigijk, pstnijk, ptstnijk, bl, bm, bn;
         real8   vec[3], f[3], f1[3], f2[3], length, fMag,ifMag,n[3],val, nodePos[3], nbrPos[3];
         int     armID21;
-        real8   tau_g, tau_gg, tau_ext, bMag, velx, vely, velz;
+        real8   tau_g=0.0, tau_gg, tau_ext;
 
         int     index, constraint;
+#ifndef VELOCITY_STATISTICS
         bool    imageSeg=false;
+        real8   bMag, shift;
+#endif
         param      = home->param;
+
+        extstress[0][0] = param->appliedStress[0];
+        extstress[1][1] = param->appliedStress[1];
+        extstress[2][2] = param->appliedStress[2];
+        extstress[1][2] = param->appliedStress[3];
+        extstress[2][0] = param->appliedStress[4];
+        extstress[0][1] = param->appliedStress[5];
+        extstress[2][1] = extstress[1][2];
+        extstress[0][2] = extstress[2][0];
+        extstress[1][0] = extstress[0][1];
 
         Lx = param->Lx;
         Ly = param->Ly;
@@ -286,37 +301,34 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                         ",inGrain,onGB, burgID,normalID,constraint,planeErr,domain,native\n");	
 		        VECTOR_ZERO(plane.point);
 #else
-	        if(debug){
-		        fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,index, dom, id, native\n");
-		        fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
-	        }else{
-		        fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_sf, tau_ext,ifMag, velocity");
+	            if(debug){
+		            fprintf(fp, "variables = X,Y,Z,V1,V2,V3,velocity,numNbr,inGrain,onGB,burgID,normalID,constraint,index, dom, id, native\n");
+		            fprintf(fp, "zone T = \"%d\" i = %d  F=POINT\n", home->cycle, numArms); 
+	            }else{
+		            fprintf(fp, "variables = X,Y,Z,V1,V2,V3,numNbr,inGrain,onGB,burgID,normalID,constraint,index, fx, fy, fz, fMag, tau_g, tau_sf, tau_ext,ifMag, velocity");
+
 #ifdef VELOCITY_STATISTICS
-                fprintf(fp, ", velx, vely, velz");
+                    fprintf(fp, ",vx,vy,vz\n");
+#else
+                    fprintf(fp,", burgMag, vx, vy, vz\n");
 #endif
-                if(param->multilayer){
-                    fprintf(fp,", burgMag, velx, vely, velz\n");
-                }else{
-                    fprintf(fp,"\n");
-                }
-                val = param->timeNow*1.0E9;
-		        fprintf(fp, "zone T = \"%d\", SOLUTIONTIME = %d,  F=POINT\n", home->cycle, home->cycle); 
-                val = fabs((param->loadType!=4)?param->eRate*param->timeNow*1.0E2:param->netCyclicStrain*1.0E2);
-                fprintf(fp, "AUXDATA strain = \"%.2f\"\n", val);
-                val = (param->loadType!=4)?fabs(sigijk/1.0E6):sigijk/1.0E6;
-                fprintf(fp, "AUXDATA stress = \"%.2f\"\n", val);
-                if(param->maxSchmid >= 0.0){
-                    fprintf(fp, "AUXDATA shear_stress = \"%.2f\"\n", val*param->maxSchmid);
-                }
-                val = (param->loadType!=4)?fabs(pstnijk*1.0E2):pstnijk*1.0E2;
-                fprintf(fp, "AUXDATA plastic_strain = \"%7.3f\"\n", val);
-                fprintf(fp, "AUXDATA twinning_deform = \"%7.3f\"\n", fabs(ptstnijk*100.0));
-                fprintf(fp, "AUXDATA fileName = \"%s\"\n", baseFileName);
-	    }
+                    val = param->timeNow*1.0E9;
+		            fprintf(fp, "zone T = \"%d\", SOLUTIONTIME = %d,  F=POINT\n", home->cycle, home->cycle); 
+                    val = fabs((param->loadType!=4)?param->eRate*param->timeNow*1.0E2:param->netCyclicStrain*1.0E2);
+                    fprintf(fp, "AUXDATA strain = \"%.2f\"\n", val);
+                    val = (param->loadType!=4)?fabs(sigijk/1.0E6):sigijk/1.0E6;
+                    fprintf(fp, "AUXDATA stress = \"%.2f\"\n", val);
+                    if(param->maxSchmid >= 0.0){
+                        fprintf(fp, "AUXDATA shear_stress = \"%.2f\"\n", val*param->maxSchmid);
+                    }
+                    val = (param->loadType!=4)?fabs(pstnijk*1.0E2):pstnijk*1.0E2;
+                    fprintf(fp, "AUXDATA plastic_strain = \"%7.3f\"\n", val);
+                    fprintf(fp, "AUXDATA twinning_deform = \"%7.3f\"\n", fabs(ptstnijk*100.0));
+                    fprintf(fp, "AUXDATA fileName = \"%s\"\n", baseFileName);
+	            }
 #endif	
-				
        	    }
-        } else {
+        }else{
 /*
  *          Any task NOT first in its I/O group must open the data file
  *          in an append mode so everything gets added to the end of
@@ -327,7 +339,6 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
             }
         }
  
-
 /*
  *      Generate the plot data for the segments associated with this
  *      domain's data
@@ -408,13 +419,10 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 }
             }else constraint=0;
 
-            vMag = sqrt(node->vX*node->vX+node->vY*node->vY+node->vZ*node->vZ);
-            if(vMag>1.0){
-                velx  = node->vX/vMag;
-                vely  = node->vY/vMag;
-                velz  = node->vZ/vMag;
-            }
-            vMag *= param->burgMag;
+            vx =  node->vX * param->burgMag;
+            vy =  node->vY * param->burgMag;
+            vz =  node->vZ * param->burgMag;
+	        velocity = sqrt(vx*vx + vy*vy + vz*vz);
 
             for (j = 0; j < node->numNbrs; j++) {
 #if 0
@@ -428,8 +436,8 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
 #endif
         
 /*
- *  FIX ME? This will result in segments crossing domain boundaries
- *  to be added to the file by both domains!  Is this what is wanted?
+ *              FIX ME? This will result in segments crossing domain boundaries
+ *              to be added to the file by both domains!  Is this what is wanted?
  */
 				
 /*
@@ -479,19 +487,17 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 y2 = y + pry;
                 z2 = z + prz;
 
-                vx =  node->vX * param->burgMag;
-                vy =  node->vY * param->burgMag;
-                vz =  node->vZ * param->burgMag;
-	            velocity = sqrt(vx*vx + vy*vy + vz*vz);
                 length = sqrt(prx*prx+pry*pry+prz*prz); 
                 narm = node->numNbrs;
 				
                 GetArmGrain(home, node, nbrNode, armInGrain, armOnGB);
+#ifndef VELOCITY_STATISTICS
                 imageSeg = (param->multilayer==true&&armOnGB==home->nGBs-1);
-                
+#endif 
                 vec[0]=prx; vec[1]=pry; vec[2]=prz;
                 NormalizeVec(vec);
                 n[0] = node->nx[j]; n[1]=node->ny[j]; n[2]=node->nz[j];
+
 
                 armID21=GetArmID(home, nbrNode, node);
                 if(armID21<0)Fatal("%s: armID 21 < 0",__func__);
@@ -511,15 +517,23 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                 burg[0] = node->burgX[j];
                 burg[1] = node->burgY[j];
                 burg[2] = node->burgZ[j];
+
+                ExtPKForce(extstress,burg[0],burg[1],burg[2],x,y,z,x2,y2,z2,f1,f2);
+                NormalComponent(f2,n,f1);
+                
+                vec[0] = node->vX + nbrNode->vX; 
+                vec[1] = node->vY + nbrNode->vY; 
+                vec[2] = node->vZ + nbrNode->vZ; 
+
+                if(Normal(f1)>0.1E6*length)velocity *= Sign(DotProduct(vec,f1));
+
+#ifndef VELOCITY_STATISTICS
                 bMag=Normal(burg);
+#endif
                 nodePos[0] = x; nodePos[1]=y; nodePos[2]=z;
                 nbrPos[0] = x2; nbrPos[1]=y2; nbrPos[2]=z2;
                 tau_ext = ExtShearStress(param, burg, nodePos, nbrPos, n)/1E6;
                 if(!Numerical(tau_ext))tau_ext=0.0;
-#if 0
-                SelfForce(0, 1, 0.324,burg[0],burg[1],burg[2],x,y,z,x2,y2,z2,param->rc,param->Ecore,f,f1);
-                fMag=Normal(f);
-#endif
 
                 burgMag=Normal(burg);
                 if(param->polycrystal==0){
@@ -570,24 +584,22 @@ void Tecplot(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup,
                     fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g", 
                             x,y,z,prx/2,pry/2,prz/2,
                             narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                            index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag);
+                            index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, velocity);
 
 #ifdef VELOCITY_STATISTICS
-                    fprintf(fp," %g %g %g\n", velx, vely, velz);
+                    fprintf(fp," %g %g %g\n", vx, vy, vz);
 #else
+                    fprintf(fp," %g %g %g %g\n", bMag, vx, vy, vz);
                     if(param->multilayer){
-                        fprintf(fp," %g %g %g %g\n", bMag, velx, vely, velz);
                         if(imageSeg){
                             if(fabs(fabs(z)-param->zBoundMax)<1){
                                 shift = z<0?param->Lz:-param->Lz;
                                 fprintf(fp, "%g %g %g %g %g %g %d %d %d %d %d %d %d %g %g %g %g %g %g %g %g %g %g %g %g %g\n", 
                                     x,y,z+shift,prx/2,pry/2,prz/2,
                                     narm,node->inGrain,node->onGB,burgID,normalID,constraint,
-                                    index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, vMag, bMag, velx, vely, velz);
+                                    index, f[0],f[1],f[2],fMag,tau_g,tau_gg,tau_ext,ifMag, velocity, bMag, vx, vy, vz);
                             }
                         }
-                    }else{
-                        fprintf(fp,"\n");
                     }
 #endif
 	        }
@@ -977,7 +989,6 @@ void TecplotMesh(Home_t *home, char *baseFileName, int ioGroup, int firstInGroup
             bl = param->loadDir[3];
             bm = param->loadDir[4];
             bn = param->loadDir[5];
-        
         }
        real8  sigijk = param->appliedStress[0]*al*bl        +
                        param->appliedStress[1]*am*bm        +

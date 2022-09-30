@@ -12,6 +12,11 @@
 #include "RSDecomp.h"
 
 
+#define SPRINTF1(n,f,c) if(snprintf(n,sizeof(n),f,c) >= (int)sizeof(n)) \
+    Fatal("%s: buffer overflow -- string is truncated",__func__)
+#define SPRINTF2(n,f,c,d) if(snprintf(n,sizeof(n),f,c,d) >= (int)sizeof(n)) \
+    Fatal("%s: buffer overflow -- string is truncated",__func__)
+
 static void Usage(char *progName)
 {
         printf("\nUsage:  %s  <controlFile> [<dataFile>]\n\n", progName);
@@ -48,22 +53,17 @@ static void Usage(char *progName)
  *----------------------------------------------------------------------*/
 static void GetConfigFromCtrlFile(Home_t *home, FILE *fp, Node_t **nodeConfig)
 {
-        int    i, j, tokenType;
+        int    i, j;
         int    nodeCount, numNbrs, burgID, nodeWeight;
-        int    numXDoms, numYDoms, numZDoms, saveDecomp;
-        int    numBurgersVectors, *burgersVectors;
+        int    numBurgersVectors;
         int    binRead = 0;
-        char   token[MAX_STRING_LEN];
         char   inLine[256], oldTagStr[32];
         char   *separator;
-        real8  boundary[6];
-        real8  *burgX, *burgY, *burgZ;
-        Node_t *nodeList, *node;
+        real8  *burgX=NULL, *burgY=NULL, *burgZ=NULL;
+        Node_t *nodeList=NULL, *node;
         Param_t *param;
-        ParamList_t *dataParamList;
 
         param = home->param;
-        dataParamList = home->dataParamList;
 
 /*
  *      The remainder of the current line should contain "= ["
@@ -205,7 +205,6 @@ static void GetConfigFromCtrlFile(Home_t *home, FILE *fp, Node_t **nodeConfig)
                &param->dataDecompGeometry[1],
                &param->dataDecompGeometry[2]);
 
-        saveDecomp = 1;
         
 /*
  *      The input decomp type should always be one for these files, so the
@@ -217,7 +216,6 @@ static void GetConfigFromCtrlFile(Home_t *home, FILE *fp, Node_t **nodeConfig)
             (param->dataDecompGeometry[1] != param->nYdoms) ||
             (param->dataDecompGeometry[2] != param->nZdoms) ||
             (param->decompType != 1)) {
-            saveDecomp = 0;
         }
 
         ReadDecompBounds(home, (void **)&fp, binRead, param->decompType,
@@ -235,7 +233,6 @@ static void GetConfigFromCtrlFile(Home_t *home, FILE *fp, Node_t **nodeConfig)
 
         return;
 }
-
 
 /*-----------------------------------------------------------------------
  *
@@ -264,7 +261,7 @@ static int CreateDataFileFromCtrl(Home_t *home, char *dataFileName,
         param = home->param;
         dataParamList = home->dataParamList;
 
-        sprintf(newFileName, "%s.new", dataFileName);
+        SPRINTF1(newFileName, "%s.new", dataFileName);
 
         if ((fpData = fopen(newFileName, "w")) == (FILE *)NULL) {
             Fatal("Open error (%d) on file %s\n", errno, newFileName);
@@ -352,18 +349,16 @@ static int ConvertControlFile(Home_t *home, char *ctrlFileName,
         FILE *fpOld, *fpNew;
         void *valList;
         Node_t *nodeList;
-        void *decomp;
         Param_t *param;
-        ParamList_t *ctrlParamList, *dataParamList;
+        ParamList_t *ctrlParamList=NULL;
 
         param = home->param;
 
         ctrlParamList = home->ctrlParamList;
-        dataParamList = home->dataParamList;
 
         *doDataConvert = 1;
 
-        sprintf(newFileName, "%s.new", ctrlFileName);
+        SPRINTF1(newFileName, "%s.new", ctrlFileName);
 
         fpOld = fopen(ctrlFileName, "r");
         fpNew = fopen(newFileName, "w");
@@ -465,10 +460,8 @@ static int ConvertControlFile(Home_t *home, char *ctrlFileName,
  *----------------------------------------------------------------------*/
 static void GetOldStyleDataParams(Home_t *home, FILE *fp)
 {
-        int        saveDecomp;
         int        binRead = 0;
         char       inLine[512];
-        RSDecomp_t *newDecomp;
         Param_t    *param;
 
         param = home->param;
@@ -596,7 +589,6 @@ static void ConvertDataFile(Home_t *home, char *baseDataFileName)
         int  binRead = 0;
         char inLine[512], token[256], segmentName[512], newSegName[512];
         FILE *fpOld, *fpNew;
-        void *oldDecomp;
         void *valList;
         int  valType, numVals, okay;
         ParamList_t *dataParamList;
@@ -609,13 +601,25 @@ static void ConvertDataFile(Home_t *home, char *baseDataFileName)
 
 /*      Figure out the name of the first data file segment */
 
-        sprintf(segmentName, "%s", baseDataFileName);
-        sprintf(newSegName, "%s.new", segmentName);
+        if(snprintf(segmentName, sizeof(segmentName), "%s", baseDataFileName)
+            >= (int)sizeof(segmentName)){
+            Fatal("%s: buffer overflow -- string is truncated",__func__);
+        }
+        if(snprintf(newSegName, sizeof(newSegName), "%s.new", segmentName)
+            >= (int)sizeof(segmentName)){
+            Fatal("%s: buffer overflow -- string is truncated",__func__);
+        }
         fpOld = fopen(segmentName, "r");
 
         if (fpOld == (FILE *)NULL) {
-            sprintf(segmentName, "%s.0", baseDataFileName);
-            sprintf(newSegName, "%s.0.new", baseDataFileName);
+            if(snprintf(segmentName, sizeof(segmentName), "%s.0", baseDataFileName)
+                >= (int)sizeof(segmentName)){
+                Fatal("%s: buffer overflow -- string is truncated",__func__);
+            }
+            if(snprintf(newSegName,sizeof(newSegName), "%s.0.new", baseDataFileName)
+                >= (int)sizeof(newSegName)){
+                Fatal("%s: buffer overflow -- string is truncated",__func__);
+            }
             fpOld = fopen(segmentName, "r");
         }
 
@@ -833,8 +837,8 @@ static void ConvertDataFile(Home_t *home, char *baseDataFileName)
  *          If necessary, open the next segment of the nodal data file
  */
             if ((fpOld == (FILE *)NULL)&&(nextSeqNum<param->numFileSegments)) {
-                sprintf(segmentName, "%s.%d", baseDataFileName, nextSeqNum);
-                sprintf(newSegName, "%s.%d.new", baseDataFileName, nextSeqNum);
+                SPRINTF2(segmentName, "%s.%d", baseDataFileName, nextSeqNum);
+                SPRINTF2(newSegName, "%s.%d.new", baseDataFileName, nextSeqNum);
                 fpOld = fopen(segmentName, "r");
                 fpNew = fopen(newSegName, "w");
                 nextSeqNum++;
@@ -923,8 +927,8 @@ static void RenameAllFiles(Home_t *home, char *ctrlFileName,
  *      Rename the original control file to be a backup and
  *      give the new file the original name.
  */
-        sprintf(bkupFileName, "%s.bkup", ctrlFileName);
-        sprintf(newFileName, "%s.new", ctrlFileName);
+        SPRINTF1(bkupFileName, "%s.bkup", ctrlFileName);
+        SPRINTF1(newFileName, "%s.new", ctrlFileName);
 
         if (rename(ctrlFileName, bkupFileName) < 0) {
             printf("Error %d renaming %s to %s.  Aborting\n",
@@ -944,13 +948,13 @@ static void RenameAllFiles(Home_t *home, char *ctrlFileName,
         for (i = 0; i < home->param->numFileSegments; i++) {
 
             if (home->param->numFileSegments > 1) {
-                sprintf(origFileName, "%s.%d", baseDataFileName, i);
-                sprintf(bkupFileName, "%s.%d.bkup", baseDataFileName, i);
-                sprintf(newFileName, "%s.%d.new", baseDataFileName, i);
+                SPRINTF2(origFileName, "%s.%d", baseDataFileName, i);
+                SPRINTF2(bkupFileName, "%s.%d.bkup", baseDataFileName, i);
+                SPRINTF2(newFileName, "%s.%d.new", baseDataFileName, i);
             } else {
-                sprintf(origFileName, "%s", baseDataFileName);
-                sprintf(bkupFileName, "%s.bkup", baseDataFileName);
-                sprintf(newFileName, "%s.new", baseDataFileName);
+                SPRINTF1(origFileName, "%s", baseDataFileName);
+                SPRINTF1(bkupFileName, "%s.bkup", baseDataFileName);
+                SPRINTF1(newFileName, "%s.new", baseDataFileName);
             }
 
 /*
@@ -985,7 +989,7 @@ int main(int argc, char *argv[])
         char        tmpFileName[256];
         char        *start, *sep;
         Param_t     param;
-        Home_t      home;
+        Home_t      home{};
 
         switch(argc) {
             case 1:
@@ -1020,7 +1024,7 @@ int main(int argc, char *argv[])
                 break;
         }
 
-        memset(&home, 0, sizeof(Home_t));
+      //memset(&home, 0, sizeof(Home_t));
 
         home.param = &param;
         home.ctrlParamList = (ParamList_t *)calloc(1, sizeof(ParamList_t));

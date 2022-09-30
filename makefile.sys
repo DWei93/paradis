@@ -1115,15 +1115,14 @@ INCS_SERIAL.franklin       =
 #
 
 CC_PARALLEL.gcc       = mpicc
-#CPP_PARALLEL.gcc      = ~/DWei/openmpi-4.0.2/bin/mpicxx
 CPP_PARALLEL.gcc      = mpicxx
-CCFLAG_PARALLEL.gcc   = -DPARALLEL=1 -Wno-unknown-pragmas  
-CPPFLAG_PARALLEL.gcc  = -DPARALLEL=1 
+CCFLAG_PARALLEL.gcc   = -DPARALLEL=1 -Wno-unknown-pragmas -Werror
+CPPFLAG_PARALLEL.gcc  = -DPARALLEL=1 -Werror
 
 CC_SERIAL.gcc         = gcc -Wno-unknown-pragmas
 CPP_SERIAL.gcc        = g++
-CCFLAG_SERIAL.gcc     =
-CPPFLAG_SERIAL.gcc    =  
+CCFLAG_SERIAL.gcc     = -Werror
+CPPFLAG_SERIAL.gcc    = -Werror
 
 F90.gcc               = gfortran
 F90_OPTS.gcc          = 

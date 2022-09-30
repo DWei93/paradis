@@ -330,7 +330,9 @@ void Remesh(Home_t *home)
         }
         TimerStop(home, REMESH);
 	
-        DebugGB(home, 300);	
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 		
 
 /*

@@ -38,10 +38,13 @@ typedef struct _slipSys SlipSys_t;
 typedef struct _penetration Pene_t;
 typedef struct _burgInfo BurgInfo_t;
 
+#ifdef PETSC
+typedef struct _petscVelocityKernelCtx PetscVKCtx_t;
+#endif
 typedef enum {
-	Periodic=0,
-	Free=1,
-	Reflecting=2
+    Periodic=0,
+    Free=1,
+    Reflecting=2
 } BoundType_t;
 
 /*
@@ -49,21 +52,22 @@ typedef enum {
  *      the various topological changes.
  */
 typedef enum {
-	CHANGE_CONNECTION,
-	INSERT_ARM,
-	REMOVE_NODE,
-	CHANGE_ARM_BURG,
-	SPLIT_NODE,
-	RESET_COORD,
-	UPDATE_GRAIN,
-	UPDATE_CONSTRAINT,
-	RESET_SEG_FORCES,
-	RESET_SEG_FORCES2,
+    CHANGE_CONNECTION,
+    INSERT_ARM,
+    REMOVE_NODE,
+    CHANGE_ARM_BURG,
+    SPLIT_NODE,
+    RESET_COORD,
+    UPDATE_GRAIN,
+    UPDATE_CONSTRAINT,
+    RESET_SEG_FORCES,
+    RESET_SEG_FORCES2,
     MARK_FORCES_OBSOLETE,
-	MARK_NO_MESH_COARSEN,
-	MARK_NO_COLLISIONS,
+    MARK_NO_MESH_COARSEN,
+    MARK_NO_COLLISIONS,
     RESET_GLIDE_PLANE,
-    CHANGE_ARM_SIGNSF
+    CHANGE_ARM_SIGNSF,
+    UPDATE_VELOCITY
 } OpType_t;
 
 
@@ -73,8 +77,8 @@ typedef enum {
  *      be allocated and initialized in SortNodesForCollision.c
  */
 typedef struct {
-	Node_t	*node;
-	int	next;
+    Node_t	*node;
+    int	next;
 } C2Qent_t;
 
 

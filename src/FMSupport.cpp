@@ -1156,10 +1156,12 @@ static void EvalMeanTaylor(Home_t *home, real8 avgStress[3][3])
         real8     rp, Volume;
         real8     pw[NMAX+1][3];
         real8     Min[3], Max[3], sigma[6][3], stress[6][3];
-        real8     avgStressGlobal[6][3];
         Param_t   *param;
         FMLayer_t *layer;
         FMCell_t  *cell;
+#ifdef PARALLEL
+        real8     avgStressGlobal[6][3];
+#endif
 
         param = home->param;
 

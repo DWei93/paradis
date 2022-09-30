@@ -64,6 +64,10 @@ struct _node {
 	
 	int 	inGrain;
     int     onGB;
+#ifdef PETSC
+	int 	gloID;
+	int		locID;
+#endif
 
 /*
  *	nbrTag and burgID are dynamically allocated to size numNbrs, when the

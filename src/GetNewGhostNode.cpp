@@ -54,6 +54,10 @@ Node_t *GetNewGhostNode(Home_t *home, int domain, int index)
         newNode->flags = 0;
 		newNode->inGrain = -1;
 		newNode->onGB = -1;
+#ifdef PETSC
+		newNode->gloID = -1;
+		newNode->locID = -1;
+#endif
 
         PushGhostNodeQ(home, newNode);
 

@@ -16,8 +16,7 @@ typedef struct {
     int     interstitialLoops;
     int     loopType;
     real8   maxSegLen;
-    int     numChains;
-    int     numFRSrcs;
+    int     numSrcs;
     int     numLoops;
     char    *outputFile;
     int     pbcVal;
@@ -70,11 +69,11 @@ typedef struct {
  *      problem generation.
  */
 void  CreateEdges(Home_t *home, InData_t *inData, int cubeLength,
-          int numChains, int seed, real8 *totDislocLen, int dislocType);
+          int numSrcs, int seed, real8 *totDislocLen, int dislocType);
 void  CreateScrewConfig(Home_t *home, InData_t *inData, int cubeLength,
-          int numChains, int seed, real8 *totDislocLen, int dislocType);
+          int numSrcs, int seed, real8 *totDislocLen, int dislocType);
 void  CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
-          int numChains, int seed, real8 *totDislocLen, int dislocType);
+          int numSrcs, int seed, real8 *totDislocLen, int dislocType);
 void  CreatePrismaticLoop(Home_t *home, InData_t *inData, int cubeLength,
           int loopType, int useinterstitial, int numSegs, real8 radius,
           int seed, real8 *totDislocLen, int dislocType);
@@ -82,11 +81,11 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                                         real8 *totDislocLen);
 void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                                                  real8 *totDislocLen);
-void  CreateFCCIrradConfig(Home_t *home, InData_t *inData, int cubeLength,
-          int numChains, int seed, int numLoops, real8 hexl,
-          real8 *totDislocLen, int dislocType);
+void CreateFCCIrradConfig(Home_t *home, InData_t *inData, int cubeLength,
+                          int numSrcs, int seed, int numLoops, real8 hexl,
+                          real8 *totDislocLen, int dislocType);
 void  CreateFCCPerfectLoop(Home_t *home, InData_t *inData, int cubeLength,
-          int numChains, int seed, real8 *totDislocLen, int dislocType);
+          int numSrcs, int seed, real8 *totDislocLen, int dislocType);
 void  InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex);
 real8 randm(int *seed);
 void  WriteInitialNodeData(Home_t *home, InData_t *inData, int lastBlock);
@@ -150,8 +149,7 @@ typedef	enum{
         OPT_HEXSIZE,
         OPT_LOOPTYPE,
         OPT_MAXSEG,
-        OPT_NCHAINS,
-        OPT_NFRSRCS,
+        OPT_NSRCS,
         OPT_NLOOPS,
         OPT_OUTFILE,
         OPT_PBC,

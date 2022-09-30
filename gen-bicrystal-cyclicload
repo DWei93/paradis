@@ -121,7 +121,7 @@ case $srctype in
 #
 ######################################################################################
     1|I)
-    ./bin/paradisgen -type $type  -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  \
+    ./bin/paradisgen -type $type  -cubel ${cubel} -maxseg ${maxSeg} -nsrcs ${nfrs}  \
     -polycrystal 0  -pbc 0 -extend 0  -srcLenType 0 \
     -xMatDir 1,0,0 -zMatDir 0,0,1 ;;
 
@@ -132,9 +132,9 @@ case $srctype in
 #
 ######################################################################################
     2|II)
-    info="# ./bin/paradisgen -type ${type} -pbc $pbc -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed  -polycrystal 0 -pbc 7 -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen $maxDensity -heightRatio ${heightRatio} -deltaNums $deltaNums  -nLayers $nLayers "
+    info="# ./bin/paradisgen -type ${type} -pbc $pbc -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nsrcs ${nfrs} $seed  -polycrystal 0 -pbc 7 -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen $maxDensity -heightRatio ${heightRatio} -deltaNums $deltaNums  -nLayers $nLayers "
     (echo "$info"
-    ./bin/paradisgen -type $type -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    ./bin/paradisgen -type $type -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nsrcs ${nfrs} $seed \
     -polycrystal 0 -pbc $pbc -loadDir 0,0,1\
     -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen $maxDensity \
     -heightRatio ${heightRatio} -deltaNums $deltaNums -nLayers $nLayers ) | tee $logFile;;
@@ -145,7 +145,7 @@ case $srctype in
 ######################################################################################
 #    
 #    Type III: polycrystal, only have grain boundaries.
-#    ./bin/paradisgen -type 3 -frlen 2000 -cubel 4000 -maxseg 100 -nfrsrcs 10 $seed \
+#    ./bin/paradisgen -type 3 -frlen 2000 -cubel 4000 -maxseg 100 -nsrcs 10 $seed \
 #    -polycrystal 1 -nGrain 1 -pbc 0 \
 #    -xMatDir 1,0,0 -yMatDir 0,1,0 ;; 
 #    
@@ -160,7 +160,7 @@ case $srctype in
 # 
 ######################################################################################
     4|IV)
-    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs 1 -maxDensity $maxDensity -gb 1 ;;
 #   -polycrystal 1 -nGrain ${nGrains}  -pbc 0  ;;
 #   -polycrystal 1 -nGrain 2  -pbc 0 -nTDs 1 -gb 1;;
@@ -172,10 +172,10 @@ case $srctype in
 ######################################################################################
     5|V)
 
-    info="#./bin/paradisgen -type ${type} -frlen ${frlen} -pbc $pbc -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum $deltaNums -nLayers $nLayers -nTDs $nTDs";
+    info="#./bin/paradisgen -type ${type} -frlen ${frlen} -pbc $pbc -cubel ${cubel} -maxseg ${maxSeg} -nsrcs ${nfrs} $seed -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity $maxDensity -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum $deltaNums -nLayers $nLayers -nTDs $nTDs";
 
     echo "$info"
-    (echo "${2}-degree" ;  ./bin/paradisgen -type ${type} -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    (echo "${2}-degree" ;  ./bin/paradisgen -type ${type} -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nsrcs ${nfrs} $seed \
     -polycrystal 1 -nGrain 2 -pbc $pbc -maxDensity $maxDensity -loadDir 0,0,1 \
     -TBAngle ${angle} -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum $deltaNums -nLayers $nLayers -nTDs $nTDs)| tee $logFile;;
 #   -yMatDir -1,-1,-1 -zMatDir 1,-1,0  -twinRatio 0.5 -heightRatio ${heightRatio} -deltaNum 0 -nLayers 1  -nTDs $nTDs)| tee $logFile;;

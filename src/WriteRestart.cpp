@@ -251,10 +251,11 @@ void WriteRestart(Home_t *home, char *baseFileName, int ioGroup,
 
             FoldBox(param, &node->x, &node->y, &node->z);
             fprintf(fp,
-                    " %d,%d %.17f %.17f %.17f %d %d %d %d\n",
+                    " %d,%d %.17f %.17f %.17f %d %d %d %d %.17e %.17e %.17e\n",
                     node->myTag.domainID, node->myTag.index,
                     node->x, node->y, node->z, node->numNbrs,
-                    node->constraint, node->inGrain, node->onGB);
+                    node->constraint, node->inGrain, node->onGB,
+                    node->vX,node->vY,node->vZ);
         
 /*
  *          Write the segment specific data

@@ -167,6 +167,7 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 
         BindVar(CPList, "wallTime", &param->wallTime, V_DBL, 1, VFLAG_NULL);
         param->wallTime = -1;
+        BindVar(CPList, "nextSubmit", &param->nextSubmit, V_INT, 1, VFLAG_NULL);
 
         BindVar(CPList, "dtGBCrossSlip", &param->dtGBCrossSlip, V_DBL, 1, VFLAG_NULL);
         param->dtGBCrossSlip = 5.0E-6;
@@ -177,17 +178,17 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "maxstep", &param->maxstep, V_INT, 1, VFLAG_NULL);
         param->maxstep = 100;
 
-	    BindVar(CPList, "maxStn", &param->maxStn, V_DBL, 1, VFLAG_NULL);
-	    param->maxStn = 1.0E-2;
+        BindVar(CPList, "maxStn", &param->maxStn, V_DBL, 1, VFLAG_NULL);
+        param->maxStn = 1.0E-2;
 
-	    BindVar(CPList, "maxStr", &param->maxStr, V_DBL, 1, VFLAG_NULL);
-	    param->maxStr = -2.0E8;
+        BindVar(CPList, "maxStr", &param->maxStr, V_DBL, 1, VFLAG_NULL);
+        param->maxStr = -2.0E8;
 
-	    BindVar(CPList, "maxPst", &param->maxPst, V_DBL, 1, VFLAG_NULL);
-	    param->maxPst = 1.0E-2;
+        BindVar(CPList, "maxPst", &param->maxPst, V_DBL, 1, VFLAG_NULL);
+        param->maxPst = 1.0E-2;
 
-	    BindVar(CPList, "maxDisDen", &param->maxDisDen, V_DBL, 1, VFLAG_NULL);
-	    param->maxDisDen = 1.0E20;
+        BindVar(CPList, "maxDisDen", &param->maxDisDen, V_DBL, 1, VFLAG_NULL);
+        param->maxDisDen = 1.0E20;
 
         BindVar(CPList, "timeNow", &param->timeNow, V_DBL, 1, VFLAG_NULL);
 
@@ -238,8 +239,8 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 #endif
         BindVar(CPList, "minSeg", &param->minSeg, V_DBL, 1, VFLAG_NULL);
         param->minSeg = -1.0;
-		
-	    BindVar(CPList, "rann", &param->rann, V_DBL, 1, VFLAG_NULL);
+        
+        BindVar(CPList, "rann", &param->rann, V_DBL, 1, VFLAG_NULL);
         param->rann = -1.0;
 
         BindVar(CPList, "remeshRule", &param->remeshRule, V_INT, 1, VFLAG_NULL);
@@ -395,20 +396,20 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "massDensity", &param->massDensity, V_DBL,
                 1, VFLAG_NULL);
         param->massDensity = 8900;
-	
-	    BindVar(CPList, "outRadius", &param->outRadius, V_DBL, 1,
+    
+        BindVar(CPList, "outRadius", &param->outRadius, V_DBL, 1,
                 VFLAG_NULL);
         param->outRadius = 1.0e4; 
-		
-		BindVar(CPList, "TBSFEnergy", &param->TBSFEnergy, V_DBL, 1,
+        
+        BindVar(CPList, "TBSFEnergy", &param->TBSFEnergy, V_DBL, 1,
                 VFLAG_NULL);
         param->TBSFEnergy = 0.0; 
-		
-		BindVar(CPList, "TBEnergy", &param->TBEnergy, V_DBL, 1,
+        
+        BindVar(CPList, "TBEnergy", &param->TBEnergy, V_DBL, 1,
                 VFLAG_NULL);
         param->TBEnergy = 0.0;  
 
-		BindVar(CPList, "sfEnergy", &param->sfEnergy, V_DBL, 1,
+        BindVar(CPList, "sfEnergy", &param->sfEnergy, V_DBL, 1,
                 VFLAG_NULL);
         param->sfEnergy = 29.498E-3;  /* Jm^-2*/ 
 
@@ -417,11 +418,11 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 
         BindVar(CPList, "YoungsModulus", &param->YoungsModulus, V_DBL, 1,
                 VFLAG_NULL);
-	    param->YoungsModulus=2.0 * param->shearModulus * (1.0 + param->pois); /* Ta: units=Pa @t=600K, p=0Pa */
+        param->YoungsModulus=2.0 * param->shearModulus * (1.0 + param->pois); /* Ta: units=Pa @t=600K, p=0Pa */
 
-		BindVar(CPList, "elasticConstantMatrix", param->elasticConstantMatrix,
+        BindVar(CPList, "elasticConstantMatrix", param->elasticConstantMatrix,
                 V_DBL, 36, VFLAG_NULL);
-		
+        
         BindVar(CPList, "rc", &param->rc, V_DBL, 1, VFLAG_NULL);
         param->rc = -1.0;
 
@@ -852,7 +853,7 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         BindVar(CPList, "elasticinteraction", &param->elasticinteraction,
                 V_INT, 1, VFLAG_NULL);
         param->elasticinteraction = 1;
-		
+        
         BindVar(CPList, "meshNumX", &param->meshNumX, V_INT, 1,
                 VFLAG_NULL);
         param->meshNumX = 11;
@@ -891,80 +892,80 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 /*
  *      Grain parameters
  */
-		BindVar(CPList, "peneTB", &param->peneTB,
-				V_INT, 1, VFLAG_NULL);
-		param->peneTB = 1;
-		BindVar(CPList, "gbStrength", &param->gbStrength,
-				V_DBL, 1, VFLAG_NULL);
-		param->gbStrength = -1;
+        BindVar(CPList, "peneTB", &param->peneTB,
+                V_INT, 1, VFLAG_NULL);
+        param->peneTB = 1;
+        BindVar(CPList, "gbStrength", &param->gbStrength,
+                V_DBL, 1, VFLAG_NULL);
+        param->gbStrength = -1;
 
-		BindVar(CPList, "stressFieldPenetrable", &param->stressFieldPenetrable, V_INT, 1, VFLAG_NULL);
-		param->stressFieldPenetrable = 1;
-			
-		BindVar(CPList, "tbStrength", &param->tbStrength,
-				V_DBL, 2, VFLAG_NULL);
-		param->tbStrength[0] = -1.0;
-		param->tbStrength[1] = -1.0;
+        BindVar(CPList, "stressFieldPenetrable", &param->stressFieldPenetrable, V_INT, 1, VFLAG_NULL);
+        param->stressFieldPenetrable = 1;
+            
+        BindVar(CPList, "tbStrength", &param->tbStrength,
+                V_DBL, 2, VFLAG_NULL);
+        param->tbStrength[0] = -1.0;
+        param->tbStrength[1] = -1.0;
 
-		BindVar(CPList, "EsciagParams", &param->EsciagParams, V_DBL, 3, VFLAG_NULL);
+        BindVar(CPList, "EsciagParams", &param->EsciagParams, V_DBL, 3, VFLAG_NULL);
         param->EsciagParams[0] = -1;
         param->EsciagParams[1] = 0.0;
         param->EsciagParams[2] = 0.0;
 
-		BindVar(CPList, "grainSize", &param->grainSize,
-				V_DBL, 1, VFLAG_NULL);
+        BindVar(CPList, "grainSize", &param->grainSize,
+                V_DBL, 1, VFLAG_NULL);
         param->grainSize = -1;
         
-		BindVar(CPList, "a0", &param->a0, V_DBL, 4, VFLAG_NULL);
+        BindVar(CPList, "a0", &param->a0, V_DBL, 4, VFLAG_NULL);
         param->a0[0] = -0.1;
         param->a0[1] = -0.1;
         param->a0[2] = -0.1;
         param->a0[3] = -0.1;
 
-		BindVar(CPList, "fricStress", &param->fricStress,
-				V_DBL, 1, VFLAG_NULL);
-		param->fricStress = 0.0e0;
+        BindVar(CPList, "fricStress", &param->fricStress,
+                V_DBL, 1, VFLAG_NULL);
+        param->fricStress = 0.0e0;
 
-		BindVar(CPList, "preRann", &param->preRann, V_DBL, 1, VFLAG_NULL);
-		param->preRann = -1.0;
+        BindVar(CPList, "preRann", &param->preRann, V_DBL, 1, VFLAG_NULL);
+        param->preRann = -1.0;
 
-		BindVar(CPList, "minDT", &param->minDT, V_DBL, 1, VFLAG_NULL);
-		param->minDT = 1.0E-16;
-		
-		BindVar(CPList, "limitDisplacement", &param->limitDisplacement, V_INT, 1, VFLAG_NULL);
-		param->limitDisplacement = 0;
+        BindVar(CPList, "minDT", &param->minDT, V_DBL, 1, VFLAG_NULL);
+        param->minDT = 1.0E-16;
+        
+        BindVar(CPList, "limitDisplacement", &param->limitDisplacement, V_INT, 1, VFLAG_NULL);
+        param->limitDisplacement = 0;
 
-		BindVar(CPList, "randomInternalForce", &param->randomInternalForce, V_INT, 1, VFLAG_NULL);
-		param->randomInternalForce = 0;
-		
-		BindVar(CPList, "scale", &param->scale, V_DBL, 1, VFLAG_NULL);
-		param->scale = 1.0;
+        BindVar(CPList, "randomInternalForce", &param->randomInternalForce, V_INT, 1, VFLAG_NULL);
+        param->randomInternalForce = 0;
+        
+        BindVar(CPList, "scale", &param->scale, V_DBL, 1, VFLAG_NULL);
+        param->scale = 1.0;
 
 #ifdef JOG_PINNING
-		BindVar(CPList, "jogCoeff", &param->jogCoeff, V_DBL, 1, VFLAG_NULL);
-		param->jogCoeff = 0.5;
+        BindVar(CPList, "jogCoeff", &param->jogCoeff, V_DBL, 1, VFLAG_NULL);
+        param->jogCoeff = 0.5;
 #endif
 
 #ifdef VELOCITY_STATISTICS
-		BindVar(CPList, "accumulation", &param->accumulation, V_DBL, 8, VFLAG_NULL);
-		param->accumulation[0] = 0.0;
-		param->accumulation[1] = 0.0;
-		param->accumulation[2] = 0.0;
-		param->accumulation[3] = 0.0;
-		param->accumulation[4] = 0.0;
-		param->accumulation[5] = 0.0;
-		param->accumulation[6] = 0.0;
-		param->accumulation[7] = 0.0;
-		
-		BindVar(CPList, "disLength", &param->disLength, V_DBL, 3, VFLAG_NULL);
+        BindVar(CPList, "accumulation", &param->accumulation, V_DBL, 8, VFLAG_NULL);
+        param->accumulation[0] = 0.0;
+        param->accumulation[1] = 0.0;
+        param->accumulation[2] = 0.0;
+        param->accumulation[3] = 0.0;
+        param->accumulation[4] = 0.0;
+        param->accumulation[5] = 0.0;
+        param->accumulation[6] = 0.0;
+        param->accumulation[7] = 0.0;
+        
+        BindVar(CPList, "disLength", &param->disLength, V_DBL, 3, VFLAG_NULL);
         param->disLength[0] = 0.0;
         param->disLength[1] = 0.0;
         param->disLength[2] = 0.0;
 
-		BindVar(CPList, "cumulativeTime", &param->cumulativeTime, V_DBL, 1, VFLAG_NULL);
+        BindVar(CPList, "cumulativeTime", &param->cumulativeTime, V_DBL, 1, VFLAG_NULL);
         param->cumulativeTime = 0.0;
 
-		BindVar(CPList, "aveLength", &param->aveLength, V_DBL, 3, VFLAG_NULL);
+        BindVar(CPList, "aveLength", &param->aveLength, V_DBL, 3, VFLAG_NULL);
         param->aveLength[0] = 0.0;
         param->aveLength[1] = 0.0;
         param->aveLength[2] = 0.0;
@@ -1042,9 +1043,18 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
 #endif
 
 #ifdef PETSC
-        BindVar(CPList, "petscOptionsFile", param->petscOptionsFile, V_STRING,
+        BindVar(CPList, "yamlFile", param->yamlFile, V_STRING,
                 1, VFLAG_NULL);
-        strcpy(param->petscOptionsFile,"0");
+        strcpy(param->yamlFile,"options.yaml");
+        BindVar(CPList, "optsFile", param->optsFile, V_STRING,
+                1, VFLAG_NULL);
+        strcpy(param->optsFile,"options.inf");
+
+        BindVar(CPList, "velocityKernel", &param->velocityKernel, V_INT, 1, VFLAG_NULL);
+        param->velocityKernel = 0;
+#else
+        BindVar(CPList, "velocityKernel", &param->velocityKernel, V_INT, 1, VFLAG_NULL);
+        param->velocityKernel = 0;
 #endif
         return;
 }
@@ -1085,63 +1095,63 @@ void DataParamInit(Param_t *param, ParamList_t *DPList)
         param->dataDecompGeometry[0] = 1;
         param->dataDecompGeometry[1] = 1;
         param->dataDecompGeometry[2] = 1;
-		
-		BindVar(DPList, "maxSeg", &param->maxSeg, V_DBL, 1, VFLAG_NULL);
-		param->maxSeg = 200;
-		
-		BindVar(DPList, "maxSchmid", &param->maxSchmid, V_DBL, 1, VFLAG_NULL);
-		param->maxSchmid = -1;
-		
-		BindVar(DPList, "minSeg", &param->minSeg, V_DBL, 1, VFLAG_NULL);
-		param->minSeg = 100;
-		BindVar(DPList, "polycrystal", &param->polycrystal, V_INT, 1, VFLAG_NULL);
-		param->polycrystal = 1;
-			
-		BindVar(DPList, "nGrain", &param->nGrain, V_INT, 1, VFLAG_NULL);
-		param->nGrain = 2;
-			
-		BindVar(DPList, "twinRatio", &param->twinRatio, V_DBL, 1, VFLAG_NULL);
-		param->twinRatio = 0.5;
-		
+        
+        BindVar(DPList, "maxSeg", &param->maxSeg, V_DBL, 1, VFLAG_NULL);
+        param->maxSeg = 200;
+        
+        BindVar(DPList, "maxSchmid", &param->maxSchmid, V_DBL, 1, VFLAG_NULL);
+        param->maxSchmid = -1;
+        
+        BindVar(DPList, "minSeg", &param->minSeg, V_DBL, 1, VFLAG_NULL);
+        param->minSeg = 100;
+        BindVar(DPList, "polycrystal", &param->polycrystal, V_INT, 1, VFLAG_NULL);
+        param->polycrystal = 1;
+            
+        BindVar(DPList, "nGrain", &param->nGrain, V_INT, 1, VFLAG_NULL);
+        param->nGrain = 2;
+            
+        BindVar(DPList, "twinRatio", &param->twinRatio, V_DBL, 1, VFLAG_NULL);
+        param->twinRatio = 0.5;
+        
         BindVar(DPList, "gradientStructure", param->gradientStructure, V_STRING, 1, VFLAG_NULL);
         snprintf(param->gradientStructure,sizeof(param->gradientStructure),"0");
 
-		BindVar(DPList, "xBoundType", &param->xBoundType, V_INT, 1, VFLAG_NULL);
-		param->xBoundType = (BoundType_t)0;
+        BindVar(DPList, "xBoundType", &param->xBoundType, V_INT, 1, VFLAG_NULL);
+        param->xBoundType = (BoundType_t)0;
     
-		BindVar(DPList, "yBoundType", &param->yBoundType, V_INT, 1, VFLAG_NULL);
-		param->yBoundType = (BoundType_t)0;
+        BindVar(DPList, "yBoundType", &param->yBoundType, V_INT, 1, VFLAG_NULL);
+        param->yBoundType = (BoundType_t)0;
     
-		BindVar(DPList, "zBoundType", &param->zBoundType, V_INT, 1, VFLAG_NULL);
-		param->zBoundType = (BoundType_t)0;
+        BindVar(DPList, "zBoundType", &param->zBoundType, V_INT, 1, VFLAG_NULL);
+        param->zBoundType = (BoundType_t)0;
     
-		BindVar(DPList, "xBoundMin", &param->xBoundMin, V_DBL, 1, VFLAG_NULL);
-		BindVar(DPList, "yBoundMin", &param->yBoundMin, V_DBL, 1, VFLAG_NULL);
-		BindVar(DPList, "zBoundMin", &param->zBoundMin, V_DBL, 1, VFLAG_NULL);
+        BindVar(DPList, "xBoundMin", &param->xBoundMin, V_DBL, 1, VFLAG_NULL);
+        BindVar(DPList, "yBoundMin", &param->yBoundMin, V_DBL, 1, VFLAG_NULL);
+        BindVar(DPList, "zBoundMin", &param->zBoundMin, V_DBL, 1, VFLAG_NULL);
     
-		BindVar(DPList, "xBoundMax", &param->xBoundMax, V_DBL, 1, VFLAG_NULL);
-		BindVar(DPList, "yBoundMax", &param->yBoundMax, V_DBL, 1, VFLAG_NULL);
-		BindVar(DPList, "zBoundMax", &param->zBoundMax, V_DBL, 1, VFLAG_NULL);
+        BindVar(DPList, "xBoundMax", &param->xBoundMax, V_DBL, 1, VFLAG_NULL);
+        BindVar(DPList, "yBoundMax", &param->yBoundMax, V_DBL, 1, VFLAG_NULL);
+        BindVar(DPList, "zBoundMax", &param->zBoundMax, V_DBL, 1, VFLAG_NULL);
     
-		BindVar(DPList, "matrixOrientationX", &param->matrixOrientation[0], V_DBL, 3, VFLAG_NULL);
-		BindVar(DPList, "matrixOrientationY", &param->matrixOrientation[1], V_DBL, 3, VFLAG_NULL);
-		BindVar(DPList, "matrixOrientationZ", &param->matrixOrientation[2], V_DBL, 3, VFLAG_NULL);
+        BindVar(DPList, "matrixOrientationX", &param->matrixOrientation[0], V_DBL, 3, VFLAG_NULL);
+        BindVar(DPList, "matrixOrientationY", &param->matrixOrientation[1], V_DBL, 3, VFLAG_NULL);
+        BindVar(DPList, "matrixOrientationZ", &param->matrixOrientation[2], V_DBL, 3, VFLAG_NULL);
     
-		BindVar(DPList, "TBNormal", &param->TBNormal, V_DBL, 3,
+        BindVar(DPList, "TBNormal", &param->TBNormal, V_DBL, 3,
                 VFLAG_NULL);
         param->TBNormal[0] = 1.0;  
         param->TBNormal[1] = 1.0;  
         param->TBNormal[2] = 1.0;  
     
-		BindVar(DPList, "TBNormalCryst", &param->TBNormalCryst, V_DBL, 3,
+        BindVar(DPList, "TBNormalCryst", &param->TBNormalCryst, V_DBL, 3,
                 VFLAG_NULL);
         param->TBNormalCryst[0] = 1.0;  
         param->TBNormalCryst[1] = 1.0;  
         param->TBNormalCryst[2] = 1.0;  
     
-		param->preDecreaseDT = 0;
-		param->markPreDTDisable = 0;
-		param->finish = 0;
+        param->preDecreaseDT = 0;
+        param->markPreDTDisable = 0;
+        param->finish = 0;
 
         return;
 }

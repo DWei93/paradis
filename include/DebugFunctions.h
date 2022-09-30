@@ -25,9 +25,10 @@ void CheckSegLengths(Home_t *home, const char *msg);
 void CheckForNANS(Home_t *home, real8 flag);
 void CheckForEmptySimulation(Home_t *home);
 void CheckForUndefinedPlanes(Home_t *home, const char *msg);
-void CheckAll(Home_t *home, const char *format, ...);
 void CheckLocal(Home_t *home, int flag);
 void CheckNodeNANS(Node_t *node);
-void DebugGB(Home_t *home, int flag);
 
+#ifdef CHECK_ALL
+void CheckAll(Home_t *home, const char *format, ...);
+#endif
 #endif

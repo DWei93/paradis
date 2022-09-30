@@ -2149,7 +2149,7 @@ static int FMPackUpPassBuf(Home_t *home, int layerID, int domID, real8 *buf)
  *--------------------------------------------------------------------------*/
 void FMCommUpPass(Home_t *home, int layerID)
 {
-        int        i, packedLen, recvIndex, receivedCnt = 0;
+        int        i, packedLen, recvIndex=0, receivedCnt = 0;
         int        mySendListIndex = -1;
         int        myRecvListIndex = -1;
         int        sendDomCnt, recvDomCnt;
@@ -2423,7 +2423,7 @@ void FMCommUpPass(Home_t *home, int layerID)
  *--------------------------------------------------------------------------*/
 void FMCommDownPass(Home_t *home, int layerID)
 {
-        int        i, recvIndex, receivedCnt = 0;
+        int        i, recvIndex=0, receivedCnt = 0;
         int        mySendListIndex = -1;
         int        myRecvListIndex = -1;
         int        sendDomCnt, recvDomCnt;
@@ -2637,7 +2637,7 @@ void FMCommDownPass(Home_t *home, int layerID)
         return;
 }
 
-
+#ifdef PARALLEL
 static void FMUnpackTaylorCoeff(Home_t *home, int numCells, real8 *buf)
 {
         int       i, j, x, y, z;
@@ -2713,6 +2713,7 @@ static void FMPackTaylorCoeff(Home_t *home, int numCells, int *cellList,
         return;
 }
 
+#endif
 
 typedef struct {
         int domID;

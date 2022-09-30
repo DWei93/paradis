@@ -51,6 +51,14 @@ void PrintNeighbor(Home_t *home, Node_t *node){
 	return;
 }
 
+/**
+ * > This function prints a 3x3 matrix to the screen
+ * 
+ * @param M The matrix to be printed
+ * @param msg a string that will be printed out with the matrix
+ * 
+ * @return Nothing.
+ */
 void FormatMatrix(real8 M[3][3], const char *msg){
 	int i;
 	printf("%s:\n{",msg);
@@ -60,6 +68,30 @@ void FormatMatrix(real8 M[3][3], const char *msg){
             printf(",\n");
         }else{
             printf("}\n");
+        }
+	}
+
+	return;
+}
+
+/**
+ * This function prints a 3x3 matrix to a file
+ * 
+ * @param M the matrix to be printed
+ * @param msg a string that will be printed out with the matrix
+ * @param fp the file pointer to the file you want to write to
+ * 
+ * @return Nothing.
+ */
+void FormatMatrix(real8 M[3][3], const char *msg, FILE *fp){
+	int i;
+	fprintf(fp,"%s:\n{",msg);
+	for (i = 0; i < 3; i++){
+	    fprintf(fp,"{%20.15f,%20.15f,%20.15f}", M[i][0], M[i][1], M[i][2]);
+        if(i<2){
+            fprintf(fp,",\n");
+        }else{
+            fprintf(fp,"}\n");
         }
 	}
 
@@ -1260,7 +1292,7 @@ void DumpPlanes(Home_t *home)
     std::vector<int> indexs(2);
     real8   r, centor[3];
     GB_t    *gb=NULL;
-    int     i;
+    int     i=0;
     Grain_t *grain;
 
     snprintf(fileName, sizeof(fileName), "planes.plt");
@@ -1850,78 +1882,6 @@ int HasShortSeg(Home_t *home, Node_t *node, real8 shortSegLenSq)
         return(0);
 }
 
-/****************************************************************************  
-*
-*	Assign grain number to node then add this operation to 
-*	Oplist to send to other domains. 
-*
-****************************************************************************/  
-void AssignGrain(Home_t *home, Node_t *node, int inGrain, int onGB) 
-{
-	if(node == (Node_t *)NULL){
-		printf("Task %d: %s, line %d -- Node = NULL",
-			   home->myDomain, __FILE__, __LINE__);
-		return;
-	}
-
-	node->inGrain = inGrain;
-	node->onGB = onGB;
-
-	Operate_t *op;
-
-/*
- *   Make sure the buffer allocated for the operation list is
- *   large enough to contain another operation.  If not, increase
- *   the size of the buffer.
- */
-    if (home->OpCount >= home->OpListLen) {
-		ExtendOpList (home);
-	}
-        
-	op = &home->opList[home->OpCount];
-
-	op->type = UPDATE_GRAIN;
-	op->dom1 = node->myTag.domainID;
-	op->idx1 = node->myTag.index;
-	op->inGrain = inGrain;
-	op->onGB = onGB;
-
-	home->OpCount++;
-
-	return;
-}
-
-
-void AssignConstraint(Home_t *home, Node_t *node, int constraint) 
-{
-	if(node == (Node_t *)NULL){
-		return;
-	}
-
-	node->constraint = constraint;
-
-	Operate_t *op;
-
-/*
- *   Make sure the buffer allocated for the operation list is
- *   large enough to contain another operation.  If not, increase
- *   the size of the buffer.
- */
-    if (home->OpCount >= home->OpListLen) {
-		ExtendOpList (home);
-	}
-        
-	op = &home->opList[home->OpCount];
-
-	op->type = UPDATE_CONSTRAINT;
-	op->dom1 = node->myTag.domainID;
-	op->idx1 = node->myTag.index;
-	op->inGrain = constraint;
-
-	home->OpCount++;
-	return;
-}
-
 
 int NodeOnGB(Home_t *home, Node_t *node){
 	int 	i, numNbrs, type = 0;
@@ -1955,20 +1915,6 @@ int NodeOnGB(Home_t *home, Node_t *node){
         }
 	}
 	return(type);
-}
-
-int AdjustNodeDirection(Home_t *home, Node_t *node, real8 *vec){
-
-    int 	NM;
-    real8 	GC[3][3];
-    bool    zeroLenJunc;
-
-	NM = 0;
-
-	GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc);
-	ApplyConstraintsToVelocity(NM, GC, vec);
-
-	return(NM);
 }
 
 
@@ -4542,7 +4488,6 @@ void RandomInternalForce(Home_t *home, real8 x1, real8 y1, real8 z1, real8 x2, r
     xi[0] = dx;
     xi[1] = dy;
     xi[2] = dz;
-    NormalizeVec(xi);
 
     VECTOR_ZERO(f1);
     VECTOR_ZERO(f2);
@@ -5281,4 +5226,11 @@ void DecomposeSegmentInRubik(Home_t *home, int nx, int ny, int nz, real8 node1Po
     }
 #endif
     return;
+}
+
+int AdjustNodeVelocity(Home_t *home, Node_t *node){
+    real8 vec[3]={node->vX,node->vY,node->vZ};
+    int nc = AdjustNodeDirection(home,node,vec);
+    node->vX = vec[0]; node->vY = vec[1]; node->vZ = vec[2];
+    return nc;
 }

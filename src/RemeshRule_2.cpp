@@ -31,7 +31,9 @@ static int dbgDom;
  *------------------------------------------------------------------------*/
 static void MeshCoarsen(Home_t *home)
 {
-        DebugGB(home, 100);
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
         int     i, q, thisDomain, mergeDone, mergeStatus, globalOp;
         int     hasRemoteNbr;
 	    int	    type;
@@ -95,99 +97,7 @@ static void MeshCoarsen(Home_t *home)
         
             node = home->nodeKeys[i];
             if (node == (Node_t *)NULL) continue;
-        
-/*
- *          Check for various conditions that will exempt a node from removal:
- *
- *          1) does not have  2 arms or the segement is not a GB segement
- *          2) node is a 'fixed' node or surface node
- *          3) node is flagged as exempt from coarsen operations
- *          4) current domain does not 'own' at least one of the  segments
- *          5) If the node's arms are on different glide planes we might
- *             not allow the node to be removed.
- */
-#if 1
-
-#else
-            if (node->numNbrs < 2 || node->numNbrs > 3) continue;
-
-            breakLoop = 0;
-		    if(param->polycrystal && IsOnGB(node)){
-                
-                for(j=0; breakLoop == 0 && j<node->numNbrs; j++){
-                    nbr1 = GetNeighborNode(home, node, j);
-                    if(nbr1 == (Node_t *)NULL){
-                        printf("Warnig: neighbor not found. (at %s, L%d)\n",
-                                __FILE__, __LINE__);
-                    }
-                    if(!IsOnGB(nbr1))continue;
-                    if(!DomainOwnsSeg(home, OPCLASS_REMESH, thisDomain, &nbr1->myTag))continue;
-                    dis = NodeDistance(home, node, nbr1);
-                    if(fabs(dis) > 5)continue;
-
-                    burg[0] = node->burgX[j];
-                    burg[1] = node->burgY[j];
-                    burg[2] = node->burgZ[j];
-
-                    if(BurgType_FCC(burg) != BASIC_BURG){
-                        continue;
-                    }
-                    if(SurfaceNode(node) && SurfaceNode(nbr1))continue;
-
-                    planeType = GetPlaneType_FCC(home, node, nbr1);
-
-                    if(!((planeType & GLIDE_PLANE) > 0 && (planeType & GB_PLANE) == 0))continue;
-
-                    globalOp = (nbr1->myTag.domainID != thisDomain);
-                    for (q = 0; q < nbr1->numNbrs; q++) {
-                        globalOp |= (nbr1->nbrTag[q].domainID != thisDomain);
-                    }
-
-                    for (q = 0; q < node->numNbrs; q++) {
-                        globalOp |= (node->nbrTag[q].domainID != thisDomain);
-                    }
-
-                    vec[0] = nbr1->x - node->x;
-                    vec[1] = nbr1->y - node->y;
-                    vec[2] = nbr1->z - node->z;
-                    ZImage(home->param, vec, vec+1, vec+2);
-
-                    newPos[0] = node->x + 0.5*vec[0];
-                    newPos[1] = node->y + 0.5*vec[1];
-                    newPos[2] = node->z + 0.5*vec[2];
-
-                    if(BeforeMergeNodes(home, node, nbr1, newPos, &dis)){
-                        if(fabs(dis) > 5.0){
-                            PrintNode(node);
-                            PrintNode(nbr1);
-                            Fatal("Warning in %s at %d, dis %f\n", __FILE__, __LINE__, dis);
-                        }
-                    }else{
-                        continue;
-                    }
-
-                    FoldBox(home->param, newPos, newPos+1, newPos+2);
-
-                    MergeNode(home, OPCLASS_REMESH, node, nbr1, newPos,
-                              &mergedNode, &mergeStatus, globalOp, -1, -1, true);
-            
-                    mergeDone = mergeStatus & MERGE_SUCCESS;
-
-                    if(mergedNode != (Node_t *)NULL){
-                        SplitIntersectNode(home, mergedNode, OPCLASS_REMESH, globalOp);
-                        mergedNode->flags |= NO_MESH_COARSEN;
-                    }
-
-                    breakLoop = 1;
-		            break;
-                }
-		    }
-            
-            if(breakLoop)continue;
-	        if(node ==(Node_t *)NULL)continue;
-#endif
 	        if(node->numNbrs != 2 )continue;
-
             if (node->constraint == PINNED_NODE) continue;
 
             nbr1 = GetNeighborNode(home, node, 0);
@@ -732,7 +642,7 @@ static void MeshCoarsen(Home_t *home)
                         printf("\n");
 #endif
                         if(globalOp){
-                            AssignGrain(home, mergedNode, nbrInGrain, -1);
+                            UpdateGrain(home, mergedNode, nbrInGrain, -1);
                         }else{
                             mergedNode->inGrain = nbrInGrain;
                             mergedNode->onGB = -1;
@@ -743,7 +653,7 @@ static void MeshCoarsen(Home_t *home)
                         if(NewPosToGB(home, mergedNode, mergedNode->inGrain, oldOnGB, vec, newPos)){
                             PrintNode(home, mergedNode);
                             if(globalOp){
-                                AssignGrain(home, mergedNode, -1, oldOnGB);
+                                UpdateGrain(home, mergedNode, -1, oldOnGB);
                             }else{
                                 mergedNode->inGrain = -1;
                                 mergedNode->onGB = oldOnGB;
@@ -842,7 +752,9 @@ static void MeshCoarsen(Home_t *home)
                 }
             }
         }
-        DebugGB(home, 101);
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
         
 #ifdef DEBUG_LOG_MESH_COARSEN
 #ifdef PARALLEL
@@ -1494,7 +1406,9 @@ static void MeshRefine(Home_t *home)
                 }
             }
         }
-        DebugGB(home, 201);
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
         
 #ifdef DEBUG_LOG_MESH_REFINE
 #ifdef PARALLEL
@@ -1528,11 +1442,17 @@ void RemeshRule_2(Home_t *home)
         dbgDom = -1;
 #endif
 
-        DebugGB(home, 501);
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
         MeshCoarsen(home);
-        DebugGB(home, 502);
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
         MeshRefine(home);
-        DebugGB(home, 502);
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
         return;
 }
 

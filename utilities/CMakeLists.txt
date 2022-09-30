@@ -157,6 +157,9 @@ INCLUDE_DIRECTORIES(../include)
 ENDIF(GEOS_FOUND)
 
 add_definitions(-DNO_XWINDOW)
+if(MPI_FOUND)
+    add_definitions(-DDPARALLEL=1)
+endif(MPI_FOUND)
 
 add_executable(${PARADISGEN_EXE} ${PARADISGEN_SRCS}     )
 add_executable(paradisrepart     ${PARADISREPART_SRCS}  )

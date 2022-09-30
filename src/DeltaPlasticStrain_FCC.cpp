@@ -260,7 +260,8 @@ void DeltaPlasticStrain_FCC(Home_t *home)
         static real8 tanv[NUM_PLANES][3][NUM_BURG];
         
 #ifdef VELOCITY_STATISTICS
-        real8        delAccumulation[8], disLength[3];
+        real8   velocity, coeff[2];
+        real8   delAccumulation[8], disLength[3];
         delAccumulation[0] = 0.0;
         delAccumulation[1] = 0.0;
         delAccumulation[2] = 0.0;
@@ -427,11 +428,11 @@ void DeltaPlasticStrain_FCC(Home_t *home)
                real8    lenPer[27], cen1[3], cen2[3];
 
 #ifdef VELOCITY_STATISTICS
-               real8  minVal, disLen, burgMag, vtau;
+               real8  disLen, burgMag, vtau;
                int  binID[2];
-               real8  vec1[3], vec2[3], outVec[2], lDir[3], nDir[3];
+               real8  vec1[3], vec2[3], lDir[3], nDir[3];
                real8 dot, gDir[3], burg[3], normal[3]; 
-               int  nbrArmID, iBin;
+               int  nbrArmID;
                bool active, positive;
 #endif
                nbr = GetNeighborNode(home, node, segIndex);

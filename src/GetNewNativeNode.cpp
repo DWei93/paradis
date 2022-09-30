@@ -42,6 +42,10 @@ Node_t *GetNewNativeNode(Home_t *home)
         newNode->flags = 0;
 		newNode->inGrain = -1;
 		newNode->onGB = -1;
+#ifdef PETSC
+        newNode->gloID = -1;
+        newNode->locID = -1;
+#endif
 
 #ifdef DEBUG_LOG_MULTI_NODE_SPLITS
         newNode->multiNodeLife = 0;

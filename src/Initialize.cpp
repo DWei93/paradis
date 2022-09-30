@@ -582,30 +582,8 @@ void SetRemainingDefaults(Home_t *home)
  */
 
         if (param->Ecore < 0.0) {
-#ifdef GSIZE_EFFECT
-            // obsolete
-#else
             param->Ecore = (param->shearModulus / (4*M_PI))*log(param->rc*10);
-#endif
         }
-#ifdef GSIZE_EFFECT
-        if(param->elasticinteraction){
-            if(param->grainSize<0) Fatal("elasticinteraction: grainSize < 0");
-            param->a0[0]=7.77809715342E3*pow(param->grainSize,-1.198379329); // Isotropic full dislocation
-            param->a0[2]=1.57188018497E3*pow(2.0*param->grainSize,-0.986622918); // Isotropic twinning dislocation
-            param->a0[1]=390.6/param->grainSize;
-            param->a0[3]=390.6/param->grainSize;
-            if(home->myDomain==0){
-                printf("cut-off radius %f (full dislocation), %f (twinning dislocation)\n",param->a0[0],param->a0[2]);
-                if(param->a0[0]>param->rc)printf("Warning: (a0[0] = %f) > (rc = %f)\n",param->a0[0],param->rc);
-                if(param->a0[2]>param->rc)printf("Warning: (a0[2] = %f) > (rc = %f)\n",param->a0[2],param->rc);
-            }
-        }else{
-            if(param->a0[0]<0 || param->a0[1] < 0 || param->a0[2] <0 || param->a0[3] <0){
-                Fatal("non-elasticinteraction of GSIZE_EFFECT must define a0");
-            }
-        }
-#endif
 
         if(param->timeNow >= param->timeNextGBCrossSlip)param->timeNextGBCrossSlip = param->timeNow+param->dtGBCrossSlip/param->eRate;
 /*
@@ -1160,8 +1138,6 @@ static void PrintBanner(Home_t *home, int argc, char *argv[])
         char           userName[32];
         struct utsname utsInfo;
         struct passwd  *pwInfo;
-        char*           reStr;
-
         time(&currTime);
         strcpy(currTimeStr, ctime(&currTime));
         currTimeStr[strlen(currTimeStr)-1] = 0;
@@ -1178,7 +1154,7 @@ static void PrintBanner(Home_t *home, int argc, char *argv[])
         }
 
 #ifndef _XT4
-        reStr = getcwd(workingDir, sizeof(workingDir) - 1);
+        char *reStr = getcwd(workingDir, sizeof(workingDir) - 1);
         if(reStr == (char *)NULL)Fatal("%s: can not get the dir",__func__);
         (void)uname(&utsInfo);
 
@@ -1254,7 +1230,9 @@ void Initialize(Home_t *home,int argc, char *argv[])
         tableFile = (char *)NULL;
 
 #ifdef PETSC
-        char        *petscOptionsFile;
+        FILE        *fp_petsc;
+        char        *yamlFile;
+        char        *optsFile;
 #endif
 
         char        workingDir[512], absTableFile[600];
@@ -1292,6 +1270,15 @@ void Initialize(Home_t *home,int argc, char *argv[])
         maxNumThreads = omp_get_max_threads();
 #endif
 
+        dataFile = (char *)NULL;
+        ctrlFile = (char *)NULL;
+        fmFile   = (char *)NULL;
+#ifdef PETSC
+        yamlFile = (char *)NULL;
+        optsFile = (char *)NULL;
+#endif
+
+
 /*
  *      Verify the command line syntax and pull out the control and
  *      data file names (if provided).  If no control file is specified,
@@ -1300,17 +1287,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
  *      appropriate data file name suffix.  Only need to do this on
  *      processor zero.
  */
-
         if (home->myDomain == 0) {
-
-
-            dataFile = (char *)NULL;
-            ctrlFile = (char *)NULL;
-            fmFile   = (char *)NULL;
-#ifdef PETSC
-            petscOptionsFile = (char *)NULL;
-#endif
-
             for (i = 1; i < argc; i++) {
                 if (!strcmp(argv[i], "-r")) {
                     if (i >= (argc - 1)) Usage(argv[0]);
@@ -1345,9 +1322,12 @@ void Initialize(Home_t *home,int argc, char *argv[])
                     if(i >= (argc - 1)) Usage(argv[0]);
                     fmFile = argv[++i];
 #ifdef PETSC
-                } else if (!strcmp(argv[i], "-p")) {
+                } else if (!strcmp(argv[i], "-y")) {
                     if(i >= (argc - 1)) Usage(argv[0]);
-                    petscOptionsFile = argv[++i];
+                    yamlFile = argv[++i];
+                } else if (!strcmp(argv[i], "-o")) {
+                    if(i >= (argc - 1)) Usage(argv[0]);
+                    optsFile = argv[++i];
 #endif
                 } else {
                     if (i < (argc - 1)) Usage(argv[0]);
@@ -1458,16 +1438,29 @@ void Initialize(Home_t *home,int argc, char *argv[])
             }
 
 #ifdef PETSC
-            if(petscOptionsFile !=(char *)NULL){
-                FILE *fp_petsc;
-                if((fp_petsc = fopen(petscOptionsFile, "r")) != (FILE *)NULL) {
-                    if(snprintf(param->petscOptionsFile, sizeof(param->petscOptionsFile), "%s", petscOptionsFile)>=(int)sizeof(param->petscOptionsFile)){
+            if(yamlFile !=(char *)NULL){
+                if((fp_petsc = fopen(yamlFile, "r")) != (FILE *)NULL) {
+                    if(snprintf(param->yamlFile, sizeof(param->yamlFile), "%s", yamlFile)
+                        >= (int)sizeof(param->yamlFile)){
                         Fatal("%s: buffer overflow -- string is truncated",__func__);
                     }
                     fclose(fp_petsc);
-                    printf("Petsc Options file: %s\n", param->petscOptionsFile);
+                    printf("Petsc yaml file: %s\n", param->yamlFile);
                 }else{
-                    printf("Warning: can not touch Petsc options file %s\n", param->petscOptionsFile);
+                    printf("Warning: can not touch Petsc yaml file %s\n", param->yamlFile);
+                }
+            }
+            if(optsFile !=(char *)NULL){
+                if((fp_petsc = fopen(optsFile, "r")) != (FILE *)NULL) {
+                    snprintf(param->optsFile, sizeof(param->optsFile), "%s", optsFile);
+                    if(snprintf(param->optsFile, sizeof(param->optsFile), "%s", optsFile)
+                        >= (int)sizeof(param->optsFile)){
+                        Fatal("%s: buffer overflow -- string is truncated",__func__);
+                    }
+                    fclose(fp_petsc);
+                    printf("Petsc Options file: %s\n", param->optsFile);
+                }else{
+                    printf("Warning: can not touch Petsc options file %s\n", param->optsFile);
                 }
             }
 #endif
@@ -1498,6 +1491,7 @@ void Initialize(Home_t *home,int argc, char *argv[])
 #endif
 
         param->timestart = clock();
+        param->nextSubmit = 0;
 #if MPI_DEBUG
         if(home->myDomain==0){
             int debug =0;
@@ -1815,8 +1809,10 @@ void Initialize(Home_t *home,int argc, char *argv[])
 #endif
 
 #ifdef PETSC
-/* Initializing the PETSc Options. */
+        /* Initializing the PETSc Options. */
         PetscInitialize(home);
+#else
+        home->param->velocityKernel = 0;
 #endif
 
 /*
@@ -2058,6 +2054,17 @@ void Initialize(Home_t *home,int argc, char *argv[])
             param->dissTable[i][2] = 0.0;
             param->dissTable[i][3] = 0.0;
         }
+#endif
+
+#ifdef PETSC
+#ifdef PETSC_DEBUG
+    /**
+     * ! Note: After opening the file, you cannot change the working folder again.
+     */
+    char            fName[50];
+    sprintf(fName,"petsc-debug-%02d.log",home->myDomain);
+    PetscViewerASCIIOpen(PETSC_COMM_SELF, fName, &home->vk->viewer);
+#endif
 #endif
 
         if(home->myDomain==0)DumpPlanes(home);

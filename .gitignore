@@ -8,8 +8,7 @@ log*
 bin/
 *.data
 *.bkup
-./
-build/
+build*
 res*
 utilities/*.cpp
 utilities/*.C
@@ -17,3 +16,4 @@ utilities/*.C
 *.out
 *.dat
 .vscode
+*.tgz

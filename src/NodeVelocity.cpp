@@ -15,6 +15,10 @@
 #include "Mobility.h"
 #include "Util.h"
 
+#ifdef PETSC
+#include "PetscUtil.h"
+#endif
+
 #ifdef PARALLEL
 #include "mpi.h"
 #endif
@@ -141,9 +145,9 @@ void GetVelocityStatistics(Home_t *home)
  *------------------------------------------------------------------------*/
 int CalcNodeVelocities(Home_t *home, int zeroOnErr, int doAll)
 {
-        int     domainMobError;
-        Node_t  *node;
-        Param_t *param;
+        int         domainMobError;
+        Node_t      *node;
+        Param_t     *param;
 
         TimerStart(home, CALC_VELOCITY);
 
@@ -151,85 +155,92 @@ int CalcNodeVelocities(Home_t *home, int zeroOnErr, int doAll)
         domainMobError = 0;
 
 
+        if(!param->velocityKernel){
 #ifdef _OPENMP
 #pragma omp parallel reduction(+ : domainMobError) shared(doAll, zeroOnErr)
 #endif
-        {
-            int    i, threadMobError = 0, nodeMobError;
-            int    threadID, threadIterStart, threadIterEnd;
-            Node_t *threadNode;
-
-            GetThreadIterationIndices(home->newNodeKeyPtr, &threadID,
-                                      &threadIterStart, &threadIterEnd);
-
-
-            for (i = threadIterStart; i < threadIterEnd; i++) {
-/*
- *              If we encountered a mobility error on a previous node,
- *              we'll probably be cutting the timestep, so don't
- *              bother restting the velocity of any subsequent nodes.
- *          
- *              Note: continue the loop rather than breaking out, though,
- *              because a 'break' from the loop would prevent the compiler
- *              from threading the loop.
- */
-                if (threadMobError != 0) {
-                    continue;
-                }
-
-                if ((threadNode = home->nodeKeys[i]) == (Node_t *)NULL) {
-                    continue;
-                }
-
-/*
- *              If we do not need to recalculate velocity on ALL nodes,
- *              skip this node unless the forces have just been updated.
- */
-                if ((doAll == 0) &&
-                    ((threadNode->flags & NODE_RESET_FORCES) == 0)) {
-                    continue;
-                }
-
-/*
- *              We set a pointer to the appropriate mobility function
- *              during initialization, so just invoke the function now.
- *              Need two error flags.  One to indicate if the current node
- *              had a mobility error, the other (which is returned to the
- *              caller) indicates if there were *any* nodes with mobility
- *              errors in the domain.
- */
-                nodeMobError = param->mobilityFunc(home, threadNode);
-                threadMobError |= nodeMobError;
-
-/*
- *              If we had problems calculating the mobility for
- *              this node, do any special handling.
- */
-                if (nodeMobError) {
-#ifdef DEBUG_TIMESTEP
-                    printf("Mobility error on node (%d,%d)\n",
-                           threadNode->myTag.domainID, threadNode->myTag.index);
-                    PrintNode(threadNode);
-#endif
-                    if (zeroOnErr) {
-                        threadNode->vX = 0.0;
-                        threadNode->vY = 0.0;
-                        threadNode->vZ = 0.0;
+            {
+                int    i, threadMobError = 0, nodeMobError;
+                int    threadID, threadIterStart, threadIterEnd;
+                Node_t *threadNode;
+           
+                GetThreadIterationIndices(home->newNodeKeyPtr, &threadID,
+                                          &threadIterStart, &threadIterEnd);
+           
+           
+                for (i = threadIterStart; i < threadIterEnd; i++) {
+/*         
+ *                  If we encountered a mobility error on a previous node,
+ *                  we'll probably be cutting the timestep, so don't
+ *                  bother restting the velocity of any subsequent nodes.
+ *              
+ *                  Note: continue the loop rather than breaking out, though,
+ *                  because a 'break' from the loop would prevent the compiler
+ *                  from threading the loop.
+ */        
+                    if (threadMobError != 0) {
+                        continue;
                     }
+           
+                    if ((threadNode = home->nodeKeys[i]) == (Node_t *)NULL) {
+                        continue;
+                    }
+           
+/*         
+ *                  If we do not need to recalculate velocity on ALL nodes,
+ *                  skip this node unless the forces have just been updated.
+ */        
+                    if ((doAll == 0) &&
+                        ((threadNode->flags & NODE_RESET_FORCES) == 0)) {
+                        continue;
+                    }
+           
+/*         
+ *                  We set a pointer to the appropriate mobility function
+ *                  during initialization, so just invoke the function now.
+ *                  Need two error flags.  One to indicate if the current node
+ *                  had a mobility error, the other (which is returned to the
+ *                  caller) indicates if there were *any* nodes with mobility
+ *                  errors in the domain.
+ */        
+                    nodeMobError = param->mobilityFunc(home, threadNode);
+                    threadMobError |= nodeMobError;
+           
+/*         
+ *                  If we had problems calculating the mobility for
+ *                  this node, do any special handling.
+ */        
+                    if (nodeMobError) {
+                        #ifdef DEBUG_TIMESTEP
+                           printf("Mobility error on node (%d,%d)\n",
+                               threadNode->myTag.domainID, threadNode->myTag.index);
+                           PrintNode(threadNode);
+                        #endif
+                        if (zeroOnErr) {
+                            threadNode->vX = 0.0;
+                            threadNode->vY = 0.0;
+                            threadNode->vZ = 0.0;
+                        }
+                    }
+           
+/*         
+ *                  We also used the 'reset forces' flag to determine if we needed
+ *                  to recalculate velocity, but now it can be reset.
+ */        
+                    threadNode->flags &= ~NODE_RESET_FORCES;
                 }
+           
+                domainMobError = domainMobError + threadMobError;
+           
+            }  /* end omp parallel section */
 
-/*
- *              We also used the 'reset forces' flag to determine if we needed
- *              to recalculate velocity, but now it can be reset.
- */
-                threadNode->flags &= ~NODE_RESET_FORCES;
-            }
-
-            domainMobError = domainMobError + threadMobError;
-
-        }  /* end omp parallel section */
-
-
+        }else{
+#ifdef PETSC
+            SolveGlobalVelocityKernel(home); 
+#else 
+            Fatal("Velocity Kernel is switch on, but petsc is off");
+#endif
+        }
 /*
  *      We need to zero out the 'reset forces' flag for all 
  *      ghost nodes; local nodes taken care of above.

@@ -37,46 +37,48 @@ meshNumZ = 82
 #  Dynamic load balancing
 #
 decompType = 2
-DLBfreq = 3
+DLBfreq    = 3
 #
 #  Discretization and topological change controls
 elasticinteraction = 1
-#a0 = [ 1.68098 1.12421 1.01163 0.187646 ]
-enableCrossSlip =   1
-rTol = 8.3567161
-rc = 33.5268644
-Ecore = 22.2114043E9
-grainSize = 1956
-loadType = 1
-loadDir = [ 0.0 0.0 1.0 -1.0 0.0 0.0 ]
-#maxstep =  40000000
-maxstep =  2000
+enableCrossSlip    = 1
+rTol               = 8.3567161
+rc                 = 33.5268644
+loadType           = 1
+loadDir            = [ 0.0 0.0 1.0 -1.0 0.0 0.0 ]
+#maxstep           = 40000000
+maxstep            = 2000
+remeshRule         = 2
+enforceGlidePlanes = 1
+splitMultiNodeFreq = 1
 remeshRule = 2
 enforceGlidePlanes =  1
 splitMultiNodeFreq =   1  
 #
 #  Simulation time and timestepping controls
 #  
-maxStn = 2.0E-2
-maxPst = 1.0E-2
-timestepIntegrator =   "forward-euler"
-#timestepIntegrator =   "trapezoid"
-nextDT = 1.0e-15
-wallTime = 24000
+maxStn              = 2.0E-2
+maxPst              = 1.0E-2
+#timestepIntegrator = "forward-euler"
+timestepIntegrator  = "trapezoid"
+nextDT              = 1.0e-15
+wallTime            = 23.8
 #
 #  Fast Multipole Method controls
 #  
-fmEnabled =   1  
-fmMPOrder =   2  
-fmTaylorOrder =   5  
-fmCorrectionTbl =   "fm-ctab.Cu.m2.t5.dat"
+fmEnabled       = 1
+fmMPOrder       = 2
+fmTaylorOrder   = 5
+fmCorrectionTbl = "fm-ctab.Cu.m2.t5.dat"
+Rijmfile        = "Rijm.tbl"
+RijmPBCfile     = "RijmPBC.tbl"
 #
 #  Loading conditions
 #  
 eRate = -5000
-#eRate =  0.0E0
-strRate = -4.0E16
-#strRate = 0.0
+#eRate      = 0.0E0
+strRate     = -4.0E16
+#strRate    = 0.0
 #plaRateCtr = 2.0E4
 
 edotPolar = [ 0.0 0.0 ]
@@ -94,17 +96,17 @@ appliedStress = [
 #  Material and mobility parameters
 #  
 dirname = "res.bicrytal"
-#mobilityLaw =   "FCC_nl"
-mobilityLaw =   "FCC_nl"
-shearModulus = 48.0E9
-#shearModulus =   54.6e9  # Voight Average
-#shearModulus =  46.554e9  # in jin paper
-gbStrength = -1
-tbStrength = [ 100.0E6 500.0E6 ]
-EsciagParams = [ 100.0E6 0.15 0.15 ]
+#mobilityLaw  = "FCC_nl"
+mobilityLaw   = "FCC_0b"
+shearModulus  = 48.0E9
+#shearModulus = 54.6e9  # Voight Average
+#shearModulus = 46.554e9  # in jin paper
+gbStrength    = -1
+tbStrength    = [ 100.0E6 500.0E6 ]
+EsciagParams  = [ 100.0E6 0.15 0.15 ]
 
-burgMag =   2.55600e-10 
-pois = 3.240000e-01
+burgMag = 2.55600e-10
+pois    = 3.240000e-01
 
 #fricStress = 3.46e7
 #  mobility values may be a little low for FCC
@@ -120,7 +122,7 @@ randomInternalForce = 0
 #  I/O controls and parameters
 #  
 #
-tecplot = 1
+tecplot         = 1
 #tecplotdstrain = 0.002E-2 # 500 dump files for strain = 1%
 tecplotfreq = 200
 saveprop = 1
@@ -134,6 +136,8 @@ savetimers = 0
 savetimersfreq = 10
 velfile = 0
 velfilefreq = 1000
-minDT = 26.208E-13
+#minDT = 26.208E-13
 #maxDT = 5.000E-13
-petscOptionsFile = "test.yaml"
+optsFile = "options.inf"
+yamlFile = "options.yaml"
+velocityKernel = 1

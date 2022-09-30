@@ -17,11 +17,6 @@ void ReadPreV4DataParams(Home_t *home, FILE *fp, void **dataDecomp);
 void ReadControlFile(Home_t *home, char *ctrlFileName);
 void ReadBinDataFile(Home_t *home, InData_t *inData, char *dataFile);
 void ReadNodeDataFile(Home_t *home, InData_t *inData, char *dataFile);
-#ifdef USE_HDF
-int  ReadBinDataParams(Home_t *home, hid_t fileID);
-int  ReadHDFDataset(hid_t fileID, char *datasetName, hid_t itemType,
-         hsize_t numItems, void *itemList);
-#endif
 
 /*
  *      Prototypes for functions involved in writing the restart files

@@ -82,7 +82,6 @@ double Interpolation(double f00, double fx00, double fy00, double fxy00,
     double a20, a21, a22, a23;
     double a30, a31, a32, a33;
     double xx[4], yy[4], temp[4];
-    int     i;
 
     if(x<0.0 || x>1 || y<0.0 || y>1){
         printf("%f %f\n", x, y);
@@ -129,13 +128,10 @@ double Interpolation(double f00, double fx00, double fy00, double fxy00,
 
     bil = temp[0]*(1.0-y) + temp[1]*y;
 
-    for(i=0;i<4;i++){
-        temp[0] = xx[0]*a00 + xx[1]*a10 + xx[2]*a20 +xx[3]*a30;
-        temp[1] = xx[0]*a01 + xx[1]*a11 + xx[2]*a21 +xx[3]*a31;
-        temp[2] = xx[0]*a02 + xx[1]*a12 + xx[2]*a22 +xx[3]*a32;
-        temp[3] = xx[0]*a03 + xx[1]*a13 + xx[2]*a23 +xx[3]*a33;
-    }
-
+    temp[0] = xx[0]*a00 + xx[1]*a10 + xx[2]*a20 +xx[3]*a30;
+    temp[1] = xx[0]*a01 + xx[1]*a11 + xx[2]*a21 +xx[3]*a31;
+    temp[2] = xx[0]*a02 + xx[1]*a12 + xx[2]*a22 +xx[3]*a32;
+    temp[3] = xx[0]*a03 + xx[1]*a13 + xx[2]*a23 +xx[3]*a33;
 
     return(temp[0]*yy[0]+temp[1]*yy[1]+temp[2]*yy[2]+temp[3]*yy[3]);
 }
@@ -356,7 +352,7 @@ int main(int argc,char** argv)
         printf("avrage size %f %e %f %f\n", ave, globalArray[0], nXs, nYs);
         outfile.close();
 //      out2.close();
-#if 0
+#if 1
         meshSizeX /= 10.0;
         meshSizeY /= 10.0;
 
@@ -372,6 +368,9 @@ int main(int argc,char** argv)
             for(j=0; (double)j<nYs+1; j++){
                 x0 = ((double)i)*meshSizeX+xBoundMin;
                 y0 = ((double)j)*meshSizeY+yBoundMin;
+                if(y0>202 || y0<-202)continue;
+                if(x0>202 || x0<-202)continue;
+
                 Coor2EleNum(&param, x0, y0, imin, jmin);
                 imax = imin + 1;
                 jmax = jmin + 1;

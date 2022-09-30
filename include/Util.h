@@ -87,7 +87,9 @@ real8 NodeDistance(Home_t *home, Node_t *node1, Node_t *node2);
 real8 NodeLengthXMag(Home_t *home, Node_t *node);
 void   PrintNode(Node_t *node);
 void   PrintNode(Home_t *home, Node_t *node);
-void PrintNbr(Home_t *home, Node_t *node);
+void   PrintNode(Home_t *home, Node_t *node, FILE *fp);
+void    PrintNbr(Home_t *home, Node_t *node);
+void PrintNbr(Home_t *home, Node_t *node, FILE *fp);
 void   ReallocNodeArms(Node_t *node, int n);
 void   RemoveNode(Home_t *home, Node_t *node, int Log);
 void   RepositionNode(Home_t *home, real8 newPos[3], Tag_t *tag, int globalOp);
@@ -220,5 +222,22 @@ void SegDeltaPlasticStrain(Home_t *home, Node_t *node1, Node_t *node2, real8 *dp
 real8 SegDeltaPlasticStrain(Home_t *home, Node_t *node1, Node_t *node2);
 /* sumarize plastic stain and plastic spin before merge operation */
 void DeltaPlasticStrainOfTwoNodes(Home_t *home, Node_t *node1, Node_t *node2, real8 *dpst, real8 *dpsp);
+
+/**
+ * @brief Counting the number of non-zero length dislocation arms
+ */
+int NumNonZeroLenSegs(Home_t *home, Node_t *node);
+
+/**
+ * This function takes a node and a vector and returns the number of glide constraints that apply to
+ * the node and the vector
+ * 
+ * @param home the home structure
+ * @param node the node to be adjusted
+ * @param vec the adjusted vector
+ * 
+ * @return The number of glide constraints.
+ */
+int AdjustNodeDirection(Home_t *home, Node_t *node, real8 *vec);
 
 #endif

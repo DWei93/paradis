@@ -2403,9 +2403,9 @@ int SplitNode(Home_t *home, int opClass, Node_t *node, real8 *pos1,
                 node->x, node->y, node->z,
                 node->oldx, node->oldy, node->oldz);         /* plane normal not needed */
 
-            AssignGrain(home, node, node->inGrain, node->onGB);
-            AssignGrain(home, newNode, newNode->inGrain, newNode->onGB);
-            AssignConstraint(home, node, node->constraint);
+            UpdateGrain(home, node, node->inGrain, node->onGB);
+            UpdateGrain(home, newNode, newNode->inGrain, newNode->onGB);
+            UpdateConstraint(home, node, node->constraint);
         }
 
 /*
@@ -2888,7 +2888,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	              0.0, 0.0, 0.0,          /* burgers vector unneeded */
 	              targetNode->x, targetNode->y, targetNode->z,
 	              targetNode->oldx, targetNode->oldy, targetNode->oldz);         /* plane normal not needed */
-            AssignGrain(home, targetNode, targetNode->inGrain, targetNode->onGB);
+            UpdateGrain(home, targetNode, targetNode->inGrain, targetNode->onGB);
 	    }
 	}else{
 	    *status |= MERGE_NO_REPOSITION;
@@ -3057,7 +3057,9 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	    } else {
 		    *status |= MERGE_NODE_ORPHANED;
 	    }
-	}
+	}else{
+        AdjustNodeVelocity(home,targetNode);
+    }
 
 	return;
 }
@@ -3119,7 +3121,7 @@ int InsertConnection(Home_t *home, Node_t *node1, Node_t *node2, int globalOp,
               (*newNodePtr)->vY,            /* but node velocity is, so we*/
               (*newNodePtr)->vZ);           /* commandeer the AddOp normal*/
                                         /* arguments for velocity data*/
-	    AssignGrain(home, (*newNodePtr), inGrain, onGB);
+	    UpdateGrain(home, (*newNodePtr), inGrain, onGB);
     }
 
 	AssignNodeToCell(home, (*newNodePtr));

@@ -29,9 +29,6 @@
 #include <errno.h>
 #include <math.h>
 
-#ifdef USE_HDF
-#include "hdf5.h"
-#endif
 
 #include "Constants.h"
 #include "ParadisThread.h"
@@ -54,7 +51,7 @@
 #include "DebugFunctions.h"
 #include "Force.h"
 #include "Grain.h"
-#include "Math.h"
+#include "MathFunctions.h"
 #include "CppFunctions.h"
 
 #include  <mcheck.h>
@@ -416,8 +413,8 @@ struct _home {
                                      /* the last process in each IO group*/
 #endif
 
-		Grain_t		**grainKeys;
-		int			nGrains;
+        Grain_t		**grainKeys;
+        int			nGrains;
 
         GB_t        **GBKeys;
         real8       *tbPosz;
@@ -427,9 +424,13 @@ struct _home {
 #ifdef DEBUG        
         int         flag;
 #endif		
-        real8	**pstnEle;
-        real8	**disDenEle;
-        real8   *randomForceTable;
+        real8		**pstnEle;
+        real8		**disDenEle;
+        real8  		*randomForceTable;
+
+#ifdef PETSC
+        PetscVKCtx_t *vk; 		/* Global velocity kernel for all nodes */
+#endif
 
 #ifdef _FEM
 /*

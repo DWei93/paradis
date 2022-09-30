@@ -7,15 +7,25 @@
 #ifndef _Comm_h
 #define _Comm_h
 
+#ifdef PETSC
+#include "PetscUtil.h" 
+#endif
+
 #include "Home.h"
 
 #ifdef _FEM
 #define FLTS_PER_GHOST_NODE      21
 #define FLTS_PER_GHOST2_NODE     23
 #else
+#ifndef PETSC
 #define FLTS_PER_GHOST_NODE      18		//increased by 2 for inGrain and onGB
 #define FLTS_PER_GHOST2_NODE     20		//increased by 2 for inGrain and onGB
+#else
+#define FLTS_PER_GHOST_NODE      19		//increased by 3 for inGrain, onGB, and gloID
+#define FLTS_PER_GHOST2_NODE     21		//increased by 3 for inGrain, onGB, and gloID
 #endif
+#endif
+
 
 #define FLTS_PER_GHOST_ARM       12     //increased by 1 for signSF
 #define FLTS_PER_GHOST_CELL       3

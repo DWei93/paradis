@@ -9,7 +9,7 @@
  *
  **************************************************************************/
 
-#include "Math.h"
+#include "MathFunctions.h"
 
 #ifdef PARALLEL
 #include "mpi.h"

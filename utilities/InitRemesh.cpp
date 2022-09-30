@@ -63,17 +63,13 @@ void InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex)
 	int		idxA, idxB, idxBA, armAB, armBA;
 	int		idxNew, ncount, found, armPrev, inew;
 	real8		maxSeg2, r2, r, xa, ya, za, frac;
-	real8		Lx, Ly, Lz, dx, dy, dz;
+	real8		dx, dy, dz;
 	Node_t      *nodeA, *nodeB, *prevNewNode, *newNode;
 	Param_t		*param;
     real8       lamp;
-    int         armInGrain, armOnGB;
+    real8 		normal[3], ls[3];
 
 	param = inData->param;
-
-	Lx = param->Lx;
-	Ly = param->Ly;
-	Lz = param->Lz;
 
 	maxSeg2 = param->maxSeg * param->maxSeg;
 
@@ -89,8 +85,7 @@ void InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex)
 
 		for (armAB = 0; armAB < nodeA->numNbrs; armAB++) {
 
-			nodeB = LookupInNode(inData, &nodeA->nbrTag[armAB],
-                                             &idxB);
+			nodeB = LookupInNode(inData, &nodeA->nbrTag[armAB], &idxB);
             
             if(nodeA->onGB>-1 && nodeB->onGB>-1){
                 if(nodeA->onGB==nodeB->onGB)lamp = LengthAmplification(home, nodeA->inGrain, nodeA->onGB);
@@ -104,21 +99,22 @@ void InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex)
 			if (idxB < idxA) {
 
 /*
- *				Count the number of nodes to stick in between
- *				nodeA and its neighbor
+  				Count the number of nodes to stick in between
+  				nodeA and its neighbor
  */
 
 				dx = nodeB->x - nodeA->x; 
 				dy = nodeB->y - nodeA->y; 
 				dz = nodeB->z - nodeA->z; 
-                if(nodeA->constraint == UNCONSTRAINED && nodeB->constraint == UNCONSTRAINED ){
-    			    ZImage(param,&dx,&dy,&dz);
-    			}
+
+				if(nodeA->constraint == UNCONSTRAINED && nodeB->constraint == UNCONSTRAINED ){
+    				ZImage(param,&dx,&dy,&dz);
+				}
+				
 				r2 = dx*dx + dy*dy + dz*dz;
 				if (r2 > maxSeg2 *lamp*lamp) {
 					r = sqrt(r2);
-					newNodeCount +=
-						(int)ceil(r/param->maxSeg/lamp) - 1;
+					newNodeCount +=(int)ceil(r/param->maxSeg/lamp) - 1;
 				}
 
 			}
@@ -130,10 +126,10 @@ void InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex)
  *	expand the inData->node array to accomodate the new nodes.
  */
 	if (newNodeCount == 0) return;
-	    inData->node = (Node_t *)realloc(inData->node,
+    inData->node = (Node_t *)realloc(inData->node,
 			sizeof(Node_t) * (inData->nodeCount + newNodeCount));
 
-        memset((char *)(&inData->node[inData->nodeCount]), 0,
+    memset((char *)(&inData->node[inData->nodeCount]), 0,
                sizeof(Node_t) * newNodeCount);
 
 /*
@@ -165,26 +161,22 @@ void InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex)
             }else {
                 lamp = LengthAmplification(home, nodeA->inGrain, nodeA->onGB);
             }
+
 			dx = nodeB->x - xa;
 			dy = nodeB->y - ya;
 			dz = nodeB->z - za;
+			if(nodeA->constraint == UNCONSTRAINED && nodeB->constraint == UNCONSTRAINED ){
+    			ZImage(param, &dx, &dy, &dz);
+			}
 
-            real8 normal[3]={nodeA->nx[armAB],nodeA->ny[armAB],nodeA->nz[armAB]};
-            real8 ls[3]={dx,dy,dz}; normalize_vec(ls);
+			VectorCopy(ls,dx,dy,dz); normalize_vec(ls);
+			VectorCopy(normal,nodeA->nx[armAB],nodeA->ny[armAB],nodeA->nz[armAB]);
+#if 1
             if(!PerpendicularDirection(ls,normal)){
                 Fatal("n: {%g,%g,%g}--{%g,%g,%g}\n",ls[0],ls[1],ls[2],normal[0],normal[1],normal[2]);
             }
-
-            if(nodeA->constraint == UNCONSTRAINED && nodeB->constraint == UNCONSTRAINED ){
-    		    ZImage(param,&dx,&dy,&dz);
-    		}
-
-#if 0
-            ls[0]=dx; ls[1]=dy; ls[2]=dz;  normalize_vec(ls);
-            if(!PerpendicularDirection(ls,normal)){
-                Fatal("2: {%g,%g,%g}--{%g,%g,%g}\n",nodeA->x,nodeA->y,nodeA->z,nodeB->x,nodeB->y,nodeB->z);
-            }
 #endif
+
 			r2 = dx*dx + dy*dy + dz*dz;
 			if (r2 > maxSeg2 *lamp*lamp) {
 
@@ -192,9 +184,9 @@ void InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex)
  *				calculate the number of new nodes needed
  *				between the two points.
  */
-				r = sqrt(r2);
+				r      = sqrt(r2);
 				ncount = (int) ceil(r/param->maxSeg/lamp) - 1;
-				frac = 1.0 / (ncount+1);
+				frac   = 1.0 / (ncount+1);
 
 /*
  *				Determine which arm of nodeB points to nodeA
@@ -251,16 +243,16 @@ void InitRemesh(Home_t *home, InData_t *inData, int domValue, int startIndex)
  *					prevNewNode <--> newNode <--> nodeB
  */
 					newNode->nbrTag[0].domainID = prevNewNode->myTag.domainID;
-					newNode->nbrTag[0].index = prevNewNode->myTag.index;
+					newNode->nbrTag[0].index    = prevNewNode->myTag.index;
 					newNode->nbrTag[1].domainID = nodeB->myTag.domainID;
-					newNode->nbrTag[1].index = nodeB->myTag.index;
+					newNode->nbrTag[1].index    = nodeB->myTag.index;
 
 					prevNewNode->nbrTag[armPrev].domainID = domValue;
-					prevNewNode->nbrTag[armPrev].index=idxNew;
+					prevNewNode->nbrTag[armPrev].index    = idxNew;
 
 					nodeB->nbrTag[armBA].domainID = domValue;
-					nodeB->nbrTag[armBA].index = idxNew;
-					armPrev = 1;
+					nodeB->nbrTag[armBA].index    = idxNew;
+					armPrev  = 1;
 
 /*
  *					Initialize newNode's arms

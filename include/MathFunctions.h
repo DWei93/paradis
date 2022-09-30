@@ -104,12 +104,28 @@ inline void NormalComponent(double *a, double *dir, double *vec){
 }
 
 /* Copy Vectors*/                
+// Copying the values of the source vector into the destination vector.
 template<class v>
 inline void VectorCopy(v *dest, v *source){dest[0] = source[0];dest[1] = source[1];dest[2] = source[2];}
+// Copying the values of s1, s2, and s3 into the vector dest.
 template<class v>
 inline void VectorCopy(v *dest, v s1, v s2, v s3){dest[0] = s1;dest[1] = s2;dest[2] = s3;}
+// Copying the contents of source into dest.
 template<class v>
 inline void LongVectorCopy(v *dest, v *source, int num){memcpy(dest, source, num*sizeof(v));}
+// Copying the first three elements of the source vector into the three destination vectors.
+template<class v>
+inline void VectorCopy(v &dest1, v &dest2, v &dest3, v *source){dest1 = source[0];dest2 = source[1];dest3 = source[2];}
+
+/* Restore Vectors
+ *  \param[in] dest bakup vector
+ *  \param[out] s1 first component of the restored vector
+ *  \param[out] s2 second component of the restored vector
+ *  \param[out] s3 third component of the restored vector
+ */
+template<class v>
+inline void VectorRestore(v *dest, v &s1, v &s2, v &s3){s1=dest[0];s2=dest[1];s3=dest[2];}
+
 
 /* Two opearations of Coodinate*/
 template<class v> 

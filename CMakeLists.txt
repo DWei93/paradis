@@ -1,14 +1,20 @@
 Project (PARADIS)
 cmake_minimum_required(VERSION 3.2)
 
+macro(AddDef def)
+    set(compile_defs ${compile_defs} ${def})
+endmacro()
+
 Option(CMAKE_VERBOSE_MAKEFILE "verbose make file" OFF)
 SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-message ("** PARADIS_BINARY_DIR =  ${PARADIS_BINARY_DIR}")
-message ("** PARADIS_SOURCE_DIR =  ${PARADIS_SOURCE_DIR}")
+message(STATUS "PARADIS_BINARY_DIR =  ${PARADIS_BINARY_DIR}")
+message(STATUS "PARADIS_SOURCE_DIR =  ${PARADIS_SOURCE_DIR}")
 
 Option(PETSC "Build  with petsc" ON)
 Option(PETSC_DEFINITION "Build with definition -DPETSC" ON)
+Option(PETSC_DEBUG "Build with definition -DPETSC_DEBUG" OFF)
 set(PETSC_WITH_EXTERNAL_LIB "" CACHE STRING "PETSc lib linkers")
 set(PETSC_INCLUDES "" CACHE STRING "PETSc lib includes")
 if(PETSC)
@@ -21,25 +27,30 @@ if(PETSC)
         file(STRINGS "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib/petsc/conf/petscvariables" PETSC_EXTERNAL_LIB REGEX "PETSC_EXTERNAL_LIB_BASIC = .*$?")
         string(REPLACE "PETSC_EXTERNAL_LIB_BASIC = " "" PETSC_EXTERNAL_LIB "${PETSC_EXTERNAL_LIB}")
         set(PETSC_WITH_EXTERNAL_LIB "-L$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib -lpetsc ${PETSC_EXTERNAL_LIB}")
-        message("** PETSC_WITH_EXTERNAL_LIB: ${PETSC_WITH_EXTERNAL_LIB}")
+        message(STATUS "PETSC_WITH_EXTERNAL_LIB: ${PETSC_WITH_EXTERNAL_LIB}")
 
         file(STRINGS "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib/petsc/conf/petscvariables" PETSC_INCLUDES REGEX "PETSC_CC_INCLUDES = -I.*$?")
         string(REPLACE "PETSC_CC_INCLUDES = -I" "" PETSC_INCLUDES "${PETSC_INCLUDES}")
-        message("** PETSC_INCLUDES: ${PETSC_INCLUDES}")
+        message(STATUS "PETSC_INCLUDES: ${PETSC_INCLUDES}")
 
       # file(STRINGS "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib/petsc/conf/petscvariables" CMAKE_CXX_COMPILER REGEX "CXX_LINKER = .*$?")
       # string(REPLACE "CXX_LINKER = " "" CMAKE_CXX_COMPILER "${CMAKE_CXX_COMPILER}")
-      # message("** CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
+      # message(STATUS "CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
 
         file(STRINGS "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib/petsc/conf/petscvariables" PETSC_CXX_LINKER_FLAGS REGEX "CXX_LINKER_FLAGS = .*$?")
         string(REPLACE "CXX_LINKER_FLAGS = " "" PETSC_CXX_LINKER_FLAGS "${PETSC_CXX_LINKER_FLAGS}")
-        message("** PETSC_CXX_LINKER_FLAGS: ${PETSC_CXX_LINKER_FLAGS}")
+        message(STATUS "PETSC_CXX_LINKER_FLAGS: ${PETSC_CXX_LINKER_FLAGS}")
+        
+        set(PETSC_CXX_LINKER_FLAGS "${PETSC_CXX_LINKER_FLAGS}")
 
         file(STRINGS "$ENV{PETSC_DIR}/$ENV{PETSC_ARCH}/lib/petsc/conf/petscvariables" PETSC_CONFIGURE_OPTIONS REGEX "CONFIGURE_OPTIONS = .*$?")
         string(REPLACE "CONFIGURE_OPTIONS = " "" PETSC_CONFIGURE_OPTIONS "${PETSC_CONFIGURE_OPTIONS}")
-        message("** PETSC_CONFIGURE_OPTIONS: ${PETSC_CONFIGURE_OPTIONS}")
+        message(STATUS "PETSC_CONFIGURE_OPTIONS: ${PETSC_CONFIGURE_OPTIONS}")
 
     endif()
+else()
+    set(PETSC_DEFINITION OFF)
+    set(PETSC_DEBUG OFF)
 endif()
 
 find_package(MPI REQUIRED)
@@ -50,7 +61,7 @@ endif()
 Set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo" "GDB")
 if(NOT CMAKE_BUILD_TYPE)
     Set(CMAKE_BUILD_TYPE "RelWithDebInfo")
-    message("** Default CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
+    message(STATUS "Default CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 endif(NOT CMAKE_BUILD_TYPE)
 
 if(CMAKE_BUILD_TYPE STREQUAL "GDB")
@@ -59,25 +70,30 @@ if(CMAKE_BUILD_TYPE STREQUAL "GDB")
 
     Set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_GDB} )
     Set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_GDB} )
-    message("** Using GDB flags: -ggdb -DMPI_DEBUG")
+    message(STATUS "Using GDB flags: -ggdb -DMPI_DEBUG")
 else()
-    message("** CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
+    message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
+endif()
+
+Option(NOWARNING "Option for zero warning" ON)
+if(NOWARNING)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
 
 set(CMAKE_CXX_FLAGS "${PETSC_CXX_LINKER_FLAGS} ${CMAKE_CXX_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${PETSC_CXX_LINKER_FLAGS} ${CMAKE_EXE_LINKER_FLAGS}")
-message("** CMAKE_C_COMPILER = ${CMAKE_C_COMPILER} (${CMAKE_C_FLAGS})")
-message("** CMAKE_CXX_COMPILER = ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_FLAGS}); CMAKE_EXE_LINKER_FLAGS = ${CMAKE_EXE_LINKER_FLAGS}")
+message(STATUS "CMAKE_C_COMPILER = ${CMAKE_C_COMPILER} (${CMAKE_C_FLAGS})")
+message(STATUS "CMAKE_CXX_COMPILER = ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_FLAGS}); CMAKE_EXE_LINKER_FLAGS = ${CMAKE_EXE_LINKER_FLAGS}")
 
 Option(INSTALL_IN_PARADIS_SOURCE_DIR "install executable files in ${PARADIS_SOURCE_DIR}" ON)
 if(INSTALL_IN_PARADIS_SOURCE_DIR)
     Set(CMAKE_INSTALL_PREFIX ${PARADIS_SOURCE_DIR} CACHE PATH "Install directory" FORCE)
 endif(INSTALL_IN_PARADIS_SOURCE_DIR)
-message("** CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
 
 set(PARADIS_EXE paradis CACHE STRING "ParaDiS executable file")
 Set(PARADISGEN_EXE paradisgen CACHE STRING "ParaDiS generate executable file" )
-message("** PARADIS_EXE = ${PARADIS_EXE}; PARADISGEN_EXE = ${PARADISGEN_EXE}")
+message(STATUS "PARADIS_EXE = ${PARADIS_EXE}; PARADISGEN_EXE = ${PARADISGEN_EXE}")
 
 Option(OPENMP_MODE "Build paradis using definition OPENMP_MODE" OFF)
 if(OPENMP_MODE)
@@ -86,7 +102,7 @@ if(OPENMP_MODE)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")  
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")  
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")  
-        message("** Find OpenMP: OpenMP_C_FLAGS = ${OpenMP_C_FLAGS}; OpenMP_CXX_FLAGS = ${OpenMP_CXX_FLAGS}; OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
+        message(STATUS "Find OpenMP: OpenMP_C_FLAGS = ${OpenMP_C_FLAGS}; OpenMP_CXX_FLAGS = ${OpenMP_CXX_FLAGS}; OpenMP_EXE_LINKER_FLAGS = ${OpenMP_EXE_LINKER_FLAGS}")
     else(OPENMP_FOUND)
         Option(OPENMP_MODE OFF)
     endif(OPENMP_FOUND)  
@@ -121,21 +137,29 @@ Set(maxDensity 1E13 CACHE STRING "maximum dislocation density" )
 
 if(NOT seed)
 String(RANDOM LENGTH 8 ALPHABET 0123456789 seed)
-Message("** Random seed for test is ${seed}")
+message(STATUS "Random seed for test is ${seed}")
 else(NOT seed)
-message("** seed is defined as ${seed}")
+message(STATUS "seed is defined as ${seed}")
 endif(NOT seed)
 
 Set( commands_gen_bicrystal
-    -type 3 -frlen ${frlen} -pbc 7 -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}
+    -type 3 -frlen ${frlen} -pbc 7 -cubel ${cubel} -maxseg ${maxSeg} -nsrcs ${nfrs}
     -polycrystal 1 -nGrain 2 -pbc 7 -maxDensity ${maxDensity} -rotate ${angle} 
-    -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 -nTDs 1 -seed ${seed}
+    -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 -nTDs 0 -seed ${seed}
     -xMatDir -1,1,0 -yMatDir -1,-1,2 -srcLenType 0 )
 Set(commands_repart_bicrystal -infile paradis.data -cells 4 -domains 1,1,4 -outfile bicrystal.data)
 if(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
-    Set(paradis_commands_bicrystal -n 1 -d ${PARADIS_BINARY_DIR}/bicrystal.data -p ${PARADIS_SOURCE_DIR}/tests/test.yaml ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
+    Set(paradis_commands_bicrystal -n 1 
+        -d ${PARADIS_BINARY_DIR}/bicrystal.data 
+        -y ${PARADIS_SOURCE_DIR}/tests/options.yaml 
+        -o ${PARADIS_SOURCE_DIR}/tests/options.inf
+        ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
 else(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
-    Set(paradis_commands_bicrystal -n 2 -d ${PARADIS_BINARY_DIR}/bicrystal.data -p ${PARADIS_SOURCE_DIR}/tests/test.yaml ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
+    Set(paradis_commands_bicrystal -n 2 
+        -d ${PARADIS_BINARY_DIR}/bicrystal.data 
+        -y ${PARADIS_SOURCE_DIR}/tests/options.yaml 
+        -o ${PARADIS_SOURCE_DIR}/tests/options.inf
+        ${PARADIS_SOURCE_DIR}/tests/bicrystal.ctrl)
 endif(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
 
 Add_test(test_bicrystal-1
@@ -146,7 +170,7 @@ Add_test(test_bicrystal-3
       mpirun -n 4 ./src/${PARADIS_EXE} ${paradis_commands_bicrystal})
 
 Set(commands_gen_multilayer
-    -type 3 -frlen 3 -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  -tdDensity -1  -polycrystal 1  -seed ${seed}
+    -type 3 -frlen 3 -cubel ${cubel} -maxseg ${maxSeg} -nsrcs ${nfrs}  -tdDensity -1  -polycrystal 1  -seed ${seed}
     -nGrain 4 -pbc 0 -nTDs 1 -maxDensity ${maxDensity} -gb 1 -loadDir 90.0,90.0  -tdLength 978 -kinkSize 1,5 )
 Set(commands_repart_multilayer -infile paradis.data -cells 4 -domains 1,1,4 -outfile multilayer.data)
 if(NOT OPENMP_MODE OR NOT OPENMP_FOUND)

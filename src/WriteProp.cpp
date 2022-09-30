@@ -77,7 +77,7 @@ void WriteProp(Home_t *home, int property)
 
         param = home->param;
 #ifdef  VELOCITY_STATISTICS
-        real8 nav_a       = 0.0, nav_ia = 0.0;
+        real8 nav_a       = 0.0, nav_ia = 0.0,effPlaRate=0.0;
         int   dissStartID = 3*param->nVelBins;
         int   dataLen     = 3*param->nVelBins+3*param->nDissBins;
         real8 *locVals    = (real8 *)calloc(dataLen, sizeof(real8));

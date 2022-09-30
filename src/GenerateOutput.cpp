@@ -1098,7 +1098,7 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
 
 
         if ((outputTypes & GEN_TECPLOT_DATA) != 0) {
-            if (stage == STAGE_CYCLE || stage == STAGE_INIT) {
+            if (stage == STAGE_CYCLE || stage == STAGE_INIT || stage == STAGE_DEBUG) {
 #if CHECK_GB_TOPO
                 snprintf(baseName, sizeof(baseName), "tecdata%06d%s",
                          home->cycle,msg);
@@ -1106,9 +1106,6 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
                 snprintf(baseName, sizeof(baseName), "tecdata%06d",
                          param->tecplotcounter);
 #endif
-        } else if(stage == STAGE_DEBUG){
-                snprintf(baseName, sizeof(baseName),"tecdebug%s",
-			msg);
         }else{
                 snprintf(baseName, sizeof(baseName), "tecdata.%s", msg);
         }
@@ -1362,7 +1359,7 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
  *------------------------------------------------------------------------*/
 void GenerateOutput(Home_t *home, int stage, const char *msg)
 {
-        int     outputTypes = 0, finishLoc, finishGlo;
+        int     outputTypes = 0, locVal, gloVal;
         real8   localDensity[2], globalDensity[2], totalTime;
         char    fileName[128];
         time_t  tp;
@@ -1388,15 +1385,9 @@ void GenerateOutput(Home_t *home, int stage, const char *msg)
 		        static int outputPrint = 0;
 
 		        if(outputPrint%100 == 0){
-			    printf("cycle=%-8d  realdt=%e  timeNow=%e  %s",
+			        printf("cycle=%-8d  realdt=%e  timeNow=%e  %s",
                         	home->cycle, param->timeNow-param->timeStart,
                         	param->timeNow, asctime(localtime(&tp)));
-#if 0
-			   printf("applied stress: %.15e %.15e %.15e %.15e %.15e %.15e\n",
-			   param->appliedStress[0],param->appliedStress[1],
-			   param->appliedStress[2],param->appliedStress[3],
-			   param->appliedStress[4],param->appliedStress[5]);
-#endif
 		        }
               	outputPrint++;
             }
@@ -1484,16 +1475,22 @@ void GenerateOutput(Home_t *home, int stage, const char *msg)
 
         if(param->wallTime > 0){
             totalTime = ((real8)(clock()-param->timestart))/CLOCKS_PER_SEC/3600.0;
-            if(totalTime > 0.98*param->wallTime){
-                if(home->myDomain==0)printf("Finish: total time\n");
+            if(totalTime > param->wallTime){
                 param->finish = 1;
+                param->nextSubmit = 1;
             }
 
 #ifdef PARALLEL
-            finishLoc = param->finish;
-            MPI_Allreduce(&finishLoc, &finishGlo, 1, MPI_INT,
-                        MPI_MAX, MPI_COMM_WORLD);
-            param->finish = finishGlo;
+            locVal = param->finish;
+            MPI_Allreduce(&locVal, &gloVal, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+            param->finish = gloVal;
+            
+            locVal = param->nextSubmit;
+            MPI_Allreduce(&locVal, &gloVal, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+            param->nextSubmit = gloVal;
+            if(home->myDomain==0 && param->nextSubmit>0){
+                printf("Next submition\n");
+            }
 #endif
         }
 /*

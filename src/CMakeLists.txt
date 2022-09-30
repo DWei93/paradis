@@ -1,6 +1,4 @@
 Set (PARADIS_SRCS 
-#bigtest.h   GeometryTestFactory.cpp TestSweepLineSpeed.cpp  
-#bci.c   tdspl.c tools.c
 CppFunctions.cpp             
 CellCharge.cpp               FindPreciseGlidePlane.cpp   InputSanity.cpp            ParadisThread.cpp            SplitSurfaceNodes.cpp
 Collision.cpp                FixRemesh.cpp               LoadCurve.cpp              Param.cpp                    Tecplot.cpp
@@ -42,10 +40,9 @@ Set (CTABLEGEN_SRCS
                  Math.cpp					
 		         Grain.cpp)
 
+AddDef(-DNO_XWINDOW)
 if(MPI_FOUND)
-add_definitions(-DNO_XWINDOW -DPARALLEL=1)
-else(MPI_FOUND)
-add_definitions(-DNO_XWINDOW)
+    AddDef(-DPARALLEL=1)
 endif(MPI_FOUND)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unknown-pragmas -fopenmp" )
@@ -54,33 +51,44 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ")
 
 Option(JOG_PINNING "Build ${PARADIS_EXE} using definition JOG_PINNING" OFF)
 if(JOG_PINNING)
-    add_definitions(-DJOG_PINNING)
+    AddDef(-DJOG_PINNING)
 endif()
-Message("** Definition JOG_PINNING is ${JOG_PINNING}")
 
 Option(VELOCITY_STATISTICS "Build ${PARADIS_EXE} using definition VELOCITY_STATISTICS" OFF)
 if(VELOCITY_STATISTICS)
-    add_definitions(-DVELOCITY_STATISTICS)
+    AddDef(-DVELOCITY_STATISTICS)
 endif()
-Message("** Definition VELOCITY_STATISTICS is ${VELOCITY_STATISTICS}")
 
-Option(PETSC_DEFINITION "Build ${PARADIS_EXE} using definition PETSC" OFF)
 if(PETSC_DEFINITION)
-    set(PARADIS_SRCS PetscUtil.cpp PetscIntegrator.cpp ${PARADIS_SRCS})
-    add_definitions(-DPETSC)
+    set(PARADIS_SRCS PetscUtil.cpp PetscVelocityKernel.cpp ${PARADIS_SRCS})
+    AddDef(-DPETSC)
+    if(PETSC_DEBUG)
+        AddDef(-DPETSC_DEBUG)
+    endif()
 endif()
-Message("** Definition PETSC_DEFINITION is ${PETSC}")
 
 Option(NO_GB_BARRIER "Build ${PARADIS_EXE} using definition NO_GB_BARRIER" OFF)
 if(NO_GB_BARRIER)
-    Message(STATUS "Definition NO_GB_BARRIER is on")
-    add_definitions(-DNO_GB_BARRIER)
+    AddDef(-DNO_GB_BARRIER)
 endif(NO_GB_BARRIER)
 
-Option(DEBUG_PLASTIC_STRAIN "debug plastic strain field" OFF)
-if(DEBUG_PLASTIC_STRAIN)
-    add_definitions(-DDEBUG_PLASTIC_STRAIN)
+Option(CHECK_ALL "Breakpoint detection definition" OFF)
+if(CHECK_ALL)
+    AddDef(-DCHECK_ALL)
 endif()
+
+Option(DEBUG_PLASTIC_STRAIN "Debug plastic strain field" OFF)
+if(DEBUG_PLASTIC_STRAIN)
+    AddDef(-DDEBUG_PLASTIC_STRAIN)
+endif()
+
+Option(SIMPLE_REACTION_ON_GB "Simple GB reaction (default on)" ON)
+if(SIMPLE_REACTION_ON_GB)
+    AddDef(-DSIMPLE_REACTION_ON_GB)
+endif()
+
+add_definitions(${compile_defs})
+message(STATUS "${PARADIS_EXE} compile definitions are (${compile_defs})")
 
 Add_executable(${PARADIS_EXE} ${PARADIS_SRCS})
 
@@ -92,6 +100,9 @@ endif()
 
 target_link_libraries(${PARADIS_EXE} ${MPI_CXX_LIBRARIES} ${PETSC_WITH_EXTERNAL_LIB}) # this must be  MPI_CXX_LIBRARIES for cpp file
 
-Add_definitions(-DSIMLPLE_REACTION_ON_GB -Werror)
 
 Install(TARGETS ${PARADIS_EXE} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+
+
+
+

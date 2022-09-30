@@ -39,7 +39,7 @@
 #include "Util.h"
 #include "Comm.h"
 #include "Mobility.h"
-#include "Math.h"
+#include "MathFunctions.h"
 
 static int dbgDom;
 
@@ -838,9 +838,11 @@ void PredictiveCollisions(Home_t *home)
         GB_t    *gb;
         Param_t *param;
         int newInGrain, newOnGB, type; real8 dis; bool canMerge;
-
-        int     gbCollision;
         int     splitInGrain=-1, splitOnGB=-1;
+
+#ifdef SIMPLE_REACTION_ON_GB
+        int     gbCollision;
+#endif
 
 #ifdef DEBUG_LOG_COLLISIONS
         int     localCollisionCnt, globalCollisionCnt;
@@ -869,7 +871,9 @@ void PredictiveCollisions(Home_t *home)
 
         TimerStart(home, COLLISION_HANDLING);
 
-        DebugGB(home, 401);
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 /*
  *      Start looping through native nodes looking for segments to collide...
  */
@@ -1033,7 +1037,7 @@ void PredictiveCollisions(Home_t *home)
                                 }
                             }
 
-#ifdef SIMLPLE_REACTION_ON_GB
+#ifdef SIMPLE_REACTION_ON_GB
                             if(gbCollision > 0)continue;
 #endif
 /*
@@ -1802,9 +1806,10 @@ void PredictiveCollisions(Home_t *home)
            }
           }
         }  /* for (i = 0 ...) */
-        DebugGB(home, 402);
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 
-//      DebugGB(home, 301);
 /*
  *      Now we have to loop for collisions on hinge joints (i.e zipping)
  */
@@ -1866,7 +1871,7 @@ void PredictiveCollisions(Home_t *home)
                             }
                         }
                     }
-#ifdef SIMLPLE_REACTION_ON_GB
+#ifdef SIMPLE_REACTION_ON_GB
                     if(gbCollision > 0)continue;
 #endif
 
@@ -2309,9 +2314,9 @@ void PredictiveCollisions(Home_t *home)
                 }  /* for (k = 0...) */
             }  /* for (j = 0...) */
         }  /* for (i = 0...) */
-        DebugGB(home, 403);
-
-//      DebugGB(home, 302);
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 
 #ifdef DEBUG_LOG_COLLISIONS
 #ifdef PARALLEL

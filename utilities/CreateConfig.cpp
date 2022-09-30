@@ -144,13 +144,13 @@ static void IncDislocationDensity(InData_t *inData, int startID, real8 *totDislo
  *                        2 == [1 0 0] [0 1 0] [0 0 1] types
  *          useInterstitial If set 1, all loops will be interstitial loops.
  *                      Otherwise loops will be vacancy loops.
- *          numLoops    Number of prismatic loops to create
+ *          numSrcs    Number of prismatic loops to create
  *          radius      radius (in units of b) of the loop?
  *          seed        Seed value for random number generator
  *
  *-------------------------------------------------------------------------*/
 void CreatePrismaticLoop(Home_t *home, InData_t *inData, int cubeLength,
-                         int loopType, int useInterstitial, int numLoops,
+                         int loopType, int useInterstitial, int numSrcs,
                          real8 radius, int seed, real8 *totDislocLen,
                          int dislocType)
 {
@@ -159,13 +159,10 @@ void CreatePrismaticLoop(Home_t *home, InData_t *inData, int cubeLength,
         int     startRemeshIndex = 0;
         int     nbr1Index;
         real8   cubeSize;
-        real8   x, y, z, ux, uy, uz;
-        real8   rx, ry, rz;
+        real8   ux, uy, uz;
         real8   loopCtrX,loopCtrY,loopCtrZ;
         real8   invSqrt3, invSqrt6, twoInvSqrt6;
         real8   burg[7][3];
-        real8   glidePlane[7][3], xp[7][3], zp[7][3];
-        real8   xpp[3], zpp[3], ypp[3], rotMatrix[3][3]; 
         real8   vec1[3], vec2[3], tmpVec[3];
         real8   tr[4][6][3];
         Param_t *param;
@@ -475,7 +472,7 @@ void CreatePrismaticLoop(Home_t *home, InData_t *inData, int cubeLength,
 /*
  *      Create one loop at a time, cycling through burgers vectors as we go.
  */
-        for (loopIndex = 0; loopIndex < numLoops; loopIndex++) {
+        for (loopIndex = 0; loopIndex < numSrcs; loopIndex++) {
 
             if (++burgIndex > maxBurgIndex) {
                 burgIndex = minBurgIndex;
@@ -576,7 +573,7 @@ void CreatePrismaticLoop(Home_t *home, InData_t *inData, int cubeLength,
             }  /*  for (id = nextNode; ...) */
 
             nextNode += numSegs; 
-            lastBlock = (loopIndex == (numLoops-1));
+            lastBlock = (loopIndex == (numSrcs-1));
             
 /*
  *          When we've generated the nodal data for the final loop,
@@ -606,12 +603,12 @@ void CreatePrismaticLoop(Home_t *home, InData_t *inData, int cubeLength,
  *      Arguments:
  *          cubeLength  Length of cubic problem space in a single
  *                      dimension (units of b)
- *          numChains   Number of chains to create
+ *          numSrcs   Number of chains to create
  *          seed        Seed value for random number generator
  *
  *-------------------------------------------------------------------------*/
 void CreateScrewConfig(Home_t *home, InData_t *inData, int cubeLength,
-                       int numChains, int seed, real8 *totDislocLen,
+                       int numSrcs, int seed, real8 *totDislocLen,
                        int dislocType)
 {
         int      ic, np, ip, id0;
@@ -626,9 +623,9 @@ void CreateScrewConfig(Home_t *home, InData_t *inData, int cubeLength,
         param = inData->param;
         cubeSize = (real8)cubeLength;
 
-        if (numChains <= 0) {
-            Fatal("%s: numChains is %d, but must be > 0.\n",
-                  "CreateScrewConfig", numChains);
+        if (numSrcs <= 0) {
+            Fatal("%s: numSrcs is %d, but must be > 0.\n",
+                  "CreateScrewConfig", numSrcs);
         }
 
 /*
@@ -778,7 +775,7 @@ void CreateScrewConfig(Home_t *home, InData_t *inData, int cubeLength,
 /*
  *      Create the specified number of chains.
  */
-        for (ic = 0; ic < numChains; ic++) {
+        for (ic = 0; ic < numSrcs; ic++) {
 
             np = 3;
             newNodeIndex = inData->nodeCount;
@@ -857,7 +854,7 @@ void CreateScrewConfig(Home_t *home, InData_t *inData, int cubeLength,
  */
             InitRemesh(home, inData, dislocType, startRemeshIndex);
 
-            lastBlock = (ic == numChains - 1);
+            lastBlock = (ic == numSrcs - 1);
             if (lastBlock) {
                 IncDislocationDensity(inData, totDislocLen);
                 param->nodeCount = inData->nodeCount;
@@ -885,29 +882,29 @@ void CreateScrewConfig(Home_t *home, InData_t *inData, int cubeLength,
  *      Arguments:
  *          cubeLength  Length of cubic problem space in a single
  *                      dimension (units of b)
- *          numChains   Number of chains to create
+ *          numSrcs   Number of chains to create
  *          seed        Seed value for random number generator
- *          numLoops    Number of hexagonal loops to create
+ *          numSrcs    Number of hexagonal loops to create
  *          hexl
  *
  *-------------------------------------------------------------------------*/
 void CreateFCCIrradConfig(Home_t *home, InData_t *inData, int cubeLength,
-                          int numChains, int seed, int numLoops, real8 hexl,
+                          int numSrcs, int seed, int numLoops, real8 hexl,
                           real8 *totDislocLen, int dislocType)
 {
         int      ic, np, ip, id0, i;
         int      nplane, indp, indb, indf, inds, indr;
         int      newNodeIndex, lastBlock;
         int      startRemeshIndex = 0;
-        real8    inv3, inv6, invsq2, sq2over3;
+        real8    inv6, invsq2, sq2over3;
         real8    xp[6], yp[6], zp[6], cubeSize;
         real8    tnx[4], tny[4], tnz[4], burg[12][3];
         Node_t   *node;
         Param_t  *param;
 
-        if (numLoops <= 0) {
-            Fatal("%s: numLoops is %d, but must be > 0.\n",
-                  "CreateFCCIrradConfig", numLoops);
+        if (numSrcs <= 0) {
+            Fatal("%s: numSrcs is %d, but must be > 0.\n",
+                  "CreateFCCIrradConfig", numSrcs);
         }
 
         param = inData->param;
@@ -922,7 +919,6 @@ void CreateFCCIrradConfig(Home_t *home, InData_t *inData, int cubeLength,
  *      node array.
  */
 
-        inv3     = 0.3333333;
         inv6     = 0.1666666;
         invsq2   = 0.70710678;
         sq2over3 = 0.81649658;
@@ -974,7 +970,7 @@ void CreateFCCIrradConfig(Home_t *home, InData_t *inData, int cubeLength,
         id0 = 0;
         inData->nodeCount = 0;
 
-        for (ic = 0; ic < numChains; ic++) {
+        for (ic = 0; ic < numSrcs; ic++) {
 
             np = 3;    /* number of points along 1 chain */
             newNodeIndex = inData->nodeCount;
@@ -1073,7 +1069,7 @@ void CreateFCCIrradConfig(Home_t *home, InData_t *inData, int cubeLength,
 /*
  *      Place hexagonal loops
  */
-        for (ic = 0; ic < numLoops; ic++) {
+        for (ic = 0; ic < numSrcs; ic++) {
             np = 6;     /* creation of hexagonal loop */
             newNodeIndex = inData->nodeCount;
             inData->nodeCount += np;
@@ -1172,7 +1168,7 @@ void CreateFCCIrradConfig(Home_t *home, InData_t *inData, int cubeLength,
  */
             InitRemesh(home, inData, dislocType, startRemeshIndex);
 
-            lastBlock = (ic == (numLoops - 1));
+            lastBlock = (ic == (numSrcs - 1));
             if (lastBlock) {
                 IncDislocationDensity(inData, totDislocLen);
                 param->nodeCount = inData->nodeCount;
@@ -1199,36 +1195,36 @@ void CreateFCCIrradConfig(Home_t *home, InData_t *inData, int cubeLength,
  *      Arguments:
  *          cubeLength  Length of cubic problem space in a single
  *                      dimension (units of b)
- *          numChains   Number of chains to create
+ *          numSrcs   Number of chains to create
  *          seed        Seed value for random number generator
  *
  *-------------------------------------------------------------------------*/
 void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
 						 real8 *totDislocLen)
 {
-        int      i, lineIndex, chain, baseNodeID, numPoints,ranNum;
-        int      newNodeIndex, lastBlock, burgIndex;
-        int      isScrew, gpIndex, gpBurgIndex;
+        int      i, chain, baseNodeID, numPoints,ranNum;
+        int      newNodeIndex;
+        int      gpIndex, gpBurgIndex;
         int      x0, d, nLayers, xn, layer;
         int      startRemeshIndex = 0;
         real8    srcLen, thickness;
-        real8    p0[3], p1[3], p2[3], p3[3], randomLine[3],k0[3];
-        real8    p4[3], p5[3];
-        real8	 randomAngle,srcLenMin, srcLenMax,lenRange;
+        real8    p0[3], p1[3], p2[3], p3[3]={0.0,0.0,0.0}, randomLine[3];
+        real8    p4[3]={0.0,0.0,0.0}, p5[3]={0.0,0.0,0.0};
+        real8	 randomAngle;
         int	     cubeLength, numSources,  seed, dislocType;
-        int	     polycrystal, nGrain, finish;
-        int      firstBurgIndex, srcLenType;
+        int	     finish;
         int      inGrain1, onGB1=-1, inGrain2=-1, onGB2=-1, inGrain0=-1, onGB0=-1;
         int      inGrain3, onGB3, constraint1=0, constraint2=0;
-        real8	 twinRatio, maxSeg, maxDensity, burgMag = 2.556E-10;
+        real8	  maxDensity, burgMag = 2.556E-10;
         real8	 volume, glideDir[3];
-        real8	 tnx[4], tny[4], tnz[4], burg[12][3], cubeSize,heightSize;
+        real8	  cubeSize,heightSize;
         real8	 n0[3], b[3], n1[3];	/* plane normal vector, burgers, normal vector*/
         Node_t   *node;
         Param_t  *param;
-        real8	 invsq2, basePos[3], b1[3], b2[3], f1[3], f2[3], f3[3], f4[3];
-        real8	 rotMatrix[3][3],rotLine[3],rotBurg[3],rotPlane[3], btemp[3];
-        int      intID, inGrain4, onGB4, inGrain5, onGB5;
+        real8	 basePos[3]={0.0,0.0,0.0}, b1[3]={0.0,0.0,0.0};
+        real8    b2[3]={0.0,0.0,0.0}, f1[3], f2[3], f3[3], f4[3];
+        real8	 btemp[3];
+        int      inGrain4, onGB4, inGrain5, onGB5;
         real8    pi = 3.1415926535897932385, totSrcLen;
         real8    separateLength = inArgs->d0;
 
@@ -1241,10 +1237,6 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         std::vector<std::vector<Dislocation_t> >    disArray;
         std::vector<std::vector<real8> >            burgList;
 
-        real8    normalABC[3];
-        normalABC[0] = 1;
-        normalABC[1] = 1;
-        normalABC[2] = 1;
         VECTOR_ZERO(str[0]);
         VECTOR_ZERO(str[1]);
         VECTOR_ZERO(str[2]);
@@ -1269,29 +1261,19 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
         home->param->materialType = MAT_TYPE_FCC;
         	
         cubeLength  = inArgs->cubeLength;
-        srcLenType  = inArgs->srcLenType;
         nLayers     = inArgs->nLayers;
         maxDensity  = inArgs->maxDensity;
-        numSources  = inArgs->numFRSrcs;
-        srcLenMin   = inArgs->frLenMin;
-        srcLenMax   = inArgs->frLenMax;
+        numSources  = inArgs->numSrcs;
         seed        = inArgs->seed;
         dislocType  = inArgs->type;
-        polycrystal = inArgs->polycrystal;
-        nGrain      = inArgs->nGrain;
-        twinRatio   = inArgs->twinRatio;
-        maxSeg      = (real8)inArgs->maxSegLen;
         	
         d = inArgs->deltaNums;
-		
-        lenRange = srcLenMax - srcLenMin;
 		
         param = inData->param;
         cubeSize	=	(real8)cubeLength;
         	
         n1[0] = 0.0;	n1[1] = 0.0;	n1[2] = 0.0;
 
-        srcLen = cubeSize;		
 	    printf("the max density is %e \n", maxDensity);
 /*
  *      Set up an array of dislocation line directions that
@@ -1329,7 +1311,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 continue;
             }
             	
-            printf("the num of  sources in layers %d is %d\n",layer, xn);
+            printf("The num of  sources in layers %d is %d\n",layer, xn);
             	
             for(chain = 0; chain < xn; ){
              
@@ -1353,7 +1335,9 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
    
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
-                    if(inArgs->pbcVal==0 &&!PerpendicularDirection(b,param->TBNormal)){break;}
+                    if(param->polycrystal){
+                        if(inArgs->pbcVal==0 &&!PerpendicularDirection(b,param->TBNormal))break;
+                    }
                     
                     RE_ANGLE:
                     randomAngle	= acos((randm(&seed) - 0.5) * 2.0);
@@ -1370,6 +1354,11 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         NegativeVector(randomLine, randomLine);
                         if(!IntersectionOfRayBox(param, randomLine, p0, p2, constraint2))continue;
                     }else{
+                         
+                        if((1.0-randomLine[0])<1E-5 || (1.0-randomLine[1])<1E-5 ||
+                            (1.0-randomLine[2])<1E-5)srcLen = 0.49*cubeSize;
+                        else srcLen = cubeSize;
+
                         for (i = 0; i < 3; i++) {
                             p1[i] = p0[i] + (srcLen * randomLine[i]);
                             p2[i] = p0[i] - (srcLen * randomLine[i]);
@@ -1383,7 +1372,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                         if(inArgs->pbcVal>0){
                             goto RE_ANGLE;
                         }else continue;
-                    }	                
+                    }
 
                     if(inArgs->extended != 0){
                         VECTOR_COPY(basePos, p0);
@@ -1430,8 +1419,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 }
 
                 if(inArgs->extended != 0){
-                    if(!GeometricCriterion(bd, b, randomLine, n0, 2,
-                       burgList, disArray))continue;
+                    if(!GeometricCriterion(bd, b, randomLine, n0, 2, burgList, disArray))continue;
 
                     if(disArray.size() != 1)printf("Warning: the extened dislcoation has some wrong\n");
                     if(disArray[0].size() != 2)printf("Warning: the extened dislcoation has some wrong\n");
@@ -1876,7 +1864,7 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
                 baseNodeID = inData->nodeCount;
                 startRemeshIndex = baseNodeID;
                 realChain ++;
-            }  /* for (chain = 0; chain < numChains; ) */
+            }  /* for (chain = 0; chain < numSrcs; ) */
 		
 	    }/* for(layer=0; layer<nLayers;...)*/
         printf("total chains: %d\n", realChain);
@@ -1905,17 +1893,17 @@ void CreateFCCConfig(Home_t *home, InData_t *inData, InArgs_t *inArgs,
  *      Arguments:
  *          cubeLength Length of cubic problem space in a single
  *                     dimension (units of b)
- *          numChains  Number of chains to create
+ *          numSrcs  Number of chains to create
  *          seed       Seed value for random number generator
  *
  *-------------------------------------------------------------------------*/
 void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, int cubeLength,
-                          int numChains, int seed, real8 *totDislocLen,
+                          int numSrcs, int seed, real8 *totDislocLen,
                           int dislocType)
 {
         int      nplane, indexplane, ic, np, ip, id0, i;
-        int      inds11, inds12, inds21, inds22;
-        int      indp, indp1, indp2, indb1, indb2, indr;
+        int      inds11=0, inds12=0, inds21=0, inds22=0;
+        int      indp=0, indp1=0, indp2=0, indb1=0, indb2=0, indr=0;
         int      newNodeIndex, lastBlock;
         int      startRemeshIndex = 0;
         real8    prisml, invsq2, cubeSize;
@@ -1932,9 +1920,9 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, int cubeLength,
         prisml = 0.3535533*cubeLength;        /* size of loop */
         cubeSize = (real8)cubeLength;
 
-        if (numChains <= 0) {
-            Fatal("%s: numChains is %d, but must be a multiple of 12.\n",
-                  "CreateFCCPerfectLoop", numChains);
+        if (numSrcs <= 0) {
+            Fatal("%s: numSrcs is %d, but must be a multiple of 12.\n",
+                  "CreateFCCPerfectLoop", numSrcs);
         }
     
 /*
@@ -1991,7 +1979,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, int cubeLength,
         id0 = 0;
         inData->nodeCount = 0;
 
-        for (ic = 0; ic < numChains; ic++) {
+        for (ic = 0; ic < numSrcs; ic++) {
 
             np = 4;    /* number of points along 1 chain */
             newNodeIndex = inData->nodeCount;
@@ -2169,7 +2157,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, int cubeLength,
  */
             InitRemesh(home, inData, dislocType, startRemeshIndex);
 
-            lastBlock = (ic == (numChains - 1));
+            lastBlock = (ic == (numSrcs - 1));
             if (lastBlock) {
                 IncDislocationDensity(inData, totDislocLen);
                 param->nodeCount = inData->nodeCount;
@@ -2198,7 +2186,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, int cubeLength,
  *      Arguments:
  *          cubeLength    Length of cubic problem space in a single
  *                        dimension (units of b)
- *          numChains     Number of chains to create
+ *          numSrcs     Number of chains to create
  *          seed          Seed value for random number generator
  *          totDislocLen  Pointer to location at which to return
  *                        to caller the total combined length of
@@ -2206,7 +2194,7 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, int cubeLength,
  *
  *-------------------------------------------------------------------------*/
 void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
-                             int numChains, int seed, real8 *totDislocLen,
+                             int numSrcs, int seed, real8 *totDislocLen,
                              int dislocType)
 {
         int      i, lineIndex, chain, baseNodeID, numPoints;
@@ -2215,11 +2203,11 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
         int      startRemeshIndex = 0;
         int      signFact; 
         int      nbr1Index, nbr2Index, numConnections, numSegs;
-        int      intersectIndex1, intersectIndex2;
+        int      intersectIndex1=0, intersectIndex2=0;
         int      pbc[3];
         real8    burgSign, vecLen;
         real8    surfCoord, len, minLen1, minLen2;
-        real8    intersectSurfCoord1, intersectSurfCoord2;
+        real8    intersectSurfCoord1=0, intersectSurfCoord2=0;
         real8    p0[3], newPos[3];
         real8    range[3], rangeCntr[3];
         real8    minCoord[3], maxCoord[3];
@@ -2229,9 +2217,9 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
         Node_t   *node;
         Param_t  *param;
         
-        if (numChains <= 0) {
-            Fatal("%s: numChains is %d, but must be > 0.\n",
-                  "CreateFiniteMixedConfig", numChains);
+        if (numSrcs <= 0) {
+            Fatal("%s: numSrcs is %d, but must be > 0.\n",
+                  "CreateFiniteMixedConfig", numSrcs);
         }
         
         param = inData->param;
@@ -2468,7 +2456,7 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
         baseNodeID = 0;
         inData->nodeCount = 0;
 
-        for (chain = 0; chain < numChains; chain++) {
+        for (chain = 0; chain < numSrcs; chain++) {
         
             numPoints = 3;
             lineIndex = chain % 16; 
@@ -2682,7 +2670,7 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
  */
             InitRemesh(home, inData, dislocType, startRemeshIndex);
 
-            lastBlock = (chain == (numChains - 1));
+            lastBlock = (chain == (numSrcs - 1));
 
             if (lastBlock) {
                     IncDislocationDensity(inData, totDislocLen);
@@ -2695,7 +2683,7 @@ void CreateFiniteMixedConfig(Home_t *home, InData_t *inData, int cubeLength,
             baseNodeID = inData->nodeCount;
             startRemeshIndex = baseNodeID;
 
-        }  /* for (chain = 0; chain < numChains; ...) */
+        }  /* for (chain = 0; chain < numSrcs; ...) */
 
         return;
 }
@@ -2734,7 +2722,7 @@ real8 TauFRB(real8 bM, real8 lfr, real8 cosbeta)
 }
 
 void InitDPoint(std::vector<real8> &dPoint){
-    for (int i=0; i<dPoint.size(); i++) dPoint[i]=-1;
+    for (int i=0; i<(int)dPoint.size(); i++) dPoint[i]=-1;
 }
 
 void ProbeFreePath(real8 *p1, real8 *p2, std::vector<real8> &vertices, std::vector<int> &f_vert, 
@@ -2758,10 +2746,10 @@ void ProbeFreePath(real8 *p1, real8 *p2, std::vector<real8> &vertices, std::vect
     NormalComponent(f2,n0,f1);
 
     for(int j=0;j<2;j++){
-        for (int i=0; i<types.size();i++){
+        for (int i=0; i<(int)types.size();i++){
             type = types[i];
             Coordinate(vertices,i,lp1);
-            Coordinate(vertices,(i==types.size()-1)?0:i+1,lp2);
+            Coordinate(vertices,(i==(int)types.size()-1)?0:i+1,lp2);
             CoordAdd(0.5,lp1,0.5,lp2,lp);
             CoordMinus(lp2,lp1,ldir);
             linter = Normal(ldir);
@@ -2833,7 +2821,7 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
     int burgID = BurgID_FCC(bd, b);
     Decom_t *dec = GetDecompositionResults(bd, burgID, keyLineID);
     std::vector<std::vector<Dislocation_t> >    disArray;
-    for (int i=0; i<dec->disArray.size();i++){
+    for (int i=0; i<(int)dec->disArray.size();i++){
         if(dec->disArray[i].size()==1 && fabs(DotProduct(n0, bd->planeList[dec->disArray[i][0].planeID]))>0.95)continue;
         disArray.push_back(dec->disArray[i]);
     }
@@ -2851,8 +2839,8 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
     bool isScrew = fabs(DotProduct(b,param->TBNormal))<1E-2?true:false;
 
     if(!isScrew){
-        for(int set=0; set<disArray.size(); set++){
-            for(int disl=0; disl<disArray[set].size(); disl++){
+        for(int set=0; set<(int)disArray.size(); set++){
+            for(int disl=0; disl<(int)disArray[set].size(); disl++){
                 VECTOR_COPY(b1,(*bl)[disArray[set][disl].burgID]);
                 VECTOR_COPY(n1,bd->planeList[disArray[set][disl].planeID]);
                 ExtPKForce(str, b1[0], b1[1], b1[2], lp[0],lp[1],lp[2], lp2[0], lp2[1], lp2[2], f3, f4);
@@ -2872,7 +2860,7 @@ void ProbeScmidFactors(Home_t *home, real8 str[3][3], real8 *ldir, real8 *lp, re
         }
     }else {
         
-        for(int set=0; set<disArray.size(); set++){
+        for(int set=0; set<(int)disArray.size(); set++){
             for(int disl=0; disl<disArray[set].size(); disl++){
                 VECTOR_COPY(b1,(*bl)[disArray[set][disl].burgID]);
                 VECTOR_COPY(n1,bd->planeList[disArray[set][disl].planeID]);
@@ -2927,7 +2915,7 @@ void DDAnalysis(std::vector<InitSrc_t> &isrcs)
 
     int k;
 
-    for(int i=0; i<isrcs.size(); i++){
+    for(int i=0; i<(int)isrcs.size(); i++){
         InitSrc_t &isrc = isrcs[i];
         std::vector<real8> &dp = isrc.dPoint;               
 
@@ -2967,7 +2955,7 @@ void DDAnalysis(std::vector<InitSrc_t> &isrcs)
 /*
  *      Loop all srcs to find weakest colinear reation      
  */
-        for(int j=0; j<isrcs.size(); j++){
+        for(int j=0; j<(int)isrcs.size(); j++){
             if(i==j)continue;
             if(fabs(ldirfr[0])>1)Fatal("1");
             InitSrc_t &isrcj = isrcs[j];
@@ -3018,10 +3006,10 @@ void DDAnalysis(std::vector<InitSrc_t> &isrcs)
                 Fatal("someting wrong in LineLineIntersection: dis1 = %g", dis1);
             }
 
-            for(k=0; k<isrc.types.size(); k++){
+            for(k=0; k<(int)isrc.types.size(); k++){
                 if(isrc.types[k]==2){
                     Coordinate(isrc.vertices,k,lp1);
-                    Coordinate(isrc.vertices,(k==isrc.types.size()-1)?0:k+1,lp2);
+                    Coordinate(isrc.vertices,(k==(int)isrc.types.size()-1)?0:k+1,lp2);
                     CoordAdd(0.5, lp1, 0.5, lp2, posTB);
                     CoordMinus(lp1, lp2, ldirTB);
                     if(Normal(ldirTB)<1E-5)continue;
@@ -3036,7 +3024,7 @@ void DDAnalysis(std::vector<InitSrc_t> &isrcs)
                     }
                 }
             }
-            if(k != isrc.types.size())continue;
+            if(k != (int)isrc.types.size())continue;
 
             // interline should cut active source
             CoordMinus(vec, pi1, vec1);
@@ -3144,51 +3132,46 @@ void DDAnalysis(std::vector<InitSrc_t> &isrcs)
 
 void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen)
 {
-        int      i, lineIndex, chain, baseNodeID, numPoints=3,ranNum;
-        int      newNodeIndex, lastBlock, burgIndex;
-        int      isScrew, gpIndex, gpBurgIndex;
+        int      i, chain=0, baseNodeID, numPoints=3,ranNum=0;
+        int      newNodeIndex;
+        int      gpIndex, gpBurgIndex;
         int      x0, d, nLayers, xn, layer, time;
         int      startRemeshIndex = 0;
         real8    srcLen, thickness,lenRange;
-        real8    p0[3], p1[3], p2[3], p3[3], randomLine[3], p[3], p31[3],p32[3],p01[3],p02[3];
+        real8    p0[3], p1[3], p2[3], p3[3]={0.0,0.0,0.0}, randomLine[3], p[3];
         real8	 randomAngle, edge, srcLenMin, srcLenMax;
         int	     cubeLength, numSources,  seed, dislocType;
         int	     polycrystal, nGrain, finish;
-        int      firstBurgIndex, srcLenType;
+        int      srcLenType;
         int      inGrain1, onGB1, inGrain2, onGB2, inGrain0, onGB0, inGrain, onGB;
         int      inGrain3, onGB3;
-        real8	 twinRatio, maxSeg, maxDensity, burgMag = 2.556E-10;
+        real8	 maxDensity, burgMag = 2.556E-10;
         real8	 volume, glideDir[3];
-        real8	 tnx[4], tny[4], tnz[4], burg[12][3], cubeSize, heightSize;
+        real8	 cubeSize, heightSize;
         real8	 n0[3], b[3], n1[3];	/* plane normal vector, burgers, normal vector*/
         Node_t   *node;
         Param_t  *param;
-        real8	 invsq2, basePos[3], b1[3], b2[3], f1[3], f2[3], f3[3], f4[3];
-        real8	 rotMatrix[3][3],rotLine[3],rotBurg[3],rotPlane[3], btemp[3];
-        int      intID, burgID, planeID;
+        real8	 b1[3], b2[3];
+        int      burgID, planeID;
         real8    pi = 3.1415926535897932385, totSrcLen;
         real8    separateLength = inArgs->d0;
         bool        finished, singleSrcTest = 0;
-        BurgInfo_t  *bd, *gbd;
+        BurgInfo_t  *bd;
         GB_t        *gb;
         Grain_t     *grain;
-        real8   margin;	
+        real8 op2[3]={0.0,0.0,0.0}, len02=0.0;
         real8                                       str[3][3], gbNormal[3];
-        int                                         appliedDir, j, k, l;
-        real8                                       sign;
+        int                                         j, k, l;
         std::vector<std::vector<Dislocation_t> >    disArray;
         std::vector<std::vector<real8> >            burgList;
         std::vector<std::vector<Dislocation_t> >::iterator      itDisList;
 
-        real8   normalABC[3], lambda_FR, lambda_SAS1, lambda_GB1, lambda_SAS2, lambda_GB2, interDir[3];
-        real8   barrierFactor, crossProd[3], vec[3], intDir[3];
-        real8   vec1[3], vec2[3], s0,  paras[4][4], zaxis[3] = {0,0,1};
+        real8   vec1[3], vec2[3];
         real8 dis, bnorm[3];
         int constraint2=0;
+        real8 randmVal;
+        bool partialDislocation;
 
-        normalABC[0] = 1;
-        normalABC[1] = 1;
-        normalABC[2] = 1;
 
 #if     INITIAL_ANALYSIS
         std::vector<real8> vertices, neiVertices, dPoint(cmax), info(21);
@@ -3217,15 +3200,13 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 	    srcLenType  = inArgs->srcLenType;
         nLayers     = inArgs->nLayers;
        	maxDensity  = inArgs->maxDensity;
-        numSources  = inArgs->numFRSrcs;
+        numSources  = inArgs->numSrcs;
         srcLenMin   = inArgs->frLenMin;
         srcLenMax   = inArgs->frLenMax;
         seed        = inArgs->seed;
         dislocType  = inArgs->type;
         polycrystal = inArgs->polycrystal;
         nGrain	    = inArgs->nGrain;
-        twinRatio   = inArgs->twinRatio;
-        maxSeg      = (real8)inArgs->maxSegLen;
         burgID      = inArgs->burgID;
         planeID     = inArgs->planeID;
 
@@ -3243,14 +3224,13 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 
         lenRange = srcLenMax - srcLenMin;
 
-        bool freeLine=(param->xBoundType != Periodic && param->yBoundType != Periodic && param->zBoundType != Periodic);
-        real8 n3[3];
+        real8 intDir[3];
         bool zload = false;
 
         if((burgID >-1 && planeID > -1)){singleSrcTest = 1;}
         	
         if(singleSrcTest){
-            VECTOR_COPY(p0,inArgs->pos);
+            VECTOR_COPY(p1,inArgs->pos);
             NodeLocation(home, p1[0],  p1[1], p1[2], inGrain1, onGB1,2);
             bd = GetBurgData(home, inGrain1, onGB1); 
             VECTOR_COPY(n0, bd->planeList[planeID]);
@@ -3289,11 +3269,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 
         if(polycrystal){
             gb = home->GBKeys[0];
-            gbd = &(gb->burgData);
         }
         n1[0] = 0.0;	n1[1] = 0.0;	n1[2] = 0.0;
-        real8 maximalLen, a1, a2, randmVal;
-        bool partialDislocation;
 
 /*
  *      Set up an array of dislocation line directions that
@@ -3325,13 +3302,13 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 
         int nSlips;
         if(param->polycrystal>0){ if(inArgs->nTDs>0)nSlips=N_SS; else nSlips=N_LD; }else nSlips=N_SG;
-        real8 *proba, *primary, *Proba, *percen, maxSchmid=0, ms[2]={0.0,0.0}, mstb=0.0, idmstb;
+        real8 *proba, *primary, *Proba, *percen, maxSchmid=0, ms[2]={0.0,0.0}, mstb=0.0, idmstb=0.0;
         proba = (real8 *)malloc(nSlips*sizeof(real8));
         Proba = (real8 *)malloc(nSlips*sizeof(real8));
         percen = (real8 *)malloc(nSlips*sizeof(real8));
         primary = (real8 *)malloc(nSlips*sizeof(real8));
 
-        real8 f_pk[3],f_pkg[3],tem[3], bedge[3];
+        real8 f_pk[3],f_pkg[3],tem[3];
 
         for(i=0; i<nSlips; i++){
             j = slip_sys[i][2]>-1?slip_sys[i][2]:0;
@@ -3416,12 +3393,12 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
             }
             printf("Primarry slip systems: \n");
             printf("inGrain onGB burgID planeID\n");
-            for(i=0;i<primaryData.size();i++){
+            for(i=0;i<(int)primaryData.size();i++){
                 printf("  %02d     %02d    %02d      %02d \n",primaryData[i][0],primaryData[i][1],primaryData[i][2],primaryData[i][3]);
             }
         }
         param->maxSchmid = maxSchmid;
-        real8 nPrimary = 0.0, pPris=0.0, pTot=0.0, pcoe=1.0/3.0, criPorPri=0.15, newPro, nonTDPro=0.0;
+        real8 nPrimary = 0.0, pPris=0.0, pTot=0.0, pcoe=1.0/3.0, criPorPri=0.15, nonTDPro=0.0;
         for(i=0;i<nSlips;i++){
             if(fabs(proba[i]-maxSchmid)<1E-4){
                 primary[i]=1.0;
@@ -3456,8 +3433,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         for(i=1;i<nSlips;i++)Proba[i]+=Proba[i-1];
         for(i=0;i<nSlips;i++)Proba[i]/=Proba[nSlips-1];
         
-        int     ranGrain;
-        real8   lowerBound, totPor;
+        real8   lowerBound;
         std::vector<real8> posProba;
         if(param->multilayer){
             posProba.resize(home->nGrains);
@@ -3478,7 +3454,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
             	
             for(chain = 0; chain < xn; ){
              
-                if(forceDis==true && chain<primaryData.size()){
+                if(forceDis==true && chain<(int)primaryData.size()){
                     gpBurgIndex = primaryData[chain][2]; gpIndex=primaryData[chain][3];
                     ranNum = primaryData[chain][4];
                 }else{
@@ -3501,7 +3477,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                         p1[1] = (randm(&seed)-0.5) * cubeSize*0.99;			
 
                         if(param->multilayer){
-                            if(chain<primaryData.size() && forceDis){ // force distribute primary slip systems
+                            if(chain<(int)primaryData.size() && forceDis){ // force distribute primary slip systems
                                 inGrain1 = primaryData[chain][0]; onGB1 =  primaryData[chain][1];
                                 if(inGrain1>-1){
                                     lowerBound =(inGrain1==0)?param->zBoundMin:home->tbPosz[inGrain1-1];
@@ -3512,7 +3488,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                             }else{
                                 randmVal = randm(&seed);
                                 for(i=0;i<home->nGrains;i++)if(randmVal<posProba[i]&& (randmVal>((i==0)?0:posProba[i-1]))){
-                                    ranGrain = i; break;
+                                    break;
                                 }
                                 lowerBound = (i==0)?param->zBoundMin:home->tbPosz[i-1];
                                 
@@ -3549,7 +3525,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
-                    VECTOR_COPY(n3, bd->planeList[3]);
                     if(!PerpendicularDirection(n0,b))Fatal("burg is not perpendicular to glide plane");
 
                     time = 0;
@@ -3586,17 +3561,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
  *                     between srcLenMin and srcLenMax.
  */          
 	                    switch(srcLenType){
-	                        case 0:
-                                if (lenRange > 0) {
-                                    srcLen = (srcLenMin + (randm(&seed) * lenRange));
-                                    if(srcLen > srcLenMax){
-                                       srcLen = srcLenMax;
-                                    }
-                                } else {
-                                    srcLen = srcLenMin;
-                                }
-	 	                        break;
-                        
 	 	                    case 1:
                                 while(true){
 	 	                            srcLen = -log(randm(&seed))/sqrt(maxDensity)/burgMag;
@@ -3615,6 +3579,14 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                 }
 	 	                        break;
                             default:
+                                if (lenRange > 0) {
+                                    srcLen = (srcLenMin + (randm(&seed) * lenRange));
+                                    if(srcLen > srcLenMax){
+                                       srcLen = srcLenMax;
+                                    }
+                                } else {
+                                    srcLen = srcLenMin;
+                                }
                                 break;
 	                    }
 
@@ -3717,7 +3689,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                                     }
                                     if(i==grain->nBounds)Fatal("can not find gb in %s, %d",__FILE__,__LINE__);
                                 }else if(!(onGB1<0 && inGrain1==inGrain0)){
-                                    real8 oldp1z;
+                                    real8 oldp1z=0.0;
 
                                     if(onGB1>-1){
                                         gb = home->GBKeys[onGB1];
@@ -3750,7 +3722,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 
                                     }
                                 }else if(!(onGB2<0 && inGrain2==inGrain0)){
-                                    real8 op2[3], len02;
                                     if(onGB2>-1){
                                         gb = home->GBKeys[onGB2];
                                         VECTOR_COPY(vec2, gb->p);
@@ -3794,7 +3765,6 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
                         }
 
                         if(inArgs->extended != 0){
-                            VECTOR_COPY(basePos, p0);
                             cross(n0, randomLine, glideDir);
                             NormalizeVec(glideDir);
                             p0[0] -= (separateLength*glideDir[0]*0.5); // drag partial dislocation
@@ -4189,7 +4159,7 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 	            }else{
 		            finish = 0;
 	            }
-            }  /* for (chain = 0; chain < numChains; ) */
+            }  /* for (chain = 0; chain < numSrcs; ) */
             printf("layer %d: xn=%d, chain=%d\n",layer,xn,chain+1);
     
             if(primaryData.size()>0){
@@ -4219,8 +4189,8 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
         
  #if    INITIAL_ANALYSIS
         DDAnalysis(isrcs);
-        for(i=0; i<isrcs.size(); i++){
-            for(j=0; j<isrcs[i].dPoint.size(); j++){
+        for(i=0; i<(int)isrcs.size(); i++){
+            for(j=0; j<(int)isrcs[i].dPoint.size(); j++){
                 fprintf(fp, "%.4g ",fabs(isrcs[i].dPoint[j])<1E-9?0:isrcs[i].dPoint[j]);
             }
             fprintf(fp,"\n");
@@ -4232,11 +4202,9 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
 #endif
 
         if(inArgs->tdDensity>0){
-            real8 totDisLen = maxDensity*volume*burgMag*burgMag;
             real8 totTDDisLen = inArgs->tdDensity*cubeSize*cubeSize*burgMag;
             real8 tdLength;
             real8 kinkSize, burgList[2];
-            real8 lamp;
             int nTDmax;
             bool straSrc=false;
             printf("Kink size: %f-%f bp\n",inArgs->minKinkSize, inArgs->maxKinkSize);
@@ -4512,12 +4480,12 @@ void CreateFRSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *tot
  *      Arguments:
  *          cubeLength  Length of cubic problem space in a single
  *                      dimension (units of b)
- *          numChains   Number of chains to create
+ *          numSrcs   Number of chains to create
  *          seed        Seed value for random number generator
  *
  *-------------------------------------------------------------------------*/
 void CreateEdges(Home_t *home, InData_t *inData, int cubeLength,
-                 int numChains, int seed, real8 *totDislocLen,
+                 int numSrcs, int seed, real8 *totDislocLen,
                  int dislocType)
 {
         int           ic, ip, np, id0, lastBlock, signFactor;
@@ -4551,9 +4519,9 @@ void CreateEdges(Home_t *home, InData_t *inData, int cubeLength,
                       {  0, -0.7071068,  0.7071068}}; /* ldir [100] b [-111] */
 
 
-        if (numChains <= 0) {
-            Fatal("%s: numChains is %d, but must be > 0.\n",
-                  "CreateEdges", numChains);
+        if (numSrcs <= 0) {
+            Fatal("%s: numSrcs is %d, but must be > 0.\n",
+                  "CreateEdges", numSrcs);
         }
 
         param = inData->param;
@@ -4566,7 +4534,7 @@ void CreateEdges(Home_t *home, InData_t *inData, int cubeLength,
 /*
  *      Create the specified number of chains.
  */
-        for (ic = 0; ic < numChains; ic++) {
+        for (ic = 0; ic < numSrcs; ic++) {
 
             gpIndex = ic % 12; 
             burgIndex = gpIndex % 4;
@@ -4654,7 +4622,7 @@ void CreateEdges(Home_t *home, InData_t *inData, int cubeLength,
  */
             InitRemesh(home, inData, dislocType, startRemeshIndex);
 			
-            lastBlock = (ic == numChains - 1);
+            lastBlock = (ic == numSrcs - 1);
             if (lastBlock) {
                 IncDislocationDensity(inData, totDislocLen);
                 param->nodeCount = inData->nodeCount;
@@ -4671,7 +4639,7 @@ void CreateEdges(Home_t *home, InData_t *inData, int cubeLength,
 
 void CreateLoopSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen)
 {
-    int     nLoops = inArgs->numLoops;
+    int     nLoops = inArgs->numSrcs;
     int     seed = inArgs->seed;
     real8   cubeLength = real8(inArgs->cubeLength);
     const int     radius = inArgs->radius<=sqrt(3)/2?inArgs->radius*cubeLength:inArgs->radius;
@@ -4919,7 +4887,7 @@ inline bool Perpendicular(Node_t *node1, Node_t *node2){
 
 void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen)
 {
-    int         nLoops = inArgs->numLoops;
+    int         nLoops = inArgs->numSrcs;
     int         seed = inArgs->seed;
     const real8 cubeLength = real8(inArgs->cubeLength);
     const real8 radius = inArgs->radius<=sqrt(3)/2?inArgs->radius*cubeLength:inArgs->radius;
@@ -4934,7 +4902,6 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
     int baseNodeID=0, randNum, grainID, burgID, newNodeIndex=0, startRemeshIndex=0;
     inData->nodeCount = 0;
     Param_t *param = inData->param;
-    real8   maxSeg = param->maxSeg;
     real8   n0[3], n[4][3], p[4][3], cenPos[3], r, dis, lDirList[4][3],lPoiList[4][3];
     real8   burg[3], gbPos[3], l1[3], l2[3], xi[3], t;
     int     inGrain=-1, onGB=-1, ig, og, onGBList[4];
@@ -5017,7 +4984,6 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
 
         for(int j=0; j<4; j++){
             int nextIndex = j==3?0:j+1;
-            int lastIndex = j==0?3:j-1;
             real8 vec[3];
             CoordMinus(p[nextIndex],p[j],vec);
             if(Normal(vec)<1E-1)Fatal("rList %g %g %g %g",-rList[0],-rList[1],rList[2],rList[3]);
@@ -5288,51 +5254,40 @@ void CreateFCCPerfectLoop(Home_t *home, InData_t *inData, InArgs_t *inArgs, real
 
 void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, real8 *totDislocLen)
 {
-        int      i, lineIndex, chain, baseNodeID, numPoints=3,ranNum, ranGrain;
-        int      newNodeIndex, lastBlock, burgIndex;
-        int      isScrew, gpIndex, gpBurgIndex;
+        int      newNodeIndex, ranNum=0;
+        int      i, chain=0, baseNodeID, numPoints=3;
+        int      gpIndex, gpBurgIndex;
         int      x0, d, nLayers, xn, layer, time;
         int      startRemeshIndex = 0;
-        real8    srcLen, thickness,lenRange;
+        real8    srcLen, thickness;
         real8    p0[3], p1[3], p2[3], p3[3], p4[3], randomLine[3];
-        real8	 randomAngle, edge, srcLenMin, srcLenMax;
+        real8	 randomAngle, srcLenMin, srcLenMax;
         int	     cubeLength, numSources,  seed, dislocType;
-        int	     polycrystal, nGrain, finish;
-        int      firstBurgIndex, srcLenType;
+        int	     polycrystal, finish;
         int      inGrain1, onGB1, inGrain2, onGB2, inGrain0, onGB0;
         int      inGrain3, onGB3, inGrain4, onGB4;
-        real8	 twinRatio, maxSeg, maxDensity, burgMag = 2.556E-10;
+        real8	 maxDensity, burgMag = 2.556E-10;
         real8	 volume, glideDir[3];
-        real8	 tnx[4], tny[4], tnz[4], burg[12][3], cubeSize,heightSize;
+        real8	 cubeSize,heightSize;
         real8	 n0[3], b[3], n1[3];	/* plane normal vector, burgers, normal vector*/
         Node_t   *node;
         Param_t  *param;
-        real8	 invsq2, basePos[3], b1[3], b2[3], f1[3], f2[3], f3[3], f4[3];
-        real8	 rotMatrix[3][3],rotLine[3],rotBurg[3],rotPlane[3], btemp[3];
-        int      intID, burgID, planeID;
+        real8	 b1[3], b2[3];
         real8    pi = 3.1415926535897932385, totSrcLen;
         real8    separateLength = 40.0;
-        bool        finished, singleSrcTest = 0;
-        BurgInfo_t  *bd, *gbd;
+        bool        finished;
+        BurgInfo_t  *bd;
         GB_t        *gb;
-        Grain_t     *grain;
         int constraint2, constraint4;
+        real8 randmVal;
+        bool partialDislocation;
         	
-        real8                                       str[3][3], gbNormal[3];
-        int                                         appliedDir, j, k;
-        real8                                       sign;
+        int                                         j;
         std::vector<std::vector<Dislocation_t> >    disArray;
         std::vector<std::vector<real8> >            burgList;
         std::vector<std::vector<Dislocation_t> >::iterator      itDisList;
 
-        real8   normalABC[3], lambda_FR, lambda_SAS1, lambda_GB1, lambda_SAS2, lambda_GB2, interDir[3];
-        real8   barrierFactor, crossProd[3], vec[3];
-        real8   vec1[3], vec2[3], s0,  paras[4][4], zaxis[3] = {0,0,1};
-        int l; real8 dis;
-
-        normalABC[0] = 1;
-        normalABC[1] = 1;
-        normalABC[2] = 1;
+        real8 dis;
 
         real8   lowerBound;
 
@@ -5343,44 +5298,29 @@ void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, rea
         home->param->materialType = MAT_TYPE_FCC;
         	
         cubeLength  = inArgs->cubeLength;
-	    srcLenType  = inArgs->srcLenType;
         nLayers     = inArgs->nLayers;
        	maxDensity  = inArgs->maxDensity;
-        numSources  = inArgs->numFRSrcs;
+        numSources  = inArgs->numSrcs;
         srcLenMin   = inArgs->frLenMin;
         srcLenMax   = inArgs->frLenMax;
         seed        = inArgs->seed;
         dislocType  = inArgs->type;
         polycrystal = inArgs->polycrystal;
-        nGrain	    = inArgs->nGrain;
-        twinRatio   = inArgs->twinRatio;
-        maxSeg      = (real8)inArgs->maxSegLen;
-        burgID      = inArgs->burgID;
-        planeID     = inArgs->planeID;
         	
         param = inData->param;
         d = inArgs->deltaNums;
         cubeSize	=	(real8)cubeLength;
-        if(srcLenMax<0) {srcLenMax = -srcLenMax; srcLenType = 2;} 
-        if(srcLenMin<0) {srcLenMin = -srcLenMin; srcLenType = 2;}
-        lenRange = srcLenMax - srcLenMin;
+        if(srcLenMax<0) {srcLenMax = -srcLenMax; } 
+        if(srcLenMin<0) {srcLenMin = -srcLenMin; }
 
         bool freeLine=(param->xBoundType != Periodic && param->yBoundType != Periodic && param->zBoundType != Periodic);
         if(freeLine==false)Fatal("Singe arm source can only be distributed in finite volume");
 
-        real8 n3[3];
 
-        if(numSources <= 0){
-            singleSrcTest = 1;
-        }
-        	
         if(polycrystal){
             gb = home->GBKeys[0];
-            gbd = &(gb->burgData);
         }
         n1[0] = 0.0;	n1[1] = 0.0;	n1[2] = 0.0;
-        real8 maximalLen, a1, a2, randmVal;
-        bool partialDislocation;
 
 /*
  *      Set up an array of dislocation line directions that
@@ -5478,7 +5418,7 @@ void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, rea
                     if(param->multilayer){
                         randmVal = randm(&seed);
                         for(i=0;i<home->nGrains;i++)if(randmVal<posProba[i]&& (randmVal>((i==0)?0:posProba[i-1]))){
-                            ranGrain = i; break;
+                            break;
                         }
                         lowerBound = (i==0)?param->zBoundMin:home->tbPosz[i-1];
                         
@@ -5508,7 +5448,6 @@ void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, rea
 #endif   
                     VECTOR_COPY(n0, bd->planeList[gpIndex]);
                     VECTOR_COPY(b , bd->burgList[gpBurgIndex]);
-                    VECTOR_COPY(n3, bd->planeList[3]);
                     if(!PerpendicularDirection(n0,b))Fatal("burg is not perpendicular to glide plane");
 
                     time = 0;
@@ -5535,7 +5474,6 @@ void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, rea
                         if(inGrain1 != inGrain0 || inGrain1 != inGrain2 || onGB1 != onGB0 || onGB1 != onGB2)continue;
 
                         if(inArgs->extended != 0){
-                            VECTOR_COPY(basePos, p0);
                             cross(n0, randomLine, glideDir);
                             NormalizeVec(glideDir);
                             p0[0] -= (separateLength*glideDir[0]*0.5); // drag partial dislocation
@@ -5878,7 +5816,7 @@ void CreateSingleArmSource(Home_t *home, InData_t *inData, InArgs_t *inArgs, rea
 	            }else{
 		            finish = 0;
 	            }
-            }  /* for (chain = 0; chain < numChains; ) */
+            }  /* for (chain = 0; chain < numSrcs; ) */
 		
 	    }/* for(layer=0; layer<nLayers;...)*/
         printf("Slip systems | location  | burgID | planeID  | Schmid Factor | percentage\n"); 

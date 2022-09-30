@@ -41,10 +41,11 @@ static int DER3IND[10][3] = {{0,0,0}, {1,1,1}, {2,2,2},
                              {0,0,1}, {0,0,2}, {1,1,0},
                              {1,1,2}, {2,2,0}, {2,2,1},
                              {0,1,2} };
-
+#ifdef UNUSED_VAR
 static int DER3INVIND[3][3][3]={{{0,3,4}, {3,5,9}, {4,9,7}},
                                 {{3,5,9}, {5,1,6}, {9,6,8}},
                                 {{4,9,7}, {9,6,8}, {7,8,2}}};
+#endif
 /*
  *      Stress tables.
  */
@@ -112,8 +113,8 @@ typedef struct {
         int   nimagey;
         int   nimagez;
         real8 xLen, yLen, zLen;
-        char  *rijmFileName;
-        char  *rijmPBCFileName;
+        char  rijmFileName[256];
+        char  rijmPBCFileName[256];
 } InArgs_t;
 
 
@@ -515,8 +516,8 @@ static void InitArgs(InArgs_t *inArgs)
         inArgs->yLen = -1.0;
         inArgs->zLen = -1.0;
 
-        inArgs->rijmFileName    = (char*)"Rijm.tbl";
-        inArgs->rijmPBCFileName = (char*)"RijmPBC.tbl";
+        snprintf(inArgs->rijmFileName,sizeof(inArgs->rijmFileName),"Rijm.tbl");
+        snprintf(inArgs->rijmPBCFileName,sizeof(inArgs->rijmPBCFileName),"RijmPBC.tbl");
 
         return;
 }
@@ -541,9 +542,9 @@ static void InitArgs(InArgs_t *inArgs)
  *-------------------------------------------------------------------------*/
 static void GetArgs(int argc, char *argv[], InArgs_t *inArgs)
 {
-        int     i, j, k;
+        int     i, j;
         char    *argName;
-        char    *argValue;
+        char    *argValue=NULL;
         char    *token;
 
         for (i = 1; i < argc; i++) {
@@ -644,8 +645,14 @@ static void GetArgs(int argc, char *argv[], InArgs_t *inArgs)
                         inArgs->pbc = 1;
                         break;
                 case OPT_OUTFILE:
-                        inArgs->rijmFileName = argValue;
-                        inArgs->rijmPBCFileName = argValue;
+                        if(snprintf(inArgs->rijmFileName,sizeof(inArgs->rijmFileName),"%s",argValue)
+                            >= (int)sizeof(inArgs->rijmFileName)){
+                            Fatal("%s: buffer overflow -- string is truncated",__func__);
+                        }
+                        if(snprintf(inArgs->rijmPBCFileName,sizeof(inArgs->rijmPBCFileName),"%s",argValue)
+                            >= (int)sizeof(inArgs->rijmPBCFileName)){
+                            Fatal("%s: buffer overflow -- string is truncated",__func__);
+                        }
                         break;
                 }
         }
@@ -715,7 +722,7 @@ static void CheckArgs(InArgs_t *inArgs)
 int main(int argc, char *argv[])
 {
         int      tableSize;
-        InArgs_t inArgs;
+        InArgs_t inArgs{};
 
 /*
  *      First initialize some stuff based on either user-provided

@@ -21,22 +21,6 @@
 #                    
 ######################################################################################
 
-<<<<<<< HEAD
-frlen=19980
-#frlen=999
-#cubel=1000
-#frlen=1980
-#maxSeg=20
-cubel=20000
-maxSeg=20
-nfrs=1
-maxDensity=1E13
-seed=""
-srctype=1
-burgMag=2.556
-#d0=`echo "28*${maxSeg}/${burgMag}" | bc -l`
-d0=120.5243669 # sf=0.005 J/m^2
-=======
 core=0.1
 mu=48.0
 kinkSize=1,5
@@ -79,7 +63,6 @@ echo "nGrains=$nGrains, cublen=${cubeln}"
 
 cubel=`echo "${cubeln}/0.2556" | bc`
 thick=`echo ${thickn}/0.2556 | bc`
->>>>>>> multilayer
 
 nfrs=`echo "${nfrsPerGrain}*${nGrains}" | bc`
 frlen=`echo ${thick}*${nTimesThick1} | bc`,`echo ${thick}*${nTimesThick2} | bc`
@@ -152,7 +135,7 @@ case $srctype in
 #
 ######################################################################################
     1|I)
-    ./bin/paradisgen -type 3  -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs}  -frlen ${frlen} \
+    ./bin/paradisgen -type 3  -cubel ${cubel} -maxseg ${maxSeg} -nsrcs ${nfrs}  -frlen ${frlen} \
     -polycrystal 0  -pbc 0 -extend 0  -srcLenType 0 -maxDensity ${maxDensity} \
     -xMatDir 1,0,0 -yMatDir 0,1,0 ;;
 
@@ -168,7 +151,7 @@ case $srctype in
 #
 ######################################################################################
     2|II)
-    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nsrcs ${nfrs} $seed \
     -polycrystal 0 -pbc 7 \
     -xMatDir ${xdir} -yMatDir ${ydir} -maxDisDen ${maxDensity} \
     -heightRatio 2 -deltaNums 0 -nLayers 1 ;;
@@ -179,7 +162,7 @@ case $srctype in
 ######################################################################################
 #    
 #    Type III: polycrystal, only have grain boundaries.
-#    ./bin/paradisgen -type 3 -frlen 2000 -cubel 4000 -maxseg 100 -nfrsrcs 10 $seed \
+#    ./bin/paradisgen -type 3 -frlen 2000 -cubel 4000 -maxseg 100 -nsrcs 10 $seed \
 #    -polycrystal 1 -nGrain 1 -pbc 0 \
 #    -xMatDir 1,0,0 -yMatDir 0,1,0 ;; 
 #    
@@ -194,11 +177,11 @@ case $srctype in
 # 
 ######################################################################################
     4|IV)
-    info=`echo "./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed  -tdDensity ${tdDensity} \
+    info=`echo "./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nsrcs ${nfrs} $seed  -tdDensity ${tdDensity} \
     -polycrystal ${poly} -nGrain ${3}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} \
     -tdLength $tdLength -kinkSize ${kinkSize}"`
 
-    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -tdDensity ${tdDensity}  -tdLength $tdLength \
+    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nsrcs ${nfrs} $seed -tdDensity ${tdDensity}  -tdLength $tdLength \
     -polycrystal ${poly} -nGrain ${3}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir ${loadDir} -kinkSize ${kinkSize} | tee $logFile ;
 
     echo "$info"
@@ -214,7 +197,7 @@ case $srctype in
 ######################################################################################
     5|V)
 
-    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed \
+    ./bin/paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nsrcs ${nfrs} $seed \
     -polycrystal 0 -nGrain 1 -pbc 7 -maxDensity $maxDensity -tdDensity ${tdDensity} \
     -TBAngle ${angle} -twinRatio 0.5 -heightRatio 2 -deltaNum 0 -nLayers 1 ;;
 
@@ -241,7 +224,7 @@ else
 
     ./bin/paradisrepart -infile paradis.data -cells 4 -domains 2,2,1 -outfile Copper.data 
     sed -i "1i# ${percentage}% of primary srcs" Copper.data
-    info="# paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nfrsrcs ${nfrs} $seed -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir $polar,$amu"
+    info="# paradisgen -type 3 -frlen ${frlen} -cubel ${cubel} -maxseg ${maxSeg} -nsrcs ${nfrs} $seed -polycrystal 1 -nGrain ${nGrains}  -pbc 0 -nTDs ${nTDs} -maxDensity $maxDensity -gb ${gb} -loadDir $polar,$amu"
     sed -i "1i$info" Copper.data
     sed -i "1i#`date`" Copper.data
     cp Copper.data input/Copper.data

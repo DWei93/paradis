@@ -1655,6 +1655,12 @@ void PrintNode(Node_t *node)
         return;
 }
 
+/**
+ * Prints out the information about a node
+ * 
+ * @param home the home structure
+ * @param node the node to be printed
+ */
 void PrintNode(Home_t *home, Node_t *node)
 {
         int     i;
@@ -1666,10 +1672,15 @@ void PrintNode(Home_t *home, Node_t *node)
 	        printf("node is NULL\n");
             return;
 	    }
-
-        printf("  node(%d,%d) location (%d,%d) constraint %d arms %d,",
+#ifdef PETSC
+        printf("  node(%d,%d) location (%d,%d) constraint %d, locID=%d, gloID=%d arms %d ",
+               node->myTag.domainID, node->myTag.index, node->inGrain, node->onGB,
+               node->constraint,node->locID, node->gloID, node->numNbrs);
+#else
+        printf("  node(%d,%d) location (%d,%d) constraint %d arms %d",
                node->myTag.domainID, node->myTag.index, node->inGrain, node->onGB,
                node->constraint, node->numNbrs);
+#endif
         for (i = 0; i < node->numNbrs; i++) {
             printf("(%d,%d) ", node->nbrTag[i].domainID,
                    node->nbrTag[i].index);
@@ -1699,7 +1710,7 @@ void PrintNode(Home_t *home, Node_t *node)
  */
         printf("  node(%d,%d) v = {%e,%e,%e} = %f m/s, oldv={%e,%e,%e} = %f m/s\n",
                node->myTag.domainID, node->myTag.index, 
-               node->vX, node->vY, node->vZ, normal(node->vX, node->vY, node->vZ)*param->burgMag,
+               node->vX*param->burgMag, node->vY*param->burgMag, node->vZ*param->burgMag, normal(node->vX, node->vY, node->vZ)*param->burgMag,
                node->oldvX, node->oldvY, node->oldvZ, normal(node->oldvX, node->oldvY, node->oldvZ)*param->burgMag);
         printf("  node(%d,%d) f = {%e,%e,%e}\n",
                node->myTag.domainID, node->myTag.index, 
@@ -1771,7 +1782,133 @@ void PrintNode(Home_t *home, Node_t *node)
         return;
 }
 
+/**
+ * Prints out the information about a node
+ * 
+ * @param home the home structure
+ * @param node the node to be printed
+ * @param fp the file pointer to the file you want to print to
+ */
+void PrintNode(Home_t *home, Node_t *node, FILE *fp)
+{
+        int     i;
+        Node_t  *nbr;
+        Param_t *param = home->param;
+        real8   vec[3], length;
 
+        if (node == (Node_t *)NULL) {
+	        fprintf(fp,"node is NULL\n");
+            return;
+	    }
+#ifdef PETSC
+        fprintf(fp,"  node(%d,%d) location (%d,%d) constraint %d, locID=%d, gloID=%d arms %d ",
+               node->myTag.domainID, node->myTag.index, node->inGrain, node->onGB,
+               node->constraint,node->locID, node->gloID, node->numNbrs);
+#else
+        fprintf(fp,"  node(%d,%d) location (%d,%d) constraint %d arms %d",
+               node->myTag.domainID, node->myTag.index, node->inGrain, node->onGB,
+               node->constraint, node->numNbrs);
+#endif
+        for (i = 0; i < node->numNbrs; i++) {
+            fprintf(fp,"(%d,%d) ", node->nbrTag[i].domainID,
+                   node->nbrTag[i].index);
+        }
+		
+        fprintf(fp,"\n");
+
+        fprintf(fp,"  node(%d,%d) Flags: ",node->myTag.domainID, node->myTag.index);
+        if((node->flags&NODE_OUTSIDE_SURF)>0)fprintf(fp,"NODE_OUTSIDE_SURF ");
+        if((node->flags&NO_COLLISIONS    )>0)fprintf(fp,"NO_COLLISIONS     ");
+        if((node->flags&NO_MESH_COARSEN  )>0)fprintf(fp,"NO_MESH_COARSEN   ");
+        if((node->flags&NODE_CHK_DBL_LINK)>0)fprintf(fp,"NODE_CHK_DBL_LINK ");
+        fprintf(fp,"\n");
+/*
+ *      Print the nodal position
+ */
+		fprintf(fp,"  node(%d,%d) oldPos   = {%16.10f,%16.10f,%16.10f}\n",
+               node->myTag.domainID, node->myTag.index,
+			   node->oldx,node->oldy,node->oldz);
+		
+        fprintf(fp,"  node(%d,%d) position = {%16.10f,%16.10f,%16.10f}\n",
+               node->myTag.domainID, node->myTag.index, 
+               node->x, node->y, node->z);
+
+/*
+ *      Print the nodal velocity and total node force
+ */
+        fprintf(fp,"  node(%d,%d) v = {%e,%e,%e} = %f m/s, oldv={%e,%e,%e} = %f m/s\n",
+               node->myTag.domainID, node->myTag.index, 
+               node->vX*param->burgMag, node->vY*param->burgMag, node->vZ*param->burgMag, normal(node->vX, node->vY, node->vZ)*param->burgMag,
+               node->oldvX, node->oldvY, node->oldvZ, normal(node->oldvX, node->oldvY, node->oldvZ)*param->burgMag);
+        fprintf(fp,"  node(%d,%d) f = {%e,%e,%e}\n",
+               node->myTag.domainID, node->myTag.index, 
+               node->fX, node->fY, node->fZ);
+
+/*
+ *      Print the arm specific forces
+ */
+        for (i = 0; i < node->numNbrs; i++) {
+            fprintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) f = {%e,%e,%e}\n",
+                   node->myTag.domainID, node->myTag.index, i,       
+                   node->nbrTag[i].domainID, node->nbrTag[i].index,
+                   node->armfx[i], node->armfy[i], node->armfz[i]);
+        }
+
+/*
+ *      Print the burger's vector for each arm of the node
+ */
+        for (i = 0; i < node->numNbrs; i++) {
+            fprintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) b = {%16.10f,%16.10f,%16.10f}\n",
+                   node->myTag.domainID, node->myTag.index, i,       
+                   node->nbrTag[i].domainID, node->nbrTag[i].index,
+                   node->burgX[i], node->burgY[i], node->burgZ[i]);
+        }
+
+        for(i=0;i<node->numNbrs;i++){
+            nbr = GetNeighborNode(home, node, i);
+            if(nbr == (Node_t *)NULL){
+                fprintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) null nbr\n",
+                        node->myTag.domainID, node->myTag.index, i,
+                        node->nbrTag[i].domainID,node->nbrTag[i].index);
+            }else{
+                VectorCopy(vec,nbr->x-node->x,nbr->y-node->y,nbr->z-node->z);
+                ZImage(param,vec,vec+1,vec+2);
+                length = Normal(vec);
+                NormalizeVec(vec);
+                fprintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) ",
+                        node->myTag.domainID, node->myTag.index, i,
+                        node->nbrTag[i].domainID,node->nbrTag[i].index);
+                fprintf(fp,"burgID=%d, planeID=%d -- length=%f, ldir={%.10f,%.10f,%.10f}\n", 
+                        GetBurgID_FCC(home, node, nbr), GetPlaneID_FCC(home,node,nbr), 
+                        length, vec[0],vec[1],vec[2]);
+            }
+        }
+
+/*
+ *      Print the glide plane normal for each arm of the node
+ */
+        for (i = 0; i < node->numNbrs; i++) {
+            fprintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) n = {%16.10f,%16.10f,%16.10f}\n",
+                   node->myTag.domainID,node->myTag.index, i,       
+                   node->nbrTag[i].domainID,node->nbrTag[i].index,
+                   node->nx[i],node->ny[i],node->nz[i]);
+        }
+
+        int numGlideConstraints; bool  zeroLenJunc;
+        real8 glideConstraints[3][3];
+        GetGlideConstraintList(home, node, 
+                           &numGlideConstraints, glideConstraints, zeroLenJunc,
+                           1, 0.0, 0.0, 0.0, -1);
+        if(numGlideConstraints== 1){
+            fprintf(fp,"plane constraint: {%g,%g,%g}\n", glideConstraints[0][0],glideConstraints[0][1],glideConstraints[0][2]);
+        }else if(numGlideConstraints== 2){
+            fprintf(fp,"line constraint: {%g,%g,%g}\n", glideConstraints[2][0],glideConstraints[2][1],glideConstraints[2][2]);
+        }else{
+            fprintf(fp,"completely constraint\n");
+            FormatMatrix(glideConstraints, "glide constraints", fp); 
+        }
+        return;
+}
 void PrintNbr(Home_t *home, Node_t *node){
 	int 	i;
 	Node_t 	*nbr;
@@ -1781,7 +1918,21 @@ void PrintNbr(Home_t *home, Node_t *node){
 	for(i=0; i<node->numNbrs; i++){
 	    nbr = GetNeighborNode(home, node, i);
 	    if(nbr == (Node_t *)NULL)continue;
-	    PrintNode(nbr);
+	    PrintNode(home, nbr);
+	}
+	return;
+	
+}
+void PrintNbr(Home_t *home, Node_t *node, FILE *fp){
+	int 	i;
+	Node_t 	*nbr;
+
+	if(node==(Node_t *)NULL)return;
+	fprintf(fp,"neighbor of node(%d,%d):\n", node->myTag.domainID, node->myTag.index);
+	for(i=0; i<node->numNbrs; i++){
+	    nbr = GetNeighborNode(home, node, i);
+	    if(nbr == (Node_t *)NULL)continue;
+	    PrintNode(home,nbr,fp);
 	}
 	return;
 	
@@ -2080,7 +2231,7 @@ void ChangeArmBurg(Home_t *home, Node_t *node1, Tag_t *tag2,
         int     i, nc;
         real8   gpDotgp, eps = 1.0e-12;
         real8   burg[3], vel[3], dir[3], glidePlane[3];
-        Node_t  *node2;
+        Node_t  *node2=(Node_t *)NULL;
         Param_t *param;
 
         if (node1 == NULL) return;
@@ -3268,8 +3419,6 @@ void AddOp (Home_t *home,
         op->nx = nx;
         op->ny = ny;
         op->nz = nz;
-		op->inGrain = -1;
-		op->onGB = -1;
 		
         home->OpCount++;
 
@@ -4634,6 +4783,28 @@ void ApplyConstraintsToVelocity(int &numGlideConstraints,
 }
 
 
+/**
+ * Given the values of a function at the corners of a square, compute the value of the function at an
+ * arbitrary point in the square. 
+ * 
+ * The function takes as input the values of the function at the four corners of a square, and the
+ * coordinates of the point at which the function is to be evaluated. The function returns the value of
+ * the function at the specified point. 
+ * 
+ * The function is written in C++, but it could just as easily be written in C or Fortran. 
+ * 
+ * The function is written in a way that makes it easy to understand. It is not written in a way that
+ * makes it easy to use. 
+ * 
+ * @param f00 the value of the function at the lower left corner of the square
+ * @param f01 the value of the function at the point (x,y)
+ * @param f10 the value of the function at the point (x,y)
+ * @param f11 the value of the function at the upper right corner of the square
+ * @param x the x-coordinate of the point to be interpolated
+ * @param y the y coordinate of the point to interpolate
+ * 
+ * @return The interpolated value at the point (x,y)
+ */
 double BilinearInterpolation(double f00, double f01, double f10, double f11, 
                              double x, double y)
 {
@@ -4649,6 +4820,30 @@ double BilinearInterpolation(double f00, double f01, double f10, double f11,
     return(temp[0]*(1.0-y) + temp[1]*y);
 }
 
+/**
+ * > The function takes in 16 values, and returns the interpolated value at the point (x,y)
+ * 
+ * @param f00 the value of the function at the lower left corner of the square
+ * @param fx00 the derivative of f00 with respect to x
+ * @param fy00 f(x,y+1) - f(x,y)
+ * @param fxy00 f(x,y)
+ * @param f01 f(x,y)
+ * @param fx01 x derivative of f01
+ * @param fy01 -0.0012
+ * @param fxy01 f(x,y+1)
+ * @param f10 the value of the function at the point (x-1,y)
+ * @param fx10 the derivative of the function with respect to x at the point (1,0)
+ * @param fy10 the derivative of the function with respect to y at (x,y)=(0,0)
+ * @param fxy10 f(x+1,y+1)
+ * @param f11 the value of the function at the point (1,1)
+ * @param fx11 the derivative of the function with respect to x at the point (1,1)
+ * @param fy11 the derivative of the function with respect to y at the point (1,1)
+ * @param fxy11 the value of the function at the point (x+1,y+1)
+ * @param x the x-coordinate of the point to interpolate
+ * @param y the y-coordinate of the point to interpolate
+ * 
+ * @return The interpolated value of the function at the point (x,y).
+ */
 double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
                      double f01, double fx01, double fy01, double fxy01,
                      double f10, double fx10, double fy10, double fxy10,
@@ -4660,7 +4855,6 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
     double a20, a21, a22, a23;
     double a30, a31, a32, a33;
     double xx[4], yy[4], temp[4], f;
-    int     i;
 
     xx[0] = 1.0;
     xx[1] = x;
@@ -4677,6 +4871,7 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
     a02 = -3*f00 + 3*f01 - 2*fy00 - fy01;
     a03 = 2*f00 - 2*f01 + fy00 + fy01; 
     a10 = fx00; 
+
     a11 = fxy00;
     a12 = -3*fx00 + 3*fx01 - 2*fxy00 - fxy01;
     a13 = 2*fx00 - 2*fx01 + fxy00 + fxy01;
@@ -4697,12 +4892,10 @@ double BicubicInterpolation(double f00, double fx00, double fy00, double fxy00,
             2*fx11 + fxy00 + 
             fxy01 + fxy10 + fxy11 + 2*fy00 + 2*fy01 - 2*fy10 - 2*fy11;
 
-    for(i=0;i<4;i++){
-        temp[0] = xx[0]*a00 + xx[1]*a10 + xx[2]*a20 +xx[3]*a30;
-        temp[1] = xx[0]*a01 + xx[1]*a11 + xx[2]*a21 +xx[3]*a31;
-        temp[2] = xx[0]*a02 + xx[1]*a12 + xx[2]*a22 +xx[3]*a32;
-        temp[3] = xx[0]*a03 + xx[1]*a13 + xx[2]*a23 +xx[3]*a33;
-    }
+    temp[0] = xx[0]*a00 + xx[1]*a10 + xx[2]*a20 +xx[3]*a30;
+    temp[1] = xx[0]*a01 + xx[1]*a11 + xx[2]*a21 +xx[3]*a31;
+    temp[2] = xx[0]*a02 + xx[1]*a12 + xx[2]*a22 +xx[3]*a32;
+    temp[3] = xx[0]*a03 + xx[1]*a13 + xx[2]*a23 +xx[3]*a33;
 
     f = (temp[0]*yy[0]+temp[1]*yy[1]+temp[2]*yy[2]+temp[3]*yy[3]);
     
@@ -4932,4 +5125,53 @@ real8 SegDeltaPlasticStrain(Home_t *home, Node_t *node1, Node_t *node2)
              loc[4]*(an*bl+al*bn)+
              loc[5]*(al*bm+bl*am);
     return delpstn;
+}
+
+/**
+ * @brief Counting the number of non-zero length dislocation arms
+ */
+int NumNonZeroLenSegs(Home_t *home, Node_t *node)
+{
+    Node_t  *nbr;
+    real8   dx, dy, dz;
+    int     numNonZeroLenSegs = 0;
+    Param_t *param = home->param;
+    
+    for(int i=0; i<node->numNbrs; i++){
+        if((nbr=GetNeighborNode(home, node, i)) == (Node_t *)NULL)continue;
+		dx = node->x - nbr->x;
+		dy = node->y - nbr->y;
+		dz = node->z - nbr->z;
+		
+		ZImage(param, &dx, &dy, &dz);
+
+		if ((dx*dx + dy*dy + dz*dz) > 1E-12) {
+		    numNonZeroLenSegs++;
+		}
+    }
+
+    return numNonZeroLenSegs;
+}
+
+/**
+ * This function takes a node and a vector and returns the number of glide constraints that apply to
+ * the node and the vector
+ * 
+ * @param home the home structure
+ * @param node the node to be adjusted
+ * @param vec the adjusted vector
+ * 
+ * @return The number of glide constraints.
+ */
+int AdjustNodeDirection(Home_t *home, Node_t *node, real8 *vec){
+
+    int 	NM;
+    real8 	GC[3][3];
+    bool    zeroLenJunc;
+
+	NM = 0;
+	GetGlideConstraintList(home, node, &NM, GC, zeroLenJunc);
+	ApplyConstraintsToVelocity(NM, GC, vec);
+
+	return(NM);
 }

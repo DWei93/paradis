@@ -231,25 +231,6 @@ void SaveCrossSlipInfo(Node_t *node, Node_t *nbr1, Node_t *nbr2,
        return;
 }
 
-void SaveCrossSlipInfo(Node_t *node, Node_t *nbr1, Node_t *nbr2,
-                       int nbr1ArmID, int nbr2ArmID, real8 segForceOrig[4][3],
-                       real8 nodePosOrig[3], real8 nbr1PosOrig[3],
-                       real8 nbr2PosOrig[3], real8 nbrNorOri[2][3])
-{
-       SaveCrossSlipInfo(node, nbr1, nbr2, nbr1ArmID, nbr2ArmID,
-                        segForceOrig, nodePosOrig, nbr1PosOrig,
-                        nbr2PosOrig);
-       nbrNorOri[0][0] = node->nx[0];
-       nbrNorOri[0][1] = node->ny[0];
-       nbrNorOri[0][2] = node->nz[0];
-
-       nbrNorOri[1][0] = node->nx[1];
-       nbrNorOri[1][1] = node->ny[1];
-       nbrNorOri[1][2] = node->nz[1];
-
-
-    return;
-}
 
 /*---------------------------------------------------------------------------
  *
@@ -359,12 +340,14 @@ void CrossSlip(Home_t *home)
     enabled = home->param->enableCrossSlip;
     matType = home->param->materialType;
 
+#ifdef CHECK_ALL
+    CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 #if CROSS_SLIP_GB_MODEL
 /*
  *  GB dislocation emission model like cross-slip process introduced here.
  *                                                                   D.Wei
  */
-    DebugGB(home, 301);
     Param_t *param = home->param;
     if(param->dtGBCrossSlip>0){
         if(param->timeNow >= param->timeNextGBCrossSlip){
@@ -374,7 +357,9 @@ void CrossSlip(Home_t *home)
     }else{
         GBCrossSlip(home);
     }
-    DebugGB(home, 302);
+#ifdef CHECK_ALL
+    CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 #endif
 
     if (enabled) {
@@ -389,6 +374,8 @@ void CrossSlip(Home_t *home)
 
     }
 
-    DebugGB(home, 303);
-        return;
+#ifdef CHECK_ALL
+    CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
+    return;
 }

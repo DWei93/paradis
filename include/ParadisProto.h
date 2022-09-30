@@ -15,6 +15,10 @@
 #include "Tag.h"
 #include "Home.h"
 
+#ifdef PETSC
+#include "petscsystypes.h"
+#endif
+
 #ifndef MAX
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #endif
@@ -122,10 +126,6 @@ void SaveCrossSlipInfo(Node_t *node, Node_t *nbr1, Node_t *nbr2,
         int nbr1ArmID, int nbr2ArmID, real8 segForceOrig[4][3],
         real8 nodePosOrig[3], real8 nbr1PosOrig[3],
         real8 nbr2PosOrig[3]);
-void SaveCrossSlipInfo(Node_t *node, Node_t *nbr1, Node_t *nbr2,
-        int nbr1ArmID, int nbr2ArmID, real8 segForceOrig[4][3],
-        real8 nodePosOrig[3], real8 nbr1PosOrig[3],
-        real8 nbr2PosOrig[3], real8 nbrNorOri[2][3]);
 void ResetPosition(Param_t *param, Node_t *node, real8 pos[3]);
 void RestoreCrossSlipForce(Node_t *node, Node_t *nbr1, Node_t *nbr2,
         int nbr1ArmID, int nbr2ArmID,
@@ -138,10 +138,6 @@ void _CheckMemUsage(Home_t *home, char *msg);
 #define CheckMemUsage(a,b) _CheckMemUsage((a),(b))
 #else
 #define CheckMemUsage(a,b) {}
-#endif
-
-#ifdef PETSC
-void PetscIntegrator(Home_t *home);
 #endif
 
 #endif
