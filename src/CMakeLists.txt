@@ -87,6 +87,11 @@ if(SIMPLE_REACTION_ON_GB)
     AddDef(-DSIMPLE_REACTION_ON_GB)
 endif()
 
+Option(DEBUG_STEP "Debug paradis step (default off)" OFF)
+if(DEBUG_STEP)
+    AddDef(-DDEBUG_STEP)
+endif()
+
 add_definitions(${compile_defs})
 message(STATUS "${PARADIS_EXE} compile definitions are (${compile_defs})")
 

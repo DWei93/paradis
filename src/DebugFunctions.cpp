@@ -18,15 +18,20 @@
  *          CheckForUndefinedPlanes()
  *
  *-----------------------------------------------------------------------*/
-#include "Home.h"
-
 #include "sys/stat.h"
 #include "sys/types.h"
+#include <algorithm>
+
 #ifdef PARALLEL
 #include "mpi.h"
 #endif
+
+#ifdef PETSC
+#include "PetscUtil.h"
+#endif
+
+#include "Home.h"
 #include "ParadisProto.h"
-#include <algorithm>
 
 
 /**************************************************************************
@@ -345,14 +350,12 @@ void CheckAll(Home_t *home, const char *format, ...)
 	msg[sizeof(msg)-1] = 0;
 	va_end(args);
 	
-    for(auto i=0;i<home->newNodeKeyPtr;i++){
-        Node_t *node = home->nodeKeys[i];
-        if(node == (Node_t *)NULL)continue;
-        if(node->onGB > -1 && fabs(node->vZ) > 500.0){
-            PrintNode(home,node);
-            Fatal("Wrong Velocity flag=%s",msg);
-        }
-    }
+#ifdef PETSC_DEBUG
+    PetscDebugFPrintf(home,"[%d] %s\n",home->myDomain, msg);
+#else
+    printf("[%d] %s\n",home->myDomain, msg);
+
+#endif
 	return;
 }
 #endif

@@ -142,7 +142,7 @@ void RecycleGhostNodes(Home_t *home)
 void RemoveNodeFromCellQ(Home_t *home, Node_t *node)
 {
         Cell_t *cell;
-        Node_t *prevNode, *nextNode;
+        Node_t *prevNode=(Node_t *)NULL, *nextNode;
 
         if (node == (Node_t *)NULL) return;
         if (node->cellIdx < 0) return;

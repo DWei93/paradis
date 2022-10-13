@@ -930,7 +930,7 @@ void CtrlParamInit(Param_t *param, ParamList_t *CPList)
         param->preRann = -1.0;
 
         BindVar(CPList, "minDT", &param->minDT, V_DBL, 1, VFLAG_NULL);
-        param->minDT = 1.0E-16;
+        param->minDT = 1.0E-18;
         
         BindVar(CPList, "limitDisplacement", &param->limitDisplacement, V_INT, 1, VFLAG_NULL);
         param->limitDisplacement = 0;

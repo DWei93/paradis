@@ -1099,7 +1099,7 @@ static void DoParallelIO(Home_t *home, int outputTypes, int stage, const char *m
 
         if ((outputTypes & GEN_TECPLOT_DATA) != 0) {
             if (stage == STAGE_CYCLE || stage == STAGE_INIT || stage == STAGE_DEBUG) {
-#if CHECK_GB_TOPO
+#if DEBUG_STEP
                 snprintf(baseName, sizeof(baseName), "tecdata%06d%s",
                          home->cycle,msg);
 #else

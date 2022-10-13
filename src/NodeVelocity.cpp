@@ -185,7 +185,7 @@ int CalcNodeVelocities(Home_t *home, int zeroOnErr, int doAll)
                     if ((threadNode = home->nodeKeys[i]) == (Node_t *)NULL) {
                         continue;
                     }
-           
+
 /*         
  *                  If we do not need to recalculate velocity on ALL nodes,
  *                  skip this node unless the forces have just been updated.
@@ -194,7 +194,7 @@ int CalcNodeVelocities(Home_t *home, int zeroOnErr, int doAll)
                         ((threadNode->flags & NODE_RESET_FORCES) == 0)) {
                         continue;
                     }
-           
+
 /*         
  *                  We set a pointer to the appropriate mobility function
  *                  during initialization, so just invoke the function now.
@@ -205,7 +205,7 @@ int CalcNodeVelocities(Home_t *home, int zeroOnErr, int doAll)
  */        
                     nodeMobError = param->mobilityFunc(home, threadNode);
                     threadMobError |= nodeMobError;
-           
+
 /*         
  *                  If we had problems calculating the mobility for
  *                  this node, do any special handling.
@@ -214,7 +214,7 @@ int CalcNodeVelocities(Home_t *home, int zeroOnErr, int doAll)
                         #ifdef DEBUG_TIMESTEP
                            printf("Mobility error on node (%d,%d)\n",
                                threadNode->myTag.domainID, threadNode->myTag.index);
-                           PrintNode(threadNode);
+                           PrintNode(home, threadNode);
                         #endif
                         if (zeroOnErr) {
                             threadNode->vX = 0.0;

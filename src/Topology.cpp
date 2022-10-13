@@ -52,6 +52,9 @@
 #include "Util.h"
 #include "Comm.h"
 #include "Mobility.h"
+#ifdef PETSC
+#include "PetscUtil.h"
+#endif
 
 #include <vector>
 
@@ -1124,7 +1127,7 @@ void SplitMultiNodes(Home_t *home)
         int splitStatus, mergeStatus;
 	    int	globalOp = 1;
         int bkupNodeCount;
-        int segIndex, mobError, skipSplits = 0;
+        int segIndex, mobError=0, skipSplits = 0;
 	    int	*armList=NULL, *currSet=NULL;
 	    int	**armSets=NULL;
         int     localSplitVals[4], globalSplitVals[4];
@@ -1153,6 +1156,10 @@ void SplitMultiNodes(Home_t *home)
 
         std::vector<int>    nbrInGrain;
         int     inGrain, onGB;
+
+#ifdef PETSC
+        PetscVKCtx_t vk;
+#endif
 
 /*
  *      Only do multinode splits on cycles that are multiples
@@ -1498,9 +1505,17 @@ void SplitMultiNodes(Home_t *home)
                 GetForcesFromBkup(home, splitNode1, bkupNodeList);
                 GetForcesFromBkup(home, splitNode2, bkupNodeList);
 
-                mobError  = EvaluateMobility(home, splitNode1);
-                mobError |= EvaluateMobility(home, splitNode2);
-
+                if(param->velocityKernel){
+#ifdef PETSC    
+                    InitilizeLocalVelocityKernel(home, &vk);
+                    AddNodeToLocalVelocityKernel(home, &vk, splitNode1);
+                    AddNodeToLocalVelocityKernel(home, &vk, splitNode2);
+                    SolveLocalVelocityKernel(home, &vk);
+#endif          
+                }else{
+                     mobError  = EvaluateMobility(home, splitNode1);
+                     mobError |= EvaluateMobility(home, splitNode2);
+                }
 /*
  *              After the split is done, reposition the
  *              nodes and again calculate velocities.  If
@@ -1624,8 +1639,17 @@ void SplitMultiNodes(Home_t *home)
                                 splitNode2->nz[armIndex] = nplane[2];
                             }
                             
-                            mobError  = EvaluateMobility(home, splitNode1);
-                            mobError |= EvaluateMobility(home, splitNode2);
+                            if(param->velocityKernel){
+#ifdef PETSC                
+                                InitilizeLocalVelocityKernel(home, &vk);
+                                AddNodeToLocalVelocityKernel(home, &vk, splitNode1);
+                                AddNodeToLocalVelocityKernel(home, &vk, splitNode2);
+                                SolveLocalVelocityKernel(home, &vk);
+#endif                      
+                            }else{
+                                 mobError  = EvaluateMobility(home, splitNode1);
+                                 mobError |= EvaluateMobility(home, splitNode2);
+                            }
                             
                             vDiffx = splitNode2->vX - splitNode1->vX;
                             vDiffy = splitNode2->vY - splitNode1->vY;
@@ -2671,7 +2695,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
     real8 node2Pos[3]={node2->x, node2->y, node2->z};   
     int   meshNx, meshNy, meshNz, eleID[27], nTDs;
     real8 lenPer[27];
-    bool  TD ;
+    bool  TD=false;
     real8 burg[3];
 
     if(mergePst){
@@ -2848,7 +2872,7 @@ void MergeNode(Home_t *home, int opClass, Node_t *node1, Node_t *node2,
 	if((targetNode->myTag.domainID != thisDomain)) {
         int     currInGrain, currOnGB;
         if(targetNode->inGrain != inGrain || targetNode->onGB != onGB){ *status = MERGE_NOT_PERMITTED; return; }
-        NodeLocation(home, targetNode->x, targetNode->y, targetNode->z, currInGrain, currOnGB);
+        NodeLocation(home, targetNode->x, targetNode->y, targetNode->z,currInGrain,currOnGB);
         if(onGB > -1){ if(currOnGB != onGB){ *status = MERGE_NOT_PERMITTED; return; } }
         else{ if(inGrain != currInGrain){ *status = MERGE_NOT_PERMITTED; return; } }
     }

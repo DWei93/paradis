@@ -185,7 +185,16 @@ void ReevaluateForces(Home_t *home)
             if (node->flags & NODE_RESET_FORCES) {
 
                 SetOneNodeForce(home, node);
-                EvaluateMobility(home, node);
+                if(home->param->velocityKernel){
+#ifdef PETSC
+                    PetscVKCtx_t vk;
+                    InitilizeLocalVelocityKernel(home, &vk);
+                    AddNodeToLocalVelocityKernel(home,&vk,node);
+                    SolveLocalVelocityKernel(home, &vk);
+#endif
+                }else{
+                    EvaluateMobility(home,node);
+                }
 
                 node->flags &= (~NODE_RESET_FORCES);
             }
@@ -255,7 +264,15 @@ void ParadisStep(Home_t *home)
  */
         CellCharge(home);
         
-        
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
+#ifdef PETSC
+        if(param->velocityKernel) AssembleGlobalVelocityKernel(home);
+#endif  
+#ifdef CHECK_ALL
+        CheckAll(home,"%s %d",__func__,__LINE__);
+#endif
 /*
  *      Calculate new force and velocity data for all nodes or a selected
  *      subset and distribute the new data out to neighboring domains.
@@ -265,9 +282,6 @@ void ParadisStep(Home_t *home)
  *      involved in topological changes the previous step.
  */
         if (firstTime) {
-#ifdef PETSC
-            if(param->velocityKernel) AssembleGlobalVelocityKernel(home);
-#endif  
             NodeForce(home, FULL);
             CalcNodeVelocities(home, 1, doAll);
             CommSendVelocity(home);
@@ -311,19 +325,19 @@ void ParadisStep(Home_t *home)
         } else if (strcmp(param->timestepIntegrator, "trapezoid") == 0) {
             TrapezoidIntegrator(home);
         } else {
-/*
- *          Used to be specified as 'backard-euler', so if integration
- *          method is unrecognized, use trapezoid as default
- */
+           /*
+            * Used to be specified as 'backard-euler', so if integration
+            * method is unrecognized, use trapezoid as default
+            */
             TrapezoidIntegrator(home);
         }
 
 #ifdef PETSC
-		/**
-		 * @brief Destroying the global velocity kernel.
-		 * ! the next topology operations will add and/or remove nodes,
-		 * ! which results in the global velocity kernel being unavailable.
-		 */
+	/**
+	 * Destroying the global velocity kernel.
+	 * ! the next topology operations will add and/or remove nodes,
+	 * ! which results in the global velocity kernel being unavailable.
+	 */
         if(param->velocityKernel)DestoryGlobalVelocityKernel(home->vk);
 #endif
 
@@ -338,7 +352,7 @@ void ParadisStep(Home_t *home)
  */
         InitTopologyExemptions(home);
 
-#if CHECK_GB_TOPO
+#if DEBUG_STEP
         GenerateOutput(home, STAGE_DEBUG, "-2Trap");
 #endif
 
@@ -360,6 +374,9 @@ void ParadisStep(Home_t *home)
 
         }
 
+#if DEBUG_STEP
+        GenerateOutput(home, STAGE_DEBUG, "-3FS");
+#endif
 #ifdef CHECK_ALL
         CheckAll(home,"%s %d",__func__,__LINE__);
 #endif
@@ -381,8 +398,8 @@ void ParadisStep(Home_t *home)
         CheckAll(home,"%s %d",__func__,__LINE__);
 #endif
 
-#if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-3FS");
+#if DEBUG_STEP
+        GenerateOutput(home, STAGE_DEBUG, "-4HB");
 #endif
 
 /*
@@ -429,8 +446,8 @@ void ParadisStep(Home_t *home)
 #ifdef CHECK_ALL
         CheckAll(home,"%s %d",__func__,__LINE__);
 #endif
-#if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-4CrossSlip");
+#if DEBUG_STEP
+//      GenerateOutput(home, STAGE_DEBUG, "-4CrossSlip");
 #endif
 /*
  *      Search for dislocation segments in close proximity to each other
@@ -454,6 +471,9 @@ void ParadisStep(Home_t *home)
         FixRemesh(home, "Collision");
         TimerStop(home, COL_FIX_REMESH);
         
+#if DEBUG_STEP
+ //     GenerateOutput(home, STAGE_DEBUG, "-5Collsion");
+#endif
 #ifdef CHECK_ALL
         CheckAll(home,"%s %d",__func__,__LINE__);
 #endif
@@ -479,8 +499,8 @@ void ParadisStep(Home_t *home)
             node->flags &= ~NODE_CHK_DBL_LINK;
         }
 
-#if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-5Collision");
+#if DEBUG_STEP
+  //    GenerateOutput(home, STAGE_DEBUG, "-5Collision");
 #endif
 /*
  *      If memory debugging is enabled, run a consistency check on all
@@ -497,10 +517,6 @@ void ParadisStep(Home_t *home)
         Remesh(home);
 #ifdef CHECK_ALL
         CheckAll(home,"%s %d",__func__,__LINE__);
-#endif
-
-#if CHECK_GB_TOPO
-        GenerateOutput(home, STAGE_DEBUG, "-6Remesh");
 #endif
 
 /*
@@ -562,14 +578,6 @@ void ParadisStep(Home_t *home)
  *      Communicate ghost cells to/from neighbor domains
  */
         CommSendGhosts(home);
-
-
-#ifdef PETSC
-        if(param->velocityKernel){
-            AssembleGlobalVelocityKernel(home);
-            SolveGlobalVelocityKernel(home);
-        }
-#endif
 
 #ifdef NAN_CHECK
 /*

@@ -2351,9 +2351,6 @@ void LocalSegForces(Home_t *home, int reqType)
         sendDomCnt = 0;
         sendDomList = (int *)NULL;
 
-#ifdef CHECK_ALL
-        CheckAll(home,"%s %d",__func__,__LINE__);
-#endif
 /*
  *      Allocate and initialize some temporary arrays we'll be needing.
  *
@@ -3026,9 +3023,6 @@ void LocalSegForces(Home_t *home, int reqType)
 
         }  /* end for (i = 0; i < nativeSegCnt; i++) */
 
-#ifdef CHECK_ALL
-        CheckAll(home,"%s %d",__func__,__LINE__);
-#endif
 /*
  *      Now loop through every segment pair for which forces must
  *      be calculated.  Note: it may be that we only update forces

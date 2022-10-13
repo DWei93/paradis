@@ -538,4 +538,50 @@ void NodalConstraintTensor(Home_t *home, PetscVKCtx_t *vk, int nativeID, real8 *
 }
 
 
+#ifdef PETSC_DEBUG
+/**
+ * `Fatal` is a function that prints a message to the screen and exits the program. 
+ * 
+ * @param home the home structure
+ * @param format The format string.
+ */
+void Fatal(Home_t *home, const char *format, ...)
+{
+    char        msg[512];
+    va_list     args;
+    FILE        *fp;
+
+    va_start(args, format);
+    vsnprintf(msg, sizeof(msg)-1, format, args);
+    msg[sizeof(msg)-1] = 0;
+    va_end(args);
+    printf("Fatal: %s\n", msg);
+    PetscViewerASCIIGetPointer(home->vk->viewer, &fp);
+    PetscFPrintf(PETSC_COMM_SELF, fp, "Fatal: %s\n", msg);
+
+#ifdef PARALLEL
+    MPI_Abort(MPI_COMM_WORLD, -1);
 #endif
+    exit(1);
+}
+
+
+void PetscDebugFPrintf(Home_t *home, const char *format, ...)
+{
+    char        msg[512];
+    va_list     args;
+    PetscVKCtx_t *vk = home->vk;
+    FILE        *fp;
+
+    PetscViewerASCIIGetPointer(vk->viewer, &fp);
+    va_start(args, format);
+    vsnprintf(msg, sizeof(msg)-1, format, args);
+    msg[sizeof(msg)-1] = 0;
+    va_end(args);
+    FPrintf(fp, " %s", msg);
+
+    return;
+}
+#endif /* end of define PETSC_DEBUG */
+
+#endif /* end of define PETSC */

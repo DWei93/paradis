@@ -16,6 +16,9 @@
 #include <math.h>
 #include "Home.h"
 #include "Util.h"
+#ifdef PETSC
+#include "PetscUtil.h"
+#endif
 #include "QueueOps.h"
 #include "Mobility.h"
 
@@ -952,9 +955,20 @@ static int TrySegBisect(Home_t *home, Node_t **origNode, Node_t *nbr,
                 ResetSegForces(home, nbr, &splitNode2->myTag,
                                f1seg2[0], f1seg2[1], f1seg2[2], 1);
 
-                (void)EvaluateMobility(home, splitNode1);
-                (void)EvaluateMobility(home, splitNode2);
-                (void)EvaluateMobility(home, nbr);
+                if(param->velocityKernel){
+#ifdef PETSC    
+                    PetscVKCtx_t    vk;
+                    InitilizeLocalVelocityKernel(home, &vk);
+                    AddNodeToLocalVelocityKernel(home,&vk,splitNode1);
+                    AddNodeToLocalVelocityKernel(home,&vk,splitNode2);
+                    AddNodeToLocalVelocityKernel(home,&vk,nbr);
+                    SolveLocalVelocityKernel(home, &vk);
+#endif          
+                }else{
+                    (void)EvaluateMobility(home, splitNode1);
+                    (void)EvaluateMobility(home, splitNode2);
+                    (void)EvaluateMobility(home, nbr);
+                }
 
 /*
  *              When debugging, dump some info on
@@ -1015,6 +1029,10 @@ static void MeshRefine(Home_t *home)
 
         real8 lamp;
         int armInGrain, armOnGB;
+
+#ifdef PETSC
+        PetscVKCtx_t vk;
+#endif
 
 #ifdef DEBUG_LOG_MESH_REFINE
 #ifdef PARALLEL
@@ -1375,9 +1393,20 @@ static void MeshRefine(Home_t *home)
                             ResetSegForces(home, nbr1, &splitNode2->myTag,
                                            f1seg2[0], f1seg2[1], f1seg2[2], 1);
         
-                            (void)EvaluateMobility(home, splitNode1);
-                            (void)EvaluateMobility(home, splitNode2);
-                            (void)EvaluateMobility(home, nbr1);
+                            if(param->velocityKernel){
+#ifdef PETSC                
+                                InitilizeLocalVelocityKernel(home, &vk);
+                                AddNodeToLocalVelocityKernel(home,&vk,splitNode1);
+                                AddNodeToLocalVelocityKernel(home,&vk,splitNode2);
+                                AddNodeToLocalVelocityKernel(home,&vk,nbr1);
+                                SolveLocalVelocityKernel(home, &vk);
+#endif                      
+                            }else{
+                                (void)EvaluateMobility(home, splitNode1);
+                                (void)EvaluateMobility(home, splitNode2);
+                                (void)EvaluateMobility(home, nbr1);
+                            }
+
         
 /*
  *                          When debugging, dump some info on

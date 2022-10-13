@@ -1437,7 +1437,7 @@ static void FMPackDownPassBufs(Home_t *home, int layerID, int sendCnt,
         int       *sendDomList;
         int       *bMin, *bMax, *packedMPCoeff, *packedTaylorCoeff;
         int       numTaylorCoeff, numMPCoeff;
-        real8     *buf;
+        real8     *buf=NULL;
         FMLayer_t *layer, *cLayer;
         FMCell_t  *cell, *cCell, *tCell;
         Param_t   *param;

@@ -114,6 +114,7 @@
 #include <stdarg.h>
 #include <math.h> 
 #include <memory.h>
+
 #include "InData.h"
 #include "Home.h"
 #include "QueueOps.h"
@@ -122,7 +123,37 @@
 #include "mpi.h"
 #endif
 
+#ifdef PETSC
+#include <petsc.h>
+#endif
 
+/**
+ * > The function `FPrintf` is a wrapper for the standard C function `fprintf` that allows the user to
+ * print to a file using the same syntax as `fprintf` but with the added benefit that the function is
+ * parallelized using the PETSc library
+ * 
+ * @param fp The file pointer to write to.
+ * @param format The format string.
+ * 
+ * @return Nothing.
+ */
+void FPrintf(FILE *fp, const char *format, ...)
+{
+    char        msg[4096];
+    va_list     args;
+
+    va_start(args, format);
+    vsnprintf(msg, sizeof(msg)-1, format, args);
+    msg[sizeof(msg)-1] = 0;
+    va_end(args);
+
+#ifdef PETSC
+    PetscFPrintf(PETSC_COMM_SELF,fp,"%s",msg);
+#else
+    fprintf(fp,"%s",msg);
+#endif
+    return;
+}
 /*-------------------------------------------------------------------------
  *
  *      Function:     DecodeCellIdx
@@ -1058,7 +1089,9 @@ void NormalizeVec(real8 vec[3])
 {
         real8 a2, a;
 #ifdef DEBUG
-       if(!Numerical(vec))Fatal("%s: {%f,%f,%f}",__func__,vec[0],vec[1],vec[2]);
+       if(!Numerical(vec)){
+            Fatal("%s: {%f,%f,%f}",__func__,vec[0],vec[1],vec[2]);
+       }
 #endif
 
         a2 = (vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
@@ -1395,9 +1428,9 @@ Node_t *GetNeighborNode(Home_t *home, Node_t *node, int n)
             }
         }
 
-        printf("GetNeighborNode returning NULL for node (%d,%d) nbr %d\n",
+        PrintNode(home, node);
+        Fatal("GetNeighborNode returning NULL for node (%d,%d) nbr %d\n",
                node->myTag.domainID, node->myTag.index, n);
-        PrintNode(node);
 
         return((Node_t *)NULL);
 #endif
@@ -1554,6 +1587,73 @@ Node_t *GetNodeFromTag (Home_t *home, Tag_t tag)
         }
 }
 
+void PrintTag(Node_t *node){
+
+    if(node == (Node_t *)NULL){
+        printf("(NULL)");
+    }else{
+        printf("[%d %d %d %d %d %d]-{%f,%f,%f} ",node->myTag.domainID,
+               node->myTag.index,node->numNbrs,node->inGrain,
+               node->onGB, node->constraint, node->x,node->y,node->z);
+	}
+    return;
+}
+void PrintTag(Home_t *home, Node_t *node){
+
+    if(node == (Node_t *)NULL){
+        printf("(NULL)"); return;
+    }else{
+        printf("[%d %d %d %d %d %d]-{%f,%f,%f} ",node->myTag.domainID,
+               node->myTag.index,node->numNbrs,node->inGrain,
+               node->onGB, node->constraint, node->x,node->y,node->z);
+	}
+    int numGlideConstraints; bool  zeroLenJunc;
+    real8 glideConstraints[3][3];
+    GetGlideConstraintList(home, node, 
+                       &numGlideConstraints, glideConstraints, zeroLenJunc,
+                       1, 0.0, 0.0, 0.0, -1);
+    if(numGlideConstraints== 1){
+        printf("plane constraint: {%g,%g,%g} ", glideConstraints[0][0],glideConstraints[0][1],glideConstraints[0][2]);
+    }else if(numGlideConstraints== 2){
+        printf("line constraint: {%g,%g,%g} ", glideConstraints[2][0],glideConstraints[2][1],glideConstraints[2][2]);
+    }else{
+        printf("completely constraint");
+    }
+    return;
+}
+/**
+ * This function prints the tag of a node, and also prints the glide constraint of the node.
+ * 
+ * @param home the home structure
+ * @param node the node whose tag you want to print
+ * @param fp the file pointer to the file you want to write to.
+ */
+void PrintTag(Home_t *home, Node_t *node, FILE *fp)
+{
+
+    int numGlideConstraints; 
+    bool  zeroLenJunc;
+    real8 glideConstraints[3][3];
+
+    if(node == (Node_t *)NULL){
+        FPrintf(fp,"(NULL)"); return;
+    }else{
+        FPrintf(fp,"[%d %d %d %d %d %d]-{%f,%f,%f} ",node->myTag.domainID,
+               node->myTag.index,node->numNbrs,node->inGrain,
+               node->onGB, node->constraint, node->x,node->y,node->z);
+	}
+    GetGlideConstraintList(home, node, 
+                       &numGlideConstraints, glideConstraints, zeroLenJunc,
+                       1, 0.0, 0.0, 0.0, -1);
+    if(numGlideConstraints== 1){
+        FPrintf(fp,"plane constraint: {%g,%g,%g} ", glideConstraints[0][0],glideConstraints[0][1],glideConstraints[0][2]);
+    }else if(numGlideConstraints== 2){
+        FPrintf(fp,"line constraint: {%g,%g,%g} ", glideConstraints[2][0],glideConstraints[2][1],glideConstraints[2][2]);
+    }else{
+        FPrintf(fp,"completely constraint");
+    }
+    return;
+}
 
 /*-------------------------------------------------------------------------
  *
@@ -1666,7 +1766,7 @@ void PrintNode(Home_t *home, Node_t *node)
         int     i;
         Node_t  *nbr;
         Param_t *param = home->param;
-        real8   vec[3], length;
+        real8   vec[3], length, v_l[3], vel[3], vPer;
 
         if (node == (Node_t *)NULL) {
 	        printf("node is NULL\n");
@@ -1705,12 +1805,15 @@ void PrintNode(Home_t *home, Node_t *node)
                node->myTag.domainID, node->myTag.index, 
                node->x, node->y, node->z);
 
+        vel[0] = node->vX*param->burgMag;
+        vel[1] = node->vY*param->burgMag;
+        vel[2] = node->vZ*param->burgMag;
 /*
  *      Print the nodal velocity and total node force
  */
         printf("  node(%d,%d) v = {%e,%e,%e} = %f m/s, oldv={%e,%e,%e} = %f m/s\n",
                node->myTag.domainID, node->myTag.index, 
-               node->vX*param->burgMag, node->vY*param->burgMag, node->vZ*param->burgMag, normal(node->vX, node->vY, node->vZ)*param->burgMag,
+               vel[0],vel[1],vel[2], normal(node->vX, node->vY, node->vZ)*param->burgMag,
                node->oldvX, node->oldvY, node->oldvZ, normal(node->oldvX, node->oldvY, node->oldvZ)*param->burgMag);
         printf("  node(%d,%d) f = {%e,%e,%e}\n",
                node->myTag.domainID, node->myTag.index, 
@@ -1747,12 +1850,14 @@ void PrintNode(Home_t *home, Node_t *node)
                 ZImage(param,vec,vec+1,vec+2);
                 length = Normal(vec);
                 NormalizeVec(vec);
+                ParallelComponent(vel,vec,v_l);
+                vPer = Normal(v_l)*1E2/Normal(vel);
                 printf("  node(%d,%d) arm[%d]-> (%d %d) ",
                         node->myTag.domainID, node->myTag.index, i,
                         node->nbrTag[i].domainID,node->nbrTag[i].index);
-                printf("burgID=%d, planeID=%d -- length=%f, ldir={%.10f,%.10f,%.10f}\n", 
+                printf("burgID=%d, planeID=%d -- length=%f, ldir={%.10f,%.10f,%.10f}, v_per=%.3f %%\n", 
                         GetBurgID_FCC(home, node, nbr), GetPlaneID_FCC(home,node,nbr), 
-                        length, vec[0],vec[1],vec[2]);
+                        length, vec[0],vec[1],vec[2], vPer);
             }
         }
 
@@ -1797,50 +1902,50 @@ void PrintNode(Home_t *home, Node_t *node, FILE *fp)
         real8   vec[3], length;
 
         if (node == (Node_t *)NULL) {
-	        fprintf(fp,"node is NULL\n");
+	        FPrintf(fp,"node is NULL\n");
             return;
 	    }
 #ifdef PETSC
-        fprintf(fp,"  node(%d,%d) location (%d,%d) constraint %d, locID=%d, gloID=%d arms %d ",
+        FPrintf(fp,"  node(%d,%d) location (%d,%d) constraint %d, locID=%d, gloID=%d arms %d ",
                node->myTag.domainID, node->myTag.index, node->inGrain, node->onGB,
                node->constraint,node->locID, node->gloID, node->numNbrs);
 #else
-        fprintf(fp,"  node(%d,%d) location (%d,%d) constraint %d arms %d",
+        FPrintf(fp,"  node(%d,%d) location (%d,%d) constraint %d arms %d",
                node->myTag.domainID, node->myTag.index, node->inGrain, node->onGB,
                node->constraint, node->numNbrs);
 #endif
         for (i = 0; i < node->numNbrs; i++) {
-            fprintf(fp,"(%d,%d) ", node->nbrTag[i].domainID,
+            FPrintf(fp,"(%d,%d) ", node->nbrTag[i].domainID,
                    node->nbrTag[i].index);
         }
 		
-        fprintf(fp,"\n");
+        FPrintf(fp,"\n");
 
-        fprintf(fp,"  node(%d,%d) Flags: ",node->myTag.domainID, node->myTag.index);
-        if((node->flags&NODE_OUTSIDE_SURF)>0)fprintf(fp,"NODE_OUTSIDE_SURF ");
-        if((node->flags&NO_COLLISIONS    )>0)fprintf(fp,"NO_COLLISIONS     ");
-        if((node->flags&NO_MESH_COARSEN  )>0)fprintf(fp,"NO_MESH_COARSEN   ");
-        if((node->flags&NODE_CHK_DBL_LINK)>0)fprintf(fp,"NODE_CHK_DBL_LINK ");
-        fprintf(fp,"\n");
+        FPrintf(fp,"  node(%d,%d) Flags: ",node->myTag.domainID, node->myTag.index);
+        if((node->flags&NODE_OUTSIDE_SURF)>0)FPrintf(fp,"NODE_OUTSIDE_SURF ");
+        if((node->flags&NO_COLLISIONS    )>0)FPrintf(fp,"NO_COLLISIONS     ");
+        if((node->flags&NO_MESH_COARSEN  )>0)FPrintf(fp,"NO_MESH_COARSEN   ");
+        if((node->flags&NODE_CHK_DBL_LINK)>0)FPrintf(fp,"NODE_CHK_DBL_LINK ");
+        FPrintf(fp,"\n");
 /*
  *      Print the nodal position
  */
-		fprintf(fp,"  node(%d,%d) oldPos   = {%16.10f,%16.10f,%16.10f}\n",
+		FPrintf(fp,"  node(%d,%d) oldPos   = {%16.10f,%16.10f,%16.10f}\n",
                node->myTag.domainID, node->myTag.index,
 			   node->oldx,node->oldy,node->oldz);
 		
-        fprintf(fp,"  node(%d,%d) position = {%16.10f,%16.10f,%16.10f}\n",
+        FPrintf(fp,"  node(%d,%d) position = {%16.10f,%16.10f,%16.10f}\n",
                node->myTag.domainID, node->myTag.index, 
                node->x, node->y, node->z);
 
 /*
  *      Print the nodal velocity and total node force
  */
-        fprintf(fp,"  node(%d,%d) v = {%e,%e,%e} = %f m/s, oldv={%e,%e,%e} = %f m/s\n",
+        FPrintf(fp,"  node(%d,%d) v = {%e,%e,%e} = %f m/s, oldv={%e,%e,%e} = %f m/s\n",
                node->myTag.domainID, node->myTag.index, 
                node->vX*param->burgMag, node->vY*param->burgMag, node->vZ*param->burgMag, normal(node->vX, node->vY, node->vZ)*param->burgMag,
                node->oldvX, node->oldvY, node->oldvZ, normal(node->oldvX, node->oldvY, node->oldvZ)*param->burgMag);
-        fprintf(fp,"  node(%d,%d) f = {%e,%e,%e}\n",
+        FPrintf(fp,"  node(%d,%d) f = {%e,%e,%e}\n",
                node->myTag.domainID, node->myTag.index, 
                node->fX, node->fY, node->fZ);
 
@@ -1848,7 +1953,7 @@ void PrintNode(Home_t *home, Node_t *node, FILE *fp)
  *      Print the arm specific forces
  */
         for (i = 0; i < node->numNbrs; i++) {
-            fprintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) f = {%e,%e,%e}\n",
+            FPrintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) f = {%e,%e,%e}\n",
                    node->myTag.domainID, node->myTag.index, i,       
                    node->nbrTag[i].domainID, node->nbrTag[i].index,
                    node->armfx[i], node->armfy[i], node->armfz[i]);
@@ -1858,7 +1963,7 @@ void PrintNode(Home_t *home, Node_t *node, FILE *fp)
  *      Print the burger's vector for each arm of the node
  */
         for (i = 0; i < node->numNbrs; i++) {
-            fprintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) b = {%16.10f,%16.10f,%16.10f}\n",
+            FPrintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) b = {%16.10f,%16.10f,%16.10f}\n",
                    node->myTag.domainID, node->myTag.index, i,       
                    node->nbrTag[i].domainID, node->nbrTag[i].index,
                    node->burgX[i], node->burgY[i], node->burgZ[i]);
@@ -1867,7 +1972,7 @@ void PrintNode(Home_t *home, Node_t *node, FILE *fp)
         for(i=0;i<node->numNbrs;i++){
             nbr = GetNeighborNode(home, node, i);
             if(nbr == (Node_t *)NULL){
-                fprintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) null nbr\n",
+                FPrintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) null nbr\n",
                         node->myTag.domainID, node->myTag.index, i,
                         node->nbrTag[i].domainID,node->nbrTag[i].index);
             }else{
@@ -1875,10 +1980,10 @@ void PrintNode(Home_t *home, Node_t *node, FILE *fp)
                 ZImage(param,vec,vec+1,vec+2);
                 length = Normal(vec);
                 NormalizeVec(vec);
-                fprintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) ",
+                FPrintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) ",
                         node->myTag.domainID, node->myTag.index, i,
                         node->nbrTag[i].domainID,node->nbrTag[i].index);
-                fprintf(fp,"burgID=%d, planeID=%d -- length=%f, ldir={%.10f,%.10f,%.10f}\n", 
+                FPrintf(fp,"burgID=%d, planeID=%d -- length=%f, ldir={%.10f,%.10f,%.10f}\n", 
                         GetBurgID_FCC(home, node, nbr), GetPlaneID_FCC(home,node,nbr), 
                         length, vec[0],vec[1],vec[2]);
             }
@@ -1888,7 +1993,7 @@ void PrintNode(Home_t *home, Node_t *node, FILE *fp)
  *      Print the glide plane normal for each arm of the node
  */
         for (i = 0; i < node->numNbrs; i++) {
-            fprintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) n = {%16.10f,%16.10f,%16.10f}\n",
+            FPrintf(fp,"  node(%d,%d) arm[%d]-> (%d %d) n = {%16.10f,%16.10f,%16.10f}\n",
                    node->myTag.domainID,node->myTag.index, i,       
                    node->nbrTag[i].domainID,node->nbrTag[i].index,
                    node->nx[i],node->ny[i],node->nz[i]);
@@ -1900,11 +2005,11 @@ void PrintNode(Home_t *home, Node_t *node, FILE *fp)
                            &numGlideConstraints, glideConstraints, zeroLenJunc,
                            1, 0.0, 0.0, 0.0, -1);
         if(numGlideConstraints== 1){
-            fprintf(fp,"plane constraint: {%g,%g,%g}\n", glideConstraints[0][0],glideConstraints[0][1],glideConstraints[0][2]);
+            FPrintf(fp,"plane constraint: {%g,%g,%g}\n", glideConstraints[0][0],glideConstraints[0][1],glideConstraints[0][2]);
         }else if(numGlideConstraints== 2){
-            fprintf(fp,"line constraint: {%g,%g,%g}\n", glideConstraints[2][0],glideConstraints[2][1],glideConstraints[2][2]);
+            FPrintf(fp,"line constraint: {%g,%g,%g}\n", glideConstraints[2][0],glideConstraints[2][1],glideConstraints[2][2]);
         }else{
-            fprintf(fp,"completely constraint\n");
+            FPrintf(fp,"completely constraint\n");
             FormatMatrix(glideConstraints, "glide constraints", fp); 
         }
         return;
@@ -1928,7 +2033,7 @@ void PrintNbr(Home_t *home, Node_t *node, FILE *fp){
 	Node_t 	*nbr;
 
 	if(node==(Node_t *)NULL)return;
-	fprintf(fp,"neighbor of node(%d,%d):\n", node->myTag.domainID, node->myTag.index);
+	FPrintf(fp,"neighbor of node(%d,%d):\n", node->myTag.domainID, node->myTag.index);
 	for(i=0; i<node->numNbrs; i++){
 	    nbr = GetNeighborNode(home, node, i);
 	    if(nbr == (Node_t *)NULL)continue;
@@ -1956,19 +2061,19 @@ void ReallocNodeArms(Node_t *node, int n)
 
         node->numNbrs = n;
 
-        node->nbrTag = (Tag_t *) realloc(node->nbrTag, sizeof(Tag_t)*n);
-        node->burgX = (real8 *) realloc(node->burgX, sizeof(real8  )*n);
-        node->burgY = (real8 *) realloc(node->burgY, sizeof(real8  )*n);
-        node->burgZ = (real8 *) realloc(node->burgZ, sizeof(real8  )*n);
-        node->armfx = (real8 *) realloc(node->armfx, sizeof(real8  )*n);
-        node->armfy = (real8 *) realloc(node->armfy, sizeof(real8  )*n);
-        node->armfz = (real8 *) realloc(node->armfz, sizeof(real8  )*n);
-        node->nx = (real8 *) realloc(node->nx, sizeof(real8  )*n);
-        node->ny = (real8 *) realloc(node->ny, sizeof(real8  )*n);
-        node->nz = (real8 *) realloc(node->nz, sizeof(real8  )*n);
-        node->signSF = (real8 *) realloc(node->signSF, sizeof(real8  )*n);
-        node->sigbLoc  = (real8 *) realloc(node->sigbLoc, n*3*sizeof(real8));
-        node->sigbRem  = (real8 *) realloc(node->sigbRem, n*3*sizeof(real8));
+        node->nbrTag  = (Tag_t *) realloc(node->nbrTag,  sizeof(Tag_t  )*n);
+        node->burgX   = (real8 *) realloc(node->burgX,   sizeof(real8  )*n);
+        node->burgY   = (real8 *) realloc(node->burgY,   sizeof(real8  )*n);
+        node->burgZ   = (real8 *) realloc(node->burgZ,   sizeof(real8  )*n);
+        node->armfx   = (real8 *) realloc(node->armfx,   sizeof(real8  )*n);
+        node->armfy   = (real8 *) realloc(node->armfy,   sizeof(real8  )*n);
+        node->armfz   = (real8 *) realloc(node->armfz,   sizeof(real8  )*n);
+        node->nx      = (real8 *) realloc(node->nx,      sizeof(real8  )*n);
+        node->ny      = (real8 *) realloc(node->ny,      sizeof(real8  )*n);
+        node->nz      = (real8 *) realloc(node->nz,      sizeof(real8  )*n);
+        node->signSF  = (real8 *) realloc(node->signSF,  sizeof(real8  )*n);
+        node->sigbLoc = (real8 *) realloc(node->sigbLoc, n*3*sizeof(real8));
+        node->sigbRem = (real8 *) realloc(node->sigbRem, n*3*sizeof(real8));
 
 /*
  *      And just initialize the newly allocated arms only, leaving
@@ -3714,6 +3819,31 @@ void Fatal(const char *format, ...)
 #endif
         exit(1);
 }
+/**
+ * > The Fatal function is used to print a message to the screen and to the log file, and then exit the
+ * program
+ * 
+ * @param fp file pointer to the log file
+ * @param home pointer to the Home_t structure
+ * @param format The format string.
+ */
+void Fatal(FILE *fp, const char *format, ...) 
+{
+        char        msg[512];
+        va_list     args;
+
+        va_start(args, format);
+        vsnprintf(msg, sizeof(msg)-1, format, args);
+        msg[sizeof(msg)-1] = 0;
+        va_end(args);
+        printf("Fatal: %s\n", msg);
+        FPrintf(fp, "Fatal: %s\n", msg);
+
+#ifdef PARALLEL
+        MPI_Abort(MPI_COMM_WORLD, -1);
+#endif
+        exit(1);
+}
 
 
 /*-------------------------------------------------------------------------
@@ -4532,7 +4662,7 @@ void GetGlideConstraintList(Home_t *home, Node_t *node,
         int     i,  surfaceConstraint = 0, planeType;
         int     numConstraints, junctionConstraint = 0;
 	    real8   n1[3], lDir[3];
-        real8   glidePlane[3], negPlane[3];
+        real8   glidePlane[3]={0,0,0}, negPlane[3];
         real8   temp, testVal;
         bool    neglectful = 0;
         Node_t  *nbr;

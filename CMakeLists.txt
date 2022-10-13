@@ -65,8 +65,9 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 if(CMAKE_BUILD_TYPE STREQUAL "GDB")
-    Set(CMAKE_C_FLAGS_GDB "-ggdb -DMPI_DEBUG" )
-    Set(CMAKE_CXX_FLAGS_GDB "-ggdb -DMPI_DEBUG" )
+    Set(CMAKE_C_FLAGS_GDB "-ggdb" )
+    Set(CMAKE_CXX_FLAGS_GDB "-ggdb")
+    AddDef(-DMPI_DEBUG)
 
     Set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_GDB} )
     Set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_GDB} )
@@ -174,9 +175,15 @@ Set(commands_gen_multilayer
     -nGrain 4 -pbc 0 -nTDs 1 -maxDensity ${maxDensity} -gb 1 -loadDir 90.0,90.0  -tdLength 978 -kinkSize 1,5 )
 Set(commands_repart_multilayer -infile paradis.data -cells 4 -domains 1,1,4 -outfile multilayer.data)
 if(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
-    Set(paradis_commands_multilayer -n 1 -f ${PARADIS_SOURCE_DIR}/input/fm-ctab.Cu.m2.t5.dat -d ${PARADIS_BINARY_DIR}/multilayer.data ${PARADIS_SOURCE_DIR}/tests/multilayer.ctrl)
+    Set(paradis_commands_multilayer -n 1 
+        -f ${PARADIS_SOURCE_DIR}/input/fm-ctab.Cu.m2.t5.dat 
+        -d ${PARADIS_BINARY_DIR}/multilayer.data 
+        ${PARADIS_SOURCE_DIR}/tests/multilayer.ctrl)
 else(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
-    Set(paradis_commands_multilayer -n 2 -f ${PARADIS_SOURCE_DIR}/input/fm-ctab.Cu.m2.t5.dat -d ${PARADIS_BINARY_DIR}/multilayer.data ${PARADIS_SOURCE_DIR}/tests/multilayer.ctrl)
+    Set(paradis_commands_multilayer -n 2 
+        -f ${PARADIS_SOURCE_DIR}/input/fm-ctab.Cu.m2.t5.dat 
+        -d ${PARADIS_BINARY_DIR}/multilayer.data 
+        ${PARADIS_SOURCE_DIR}/tests/multilayer.ctrl)
 endif(NOT OPENMP_MODE OR NOT OPENMP_FOUND)
 
 Add_test(test_multilayer-1
@@ -189,7 +196,7 @@ Add_test(test_multilayer-3
 if(0)
 message("CMAKE_C_FLAGS = ${CMAKE_C_FLAGS}")
 message("CMAKE_C_FLAGS_DEBUG = ${CMAKE_C_FLAGS_DEBUG}")
-message("CMAKE_C_FLAGS_MINSIZEREL = ${CMAKE_C_FLAGS_MINSIZEREL}")
+
 message("CMAKE_C_FLAGS_RELEASE = ${CMAKE_C_FLAGS_RELEASE}")
 message("CMAKE_C_FLAGS_RELWITHDEBINFO = ${CMAKE_C_FLAGS_RELWITHDEBINFO}")
 

@@ -609,10 +609,10 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 {
         int     setDefaultRadius = 1;
         int     i, j, k;
-	    int	existDir[3], vec[3];
-	    int	orientationType, existCount;
+	    int	    existDir[3], vec[3];
+	    int	    orientationType, existCount;
         char    *argName;
-        char    *argValue;
+        char    *argValue = NULL;
         char    *token;
         char    oriArg[256];
 
@@ -707,6 +707,7 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                 case OPT_HELP:
                     PrintHelp(argv[0]);
                     exit(0);
+                    break;
                 case OPT_HEXSIZE:
                     inArgs->hexl = atoi(argValue);
                     break;
@@ -800,10 +801,10 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                         break;
                     }
                     inArgs->zSurf[1] = atof(token);
-                        break;
+                    break;
 	            case OPT_POLY:
 	                inArgs->polycrystal	= atof(argValue);
-	                    break;
+	                break;
 	            case OPT_NGRAIN:
                     snprintf(oriArg, sizeof(oriArg), "%s", argValue);
 	                token = strtok(argValue,"x");
@@ -828,36 +829,36 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
 	                break;
 	            case OPT_TWIN_RATIO:
 	                inArgs->twinRatio = atof(argValue);
-	                    break;
+	                break;
 	            case OPT_NLAYERS:
 	                inArgs->nLayers = atoi(argValue);
-	                    break;
+	                break;
 	            case OPT_XMATDIR:
 	                token = strtok(argValue,",");
 	                inArgs->xMatDir[0] = atof(token);
 	                token = strtok(NULL,",");
-                        if (token == (char *)NULL) Fatal("orientation wrong");
+                    if (token == (char *)NULL) Fatal("orientation wrong");
 	                inArgs->xMatDir[1] = atof(token);
 	                token = strtok(NULL,",");
-                        if (token == (char *)NULL) Fatal("orientation wrong");
+                    if (token == (char *)NULL) Fatal("orientation wrong");
 	                inArgs->xMatDir[2] = atof(token);
 	                NormalizeVec(inArgs->xMatDir);
 	                existDir[0] = 1;
 	                orientationType = 1;
-	                    break;
+	                break;
 	            case OPT_YMATDIR:
 	                token = strtok(argValue,",");
 	                inArgs->yMatDir[0] = atof(token);
 	                token = strtok(NULL,",");
-                        if (token == (char *)NULL) Fatal("orientation wrong");
+                    if (token == (char *)NULL) Fatal("orientation wrong");
 	                inArgs->yMatDir[1] = atof(token);
 	                token = strtok(NULL,",");
-                        if (token == (char *)NULL) Fatal("orientation wrong");
+                    if (token == (char *)NULL) Fatal("orientation wrong");
 	                inArgs->yMatDir[2] = atof(token);
 	                NormalizeVec(inArgs->yMatDir);
 	                existDir[1] = 1;
 	                orientationType = 1;
-	                    break;
+	                break;
 	            case OPT_ZMATDIR:
 	                token = strtok(argValue,",");
 	                inArgs->zMatDir[0] = atof(token);
@@ -997,7 +998,6 @@ static void GetInArgs(int argc, char *argv[], InArgs_t *inArgs)
                         break;
                 case OPT_TD_LENGTH:
                     inArgs->tdLength = atof(argValue);
-                    printf("inArgs->tdLength=%f argValue=%s\n",atof(argValue), argValue);
                         break;
                 case OPT_TD_DENSITY:
                     inArgs->tdDensity = atof(argValue);

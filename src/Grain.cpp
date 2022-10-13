@@ -275,39 +275,38 @@ void InitGrain(Home_t *home, Param_t *param){
 	int		    nGrain, type, GBID;
 	real8		twinRatio;
     real8       I[3][3] = {
-                            {1.0e+00, 0.0e+00, 0.0e+00},
-                            {0.0e+00, 1.0e+00, 0.0e+00},
-                            {0.0e+00, 0.0e+00, 1.0e+00}
-                          };
+                    {1.0e+00, 0.0e+00, 0.0e+00},
+                    {0.0e+00, 1.0e+00, 0.0e+00},
+                    {0.0e+00, 0.0e+00, 1.0e+00}};
 
-    real8       zaxis[3] = {0.0,0.0,1.0}, maxSchmid, dis, rad = 800;
+    real8                   zaxis[3] = {0.0,0.0,1.0}, maxSchmid, dis, rad = 800;
     std::vector<SlipSys_t>  slipSys;
     SlipSys_t               slip;
-    BurgInfo_t  *bd;
-    int         inGrain, onGB;
-    GB_t        *gb=NULL;
+    BurgInfo_t              *bd;
+    int                     inGrain, onGB;
+    GB_t                    *gb=NULL;
 
-	real8   hMatrix, p[4][3];
-	real8   bound, rho;
-	int	    inner = 0;
-	Plane_t plane;
-	Line_t  edge;
-    real8 tem[3], f_pk[3], f_pkg[3];
+	real8                   hMatrix=0, p[4][3];
+	real8                   bound=0, rho;
+	int	                    inner = 0;
+	Plane_t                 plane;
+	Line_t                  edge;
+    real8                   tem[3], f_pk[3], f_pkg[3];
 
 	/*the following variables are placed in param.h*/
 	int		    invFlag;
 	real8		lx=0, ly=0, lz=0;	/*half cube size in param.h*/
 
-    int                     m, nmesh;
-    real8                   vec1[3], vec2[3], vec3[3], interPos[3];
-    real8                   poss[2][3], length, vec4[3], msize = 10, tsize;
-    std::vector<Plane_t>    surList(6);
+    int                                m, nmesh;
+    real8                              vec1[3], vec2[3], vec3[3], interPos[3];
+    real8                              poss[2][3], length, vec4[3], msize = 10, tsize;
+    std::vector<Plane_t>               surList(6);
     std::vector<std::vector<Plane_t> > surArray(2);
-    std::vector<int>        records, records1;
-    FILE     *fp, *fp1;
-    char     fileName[256], *token, argValue[256];
-    real8       thick, thick_tot;
-    int         th, l, burgID, maxBurg, numMaxSchmids;
+    std::vector<int>                   records, records1;
+    FILE                               *fp, *fp1;
+    char                               fileName[256], *token, argValue[256];
+    real8                              thick, thick_tot;
+    int                                th, l, burgID, maxBurg, numMaxSchmids;
 
     real8       ps[4][3];
     real8       cena[3] = {1,-1, 1}, cenb[3] = {-1,1,1}, cenc[3] = {1,1,-1}, cend[3] = {-1,-1,-1};
@@ -2360,40 +2359,7 @@ int Coor2EleNum(Home_t *home, real8 position[3], int &nx, int &ny, int &nz)
 
 
 
-void PrintTag(Node_t *node){
 
-    if(node == (Node_t *)NULL){
-        printf("(NULL)");
-    }else{
-        printf("[%d %d %d %d %d %d]-{%f,%f,%f} ",node->myTag.domainID,
-               node->myTag.index,node->numNbrs,node->inGrain,
-               node->onGB, node->constraint, node->x,node->y,node->z);
-	}
-    return;
-}
-void PrintTag(Home_t *home, Node_t *node){
-
-    if(node == (Node_t *)NULL){
-        printf("(NULL)"); return;
-    }else{
-        printf("[%d %d %d %d %d %d]-{%f,%f,%f} ",node->myTag.domainID,
-               node->myTag.index,node->numNbrs,node->inGrain,
-               node->onGB, node->constraint, node->x,node->y,node->z);
-	}
-    int numGlideConstraints; bool  zeroLenJunc;
-    real8 glideConstraints[3][3];
-    GetGlideConstraintList(home, node, 
-                       &numGlideConstraints, glideConstraints, zeroLenJunc,
-                       1, 0.0, 0.0, 0.0, -1);
-    if(numGlideConstraints== 1){
-        printf("plane constraint: {%g,%g,%g} ", glideConstraints[0][0],glideConstraints[0][1],glideConstraints[0][2]);
-    }else if(numGlideConstraints== 2){
-        printf("line constraint: {%g,%g,%g} ", glideConstraints[2][0],glideConstraints[2][1],glideConstraints[2][2]);
-    }else{
-        printf("completely constraint");
-    }
-    return;
-}
 
 void RotateWithAxis(real8 a[3], real8 theta, real8 R[3][3]){
     
@@ -4945,7 +4911,7 @@ void  GetGBNormal(Home_t *home, int oldInGrain, int currInGrain, real8  *refDir,
 {
     Grain_t *grain1 = home->grainKeys[oldInGrain];
     Grain_t *grain2 = home->grainKeys[currInGrain];
-    int id, i;
+    int id=0, i;
     real8 *n;
     for(i=0; i<grain2->nBounds; i++){
         id = GetGBIndexOfGrain(grain1, grain2->GB[i]->GBID);

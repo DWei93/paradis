@@ -13,10 +13,15 @@
 #include "Home.h" 
 #include "Grain.h"
 #include "Util.h" 
+#ifdef PETSC
+#include "PetscUtil.h"
+#endif
 
 #include <vector>
 #include <algorithm>
 #include <numeric>
+
+
 
 #define ENERGY_RULER 1
 
@@ -723,9 +728,20 @@ int PenetrationFirst(Home_t *home, Pene_t *pene)
     UpdateGrain(home, node2, -1, gb->GBID);
 
     SetOneNodeForce(home,node1);
-    EvaluateMobility(home,node1);
     SetOneNodeForce(home,node2);
-    EvaluateMobility(home,node2);
+
+    if(param->velocityKernel){
+#ifdef PETSC
+        PetscVKCtx_t vk;
+        InitilizeLocalVelocityKernel(home, &vk);
+        AddNodeToLocalVelocityKernel(home,&vk,node1);
+        AddNodeToLocalVelocityKernel(home,&vk,node2);
+        SolveLocalVelocityKernel(home, &vk);
+#endif
+    }else{
+        EvaluateMobility(home,node1);
+        EvaluateMobility(home,node2);
+    }
     return(1);
 }
 
@@ -786,7 +802,17 @@ int PenetrationSide(Home_t *home, Node_t *node, Grain_t *oldGrain,
 #endif
     UpdateGrain(home, node, -1, nbrNode2->onGB);
     SetOneNodeForce(home,node);
-    EvaluateMobility(home,node);
+
+    if(param->velocityKernel){
+#ifdef PETSC
+        PetscVKCtx_t vk;
+        InitilizeLocalVelocityKernel(home, &vk);
+        AddNodeToLocalVelocityKernel(home,&vk,node);
+        SolveLocalVelocityKernel(home, &vk);
+#endif
+    }else{
+        EvaluateMobility(home,node);
+    }
     return(1);
 }
 
@@ -860,7 +886,16 @@ int PenetrationLast(Home_t *home, Node_t *node, Grain_t *oldGrain,
 #endif
     UpdateGrain(home, node, -1, nbrNode2->onGB);
     SetOneNodeForce(home,node);
-    EvaluateMobility(home,node);
+    if(param->velocityKernel){
+#ifdef PETSC
+        PetscVKCtx_t vk;
+        InitilizeLocalVelocityKernel(home, &vk);
+        AddNodeToLocalVelocityKernel(home,&vk,node);
+        SolveLocalVelocityKernel(home, &vk);
+#endif
+    }else{
+        EvaluateMobility(home,node);
+    }
     return(1);
 }
 
@@ -2563,7 +2598,16 @@ void GBCrossSlip(Home_t *home)
             oriShear = fabs(GlideShearStress(home,node, gb->n));
 
 		    SetOneNodeForce(home, node);
-            EvaluateMobility(home, node);
+            if(param->velocityKernel){
+#ifdef PETSC
+                PetscVKCtx_t vk;
+                InitilizeLocalVelocityKernel(home, &vk);
+                AddNodeToLocalVelocityKernel(home,&vk,node);
+                SolveLocalVelocityKernel(home, &vk);
+#endif
+            }else{
+                EvaluateMobility(home,node);
+            }
 
             vec[0] = node->fX;
             vec[1] = node->fY;
@@ -2667,7 +2711,16 @@ void GBCrossSlip(Home_t *home)
                     node->onGB = (node->inGrain == -1) ? gb->GBID : -1; 
 
 		            SetOneNodeForce(home, node);
-                    EvaluateMobility(home, node);
+                    if(param->velocityKernel){
+#ifdef PETSC
+                        PetscVKCtx_t vk;
+                        InitilizeLocalVelocityKernel(home, &vk);
+                        AddNodeToLocalVelocityKernel(home,&vk,node);
+                        SolveLocalVelocityKernel(home, &vk);
+#endif
+                    }else{
+                        EvaluateMobility(home,node);
+                    }
 
                     gShear = GlideShearStress(home, node);
 //                  extShear = ExtShearStress(param, outBurgNorm, newNbr1Pos, newNbr2Pos, outPlane);

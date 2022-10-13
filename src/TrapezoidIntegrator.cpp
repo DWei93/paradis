@@ -14,6 +14,7 @@
 #include "FEM.h"
 #endif
 
+
 /*
  *      NODE POSITIONING METHODS:
  *
@@ -245,7 +246,7 @@ void DumpPerNodeTimestep(Home_t *home, double newDT)
 #endif
 
 
-#ifdef DEBUG_TIMESTEP
+#if 0
 /*
  *      The following is just a debug function used to dump
  *      information about the nodes that are causing the 
@@ -253,7 +254,7 @@ void DumpPerNodeTimestep(Home_t *home, double newDT)
  */
 static void DumpNode(Node_t *node)
 {
-        int i, j;
+        int i;
 
         if (node == (Node_t *)NULL) return;
 
@@ -467,9 +468,9 @@ static void AdvanceAllNodes(Home_t *home, real8 oldDT)
 
 	currDT = param->realdt;
 
-        if (oldDT <= 0.0) {
-            oldDT = currDT;
-        }
+    if (oldDT <= 0.0) {
+        oldDT = currDT;
+    }
 
 	for (i = 0; i < home->newNodeKeyPtr; i++) {
 
@@ -623,7 +624,7 @@ void TrapezoidIntegrator(Home_t *home)
 #endif
 #ifdef 	DEBUG_TIMESTEP
         real8   oldErrMax;
-        Node_t  *tmpNode;
+        Node_t  *tmpNode = NULL;
 #endif
 #ifdef DEBUG_TIMESTEP_ERROR
         int     dumpErrorData = 1;
@@ -784,7 +785,6 @@ void TrapezoidIntegrator(Home_t *home)
  */
                 if (globalErrMax < param->rTol) {
                     convergent = 1;
-					
                     break;
                 } else {
                     incrDelta = 0;
@@ -861,11 +861,6 @@ void TrapezoidIntegrator(Home_t *home)
 	            if(newDT < minDT){
 	                newDT = minDT;
 	                convergent = 1;
-/*              
- *	            if(home->myDomain == 0){
- *	                printf("Warning: globalErrMax is %e, skip check convergent\n",globalErrMax);
- *	            }
- */             
 	            }
 #endif				
                 param->deltaTT = newDT;
@@ -888,7 +883,7 @@ void TrapezoidIntegrator(Home_t *home)
                     printf("  Cut timestep for (%d,%d):  errMax %e, newDT %e\n",
                            tmpNode->myTag.domainID, tmpNode->myTag.index,
                            errMax, newDT);
-                    DumpNode(tmpNode);
+                    PrintNode(home, tmpNode);
                 }
 #endif
             }

@@ -17,3 +17,6 @@ utilities/*.C
 *.dat
 .vscode
 *.tgz
+*.inf
+*.yaml
+*.ctrl

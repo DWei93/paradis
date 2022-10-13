@@ -228,7 +228,6 @@ static void Pack1SecondaryGhost(Node_t *node, real8 **outBuf, int *outBufSize,
             buf[bufOffset++] = node->armfy[i];
             buf[bufOffset++] = node->armfz[i];
             buf[bufOffset++] = node->signSF[i];
-            
         }
 
         *outBuf = buf;
@@ -368,7 +367,6 @@ static void UnpackSecondaryGhostResponse(Home_t *home, real8 *inBuf)
  *              IMPORTANT: line below Assumes num arms is last nodal item
  *              before arm data
  */
-				
                 numArms = (int)inBuf[bufOffset+2];
 	            if(numArms<0 || numArms>32){
 		            printf("Task %d, Node(%d,%d):\n", home->myDomain, tmpTag.domainID, tmpTag.index);
@@ -421,13 +419,13 @@ static void UnpackSecondaryGhostResponse(Home_t *home, real8 *inBuf)
             node->oldvZ = inBuf[bufOffset++];
 
             node->constraint = (int)inBuf[bufOffset++];
-            node->flags = (int)inBuf[bufOffset++];
-            node->cellIdx = (int)inBuf[bufOffset++];
+            node->flags      = (int)inBuf[bufOffset++];
+            node->cellIdx    = (int)inBuf[bufOffset++];
 			
             node->inGrain = (int)inBuf[bufOffset++];
-            node->onGB = (int)inBuf[bufOffset++];
+            node->onGB    = (int)inBuf[bufOffset++];
 #ifdef PETSC
-            node->gloID = (int)inBuf[bufOffset++];
+            node->gloID   = (int)inBuf[bufOffset++];
 #endif
         
 #ifdef _FEM

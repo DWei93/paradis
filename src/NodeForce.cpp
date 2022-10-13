@@ -65,9 +65,9 @@ int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
                         real8 a, real8 *a0, real8 grainSize,
                         real8 f1[3], real8 f2[3]);
 int SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
-        real8 bx, real8 by, real8 bz, real8 x1, real8 y1, real8 z1,
-        real8 x2, real8 y2, real8 z2, real8 a,  real8 Ecore,
-        real8 f1[3], real8 f2[3]);
+                        real8 bx, real8 by, real8 bz, real8 x1, real8 y1, real8 z1,
+                        real8 x2, real8 y2, real8 z2, real8 a,  real8 Ecore,
+                        real8 f1[3], real8 f2[3]);
 int SelfForceAnisotropic(int coreOnly, real8 MU, real8 NU,
                         real8 bx, real8 by, real8 bz,
                         real8 x1, real8 y1, real8 z1,

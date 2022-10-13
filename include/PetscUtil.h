@@ -2,6 +2,7 @@
 #define PetscUtil_h
 #include "Typedefs.h"
 #include "Home.h"
+#include "Util.h"
 #include <petsc.h>
 
 struct _petscVelocityKernelCtx{
@@ -77,4 +78,28 @@ PetscErrorCode DestoryGlobalVelocityKernel(PetscVKCtx_t *vk);
  * @param values a 9-element array that will be filled with the constraint tensor.
  */
 void NodalConstraintTensor(Home_t *home, PetscVKCtx_t *vk, int nativeID, real8 *values);
-#endif
+
+/**
+ * > This function is called by the PETSc library to get the local kernel function
+ * velocity calculation
+ * 
+ * @param home The home structure.
+ * @param vk The context for the velocity kernel.
+ */
+PetscErrorCode InitilizeLocalVelocityKernel(Home_t *home, PetscVKCtx_t *vk);
+PetscErrorCode AddNodeToLocalVelocityKernel(Home_t *home, PetscVKCtx_t *vk, Node_t *node);
+PetscErrorCode SolveLocalVelocityKernel(Home_t *home, PetscVKCtx_t *vk);
+
+#ifdef PETSC_DEBUG
+/**
+ * `Fatal` is a function that prints a message to the screen and exits the program. 
+ * 
+ * @param home the home structure
+ * @param format The format string.
+ */
+void Fatal(Home_t *home, const char *format, ...);
+void PetscDebugFPrintf(Home_t *home, const char *format, ...);
+
+#endif  /* end of define PETSC_DEBUG */
+
+#endif /* end of define PetscUtil_h */

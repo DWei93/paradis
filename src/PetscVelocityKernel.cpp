@@ -60,7 +60,15 @@ PetscErrorCode AssembleGlobalVelocityKernel(Home_t *home)
     Node_t          *node, *nbr;
     int             *nNbrsNativeList, *nNbrsGhostList, *nnz;
     Cell_t          *cell;
-    IS              islocal, isglobal;
+#ifdef GHOST
+    PetscInt     *ifrom;
+#else
+    IS           islocal, isglobal;
+#endif
+#ifdef  PETSC_DEBUG
+    FILE  *fp;
+#endif
+
 
     PetscVKCtx_t       *vk = home->vk;
     const int    &nNatives = vk->nNatives;
@@ -72,11 +80,12 @@ PetscErrorCode AssembleGlobalVelocityKernel(Home_t *home)
     int           myDomain = home->myDomain;
     ISLocalToGlobalMapping  &isl2g = vk->isl2g;
 
-#ifdef GHOST
-    PetscInt     *ifrom;
-#endif
 
     PetscFunctionBegin;
+    
+#ifdef PETSC_DEBUG
+    PetscCall(PetscViewerASCIIGetPointer(vk->viewer,&fp));
+#endif
     
     /*
         1. Count the maximum number of nodes required for the current domain 
@@ -126,7 +135,8 @@ PetscErrorCode AssembleGlobalVelocityKernel(Home_t *home)
            and compress the node list of global index.
        2. Record the pointers to all nodes and assemble to vk->nodeList.
     */
-    PetscCall(PetscMalloc4(maxNodes,&vk->gloIDList,maxNodes,&vk->nodeList,nNatives,&vk->nCstList,bs*nNatives,&vk->cstList));
+    PetscCall(PetscMalloc4(maxNodes,&vk->gloIDList,maxNodes,&vk->nodeList,nNatives,
+                &vk->nCstList,bs*nNatives,&vk->cstList));
     localID = 0;
     for(cellNum=0;cellNum<homeNativeCells;cellNum++){
         cellID = home->cellList[cellNum];
@@ -169,18 +179,18 @@ PetscErrorCode AssembleGlobalVelocityKernel(Home_t *home)
         ifrom[localID*bs+1] = bs*node->gloID+1;
         ifrom[localID*bs+2] = bs*node->gloID+2;
     }
-#endif
 
     /*
       Create vector data structures
     */
-#ifdef GHOST
     PetscCall(VecCreateGhost(PETSC_COMM_WORLD,bs*nNatives,bs*nGlobals,bs*nGhosts,ifrom,&velocities));
     PetscCall(VecSetOptionsPrefix(velocities,"vk_velocities_"));
+    PetscCall(PetscObjectSetName((PetscObject) velocities,"velocities"));
     PetscCall(PetscFree(ifrom));    
 #else
     PetscCall(VecCreate(MPI_COMM_WORLD,&velocities));
     PetscCall(VecSetOptionsPrefix(velocities,"vk_velocities_"));
+    PetscCall(PetscObjectSetName((PetscObject) velocities,"velocities"));
     PetscCall(VecSetFromOptions(velocities));
     PetscCall(VecSetSizes(velocities,bs*nNatives,bs*nGlobals));
     PetscCall(VecSetBlockSize(velocities, bs));
@@ -224,6 +234,7 @@ PetscErrorCode AssembleGlobalVelocityKernel(Home_t *home)
         */
         PetscCall(MatCreateSeqAIJ(PETSC_COMM_SELF,nNatives*bs,totNodes*bs,0,nnz, &vk->velCoeMat));
         PetscCall(MatSetOptionsPrefix(vk->velCoeMat,"vk_coef_"));
+        PetscCall(PetscObjectSetName((PetscObject) vk->velCoeMat,"coefficient matrix"));
         PetscCall(MatSetFromOptions(vk->velCoeMat));
         PetscCall(MatSetBlockSize(vk->velCoeMat,bs));
         PetscCall(MatSetUp(vk->velCoeMat));
@@ -233,6 +244,9 @@ PetscErrorCode AssembleGlobalVelocityKernel(Home_t *home)
             node = vk->nodeList[i];
             for(j=0;j<node->numNbrs;j++){
                 nbr = GetNeighborNode(home, node, j);
+                PetscCheck(nbr != (Node_t *)NULL,PETSC_COMM_SELF, PETSC_ERR_ARG_NULL, 
+                "nbr arm %d of node (%d,%d) is null pointer",
+                j,node->myTag.domainID,node->myTag.index);
                 nbrID = nbr->locID; colID=3*nbrID;
                 if(nbrID<i)continue;
                 CaculateTensorLengthXBij(home,node,nbr,lXB);
@@ -264,7 +278,9 @@ PetscErrorCode AssembleGlobalVelocityKernel(Home_t *home)
         }
         PetscCall(MatAssemblyBegin(vk->velCoeMat,MAT_FINAL_ASSEMBLY));
         PetscCall(MatAssemblyEnd(vk->velCoeMat,MAT_FINAL_ASSEMBLY));
-        
+        #ifdef PETSC_DEBUG
+            PetscCall(MatView(vk->velCoeMat,vk->viewer));
+        #endif
         /*
         Tell the matrix we will never add a new nonzero location to the
         matrix. If we do, it will generate an error.
@@ -275,6 +291,7 @@ PetscErrorCode AssembleGlobalVelocityKernel(Home_t *home)
 
     PetscCall(MatCreate(MPI_COMM_WORLD,&vk->velJacobi));
     PetscCall(MatSetOptionsPrefix(vk->velJacobi,"vk_jacobi_"));
+    PetscCall(PetscObjectSetName((PetscObject) vk->velJacobi,"Jacobi matrix"));
     PetscCall(MatSetFromOptions(vk->velJacobi));
     PetscCall(MatSetSizes(vk->velJacobi,bs*nNatives,bs*nNatives,bs*nGlobals,bs*nGlobals));
     PetscCall(MatSetBlockSize(vk->velJacobi,bs));
@@ -304,8 +321,7 @@ PetscErrorCode SolveGlobalVelocityKernel(Home_t *home)
     // variables for restore nodal velocities
     int                 i, totNodes;
     Node_t              *node, **nodeList;
-    PetscScalar         **vArray;
-
+    PetscScalar         **vArray, vel;
 
     //  Variables for SNES 
     SNES                    snes;
@@ -325,6 +341,7 @@ PetscErrorCode SolveGlobalVelocityKernel(Home_t *home)
     PC                      pc;
     KSPConvergedReason      reason;
 
+    PetscScalar   vshr           = home->param->vshr;
     PetscVKCtx_t  *vk            = home->vk;
     Mat           &velJacobi     = vk->velJacobi;
     Vec           &velocities    = vk->velocities;
@@ -382,7 +399,7 @@ PetscErrorCode SolveGlobalVelocityKernel(Home_t *home)
         #endif
     
         /*
-        Destory
+            Destory
         */
         PetscCall(SNESDestroy(&snes));
         PetscCall(VecDestroy(&r));
@@ -394,7 +411,6 @@ PetscErrorCode SolveGlobalVelocityKernel(Home_t *home)
         PetscCall(KSPSetType(ksp,KSPGMRES));
         PetscCall(KSPSetOperators(ksp,vk->velJacobi,vk->velJacobi));
         
-    
         /*  
         Set linear solver defaults for this problem (optional).
         - By extracting the KSP and PC contexts from the KSP context,
@@ -486,9 +502,15 @@ PetscErrorCode SolveGlobalVelocityKernel(Home_t *home)
         }else if(vk->nCstList[i]==3){
             VECTOR_ZERO(vArray[i]);
         }
-        node->vX = vArray[i][0];
-        node->vY = vArray[i][1];
-        node->vZ = vArray[i][2];
+        vel = Normal(vArray[i]);
+        if(vel > vshr){
+            vel = vshr/vel; 
+        }else{
+            vel = 1.0;
+        }
+        node->vX = vArray[i][0]*vel;
+        node->vY = vArray[i][1]*vel;
+        node->vZ = vArray[i][2]*vel;
     }
 
     PetscCall(VecRestoreArray2d(vk->locVel,totNodes,3,0,0,&vArray));
@@ -558,14 +580,36 @@ PetscErrorCode UpdateVelocityForce(Home_t *home, PetscVKCtx_t *vk){
     int     *nCstList   = vk->nCstList;
     real8   *cstList    = vk->cstList;
     Node_t  **nodeList  = vk->nodeList;
+    real8   minSeg      = home->param->minSeg;
+#ifndef GHOST
     Vec     &velocities = vk->velocities;
     Vec     &forces     = vk->forces;
-    real8   minSeg      = home->param->minSeg;
 
     PetscFunctionBegin;
 
     PetscCall(VecGetArray2dWrite(velocities,vk->nNatives,bs,0,0,&velMat));
     PetscCall(VecGetArray2dWrite(forces,vk->nNatives,bs,0,0,&forceMat));
+#else
+    Vec     velocities, forces;
+    int     vecSize, nLocalNodes;
+
+    PetscFunctionBegin;
+
+    PetscCall(VecGhostGetLocalForm(vk->velocities,&velocities));
+    PetscCall(VecGhostGetLocalForm(vk->forces,&forces));
+
+    PetscCall(VecGetSize(velocities, &vecSize));
+    nLocalNodes = vecSize/bs;
+#ifdef PETSC_DEBUG
+    if(nLocalNodes == vk->nNatives)PetscCall(PetscPrintf(PETSC_COMM_WORLD,"nLocalNodes == nNatives"));
+    else if(nLocalNodes == vk->nGlobals)PetscCall(PetscPrintf(PETSC_COMM_WORLD,"nLocalNodes == nGlobals"));
+    else{
+        Fatal("nLocalNodes wrong");
+    }
+#endif
+    PetscCall(VecGetArray2dWrite(velocities,nLocalNodes,bs,0,0,&velMat));
+    PetscCall(VecGetArray2dWrite(forces,nLocalNodes,bs,0,0,&forceMat));
+#endif
 
     /**
      * Currently only the initial velocities of the nodes are extracted directly. 
@@ -598,16 +642,14 @@ PetscErrorCode UpdateVelocityForce(Home_t *home, PetscVKCtx_t *vk){
                 VECTOR_ZERO(forceMat[i]);
             }
 
-            if(node->numNbrs==2){
-                ratio = 1.0;
-                for(int j=0;j<2;j++){
-                    nbr = GetNeighborNode(home,node,j);
-                    if(nbr==(Node_t *)NULL)continue;
-                    len = NodeDistance(home, node, nbr);
-                    if(len<0.5*minSeg)ratio *= len/minSeg;    
-                }
-                VectorTimesSelf(forceMat[i],ratio);
+            ratio = 1.0;
+            for(int j=0;j<node->numNbrs;j++){
+                nbr = GetNeighborNode(home,node,j);
+                if(nbr==(Node_t *)NULL)continue;
+                len = NodeDistance(home, node, nbr);
+                if(len<0.5*minSeg)ratio *= len/minSeg;    
             }
+            VectorTimesSelf(forceMat[i],ratio);
         }
 
 #ifndef IMAGE_FORCE
@@ -632,16 +674,26 @@ PetscErrorCode UpdateVelocityForce(Home_t *home, PetscVKCtx_t *vk){
 #endif
     }
 
+#ifndef GHOST
     PetscCall(VecRestoreArray2dWrite(velocities,vk->nNatives,bs,0,0,&velMat));
     PetscCall(VecRestoreArray2dWrite(forces,vk->nNatives,bs,0,0,&forceMat));
+#else 
+    PetscCall(VecRestoreArray2dWrite(velocities,nLocalNodes,bs,0,0,&velMat));
+    PetscCall(VecRestoreArray2dWrite(forces,nLocalNodes,bs,0,0,&forceMat));
+    PetscCall(VecGhostRestoreLocalForm(vk->velocities,&velocities));
+    PetscCall(VecGhostRestoreLocalForm(vk->forces,&forces));
 
-#ifdef GHOST
-    PetscCall(VecGhostUpdateBegin(velocities,INSERT_VALUES,SCATTER_FORWARD));
-    PetscCall(VecGhostUpdateEnd(velocities,INSERT_VALUES,SCATTER_FORWARD));
-    PetscCall(VecGhostUpdateBegin(forces,INSERT_VALUES,SCATTER_FORWARD));
-    PetscCall(VecGhostUpdateEnd(forces,INSERT_VALUES,SCATTER_FORWARD));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD,"Initial Velocities\n"));
-    PetscCall(VecView(velocities,PETSC_VIEWER_STDOUT_WORLD));
+    PetscCall(VecGhostUpdateBegin(vk->velocities,INSERT_VALUES,SCATTER_FORWARD));
+    PetscCall(VecGhostUpdateEnd(vk->velocities,INSERT_VALUES,SCATTER_FORWARD));
+    PetscCall(VecGhostUpdateBegin(vk->forces,INSERT_VALUES,SCATTER_FORWARD));
+    PetscCall(VecGhostUpdateEnd(vk->forces,INSERT_VALUES,SCATTER_FORWARD));
+
+#ifdef PETSC_DEBUG
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD,"initial velocities"));
+    PetscCall(VecView(vk->velocities, PETSC_VIEWER_STDOUT_WORLD));
+    Fatal("Stop");
+#endif
+
 #endif
     PetscFunctionReturn(0);
 }
@@ -856,8 +908,9 @@ void CaculateTensorLengthXBij(Home_t *home, Node_t *nodei, Node_t *nodej, real8 
         Fatal("%s: Not support material type", __func__);
     }
 }
-PetscErrorCode FormVKFunction(SNES snes,Vec velocities,Vec F,void *ptr){
 
+PetscErrorCode FormVKFunction(SNES snes,Vec velocities,Vec F,void *ptr)
+{
 #ifdef GHOST
     Vec                 lv;
     Vec                 locVel, locF;
@@ -883,8 +936,6 @@ PetscErrorCode FormVKFunction(SNES snes,Vec velocities,Vec F,void *ptr){
 #ifdef GHOST
 
     totNodes = vk->nNatives+vk->nGhosts;
-
-    PetscCall(VecCreateSeq(PETSC_COMM_SELF,bs*totNodes,&locVel));
 
     PetscCall(VecGhostGetLocalForm(velocities,&lv));
     PetscCall(VecGetArrayRead(lv,&lvArray));
@@ -1038,6 +1089,7 @@ PetscErrorCode FormVKJacobianLinear(Home_t *home, PetscVKCtx_t *vk)
 
     PetscFunctionBegin;
 
+    PetscCall(MatZeroEntries(vk->velJacobi));
     if(vk->ltog){
         for(i=0;i<nNatives;i++){
             node = nodeList[i];
@@ -1094,8 +1146,8 @@ PetscErrorCode FormVKJacobianLinear(Home_t *home, PetscVKCtx_t *vk)
                 rows[0] = rowID; rows[1] = rowID+1; rows[2] = rowID+2;
                 cols[0] = rowID; cols[1] = rowID+1; cols[2] = rowID+2;
                 cols[3] = colID; cols[4] = colID+1; cols[5] = colID+2;
-
                 PetscCall(MatSetValues(vk->velJacobi,3,rows,6,cols,values,ADD_VALUES));
+
                 rows[0] = colID; rows[1] = colID+1; rows[2] = colID+2;
                 cols[0] = colID; cols[1] = colID+1; cols[2] = colID+2;
                 cols[3] = rowID; cols[4] = rowID+1; cols[5] = rowID+2;
@@ -1134,24 +1186,209 @@ PetscErrorCode FormVKJacobianLinear(Home_t *home, PetscVKCtx_t *vk)
  * @param home The home structure.
  * @param vk The context for the velocity kernel.
  */
-PetscErrorCode GetLocalVelocityKernel(Home_t *home, PetscVKCtx_t *vk)
+PetscErrorCode InitilizeLocalVelocityKernel(Home_t *home, PetscVKCtx_t *vk)
 {
-        PetscFunctionBegin;
-        vk->nNatives = 0;
-        vk->nolinear = home->vk->nolinear;
-        vk->ltog = PETSC_FALSE;
-
-        PetscFunctionReturn(0);
+    PetscFunctionBegin;
+    vk->nNatives = 0;
+    vk->nolinear = home->vk->nolinear;
+    PetscFunctionReturn(0);
 }
 
-
-PetscErrorCode RestoreLocalVelocityKernel(Home_t *home, PetscVKCtx_t *vk)
+PetscErrorCode AddNodeToLocalVelocityKernel(Home_t *home, PetscVKCtx_t *vk, Node_t *node)
 {
-        PetscFunctionBegin;
+    int id,i;
 
+    PetscFunctionBegin;
+    for(i=0;i<vk->nNatives;i++){
+        if(node == vk->nodeList[i]){
+            PetscFunctionReturn(0);
+        }
+    }
+    
+    id = vk->nNatives;
+    vk->nNatives++;
+    if(id==0){
+        PetscCall(PetscMalloc1(1, &vk->nodeList)); 
+        vk->nodeList[id]=node; node->locID=id;
+        PetscCall(PetscMalloc1(1, &vk->nCstList));
+        PetscCall(PetscMalloc1(3, &vk->cstList));
+    }else{
+        PetscCall(PetscRealloc(vk->nNatives*sizeof(Node_t *),&vk->nodeList));
+        vk->nodeList[id] = node; node->locID = id;
+        PetscCall(PetscRealloc(vk->nNatives*sizeof(PetscInt), &vk->nCstList));
+        PetscCall(PetscRealloc(3*vk->nNatives*sizeof(real8),&vk->cstList));
+
+    }
+
+
+    PetscFunctionReturn(0);
+}
+
+PetscErrorCode SolveLocalVelocityKernel(Home_t *home, PetscVKCtx_t *vk)
+{
+        Node_t      *node, *nbr;
+        PetscInt    *nnz, i, j, k, nNatives;
+        PetscInt    rows[3], cols[6], rowID, colID;
+        real8       lXB[3][3], values[18], nbrVel[3], dragForce[3];
+        PetscReal   **forceMat, **vArray, vel, vshr;
+        KSP         ksp;
+        PC          pc;
+        KSPConvergedReason      reason;
+
+        PetscFunctionBegin;
+        
+        vshr = home->param->vshr;
+        nNatives = vk->nNatives;
+        PetscCall(PetscMalloc1(3*nNatives, &nnz));
+
+        PetscCall(VecCreateSeq(PETSC_COMM_SELF,3*nNatives,&vk->velocities));
+        PetscCall(VecDuplicate(vk->velocities,&vk->forces));
         PetscCall(UpdateVelocityForce(home,vk));
 
+        for(i=0;i<nNatives;i++){
+            node = vk->nodeList[i];
+            nnz[3*i] = 3; nnz[3*i+1] = 3; nnz[3*i+2] = 3;
+            for(j=0;j<node->numNbrs;j++){
+                nbr = GetNeighborNode(home, node, j);
+                if(nbr == (Node_t *)NULL)continue;
+                for(k=0; k<nNatives;k++){
+                    if(nbr == vk->nodeList[k])break;
+                }
+                if(k!=nNatives){
+                    nnz[3*i] +=3; nnz[3*i+1] += 3; nnz[3*i+2] += 3;
+                }else{
+                    nbr->locID = -1;
+                }
+            }
+        }
+        
+        PetscCall(MatCreateSeqAIJ(PETSC_COMM_SELF,3*nNatives, 3*nNatives, 0, nnz, &vk->velJacobi));
+        PetscCall(MatZeroEntries(vk->velJacobi));
+
+        PetscCall(VecGetArray2dWrite(vk->forces,nNatives,3,0,0,&forceMat));
+        
+        for(i=0;i<nNatives;i++){
+            node = vk->nodeList[i];
+            rowID = i*3;
+            for(j=0;j<node->numNbrs;j++){
+                nbr = GetNeighborNode(home,node,j); 
+                if(nbr->locID >= 0  &&  nbr->locID < node->locID)continue;
+                colID = 3*nbr->locID;
+
+                CaculateTensorLengthXBij(home, node, nbr, lXB);
+
+                if(colID >=0 ){
+                    values[0] = 2.0*lXB[0][0]; values[1] = 2.0*lXB[0][1]; values[2] = 2.0*lXB[0][2];
+                    values[3] = lXB[0][0];     values[4] = lXB[0][1];     values[5] = lXB[0][2];
+                   
+                    values[6] = 2.0*lXB[1][0]; values[7]  = 2.0*lXB[1][1]; values[8]  = 2.0*lXB[1][2];
+                    values[9] = lXB[1][0];     values[10] = lXB[1][1];     values[11] = lXB[1][2];
+                    
+                    values[12] = 2.0*lXB[2][0]; values[13] = 2.0*lXB[2][1]; values[14] = 2.0*lXB[2][2];
+                    values[15] = lXB[2][0];     values[16] = lXB[2][1];     values[17] = lXB[2][2];
+                   
+                    rows[0] = rowID; rows[1] = rowID+1; rows[2] = rowID+2;
+                    cols[0] = rowID; cols[1] = rowID+1; cols[2] = rowID+2;
+                    cols[3] = colID; cols[4] = colID+1; cols[5] = colID+2;
+                    PetscCall(MatSetValues(vk->velJacobi,3,rows,6,cols,values,ADD_VALUES));
+
+                    rows[0] = colID; rows[1] = colID+1; rows[2] = colID+2;
+                    cols[0] = colID; cols[1] = colID+1; cols[2] = colID+2;
+                    cols[3] = rowID; cols[4] = rowID+1; cols[5] = rowID+2;
+                    PetscCall(MatSetValues(vk->velJacobi,3,rows,6,cols,values,ADD_VALUES));
+                }else{
+                    values[0] = 2.0*lXB[0][0]; values[1] = 2.0*lXB[0][1]; values[2] = 2.0*lXB[0][2];
+                    values[3] = 2.0*lXB[1][0]; values[4] = 2.0*lXB[1][1]; values[5] = 2.0*lXB[1][2];
+                    values[6] = 2.0*lXB[2][0]; values[7] = 2.0*lXB[2][1]; values[8] = 2.0*lXB[2][2];
+                    rows[0] = rowID; rows[1] = rowID+1; rows[2] = rowID+2;
+                    cols[0] = rowID; cols[1] = rowID+1; cols[2] = rowID+2;
+                    PetscCall(MatSetValues(vk->velJacobi,3,rows,3,cols,values,ADD_VALUES));
+
+                    VectorCopy(nbrVel, nbr->vX, nbr->vY, nbr->vZ);
+                    Matrix33Vector3Multiply(lXB,nbrVel,dragForce);
+                    forceMat[i][0] -= dragForce[0];
+                    forceMat[i][1] -= dragForce[1];
+                    forceMat[i][2] -= dragForce[2];
+                }
+            }
+            rows[0] = rowID; rows[1] = rowID+1; rows[2] = rowID+2;
+            cols[0] = rowID; cols[1] = rowID+1; cols[2] = rowID+2;
+            NodalConstraintTensor(home, vk, i, values);
+            PetscCall(MatSetValues(vk->velJacobi,3,rows,3,cols,values,ADD_VALUES));
+        }
+
+        PetscCall(VecRestoreArray2dWrite(vk->forces,nNatives,3,0,0,&forceMat));
+
+        PetscCall(MatAssemblyBegin(vk->velJacobi,MAT_FINAL_ASSEMBLY));
+        PetscCall(MatAssemblyEnd(vk->velJacobi,MAT_FINAL_ASSEMBLY));
+       
+         /*
+           Tell the matrix we will never add a new nonzero location to the
+           matrix. If we do, it will generate an error.
+        */
+        PetscCall(MatSetOption(vk->velJacobi,MAT_NEW_NONZERO_LOCATION_ERR,PETSC_TRUE));
+       
+        /* A is symmetric. Set symmetric flag to enable ICC/Cholesky preconditioner */
+        PetscCall(MatSetOption(vk->velJacobi,MAT_SYMMETRIC,PETSC_TRUE));
+
+        PetscCall(KSPCreate(PETSC_COMM_SELF,&ksp));
+        PetscCall(KSPSetType(ksp,KSPGMRES));
+        PetscCall(KSPSetOperators(ksp,vk->velJacobi,vk->velJacobi));
+        
+        /*  
+        Set linear solver defaults for this problem (optional).
+        - By extracting the KSP and PC contexts from the KSP context,
+            we can then directly call any KSP and PC routines to set
+            various options.
+        - The following four statements are optional; all of these
+            parameters could alternatively be specified at runtime via
+            KSPSetFromOptions();
+        */
+        PetscCall(KSPGetPC(ksp,&pc));
+        PetscCall(PCSetType(pc,PCJACOBI));
+        PetscCall(KSPSetTolerances(ksp,1.0E-10,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT));
+
+        PetscCall(KSPSetFromOptions(ksp));
+        PetscCall(KSPSolve(ksp,vk->forces,vk->velocities));    
+        
+        PetscCall(KSPGetConvergedReason(ksp,&reason));
+#ifdef PETSC_DEBUG
+        PetscCheck(reason > 0,PetscObjectComm((PetscObject)ksp),PETSC_ERR_PLIB,"KSPConvergedReason() = %s [%d]",KSPConvergedReasons[reason],reason);
+#else
+        if(reason<0){
+            PetscPrintf(PETSC_COMM_SELF,"KSPConvergedReason() = %s [%d]\n",KSPConvergedReasons[reason],reason);
+        }
+#endif
+
+        PetscCall(VecGetArray2d(vk->velocities,nNatives,3,0,0,&vArray));
+        for(i=0;i<nNatives;i++){
+            node = vk->nodeList[i];
+
+            if(vk->nCstList[i]==1){
+                NormalComponent(vArray[i],&vk->cstList[3*i],vArray[i]);
+            }else if(vk->nCstList[i]==2){
+                ParallelComponent(vArray[i],&vk->cstList[3*i],vArray[i]);
+            }else if(vk->nCstList[i]==3){
+                VECTOR_ZERO(vArray[i]);
+            }
+
+            vel = Normal(vArray[i]);
+            if(vel > vshr){
+                vel = vshr/vel; 
+            }else{
+                vel = 1.0;
+            }
+            node->vX = vArray[i][0]*vel;
+            node->vY = vArray[i][1]*vel;
+            node->vZ = vArray[i][2]*vel;
+        }
+        PetscCall(VecRestoreArray2d(vk->velocities,nNatives,3,0,0,&vArray));
+
+        PetscCall(PetscFree(nnz));
+        PetscCall(KSPDestroy(&ksp));
         PetscCall(PetscFree(vk->nodeList));
+        PetscCall(PetscFree(vk->nCstList));
+        PetscCall(PetscFree(vk->cstList));
         PetscCall(VecDestroy(&vk->velocities));
         PetscCall(VecDestroy(&vk->forces));
         PetscCall(MatDestroy(&vk->velJacobi));

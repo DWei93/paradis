@@ -22,9 +22,17 @@
  *
  **************************************************************************/
 
-/*
- *      3D to linear index mapping functions
+/**
+ * > The function `FPrintf` is a wrapper for the standard C function `fprintf` that allows the user to
+ * print to a file using the same syntax as `fprintf` but with the added benefit that the function is
+ * parallelized using the PETSc library
+ * 
+ * @param fp The file pointer to write to.
+ * @param format The format string.
+ * 
+ * @return Nothing.
  */
+void FPrintf(FILE *fp, const char *format, ...);
 void   DecodeCellIdx(Home_t *home, int idx, int *iX, int *jY, int *kZ);
 void   DecodeCell2Idx(Home_t *home, int idx, int *iX, int *jY, int *kZ);
 void   DecodeDomainIdx(Home_t *home, int idx, int *iXdom, int *jYdom,
@@ -85,11 +93,31 @@ void   MarkNodeNoMeshCoarsen(Home_t *home, Node_t *node);
 void   MarkNodeNoCollisions(Home_t *home, Node_t *node);
 real8 NodeDistance(Home_t *home, Node_t *node1, Node_t *node2);
 real8 NodeLengthXMag(Home_t *home, Node_t *node);
+
+/**
+ * This function prints the tag of a node, and also prints the glide constraint of the node.
+ * 
+ * @param home the home structure
+ * @param node the node whose tag you want to print
+ * @param fp the file pointer to the file you want to write to.
+ */
+void PrintTag(Node_t *node);
+void PrintTag(Home_t *home, Node_t *node);
+void PrintTag(Home_t *home, Node_t *node, FILE *fp);
+
+/**
+ * Prints out the information about a node
+ * 
+ * @param home the home structure
+ * @param node the node to be printed
+ * @param fp the file pointer to the file you want to print to
+ */
 void   PrintNode(Node_t *node);
 void   PrintNode(Home_t *home, Node_t *node);
 void   PrintNode(Home_t *home, Node_t *node, FILE *fp);
-void    PrintNbr(Home_t *home, Node_t *node);
-void PrintNbr(Home_t *home, Node_t *node, FILE *fp);
+void   PrintNbr(Home_t *home, Node_t *node);
+void   PrintNbr(Home_t *home, Node_t *node, FILE *fp);
+
 void   ReallocNodeArms(Node_t *node, int n);
 void   RemoveNode(Home_t *home, Node_t *node, int Log);
 void   RepositionNode(Home_t *home, real8 newPos[3], Tag_t *tag, int globalOp);
@@ -159,7 +187,15 @@ void   SortNativeNodes(Home_t *home);
  */
 void   *CreateFragmentList(Home_t *home, int *totalFragmentCount);
 
-void   Fatal(const char *format, ...);
+/**
+ * > The Fatal function is used to print a message to the screen and to the log file, and then exit the
+ * program
+ * 
+ * @param fp file pointer to the log file
+ * @param format The format string.
+ */
+void Fatal(FILE *fp,const char *format, ...);
+void Fatal(const char *format, ...);
 
 void   Plot(Home_t *home, int domIndex, int blkFlag);
 void   WriteArms(Home_t *home, char *baseFileName, int ioGroup,

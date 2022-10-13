@@ -41,6 +41,10 @@
 #include "Mobility.h"
 #include "MathFunctions.h"
 
+#ifdef PETSC
+#include "PetscUtil.h"
+#endif
+
 static int dbgDom;
 
 
@@ -837,8 +841,15 @@ void PredictiveCollisions(Home_t *home)
         Node_t  *splitNode1, *splitNode2, *seg1Node1=NULL, *seg1Node2=NULL;
         GB_t    *gb;
         Param_t *param;
-        int newInGrain, newOnGB, type; real8 dis; bool canMerge;
+        int     newInGrain, newOnGB, type; 
+        real8   dis; 
+        bool    canMerge;
         int     splitInGrain=-1, splitOnGB=-1;
+        real8   minSeg;
+
+#ifdef PETSC
+        PetscVKCtx_t vk;
+#endif
 
 #ifdef SIMPLE_REACTION_ON_GB
         int     gbCollision;
@@ -854,6 +865,7 @@ void PredictiveCollisions(Home_t *home)
 
         thisDomain = home->myDomain;
         param      = home->param;
+        minSeg     = MIN(param->minSeg/1.0E2,1.0);
 
 /* QUESTION!  What is reasonable for mindist2? */
         mindist2 = param->rann * param->rann;
@@ -1123,7 +1135,7 @@ void PredictiveCollisions(Home_t *home)
  *                          less than 1b, treat them as if they are already
  *                          intersecting
  */
-                            if (dist2 < 1.0) {
+                            if (dist2 < minSeg) {
                                 cPoint[0] = x1 + vec1[0] * L1;
                                 cPoint[1] = y1 + vec1[1] * L1;
                                 cPoint[2] = z1 + vec1[2] * L1;
@@ -1325,9 +1337,19 @@ void PredictiveCollisions(Home_t *home)
                                                     f1seg2[0], f1seg2[1],
                                                     f1seg2[2], 1);
     
-                                     (void)EvaluateMobility(home, splitNode1);
-                                     (void)EvaluateMobility(home, splitNode2);
-                                     (void)EvaluateMobility(home, node2);
+                                    if(param->velocityKernel){
+#ifdef PETSC                       
+                                        InitilizeLocalVelocityKernel(home, &vk);
+                                        AddNodeToLocalVelocityKernel(home,&vk,splitNode1);
+                                        AddNodeToLocalVelocityKernel(home,&vk,splitNode2);
+                                        AddNodeToLocalVelocityKernel(home,&vk,node2);
+                                        SolveLocalVelocityKernel(home, &vk);
+#endif                             
+                                    }else{
+                                        (void)EvaluateMobility(home, splitNode1);
+                                        (void)EvaluateMobility(home, splitNode2);
+                                        (void)EvaluateMobility(home, node2);
+                                    }
 
 /*
  *                                   When debugging, dump some info on
@@ -1516,9 +1538,20 @@ void PredictiveCollisions(Home_t *home)
                                                     f1seg2[0], f1seg2[1],
                                                     f1seg2[2], 1);
  
-                                     (void)EvaluateMobility(home, splitNode1);
-                                     (void)EvaluateMobility(home, splitNode2);
-                                     (void)EvaluateMobility(home, node4);
+                                    if(param->velocityKernel){
+#ifdef PETSC                       
+                                        InitilizeLocalVelocityKernel(home, &vk);
+                                        AddNodeToLocalVelocityKernel(home,&vk,splitNode1);
+                                        AddNodeToLocalVelocityKernel(home,&vk,splitNode2);
+                                        AddNodeToLocalVelocityKernel(home,&vk,node4);
+                                        SolveLocalVelocityKernel(home, &vk);
+#endif                             
+                                    }else{
+                                        (void)EvaluateMobility(home, splitNode1);
+                                        (void)EvaluateMobility(home, splitNode2);
+                                        (void)EvaluateMobility(home, node4);
+                                    }
+
 #if 0
 /*
  *                                   When debugging, dump some info on
@@ -1563,11 +1596,9 @@ void PredictiveCollisions(Home_t *home)
                                 
                                FoldBox(param, newPos, newPos+1, newPos+2);
 #if 0
-                               if(gbCollision){
-                                    printf("%d ",home->myDomain); PrintTag(mergenode1); PrintTag(mergenode2);
-                                    printf("plan to merge at {%g,%g,%g}\n",newPos[0],newPos[1],newPos[2]);
+                                printf("%d ",home->myDomain); PrintTag(mergenode1); PrintTag(mergenode2);
+                                printf("plan to merge at {%g,%g,%g}\n",newPos[0],newPos[1],newPos[2]);
                                     
-                               }
 #endif
 #ifdef _FEM
 /*
@@ -1785,7 +1816,15 @@ void PredictiveCollisions(Home_t *home)
                                    targetNode->vY = newVel[1];
                                    targetNode->vZ = newVel[2];
 
-                                   (void)EvaluateMobility(home, targetNode);
+                                    if(param->velocityKernel){
+#ifdef PETSC                       
+                                        InitilizeLocalVelocityKernel(home, &vk);
+                                        AddNodeToLocalVelocityKernel(home,&vk,targetNode);
+                                        SolveLocalVelocityKernel(home, &vk);
+#endif                             
+                                    }else{
+                                        (void)EvaluateMobility(home, targetNode);
+                                    }
 
                                    targetNode->flags |= NO_COLLISIONS;
 #ifdef DEBUG_LOG_MULTI_NODE_SPLITS
@@ -2077,9 +2116,19 @@ void PredictiveCollisions(Home_t *home)
                              ResetSegForces(home, node3, &splitNode2->myTag,
                                             f1seg2[0], f1seg2[1], f1seg2[2], 1);
 
-                             (void)EvaluateMobility(home, splitNode1);
-                             (void)EvaluateMobility(home, splitNode2);
-                             (void)EvaluateMobility(home, node4);
+                             if(param->velocityKernel){
+#ifdef PETSC                 
+                                 InitilizeLocalVelocityKernel(home, &vk);
+                                 AddNodeToLocalVelocityKernel(home,&vk,splitNode1);
+                                 AddNodeToLocalVelocityKernel(home,&vk,splitNode2);
+                                 AddNodeToLocalVelocityKernel(home,&vk,node4);
+                                 SolveLocalVelocityKernel(home, &vk);
+#endif                       
+                             }else{
+                                 (void)EvaluateMobility(home, splitNode1);
+                                 (void)EvaluateMobility(home, splitNode2);
+                                 (void)EvaluateMobility(home, node4);
+                             }
 #if 0
 /*
  *                           When debugging, dump some info on topological
@@ -2291,7 +2340,15 @@ void PredictiveCollisions(Home_t *home)
                                 }
                             }
 
-                            (void)EvaluateMobility(home, targetNode);
+                            if(param->velocityKernel){
+#ifdef PETSC                
+                                InitilizeLocalVelocityKernel(home, &vk);
+                                AddNodeToLocalVelocityKernel(home,&vk,targetNode);
+                                SolveLocalVelocityKernel(home, &vk);
+#endif                      
+                            }else{
+                                (void)EvaluateMobility(home, targetNode);
+                            }
 
                             targetNode->flags |= NODE_RESET_FORCES;
                             targetNode->flags |= NO_COLLISIONS;
